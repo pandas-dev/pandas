@@ -952,8 +952,8 @@ class TestSeriesConstructors:
     def test_constructor_datetimes_with_nulls(self):
         # gh-15869
         for arr in [
-            np.array([None, None, None, None, datetime.now(), None]),
-            np.array([None, None, datetime.now(), None]),
+            np.array([None, None, None, None, datetime(2011, 1, 1), None]),
+            np.array([None, None, datetime(2011, 1, 1), None]),
         ]:
             result = Series(arr)
             assert result.dtype == "M8[us]"
@@ -1465,7 +1465,7 @@ class TestSeriesConstructors:
         series = Series(data)
         tm.assert_is_sorted(series.index)
 
-        data = {"a": 0, "b": "1", "c": "2", "d": datetime.now()}
+        data = {"a": 0, "b": "1", "c": "2", "d": datetime(2011, 1, 1)}
         series = Series(data)
         assert series.dtype == np.object_
 
@@ -1486,7 +1486,7 @@ class TestSeriesConstructors:
         assert strings.dtype == np.object_ if not using_infer_string else "str"
         assert len(strings) == len(datetime_series)
 
-        d = datetime.now()
+        d = datetime(2011, 1, 1)
         dates = Series(d, index=datetime_series.index)
         assert dates.dtype == "M8[us]"
         assert len(dates) == len(datetime_series)

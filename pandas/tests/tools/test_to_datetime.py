@@ -1091,9 +1091,9 @@ class TestToDatetime:
         # See GH#18666
         with tm.set_timezone("US/Eastern"):
             # GH#18705
-            now = Timestamp("now")
-            pdnow = to_datetime("now")
-            pdnow2 = to_datetime(["now"])[0]
+            now = Timestamp("now")  # current-time-ok
+            pdnow = to_datetime("now")  # current-time-ok
+            pdnow2 = to_datetime(["now"])[0]  # current-time-ok
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -1114,12 +1114,13 @@ class TestToDatetime:
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
         with tm.set_timezone(tz):
-            nptoday = np.datetime64("today").astype("datetime64[us]").astype(np.int64)
-            pdtoday = to_datetime("today")
-            pdtoday2 = to_datetime(["today"])[0]
+            today64 = np.datetime64("today")  # current-time-ok
+            nptoday = today64.astype("datetime64[us]").astype(np.int64)
+            pdtoday = to_datetime("today")  # current-time-ok
+            pdtoday2 = to_datetime(["today"])[0]  # current-time-ok
 
-            tstoday = Timestamp("today")
-            tstoday2 = Timestamp.today()
+            tstoday = Timestamp("today")  # current-time-ok
+            tstoday2 = Timestamp.today()  # noqa: TID251
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
@@ -1412,7 +1413,7 @@ class TestToDatetime:
     def test_datetime_bool_arrays_mixed(self, cache):
         msg = f"{type(cache)} is not convertible to datetime"
         with pytest.raises(TypeError, match=msg):
-            to_datetime([False, datetime.today()], cache=cache)
+            to_datetime([False, datetime(2011, 1, 1)], cache=cache)
         with pytest.raises(
             ValueError,
             match=(
@@ -3775,7 +3776,7 @@ class TestOrigin:
         # GH47495
         msg = "Unknown datetime string format, unable to parse: yesterday"
         with pytest.raises(ValueError, match=msg):
-            to_datetime(["today", "yesterday"])
+            to_datetime(["today", "yesterday"])  # current-time-ok
 
     @pytest.mark.parametrize(
         "format, warning",

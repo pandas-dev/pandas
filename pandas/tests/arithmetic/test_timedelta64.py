@@ -113,9 +113,9 @@ class TestTimedelta64ArrayLikeComparisons:
             345600000000000,
             "a",
             Timestamp("2021-01-01"),
-            Timestamp("2021-01-01").now("UTC"),
-            Timestamp("2021-01-01").now().to_datetime64(),
-            Timestamp("2021-01-01").now().to_pydatetime(),
+            Timestamp("2021-01-01", tz="UTC"),
+            Timestamp("2021-01-01").to_datetime64(),
+            Timestamp("2021-01-01").to_pydatetime(),
             Timestamp("2021-01-01").date(),
             np.array(4),  # zero-dim mismatched dtype
         ],

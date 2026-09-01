@@ -204,9 +204,9 @@ NaT   4"""
         unsortable = DataFrame(
             {
                 "foo": [1] * 50,
-                datetime.today(): [1] * 50,
+                datetime(2011, 1, 1): [1] * 50,
                 "bar": ["bar"] * 50,
-                datetime.today() + timedelta(1): ["bar"] * 50,
+                datetime(2011, 1, 1) + timedelta(1): ["bar"] * 50,
             },
             index=np.arange(50),
         )

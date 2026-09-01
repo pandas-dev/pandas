@@ -164,7 +164,7 @@ class TestDataFrameBlockInternals:
 
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
         # mixed-type frames
-        float_string_frame["datetime"] = datetime.now()
+        float_string_frame["datetime"] = datetime(2011, 1, 1)
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
         assert float_string_frame["datetime"].dtype == "M8[us]"
         assert float_string_frame["timedelta"].dtype == "m8[us]"
