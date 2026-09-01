@@ -16,6 +16,7 @@ from pandas import (
     merge,
 )
 import pandas._testing as tm
+from pandas.core import algorithms
 from pandas.core.algorithms import safe_sort
 import pandas.core.common as com
 from pandas.core.sorting import (
@@ -29,10 +30,12 @@ from pandas.core.sorting import (
 
 @pytest.fixture
 def left_right():
-    low, high, n = -1 << 10, 1 << 10, 1 << 20
+    low, high, n = -1 << 10, 1 << 10, 600
     left = DataFrame(
         np.random.default_rng(2).integers(low, high, (n, 7)), columns=list("ABCDEFG")
     )
+    shape = left.nunique().to_numpy()
+    assert is_int64_overflow_possible(shape)
     left["left"] = left.sum(axis=1)
     right = left.sample(
         frac=1, random_state=np.random.default_rng(2), ignore_index=True
@@ -45,8 +48,8 @@ def left_right():
 class TestSorting:
     @pytest.mark.slow
     def test_int64_overflow(self):
-        B = np.concatenate((np.arange(1000), np.arange(1000), np.arange(500)))
-        A = np.arange(2500)
+        B = np.concatenate((np.arange(149), np.arange(149), np.arange(75)))
+        A = np.arange(373)
         df = DataFrame(
             {
                 "A": A,
@@ -57,9 +60,10 @@ class TestSorting:
                 "F": B,
                 "G": A,
                 "H": B,
-                "values": np.random.default_rng(2).standard_normal(2500),
+                "values": np.random.default_rng(2).standard_normal(373),
             }
         )
+        assert is_int64_overflow_possible(df[list("ABCDEFGH")].nunique().to_numpy())
 
         lg = df.groupby(["A", "B", "C", "D", "E", "F", "G", "H"])
         rg = df.groupby(["H", "G", "F", "E", "D", "C", "B", "A"])
@@ -94,8 +98,8 @@ class TestSorting:
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
         rs = np.random.default_rng(2)
-        arr = rs.integers(-1 << 12, 1 << 12, (1 << 15, 5))
-        i = rs.choice(len(arr), len(arr) * 4)
+        arr = rs.integers(-1 << 12, 1 << 12, (11595, 5))
+        i = rs.choice(len(arr), len(arr))
         arr = np.vstack((arr, arr[i]))  # add some duplicate rows
 
         i = rs.permutation(len(arr))
@@ -297,6 +301,7 @@ class TestMerge:
         assert result.name is None
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.sort_values")
     def test_int64_overflow_how_merge(self, left_right, join_type):
         left, right = left_right
 
@@ -319,14 +324,14 @@ class TestMerge:
     def test_int64_overflow_one_to_many_none_match(self, join_type, sort):
         # one-2-many/none match
         how = join_type
-        low, high, n = -1 << 10, 1 << 10, 1 << 11
+        low, high, n = -1 << 10, 1 << 10, 589
         left = DataFrame(
             np.random.default_rng(2).integers(low, high, (n, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
 
         # confirm that this is checking what it is supposed to check
-        shape = left.apply(Series.nunique).values
+        shape = left.nunique().to_numpy()
         assert is_int64_overflow_possible(shape)
 
         # add duplicates to left frame
@@ -427,6 +432,17 @@ def test_decons(codes_list, shape):
         tm.assert_numpy_array_equal(a, b)
 
 
+@pytest.fixture(params=[5_000, 1], ids=["argsort", "counting"])
+def switch_counting_sort_min_len(request, monkeypatch):
+    # GH#66129 safe_sort ranks integer values spanning a modest range with a
+    #  counting sort rather than an argsort, but only above a length gate.
+    #  Lowering the gate runs the shared tests below down both paths, which
+    #  have to agree.
+    with monkeypatch.context() as m:
+        m.setattr(algorithms, "_MIN_COUNTING_SORT_LEN", request.param)
+        yield request.param
+
+
 class TestSafeSort:
     @pytest.mark.parametrize(
         "arg, exp",
@@ -444,6 +460,7 @@ class TestSafeSort:
         expected = np.array(exp)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "object"])
     @pytest.mark.parametrize("verify", [True, False])
     @pytest.mark.parametrize(
         "codes, exp_codes",
@@ -452,9 +469,9 @@ class TestSafeSort:
             [[], []],
         ],
     )
-    def test_codes(self, verify, codes, exp_codes):
-        values = np.array([3, 1, 2, 0, 4])
-        expected = np.array([0, 1, 2, 3, 4])
+    def test_codes(self, verify, codes, exp_codes, dtype, switch_counting_sort_min_len):
+        values = np.array([3, 1, 2, 0, 4], dtype=dtype)
+        expected = np.array([0, 1, 2, 3, 4], dtype=dtype)
 
         result, result_codes = safe_sort(
             values, codes, use_na_sentinel=True, verify=verify
@@ -463,9 +480,10 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
-    def test_codes_out_of_bound(self):
-        values = np.array([3, 1, 2, 0, 4])
-        expected = np.array([0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float64", "object"])
+    def test_codes_out_of_bound(self, dtype, switch_counting_sort_min_len):
+        values = np.array([3, 1, 2, 0, 4], dtype=dtype)
+        expected = np.array([0, 1, 2, 3, 4], dtype=dtype)
 
         # out of bound indices
         codes = [0, 101, 102, 2, 3, 0, 99, 4]
@@ -473,6 +491,69 @@ class TestSafeSort:
         expected_codes = np.array([3, -1, -1, 2, 0, 3, -1, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
+
+    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
+    def test_codes_out_of_bound_wrap(self, dtype, switch_counting_sort_min_len):
+        # out of bound indices wrap when there is no sentinel to mask them with
+        values = np.array([3, 1, 2, 0, 4], dtype=dtype)
+        # wrapping these lands on 0, 1, 3, 2, 4 respectively
+        codes = [0, 6, 8, 2, -1]
+
+        _, result_codes = safe_sort(values, codes, use_na_sentinel=False)
+        expected_codes = np.array([3, 1, 0, 2, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result_codes, expected_codes)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32", "int16", "uint64"])
+    @pytest.mark.parametrize("anchor", ["min", "max"])
+    @pytest.mark.parametrize("assume_unique", [True, False])
+    def test_codes_counting_sort_dtype_bounds(
+        self, dtype, anchor, assume_unique, switch_counting_sort_min_len
+    ):
+        # GH#66129 anchor the values at either end of the dtype so that shifting
+        #  by the minimum is exercised for large-negative and large-positive bases
+        info = np.iinfo(dtype)
+        num = 5
+        base = info.min if anchor == "min" else info.max - num + 1
+        values = np.arange(base, base + num, dtype=dtype)[::-1].copy()
+        codes = np.array([0, 3, 4, 1], dtype=np.intp)
+
+        result, result_codes = safe_sort(values, codes, assume_unique=assume_unique)
+        tm.assert_numpy_array_equal(result, np.sort(values))
+        tm.assert_numpy_array_equal(result_codes, np.array([4, 1, 0, 3], dtype=np.intp))
+
+    def test_codes_counting_sort_duplicates(self, switch_counting_sort_min_len):
+        # GH#66129 the counting pass doubles as the uniqueness check
+        values = np.array([3, 1, 2, 0, 3], dtype="int64")
+        codes = np.arange(len(values), dtype=np.intp)
+        with pytest.raises(ValueError, match="values should be unique"):
+            safe_sort(values, codes)
+
+    def test_codes_counting_sort_wide_range(self, switch_counting_sort_min_len):
+        # GH#66129 too wide a range declines the counting path; the results have
+        #  to match the argsort path it falls back to
+        values = np.array([300, 1, 20000, 0, 4], dtype="int64")
+        codes = np.array([0, 2, 4, -1, 1], dtype=np.intp)
+
+        result, result_codes = safe_sort(values, codes)
+        tm.assert_numpy_array_equal(result, np.sort(values))
+        tm.assert_numpy_array_equal(
+            result_codes, np.array([3, 4, 2, -1, 1], dtype=np.intp)
+        )
+
+    def test_codes_counting_sort_above_real_min_len(self):
+        # GH#66129 the unpatched cutoff has to actually reach the counting path
+        num = algorithms._MIN_COUNTING_SORT_LEN + 1
+        rng = np.random.default_rng(2)
+        values = rng.permutation(np.arange(num, dtype="int64"))
+        codes = rng.integers(0, num, size=500).astype(np.intp)
+
+        result, result_codes = safe_sort(values, codes.copy())
+
+        # ranks[i] is the position of values[i] once sorted
+        ranks = np.empty(num, dtype=np.intp)
+        ranks[values.argsort()] = np.arange(num, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, np.sort(values))
+        tm.assert_numpy_array_equal(result_codes, ranks.take(codes))
 
     @pytest.mark.parametrize("codes", [[-1, -1], [2, -1], [2, 2]])
     def test_codes_empty_array_out_of_bound(self, codes):
@@ -498,7 +579,7 @@ class TestSafeSort:
 
     def test_unsortable(self):
         # GH 13714
-        arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
+        arr = np.array([1, 2, datetime(2011, 1, 1), 0, 3], dtype=object)
         msg = "'[<>]' not supported between instances of .*"
         with pytest.raises(TypeError, match=msg):
             safe_sort(arr)

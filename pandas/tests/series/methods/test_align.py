@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import UTC
 
 import numpy as np
 import pytest
@@ -132,8 +132,8 @@ def test_align_dt64tzindex_mismatched_tzs():
     # different timezones convert to UTC
 
     new1, new2 = ser.align(ser_central)
-    assert new1.index.tz is timezone.utc
-    assert new2.index.tz is timezone.utc
+    assert new1.index.tz is UTC
+    assert new2.index.tz is UTC
 
 
 def test_align_periodindex(join_type):

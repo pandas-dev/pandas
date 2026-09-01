@@ -49,8 +49,24 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("kwargs", [{}, {"bins": 5}])
     def test_hist_legacy_kwargs_warning(self, ts, kwargs):
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(ts.hist, by=ts.index.month, **kwargs)
+
+    @pytest.mark.parametrize("by", [None, np.array(list("aabbaabbaa"))])
+    def test_hist_tz_aware(self, by):
+        # GH#64613 .hist() read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and binned in UTC rather than in the
+        #  data's own timezone
+        ser = Series(date_range("2020-01-01", periods=10, tz="US/Pacific"))
+
+        with tm.assert_produces_warning(None):
+            result = ser.hist(by=by)
+
+        axes = np.ravel(result)
+        expected = ser.groupby(by).min() if by is not None else Series([ser.min()])
+        for ax, first in zip(axes, expected, strict=True):
+            assert ax.patches[0].get_x() == mpl.dates.date2num(first)
 
     def test_hist_legacy_ax(self, ts):
         fig, ax = mpl.pyplot.subplots(1, 1)
@@ -111,7 +127,8 @@ class TestSeriesPlots:
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
         # though we don't explicitly pass one, see GH #13188
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
         _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)
 
@@ -240,9 +257,22 @@ class TestSeriesPlots:
 
 
 class TestDataFramePlots:
+    def test_hist_df_tz_aware(self):
+        # GH#64613 .hist() read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and binned in UTC rather than in the
+        #  data's own timezone
+        df = DataFrame({"a": date_range("2020-01-01", periods=10, tz="US/Pacific")})
+
+        with tm.assert_produces_warning(None):
+            axes = df.hist()
+
+        ax = np.ravel(axes)[0]
+        assert ax.patches[0].get_x() == mpl.dates.date2num(df["a"].min())
+
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(hist_df.hist)
 
     @pytest.mark.slow
@@ -257,7 +287,8 @@ class TestDataFramePlots:
                 dtype=np.int64,
             )
         )
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.hist, grid=False)
         _check_axes_shape(axes, axes_num=3, layout=(2, 2))
         assert not axes[1, 1].get_visible()
@@ -267,7 +298,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy_layout2(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
-        _check_plot_works(df.hist)
+        _check_plot_works(df.hist, default_axes=True)
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout3(self):
@@ -281,7 +312,8 @@ class TestDataFramePlots:
                 dtype=np.int64,
             )
         )
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.hist, layout=(4, 2))
         _check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
@@ -302,7 +334,8 @@ class TestDataFramePlots:
         # make sure sharex, sharey is handled
         # handle figsize arg
         # check bins argument
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(df.hist, **kwargs)
 
     @pytest.mark.slow
@@ -825,7 +858,8 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.slow
     def test_grouped_hist_layout_warning(self, hist_df):
         df = hist_df
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(
                 df.hist, column="height", by=df.gender, layout=(2, 1)
             )
@@ -846,7 +880,8 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_layout_by_warning(self, hist_df, kwargs):
         df = hist_df
         # GH 6769
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.hist, by="classroom", **kwargs)
         _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 

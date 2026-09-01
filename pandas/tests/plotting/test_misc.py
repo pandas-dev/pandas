@@ -135,13 +135,27 @@ class TestSeriesPlots:
         )
         _check_plot_works(plotting.lag_plot, series=ser, **kwargs)
 
+    def test_lag_plot_tz_aware(self):
+        # GH#64613 lag_plot read Series.values, so it raised the lossy-.values
+        #  deprecation from inside pandas and plotted in UTC rather than in the
+        #  data's own timezone
+        ser = Series(date_range("2020-01-01", periods=10, tz="US/Pacific"), name="ts")
+
+        with tm.assert_produces_warning(None):
+            ax = plotting.lag_plot(ser)
+
+        expected = [mpl.dates.date2num(ser.iloc[0]), mpl.dates.date2num(ser.iloc[1])]
+        assert list(ax.collections[0].get_offsets()[0]) == expected
+
     def test_bootstrap_plot(self):
         ser = Series(
             np.arange(10, dtype=np.float64),
             index=date_range("2020-01-01", periods=10),
             name="ts",
         )
-        _check_plot_works(plotting.bootstrap_plot, series=ser, size=10)
+        _check_plot_works(
+            plotting.bootstrap_plot, series=ser, size=10, default_axes=True
+        )
 
 
 class TestDataFramePlots:
@@ -157,7 +171,8 @@ class TestDataFramePlots:
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(
                 scatter_matrix,
                 frame=df,
@@ -183,7 +198,8 @@ class TestDataFramePlots:
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(
                 scatter_matrix,
                 frame=df,
@@ -290,6 +306,19 @@ class TestDataFramePlots:
         )
         cmaps = [mpl.cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
+
+    def test_parallel_coordinates_tz_aware(self):
+        # GH#64613 parallel_coordinates read Series.values, so it raised the
+        #  lossy-.values deprecation from inside pandas and plotted in UTC
+        #  rather than in the data's own timezone
+        values = date_range("2020-01-01", periods=4, tz="US/Pacific")
+        df = DataFrame({"a": values, "b": values.shift(1), "kls": list("aabb")})
+
+        with tm.assert_produces_warning(None):
+            ax = plotting.parallel_coordinates(df, "kls")
+
+        expected = np.array([values[0], values[1]], dtype=object)
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_ydata(), expected)
 
     @pytest.mark.slow
     def test_parallel_coordinates_line_diff(self, iris):

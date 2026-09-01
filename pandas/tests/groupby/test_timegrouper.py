@@ -3,9 +3,9 @@ test with the TimeGrouper / grouping with datetimes
 """
 
 from datetime import (
+    UTC,
     datetime,
     timedelta,
-    timezone,
 )
 
 import numpy as np
@@ -772,16 +772,19 @@ class TestGroupBy:
     def test_timezone_info(self):
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
-        utc = timezone.utc
-        df = DataFrame({"a": [1], "b": [datetime.now(utc)]})
+        utc = UTC
+        df = DataFrame({"a": [1], "b": [datetime(2011, 1, 1, tzinfo=utc)]})
         assert df["b"][0].tzinfo == utc
         df = DataFrame({"a": [1, 2, 3]})
-        df["b"] = datetime.now(utc)
+        df["b"] = datetime(2011, 1, 1, tzinfo=utc)
         assert df["b"][0].tzinfo == utc
 
     def test_datetime_count(self):
         df = DataFrame(
-            {"a": [1, 2, 3] * 2, "dates": date_range("now", periods=6, freq="min")}
+            {
+                "a": [1, 2, 3] * 2,
+                "dates": date_range("2011-01-01", periods=6, freq="min"),
+            }
         )
         result = df.groupby("a").dates.count()
         expected = Series([2, 2, 2], index=Index([1, 2, 3], name="a"), name="dates")
@@ -889,7 +892,7 @@ class TestGroupBy:
         dti = date_range("2013-09-01", "2013-10-01", freq="5D", name="Date", unit=unit)
         mi = MultiIndex.from_arrays([dti, ["foo"] * len(dti)])
         expected = Series([3, 0, 0, 0, 0, 0, 2], index=mi, name="Quantity")
-        tm.assert_series_equal(res, expected)
+        tm.assert_series_equal(res, expected, check_freq=False)
 
     def test_groupby_apply_timegrouper_with_nat_scalar_returns(
         self, groupby_with_truncated_bingrouper

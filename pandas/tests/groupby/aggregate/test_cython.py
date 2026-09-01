@@ -5,6 +5,8 @@ test cython .agg behavior
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -32,12 +34,7 @@ import pandas._testing as tm
         "var",
         "sem",
         "mean",
-        pytest.param(
-            "median",
-            # ignore mean of empty slice
-            # and all-NaN
-            marks=[pytest.mark.filterwarnings("ignore::RuntimeWarning")],
-        ),
+        "median",
         "prod",
         "min",
         "max",
@@ -117,7 +114,7 @@ def test_cython_agg_nothing_to_agg_with_dates():
         {
             "a": np.random.default_rng(2).integers(0, 5, 50),
             "b": ["foo", "bar"] * 25,
-            "dates": pd.date_range("now", periods=50, freq="min"),
+            "dates": pd.date_range("2011-01-01", periods=50, freq="min"),
         }
     )
     msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
@@ -326,7 +323,9 @@ def test_cython_agg_nullable_int(op_name):
         convert_integer = False
     else:
         convert_integer = True
-    expected = expected.convert_dtypes(convert_integer=convert_integer)
+    msg = "The convert_integer keyword in Series.convert_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = expected.convert_dtypes(convert_integer=convert_integer)
     tm.assert_series_equal(result, expected)
 
 

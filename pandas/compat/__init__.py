@@ -19,7 +19,9 @@ from pandas.compat._constants import (
     IS64,
     ISMUSL,
     PY312,
+    PY313,
     PY314,
+    PY315,
     PYPY,
     WASM,
 )
@@ -28,9 +30,6 @@ from pandas.compat.pyarrow import (
     HAS_PYARROW,
     PYARROW_INSTALLED,
     PYARROW_MIN_VERSION,
-    pa_version_under14p0,
-    pa_version_under14p1,
-    pa_version_under16p0,
     pa_version_under17p0,
     pa_version_under18p0,
     pa_version_under19p0,
@@ -39,6 +38,7 @@ from pandas.compat.pyarrow import (
     pa_version_under22p0,
     pa_version_under23p0,
     pa_version_under25p0,
+    pa_version_under26p0,
 )
 
 if TYPE_CHECKING:
@@ -147,15 +147,14 @@ __all__ = [
     "IS64",
     "ISMUSL",
     "PY312",
+    "PY313",
     "PY314",
+    "PY315",
     "PYARROW_INSTALLED",
     "PYARROW_MIN_VERSION",
     "PYPY",
     "WASM",
     "is_numpy_dev",
-    "pa_version_under14p0",
-    "pa_version_under14p1",
-    "pa_version_under16p0",
     "pa_version_under17p0",
     "pa_version_under18p0",
     "pa_version_under19p0",
@@ -164,4 +163,5 @@ __all__ = [
     "pa_version_under22p0",
     "pa_version_under23p0",
     "pa_version_under25p0",
+    "pa_version_under26p0",
 ]

@@ -41,7 +41,7 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
+    is_array_like_deprecate_non_pandas,
     is_bool_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -851,7 +851,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 )
         else:
             value = extract_array(value, extract_numpy=True)
-            if not is_array_like(value):
+            if not is_array_like_deprecate_non_pandas(value):
                 value = np.asarray(value, dtype=object)
             elif isinstance(value.dtype, type(self.dtype)):
                 return value
@@ -1252,7 +1252,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 )
 
             # for array-likes, first filter out NAs before converting to numpy
-            if not is_array_like(other):
+            if not is_array_like_deprecate_non_pandas(other):
                 other = np.asarray(other)
             other = other[valid]
 
@@ -1270,7 +1270,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
-            if not lib.is_string_array(result, skipna=True):
+            # GH#40624 is_string_array is False for a length-zero array, but a
+            #  length-zero result should keep the string dtype
+            if len(result) and not lib.is_string_array(result, skipna=True):
                 return result
             return self._from_backing_data(result)
         else:

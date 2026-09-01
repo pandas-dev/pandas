@@ -117,6 +117,10 @@ class TestDatetimeArray(base.ExtensionTests):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
 
+    @pytest.mark.skip("DatetimeArray.round uses a different signature (freq).")
+    def test_round(self, data):
+        pass
+
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["median", "mean", "std"]:
             alt = ser.astype("int64")
@@ -138,7 +142,7 @@ class TestDatetimeArray(base.ExtensionTests):
             return super().check_reduce(ser, op_name, skipna)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_values_for_json(self, data):
         # GH 65127
@@ -147,7 +151,7 @@ class TestDatetimeArray(base.ExtensionTests):
         super().test_values_for_json(data)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     @pytest.mark.xfail(
         raises=AssertionError, reason="DatetimeArray does not support JSON roundtrip."

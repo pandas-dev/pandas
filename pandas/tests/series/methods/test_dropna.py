@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DatetimeIndex,
     IntervalIndex,
@@ -13,6 +15,7 @@ import pandas._testing as tm
 
 
 class TestDropna:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.dropna")
     def test_dropna_empty(self):
         ser = Series([], dtype=object)
 
@@ -26,6 +29,7 @@ class TestDropna:
         with pytest.raises(ValueError, match=msg):
             ser.dropna(axis=1)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.dropna")
     def test_dropna_preserve_name(self, datetime_series):
         datetime_series[:5] = np.nan
         result = datetime_series.dropna()
@@ -36,6 +40,7 @@ class TestDropna:
         assert return_value is None
         assert ts.name == name
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.dropna")
     def test_dropna_no_nan(self):
         for ser in [
             Series([1, 2, 3], name="x"),
@@ -105,6 +110,7 @@ class TestDropna:
         assert result.dtype == f"datetime64[{unit}, Asia/Tokyo]"
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.dropna")
     @pytest.mark.parametrize("val", [1, 1.5])
     def test_dropna_ignore_index(self, val):
         # GH#31725
@@ -115,3 +121,28 @@ class TestDropna:
 
         ser.dropna(ignore_index=True, inplace=True)
         tm.assert_series_equal(ser, expected)
+
+
+def test_dropna_inplace_depr():
+    msg = "The inplace keyword in Series.dropna is deprecated"
+
+    ser = Series([1.0, 1.5, np.nan, 2.0])
+    ser_orig = ser.copy()
+    expected = Series([1.0, 1.5, 2.0], index=[0, 1, 3])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.dropna()
+    tm.assert_series_equal(result, expected)
+    tm.assert_almost_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.dropna(inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_almost_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.dropna(inplace=True)
+    tm.assert_series_equal(ser, expected)

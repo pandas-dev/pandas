@@ -386,9 +386,9 @@ def boxplot(
     .. plot::
         :context: close-figs
 
-        >>> np.random.seed(1234)
+        >>> rng = np.random.default_rng(42)
         >>> df = pd.DataFrame(
-        ...     np.random.randn(10, 4), columns=["Col1", "Col2", "Col3", "Col4"]
+        ...     rng.standard_normal((10, 4)), columns=["Col1", "Col2", "Col3", "Col4"]
         ... )
         >>> boxplot = df.boxplot(column=["Col1", "Col2", "Col3"])  # doctest: +SKIP
 
@@ -398,7 +398,7 @@ def boxplot(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=["Col1", "Col2"])
+        >>> df = pd.DataFrame(rng.standard_normal((10, 2)), columns=["Col1", "Col2"])
         >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         >>> boxplot = df.boxplot(by="X")
 
@@ -408,7 +408,9 @@ def boxplot(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(10, 3), columns=["Col1", "Col2", "Col3"])
+        >>> df = pd.DataFrame(
+        ...     rng.standard_normal((10, 3)), columns=["Col1", "Col2", "Col3"]
+        ... )
         >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         >>> df["Y"] = pd.Series(["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"])
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
@@ -578,9 +580,9 @@ def boxplot_frame(
     .. plot::
         :context: close-figs
 
-        >>> np.random.seed(1234)
+        >>> rng = np.random.default_rng(42)
         >>> df = pd.DataFrame(
-        ...     np.random.randn(10, 4), columns=["Col1", "Col2", "Col3", "Col4"]
+        ...     rng.standard_normal((10, 4)), columns=["Col1", "Col2", "Col3", "Col4"]
         ... )
         >>> boxplot = df.boxplot(column=["Col1", "Col2", "Col3"])  # doctest: +SKIP
 
@@ -590,7 +592,7 @@ def boxplot_frame(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=["Col1", "Col2"])
+        >>> df = pd.DataFrame(rng.standard_normal((10, 2)), columns=["Col1", "Col2"])
         >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         >>> boxplot = df.boxplot(by="X")
 
@@ -600,7 +602,9 @@ def boxplot_frame(
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(10, 3), columns=["Col1", "Col2", "Col3"])
+        >>> df = pd.DataFrame(
+        ...     rng.standard_normal((10, 3)), columns=["Col1", "Col2", "Col3"]
+        ... )
         >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         >>> df["Y"] = pd.Series(["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"])
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
@@ -748,7 +752,7 @@ def boxplot_frame_groupby(
         >>> import itertools
         >>> tuples = [t for t in itertools.product(range(1000), range(4))]
         >>> index = pd.MultiIndex.from_tuples(tuples, names=["lvl0", "lvl1"])
-        >>> data = np.random.randn(len(index), 4)
+        >>> data = np.random.default_rng(42).standard_normal((len(index), 4))
         >>> df = pd.DataFrame(data, columns=list("ABCD"), index=index)
         >>> grouped = df.groupby(level="lvl1")
         >>> grouped.boxplot(rot=45, fontsize=12, figsize=(8, 10))  # doctest: +SKIP
@@ -811,8 +815,14 @@ class PlotAccessor(PandasObject):
         - 'pie' : pie plot
         - 'scatter' : scatter plot (DataFrame only)
         - 'hexbin' : hexbin plot (DataFrame only)
+    by : str or sequence of str, optional
+        Column label(s) in the DataFrame to group by. Only used if
+        ``kind="hist"`` or ``kind="box"``; ignored for other kinds.
+        See :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box`.
     ax : matplotlib axes object, default None
-        An axes of the current figure.
+        The axes to plot on. If None, ``Series.plot`` draws on the
+        current axes (``matplotlib.pyplot.gca()``) when a figure already
+        exists, while ``DataFrame.plot`` always creates a new figure.
     subplots : bool or sequence of iterables, default False
         Whether to group columns into subplots:
 
@@ -1144,8 +1154,14 @@ class PlotAccessor(PandasObject):
             - 'pie' : pie plot
             - 'scatter' : scatter plot (DataFrame only)
             - 'hexbin' : hexbin plot (DataFrame only)
+        by : str or sequence of str, optional
+            Column label(s) in the DataFrame to group by. Only used if
+            ``kind="hist"`` or ``kind="box"``; ignored for other kinds.
+            See :meth:`DataFrame.plot.hist` and :meth:`DataFrame.plot.box`.
         ax : matplotlib axes object, default None
-            An axes of the current figure.
+            The axes to plot on. If None, ``Series.plot`` draws on the
+            current axes (``matplotlib.pyplot.gca()``) when a figure already
+            exists, while ``DataFrame.plot`` always creates a new figure.
         subplots : bool or sequence of iterables, default False
             Whether to group columns into subplots:
 
@@ -1451,7 +1467,12 @@ class PlotAccessor(PandasObject):
 
         **kwargs
             Additional keyword arguments are documented in
-            :meth:`DataFrame.plot`.
+            :meth:`DataFrame.plot`. In addition, passing ``x_compat=True``
+            suppresses pandas' automatic tick resolution adjustment for
+            regular frequency time-series data in favor of the default
+            matplotlib tick locators and formatters. See
+            :ref:`Suppressing tick resolution adjustment
+            <plotting.x_compat>` for more.
 
         Returns
         -------
@@ -1575,6 +1596,14 @@ class PlotAccessor(PandasObject):
         DataFrame.plot.barh : Horizontal bar plot.
         DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
+
+        Notes
+        -----
+        A bar plot draws one tick label per bar, i.e. one per row of the data.
+        This differs from a line plot, where the axis uses an automatic locator
+        that shows only a subset of evenly spaced ticks. With many bars the
+        labels may therefore overlap; set the tick positions and labels manually
+        (e.g. via ``ax.set_xticks``) if a sparser axis is desired.
 
         Examples
         --------
@@ -1844,7 +1873,7 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> data = np.random.randn(25, 4)
+            >>> data = np.random.default_rng(42).standard_normal((25, 4))
             >>> df = pd.DataFrame(data, columns=list("ABCD"))
             >>> ax = df.plot.box()
 
@@ -1901,8 +1930,9 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame(np.random.randint(1, 7, 6000), columns=["one"])
-            >>> df["two"] = df["one"] + np.random.randint(1, 7, 6000)
+            >>> rng = np.random.default_rng(42)
+            >>> df = pd.DataFrame(rng.integers(1, 7, 6000), columns=["one"])
+            >>> df["two"] = df["one"] + rng.integers(1, 7, 6000)
             >>> ax = df.plot.hist(bins=12, alpha=0.5)
 
         A grouped histogram can be generated by providing the parameter `by` (which
@@ -2318,6 +2348,10 @@ class PlotAccessor(PandasObject):
             Alternatively, gridsize can be a tuple with two elements
             specifying the number of hexagons in the x-direction and the
             y-direction.
+            The hexagons tile only the extent of the data, so for a fixed
+            gridsize their apparent size varies with the range of the data
+            and the axis limits. To control the area covered by the
+            hexagons, pass matplotlib's ``extent`` keyword via ``**kwargs``.
         **kwargs
             Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
@@ -2342,7 +2376,10 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> n = 10000
-            >>> df = pd.DataFrame({"x": np.random.randn(n), "y": np.random.randn(n)})
+            >>> rng = np.random.default_rng(42)
+            >>> df = pd.DataFrame(
+            ...     {"x": rng.standard_normal(n), "y": rng.standard_normal(n)}
+            ... )
             >>> ax = df.plot.hexbin(x="x", y="y", gridsize=20)
 
         The next example uses `C` and `np.sum` as `reduce_C_function`.
@@ -2354,11 +2391,12 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> n = 500
+            >>> rng = np.random.default_rng(42)
             >>> df = pd.DataFrame(
             ...     {
-            ...         "coord_x": np.random.uniform(-3, 3, size=n),
-            ...         "coord_y": np.random.uniform(30, 50, size=n),
-            ...         "observations": np.random.randint(1, 5, size=n),
+            ...         "coord_x": rng.uniform(-3, 3, size=n),
+            ...         "coord_y": rng.uniform(30, 50, size=n),
+            ...         "observations": rng.integers(1, 5, size=n),
             ...     }
             ... )
             >>> ax = df.plot.hexbin(
@@ -2419,9 +2457,7 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)
     else:
-        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
-        # expected "EntryPoints"  [arg-type]
-        entry = eps.get(key, ())  # type: ignore[arg-type]
+        entry = eps.get(key, ())  # type: ignore[attr-defined]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

@@ -164,7 +164,7 @@ class TestDataFrameBlockInternals:
 
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
         # mixed-type frames
-        float_string_frame["datetime"] = datetime.now()
+        float_string_frame["datetime"] = datetime(2011, 1, 1)
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
         assert float_string_frame["datetime"].dtype == "M8[us]"
         assert float_string_frame["timedelta"].dtype == "m8[us]"
@@ -333,8 +333,9 @@ class TestDataFrameBlockInternals:
         df[0] = np.nan
         wasCol = {}
 
+        msg = "DataFrame is highly fragmented"
         with tm.assert_produces_warning(
-            performance_warning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False, match=msg
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):

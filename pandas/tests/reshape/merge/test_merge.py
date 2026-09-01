@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_object_dtype,
@@ -355,7 +356,7 @@ class TestMerge:
         tm.assert_series_equal(merged["key_0"], Series(key, name="key_0"))
 
     def test_no_overlap_more_informative_error(self):
-        dt = datetime.now()
+        dt = datetime(2011, 1, 1)
         df1 = DataFrame({"x": ["a"]}, index=[dt])
 
         df2 = DataFrame({"y": ["b", "c"]}, index=[dt, dt])
@@ -657,7 +658,7 @@ class TestMerge:
     def test_merge_nan_right(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0, 1]})
         df2 = DataFrame({"i1": [0], "i3": [0]})
-        result = df1.join(df2, on="i1", rsuffix="_")
+        result = df1.join(df2, on="i1", suffixes=("", "_"))
         expected = (
             DataFrame(
                 {
@@ -678,7 +679,7 @@ class TestMerge:
     def test_merge_nan_right2(self):
         df1 = DataFrame({"i1": [0, 1], "i2": [0.5, 1.5]})
         df2 = DataFrame({"i1": [0], "i3": [0.7]})
-        result = df1.join(df2, rsuffix="_", on="i1")
+        result = df1.join(df2, suffixes=("", "_"), on="i1")
         expected = DataFrame(
             {
                 "i1": {0: 0, 1: 1},
@@ -689,9 +690,6 @@ class TestMerge:
         )[["i1", "i2", "i1_", "i3"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
-    )
     def test_merge_type(self, df, df2):
         class NotADataFrame(DataFrame):
             @property
@@ -729,7 +727,7 @@ class TestMerge:
         lhs = DataFrame(Series([td, td], index=["A", "B"]))
         rhs = DataFrame(Series([td], index=["A"]))
 
-        result = lhs.join(rhs, rsuffix="r", how="left")
+        result = lhs.join(rhs, suffixes=("", "r"), how="left")
         expected = DataFrame(
             {
                 "0": Series([td, td], index=list("AB")),
@@ -1576,7 +1574,7 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
 
         result = left.join(right, on=["k1", "k2"], sort=True)
-        expected.sort_values(["k1", "k2"], kind="mergesort", inplace=True)
+        expected = expected.sort_values(["k1", "k2"], kind="mergesort")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -2599,9 +2597,12 @@ def test_merge_multiindex_columns():
     index = MultiIndex.from_product((letters, numbers), names=["outer", "inner"])
 
     frame_x = DataFrame(columns=index)
-    frame_x["id"] = ""
     frame_y = DataFrame(columns=index)
-    frame_y["id"] = ""
+    msg = "Setting a new column"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_x["id"] = ""
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        frame_y["id"] = ""
 
     l_suf = "_x"
     r_suf = "_y"
@@ -2937,20 +2938,30 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
 
 @pytest.mark.parametrize("tz", [None, "America/Chicago"])
-def test_merge_datetime_different_resolution(tz, join_type):
+@pytest.mark.parametrize(
+    "left_unit, right_unit, expected_unit",
+    [
+        ("ns", "s", "ns"),  # left higher resolution
+        ("us", "ns", "ns"),  # GH#55212 - left lower resolution
+    ],
+)
+def test_merge_datetime_different_resolution(
+    tz, join_type, left_unit, right_unit, expected_unit
+):
     # https://github.com/pandas-dev/pandas/issues/53200
+    # GH#55212
     vals = [
         pd.Timestamp(2023, 5, 12, tz=tz),
         pd.Timestamp(2023, 5, 13, tz=tz),
         pd.Timestamp(2023, 5, 14, tz=tz),
     ]
     df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
-    df1["t"] = df1["t"].dt.as_unit("ns")
+    df1["t"] = df1["t"].dt.as_unit(left_unit)
     df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
-    df2["t"] = df2["t"].dt.as_unit("s")
+    df2["t"] = df2["t"].dt.as_unit(right_unit)
 
     expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
-    expected["t"] = expected["t"].dt.as_unit("ns")
+    expected["t"] = expected["t"].dt.as_unit(expected_unit)
     if join_type == "inner":
         expected = expected.iloc[[1]].reset_index(drop=True)
     elif join_type == "left":
@@ -2960,6 +2971,62 @@ def test_merge_datetime_different_resolution(tz, join_type):
 
     result = df1.merge(df2, on="t", how=join_type)
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_tz_preserves_dtype(join_type):
+    # GH#55212 - merging on keys that differ only by tz must keep the join
+    #  key tz-aware (left's tz) rather than collapsing to object dtype.
+    i0 = pd.Timestamp("2023-05-12 12:00", tz="UTC")
+    i1 = pd.Timestamp("2023-05-12 13:00", tz="UTC")
+    i2 = pd.Timestamp("2023-05-12 14:00", tz="UTC")
+
+    left = DataFrame({"t": [i0, i1], "a": [1.0, 2.0]})
+    left["t"] = left["t"].dt.tz_convert("US/Eastern")
+    right = DataFrame({"t": [i0, i2], "b": [3.0, 4.0]})
+    right["t"] = right["t"].dt.tz_convert("US/Pacific")
+
+    result = left.merge(right, on="t", how=join_type)
+
+    keys = {"inner": [i0], "left": [i0, i1], "outer": [i0, i1, i2], "right": [i0, i2]}
+    avals = {
+        "inner": [1.0],
+        "left": [1.0, 2.0],
+        "outer": [1.0, 2.0, None],
+        "right": [1.0, None],
+    }
+    bvals = {
+        "inner": [3.0],
+        "left": [3.0, None],
+        "outer": [3.0, None, 4.0],
+        "right": [3.0, 4.0],
+    }
+    expected = DataFrame(
+        {
+            "t": DatetimeIndex(keys[join_type]).tz_convert("US/Eastern").as_unit("us"),
+            "a": avals[join_type],
+            "b": bvals[join_type],
+        }
+    )
+    # tz-aware result key; with the workaround removed this dtype becomes object
+    assert result["t"].dtype == left["t"].dtype
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_datetime_different_resolution_right_on(join_type):
+    # GH#55212 - when the join key lives only in the right frame
+    # (via left_index=True + right_on), it must still upcast to the highest
+    # datetime64 resolution.
+    vals = [
+        pd.Timestamp("2023-05-12"),
+        pd.Timestamp("2023-05-13"),
+        pd.Timestamp("2023-05-14"),
+    ]
+    left = DataFrame({"a": [1.0, 2.0]}, index=DatetimeIndex(vals[:2]).as_unit("ns"))
+    right = DataFrame({"rk": vals[1:], "b": [3.0, 4.0]})
+    right["rk"] = right["rk"].dt.as_unit("us")
+
+    result = left.merge(right, left_index=True, right_on="rk", how=join_type)
+    assert result["rk"].dtype == np.dtype("datetime64[ns]")
 
 
 def test_merge_multiindex_single_level():
@@ -2990,7 +3057,8 @@ def test_merge_multiindex_reset_index_mixed():
         columns=MultiIndex.from_product([["new_data"], [""]]),
     )
 
-    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning, match=msg):
         result = df.reset_index().merge(df2.reset_index(), on="index")
 
     expected = DataFrame(
@@ -3282,4 +3350,76 @@ def test_merge_right_sort_false_range_like_left(dtype, start, step):
     expected["v"] = left.set_index("k")["v"].reindex(expected["k"]).to_numpy()
     expected = expected[["k", "v", "w"]]
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+@pytest.mark.parametrize(
+    "range_k, other_k",
+    [
+        # uint64 keys above INT64_MAX were silently dropped (all-NaN)
+        (
+            np.array([2**63, 2**63 + 1, 2**63 + 2], dtype=np.uint64),
+            np.array([2**63 + 2, 2**63, 2**63 + 5], dtype=np.uint64),
+        ),
+        # a probe value near INT64_MIN overflowed and matched spuriously
+        (
+            np.array([10, 11, 12], dtype=np.int64),
+            np.array([11, np.iinfo(np.int64).min, 10], dtype=np.int64),
+        ),
+        # a two-element key whose implied step overflows int64
+        (
+            np.array([np.iinfo(np.int64).min, np.iinfo(np.int64).max], dtype=np.int64),
+            np.array(
+                [np.iinfo(np.int64).max, 0, np.iinfo(np.int64).min], dtype=np.int64
+            ),
+        ),
+    ],
+)
+def test_merge_sort_false_range_like_extreme_int_keys(how, range_k, other_k):
+    # GH#64148 the range-like fast path promoted one side's key to a RangeIndex
+    # and looked the other side up in it; for extreme integer keys this
+    # overflowed/wrapped and silently dropped matches or returned out-of-bounds
+    # (garbage) ones. The promoted side is the one opposite ``how``.
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    # reference lookup via reindex, which does not use the range-like fast path
+    if how == "left":
+        expected = left.copy()
+        expected["w"] = right.set_index("k")["w"].reindex(left["k"]).to_numpy()
+    else:
+        expected = right.copy()
+        expected.insert(1, "v", left.set_index("k")["v"].reindex(right["k"]).to_numpy())
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
+    # GH#64148 range-like keys spanning more than INT64_MAX: the promoted
+    # RangeIndex's offset computation overflowed int64 and fabricated matches.
+    # Expected values are hardcoded because a reindex-based reference would go
+    # through the same RangeIndex lookup.
+    range_k = np.array([-(2**62) - 1, -1, 2**62 - 1], dtype=np.int64)
+    other_k = np.array([2**62 - 1, 5, -1], dtype=np.int64)
+    if how == "left":
+        left_k, right_k = other_k, range_k
+    else:
+        left_k, right_k = range_k, other_k
+    left = DataFrame({"k": left_k, "v": np.arange(len(left_k), dtype=np.int64)})
+    right = DataFrame({"k": right_k, "w": np.arange(len(right_k), dtype=np.int64)})
+
+    result = left.merge(right, on="k", how=how, sort=False)
+
+    if how == "left":
+        expected = DataFrame({"k": other_k, "v": [0, 1, 2], "w": [2.0, np.nan, 1.0]})
+    else:
+        expected = DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)

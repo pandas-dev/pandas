@@ -43,6 +43,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_get_option",
     "_fill_limit_area_1d",
     "_make_block",
+    "_concatenate_chunks",
     "_DatetimeTZBlock",
     "_check_pyarrow_available",
     "_parser",  # https://github.com/pandas-dev/pandas/issues/60833
@@ -513,10 +514,6 @@ def main(
         Source path representing path to a file/directory.
     output_format : str
         Output format of the error message.
-    file_extensions_to_check : str
-        Comma separated values of what file extensions to check.
-    excluded_file_paths : str
-        Comma separated values of what file paths to exclude during the check.
 
     Returns
     -------

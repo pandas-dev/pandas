@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import iNaT
+from pandas.compat import PY315
 
 from pandas.core.dtypes.common import is_integer
 
@@ -29,7 +30,10 @@ from pandas import (
 import pandas._testing as tm
 
 # We pass through a TypeError raised by numpy
-_slice_msg = "slice indices must be integers or None or have an __index__ method"
+if PY315:
+    _slice_msg = "slice indices must be integers or have an __index__ method"
+else:
+    _slice_msg = "slice indices must be integers or None or have an __index__ method"
 
 
 class TestDataFrameIndexing:
@@ -427,8 +431,8 @@ class TestDataFrameIndexing:
         df["A"] = "beginning"
         df["E"] = "foo"
         df["D"] = "bar"
-        df[datetime.now()] = "date"
-        df[datetime.now()] = 5.0
+        df[datetime(2011, 1, 1)] = "date"
+        df[datetime(2011, 1, 2)] = 5.0
 
         # what to do when empty frame with index
         dm = DataFrame(index=float_frame.index)
@@ -1493,7 +1497,10 @@ class TestDataFrameIndexing:
             names=["a", "b"],
         )
         df = DataFrame({"c": [1, 2, 3, 4]}, index=midx)
-        with tm.maybe_produces_warning(performance_warning, isinstance(indexer, tuple)):
+        msg = "indexing past lexsort depth may impact performance"
+        with tm.maybe_produces_warning(
+            performance_warning, isinstance(indexer, tuple), match=msg
+        ):
             result = df.loc[indexer]
         expected = DataFrame(
             {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)

@@ -19,12 +19,12 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.15
+    rev: v0.16.1
     hooks:
-    -   id: ruff
+    -   id: ruff-check
         args: [--exit-non-zero-on-fix]
         exclude: ^pandas/tests/frame/test_query_eval.py
-    -   id: ruff
+    -   id: ruff-check
         # TODO: remove autofix only rules when they are checked by ruff
         name: ruff-selected-autofixes
         alias: ruff-selected-autofixes
@@ -41,12 +41,12 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.19.0
+    rev: v0.21.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -67,14 +67,9 @@ repos:
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 9.0.0a3
+    rev: 9.0.0b1
     hooks:
     -   id: isort
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-    -   id: pyupgrade
-        args: [--py311-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -92,14 +87,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v22.1.5
+    rev: v22.1.8
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: ['-i', '--style', '{IndentPPDirectives: AfterHash}']
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.11.1
+    rev: v1.11.2
     hooks:
     - id: meson-fmt
       args: ['--inplace']
@@ -141,11 +136,11 @@ repos:
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
-        entry: python
+        entry: python -m mypy.stubtest
         language: system
         pass_filenames: false
         types: [pyi]
-        args: [scripts/run_stubtest.py]
+        args: [pandas._libs, --ignore-missing-stub, --ignore-disjoint-base, --concise, --mypy-config-file, pyproject.toml, --allowlist, scripts/stubtest_allowlist.txt]
         stages: [manual]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
@@ -209,6 +204,17 @@ repos:
 
             # Unseeded numpy default_rng
             |default_rng\(\)
+        files: ^pandas/tests/
+        types_or: [python, cython, rst]
+    -   id: current-time-in-tests
+        name: Check for current-time strings in tests
+        description: >
+            Current-time test data broke CI at a DST transition (GH#44341). Use a
+            fixed datetime, or append "# current-time-ok" if the test exercises this
+            construction itself. Attribute spellings like Timestamp.now() are banned
+            in pyproject.toml.
+        language: pygrep
+        entry: '^(?!.*# current-time-ok).*(date_range|datetime64|period_range|Period|Timestamp|to_datetime)\(\s*\[?"(now|today)"'
         files: ^pandas/tests/
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-cython

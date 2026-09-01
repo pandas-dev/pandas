@@ -67,7 +67,7 @@ class TestResetIndex:
         assert result["foo"].dtype == "datetime64[ns, US/Eastern]"
 
         df = result.set_index("foo")
-        tm.assert_index_equal(df.index, idx)
+        tm.assert_index_equal(df.index, idx, check_freq=False)
 
     def test_reset_index_tz(self, tz_aware_fixture):
         # GH 3950
@@ -362,7 +362,7 @@ class TestResetIndex:
         item = name if name is not None else "index"
         columns = Index([item, datetime(2013, 1, 1), datetime(2013, 1, 2)])
         if isinstance(item, str) and item == "2012-12-31":
-            columns = columns.astype("datetime64[ns]")
+            columns = pd.DatetimeIndex(columns, dtype="datetime64[ns]", freq="D")
         else:
             assert columns.dtype == object
 
@@ -664,6 +664,24 @@ def test_reset_index_dtypes_on_empty_frame_with_multiindex(
         dtype = pd.StringDtype(na_value=np.nan)
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
+
+
+def test_reset_index_infers_dtype_from_object_levels():
+    # GH#58517 object-dtype MultiIndex levels are inferred to concrete dtypes
+    #  when they are moved into columns
+    mi = MultiIndex.from_arrays(
+        [
+            Index([1, 2], dtype=object),
+            Index([1.5, 2.5], dtype=object),
+            Index([True, False], dtype=object),
+        ],
+        names=["i", "f", "b"],
+    )
+    result = DataFrame({"v": [1, 2]}, index=mi).reset_index()
+    expected = DataFrame(
+        {"i": [1, 2], "f": [1.5, 2.5], "b": [True, False], "v": [1, 2]}
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_reset_index_empty_frame_with_datetime64_multiindex():

@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -56,8 +59,7 @@ class TestMultiIndexLoc:
         tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
-        return_value = df.sort_index(inplace=True)
-        assert return_value is None
+        df = df.sort_index()
         res = df.loc[key]
 
         # col has float dtype, result should be float64 Index
@@ -590,7 +592,8 @@ def test_loc_setitem_single_column_slice():
         index=list("abcd"),
         columns=MultiIndex.from_product([["Main"], ("another", "one")]),
     )
-    df["labels"] = "a"
+    with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+        df["labels"] = "a"
     df.loc[:, "labels"] = df.index
     tm.assert_numpy_array_equal(np.asarray(df["labels"]), np.asarray(df.index))
 

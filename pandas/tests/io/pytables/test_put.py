@@ -264,7 +264,8 @@ def test_put_mixed_type(temp_hdfstore, performance_warning, using_infer_string):
     df = df._consolidate()
 
     warning = None if using_infer_string else performance_warning
-    with tm.assert_produces_warning(warning):
+    msg = "your performance may suffer as PyTables will pickle object types"
+    with tm.assert_produces_warning(warning, match=msg):
         temp_hdfstore.put("df", df, track_times=False)
 
     expected = temp_hdfstore.get("df")

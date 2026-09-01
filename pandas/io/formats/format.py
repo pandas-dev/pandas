@@ -40,6 +40,11 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
+    iNaT,
+)
+from pandas._libs.tslibs.dtypes import (
+    NpyDatetimeUnit,
+    periods_per_second,
 )
 from pandas._libs.tslibs.nattype import NaTType
 from pandas.errors import Pandas4Warning
@@ -1250,13 +1255,13 @@ class _GenericArrayFormatter:
             )
         inferred = lib.map_infer(vals, is_float)
         is_float_type = (
-            inferred
+            inferred  # type: ignore[operator]
             # vals may have 2 or more dimensions
             & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
         )
         leading_space = self.leading_space
         if leading_space is None:
-            leading_space = is_float_type.any()
+            leading_space = is_float_type.any()  # type: ignore[assignment]
 
         fmt_values = []
         for i, v in enumerate(vals):
@@ -1692,12 +1697,17 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    even_days = values._is_dates_only
-
-    if even_days:
+    if values._is_dates_only:
         format = None
     else:
-        format = "long"
+        i8 = values.asi8
+        vals = i8[i8 != iNaT]
+        if vals.size == 0 or not (vals % periods_per_second(values._creso)).any():
+            format = "long"
+        elif NpyDatetimeUnit.NPY_FR_ns.value == values._creso and (vals % 1_000).any():
+            format = "all"  # nanosecond precision → 9 digits
+        else:
+            format = "us"  # microsecond precision → 6 digits
 
     def _formatter(x):
         if x is None or (is_scalar(x) and isna(x)):
@@ -1739,9 +1749,13 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    if conf_max is not None and conf_max > 3:
+    if conf_max is not None:
+        # When the column is too narrow to hold any text alongside the "..."
+        # placeholder, show as much of the placeholder as fits (GH#16097).
+        keep = max(max_len - 3, 0)
+        placeholder = "..."[: max_len - keep]
         strings = [
-            x[: max_len - 3] + "..." if adjustment.len(x) > max_len else x
+            x[:keep] + placeholder if adjustment.len(x) > max_len else x
             for x in strings
         ]
 

@@ -60,7 +60,7 @@ engine_params = [
                 "ignore:The xlrd engine is deprecated:pandas.errors.Pandas4Warning"
             ),
             pytest.mark.filterwarnings(
-                "ignore:The pyxlsb engine is deprecated:pandas.errors.Pandas4Warning"
+                "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
             ),
         ],
     ),
@@ -174,6 +174,29 @@ def xfail_datetimes_with_pyxlsb(engine, request):
         )
 
 
+@td.skip_if_no("openpyxl")
+@td.skip_if_no("python_calamine")
+@pytest.mark.parametrize("ext", ["xlsx", "xlsm"])
+def test_read_excel_default_engine_deprecated(datapath, ext):
+    # GH#56542 - the default xlsx/xlsm reader engine will change to calamine.
+    # xlsm files are format-sniffed as xlsx, so both get the 'xlsx' warning.
+    path = datapath("io", "data", "excel", f"test1.{ext}")
+
+    msg = "The default engine for reading 'xlsx' files will change"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.read_excel(path)
+
+    # passing an explicit engine silences the warning
+    for engine in ("openpyxl", "calamine"):
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path, engine=engine)
+
+    # setting the io.excel.xlsx.reader option silences the warning
+    with pd.option_context("io.excel.xlsx.reader", "openpyxl"):
+        with tm.assert_produces_warning(None):
+            pd.read_excel(path)
+
+
 class TestReaders:
     @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
     def test_read_excel_type_check(self, col, tmp_excel, read_ext):
@@ -225,7 +248,7 @@ class TestReaders:
         # GH 58159
         f_path = datapath("io", "data", "excel", "test_none_type.xlsx")
 
-        with pd.ExcelFile(f_path) as excel:
+        with pd.ExcelFile(f_path, engine="openpyxl") as excel:
             parsed = pd.read_excel(
                 excel,
                 sheet_name="Sheet1",
@@ -250,7 +273,6 @@ class TestReaders:
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
-    @pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
     def test_engine_used(self, read_ext, engine):
         # GH 38884
         expected_defaults = {
@@ -871,7 +893,6 @@ class TestReaders:
         with pytest.raises(ZeroDivisionError, match=r" \(sheet: Sheet1\)$"):
             pd.read_excel("test1" + read_ext, usecols=lambda x: 1 / 0, sheet_name=None)
 
-    @pytest.mark.filterwarnings("ignore:Cell A4 is marked:UserWarning:openpyxl")
     def test_date_conversion_overflow(self, request, engine, read_ext):
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         xfail_datetimes_with_pyxlsb(engine, request)
@@ -988,7 +1009,6 @@ class TestReaders:
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
-    @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
     def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:
@@ -1736,12 +1756,18 @@ class TestExcelFileRead:
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
     def test_read_excel_header_index_out_of_range(self, engine):
         # GH#43143
         with open("df_header_oob.xlsx", "rb") as f:
             with pytest.raises(ValueError, match="exceeds maximum"):
                 pd.read_excel(f, header=[0, 1])
 
+    @pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    )
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):
         # GH 33476
@@ -1810,7 +1836,8 @@ class TestExcelFileRead:
 
         Path(tmp_excel).write_text("corrupt", encoding="utf-8")
         expected_warning = Pandas4Warning if engine in {"xlrd", "pyxlsb"} else False
-        with tm.assert_produces_warning(expected_warning):
+        msg = f"The {engine} engine is deprecated"
+        with tm.assert_produces_warning(expected_warning, match=msg):
             try:
                 pd.ExcelFile(tmp_excel, engine=engine)
             except errors:

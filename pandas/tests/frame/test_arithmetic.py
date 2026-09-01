@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 from enum import Enum
 import functools
@@ -436,7 +436,7 @@ class TestFrameFlexComparisons:
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
         df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime(2011, 1, 1), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
@@ -1307,10 +1307,10 @@ class TestFrameArithmeticUnsorted:
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
 
         result = df_moscow + df
-        assert result.index.tz is timezone.utc
+        assert result.index.tz is UTC
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
@@ -1357,7 +1357,6 @@ class TestFrameArithmeticUnsorted:
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
     # TODO: not sure what's correct here.
-    @pytest.mark.filterwarnings("ignore:elementwise:FutureWarning")
     def test_logical_typeerror_with_non_valid(self, op, res, float_frame):
         # we are comparing floats vs a string
         result = getattr(float_frame, op)("foo")
@@ -2290,9 +2289,6 @@ def test_frame_sub_nullable_int(any_int_ea_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
-)
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 

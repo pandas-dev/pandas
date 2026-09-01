@@ -1,10 +1,13 @@
 from datetime import (
+    UTC,
     datetime,
+    timedelta,
     timezone,
 )
 import pprint
 
 import dateutil.tz
+import numpy as np
 import pytest
 
 from pandas.compat import WASM
@@ -89,6 +92,94 @@ ts_no_us = Timestamp(
 )
 def test_isoformat(ts, timespec, expected_iso):
     assert ts.isoformat(timespec=timespec) == expected_iso
+
+
+@pytest.mark.parametrize(
+    "tz, expected_offset",
+    [
+        (timezone(timedelta(seconds=33539)), "+09:18:59"),
+        (timezone(timedelta(seconds=-28378)), "-07:52:58"),
+        (timezone(timedelta(seconds=33539, microseconds=7)), "+09:18:59.000007"),
+        (timezone(timedelta(hours=9)), "+09:00"),
+        (timezone(timedelta(hours=-8)), "-08:00"),
+        ("UTC", "+00:00"),
+    ],
+)
+@pytest.mark.parametrize(
+    "microsecond, nanosecond, timespec, frac",
+    [
+        (0, 123, "auto", ".000000123"),
+        (132263, 123, "auto", ".132263123"),
+        (0, 0, "nanoseconds", ".000000000"),
+        (132263, 0, "nanoseconds", ".132263000"),
+    ],
+)
+def test_isoformat_sub_minute_utc_offset(
+    tz, expected_offset, microsecond, nanosecond, timespec, frac
+):
+    # GH#66547 an offset that is not a whole number of minutes is rendered as
+    #  "+HH:MM:SS", so the nanoseconds must not be spliced into it
+    ts = Timestamp(
+        year=2019,
+        month=5,
+        day=18,
+        hour=15,
+        minute=17,
+        second=8,
+        microsecond=microsecond,
+        nanosecond=nanosecond,
+        tz=tz,
+    )
+    assert (
+        ts.isoformat(timespec=timespec) == f"2019-05-18T15:17:08{frac}{expected_offset}"
+    )
+
+
+@pytest.mark.parametrize(
+    "dt64, expected",
+    [
+        # years wider than 4 digits, and negative years, reachable at
+        #  resolutions coarser than nanosecond
+        (np.datetime64(2**63 - 1, "s"), "292277026596-12-04T15:30:07.000000000"),
+        (np.datetime64(-(2**63) + 1, "s"), "-292277022657-01-27T08:29:53.000000000"),
+        (np.datetime64(2**63 - 1, "ms"), "292278994-08-17T07:12:55.807000000"),
+        (
+            np.datetime64("10000-01-01T00:00:00.132263", "us"),
+            "10000-01-01T00:00:00.132263000",
+        ),
+        (
+            np.datetime64("-1000-01-01T00:00:00.132263", "us"),
+            "-1000-01-01T00:00:00.132263000",
+        ),
+    ],
+)
+@pytest.mark.parametrize("sep", ["T", "-", "+"])
+def test_isoformat_wide_year_no_date_splice(dt64, expected, sep):
+    # GH#66547 locating the UTC offset must not mistake a date dash -- or an
+    #  unusual separator -- for the offset's sign when the year is not 4 digits
+    ts = Timestamp(dt64)
+    result = ts.isoformat(sep=sep, timespec="nanoseconds")
+    assert result == expected.replace("T", sep)
+
+
+@pytest.mark.parametrize(
+    "tz, expected",
+    [
+        ("Asia/Tokyo", "1800-01-01T09:18:59.000000001+09:18:59"),
+        ("US/Pacific", "1799-12-31T16:07:02.000000001-07:52:58"),
+    ],
+)
+def test_isoformat_pre_standardization_offset(tz, expected):
+    # GH#66547 zones carry a seconds component in their pre-standardization
+    #  local-mean-time era
+    ts = Timestamp("1800-01-01 00:00:00.000000001", tz="UTC").tz_convert(tz)
+    result = ts.isoformat()
+    assert result == expected
+    assert str(ts) == expected.replace("T", " ")
+    # the offset must be rendered exactly as the stdlib renders it
+    assert ts.to_pydatetime(warn=False).isoformat() == expected.replace(
+        ".000000001", ""
+    )
 
 
 class TestTimestampRendering:
@@ -184,13 +275,13 @@ class TestTimestampRendering:
         assert str(ts_nanos_micros) == "1970-01-01 00:00:00.000001200"
 
     def test_repr_matches_pydatetime_tz_stdlib(self):
-        dt_date = datetime(2013, 1, 2, tzinfo=timezone.utc)
+        dt_date = datetime(2013, 1, 2, tzinfo=UTC)
         assert str(dt_date) == str(Timestamp(dt_date))
 
-        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=timezone.utc)
+        dt_datetime = datetime(2013, 1, 2, 12, 1, 3, tzinfo=UTC)
         assert str(dt_datetime) == str(Timestamp(dt_datetime))
 
-        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=timezone.utc)
+        dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=UTC)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
 
     def test_repr_matches_pydatetime_tz_dateutil(self):

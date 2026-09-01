@@ -10,6 +10,7 @@ from datetime import (
 )
 from decimal import Decimal
 from io import StringIO
+import os
 from pathlib import Path
 import sqlite3
 from typing import TYPE_CHECKING
@@ -21,8 +22,8 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -94,25 +95,22 @@ def sql_strings():
 
 
 def iris_table_metadata():
-    import sqlalchemy
     from sqlalchemy import (
         Column,
         Double,
-        Float,
         MetaData,
         String,
         Table,
     )
 
-    dtype = Double if Version(sqlalchemy.__version__) >= Version("2.0.0") else Float
     metadata = MetaData()
     iris = Table(
         "iris",
         metadata,
-        Column("SepalLength", dtype),
-        Column("SepalWidth", dtype),
-        Column("PetalLength", dtype),
-        Column("PetalWidth", dtype),
+        Column("SepalLength", Double),
+        Column("SepalWidth", Double),
+        Column("PetalLength", Double),
+        Column("PetalWidth", Double),
         Column("Name", String(200)),
     )
     return iris
@@ -600,8 +598,31 @@ def drop_view(
                 con.execute(stmt)  # type: ignore[union-attr]
 
 
-@pytest.fixture
-def mysql_pymysql_engine():
+def skip_if_no_db(name: str, connect) -> None:
+    """
+    Skip the test if the database `name` is not reachable.
+
+    Call this only from module-scoped fixtures, so that a failed connection is
+    paid for once rather than for every parametrized test.
+
+    On CI the databases are expected to be up, so we leave the connection error
+    alone there instead of silently skipping the whole test suite.
+    """
+    if os.environ.get("CI"):
+        return
+
+    try:
+        connect().close()
+    except Exception as err:
+        # only the first line; these messages tend to be several lines long
+        first_line = str(err).split("\n")[0]
+        pytest.skip(
+            f"Could not connect to {name} database: {type(err).__name__}: {first_line}"
+        )
+
+
+@pytest.fixture(scope="module")
+def _mysql_pymysql_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
@@ -609,12 +630,18 @@ def mysql_pymysql_engine():
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
         poolclass=sqlalchemy.pool.NullPool,
     )
+    skip_if_no_db("mysql", engine.connect)
     yield engine
-    for view in get_all_views(engine):
-        drop_view(view, engine)
-    for tbl in get_all_tables(engine):
-        drop_table(tbl, engine)
     engine.dispose()
+
+
+@pytest.fixture
+def mysql_pymysql_engine(_mysql_pymysql_engine):
+    yield _mysql_pymysql_engine
+    for view in get_all_views(_mysql_pymysql_engine):
+        drop_view(view, _mysql_pymysql_engine)
+    for tbl in get_all_tables(_mysql_pymysql_engine):
+        drop_table(tbl, _mysql_pymysql_engine)
 
 
 @pytest.fixture
@@ -648,20 +675,26 @@ def mysql_pymysql_conn_types(mysql_pymysql_engine_types):
         yield conn
 
 
-@pytest.fixture
-def postgresql_psycopg2_engine():
+@pytest.fixture(scope="module")
+def _postgresql_psycopg2_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
         poolclass=sqlalchemy.pool.NullPool,
     )
+    skip_if_no_db("postgresql", engine.connect)
     yield engine
-    for view in get_all_views(engine):
-        drop_view(view, engine)
-    for tbl in get_all_tables(engine):
-        drop_table(tbl, engine)
     engine.dispose()
+
+
+@pytest.fixture
+def postgresql_psycopg2_engine(_postgresql_psycopg2_engine):
+    yield _postgresql_psycopg2_engine
+    for view in get_all_views(_postgresql_psycopg2_engine):
+        drop_view(view, _postgresql_psycopg2_engine)
+    for tbl in get_all_tables(_postgresql_psycopg2_engine):
+        drop_table(tbl, _postgresql_psycopg2_engine)
 
 
 @pytest.fixture
@@ -683,14 +716,22 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
         yield conn
 
 
-@pytest.fixture
-def postgresql_adbc_conn():
+@pytest.fixture(scope="module")
+def _postgresql_adbc_uri():
     pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
     uri = "postgresql://postgres:postgres@localhost:5432/pandas"
-    with dbapi.connect(uri) as conn:
+    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
+    return uri
+
+
+@pytest.fixture
+def postgresql_adbc_conn(_postgresql_adbc_uri):
+    from adbc_driver_postgresql import dbapi
+
+    with dbapi.connect(_postgresql_adbc_uri) as conn:
         yield conn
         for view in get_all_views(conn):
             drop_view(view, conn)
@@ -1024,14 +1065,11 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     )
 
     if "adbc" in conn:
+        exp_warning = None
+        msg = ""
+
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-            msg = "is_sparse is deprecated"
-        else:
-            exp_warning = None
-            msg = ""
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -1528,6 +1566,20 @@ SELECT * FROM groups;
     tm.assert_frame_equal(result, expected)
 
 
+def test_read_sql_bare_table_name_dbapi_message_gh54233(sqlite_buildin):
+    # GH#54233 a bare table name on a DBAPI connection cannot be reflected
+    DataFrame({"a": [1], "b": [2]}).to_sql("demo", sqlite_buildin, index=False)
+
+    msg = "Reading a table by name is only supported when using a SQLAlchemy"
+    with pytest.raises(sql.DatabaseError, match=msg):
+        pd.read_sql("demo", sqlite_buildin)
+
+    # a genuine SQL query still works
+    result = pd.read_sql("SELECT * FROM demo", sqlite_buildin)
+    expected = DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
 def flavor(conn_name):
     if "postgresql" in conn_name:
         return "postgresql"
@@ -1802,16 +1854,54 @@ def test_api_date_parsing(conn, request):
         Timestamp(2013, 1, 1, 0, 0, 0),
     ]
 
-    df = sql.read_sql_query(
-        "SELECT * FROM types",
-        conn,
-        parse_dates={"IntDateOnlyCol": "%Y%m%d"},
-    )
+    # GH#55663 passing a format for an integer column is deprecated
+    msg = "Passing a format for integer or float columns to read_sql"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        df = sql.read_sql_query(
+            "SELECT * FROM types",
+            conn,
+            parse_dates={"IntDateOnlyCol": "%Y%m%d"},
+        )
     assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
     assert df.IntDateOnlyCol.tolist() == [
         Timestamp("2010-10-10"),
         Timestamp("2010-12-12"),
     ]
+
+
+@pytest.mark.parametrize("conn", all_connectable_types)
+def test_api_date_parsing_int_col_dict_format(conn, request):
+    # GH#55663 dict-form format on an integer column is deprecated in favor of
+    #  the user casting the column to string explicitly after reading
+    conn = request.getfixturevalue(conn)
+    msg = "Passing a format for integer or float columns to read_sql"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
+        df = sql.read_sql_query(
+            "SELECT * FROM types",
+            conn,
+            parse_dates={"IntDateOnlyCol": {"format": "%Y%m%d"}},
+        )
+    assert df["IntDateOnlyCol"].tolist() == [
+        Timestamp("2010-10-10"),
+        Timestamp("2010-12-12"),
+    ]
+
+
+@pytest.mark.parametrize("conn", all_connectable_types)
+def test_api_date_parsing_int_col_no_format_pyarrow_backend(conn, request):
+    # GH#55663 with no format given, numeric columns that don't have a
+    #  numpy dtype should retain epoch interpretation
+    pytest.importorskip("pyarrow")
+    conn = request.getfixturevalue(conn)
+    raw = sql.read_sql_query("SELECT * FROM types", conn, dtype_backend="pyarrow")
+    df = sql.read_sql_query(
+        "SELECT * FROM types",
+        conn,
+        parse_dates=["IntDateCol"],
+        dtype_backend="pyarrow",
+    )
+    expected = to_datetime(raw["IntDateCol"], errors="coerce")
+    tm.assert_series_equal(df["IntDateCol"], expected)
 
 
 @pytest.mark.parametrize("conn", all_connectable_types)
@@ -1899,14 +1989,12 @@ def test_api_timedelta(conn, request):
         )
 
     if "adbc" in conn_name:
-        if pa_version_under14p1:
-            exp_warning = DeprecationWarning
-        else:
-            exp_warning = None
+        exp_warning = None
     else:
         exp_warning = UserWarning
 
-    with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+    msg = "the 'timedelta' type is not supported"
+    with tm.assert_produces_warning(exp_warning, check_stacklevel=False, match=msg):
         result_count = df.to_sql(name="test_timedelta", con=conn)
     assert result_count == 2
     result = sql.read_sql_query("SELECT * FROM test_timedelta", conn)
@@ -2242,15 +2330,6 @@ def test_api_chunksize_read(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
-    if conn == "postgresql_adbc_conn":
-        adbc = import_optional_dependency("adbc_driver_postgresql", errors="ignore")
-        if adbc is not None and Version(adbc.__version__) < Version("0.9.0"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="categorical dtype not implemented for ADBC postgres driver",
-                    strict=True,
-                )
-            )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
@@ -2333,17 +2412,6 @@ def test_api_table_name_quoted(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
-    if "adbc" in conn:
-        pa = pytest.importorskip("pyarrow")
-        if not (
-            Version(pa.__version__) >= Version("16.0")
-            and conn in ["sqlite_adbc_conn", "postgresql_adbc_conn"]
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="pyarrow->pandas throws ValueError", strict=True
-                )
-            )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:

@@ -4,13 +4,18 @@ project(
     'c',
     'cpp',
     'cython',
-    version: run_command(['generate_version.py', '--print'], check: true).stdout().strip(),
+    version: run_command(
+        find_program('python3', 'python'),
+        'generate_version.py',
+        '--print',
+        check: true,
+    ).stdout().strip(),
     license: 'BSD-3',
     meson_version: '>=1.2.3',
     default_options: [
         'buildtype=release',
         'c_std=c17',
-        'cpp_std=c++17',
+        'cpp_std=c++20',
         'warning_level=2',
     ],
 )
@@ -37,6 +42,8 @@ add_project_arguments(
 )
 
 cc = meson.get_compiler('c')
+cxx = meson.get_compiler('cpp')
+cy = meson.get_compiler('cython')
 if cc.get_id() == 'msvc'
     # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
     # Ignore some MSVC specific warnings:
@@ -44,10 +51,20 @@ if cc.get_id() == 'msvc'
     # C4267: conversion from `size_t` to smaller type.
     # C4551: occurs due to Cython generating code with (void)func.
     #        https://github.com/cython/cython/issues/3579
+    # C4146: unary minus operator applied to unsigned type. Occurs in xsimd.
     add_project_arguments(
-        ['/wd4244', '/wd4267', '/wd4551'],
+        ['/wd4244', '/wd4267', '/wd4551', '/wd4146'],
         language: ['c', 'cpp'],
     )
+endif
+
+# Fixed in Cython in https://github.com/cython/cython/commit/da31db56e54ca528c5bc5ee7f00b0fad636e7564
+# and https://github.com/cython/cython/commit/8208a1658bb6
+cy_emits_unused_template = cy.version().version_compare('<3.3.1')
+if cy_emits_unused_template and cxx.has_argument('-Wunused-template')
+    cython_cpp_args = ['-Wno-unused-template']
+else
+    cython_cpp_args = []
 endif
 
 if fs.exists('_version_meson.py')
@@ -65,18 +82,16 @@ else
     meson.add_dist_script(py, versioneer, '-o', '_version_meson.py')
 endif
 
-cy = meson.get_compiler('cython')
 if cy.version().version_compare('>=3.1.0')
     add_project_arguments('-Xfreethreading_compatible=true', language: 'cython')
 
     # Use shared utility code to reduce wheel sizes
     # copied from https://github.com/scikit-learn/scikit-learn/pull/31151/files
-    cy = find_program(cy.cmd_array()[0])
     cython_shared_src = custom_target(
         install: false,
         output: '_cyutility.c',
         command: [
-            cy,
+            cy.cmd_array(),
             '-3',
             '-Xfreethreading_compatible=true',
             '--fast-fail',

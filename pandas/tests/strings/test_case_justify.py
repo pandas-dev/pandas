@@ -18,7 +18,7 @@ def test_title(any_string_dtype):
 
 
 def test_title_mixed_object():
-    s = Series(["FOO", np.nan, "bar", True, datetime.today(), "blah", None, 1, 2.0])
+    s = Series(["FOO", np.nan, "bar", True, datetime(2011, 1, 1), "blah", None, 1, 2.0])
     result = s.str.title()
     expected = Series(
         ["Foo", np.nan, "Bar", np.nan, np.nan, "Blah", None, np.nan, np.nan],
@@ -39,7 +39,7 @@ def test_lower_upper(any_string_dtype):
 
 
 def test_lower_upper_mixed_object():
-    s = Series(["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0])
+    s = Series(["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0])
 
     result = s.str.upper()
     expected = Series(
@@ -73,7 +73,7 @@ def test_capitalize(data, expected, any_string_dtype):
 
 
 def test_capitalize_mixed_object():
-    s = Series(["FOO", np.nan, "bar", True, datetime.today(), "blah", None, 1, 2.0])
+    s = Series(["FOO", np.nan, "bar", True, datetime(2011, 1, 1), "blah", None, 1, 2.0])
     result = s.str.capitalize()
     expected = Series(
         ["Foo", np.nan, "Bar", np.nan, np.nan, "Blah", None, np.nan, np.nan],
@@ -90,7 +90,7 @@ def test_swapcase(any_string_dtype):
 
 
 def test_swapcase_mixed_object():
-    s = Series(["FOO", np.nan, "bar", True, datetime.today(), "Blah", None, 1, 2.0])
+    s = Series(["FOO", np.nan, "bar", True, datetime(2011, 1, 1), "Blah", None, 1, 2.0])
     result = s.str.swapcase()
     expected = Series(
         ["foo", np.nan, "BAR", np.nan, np.nan, "bLAH", None, np.nan, np.nan],
@@ -141,7 +141,7 @@ def test_pad(any_string_dtype):
 
 
 def test_pad_mixed_object():
-    s = Series(["a", np.nan, "b", True, datetime.today(), "ee", None, 1, 2.0])
+    s = Series(["a", np.nan, "b", True, datetime(2011, 1, 1), "ee", None, 1, 2.0])
 
     result = s.str.pad(5, side="left")
     expected = Series(
@@ -233,7 +233,7 @@ def test_center_ljust_rjust(any_string_dtype):
 
 
 def test_center_ljust_rjust_mixed_object():
-    s = Series(["a", np.nan, "b", True, datetime.today(), "c", "eee", None, 1, 2.0])
+    s = Series(["a", np.nan, "b", True, datetime(2011, 1, 1), "c", "eee", None, 1, 2.0])
 
     result = s.str.center(5)
     expected = Series(
@@ -368,6 +368,20 @@ def test_zfill(any_string_dtype):
     expected = Series(
         ["00001", np.nan, "00aaa", np.nan, "45678"], dtype=any_string_dtype
     )
+    tm.assert_series_equal(result, expected)
+
+
+def test_zfill_signed(any_string_dtype):
+    s = Series(["-3", "+7", "-", "0"], dtype=any_string_dtype)
+    result = s.str.zfill(5)
+    expected = Series(["-0003", "+0007", "-0000", "00000"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_zfill_all_null(any_string_dtype):
+    s = Series([None, None], dtype=any_string_dtype)
+    result = s.str.zfill(5)
+    expected = Series([None, None], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 

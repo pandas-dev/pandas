@@ -1,6 +1,7 @@
 from datetime import (
     date,
     datetime,
+    time,
 )
 
 import numpy as np
@@ -486,7 +487,7 @@ def test_apply_no_name_column_conflict():
 
     # it works! #2605
     grouped = df.groupby(["name", "name2"])
-    grouped.apply(lambda x: x.sort_values("value", inplace=True))
+    grouped.apply(lambda x: x.sort_values("value"))
 
 
 def test_apply_typecast_fail():
@@ -734,7 +735,7 @@ def test_time_field_bug():
     # that were not returned by the apply function, an exception would be
     # raised.
 
-    df = DataFrame({"a": 1, "b": [datetime.now() for nn in range(10)]})
+    df = DataFrame({"a": 1, "b": [datetime(2011, 1, 1)] * 10})
 
     def func_with_no_date(batch):
         return Series({"c": 2})
@@ -862,7 +863,7 @@ def test_func_returns_object():
 
 @pytest.mark.parametrize(
     "group_column_dtlike",
-    [datetime.today(), datetime.today().date(), datetime.today().time()],
+    [datetime(2011, 1, 1, 9), date(2011, 1, 1), time(9, 0)],
 )
 def test_apply_datetime_issue(group_column_dtlike):
     # GH-28247

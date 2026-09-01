@@ -13,9 +13,6 @@ from pandas.errors import Pandas4Warning
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 depr_msg = "float_precision"
@@ -138,6 +135,77 @@ def test_precise_xstrtod_large_mantissa(c_parser_only, value):
     ):
         result = parser.read_csv(StringIO(data), float_precision="high")["val"][0]
     assert result == float(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "000000000010084566.0",
+        # leading zeros before the decimal point must not eat into the budget
+        # either, or the low digits of the fractional part are lost
+        "00000000000.00564728024629623",
+        "000.0469911460454665528",
+        "000000000000000000000000.03704296608561985",
+        "0.12345678901234567890",
+    ],
+)
+def test_precise_xstrtod_leading_zeros(c_parser_only, value):
+    # GH#64184
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = DataFrame({"val": [float(value)]})
+    # check_exact: the digits lost to the bug are well inside the default rtol
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize("value", ["0", "000", "0.", "0.0", "-0", "0e5"])
+def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
+    # GH#64184: an all-zero mantissa is a valid zero, not an unparsable string.
+    # Guards the branch that skipping the leading zeros makes necessary.
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = DataFrame({"val": [float(value)]})
+    tm.assert_frame_equal(result, expected, check_dtype=False, check_exact=True)
+
+
+def test_precise_xstrtod_leading_zero_matches_bare_point(c_parser_only):
+    # GH#64184: "0.x" must get the same significant-digit budget as ".x"
+    parser = c_parser_only
+    digits = "12345678901234567890"
+    data = f"val\n0.{digits}\n.{digits}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")["val"]
+    assert result[0] == result[1] == float(f"0.{digits}")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # up to 19 significant digits, parsed straight from the digits
+        "1.7976931348623157e308",  # largest finite double
+        "2.2250738585072014e-308",  # smallest normal double
+        "9007199254740993.0",  # 2**53 + 1, not representable; rounds to 2**53
+        "12345.678901234567",
+        # more than 19 significant digits, so the mantissa has to be truncated
+        # before it can be rounded
+        "2.22507385850720113605740979670913197593481954635164565e-308",
+        "1.00000000000000000000000000000000000000000000000000001",
+        "123456789012345678901234567890.5",
+        # subnormals, where picking the last bit requires comparing against the
+        # full decimal expansion rather than a truncated mantissa
+        "4.9406564584124654e-324",  # smallest positive subnormal
+        "2.4703282292062327e-324",  # just under the halfway point -> 0.0
+        "2.4703282292062328e-324",  # just over it -> smallest subnormal
+    ],
+)
+def test_float_correctly_rounded(all_parsers, value):
+    # GH#66457
+    parser = all_parsers
+    result = parser.read_csv(StringIO(f"data\n{value}"))
+
+    expected = DataFrame({"data": [float(value)]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(

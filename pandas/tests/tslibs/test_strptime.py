@@ -1,6 +1,6 @@
 from datetime import (
+    UTC,
     datetime,
-    timezone,
 )
 
 import numpy as np
@@ -29,7 +29,7 @@ class TestArrayStrptimeResolutionInference:
         res, _ = array_strptime(arr, fmt=fmt, utc=True, creso=creso_infer)
         assert res.dtype == "M8[s]"
 
-    @pytest.mark.parametrize("tz", [None, timezone.utc])
+    @pytest.mark.parametrize("tz", [None, UTC])
     def test_array_strptime_resolution_inference_homogeneous_strings(self, tz):
         dt = datetime(2016, 1, 2, 3, 4, 5, 678900, tzinfo=tz)
         dt0 = dt.replace(microsecond=0)
@@ -54,7 +54,7 @@ class TestArrayStrptimeResolutionInference:
         res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
         tm.assert_numpy_array_equal(res, expected)
 
-    @pytest.mark.parametrize("tz", [None, timezone.utc])
+    @pytest.mark.parametrize("tz", [None, UTC])
     def test_array_strptime_resolution_mixed(self, tz):
         dt = datetime(2016, 1, 2, 3, 4, 5, 678900, tzinfo=tz)
 
@@ -78,7 +78,7 @@ class TestArrayStrptimeResolutionInference:
         # specifically case where today/now is the *first* item
         vals = np.array(["today", np.datetime64("2017-01-01", "us")], dtype=object)
 
-        now = Timestamp("now").asm8
+        now = Timestamp("now").asm8  # current-time-ok
         res, _ = array_strptime(vals, fmt="%Y-%m-%d", utc=False, creso=creso_infer)
         res2, _ = array_strptime(
             vals[::-1], fmt="%Y-%m-%d", utc=False, creso=creso_infer

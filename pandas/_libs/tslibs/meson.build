@@ -10,13 +10,8 @@ tslibs_sources = {
     'np_datetime': {'sources': ['np_datetime.pyx']},
     'offsets': {'sources': ['offsets.pyx']},
     'parsing': {
-        'sources': [
-            'parsing.pyx',
-            '../src/parser/tokenizer.c',
-            '../src/parser/fast_float_strtod.cpp',
-            '../src/parser/pd_strtoi.cpp',
-        ],
-        'deps': [fast_float_dep],
+        'sources': ['parsing.pyx'],
+        'deps': [tokenizer_dep],
     },
     'period': {'sources': ['period.pyx']},
     'strptime': {'sources': ['strptime.pyx']},

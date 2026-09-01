@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas._libs.index as libindex
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -30,7 +31,8 @@ class TestMultiIndexBasic:
 
         # Partial key still goes through lexsort path
         df = df.iloc[[2, 1, 3, 0]]
-        with tm.assert_produces_warning(performance_warning):
+        msg = "indexing past lexsort depth may impact performance"
+        with tm.assert_produces_warning(performance_warning, match=msg):
             df.loc[(0,)]
 
     @pytest.mark.parametrize("offset", [-5, 5])
@@ -223,7 +225,9 @@ class TestMultiIndexBasic:
                 ["location", "location"],
                 ["x", "y"],
             ],
-        ).assign(bools=Series([True, False], dtype="boolean"))
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
+            df = df.assign(bools=Series([True, False], dtype="boolean"))
         assert isinstance(df["bools"].dtype, BooleanDtype)
 
     def test_multiindex_from_tuples_with_nan(self):
@@ -261,11 +265,20 @@ class TestMultiIndexBasic:
         s2 = s1.copy()
         s3 = s1.copy()
 
-        df2["C"] = s2
+        msg = "Setting a new column"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df2["C"] = s2
         df3[("C", "")] = s3
         tm.assert_frame_equal(df2, df3)
 
-        df1["C"] = s1
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df1["C"] = s1
+        tm.assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df3)
+
+        # setting again, now an existing column, does not warn
+        with tm.assert_produces_warning(None):
+            df1["C"] = s1
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
 

@@ -30,8 +30,6 @@ import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 
-pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
-
 
 def test_repr():
     # GH18203
@@ -70,6 +68,16 @@ def test_groupby_nonobject_dtype_mixed():
     result = applied.dtypes
     expected = df.drop(columns="A").dtypes
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_masked_array_column_values_type_consistent():
+    # GH#65458 a MaskedArray column is normalized on assignment, so every
+    #  group has ndarray values regardless of how the rows are split
+    df = DataFrame({"y": ["a", "a", "b"]})
+    df["x"] = np.ma.array([0.1, 0.2, 0.3])
+
+    for _, group in df.groupby("y"):
+        assert type(group["x"].values) is np.ndarray
 
 
 def test_pass_args_kwargs(ts):
@@ -233,15 +241,15 @@ def test_indices_concatenation_order():
 
     # should fail (not the same number of levels)
     msg = "Cannot concat indices that do not have the same number of levels"
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f2)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f2)
 
     # should fail (incorrect shape)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df.groupby("a").apply(f3)
-    with pytest.raises(AssertionError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         df2.groupby("a").apply(f3)
 
 
@@ -690,7 +698,7 @@ def test_raises_on_nuisance(df, using_infer_string):
         grouped.mean()
 
     df = df.loc[:, ["A", "C", "D"]]
-    df["E"] = datetime.now()
+    df["E"] = datetime(2011, 1, 1)
     grouped = df.groupby("A")
     msg = "datetime64 type does not support operation 'sum'"
     with pytest.raises(TypeError, match=msg):
@@ -1576,7 +1584,8 @@ def test_groupby_multiindex_not_lexsorted(performance_warning):
     assert not not_lexsorted_df.columns._is_lexsorted()
 
     expected = lexsorted_df.groupby("a").mean()
-    with tm.assert_produces_warning(performance_warning):
+    msg = "dropping on a non-lexsorted multi-index without a level parameter"
+    with tm.assert_produces_warning(performance_warning, match=msg):
         result = not_lexsorted_df.groupby("a").mean()
     tm.assert_frame_equal(expected, result)
 
@@ -1684,7 +1693,9 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = DataFrame(
         {
-            "eventDate": date_range(datetime.today(), periods=20, freq="ME").tolist(),
+            "eventDate": date_range(
+                datetime(2011, 1, 1), periods=20, freq="ME"
+            ).tolist(),
             "thename": range(20),
         }
     )
@@ -2106,7 +2117,7 @@ def test_group_on_empty_multiindex(transformation_func, request):
     # GH 47787
     # With one row, those are transforms so the schema should be the same
     df = DataFrame(
-        data=[[1, Timestamp("today"), 3, 4]],
+        data=[[1, Timestamp("2011-01-01"), 3, 4]],
         columns=["col_1", "col_2", "col_3", "col_4"],
     )
     df["col_3"] = df["col_3"].astype(int)
@@ -2654,9 +2665,6 @@ def test_sum_of_booleans(n):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:invalid value encountered in remainder:RuntimeWarning"
-)
 @pytest.mark.parametrize("method", ["head", "tail", "nth", "first", "last"])
 def test_groupby_method_drop_na(method):
     # GH 21755

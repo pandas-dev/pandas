@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -60,7 +61,7 @@ def test_count(any_string_dtype):
 
 def test_count_mixed_object():
     ser = Series(
-        ["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0],
+        ["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0],
         dtype=object,
     )
     result = ser.str.count("a")
@@ -119,6 +120,23 @@ def test_count_end_of_string(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_count_compiled_pattern_with_flags(any_string_dtype):
+    # GH#63705 flags on a compiled pattern must not be dropped
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = Series(["Apple pie apple", "apple", "APPLE"], dtype=any_string_dtype)
+    result = ser.str.count(re.compile("apple", re.IGNORECASE))
+    expected = Series([2, 1, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser = Series(["a\nb", "ab", "axb"], dtype=any_string_dtype)
+    result = ser.str.count(re.compile("a.b", re.DOTALL))
+    expected = Series([1, 0, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_repeat(any_string_dtype):
     ser = Series(["a", "b", np.nan, "c", np.nan, "d"], dtype=any_string_dtype)
 
@@ -136,7 +154,7 @@ def test_repeat(any_string_dtype):
 
 
 def test_repeat_mixed_object():
-    ser = Series(["a", np.nan, "b", True, datetime.today(), "foo", None, 1, 2.0])
+    ser = Series(["a", np.nan, "b", True, datetime(2011, 1, 1), "foo", None, 1, 2.0])
     result = ser.str.repeat(3)
     expected = Series(
         ["aaa", np.nan, "bbb", np.nan, np.nan, "foofoofoo", None, np.nan, np.nan],
@@ -374,7 +392,17 @@ def test_split_join_roundtrip(any_string_dtype):
 
 def test_split_join_roundtrip_mixed_object():
     ser = Series(
-        ["a_b", np.nan, "asdf_cas_asdf", True, datetime.today(), "foo", None, 1, 2.0]
+        [
+            "a_b",
+            np.nan,
+            "asdf_cas_asdf",
+            True,
+            datetime(2011, 1, 1),
+            "foo",
+            None,
+            1,
+            2.0,
+        ]
     )
     result = ser.str.split("_").str.join("_")
     expected = Series(
@@ -402,7 +430,17 @@ def test_len(any_string_dtype):
 
 def test_len_mixed():
     ser = Series(
-        ["a_b", np.nan, "asdf_cas_asdf", True, datetime.today(), "foo", None, 1, 2.0]
+        [
+            "a_b",
+            np.nan,
+            "asdf_cas_asdf",
+            True,
+            datetime(2011, 1, 1),
+            "foo",
+            None,
+            1,
+            2.0,
+        ]
     )
     result = ser.str.len()
     expected = Series([3, np.nan, 13, np.nan, np.nan, 3, np.nan, np.nan, np.nan])
@@ -518,7 +556,9 @@ def test_slice(start, stop, step, expected, any_string_dtype):
     ],
 )
 def test_slice_mixed_object(start, stop, step, expected):
-    ser = Series(["aafootwo", np.nan, "aabartwo", True, datetime.today(), None, 1, 2.0])
+    ser = Series(
+        ["aafootwo", np.nan, "aabartwo", True, datetime(2011, 1, 1), None, 1, 2.0]
+    )
     result = ser.str.slice(start, stop, step)
     expected = Series(expected, dtype=object)
     tm.assert_series_equal(result, expected)
@@ -572,7 +612,9 @@ def test_strip_lstrip_rstrip(any_string_dtype, method, exp):
     ],
 )
 def test_strip_lstrip_rstrip_mixed_object(method, exp):
-    ser = Series(["  aa  ", np.nan, " bb \t\n", True, datetime.today(), None, 1, 2.0])
+    ser = Series(
+        ["  aa  ", np.nan, " bb \t\n", True, datetime(2011, 1, 1), None, 1, 2.0]
+    )
 
     result = getattr(ser.str, method)()
     expected = Series([*exp, np.nan, np.nan, None, np.nan, np.nan], dtype=object)
@@ -735,6 +777,18 @@ def test_normalize(form, expected, any_string_dtype):
     )
     expected = Series(expected, index=["a", "b", "c", "d", "e"], dtype=any_string_dtype)
     result = ser.str.normalize(form)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method, args", [("normalize", ("NFC",)), ("normalize", ("NFKC",)), ("zfill", (5,))]
+)
+def test_str_empty_filter_elementwise_fallback(method, args, any_string_dtype):
+    # GH#64359 an all-False filter leaves an arrow-backed array with zero chunks,
+    #  which the elementwise fallbacks used to rebuild without a type
+    ser = Series(["Café", "éclair"], dtype=any_string_dtype)
+    expected = ser[ser == "zzz"]
+    result = getattr(expected.str, method)(*args)
     tm.assert_series_equal(result, expected)
 
 

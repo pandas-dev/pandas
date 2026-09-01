@@ -461,6 +461,28 @@ def test_append_min_itemsize_multiindex_columns(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
+def test_append_min_itemsize_index_multiindex_columns(temp_hdfstore):
+    # GH#12154 the row-index key ('index') is not a per-column request and must
+    # still reserve the index string width, even with MultiIndex columns.
+    columns = MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")])
+    df = DataFrame(
+        [["xx", "yy", "zz"], ["aa", "bb", "cc"]],
+        columns=columns,
+        index=["s1", "s2"],
+    )
+    temp_hdfstore.append("df", df, min_itemsize={"index": 50})
+
+    # appending a longer index label than the initial rows would overflow the
+    # index column had min_itemsize={'index': 50} not sized it.
+    df2 = DataFrame(
+        [["dd", "ee", "ff"]],
+        columns=columns,
+        index=["a_long_index_label_over_default_width"],
+    )
+    temp_hdfstore.append("df", df2)
+    tm.assert_frame_equal(temp_hdfstore.select("df"), concat([df, df2]))
+
+
 def test_append_with_empty_string(temp_hdfstore):
     # with all empty strings (GH 12242)
     df = DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})

@@ -8,11 +8,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-from pandas.compat.numpy import np_version_gt2
+from pandas.compat import IS64
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
@@ -132,7 +128,7 @@ class TestDataFrameSelectReindex:
     # test_indexing
 
     @pytest.mark.xfail(
-        not IS64 or (is_platform_windows() and not np_version_gt2),
+        not IS64,
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
@@ -803,7 +799,9 @@ class TestDataFrameSelectReindex:
         msg = "reindexing with a fill_value that cannot be held"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.reindex(range(15), fill_value="0")
-        expected = df.reindex(range(15)).fillna("0")
+        # GH#45153 filling float with string is deprecated
+        with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
+            expected = df.reindex(range(15)).fillna("0")
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_uint_dtypes_fill_value(self, any_unsigned_int_numpy_dtype):
@@ -1038,6 +1036,18 @@ class TestDataFrameSelectReindex:
         result = df.reindex(index=[0, 1], columns=["a", "b"])
         expected = df.reindex([0, 1]).reindex(columns=["a", "b"])
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_multi_promotes_dtype_for_missing_columns(self):
+        # GH#58517 reindexing both axes at once takes the take_2d_multi
+        #  fastpath; a missing column must promote the result dtype so that
+        #  the fill value fits, even when every row label is present
+        df = DataFrame(np.arange(6).reshape(2, 3), index=[0, 1], columns=[0, 1, 2])
+
+        result = df.reindex(index=[1, 0], columns=[0, 1, 5])
+        expected = DataFrame(
+            {0: [3.0, 0.0], 1: [4.0, 1.0], 5: [np.nan, np.nan]}, index=[1, 0]
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_multi_categorical_time(self):
