@@ -1,19 +1,15 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    concat,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 def create_mock_weights(obj, com, adjust, ignore_na):
-    if isinstance(obj, DataFrame):
+    if isinstance(obj, pd.DataFrame):
         if not len(obj.columns):
-            return DataFrame(index=obj.index, columns=obj.columns)
-        w = concat(
+            return pd.DataFrame(index=obj.index, columns=obj.columns)
+        w = pd.concat(
             [
                 create_mock_series_weights(
                     obj.iloc[:, i], com=com, adjust=adjust, ignore_na=ignore_na
@@ -30,7 +26,7 @@ def create_mock_weights(obj, com, adjust, ignore_na):
 
 
 def create_mock_series_weights(s, com, adjust, ignore_na):
-    w = Series(np.nan, index=s.index, name=s.name)
+    w = pd.Series(np.nan, index=s.index, name=s.name)
     alpha = 1.0 / (1.0 + com)
     if adjust:
         count = 0
@@ -85,7 +81,7 @@ def test_ewm_consistency_consistent(consistent_data, adjust, ignore_na, min_peri
     ).corr(consistent_data)
     exp = (
         consistent_data.max()
-        if isinstance(consistent_data, Series)
+        if isinstance(consistent_data, pd.Series)
         else consistent_data.max().max()
     )
 

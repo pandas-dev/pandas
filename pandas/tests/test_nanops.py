@@ -8,10 +8,6 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    Series,
-    isna,
-)
 import pandas._testing as tm
 from pandas.core import nanops
 
@@ -329,7 +325,7 @@ class TestnanopsDataFrame:
     ):
         for axis in [*list(range(targarval.ndim)), None]:
             targartempval = targarval if skipna else testarval
-            if skipna and empty_targfunc and isna(targartempval).all():
+            if skipna and empty_targfunc and pd.isna(targartempval).all():
                 targ = empty_targfunc(targartempval, axis=axis, **kwargs)
             else:
                 targ = targfunc(targartempval, axis=axis, **kwargs)
@@ -555,7 +551,7 @@ class TestnanopsDataFrame:
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
         nans = np.min(value, axis)
-        nullnan = isna(nans)
+        nullnan = pd.isna(nans)
         if res.ndim:
             res[nullnan] = -1
         elif (hasattr(nullnan, "all") and nullnan.all()) or (
@@ -758,7 +754,7 @@ class TestnanopsDataFrame:
     def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
         a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
         b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
-        valid = ~isna(a) & ~isna(b)
+        valid = ~pd.isna(a) & ~pd.isna(b)
 
         result = nanops.nancorr(a, b, method="pearson")
         expected = np.corrcoef(a[valid], b[valid])[0, 1]
@@ -805,7 +801,7 @@ class TestnanopsDataFrame:
     def test_nancorr_pearson_not_well_defined(self, a, b):
         result = nanops.nancorr(a, b, method="pearson")
 
-        assert isna(result)
+        assert pd.isna(result)
 
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
@@ -1107,7 +1103,7 @@ class TestNanvarFixedValues:
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
-        data = Series(766897346 * np.ones(10))
+        data = pd.Series(766897346 * np.ones(10))
         result = data.std(ddof=ddof)
         assert result == 0.0
 
@@ -1316,14 +1312,14 @@ def test_use_bottleneck():
 )
 def test_numpy_ops(numpy_op, expected):
     # GH8383
-    result = numpy_op(Series([1, 2, 3, 4]))
+    result = numpy_op(pd.Series([1, 2, 3, 4]))
     assert result == expected
 
 
 def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     # GH22764
     operation = getattr(nanops, nanops_univariate_methods)
-    ser = Series([1, 2, np.nan, 3, np.nan, 4])
+    ser = pd.Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
     median_result = operation(ser._values, mask=mask._values)
@@ -1424,7 +1420,7 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
 
 def test_nanmean_float16_overflow(disable_bottleneck):
     # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
-    ser = Series([60000.0, 60000.0], dtype=np.float16)
+    ser = pd.Series([60000.0, 60000.0], dtype=np.float16)
     result = ser.mean()
     assert result == 60000.0
 
@@ -1438,7 +1434,7 @@ def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # In the previous implementation mean can overflow for int dtypes, it
     # is now consistent with numpy
 
-    ser = Series(val, index=range(500), dtype=np.int64)
+    ser = pd.Series(val, index=range(500), dtype=np.int64)
     result = ser.mean()
     assert result == val
     if using_python_scalars:
@@ -1465,7 +1461,7 @@ def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars)
     if dtype is None:
         pytest.skip("np.float128 not available")
 
-    ser = Series(range(10), dtype=dtype)
+    ser = pd.Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
     if using_python_scalars:
         if is_integer_dtype(dtype) and method in ["min", "max"]:
@@ -1619,7 +1615,7 @@ class TestNanopsEmptyInput:
             return
 
         result = func(arr)
-        assert isna(result)
+        assert pd.isna(result)
 
     @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
     @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
@@ -1644,9 +1640,9 @@ class TestNanopsEmptyInput:
 
         if axis is not None:
             assert result.shape == (3,)
-            assert isna(result).all()
+            assert pd.isna(result).all()
         else:
-            assert isna(result)
+            assert pd.isna(result)
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
@@ -1655,8 +1651,8 @@ def test_nanstd_empty_datetime64_returns_timedelta(unit):
     dtype = f"M8[{unit}]"
     result = nanops.nanstd(np.array([], dtype=dtype))
     assert result.dtype == np.dtype(f"m8[{unit}]")
-    assert isna(result)
+    assert pd.isna(result)
 
     result = nanops.nanstd(np.empty((0, 3), dtype=dtype), axis=0)
     assert result.dtype == np.dtype(f"m8[{unit}]")
-    assert isna(result).all()
+    assert pd.isna(result).all()

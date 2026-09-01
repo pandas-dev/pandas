@@ -21,13 +21,6 @@ from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    read_csv,
-)
 import pandas._testing as tm
 
 import pandas.io.excel._base as _excel_base
@@ -150,7 +143,7 @@ def df_ref(datapath):
     Obtain the reference data from read_csv with the Python engine.
     """
     filepath = datapath("io", "data", "csv", "test1.csv")
-    df_ref = read_csv(filepath, index_col=0, parse_dates=True, engine="python")
+    df_ref = pd.read_csv(filepath, index_col=0, parse_dates=True, engine="python")
     return df_ref
 
 
@@ -158,7 +151,7 @@ def get_exp_unit(read_ext: str, engine: str | None) -> str:
     return "us"
 
 
-def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
+def adjust_expected(expected: pd.DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
     unit = get_exp_unit(read_ext, engine)
     # error: "Index" has no attribute "as_unit"
@@ -203,7 +196,7 @@ class TestReaders:
         # GH 58159
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
-        df = DataFrame({"bool_column": col}, dtype="boolean")
+        df = pd.DataFrame({"bool_column": col}, dtype="boolean")
         df.to_excel(tmp_excel, index=False)
         df2 = pd.read_excel(tmp_excel, dtype={"bool_column": "boolean"})
         tm.assert_frame_equal(df, df2)
@@ -213,7 +206,7 @@ class TestReaders:
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        df1 = DataFrame(
+        df1 = pd.DataFrame(
             {
                 "a": [True, True],
                 "b": [1, True],
@@ -257,7 +250,7 @@ class TestReaders:
                 dtype="boolean",
                 engine="openpyxl",
             )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"Test": [True, None, False, None, False, None, True]},
             dtype="boolean",
         )
@@ -473,8 +466,8 @@ class TestReaders:
     def test_index_col_str(self, read_ext):
         # see gh-52716
         result = pd.read_excel("test1" + read_ext, sheet_name="Sheet3", index_col="A")
-        expected = DataFrame(
-            columns=["B", "C", "D", "E", "F"], index=Index([], name="A")
+        expected = pd.DataFrame(
+            columns=["B", "C", "D", "E", "F"], index=pd.Index([], name="A")
         )
         tm.assert_frame_equal(result, expected)
 
@@ -483,9 +476,9 @@ class TestReaders:
         result = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet3", index_col=["A", "B", "C"]
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             columns=["D", "E", "F"],
-            index=MultiIndex(levels=[[]] * 3, codes=[[]] * 3, names=["A", "B", "C"]),
+            index=pd.MultiIndex(levels=[[]] * 3, codes=[[]] * 3, names=["A", "B", "C"]),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -495,7 +488,7 @@ class TestReaders:
         result = pd.read_excel(
             "test1" + read_ext, sheet_name="Sheet4", index_col=index_col
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [["i1", "a", "x"], ["i2", "b", "y"]], columns=["Unnamed: 0", "col1", "col2"]
         )
         if index_col:
@@ -524,7 +517,7 @@ class TestReaders:
 
     def test_excel_stop_iterator(self, read_ext):
         parsed = pd.read_excel("test2" + read_ext, sheet_name="Sheet1")
-        expected = DataFrame([["aaaa", "bbbbb"]], columns=["Test", "Test1"])
+        expected = pd.DataFrame([["aaaa", "bbbbb"]], columns=["Test", "Test1"])
         tm.assert_frame_equal(parsed, expected)
 
     def test_excel_cell_error_na(self, request, engine, read_ext):
@@ -537,7 +530,7 @@ class TestReaders:
             )
 
         parsed = pd.read_excel("test3" + read_ext, sheet_name="Sheet1")
-        expected = DataFrame([[np.nan]], columns=["Test"])
+        expected = pd.DataFrame([[np.nan]], columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
     def test_excel_table(self, request, engine, read_ext, df_ref):
@@ -563,14 +556,14 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         unit = get_exp_unit(read_ext, engine)
-        expected = DataFrame.from_dict(
+        expected = pd.DataFrame.from_dict(
             {
                 "IntCol": [1, 2, -3, 4, 0],
                 "FloatCol": [1.25, 2.25, 1.83, 1.92, 0.0000000005],
                 "BoolCol": [True, False, True, True, False],
                 "StrCol": [1, 2, 3, 4, 5],
                 "Str2Col": ["a", 3, "c", "d", "e"],
-                "DateCol": Index(
+                "DateCol": pd.Index(
                     [
                         datetime(2013, 10, 30),
                         datetime(2013, 10, 31),
@@ -612,7 +605,7 @@ class TestReaders:
     def test_reader_converters(self, read_ext):
         basename = "test_converters"
 
-        expected = DataFrame.from_dict(
+        expected = pd.DataFrame.from_dict(
             {
                 "IntCol": [1, 2, -3, -1000, 0],
                 "FloatCol": [12.5, np.nan, 18.3, 19.2, 0.000000005],
@@ -640,7 +633,7 @@ class TestReaders:
         basename = "testdtype"
         actual = pd.read_excel(basename + read_ext)
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": [2.5, 3.5, 4.5, 5.5],
@@ -657,7 +650,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = Series(["001", "002", "003", "004"], dtype="str")
+        expected["c"] = pd.Series(["001", "002", "003", "004"], dtype="str")
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -679,10 +672,10 @@ class TestReaders:
             (
                 {"a": "float64", "b": "float32", "c": str, "d": str},
                 {
-                    "a": Series([1, 2, 3, 4], dtype="float64"),
-                    "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                    "c": Series(["001", "002", "003", "004"], dtype="str"),
-                    "d": Series(["1", "2", np.nan, "4"], dtype="str"),
+                    "a": pd.Series([1, 2, 3, 4], dtype="float64"),
+                    "b": pd.Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
+                    "c": pd.Series(["001", "002", "003", "004"], dtype="str"),
+                    "d": pd.Series(["1", "2", np.nan, "4"], dtype="str"),
                 },
             ),
         ],
@@ -692,7 +685,7 @@ class TestReaders:
         basename = "testdtype"
 
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
-        expected = DataFrame(expected)
+        expected = pd.DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
     def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
@@ -700,18 +693,18 @@ class TestReaders:
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "a": Series([1, 3], dtype="Int64"),
-                "b": Series([2.5, 4.5], dtype="Float64"),
-                "c": Series([True, False], dtype="boolean"),
-                "d": Series(["a", "b"], dtype="string"),
-                "e": Series([pd.NA, 6], dtype="Int64"),
-                "f": Series([pd.NA, 7.5], dtype="Float64"),
-                "g": Series([pd.NA, True], dtype="boolean"),
-                "h": Series([pd.NA, "a"], dtype="string"),
-                "i": Series([pd.Timestamp("2019-12-31")] * 2),
-                "j": Series([pd.NA, pd.NA], dtype="Int64"),
+                "a": pd.Series([1, 3], dtype="Int64"),
+                "b": pd.Series([2.5, 4.5], dtype="Float64"),
+                "c": pd.Series([True, False], dtype="boolean"),
+                "d": pd.Series(["a", "b"], dtype="string"),
+                "e": pd.Series([pd.NA, 6], dtype="Int64"),
+                "f": pd.Series([pd.NA, 7.5], dtype="Float64"),
+                "g": pd.Series([pd.NA, True], dtype="boolean"),
+                "h": pd.Series([pd.NA, "a"], dtype="string"),
+                "i": pd.Series([pd.Timestamp("2019-12-31")] * 2),
+                "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
             }
         )
         df.to_excel(tmp_excel, sheet_name="test", index=False)
@@ -723,7 +716,7 @@ class TestReaders:
 
             from pandas.arrays import ArrowExtensionArray
 
-            expected = DataFrame(
+            expected = pd.DataFrame(
                 {
                     col: ArrowExtensionArray(pa.array(df[col], from_pandas=True))
                     for col in df.columns
@@ -751,7 +744,7 @@ class TestReaders:
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
+        df = pd.DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         df.to_excel(tmp_excel, sheet_name="test", index=False)
         result = pd.read_excel(
             tmp_excel,
@@ -766,7 +759,7 @@ class TestReaders:
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.array(["a", "b"], dtype=np.object_),
                 "b": np.array(["x", pd.NA], dtype=np.object_),
@@ -779,10 +772,10 @@ class TestReaders:
                 tmp_excel, sheet_name="test", dtype_backend="numpy_nullable"
             )
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "a": Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
-                "b": Series(["x", None], dtype=pd.StringDtype(string_storage)),
+                "a": pd.Series(["a", "b"], dtype=pd.StringDtype(string_storage)),
+                "b": pd.Series(["x", None], dtype=pd.StringDtype(string_storage)),
             }
         )
         # the storage of the str columns' Index is also affected by the
@@ -797,10 +790,10 @@ class TestReaders:
         dtype_dict_copy = dtype_dict.copy()
         # GH#42462
         result = pd.read_excel(basename + read_ext, dtype=dtype_dict)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "a": Series([1], dtype=object),
-                "a.1": Series([exp_value], dtype=object if not dtypes else None),
+                "a": pd.Series([1], dtype=object),
+                "a.1": pd.Series([exp_value], dtype=object if not dtypes else None),
             }
         )
         assert dtype_dict == dtype_dict_copy, "dtype dict changed"
@@ -811,7 +804,7 @@ class TestReaders:
         basename = "test_spaces"
 
         actual = pd.read_excel(basename + read_ext)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "testcol": [
                     "this is great",
@@ -828,8 +821,8 @@ class TestReaders:
     @pytest.mark.parametrize(
         "basename,expected",
         [
-            ("gh-35802", DataFrame({"COLUMN": ["Test (1)"]})),
-            ("gh-36122", DataFrame(columns=["got 2nd sa"])),
+            ("gh-35802", pd.DataFrame({"COLUMN": ["Test (1)"]})),
+            ("gh-36122", pd.DataFrame(columns=["got 2nd sa"])),
         ],
     )
     def test_read_excel_ods_nested_xml(self, engine, read_ext, basename, expected):
@@ -879,10 +872,10 @@ class TestReaders:
     # GH6403
     def test_read_excel_blank(self, read_ext):
         actual = pd.read_excel("blank" + read_ext, sheet_name="Sheet1")
-        tm.assert_frame_equal(actual, DataFrame())
+        tm.assert_frame_equal(actual, pd.DataFrame())
 
     def test_read_excel_blank_with_header(self, read_ext):
-        expected = DataFrame(columns=["col_1", "col_2"])
+        expected = pd.DataFrame(columns=["col_1", "col_2"])
         actual = pd.read_excel("blank_with_header" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
@@ -897,7 +890,7 @@ class TestReaders:
         # GH 10001 : pandas.ExcelFile ignore parse_dates=False
         xfail_datetimes_with_pyxlsb(engine, request)
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [pd.Timestamp("2016-03-12"), "Marc Johnson"],
                 [pd.Timestamp("2016-03-16"), "Jack Black"],
@@ -1082,7 +1075,7 @@ class TestReaders:
             )
 
         # Test reading times with and without milliseconds. GH5945.
-        expected = DataFrame.from_dict(
+        expected = pd.DataFrame.from_dict(
             {
                 "Time": [
                     time(1, 2, 3),
@@ -1112,11 +1105,11 @@ class TestReaders:
 
         unit = get_exp_unit(read_ext, engine)
 
-        mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
+        mi = pd.MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
         mi_file = "testmultiindex" + read_ext
 
         # "mi_column" sheet
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
                 [2, 3.5, pd.Timestamp("2015-01-02"), False],
@@ -1204,10 +1197,12 @@ class TestReaders:
         xfail_datetimes_with_pyxlsb(engine, request)
 
         mi_file = "testmultiindex" + read_ext
-        mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
+        mi = pd.MultiIndex.from_product(
+            [["foo", "bar"], ["a", "b"]], names=["c1", "c2"]
+        )
 
         unit = get_exp_unit(read_ext, engine)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
                 [2, 3.5, pd.Timestamp("2015-01-02"), False],
@@ -1215,7 +1210,7 @@ class TestReaders:
                 [4, 5.5, pd.Timestamp("2015-01-04"), True],
             ],
             columns=mi,
-            index=MultiIndex.from_arrays(
+            index=pd.MultiIndex.from_arrays(
                 (["foo", "foo", "bar", "bar"], idx_lvl2),
                 names=["ilvl1", "ilvl2"],
             ),
@@ -1236,8 +1231,8 @@ class TestReaders:
         mi_file = "testmultiindex" + read_ext
         result = pd.read_excel(mi_file, sheet_name="index_col_none", header=[0, 1])
 
-        exp_columns = MultiIndex.from_product([("A", "B"), ("key", "val")])
-        expected = DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
+        exp_columns = pd.MultiIndex.from_product([("A", "B"), ("key", "val")])
+        expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
     def test_excel_old_index_format(self, read_ext):
@@ -1259,7 +1254,7 @@ class TestReaders:
             dtype=object,
         )
         columns = ["C_l0_g0", "C_l0_g1", "C_l0_g2", "C_l0_g3", "C_l0_g4"]
-        mi = MultiIndex(
+        mi = pd.MultiIndex(
             levels=[
                 ["R0", "R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"],
                 ["R1", "R_l1_g0", "R_l1_g1", "R_l1_g2", "R_l1_g3", "R_l1_g4"],
@@ -1267,11 +1262,11 @@ class TestReaders:
             codes=[[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]],
             names=[None, None],
         )
-        si = Index(
+        si = pd.Index(
             ["R0", "R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None
         )
 
-        expected = DataFrame(data, index=si, columns=columns)
+        expected = pd.DataFrame(data, index=si, columns=columns)
 
         actual = pd.read_excel(filename, sheet_name="single_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -1293,7 +1288,7 @@ class TestReaders:
             ]
         )
         columns = ["C_l0_g0", "C_l0_g1", "C_l0_g2", "C_l0_g3", "C_l0_g4"]
-        mi = MultiIndex(
+        mi = pd.MultiIndex(
             levels=[
                 ["R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"],
                 ["R_l1_g0", "R_l1_g1", "R_l1_g2", "R_l1_g3", "R_l1_g4"],
@@ -1301,9 +1296,11 @@ class TestReaders:
             codes=[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4]],
             names=[None, None],
         )
-        si = Index(["R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None)
+        si = pd.Index(
+            ["R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None
+        )
 
-        expected = DataFrame(data, index=si, columns=columns)
+        expected = pd.DataFrame(data, index=si, columns=columns)
 
         actual = pd.read_excel(filename, sheet_name="single_no_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -1329,7 +1326,7 @@ class TestReaders:
         actual = pd.read_excel(
             "testskiprows" + read_ext, sheet_name="skiprows_list", skiprows=[0, 2]
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
                 [2, 3.5, pd.Timestamp("2015-01-02"), False],
@@ -1362,7 +1359,7 @@ class TestReaders:
             skiprows=3,
             names=["a", "b", "c", "d"],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 # [1, 2.5, pd.Timestamp("2015-01-01"), True],
                 [2, 3.5, pd.Timestamp("2015-01-02"), False],
@@ -1384,7 +1381,7 @@ class TestReaders:
             sheet_name="skiprows_list",
             skiprows=lambda x: x not in [1, 3, 5],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
                 # [2, 3.5, pd.Timestamp("2015-01-02"), False],
@@ -1401,7 +1398,7 @@ class TestReaders:
         with monkeypatch.context() as m:
             m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
             actual = pd.read_excel("test1" + read_ext, skiprows=lambda _: True, nrows=1)
-        expected = DataFrame()
+        expected = pd.DataFrame()
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows(self, read_ext):
@@ -1470,10 +1467,10 @@ class TestReaders:
         # GH 31783
         file_name = "testmultiindex" + read_ext
         data = [("B", "B"), ("key", "val"), (3, 4), (3, 4)]
-        idx = MultiIndex.from_tuples(
+        idx = pd.MultiIndex.from_tuples(
             [("A", "A"), ("key", "val"), (1, 2), (1, 2)], names=(0, 1)
         )
-        expected = DataFrame(data, index=idx, columns=(2, 3))
+        expected = pd.DataFrame(data, index=idx, columns=(2, 3))
         result = pd.read_excel(
             file_name, sheet_name="index_col_none", index_col=[0, 1], header=None
         )
@@ -1483,16 +1480,16 @@ class TestReaders:
         # GH 39808
         file_name = "one_col_blank_line" + read_ext
         data = [0.5, np.nan, 1, 2]
-        expected = DataFrame(data, columns=["numbers"])
+        expected = pd.DataFrame(data, columns=["numbers"])
         result = pd.read_excel(file_name)
         tm.assert_frame_equal(result, expected)
 
     def test_multiheader_two_blank_lines(self, read_ext):
         # GH 40442
         file_name = "testmultiindex" + read_ext
-        columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
+        columns = pd.MultiIndex.from_tuples([("a", "A"), ("b", "B")])
         data = [[np.nan, np.nan], [np.nan, np.nan], [1, 3], [2, 4]]
-        expected = DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=columns)
         result = pd.read_excel(
             file_name, sheet_name="mi_column_empty_rows", header=[0, 1]
         )
@@ -1538,7 +1535,7 @@ class TestReaders:
     def test_euro_decimal_format(self, read_ext):
         # copied from read_csv
         result = pd.read_excel("test_decimal" + read_ext, decimal=",", skiprows=1)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [1, 1521.1541, 187101.9543, "ABC", "poi", 4.738797819],
                 [2, 121.12, 14897.76, "DEF", "uyt", 0.377320872],
@@ -1589,7 +1586,7 @@ class TestExcelFileRead:
             parsed = pd.read_excel(
                 excel, sheet_name="Sheet1", keep_default_na=False, na_values=["apple"]
             )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [["NA"], [1], ["NA"], [np.nan], ["rabbit"]], columns=["Test"]
         )
         tm.assert_frame_equal(parsed, expected)
@@ -1598,7 +1595,7 @@ class TestExcelFileRead:
             parsed = pd.read_excel(
                 excel, sheet_name="Sheet1", keep_default_na=True, na_values=["apple"]
             )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[np.nan], [1], [np.nan], [np.nan], ["rabbit"]], columns=["Test"]
         )
         tm.assert_frame_equal(parsed, expected)
@@ -1608,7 +1605,7 @@ class TestExcelFileRead:
             parsed = pd.read_excel(
                 excel, sheet_name="Sheet1", keep_default_na=False, na_values=["apple"]
             )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [["1.#QNAN"], [1], ["nan"], [np.nan], ["rabbit"]], columns=["Test"]
         )
         tm.assert_frame_equal(parsed, expected)
@@ -1617,7 +1614,7 @@ class TestExcelFileRead:
             parsed = pd.read_excel(
                 excel, sheet_name="Sheet1", keep_default_na=True, na_values=["apple"]
             )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[np.nan], [1], [np.nan], [np.nan], ["rabbit"]], columns=["Test"]
         )
         tm.assert_frame_equal(parsed, expected)
@@ -1644,7 +1641,7 @@ class TestExcelFileRead:
         else:
             expected = [[np.nan], [1], [np.nan], [np.nan], ["rabbit"]]
 
-        expected = DataFrame(expected, columns=["Test"])
+        expected = pd.DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
     def test_excel_table_sheet_by_index(self, request, engine, read_ext, df_ref):
@@ -1771,9 +1768,11 @@ class TestExcelFileRead:
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):
         # GH 33476
-        idx = Index(["Z"], name="I2")
-        cols = MultiIndex.from_tuples([("A", "B"), ("A", "B.1")], names=["I11", "I12"])
-        expected = DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
+        idx = pd.Index(["Z"], name="I2")
+        cols = pd.MultiIndex.from_tuples(
+            [("A", "B"), ("A", "B.1")], names=["I11", "I12"]
+        )
+        expected = pd.DataFrame([[1, 3]], index=idx, columns=cols, dtype="int64")
         result = pd.read_excel(
             filename, sheet_name="Sheet1", index_col=0, header=[0, 1]
         )
@@ -1790,14 +1789,14 @@ class TestExcelFileRead:
         unit = get_exp_unit(read_ext, engine)
 
         dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
-        expected_column_index = MultiIndex.from_arrays(
+        expected_column_index = pd.MultiIndex.from_arrays(
             [dti[:1], dti[1:]],
             names=[
                 dti[0].to_pydatetime(),
                 dti[1].to_pydatetime(),
             ],
         )
-        expected = DataFrame([], index=[], columns=expected_column_index)
+        expected = pd.DataFrame([], index=[], columns=expected_column_index)
 
         tm.assert_frame_equal(expected, actual)
 

@@ -9,11 +9,7 @@ import pytest
 from pandas._libs.tslibs import timezones
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -21,8 +17,8 @@ class TestBetweenTime:
     @td.skip_if_not_english_lc_time
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
         )
         ts = tm.get_obj(ts, frame_or_series)
@@ -46,9 +42,9 @@ class TestBetweenTime:
     def test_localized_between_time(self, tzstr, frame_or_series):
         tz = timezones.maybe_get_tz(tzstr)
 
-        rng = date_range("4/16/2012", "5/1/2012", freq="h")
-        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        if frame_or_series is DataFrame:
+        rng = pd.date_range("4/16/2012", "5/1/2012", freq="h")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        if frame_or_series is pd.DataFrame:
             ts = ts.to_frame()
 
         ts_local = ts.tz_localize(tzstr)
@@ -61,8 +57,8 @@ class TestBetweenTime:
 
     def test_between_time_types(self, frame_or_series):
         # GH11818
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        obj = DataFrame({"A": 0}, index=rng)
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        obj = pd.DataFrame({"A": 0}, index=rng)
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"Cannot convert arg \[datetime\.datetime\(2010, 1, 2, 1, 0\)\] to a time"
@@ -70,8 +66,8 @@ class TestBetweenTime:
             obj.between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
     def test_between_time(self, inclusive_endpoints_fixture, frame_or_series):
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
         )
         ts = tm.get_obj(ts, frame_or_series)
@@ -106,8 +102,8 @@ class TestBetweenTime:
         tm.assert_equal(result, expected)
 
         # across midnight
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
         )
         ts = tm.get_obj(ts, frame_or_series)
@@ -136,7 +132,7 @@ class TestBetweenTime:
 
     def test_between_time_raises(self, frame_or_series):
         # GH#20725
-        obj = DataFrame([[1, 2, 3], [4, 5, 6]])
+        obj = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = "Index must be DatetimeIndex"
@@ -145,9 +141,9 @@ class TestBetweenTime:
 
     def test_between_time_axis(self, frame_or_series):
         # GH#8839
-        rng = date_range("1/1/2000", periods=100, freq="10min")
-        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        if frame_or_series is DataFrame:
+        rng = pd.date_range("1/1/2000", periods=100, freq="10min")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        if frame_or_series is pd.DataFrame:
             ts = ts.to_frame()
 
         stime, etime = ("08:00:00", "09:00:00")
@@ -161,8 +157,10 @@ class TestBetweenTime:
 
     def test_between_time_axis_aliases(self, axis):
         # GH#8839
-        rng = date_range("1/1/2000", periods=100, freq="10min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
+        rng = pd.date_range("1/1/2000", periods=100, freq="10min")
+        ts = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), len(rng)))
+        )
         stime, etime = ("08:00:00", "09:00:00")
         exp_len = 7
 
@@ -178,10 +176,10 @@ class TestBetweenTime:
 
     def test_between_time_axis_raises(self, axis):
         # issue 8839
-        rng = date_range("1/1/2000", periods=100, freq="10min")
+        rng = pd.date_range("1/1/2000", periods=100, freq="10min")
         mask = np.arange(0, len(rng))
         rand_data = np.random.default_rng(2).standard_normal((len(rng), len(rng)))
-        ts = DataFrame(rand_data, index=rng, columns=rng)
+        ts = pd.DataFrame(rand_data, index=rng, columns=rng)
         stime, etime = ("08:00:00", "09:00:00")
 
         msg = "Index must be DatetimeIndex"
@@ -198,8 +196,8 @@ class TestBetweenTime:
                 ts.between_time(stime, etime, axis=1)
 
     def test_between_time_datetimeindex(self):
-        index = date_range("2012-01-01", "2012-01-05", freq="30min")
-        df = DataFrame(
+        index = pd.date_range("2012-01-01", "2012-01-05", freq="30min")
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 5)), index=index
         )
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
@@ -214,8 +212,8 @@ class TestBetweenTime:
 
     def test_between_time_incorrect_arg_inclusive(self):
         # GH40245
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
         )
 
@@ -230,8 +228,8 @@ class TestBetweenTime:
 @td.skip_if_not_english_lc_time
 def test_between_time_space_before_meridiem():
     # GH#18793 the space before AM/PM used to make these unparsable
-    index = date_range("2012-01-01", periods=48, freq="h")
-    df = DataFrame({"A": range(len(index))}, index=index)
+    index = pd.date_range("2012-01-01", periods=48, freq="h")
+    df = pd.DataFrame({"A": range(len(index))}, index=index)
 
     result = df.between_time("3:00 PM", "5:00 PM")
     expected = df.between_time(time(15, 0), time(17, 0))

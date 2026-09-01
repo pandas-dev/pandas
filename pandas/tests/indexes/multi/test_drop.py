@@ -2,17 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-)
 import pandas._testing as tm
 
 
 def test_drop(idx):
     dropped = idx.drop([("foo", "two"), ("qux", "one")])
 
-    index = MultiIndex.from_tuples([("foo", "two"), ("qux", "one")])
+    index = pd.MultiIndex.from_tuples([("foo", "two"), ("qux", "one")])
     dropped2 = idx.drop(index)
 
     expected = idx[[0, 2, 3, 5]]
@@ -27,7 +23,7 @@ def test_drop(idx):
     expected = idx[[2, 3, 4, 5]]
     tm.assert_index_equal(dropped, expected)
 
-    index = MultiIndex.from_tuples([("bar", "two")])
+    index = pd.MultiIndex.from_tuples([("bar", "two")])
     with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
         idx.drop([("bar", "two")])
     with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
@@ -36,7 +32,7 @@ def test_drop(idx):
         idx.drop(["foo", "two"])
 
     # partially correct argument
-    mixed_index = MultiIndex.from_tuples([("qux", "one"), ("bar", "two")])
+    mixed_index = pd.MultiIndex.from_tuples([("qux", "one"), ("bar", "two")])
     with pytest.raises(KeyError, match=r"^\('bar', 'two'\)$"):
         idx.drop(mixed_index)
 
@@ -72,8 +68,8 @@ def test_droplevel_with_names(idx):
     dropped = index.droplevel(0)
     assert dropped.name == "second"
 
-    index = MultiIndex(
-        levels=[Index(range(4)), Index(range(4)), Index(range(4))],
+    index = pd.MultiIndex(
+        levels=[pd.Index(range(4)), pd.Index(range(4)), pd.Index(range(4))],
         codes=[
             np.array([0, 0, 1, 2, 2, 2, 3, 3]),
             np.array([0, 1, 0, 0, 0, 1, 0, 1]),
@@ -90,8 +86,8 @@ def test_droplevel_with_names(idx):
 
 
 def test_droplevel_list():
-    index = MultiIndex(
-        levels=[Index(range(4)), Index(range(4)), Index(range(4))],
+    index = pd.MultiIndex(
+        levels=[pd.Index(range(4)), pd.Index(range(4)), pd.Index(range(4))],
         codes=[
             np.array([0, 0, 1, 2, 2, 2, 3, 3]),
             np.array([0, 1, 0, 0, 0, 1, 0, 1]),
@@ -124,7 +120,7 @@ def test_drop_not_lexsorted(performance_warning):
 
     # define the lexsorted version of the multi-index
     tuples = [("a", ""), ("b1", "c1"), ("b2", "c2")]
-    lexsorted_mi = MultiIndex.from_tuples(tuples, names=["b", "c"])
+    lexsorted_mi = pd.MultiIndex.from_tuples(tuples, names=["b", "c"])
     assert lexsorted_mi._is_lexsorted()
 
     # and the not-lexsorted version
@@ -145,7 +141,7 @@ def test_drop_not_lexsorted(performance_warning):
 
 def test_drop_with_nan_in_index(nulls_fixture):
     # GH#18853
-    mi = MultiIndex.from_tuples([("blah", nulls_fixture)], names=["name", "date"])
+    mi = pd.MultiIndex.from_tuples([("blah", nulls_fixture)], names=["name", "date"])
     msg = r"labels \[Timestamp\('2001-01-01 00:00:00'\)\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop(pd.Timestamp("2001"), level="date")
@@ -154,16 +150,16 @@ def test_drop_with_nan_in_index(nulls_fixture):
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_drop_with_non_monotonic_duplicates():
     # GH#33494
-    mi = MultiIndex.from_tuples([(1, 2), (2, 3), (1, 2)])
+    mi = pd.MultiIndex.from_tuples([(1, 2), (2, 3), (1, 2)])
     result = mi.drop((1, 2))
-    expected = MultiIndex.from_tuples([(2, 3)])
+    expected = pd.MultiIndex.from_tuples([(2, 3)])
     tm.assert_index_equal(result, expected)
 
 
 def test_single_level_drop_partially_missing_elements():
     # GH 37820
 
-    mi = MultiIndex.from_tuples([(1, 2), (2, 2), (3, 2)])
+    mi = pd.MultiIndex.from_tuples([(1, 2), (2, 2), (3, 2)])
     msg = r"labels \[4\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop(4, level=0)
@@ -175,7 +171,7 @@ def test_single_level_drop_partially_missing_elements():
     with pytest.raises(KeyError, match=msg):
         mi.drop([np.nan, 1, 2, 3], level=0)
 
-    mi = MultiIndex.from_tuples([(np.nan, 1), (1, 2)])
+    mi = pd.MultiIndex.from_tuples([(np.nan, 1), (1, 2)])
     msg = r"labels \['a'\] not found in level"
     with pytest.raises(KeyError, match=msg):
         mi.drop([np.nan, 1, "a"], level=0)
@@ -183,7 +179,7 @@ def test_single_level_drop_partially_missing_elements():
 
 def test_droplevel_multiindex_one_level():
     # GH#37208
-    index = MultiIndex.from_tuples([(2,)], names=("b",))
+    index = pd.MultiIndex.from_tuples([(2,)], names=("b",))
     result = index.droplevel([])
-    expected = Index([2], name="b")
+    expected = pd.Index([2], name="b")
     tm.assert_index_equal(result, expected)
