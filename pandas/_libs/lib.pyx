@@ -1878,6 +1878,9 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         Py_ssize_t _, n
         object val
         ndarray values
+        bint seen_bool = False
+        bint seen_float = False
+        bint seen_integer = False
         bint seen_pdnat = False
         bint seen_val = False
         flatiter it
@@ -1963,7 +1966,6 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
                 return "integer-na"
             else:
                 return "mixed-integer-float"
-        return "mixed-integer"
 
     elif PyDateTime_Check(val):
         if is_datetime_array(values, skipna=skipna):
@@ -2022,7 +2024,16 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
         PyArray_ITER_NEXT(it)
 
         if util.is_integer_object(val):
-            return "mixed-integer"
+            seen_integer = True
+        elif util.is_bool_object(val):
+            seen_bool = True
+        elif util.is_float_object(val) and not util.is_nan(val):
+            seen_float = True
+
+    if seen_integer and seen_bool and seen_float:
+        return "mixed"
+    if seen_integer:
+        return "mixed-integer"
 
     return "mixed"
 

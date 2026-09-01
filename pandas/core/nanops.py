@@ -939,12 +939,14 @@ def nanmedian(
         if values.dtype == object:
             # GH#34671 avoid casting strings to numeric
             inferred = lib.infer_dtype(values)
-            if inferred in ["string", "mixed"]:
+            if inferred == "string":
                 raise TypeError(f"Cannot convert {values} to numeric")
         try:
             values = values.astype("f8")
-        except ValueError as err:
+        except (TypeError, ValueError) as err:
             # e.g. "could not convert string to float: 'a'"
+            if values.dtype == object:
+                raise TypeError(f"Cannot convert {values} to numeric") from err
             raise TypeError(str(err)) from err
     if not using_nan_sentinel and mask is not None:
         if not values.flags.writeable:
