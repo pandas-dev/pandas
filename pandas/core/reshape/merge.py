@@ -715,7 +715,8 @@ def merge_asof(
         side, respectively.
     tolerance : int or timedelta, optional, default None
         Select asof tolerance within this range; must be compatible
-        with the merge index.
+        with the merge index. Must be non-negative; ``tolerance=0``
+        matches only exactly equal keys.
     allow_exact_matches : bool, default True
 
         - If True, allow matching with the same 'on' value
