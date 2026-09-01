@@ -1,39 +1,36 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    RangeIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestGetIndexer:
     def test_get_indexer(self):
-        index = RangeIndex(start=0, stop=20, step=2)
-        target = RangeIndex(10)
+        index = pd.RangeIndex(start=0, stop=20, step=2)
+        target = pd.RangeIndex(10)
         indexer = index.get_indexer(target)
         expected = np.array([0, -1, 1, -1, 2, -1, 3, -1, 4, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_pad(self):
-        index = RangeIndex(start=0, stop=20, step=2)
-        target = RangeIndex(10)
+        index = pd.RangeIndex(start=0, stop=20, step=2)
+        target = pd.RangeIndex(10)
         indexer = index.get_indexer(target, method="pad")
         expected = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_backfill(self):
-        index = RangeIndex(start=0, stop=20, step=2)
-        target = RangeIndex(10)
+        index = pd.RangeIndex(start=0, stop=20, step=2)
+        target = pd.RangeIndex(10)
         indexer = index.get_indexer(target, method="backfill")
         expected = np.array([0, 1, 1, 2, 2, 3, 3, 4, 4, 5], dtype=np.intp)
         tm.assert_numpy_array_equal(indexer, expected)
 
     def test_get_indexer_limit(self):
         # GH#28631
-        idx = RangeIndex(4)
-        target = RangeIndex(6)
+        idx = pd.RangeIndex(4)
+        target = pd.RangeIndex(6)
         result = idx.get_indexer(target, method="pad", limit=1)
         expected = np.array([0, 1, 2, 3, 3, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -41,7 +38,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("stop", [0, -1, -2])
     def test_get_indexer_decreasing(self, stop):
         # GH#28678
-        index = RangeIndex(7, stop, -3)
+        index = pd.RangeIndex(7, stop, -3)
         result = index.get_indexer(range(9))
         expected = np.array([-1, 2, -1, -1, 1, -1, -1, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -49,7 +46,7 @@ class TestGetIndexer:
     def test_get_indexer_int64_min_no_overflow(self):
         # GH#64148 a target near INT64_MIN overflowed ``target - start`` and was
         # reported as a spurious (out-of-bounds) match instead of -1
-        index = RangeIndex(10, 13)
+        index = pd.RangeIndex(10, 13)
         target = np.array([np.iinfo(np.int64).min, 10, 11, 12, 13], dtype=np.int64)
         result = index.get_indexer(target)
         expected = np.array([-1, 0, 1, 2, -1], dtype=np.intp)
@@ -57,7 +54,7 @@ class TestGetIndexer:
 
     def test_get_indexer_uint64_above_int64_max(self):
         # GH#64148 uint64 targets above INT64_MAX must not spuriously match
-        index = RangeIndex(0, 3)
+        index = pd.RangeIndex(0, 3)
         target = np.array([2**63, 0, 1, 5], dtype=np.uint64)
         result = index.get_indexer(target)
         expected = np.array([-1, 0, 1, -1], dtype=np.intp)
@@ -66,7 +63,7 @@ class TestGetIndexer:
     def test_get_indexer_span_exceeds_int64_max(self):
         # GH#64148 offsets beyond INT64_MAX overflowed the int64 subtraction,
         # returning garbage indexers (e.g. -2) for genuine members
-        index = RangeIndex(-(2**62) - 1, 2**63 - 1, 2**62)
+        index = pd.RangeIndex(-(2**62) - 1, 2**63 - 1, 2**62)
         assert list(index) == [-(2**62) - 1, -1, 2**62 - 1]
         target = np.array([2**62 - 1, -1, 5, -(2**62) - 1], dtype=np.int64)
         result = index.get_indexer(target)
@@ -75,7 +72,7 @@ class TestGetIndexer:
 
     def test_get_indexer_decreasing_span_exceeds_int64_max(self):
         # GH#64148 the same overflow through the reversed-range path
-        index = RangeIndex(2**62 - 1, -(2**62) - 2, -(2**62))
+        index = pd.RangeIndex(2**62 - 1, -(2**62) - 2, -(2**62))
         assert list(index) == [2**62 - 1, -1, -(2**62) - 1]
         target = np.array(
             [np.iinfo(np.int64).min, -1, 2**62 - 1, -(2**62) - 1], dtype=np.int64
@@ -86,7 +83,7 @@ class TestGetIndexer:
 
     def test_get_indexer_missing_value_casting_string_dtype(self):
         # GH#55833
-        idx = Index(["a", "b", None])
+        idx = pd.Index(["a", "b", None])
         result = idx.get_indexer([None])
         expected = np.array([2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -98,25 +95,25 @@ class TestGetIndexer:
 
 class TestTake:
     def test_take_preserve_name(self):
-        index = RangeIndex(1, 5, name="foo")
+        index = pd.RangeIndex(1, 5, name="foo")
         taken = index.take([3, 0, 1])
         assert index.name == taken.name
 
     def test_take_fill_value(self):
         # GH#12631
-        idx = RangeIndex(1, 4, name="xxx")
+        idx = pd.RangeIndex(1, 4, name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
+        expected = pd.Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
         # fill_value: RangeIndex falls back to Index (which can hold NA)
         result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
-        expected = Index([2, 1, np.nan], name="xxx")
+        expected = pd.Index([2, 1, np.nan], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False)
-        expected = Index([2, 1, 3], dtype=np.int64, name="xxx")
+        expected = pd.Index([2, 1, 3], dtype=np.int64, name="xxx")
         tm.assert_index_equal(result, expected)
 
         msg = "When allow_fill=True, all indices must be >= -1"
@@ -126,7 +123,7 @@ class TestTake:
             idx.take(np.array([1, 0, -5]), fill_value=True)
 
     def test_take_raises_index_error(self):
-        idx = RangeIndex(1, 4, name="xxx")
+        idx = pd.RangeIndex(1, 4, name="xxx")
 
         msg = "index -5 is out of bounds for (axis 0 with )?size 3"
         with pytest.raises(IndexError, match=msg):
@@ -138,48 +135,48 @@ class TestTake:
 
         # no errors
         result = idx.take(np.array([1, -3]))
-        expected = RangeIndex(start=2, stop=0, step=-1, name="xxx")
+        expected = pd.RangeIndex(start=2, stop=0, step=-1, name="xxx")
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_take_accepts_empty_array(self):
-        idx = RangeIndex(1, 4, name="foo")
+        idx = pd.RangeIndex(1, 4, name="foo")
         result = idx.take(np.array([]))
-        expected = RangeIndex(start=0, stop=0, step=1, name="foo")
+        expected = pd.RangeIndex(start=0, stop=0, step=1, name="foo")
         tm.assert_index_equal(result, expected, exact=True)
 
         # empty index
-        idx = RangeIndex(0, name="foo")
+        idx = pd.RangeIndex(0, name="foo")
         result = idx.take(np.array([]))
-        expected = RangeIndex(start=0, stop=0, step=1, name="foo")
+        expected = pd.RangeIndex(start=0, stop=0, step=1, name="foo")
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_take_accepts_non_int64_array(self):
-        idx = RangeIndex(1, 4, name="foo")
+        idx = pd.RangeIndex(1, 4, name="foo")
         result = idx.take(np.array([2, 1], dtype=np.uint32))
-        expected = RangeIndex(start=3, stop=1, step=-1, name="foo")
+        expected = pd.RangeIndex(start=3, stop=1, step=-1, name="foo")
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_take_when_index_has_step(self):
-        idx = RangeIndex(1, 11, 3, name="foo")  # [1, 4, 7, 10]
+        idx = pd.RangeIndex(1, 11, 3, name="foo")  # [1, 4, 7, 10]
         result = idx.take(np.array([1, 0, -1, -4]))
-        expected = Index([4, 1, 10, 1], dtype=np.int64, name="foo")
+        expected = pd.Index([4, 1, 10, 1], dtype=np.int64, name="foo")
         tm.assert_index_equal(result, expected)
 
     def test_take_when_index_has_negative_step(self):
-        idx = RangeIndex(11, -4, -2, name="foo")  # [11, 9, 7, 5, 3, 1, -1, -3]
+        idx = pd.RangeIndex(11, -4, -2, name="foo")  # [11, 9, 7, 5, 3, 1, -1, -3]
         result = idx.take(np.array([1, 0, -1, -8]))
-        expected = Index([9, 11, -3, 11], dtype=np.int64, name="foo")
+        expected = pd.Index([9, 11, -3, 11], dtype=np.int64, name="foo")
         tm.assert_index_equal(result, expected)
 
 
 class TestWhere:
     def test_where_putmask_range_cast(self):
         # GH#43240
-        idx = RangeIndex(0, 5, name="test")
+        idx = pd.RangeIndex(0, 5, name="test")
 
         mask = np.array([True, True, False, False, False])
         result = idx.putmask(mask, 10)
-        expected = Index([10, 10, 2, 3, 4], dtype=np.int64, name="test")
+        expected = pd.Index([10, 10, 2, 3, 4], dtype=np.int64, name="test")
         tm.assert_index_equal(result, expected)
 
         result = idx.where(~mask, 10)

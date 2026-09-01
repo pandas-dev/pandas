@@ -2,10 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
 import pandas._testing as tm
 
 
@@ -58,7 +54,7 @@ def keys(n, m, vals):
 # covers both unique index and non-unique index
 @pytest.fixture
 def df(vals, cols):
-    return DataFrame(vals, columns=cols)
+    return pd.DataFrame(vals, columns=cols)
 
 
 @pytest.fixture
@@ -110,7 +106,7 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
                 return_value = right.set_index(cols[:-1], inplace=True)
                 assert return_value is None
                 if len(right) == 1:  # single hit
-                    right = Series(
+                    right = pd.Series(
                         right["jolia"].values, name=right.index[0], index=["jolia"]
                     )
                     tm.assert_series_equal(mi.loc[key[: i + 1]], right)

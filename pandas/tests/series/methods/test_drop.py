@@ -1,10 +1,6 @@
 import pytest
 
-from pandas import (
-    Index,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
 
@@ -25,9 +21,9 @@ from pandas.api.types import is_bool_dtype
 def test_drop_unique_and_non_unique_index(
     data, index, axis, drop_labels, expected_data, expected_index
 ):
-    ser = Series(data=data, index=index)
+    ser = pd.Series(data=data, index=index)
     result = ser.drop(drop_labels, axis=axis)
-    expected = Series(data=expected_data, index=expected_index)
+    expected = pd.Series(data=expected_data, index=expected_index)
     tm.assert_series_equal(result, expected)
 
 
@@ -42,14 +38,14 @@ def test_drop_unique_and_non_unique_index(
     ],
 )
 def test_drop_exception_raised(drop_labels, axis, error_type, error_desc):
-    ser = Series(range(3), index=list("abc"))
+    ser = pd.Series(range(3), index=list("abc"))
     with pytest.raises(error_type, match=error_desc):
         ser.drop(drop_labels, axis=axis)
 
 
 def test_drop_with_ignore_errors():
     # errors='ignore'
-    ser = Series(range(3), index=list("abc"))
+    ser = pd.Series(range(3), index=list("abc"))
     result = ser.drop("bc", errors="ignore")
     tm.assert_series_equal(result, ser)
     result = ser.drop(["a", "d"], errors="ignore")
@@ -57,11 +53,11 @@ def test_drop_with_ignore_errors():
     tm.assert_series_equal(result, expected)
 
     # GH 8522
-    ser = Series([2, 3], index=[True, False])
+    ser = pd.Series([2, 3], index=[True, False])
     assert is_bool_dtype(ser.index)
     assert ser.index.dtype == bool
     result = ser.drop(True)
-    expected = Series([3], index=[False])
+    expected = pd.Series([3], index=[False])
     tm.assert_series_equal(result, expected)
 
 
@@ -70,8 +66,8 @@ def test_drop_with_ignore_errors():
 def test_drop_empty_list(index, drop_labels):
     # GH 21494
     expected_index = [i for i in index if i not in drop_labels]
-    series = Series(index=index, dtype=object).drop(drop_labels)
-    expected = Series(index=expected_index, dtype=object)
+    series = pd.Series(index=index, dtype=object).drop(drop_labels)
+    expected = pd.Series(index=expected_index, dtype=object)
     tm.assert_series_equal(series, expected)
 
 
@@ -86,26 +82,26 @@ def test_drop_empty_list(index, drop_labels):
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
     dtype = object if data is None else None
-    ser = Series(data=data, index=index, dtype=dtype)
+    ser = pd.Series(data=data, index=index, dtype=dtype)
     with pytest.raises(KeyError, match="not found in axis"):
         ser.drop(drop_labels)
 
 
 def test_drop_index_ea_dtype(any_numeric_ea_dtype):
     # GH#45860
-    df = Series(100, index=Index([1, 2, 2], dtype=any_numeric_ea_dtype))
-    idx = Index([df.index[1]])
+    df = pd.Series(100, index=pd.Index([1, 2, 2], dtype=any_numeric_ea_dtype))
+    idx = pd.Index([df.index[1]])
     result = df.drop(idx)
-    expected = Series(100, index=Index([1], dtype=any_numeric_ea_dtype))
+    expected = pd.Series(100, index=pd.Index([1], dtype=any_numeric_ea_dtype))
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Pacific"])
 def test_drop_preserves_datetimeindex_freq_and_tz(tz, unit):
-    dti = date_range(
+    dti = pd.date_range(
         "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz, unit=unit
     )
-    ts = Series(
+    ts = pd.Series(
         1,
         index=dti,
     )

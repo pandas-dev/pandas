@@ -12,12 +12,9 @@ from zipfile import ZipFile
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_windows
+
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    compat,
-)
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
 from pandas.core.indexes.base import get_values_for_csv
@@ -186,7 +183,7 @@ class TestToCSV:
         # 1.0), so explicit engine="pyarrow" also warns before raising.
         raises_if_pyarrow = check_raises_if_pyarrow_all_na_row(engine)
 
-        df1 = DataFrame([None, 1])
+        df1 = pd.DataFrame([None, 1])
         expected1 = """\
 ""
 1.0
@@ -196,7 +193,7 @@ class TestToCSV:
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected1
 
-        df2 = DataFrame([1, None])
+        df2 = pd.DataFrame([1, None])
         expected2 = """\
 1.0
 ""
@@ -208,7 +205,7 @@ class TestToCSV:
 
     def test_to_csv_default_encoding(self, temp_file, engine):
         # GH17097
-        df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
+        df = pd.DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
         # the default to_csv encoding is utf-8.
         df.to_csv(temp_file, engine=engine)
@@ -218,14 +215,14 @@ class TestToCSV:
     def test_to_csv_utf16_encoding(self, encoding, temp_file, engine):
         # GH#10755
         raises_if_pyarrow = check_raises_if_pyarrow("encoding", engine)
-        df = DataFrame({"col": ["abc", "déf", "日本語"]})
+        df = pd.DataFrame({"col": ["abc", "déf", "日本語"]})
         with raises_if_pyarrow:
             df.to_csv(temp_file, encoding=encoding, engine=engine)
             result = pd.read_csv(temp_file, index_col=0, encoding=encoding)
             tm.assert_frame_equal(result, df)
 
     def test_to_csv_quotechar(self, temp_file, engine):
-        df = DataFrame({"col": [1, 2]})
+        df = pd.DataFrame({"col": [1, 2]})
         expected = """\
 "","col"
 "0","1"
@@ -259,7 +256,7 @@ $1$,$2$
             df.to_csv(temp_file, quoting=1, quotechar=None, engine=engine)
 
     def test_to_csv_doublequote(self, temp_file, engine):
-        df = DataFrame({"col": ['a"a', '"bb"']})
+        df = pd.DataFrame({"col": ['a"a', '"bb"']})
         expected = '''\
 "","col"
 "0","a""a"
@@ -283,7 +280,7 @@ $1$,$2$
 
     def test_to_csv_escapechar(self, temp_file, engine):
         raises_if_pyarrow = check_raises_if_pyarrow("escapechar", engine)
-        df = DataFrame({"col": ['a"a', '"bb"']})
+        df = pd.DataFrame({"col": ['a"a', '"bb"']})
         expected = """\
 "","col"
 "0","a\\"a"
@@ -297,7 +294,7 @@ $1$,$2$
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected
 
-        df = DataFrame({"col": ["a,a", ",bb,"]})
+        df = pd.DataFrame({"col": ["a,a", ",bb,"]})
         expected = """\
 ,col
 0,a\\,a
@@ -312,7 +309,7 @@ $1$,$2$
                 assert f.read() == expected
 
     def test_csv_to_string(self, engine):
-        df = DataFrame({"col": [1, 2]})
+        df = pd.DataFrame({"col": [1, 2]})
         if uses_pyarrow(engine):
             # pyarrow always quotes string-typed values, including headers
             expected_rows = ['"","col"', "0,1", "1,2"]
@@ -324,7 +321,7 @@ $1$,$2$
     def test_to_csv_decimal(self, engine):
         # see gh-781
         raises_if_pyarrow = check_raises_if_pyarrow("decimal", engine)
-        df = DataFrame({"col1": [1], "col2": ["a"], "col3": [10.1]})
+        df = pd.DataFrame({"col1": [1], "col2": ["a"], "col3": [10.1]})
 
         if uses_pyarrow(engine):
             # pyarrow always quotes string-typed values, including headers
@@ -359,7 +356,7 @@ $1$,$2$
             )
 
         # see gh-11553: testing if decimal is taken into account for '0.0'
-        df = DataFrame({"a": [0, 1.1], "b": [2.2, 3.3], "c": 1})
+        df = pd.DataFrame({"a": [0, 1.1], "b": [2.2, 3.3], "c": 1})
 
         expected_rows = ["a,b,c", "0^0,2^2,1", "1^1,3^3,1"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
@@ -380,7 +377,7 @@ $1$,$2$
         # testing if float_format is taken into account for the index
         # GH 11553
         raises_if_pyarrow = check_raises_if_pyarrow("float_format", engine)
-        df = DataFrame({"a": [0, 1], "b": [2.2, 3.3], "c": 1})
+        df = pd.DataFrame({"a": [0, 1], "b": [2.2, 3.3], "c": 1})
 
         expected_rows = ["a,b,c", "0,2.20,1", "1,3.30,1"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
@@ -401,7 +398,7 @@ $1$,$2$
         #
         # Testing if NaN values are correctly represented in the index.
         raises_if_pyarrow = check_raises_if_pyarrow("na_rep", engine)
-        df = DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
+        df = pd.DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0.0,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -413,7 +410,7 @@ $1$,$2$
             )
 
         # now with an index containing only NaNs
-        df = DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
+        df = pd.DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "_,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -425,7 +422,7 @@ $1$,$2$
             )
 
         # check if na_rep parameter does not break anything when no NaN
-        df = DataFrame({"a": 0, "b": [0, 1], "c": [2, 3]})
+        df = pd.DataFrame({"a": 0, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0,0,2", "0,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -455,8 +452,8 @@ $1$,$2$
     def test_to_csv_date_format(self, engine):
         # GH 10209
         raises_if_pyarrow = check_raises_if_pyarrow("date_format", engine)
-        df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
-        df_day = DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
+        df_sec = pd.DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
+        df_day = pd.DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
         if uses_pyarrow(engine):
             # The python engine drops the (all-zero) fractional seconds for
@@ -567,7 +564,7 @@ $1$,$2$
 
     def test_to_csv_different_datetime_formats(self, engine):
         # GH#21734
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "date": pd.to_datetime("1970-01-01"),
                 "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
@@ -595,7 +592,7 @@ $1$,$2$
         # GH#55426 - exercise the column path for PeriodArray
         # Period dtype can't be represented by pyarrow at all
         raises_if_pyarrow = check_raises_if_pyarrow_unsupported_data(engine)
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": pd.period_range("2020-01-01", periods=2, freq="D"),
                 "b": pd.period_range("2020-03-01", periods=2, freq="D"),
@@ -616,7 +613,7 @@ $1$,$2$
         # date_format is unsupported by pyarrow regardless of the Period
         # dtype also being unsupported
         raises_if_pyarrow = check_raises_if_pyarrow("date_format", engine)
-        df = DataFrame({"a": pd.period_range("2000-01-01", periods=2, freq="h")})
+        df = pd.DataFrame({"a": pd.period_range("2000-01-01", periods=2, freq="h")})
         expected_rows = [
             ",a",
             "0,2000-01-01___00:00:00",
@@ -632,7 +629,7 @@ $1$,$2$
         # GH#55426 - exercise the column path for IntervalArray
         # Interval dtype can't be represented by pyarrow at all
         raises_if_pyarrow = check_raises_if_pyarrow_unsupported_data(engine)
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": pd.arrays.IntervalArray.from_breaks([0, 1, 2]),
                 "b": pd.arrays.IntervalArray.from_breaks([3, 4, 5]),
@@ -674,7 +671,7 @@ $1$,$2$
     def test_to_csv_float_ea_float_format(self, engine):
         # GH#45991
         raises_if_pyarrow = check_raises_if_pyarrow("float_format", engine)
-        df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
+        df = pd.DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
         df["a"] = df["a"].astype("Float64")
         with raises_if_pyarrow:
             result = df.to_csv(index=False, engine=engine, float_format="%.5f")
@@ -685,7 +682,7 @@ $1$,$2$
 
     def test_to_csv_float_ea_no_float_format(self, engine):
         # GH#45991
-        df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
+        df = pd.DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
         df["a"] = df["a"].astype("Float64")
         result = df.to_csv(index=False, engine=engine)
         if uses_pyarrow(engine):
@@ -703,7 +700,9 @@ $1$,$2$
     def test_to_csv_float_ea_nan_distinguish(self, using_nan_is_na, engine):
         # GH#61617, GH#65227 - to_csv should not crash when FloatingArray
         # contains unmasked NaN (with distinguish_nan_and_na=True)
-        df = DataFrame({"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"})
+        df = pd.DataFrame(
+            {"a": pd.array([np.nan, pd.NA, 3.0], dtype="Float64"), "b": "c"}
+        )
         # pyarrow always quotes string-typed values (incl. headers), and
         # drops the redundant trailing ".0" on whole-number floats; "auto"
         # only actually uses pyarrow here when the unmasked NaN is visible
@@ -786,7 +785,7 @@ $1$,$2$
     def test_to_csv_multi_index(self, engine):
         # see gh-6618
         raises_if_pyarrow = check_raises_if_pyarrow_mi_columns(engine)
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
+        df = pd.DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp_rows = [",1", ",2", "0,1"]
         exp = tm.convert_rows_list_to_csv_str(exp_rows)
@@ -798,7 +797,7 @@ $1$,$2$
         with raises_if_pyarrow:
             assert df.to_csv(index=False, engine=engine) == exp
 
-        df = DataFrame(
+        df = pd.DataFrame(
             [1],
             columns=pd.MultiIndex.from_arrays([[1], [2]]),
             index=pd.MultiIndex.from_arrays([[1], [2]]),
@@ -814,7 +813,7 @@ $1$,$2$
         with raises_if_pyarrow:
             assert df.to_csv(index=False, engine=engine) == exp
 
-        df = DataFrame([1], columns=pd.MultiIndex.from_arrays([["foo"], ["bar"]]))
+        df = pd.DataFrame([1], columns=pd.MultiIndex.from_arrays([["foo"], ["bar"]]))
 
         exp_rows = [",foo", ",bar", "0,1"]
         exp = tm.convert_rows_list_to_csv_str(exp_rows)
@@ -862,7 +861,7 @@ $1$,$2$
         # GH 10813
         raises_if_pyarrow = check_raises_if_pyarrow("encoding", engine)
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
-        df = DataFrame(str_array)
+        df = pd.DataFrame(str_array)
         expected_ascii = """\
 ,names
 0,"['foo', 'bar']"
@@ -887,7 +886,7 @@ $1$,$2$
         else:
             raises_if_pyarrow = contextlib.nullcontext()
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
-        df = DataFrame(str_array)
+        df = pd.DataFrame(str_array)
         expected_utf8 = """\
 ,names
 0,"['foo', 'bar']"
@@ -900,7 +899,7 @@ $1$,$2$
 
     def test_to_csv_roundtrip_with_newline_in_field(self, temp_file, engine):
         # GH#22497 - embedded newlines in field values should survive roundtrip
-        df = DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
+        df = pd.DataFrame({"A": ["test", "te\nst"]})  # codespell:ignore te
         df.to_csv(temp_file, index=False, engine=engine)
         result = pd.read_csv(temp_file)
         tm.assert_frame_equal(result, df)
@@ -908,7 +907,7 @@ $1$,$2$
     def test_to_csv_string_with_lf(self, temp_file, engine):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
-        df = DataFrame(data)
+        df = pd.DataFrame(data)
 
         # case 1: The default line terminator (os.linesep for python, but
         # always "\n" for pyarrow, regardless of platform -- PR 21406)
@@ -963,7 +962,7 @@ $1$,$2$
     def test_to_csv_string_with_crlf(self, temp_file, engine):
         # GH 20353
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}
-        df = DataFrame(data)
+        df = pd.DataFrame(data)
         # case 1: The default line terminator (os.linesep for python, but
         # always "\n" for pyarrow, regardless of platform -- PR 21406)
         sep = b"\n" if uses_pyarrow(engine) else os.linesep.encode("utf-8")
@@ -1023,7 +1022,9 @@ $1$,$2$
         # sys.stdout is a text stream, which the pyarrow engine cannot
         # write to (nor can it honor a non-default `encoding`)
         raises_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
-        df = DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["name_1", "name_2"])
+        df = pd.DataFrame(
+            [["foo", "bar"], ["baz", "qux"]], columns=["name_1", "name_2"]
+        )
         expected_rows = [",name_1,name_2", "0,foo,bar", "1,baz,qux"]
         expected_ascii = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -1042,7 +1043,7 @@ $1$,$2$
         # below, so the Windows xfail only applies to python/auto
         if engine != "pyarrow":
             mark = pytest.mark.xfail(
-                compat.is_platform_windows(),
+                is_platform_windows(),
                 reason=(
                     "Especially in Windows, file stream should not be passed"
                     "to csv writer without newline='' option."
@@ -1051,7 +1052,7 @@ $1$,$2$
             )
             request.applymarker(mark)
         raise_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
-        df = DataFrame({"a": ["x", "y", "z"]})
+        df = pd.DataFrame({"a": ["x", "y", "z"]})
         expected = """\
 manual header
 x
@@ -1070,7 +1071,7 @@ z
         # see gh-21696
         # see gh-20353
         raise_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
-        df = DataFrame({"a": ["x", "y", "z"]})
+        df = pd.DataFrame({"a": ["x", "y", "z"]})
         expected_rows = ["x", "y", "z"]
         expected = "manual header\n" + tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -1098,7 +1099,7 @@ z
         # see gh-15008
         compression = compression_only
 
-        df = DataFrame({"A": [1]})
+        df = pd.DataFrame({"A": [1]})
 
         to_compression = "infer" if to_infer else compression
         read_compression = "infer" if read_infer else compression
@@ -1111,7 +1112,7 @@ z
     def test_to_csv_compression_dict(self, compression_only, temp_file, engine):
         # GH 26023
         method = compression_only
-        df = DataFrame({"ABC": [1]})
+        df = pd.DataFrame({"ABC": [1]})
         extension = {
             "gzip": "gz",
             "zstd": "zst",
@@ -1124,7 +1125,7 @@ z
 
     def test_to_csv_compression_dict_no_method_raises(self, temp_file, engine):
         # GH 26023
-        df = DataFrame({"ABC": [1]})
+        df = pd.DataFrame({"ABC": [1]})
         compression = {"some_option": True}
         msg = "must have key 'method'"
 
@@ -1135,7 +1136,7 @@ z
     @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
     def test_to_csv_zip_arguments(self, compression, archive_name, temp_file, engine):
         # GH 26023
-        df = DataFrame({"ABC": [1]})
+        df = pd.DataFrame({"ABC": [1]})
 
         path = str(temp_file) + ".zip"
         df.to_csv(
@@ -1160,7 +1161,7 @@ z
     )
     def test_to_csv_zip_infer_name(self, tmp_path, filename, expected_arcname, engine):
         # GH 39465
-        df = DataFrame({"ABC": [1]})
+        df = pd.DataFrame({"ABC": [1]})
         path = tmp_path / filename
         df.to_csv(path, compression="zip", engine=engine)
         with ZipFile(path) as zp:
@@ -1172,7 +1173,7 @@ z
     def test_to_csv_na_rep_long_string(self, df_new_type, engine):
         # see gh-25099
         raises_if_pyarrow = check_raises_if_pyarrow("na_rep", engine)
-        df = DataFrame({"c": [pd.NA] * 3})
+        df = pd.DataFrame({"c": [pd.NA] * 3})
         df = df.astype(df_new_type)
         expected_rows = ["c", "mynull", "mynull", "mynull"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
@@ -1228,7 +1229,7 @@ z
         raises_if_pyarrow = check_raises_if_pyarrow("errors", engine)
         data = ["\ud800foo"]
         with raises_if_pyarrow:
-            ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
+            ser = pd.Series(data, index=pd.Index(data, dtype=object), dtype=object)
             ser.to_csv(temp_file, errors=errors, engine=engine)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
@@ -1241,10 +1242,10 @@ z
 
         GH 35058 and GH 19827
         """
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         )
 
         with open(temp_file, mode="w+b") as handle:
@@ -1288,7 +1289,7 @@ z
         # example from GH 13068
         with open(temp_file, "w+b") as handle:
             with raises_if_pyarrow:
-                DataFrame().to_csv(
+                pd.DataFrame().to_csv(
                     handle, mode=mode, encoding="utf-8-sig", engine=engine
                 )
 
@@ -1298,10 +1299,10 @@ z
 
 def test_to_csv_iterative_compression_name(compression, temp_file, engine):
     # GH 38714
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df.to_csv(temp_file, compression=compression, chunksize=1, engine=engine)
     tm.assert_frame_equal(
@@ -1311,10 +1312,10 @@ def test_to_csv_iterative_compression_name(compression, temp_file, engine):
 
 def test_to_csv_iterative_compression_buffer(compression, engine):
     # GH 38714
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     with io.BytesIO() as buffer:
         df.to_csv(buffer, compression=compression, chunksize=1, engine=engine)
@@ -1326,68 +1327,68 @@ def test_to_csv_iterative_compression_buffer(compression, engine):
 
 
 def test_new_style_float_format_basic():
-    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    df = pd.DataFrame({"A": [1234.56789, 9876.54321]})
     result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
     expected = ",A\n0,1234.57\n1,9876.54\n"
     assert result == expected
 
 
 def test_new_style_float_format_thousands():
-    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    df = pd.DataFrame({"A": [1234.56789, 9876.54321]})
     result = df.to_csv(float_format="{:,.2f}", lineterminator="\n")
     expected = ',A\n0,"1,234.57"\n1,"9,876.54"\n'
     assert result == expected
 
 
 def test_new_style_scientific_format():
-    df = DataFrame({"A": [0.000123, 0.000456]})
+    df = pd.DataFrame({"A": [0.000123, 0.000456]})
     result = df.to_csv(float_format="{:.2e}", lineterminator="\n")
     expected = ",A\n0,1.23e-04\n1,4.56e-04\n"
     assert result == expected
 
 
 def test_new_style_with_nan():
-    df = DataFrame({"A": [1.23, np.nan, 4.56]})
+    df = pd.DataFrame({"A": [1.23, np.nan, 4.56]})
     result = df.to_csv(float_format="{:.2f}", na_rep="NA", lineterminator="\n")
     expected = ",A\n0,1.23\n1,NA\n2,4.56\n"
     assert result == expected
 
 
 def test_new_style_with_mixed_types():
-    df = DataFrame({"A": [1.23, 4.56], "B": ["x", "y"]})
+    df = pd.DataFrame({"A": [1.23, 4.56], "B": ["x", "y"]})
     result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
     expected = ",A,B\n0,1.23,x\n1,4.56,y\n"
     assert result == expected
 
 
 def test_new_style_with_mixed_types_in_column():
-    df = DataFrame({"A": [1.23, "text", 4.56]})
+    df = pd.DataFrame({"A": [1.23, "text", 4.56]})
     result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
     expected = ",A\n0,1.23\n1,text\n2,4.56\n"
     assert result == expected
 
 
 def test_invalid_new_style_format_missing_brace():
-    df = DataFrame({"A": [1.23]})
+    df = pd.DataFrame({"A": [1.23]})
     with pytest.raises(ValueError, match="Invalid new-style format string '{:.2f"):
         df.to_csv(float_format="{:.2f")
 
 
 def test_invalid_new_style_format_specifier():
-    df = DataFrame({"A": [1.23]})
+    df = pd.DataFrame({"A": [1.23]})
     with pytest.raises(ValueError, match="Invalid new-style format string '{:.2z}'"):
         df.to_csv(float_format="{:.2z}")
 
 
 def test_old_style_format_compatibility():
-    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    df = pd.DataFrame({"A": [1234.56789, 9876.54321]})
     result = df.to_csv(float_format="%.2f", lineterminator="\n")
     expected = ",A\n0,1234.57\n1,9876.54\n"
     assert result == expected
 
 
 def test_callable_float_format_compatibility():
-    df = DataFrame({"A": [1234.56789, 9876.54321]})
+    df = pd.DataFrame({"A": [1234.56789, 9876.54321]})
     result = df.to_csv(float_format=lambda x: f"{x:,.2f}", lineterminator="\n")
     expected = ',A\n0,"1,234.57"\n1,"9,876.54"\n'
     assert result == expected
@@ -1397,69 +1398,69 @@ def test_no_float_format():
     # engine="python": float_format=None (the default) does not disqualify
     # the pyarrow engine, but this test is about float_format handling, not
     # engine choice
-    df = DataFrame({"A": [1.23, 4.56]})
+    df = pd.DataFrame({"A": [1.23, 4.56]})
     result = df.to_csv(float_format=None, lineterminator="\n", engine="python")
     expected = ",A\n0,1.23\n1,4.56\n"
     assert result == expected
 
 
 def test_large_numbers():
-    df = DataFrame({"A": [1e308, 2e308]})
+    df = pd.DataFrame({"A": [1e308, 2e308]})
     result = df.to_csv(float_format="{:.2e}", lineterminator="\n")
     expected = ",A\n0,1.00e+308\n1,inf\n"
     assert result == expected
 
 
 def test_zero_and_negative():
-    df = DataFrame({"A": [0.0, -1.23456]})
+    df = pd.DataFrame({"A": [0.0, -1.23456]})
     result = df.to_csv(float_format="{:+.2f}", lineterminator="\n")
     expected = ",A\n0,+0.00\n1,-1.23\n"
     assert result == expected
 
 
 def test_unicode_format():
-    df = DataFrame({"A": [1.23, 4.56]})
+    df = pd.DataFrame({"A": [1.23, 4.56]})
     result = df.to_csv(float_format="{:.2f}€", encoding="utf-8", lineterminator="\n")
     expected = ",A\n0,1.23€\n1,4.56€\n"
     assert result == expected
 
 
 def test_empty_dataframe():
-    df = DataFrame({"A": []})
+    df = pd.DataFrame({"A": []})
     result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
     expected = ",A\n"
     assert result == expected
 
 
 def test_multi_column_float():
-    df = DataFrame({"A": [1.23, 4.56], "B": [7.89, 0.12]})
+    df = pd.DataFrame({"A": [1.23, 4.56], "B": [7.89, 0.12]})
     result = df.to_csv(float_format="{:.2f}", lineterminator="\n")
     expected = ",A,B\n0,1.23,7.89\n1,4.56,0.12\n"
     assert result == expected
 
 
 def test_invalid_float_format_type():
-    df = DataFrame({"A": [1.23]})
+    df = pd.DataFrame({"A": [1.23]})
     with pytest.raises(ValueError, match="float_format must be a string or callable"):
         df.to_csv(float_format=123)
 
 
 def test_new_style_with_inf():
-    df = DataFrame({"A": [1.23, np.inf, -np.inf]})
+    df = pd.DataFrame({"A": [1.23, np.inf, -np.inf]})
     result = df.to_csv(float_format="{:.2f}", na_rep="NA", lineterminator="\n")
     expected = ",A\n0,1.23\n1,inf\n2,-inf\n"
     assert result == expected
 
 
 def test_new_style_with_precision_edge():
-    df = DataFrame({"A": [1.23456789]})
+    df = pd.DataFrame({"A": [1.23456789]})
     result = df.to_csv(float_format="{:.10f}", lineterminator="\n")
     expected = ",A\n0,1.2345678900\n"
     assert result == expected
 
 
 def test_new_style_with_template():
-    df = DataFrame({"A": [1234.56789]})
+    df = pd.DataFrame({"A": [1234.56789]})
     result = df.to_csv(float_format="Value: {:,.2f}", lineterminator="\n")
     expected = ',A\n0,"Value: 1,234.57"\n'
     assert result == expected
@@ -1469,7 +1470,7 @@ def test_to_csv_null_byte_no_escapechar():
     # GH#47871 a null byte does not require escapechar to be set
     # (was a CPython _csv regression on 3.10, fixed in 3.11)
     # engine="python": this specifically exercises the python csv module
-    df = DataFrame({"A": ["\x00"]})
+    df = pd.DataFrame({"A": ["\x00"]})
     result = df.to_csv(index=False, lineterminator="\n", engine="python")
     assert result == "A\n\x00\n"
 
@@ -1477,7 +1478,7 @@ def test_to_csv_null_byte_no_escapechar():
 def test_to_csv_escapechar_roundtrip_trailing_backslash():
     # GH#33735 a value ending in the escapechar must remain readable: to_csv
     # has to escape the escapechar itself so read_csv can parse it back
-    df = DataFrame({0: ['"key":"value"'], 1: ["mno,"], 2: ["abc\\"], 3: ["ijk"]})
+    df = pd.DataFrame({0: ['"key":"value"'], 1: ["mno,"], 2: ["abc\\"], 3: ["ijk"]})
     csv = df.to_csv(header=False, index=False, escapechar="\\")
     result = pd.read_csv(io.StringIO(csv), header=None, escapechar="\\")
     assert result.iloc[0].tolist() == df.iloc[0].tolist()
@@ -1489,7 +1490,7 @@ def test_to_csv_categorical_tz_timestamp_with_na_rep():
     ser = pd.Series(pd.to_datetime(["2023-11-10 12:00:00+00:00"] * 3)).astype(
         "category"
     )
-    df = DataFrame({"ct": ser})
+    df = pd.DataFrame({"ct": ser})
     result = df.to_csv(na_rep=r"\N")
     assert "2023-11-10 12:00:00+00:00" in result
 
@@ -1498,7 +1499,7 @@ def test_to_csv_categorical_tz_timestamp_with_na_rep():
     ser_na = pd.Series(pd.to_datetime(["2023-11-10 12:00:00+00:00", None])).astype(
         "category"
     )
-    result_na = DataFrame({"ct": ser_na}).to_csv(na_rep=r"\N")
+    result_na = pd.DataFrame({"ct": ser_na}).to_csv(na_rep=r"\N")
     assert r"\N" in result_na
 
 
@@ -1508,7 +1509,7 @@ def test_to_csv_datetime_tz_consistent_format(engine):
     # "Z" suffix instead of "+00:00", and always at microsecond precision
     # rather than dropping trailing zeros
     pyarrow_used = engine == "pyarrow"
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "timestamp": [
                 datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=UTC),
@@ -1537,7 +1538,7 @@ def test_to_csv_datetime_tz_consistent_format(engine):
     expected = csv_str_for_engine(expected_rows, pyarrow_used)
     assert result == expected
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "timestamp": [
                 datetime(2025, 8, 14, 12, 34, 56, 0, tzinfo=UTC),

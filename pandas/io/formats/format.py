@@ -1754,9 +1754,13 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    if conf_max is not None and conf_max > 3:
+    if conf_max is not None:
+        # When the column is too narrow to hold any text alongside the "..."
+        # placeholder, show as much of the placeholder as fits (GH#16097).
+        keep = max(max_len - 3, 0)
+        placeholder = "..."[: max_len - keep]
         strings = [
-            x[: max_len - 3] + "..." if adjustment.len(x) > max_len else x
+            x[:keep] + placeholder if adjustment.len(x) > max_len else x
             for x in strings
         ]
 
