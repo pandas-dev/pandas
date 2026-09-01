@@ -80,14 +80,14 @@ def test_map_with_categorical_series():
 @pytest.mark.parametrize(
     ("data", "f", "expected"),
     (
-        ([1, 1, np.nan], pd.isna, CategoricalIndex([False, False, np.nan])),
+        ([1, 1, np.nan], pd.isna, Index([False, False, np.nan])),
         ([1, 2, np.nan], pd.isna, Index([False, False, np.nan])),
-        ([1, 1, np.nan], {1: False}, CategoricalIndex([False, False, np.nan])),
+        ([1, 1, np.nan], {1: False}, Index([False, False, np.nan])),
         ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
         (
             [1, 1, np.nan],
             Series([False, False]),
-            CategoricalIndex([False, False, np.nan]),
+            Index([False, False, np.nan]),
         ),
         (
             [1, 2, np.nan],
@@ -107,12 +107,12 @@ def test_map_with_nan_ignore(data, f, expected):  # GH 24241
     (
         ([1, 1, np.nan], pd.isna, Index([False, False, True])),
         ([1, 2, np.nan], pd.isna, Index([False, False, True])),
-        ([1, 1, np.nan], {1: False}, CategoricalIndex([False, False, np.nan])),
+        ([1, 1, np.nan], {1: False}, Index([False, False, np.nan])),
         ([1, 2, np.nan], {1: False, 2: False}, Index([False, False, np.nan])),
         (
             [1, 1, np.nan],
             Series([False, False]),
-            CategoricalIndex([False, False, np.nan]),
+            Index([False, False, np.nan]),
         ),
         (
             [1, 2, np.nan],

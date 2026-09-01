@@ -1664,6 +1664,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             and new_categories.is_unique
             and not new_categories.hasnans
             and na_val is np.nan
+            and not (
+                len(new_categories) == 1
+                and new_categories.dtype == np.dtype("bool")
+                and self.categories.dtype != np.dtype("bool")
+            )
         ):
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
             return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
