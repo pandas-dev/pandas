@@ -2108,7 +2108,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
         )
         return new_rs
 
-
+@set_module("pandas.api.typing")
 class DatetimeIndexResampler(Resampler):
     ax: DatetimeIndex
 
@@ -2231,7 +2231,7 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     def _resampler_cls(self):
         return DatetimeIndexResampler
 
-
+@set_module("pandas.api.typing")
 class PeriodIndexResampler(DatetimeIndexResampler):
     # error: Incompatible types in assignment (expression has type "PeriodIndex", base
     # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
@@ -2331,7 +2331,7 @@ class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     def _resampler_cls(self):
         return PeriodIndexResampler
 
-
+@set_module("pandas.api.typing")
 class TimedeltaIndexResampler(DatetimeIndexResampler):
     # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
     # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
