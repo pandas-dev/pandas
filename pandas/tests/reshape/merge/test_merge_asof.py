@@ -2002,7 +2002,7 @@ class TestAsOfMerge:
         # GH#66289 tolerance=0 is valid (exact-match-only) and must not be rejected
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
         right = pd.DataFrame({"a": [1, 6, 10], "right_val": [1, 2, 3]})
-        result = merge_asof(left, right, on="a", tolerance=0)
+        result = pd.merge_asof(left, right, on="a", tolerance=0)
         expected = pd.DataFrame(
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, np.nan, 3]}
         )
