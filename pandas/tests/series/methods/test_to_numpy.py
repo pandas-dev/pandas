@@ -9,6 +9,7 @@ from pandas import (
     NaT,
     Series,
     Timedelta,
+    Timestamp,
 )
 import pandas._testing as tm
 
@@ -39,7 +40,22 @@ def test_to_numpy_unitless_datetime64_deprecated(tz):
 
     msg = "Using a unit-less 'datetime64' dtype in to_numpy is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        ser.to_numpy("datetime64")
+        result = ser.to_numpy("datetime64")
+
+    assert result.dtype == np.dtype("datetime64[s]")
+    assert np.isnat(result).all()
+
+
+def test_to_numpy_unitless_datetime64_non_nat_deprecated():
+    # GH#59772
+    ser = Series([Timestamp("2020-01-01")])
+
+    msg = "Using a unit-less 'datetime64' dtype in to_numpy is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.to_numpy("datetime64")
+
+    expected = np.array(["2020-01-01"], dtype="datetime64[us]")
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_to_numpy_copy_false_returns_readonly_view():
