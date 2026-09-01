@@ -152,3 +152,27 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_struct_array_respects_parent_validity():
+    # GH#67754 pyarrow's StructArray.field() does not merge the parent
+    # struct's validity bitmap into the child arrays, so a null struct
+    # entry must be masked explicitly or it reads back using whatever
+    # (non-NA) values happen to be stored in the children instead of NA.
+    pa = pytest.importorskip("pyarrow")
+
+    struct_type = pa.struct([("left", pa.float64()), ("right", pa.float64())])
+    arr = pa.array(
+        [{"left": 0.0, "right": 1.0}, None], type=struct_type
+    )
+    dtype = pd.IntervalDtype(np.dtype("float64"), closed="right")
+
+    result = dtype.__from_arrow__(arr)
+    expected = IntervalArray.from_arrays(
+        np.array([0.0, np.nan]), np.array([1.0, np.nan]), closed="right"
+    )
+    tm.assert_extension_array_equal(result, expected)
+    assert result.isna().tolist() == [False, True]
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)

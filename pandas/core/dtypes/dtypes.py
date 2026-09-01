@@ -1473,6 +1473,7 @@ class IntervalDtype(PandasExtensionDtype):
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
+        import pyarrow.compute as pc
 
         from pandas.core.arrays import IntervalArray
 
@@ -1485,8 +1486,22 @@ class IntervalDtype(PandasExtensionDtype):
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            # Struct.field() does not apply the parent struct's validity
+            # bitmap to the child arrays, so a null struct entry would
+            # otherwise read back as whatever the children happen to hold
+            # instead of NA (GH#67754). Mask the children with the
+            # struct-level validity before converting to numpy.
+            is_valid = arr.is_valid()
+            left_field = arr.field("left")
+            right_field = arr.field("right")
+            left_arr = pc.if_else(
+                is_valid, left_field, pyarrow.scalar(None, type=left_field.type)
+            )
+            right_arr = pc.if_else(
+                is_valid, right_field, pyarrow.scalar(None, type=right_field.type)
+            )
+            left = np.asarray(left_arr, dtype=self.subtype)
+            right = np.asarray(right_arr, dtype=self.subtype)
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
