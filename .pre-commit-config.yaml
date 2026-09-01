@@ -299,6 +299,13 @@ repos:
         files: ^(pixi\.toml|pandas/compat/_optional\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
+    -   id: validate-test-dependencies
+        name: Check gated test dependencies are installed in CI
+        entry: python -m scripts.validate_test_dependencies
+        language: python
+        files: ^(pixi\.toml|\.github/workflows/unit-tests\.yml|pandas/tests/.*\.py|pandas/conftest\.py)$
+        additional_dependencies: [pyyaml]
+        pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
