@@ -101,7 +101,7 @@ class Grouper:
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.
-    sort : bool, default False
+    sort : bool, default True
         Whether to sort the resulting labels.
     closed : {'left' or 'right'}
         Closed end of interval. Only when `freq` parameter is passed.
@@ -279,7 +279,7 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        sort: bool = False,
+        sort: bool = True,
         dropna: bool = True,
     ) -> None:
         self.key = key
@@ -294,7 +294,11 @@ class Grouper:
         self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True, observed: bool = True
+        self,
+        obj: NDFrameT,
+        validate: bool = True,
+        observed: bool = True,
+        sort: bool | None = None,
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
@@ -306,17 +310,22 @@ class Grouper:
         observed : bool, default True
             Whether only observed groups should be in the result. Only
             has an impact when grouping on categorical data.
+        sort : bool or None, default None
+            Whether to sort the resulting groups. If None, use ``self.sort``.
 
         Returns
         -------
         A tuple of grouper, obj (possibly sorted)
         """
-        obj, _, _ = self._set_grouper(obj)
+        if sort is None:
+            sort = self.sort
+
+        obj, _, _ = self._set_grouper(obj, sort=sort)
         grouper, _, obj = get_grouper(
             obj,
             [self.key],
             level=self.level,
-            sort=self.sort,
+            sort=sort,
             validate=validate,
             dropna=self.dropna,
             observed=observed,
@@ -391,8 +400,17 @@ class Grouper:
                     raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        # Only binning groupers (those with a freq, i.e. TimeGrouper) need the
+        # object itself reordered, since binning requires a monotonic axis.
+        # For a plain Grouper the group order is already handled by passing
+        # sort through to Grouping, and reordering here desynchronises the
+        # codes from the object when this result is discarded (GH#61943).
         indexer: npt.NDArray[np.intp] | None = None
-        if (self.sort or sort) and not ax.is_monotonic_increasing:
+        if (
+            self.freq is not None
+            and (self.sort or sort)
+            and not ax.is_monotonic_increasing
+        ):
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self._indexer_deprecated = ax.array.argsort(
@@ -821,7 +839,12 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
+        if key.freq is None:
+            grouper, obj = key._get_grouper(
+                obj, validate=False, observed=observed, sort=sort
+            )
+        else:
+            grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
