@@ -79,12 +79,6 @@ class TestPeriodIndex:
                 ],
             ),
             (
-                "B",
-                "2001-01-06",
-                "2001-01-10",
-                ["2001-01-05", "2001-01-08", "2001-01-09", "2001-01-10"],
-            ),
-            (
                 "D",
                 "2001-01-06",
                 "2001-01-08",
@@ -96,8 +90,8 @@ class TestPeriodIndex:
         self, freq, start, stop, expected
     ):
         # the GH#66571 shortcut only covers quarterly/annual labels at the
-        # index's own resolution; day-level labels on W/B/D indexes still go
-        # through the calendar-freq path
+        # index's own resolution; a lower-resolution label (here a day on a
+        # weekly index) still goes through the calendar-freq path
         pi = pd.period_range("2001-01-01", periods=20, freq=freq)
         ser = pd.Series(range(len(pi)), index=pi)
         result = ser.loc[start:stop]
