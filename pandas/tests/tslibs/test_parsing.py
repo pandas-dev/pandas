@@ -71,10 +71,10 @@ def test_parsing_utc_tzname_not_tzlocal(tzname, system_tz):
     #  timezone, so they must parse the same way even when they happen to
     #  match time.tzname (e.g. "GMT" under Europe/London or Africa/Abidjan)
     dtstr = f"Jan 15 2004 03:00 {tzname}"
-    expected = Timestamp("2004-01-15 03:00", tz="UTC")
+    expected = pd.Timestamp("2004-01-15 03:00", tz="UTC")
 
     with tm.set_timezone(system_tz):
-        result = Timestamp(dtstr)
+        result = pd.Timestamp(dtstr)
         assert result == expected
         # stdlib utc, not dateutil's tzutc(), matching the ISO-8601 and
         #  strptime paths
