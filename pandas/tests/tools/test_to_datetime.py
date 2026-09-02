@@ -2074,7 +2074,7 @@ class TestToDatetimeUnit:
 
     @pytest.mark.parametrize(
         "null,dtype",
-        [(iNaT, int), (iNaT, "Int64"), (np.nan, float), (np.nan, "Float64")],
+        [(iNaT, "int64"), (iNaT, "Int64"), (np.nan, "float64"), (np.nan, "Float64")],
     )
     def test_to_datetime_unit_with_nulls(self, null, dtype):
         epoch = 1370745748
