@@ -1,5 +1,6 @@
 from pandas import (
     NA,
+    IntervalIndex,
     MultiIndex,
     Series,
     date_range,
@@ -88,5 +89,32 @@ class TestCombine:
         result = left.combine(right, lambda x, y: x + y, fill_value=0)
         expected = Series(
             [11, 2, 20], index=MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_overlapping_interval_index(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        # is_unique is True for an overlapping IntervalIndex, but get_indexer
+        # is not supported; combine must use exact matching of intervals
+        ii1 = IntervalIndex.from_tuples([(0, 2), (1, 3)])
+        ii2 = IntervalIndex.from_tuples([(0, 2), (4, 5)])
+        left = Series([1, 2], index=ii1)
+        right = Series([10, 20], index=ii2)
+        result = left.combine(right, lambda x, y: x + y, fill_value=0)
+        expected = Series(
+            [11, 2, 20], index=IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)])
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_overlapping_interval_index_non_unique(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        ii1 = IntervalIndex.from_tuples([(0, 2), (1, 3), (0, 2)])
+        ii2 = IntervalIndex.from_tuples([(0, 2), (4, 5)])
+        left = Series([1, 2, 3], index=ii1)
+        right = Series([10, 20], index=ii2)
+        result = left.combine(right, lambda x, y: x + y, fill_value=0)
+        expected = Series(
+            [11, 3, 2, 20],
+            index=IntervalIndex.from_tuples([(0, 2), (0, 2), (1, 3), (4, 5)]),
         )
         tm.assert_series_equal(result, expected)

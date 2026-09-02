@@ -3755,7 +3755,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 lindexer = rindexer = range(len(new_index))
             else:
                 new_index = self.index.union(other.index)
-                if self.index.is_unique and other.index.is_unique:
+                if self.index._index_as_unique and other.index._index_as_unique:
                     lindexer = self.index.get_indexer(new_index).tolist()
                     rindexer = other.index.get_indexer(new_index).tolist()
                 else:

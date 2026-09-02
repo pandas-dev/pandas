@@ -316,6 +316,15 @@ class TestPairwiseIndexer:
         expected = index.get_indexer(index)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_pairwise_indexer_overlapping_intervals(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        # get_indexer raises for overlapping intervals; exact matching is used
+        idx = IntervalIndex.from_tuples([(0, 2), (1, 3), (0, 2)])
+        target = IntervalIndex.from_tuples([(0, 2), (0, 2), (1, 3), (4, 5)])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, 2, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_pairwise_indexer_empty(self):
         # https://github.com/pandas-dev/pandas/pull/67446
         idx = Index([], dtype=object)

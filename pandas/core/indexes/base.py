@@ -6508,8 +6508,8 @@ class Index(IndexOpsMixin, PandasObject):
         np.ndarray[np.intp]
         """
         labels = target.unique()
-        self_codes = labels.get_indexer(self)
-        target_codes = labels.get_indexer(target)
+        self_codes = labels.get_indexer_for(self)
+        target_codes = labels.get_indexer_for(target)
         self_rank = algos.occurrence_rank(self_codes)
         target_rank = algos.occurrence_rank(target_codes)
         stride = max(self_rank.max(initial=0), target_rank.max(initial=0)) + 1
