@@ -728,8 +728,16 @@ INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin, char *end) {
 }
 
 void Buffer_AppendIndentNewlineUnchecked(JSONObjectEncoder *enc) {
-  if (enc->indent > 0)
+  if (enc->indent > 0) {
+    // encode() reserves a fixed amount once per frame, but the recursive
+    // encode() calls in the JT_ARRAY/JT_OBJECT loops can consume all of it, so
+    // this write is not covered by that reservation
+    Buffer_Reserve(enc, 1);
+    if (enc->errorMsg) {
+      return;
+    }
     Buffer_AppendCharUnchecked(enc, '\n');
+  }
 }
 
 // This function could be refactored to only accept enc as an argument,
@@ -737,6 +745,16 @@ void Buffer_AppendIndentNewlineUnchecked(JSONObjectEncoder *enc) {
 void Buffer_AppendIndentUnchecked(JSONObjectEncoder *enc, JSINT32 value) {
   int i;
   if (enc->indent > 0) {
+    // `value` is the nesting level, so this writes level*indent bytes: an
+    // amount bounded by neither, which encode()'s fixed 256-byte frame
+    // reservation cannot cover. Deep enough nesting (or a large enough indent)
+    // overflowed the output buffer.
+    if (value > 0) {
+      Buffer_Reserve(enc, (size_t)value * (size_t)enc->indent);
+      if (enc->errorMsg) {
+        return;
+      }
+    }
     while (value-- > 0)
       for (i = 0; i < enc->indent; i++)
         Buffer_AppendCharUnchecked(enc, ' ');

@@ -756,6 +756,7 @@ I/O
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where invalid ``sep``, ``quotechar``, ``escapechar``, and ``decimal`` arguments raised cryptic errors, or in the case of ``quotechar=None`` were silently ignored, instead of raising the same informative errors as the other engines (:issue:`66317`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing a scalar (non-dict) ``dtype`` together with ``index_col`` raised ``AttributeError``; the scalar ``dtype`` is now also applied to the index column, matching the default ``c`` engine (:issue:`45801`)
 - Fixed bug in :func:`read_pickle` where the timezone of a :class:`Timestamp` was silently dropped when reading a pickle written by pandas 1.2 or earlier, so the timestamp came back tz-naive at its UTC wall time (:issue:`61792`, :issue:`31930`)
+- Fixed buffer overflow in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``indent`` greater than 0 when serializing deeply nested values (:issue:`67929`)
 - Fixed bug where a file opened by pandas was left open when :func:`read_csv` and other readers raised while opening it -- for example a ZIP or TAR archive holding more than one file -- so on Windows the file could not be renamed or deleted (:issue:`58131`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)

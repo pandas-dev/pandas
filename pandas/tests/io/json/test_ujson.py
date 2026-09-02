@@ -1283,3 +1283,33 @@ def test_to_json_bad_label_frees_values():
     del ser, values
     # a reference held by the failed encode would keep this alive
     assert ref() is None
+
+
+@pytest.mark.parametrize("indent", [1, 2, 8])
+def test_indent_deeply_nested_does_not_overflow_buffer(indent):
+    # GH#67929
+    # encode() reserves a fixed 256 bytes per frame, but the indent writes are
+    # level*indent bytes and the recursive encode() calls could consume the
+    # frame's whole reservation, so deep nesting wrote past the output buffer.
+    # The overflow tracked indent*depth, hence the parametrize.
+    nested = [1]
+    for _ in range(400):
+        nested = [nested]
+
+    result = ujson.ujson_dumps(nested, indent=indent)
+
+    assert json.loads(result) == nested
+
+
+def test_to_json_indent_deeply_nested_does_not_overflow_buffer():
+    # GH#67929
+    # the same overflow, reachable from the public API through an object-dtype
+    # column holding a deeply nested value
+    nested = [1]
+    for _ in range(300):
+        nested = [nested]
+    frame = pd.DataFrame({"c": [nested]})
+
+    result = frame.to_json(indent=2)
+
+    assert json.loads(result)["c"]["0"] == nested
