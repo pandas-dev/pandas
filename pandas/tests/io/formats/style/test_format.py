@@ -3,15 +3,7 @@ from types import MappingProxyType
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    IndexSlice,
-    MultiIndex,
-    NaT,
-    Timestamp,
-    option_context,
-)
+import pandas as pd
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -20,7 +12,7 @@ from pandas.io.formats.style_render import _str_escape
 
 @pytest.fixture
 def df():
-    return DataFrame(
+    return pd.DataFrame(
         data=[[0, -0.609], [1, -1.228]],
         columns=["A", "B"],
         index=["x", "y"],
@@ -35,10 +27,10 @@ def styler(df):
 @pytest.fixture
 def df_multi():
     return (
-        DataFrame(
+        pd.DataFrame(
             data=np.arange(16).reshape(4, 4),
-            columns=MultiIndex.from_product([["A", "B"], ["a", "b"]]),
-            index=MultiIndex.from_product([["X", "Y"], ["x", "y"]]),
+            columns=pd.MultiIndex.from_product([["A", "B"], ["a", "b"]]),
+            index=pd.MultiIndex.from_product([["X", "Y"], ["x", "y"]]),
         )
         .rename_axis(["0_0", "0_1"], axis=0)
         .rename_axis(["1_0", "1_1"], axis=1)
@@ -125,7 +117,7 @@ def test_format_callable(styler):
 
 def test_format_with_na_rep():
     # GH 21527 28358
-    df = DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
+    df = pd.DataFrame([[None, None], [1.1, 1.2]], columns=["A", "B"])
 
     ctx = df.style.format(None, na_rep="-")._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == "-"
@@ -143,7 +135,7 @@ def test_format_with_na_rep():
 
 
 def test_format_index_with_na_rep():
-    df = DataFrame([[1, 2, 3, 4, 5]], columns=["A", None, np.nan, NaT, NA])
+    df = pd.DataFrame([[1, 2, 3, 4, 5]], columns=["A", None, np.nan, pd.NaT, pd.NA])
     ctx = df.style.format_index(None, na_rep="--", axis=1)._translate(True, True)
     assert ctx["head"][0][1]["display_value"] == "A"
     for i in [2, 3, 4, 5]:
@@ -152,10 +144,10 @@ def test_format_index_with_na_rep():
 
 def test_format_non_numeric_na():
     # GH 21527 28358
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "object": [None, np.nan, "foo"],
-            "datetime": [None, NaT, Timestamp("20120101")],
+            "datetime": [None, pd.NaT, pd.Timestamp("20120101")],
         }
     )
     ctx = df.style.format(None, na_rep="-")._translate(True, True)
@@ -195,7 +187,7 @@ def test_format_clear(styler, func, attr, kwargs):
 )
 def test_format_escape_html(escape, exp):
     chars = '<>&"%$#_{}~^\\~ ^ \\ '
-    df = DataFrame([[chars]])
+    df = pd.DataFrame([[chars]])
 
     s = Styler(df, uuid_len=0).format("&{0}&", escape=None)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{chars}&</td>'
@@ -207,7 +199,7 @@ def test_format_escape_html(escape, exp):
     assert expected in s.to_html()
 
     # also test format_index()
-    styler = Styler(DataFrame(columns=[chars]), uuid_len=0)
+    styler = Styler(pd.DataFrame(columns=[chars]), uuid_len=0)
     styler.format_index("&{0}&", escape=None, axis=1)
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{chars}&"
     styler.format_index("&{0}&", escape=escape, axis=1)
@@ -256,14 +248,14 @@ def test_format_escape_latex_math(chars, expected):
     # GH 51903
     # latex-math escape works for each DataFrame cell separately. If we have
     # a combination of dollar signs and brackets, the dollar sign would apply.
-    df = DataFrame([[chars]])
+    df = pd.DataFrame([[chars]])
     s = df.style.format("{0}", escape="latex-math")
     assert s._translate(True, True)["body"][0][1]["display_value"] == expected
 
 
 def test_format_escape_na_rep():
     # tests the na_rep is not escaped
-    df = DataFrame([['<>&"', None]])
+    df = pd.DataFrame([['<>&"', None]])
     s = Styler(df, uuid_len=0).format("X&{0}>X", escape="html", na_rep="&")
     ex = '<td id="T__row0_col0" class="data row0 col0" >X&&lt;&gt;&amp;&#34;>X</td>'
     expected2 = '<td id="T__row0_col1" class="data row0 col1" >&</td>'
@@ -271,7 +263,7 @@ def test_format_escape_na_rep():
     assert expected2 in s.to_html()
 
     # also test for format_index()
-    df = DataFrame(columns=['<>&"', None])
+    df = pd.DataFrame(columns=['<>&"', None])
     styler = Styler(df, uuid_len=0)
     styler.format_index("X&{0}>X", escape="html", na_rep="&", axis=1)
     ctx = styler._translate(True, True)
@@ -307,7 +299,9 @@ def test_format_raises(styler, formatter, func):
 )
 def test_format_with_precision(precision, expected):
     # Issue #13257
-    df = DataFrame([[1.0, 2.0090, 3.2121, 4.566]], columns=[1.0, 2.0090, 3.2121, 4.566])
+    df = pd.DataFrame(
+        [[1.0, 2.0090, 3.2121, 4.566]], columns=[1.0, 2.0090, 3.2121, 4.566]
+    )
     styler = Styler(df)
     styler.format(precision=precision)
     styler.format_index(precision=precision, axis=1)
@@ -333,8 +327,8 @@ def test_format_with_precision(precision, expected):
     ],
 )
 def test_format_index_level(axis, level, expected):
-    midx = MultiIndex.from_arrays([["_", "_"], ["_", "_"]], names=["zero", "one"])
-    df = DataFrame([[1, 2], [3, 4]])
+    midx = pd.MultiIndex.from_arrays([["_", "_"], ["_", "_"]], names=["zero", "one"])
+    df = pd.DataFrame([[1, 2], [3, 4]])
     if axis == 0:
         df.index = midx
     else:
@@ -354,9 +348,9 @@ def test_format_index_level(axis, level, expected):
 
 
 def test_format_subset():
-    df = DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
+    df = pd.DataFrame([[0.1234, 0.1234], [1.1234, 1.1234]], columns=["a", "b"])
     ctx = df.style.format(
-        {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=IndexSlice[0, :]
+        {"a": "{:0.1f}", "b": "{0:.2%}"}, subset=pd.IndexSlice[0, :]
     )._translate(True, True)
     expected = "0.1"
     raw_11 = "1.123400"
@@ -364,19 +358,21 @@ def test_format_subset():
     assert ctx["body"][1][1]["display_value"] == raw_11
     assert ctx["body"][0][2]["display_value"] == "12.34%"
 
-    ctx = df.style.format("{:0.1f}", subset=IndexSlice[0, :])._translate(True, True)
+    ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, :])._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == expected
     assert ctx["body"][1][1]["display_value"] == raw_11
 
-    ctx = df.style.format("{:0.1f}", subset=IndexSlice["a"])._translate(True, True)
+    ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice["a"])._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == expected
     assert ctx["body"][0][2]["display_value"] == "0.123400"
 
-    ctx = df.style.format("{:0.1f}", subset=IndexSlice[0, "a"])._translate(True, True)
+    ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[0, "a"])._translate(
+        True, True
+    )
     assert ctx["body"][0][1]["display_value"] == expected
     assert ctx["body"][1][1]["display_value"] == raw_11
 
-    ctx = df.style.format("{:0.1f}", subset=IndexSlice[[0, 1], ["a"]])._translate(
+    ctx = df.style.format("{:0.1f}", subset=pd.IndexSlice[[0, 1], ["a"]])._translate(
         True, True
     )
     assert ctx["body"][0][1]["display_value"] == expected
@@ -390,19 +386,21 @@ def test_format_subset():
 @pytest.mark.parametrize("precision", [None, 2])
 @pytest.mark.parametrize("func, col", [("format", 1), ("format_index", 0)])
 def test_format_thousands(formatter, decimal, precision, func, col):
-    styler = DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
+    styler = pd.DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
     result = getattr(styler, func)(  # testing float
         thousands="_", formatter=formatter, decimal=decimal, precision=precision
     )._translate(True, True)
     assert "1_000_000" in result["body"][0][col]["display_value"]
 
-    styler = DataFrame([[1000000]], index=[1000000]).style
+    styler = pd.DataFrame([[1000000]], index=[1000000]).style
     result = getattr(styler, func)(  # testing int
         thousands="_", formatter=formatter, decimal=decimal, precision=precision
     )._translate(True, True)
     assert "1_000_000" in result["body"][0][col]["display_value"]
 
-    styler = DataFrame([[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]).style
+    styler = pd.DataFrame(
+        [[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]
+    ).style
     result = getattr(styler, func)(  # testing complex
         thousands="_", formatter=formatter, decimal=decimal, precision=precision
     )._translate(True, True)
@@ -414,13 +412,15 @@ def test_format_thousands(formatter, decimal, precision, func, col):
 @pytest.mark.parametrize("precision", [None, 4])
 @pytest.mark.parametrize("func, col", [("format", 1), ("format_index", 0)])
 def test_format_decimal(formatter, thousands, precision, func, col):
-    styler = DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
+    styler = pd.DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
     result = getattr(styler, func)(  # testing float
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
     assert "000_123" in result["body"][0][col]["display_value"]
 
-    styler = DataFrame([[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]).style
+    styler = pd.DataFrame(
+        [[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]
+    ).style
     result = getattr(styler, func)(  # testing complex
         decimal="_", formatter=formatter, thousands=thousands, precision=precision
     )._translate(True, True)
@@ -439,7 +439,7 @@ def test_str_escape_error():
 
 
 def test_long_int_formatting():
-    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
+    df = pd.DataFrame(data=[[1234567890123456789]], columns=["test"])
     styler = df.style
     ctx = styler._translate(True, True)
     assert ctx["body"][0][1]["display_value"] == "1234567890123456789"
@@ -450,45 +450,45 @@ def test_long_int_formatting():
 
 
 def test_format_options():
-    df = DataFrame({"int": [2000, 1], "float": [1.009, None], "str": ["&<", "&~"]})
+    df = pd.DataFrame({"int": [2000, 1], "float": [1.009, None], "str": ["&<", "&~"]})
     ctx = df.style._translate(True, True)
 
     # test option: na_rep
     assert ctx["body"][1][2]["display_value"] == "nan"
-    with option_context("styler.format.na_rep", "MISSING"):
+    with pd.option_context("styler.format.na_rep", "MISSING"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][1][2]["display_value"] == "MISSING"
 
     # test option: decimal and precision
     assert ctx["body"][0][2]["display_value"] == "1.009000"
-    with option_context("styler.format.decimal", "_"):
+    with pd.option_context("styler.format.decimal", "_"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][2]["display_value"] == "1_009000"
-    with option_context("styler.format.precision", 2):
+    with pd.option_context("styler.format.precision", 2):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][2]["display_value"] == "1.01"
 
     # test option: thousands
     assert ctx["body"][0][1]["display_value"] == "2000"
-    with option_context("styler.format.thousands", "_"):
+    with pd.option_context("styler.format.thousands", "_"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][1]["display_value"] == "2_000"
 
     # test option: escape
     assert ctx["body"][0][3]["display_value"] == "&<"
     assert ctx["body"][1][3]["display_value"] == "&~"
-    with option_context("styler.format.escape", "html"):
+    with pd.option_context("styler.format.escape", "html"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][3]["display_value"] == "&amp;&lt;"
-    with option_context("styler.format.escape", "latex"):
+    with pd.option_context("styler.format.escape", "latex"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][1][3]["display_value"] == "\\&\\textasciitilde "
-    with option_context("styler.format.escape", "latex-math"):
+    with pd.option_context("styler.format.escape", "latex-math"):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][1][3]["display_value"] == "\\&\\textasciitilde "
 
     # test option: formatter
-    with option_context("styler.format.formatter", {"int": "{:,.2f}"}):
+    with pd.option_context("styler.format.formatter", {"int": "{:,.2f}"}):
         ctx_with_op = df.style._translate(True, True)
         assert ctx_with_op["body"][0][1]["display_value"] == "2,000.00"
 
@@ -510,22 +510,22 @@ def test_precision_zero(df):
     ],
 )
 def test_formatter_options_validator(formatter, exp):
-    df = DataFrame([[9]])
-    with option_context("styler.format.formatter", formatter):
+    df = pd.DataFrame([[9]])
+    with pd.option_context("styler.format.formatter", formatter):
         assert f" {exp} " in df.style.to_latex()
 
 
 def test_formatter_options_raises():
     msg = "Value must be an instance of"
     with pytest.raises(ValueError, match=msg):
-        with option_context("styler.format.formatter", ["bad", "type"]):
-            DataFrame().style.to_latex()
+        with pd.option_context("styler.format.formatter", ["bad", "type"]):
+            pd.DataFrame().style.to_latex()
 
 
 def test_1level_multiindex():
     # GH 43383
-    midx = MultiIndex.from_product([[1, 2]], names=[""])
-    df = DataFrame(-1, index=midx, columns=[0, 1])
+    midx = pd.MultiIndex.from_product([[1, 2]], names=[""])
+    df = pd.DataFrame(-1, index=midx, columns=[0, 1])
     ctx = df.style._translate(True, True)
     assert ctx["body"][0][0]["display_value"] == "1"
     assert ctx["body"][0][0]["is_visible"] is True
@@ -535,7 +535,7 @@ def test_1level_multiindex():
 
 def test_boolean_format():
     # gh 46384: booleans do not collapse to integer representation on display
-    df = DataFrame([[True, False]])
+    df = pd.DataFrame([[True, False]])
     ctx = df.style._translate(True, True)
     assert ctx["body"][0][1]["display_value"] is True
     assert ctx["body"][0][2]["display_value"] is False
@@ -599,8 +599,8 @@ def test_relabel_roundtrip(styler):
     ],
 )
 def test_format_index_names_level(axis, level, expected):
-    midx = MultiIndex.from_arrays([["_", "_"], ["_", "_"]], names=["zero", "one"])
-    df = DataFrame([[1, 2], [3, 4]])
+    midx = pd.MultiIndex.from_arrays([["_", "_"], ["_", "_"]], names=["zero", "one"])
+    df = pd.DataFrame([[1, 2], [3, 4]])
     if axis == 0:
         df.index = midx
     else:

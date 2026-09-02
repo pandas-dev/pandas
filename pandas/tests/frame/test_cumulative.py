@@ -11,12 +11,7 @@ import pytest
 
 from pandas.errors import OutOfBoundsTimedelta
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timedelta,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -26,12 +21,12 @@ class TestDataFrameCumulativeOps:
 
     def test_cumulative_ops_smoke(self):
         # it works
-        df = DataFrame({"A": np.arange(20)}, index=np.arange(20))
+        df = pd.DataFrame({"A": np.arange(20)}, index=np.arange(20))
         df.cummax()
         df.cummin()
         df.cumsum()
 
-        dm = DataFrame(np.arange(20).reshape(4, 5), index=range(4), columns=range(5))
+        dm = pd.DataFrame(np.arange(20).reshape(4, 5), index=range(4), columns=range(5))
         # TODO(wesm): do something with this?
         dm.cumsum()
 
@@ -59,13 +54,13 @@ class TestDataFrameCumulativeOps:
 
         # axis = 0
         result = getattr(datetime_frame, all_numeric_accumulations)()
-        expected = datetime_frame.apply(getattr(Series, all_numeric_accumulations))
+        expected = datetime_frame.apply(getattr(pd.Series, all_numeric_accumulations))
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
         result = getattr(datetime_frame, all_numeric_accumulations)(axis=1)
         expected = datetime_frame.apply(
-            getattr(Series, all_numeric_accumulations), axis=1
+            getattr(pd.Series, all_numeric_accumulations), axis=1
         )
         tm.assert_frame_equal(result, expected)
 
@@ -74,14 +69,14 @@ class TestDataFrameCumulativeOps:
 
     def test_cumsum_preserve_dtypes(self):
         # GH#19296 dont incorrectly upcast to object
-        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3.0], "C": [True, False, False]})
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3.0], "C": [True, False, False]})
 
         result = df.cumsum()
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "A": Series([1, 3, 6], dtype=np.int64),
-                "B": Series([1, 3, 6], dtype=np.float64),
+                "A": pd.Series([1, 3, 6], dtype=np.int64),
+                "B": pd.Series([1, 3, 6], dtype=np.float64),
                 "C": df["C"].cumsum(),
             }
         )
@@ -90,16 +85,16 @@ class TestDataFrameCumulativeOps:
     @pytest.mark.parametrize("method", ["cumsum", "cumprod", "cummin", "cummax"])
     @pytest.mark.parametrize("axis", [0, 1])
     def test_numeric_only_flag(self, method, axis):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "int": [1, 2, 3],
                 "bool": [True, False, False],
                 "string": ["a", "b", "c"],
                 "float": [1.0, 3.5, 4.0],
                 "datetime": [
-                    Timestamp(2018, 1, 1),
-                    Timestamp(2019, 1, 1),
-                    Timestamp(2020, 1, 1),
+                    pd.Timestamp(2018, 1, 1),
+                    pd.Timestamp(2019, 1, 1),
+                    pd.Timestamp(2020, 1, 1),
                 ],
             }
         )
@@ -112,17 +107,17 @@ class TestDataFrameCumulativeOps:
     def test_cummax_pyarrow_float_negative(self):
         # GH#66257
         pytest.importorskip("pyarrow")
-        df = DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
+        df = pd.DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
 
         result = df.cummax()
-        expected = DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
+        expected = pd.DataFrame({"a": [-4.0, -3.0, -2.0]}, dtype="float64[pyarrow]")
         tm.assert_frame_equal(result, expected)
 
 
 def test_td64_cumsum_overflow():
     # GH#66551: the check applies per column
-    df = DataFrame(
-        {"a": [Timedelta(1, "D")] * 2, "b": [Timedelta.max] * 2},
+    df = pd.DataFrame(
+        {"a": [pd.Timedelta(1, "D")] * 2, "b": [pd.Timedelta.max] * 2},
         dtype="m8[ns]",
     )
     with pytest.raises(OutOfBoundsTimedelta, match="overflow in timedelta operation"):

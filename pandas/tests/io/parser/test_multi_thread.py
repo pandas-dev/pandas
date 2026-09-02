@@ -11,9 +11,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
-from pandas.util.version import Version
 
 # We'll probably always skip these for pyarrow
 # Maybe we'll add our own tests for pyarrow too
@@ -23,16 +21,9 @@ pytestmark = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
-def test_multi_thread_string_io_read_csv(all_parsers, request):
+def test_multi_thread_string_io_read_csv(all_parsers):
     # see gh-11786
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        if Version(pa.__version__) < Version("16.0"):
-            request.applymarker(
-                pytest.mark.xfail(reason="# ValueError: Found non-unique column index")
-            )
     max_row_range = 100
     num_files = 10
 
@@ -131,7 +122,7 @@ def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
 
     parser = all_parsers
     file_name = "__thread_pool_reader__.csv"
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": np.random.default_rng(2).random(num_rows),
             "b": np.random.default_rng(2).random(num_rows),

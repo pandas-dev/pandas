@@ -7,6 +7,10 @@ from locale import LC_TIME
 
 cimport cython
 from cython cimport Py_ssize_t
+from libc.stdint cimport (
+    INT32_MAX,
+    INT32_MIN,
+)
 
 import numpy as np
 
@@ -36,6 +40,7 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_iso_calendar,
     get_lastbday,
     get_week_of_year,
+    is_leapyear,
     iso_calendar_t,
 )
 from pandas._libs.tslibs.dtypes cimport periods_per_day
@@ -63,10 +68,11 @@ def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     cdef:
         Py_ssize_t i, count = len(dtindex)
         npy_datetimestruct dts
-        ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
+        ndarray[int64_t] years
+        ndarray[int32_t] months, days, hours, minutes, seconds, mus
 
     sa_dtype = [
-        ("Y", "i4"),  # year
+        ("Y", "i8"),  # year; int64 because it can exceed int32 at non-nano reso
         ("M", "i4"),  # month
         ("D", "i4"),  # day
         ("h", "i4"),  # hour
@@ -103,13 +109,14 @@ def build_field_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
 def month_position_check(fields, weekdays) -> str | None:
     cdef:
         Py_ssize_t i, count
-        int32_t daysinmonth, y, m, d, wd
+        int32_t daysinmonth, m, d, wd
+        int64_t y
         bint calendar_end = True
         bint business_end = True
         bint calendar_start = True
         bint business_start = True
         bint cal
-        int32_t[:] years = fields["Y"]
+        int64_t[:] years = fields["Y"]
         int32_t[:] months = fields["M"]
         int32_t[:] days = fields["D"]
         int32_t[:] wdays = np.asarray(weekdays, dtype=np.int32)
@@ -361,8 +368,10 @@ def get_date_field(
     cdef:
         Py_ssize_t i, count = len(dtindex)
         ndarray[int32_t] out
+        ndarray[int8_t] out_bool
         npy_datetimestruct dts
         int64_t perday, perhour, permin, persec
+        int64_t bad_year = 0
 
     out = np.empty(count, dtype="i4")
     try:
@@ -385,7 +394,16 @@ def get_date_field(
                     )
                 else:
                     pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                if not INT32_MIN <= dts.year <= INT32_MAX:
+                    # year 0 is in range, so it is available as a sentinel
+                    bad_year = dts.year
+                    break
                 out[i] = dts.year
+        if bad_year != 0:
+            raise ValueError(
+                f"year {bad_year} is out of range for the int32 result; get the "
+                "year of the individual entries with Timestamp.year instead"
+            )
         return out
 
     elif field == "M":
@@ -578,7 +596,19 @@ def get_date_field(
         return out
 
     elif field == "is_leap_year":
-        return isleapyear_arr(get_date_field(dtindex, "Y", reso=reso))
+        out_bool = np.zeros(count, dtype="i1")
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    continue
+                if perday > 0:
+                    set_datetimestruct_days(
+                        dtindex[i] // perday, &dts
+                    )
+                else:
+                    pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
+                out_bool[i] = is_leapyear(dts.year)
+        return out_bool.view(bool)
 
     raise ValueError(f"Field {field} not supported")
 
@@ -687,11 +717,13 @@ def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     cdef:
         Py_ssize_t i, count = len(dtindex)
         npy_datetimestruct dts
-        ndarray[uint32_t] iso_years, iso_weeks, days
+        ndarray[int32_t] iso_years
+        ndarray[uint32_t] iso_weeks, days
         iso_calendar_t ret_val
+        int64_t bad_year = 0
 
     sa_dtype = [
-        ("year", "u4"),
+        ("year", "i4"),
         ("week", "u4"),
         ("day", "u4"),
     ]
@@ -709,10 +741,20 @@ def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
             else:
                 pandas_datetime_to_datetimestruct(dtindex[i], reso, &dts)
                 ret_val = get_iso_calendar(dts.year, dts.month, dts.day)
+                if not INT32_MIN <= ret_val[0] <= INT32_MAX:
+                    # year 0 is in range, so it is available as a sentinel
+                    bad_year = ret_val[0]
+                    break
 
             iso_years[i] = ret_val[0]
             iso_weeks[i] = ret_val[1]
             days[i] = ret_val[2]
+    if bad_year != 0:
+        # Timestamp.isocalendar is no help for these years either, as it goes
+        #  through datetime.date, so there is no alternative to point at
+        raise ValueError(
+            f"ISO year {bad_year} is out of range for the int32 result"
+        )
     return out
 
 

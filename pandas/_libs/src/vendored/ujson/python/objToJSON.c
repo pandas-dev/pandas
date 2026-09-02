@@ -162,6 +162,7 @@ typedef struct __PyObjectEncoder {
 enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
 
 static int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
+static void Object_endTypeContext(JSOBJ, JSONTypeContext *);
 
 static TypeContext *createTypeContext(void) {
   TypeContext *pc = PyObject_Malloc(sizeof(TypeContext));
@@ -512,6 +513,23 @@ static const char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc,
     PyObject *tmp = str;
     str = PyUnicode_AsUTF8String(str);
     Py_DECREF(tmp);
+    if (str == NULL) {
+      *outLen = 0;
+      if (!PyErr_Occurred()) {
+        PyErr_SetString(PyExc_ValueError, "Failed to convert time");
+      }
+      ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+      return NULL;
+    }
+  }
+  if (!PyBytes_Check(str)) {
+    *outLen = 0;
+    Py_DECREF(str);
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(PyExc_TypeError, "isoformat() must return str");
+    }
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
   }
 
   GET_TC(tc)->newObj = str;
@@ -525,6 +543,13 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
                                            size_t *len) {
   PyObject *obj = (PyObject *)_obj;
   PyObject *format_spec = PyUnicode_FromStringAndSize("f", 1);
+  if (format_spec == NULL) {
+    // PyObject_Format would treat NULL as an empty spec and silently format
+    // the decimal a different way, on top of masking the pending exception
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    *len = 0;
+    return NULL;
+  }
   PyObject *str = PyObject_Format(obj, format_spec);
   Py_DECREF(format_spec);
 
@@ -537,6 +562,11 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
 
   Py_ssize_t s_len;
   char *outValue = (char *)PyUnicode_AsUTF8AndSize(str, &s_len);
+  if (outValue == NULL) {
+    *len = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
   *len = s_len;
 
   return outValue;
@@ -949,6 +979,11 @@ static void Tuple_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 static int Tuple_iterNext(JSOBJ obj, JSONTypeContext *tc) {
+  if (PyErr_Occurred()) {
+    // stop rather than encode the next item with an exception pending, which
+    // would mask it
+    return 0;
+  }
 
   if (GET_TC(tc)->index >= GET_TC(tc)->size) {
     return 0;
@@ -987,6 +1022,17 @@ static int Set_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   if (GET_TC(tc)->itemValue) {
     Py_DECREF(GET_TC(tc)->itemValue);
     GET_TC(tc)->itemValue = NULL;
+  }
+
+  if (!GET_TC(tc)->iterator) {
+    // __iter__ raised in Set_iterBegin
+    return 0;
+  }
+
+  if (PyErr_Occurred()) {
+    // stop rather than encode the next item with an exception pending, which
+    // would mask it
+    return 0;
   }
 
   PyObject *item = PyIter_Next(GET_TC(tc)->iterator);
@@ -1029,7 +1075,10 @@ static const char *Set_iterGetName(JSOBJ Py_UNUSED(obj),
 static void Dir_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
   GET_TC(tc)->attrList = PyObject_Dir(obj);
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->size = PyList_GET_SIZE(GET_TC(tc)->attrList);
+  // A raising __dir__ leaves attrList NULL; Dir_iterNext bails on the
+  // pending exception before it reaches the list.
+  GET_TC(tc)->size =
+      GET_TC(tc)->attrList ? PyList_GET_SIZE(GET_TC(tc)->attrList) : 0;
 }
 
 static void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
@@ -1043,7 +1092,7 @@ static void Dir_iterEnd(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->itemName = NULL;
   }
 
-  Py_DECREF((PyObject *)GET_TC(tc)->attrList);
+  Py_XDECREF((PyObject *)GET_TC(tc)->attrList);
 }
 
 static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
@@ -1068,7 +1117,16 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
   for (; GET_TC(tc)->index < GET_TC(tc)->size; GET_TC(tc)->index++) {
     PyObject *attrName =
         PyList_GET_ITEM(GET_TC(tc)->attrList, GET_TC(tc)->index);
+    if (!PyUnicode_Check(attrName)) {
+      PyErr_Format(PyExc_TypeError, "__dir__() must return str entries, not %s",
+                   Py_TYPE(attrName)->tp_name);
+      return 0;
+    }
     PyObject *attr = PyUnicode_AsUTF8String(attrName);
+    if (attr == NULL) {
+      // e.g. __dir__ returned a name holding a lone surrogate
+      return 0;
+    }
     const char *attrStr = PyBytes_AS_STRING(attr);
 
     if (attrStr[0] == '_') {
@@ -1129,6 +1187,12 @@ static void List_iterBegin(JSOBJ obj, JSONTypeContext *tc) {
 }
 
 static int List_iterNext(JSOBJ obj, JSONTypeContext *tc) {
+  if (PyErr_Occurred()) {
+    // stop rather than encode the next item with an exception pending, which
+    // would mask it
+    return 0;
+  }
+
   if (GET_TC(tc)->index >= GET_TC(tc)->size) {
     return 0;
   }
@@ -1338,6 +1402,12 @@ static void Dict_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 }
 
 static int Dict_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+  if (PyErr_Occurred()) {
+    // stop rather than encode the next item with an exception pending, which
+    // would mask it
+    return 0;
+  }
+
   if (GET_TC(tc)->itemName) {
     Py_DECREF(GET_TC(tc)->itemName);
     GET_TC(tc)->itemName = NULL;
@@ -1351,12 +1421,21 @@ static int Dict_iterNext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   if (PyUnicode_Check(GET_TC(tc)->itemName)) {
     GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
   } else if (!PyBytes_Check(GET_TC(tc)->itemName)) {
-    GET_TC(tc)->itemName = PyObject_Str(GET_TC(tc)->itemName);
-    PyObject *itemNameTmp = GET_TC(tc)->itemName;
-    GET_TC(tc)->itemName = PyUnicode_AsUTF8String(GET_TC(tc)->itemName);
+    PyObject *itemNameTmp = PyObject_Str(GET_TC(tc)->itemName);
+    if (itemNameTmp == NULL) {
+      // e.g. a key whose str() exceeds sys.get_int_max_str_digits()
+      GET_TC(tc)->itemName = NULL;
+      return 0;
+    }
+    GET_TC(tc)->itemName = PyUnicode_AsUTF8String(itemNameTmp);
     Py_DECREF(itemNameTmp);
   } else {
     Py_INCREF(GET_TC(tc)->itemName);
+  }
+
+  if (GET_TC(tc)->itemName == NULL) {
+    // the key, or its str(), could not be encoded as utf-8
+    return 0;
   }
   return 1;
 }
@@ -1496,6 +1575,13 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
       if (i8date == get_nat()) {
         len = 4;
         cLabel = PyObject_Malloc(len + 1);
+        if (cLabel == NULL) {
+          PyErr_NoMemory();
+          Py_DECREF(item);
+          NpyArr_freeLabels(ret, num);
+          ret = 0;
+          break;
+        }
         strncpy(cLabel, "null", len + 1);
       } else {
         if (enc->datetimeIso) {
@@ -1517,6 +1603,13 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else {
           int size_of_cLabel = 21; // 21 chars for int 64
           cLabel = PyObject_Malloc(size_of_cLabel);
+          if (cLabel == NULL) {
+            PyErr_NoMemory();
+            Py_DECREF(item);
+            NpyArr_freeLabels(ret, num);
+            ret = 0;
+            break;
+          }
           // numpy values are scaled from the array's own unit; datetime and
           // timedelta objects were converted to nanos above and keep the
           // conversion they have always used
@@ -1544,26 +1637,33 @@ static char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
       }
 
       cLabel = (char *)PyUnicode_AsUTF8(item);
+      if (cLabel == NULL) {
+        // e.g. a label whose str() holds a lone surrogate
+        Py_DECREF(item);
+        NpyArr_freeLabels(ret, num);
+        ret = 0;
+        break;
+      }
       len = strlen(cLabel);
     }
 
     // Add 1 to include NULL terminator
     ret[i] = PyObject_Malloc(len + 1);
-    memcpy(ret[i], cLabel, len + 1);
+    if (ret[i]) {
+      memcpy(ret[i], cLabel, len + 1);
+    }
     Py_DECREF(item);
 
     if (is_datetimelike) {
       PyObject_Free(cLabel);
     }
 
-    if (PyErr_Occurred()) {
-      NpyArr_freeLabels(ret, num);
-      ret = 0;
-      break;
-    }
-
     if (!ret[i]) {
       PyErr_NoMemory();
+    }
+
+    if (PyErr_Occurred()) {
+      NpyArr_freeLabels(ret, num);
       ret = 0;
       break;
     }
@@ -1792,6 +1892,25 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
       tc->type = JT_LONG;
     }
     pc->longValue = value;
+    return;
+  } else if (PyArray_IsScalar(obj, UnsignedInteger)) {
+    // GH#66142 casting to int64 would silently wrap values above int64 max;
+    // hand those to JT_BIGNUM, which prints the exact digits via str().
+    npy_uint64 uintValue;
+    PyArray_CastScalarToCtype(obj, &uintValue,
+                              PyArray_DescrFromType(NPY_UINT64));
+
+    if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_OverflowError)) {
+      goto INVALID;
+    }
+
+    if (uintValue > (npy_uint64)NPY_MAX_INT64) {
+      tc->type = JT_BIGNUM;
+    } else {
+      pc->longValue = (JSINT64)uintValue;
+      tc->type = JT_LONG;
+    }
+
     return;
   } else if (PyArray_IsScalar(obj, Integer)) {
     tc->type = JT_LONG;
@@ -2113,8 +2232,9 @@ ISITERABLE:
 
 INVALID:
   tc->type = JT_INVALID;
-  PyObject_Free(tc->prv);
-  tc->prv = NULL;
+  // JT_INVALID makes the encoder return without calling endTypeContext, so
+  // anything already stored on the context has to be released here
+  Object_endTypeContext(_obj, tc);
   return;
 }
 
@@ -2149,8 +2269,26 @@ static double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
 static const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
                                                size_t *_outLen) {
   PyObject *repr = PyObject_Str(obj);
+  if (repr == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    *_outLen = 0;
+    return NULL;
+  }
   const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *)_outLen);
+  if (str == NULL) {
+    Py_DECREF(repr);
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    *_outLen = 0;
+    return NULL;
+  }
   char *bytes = PyObject_Malloc(*_outLen + 1);
+  if (bytes == NULL) {
+    Py_DECREF(repr);
+    PyErr_NoMemory();
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    *_outLen = 0;
+    return NULL;
+  }
   memcpy(bytes, str, *_outLen + 1);
   GET_TC(tc)->cStr = bytes;
 
@@ -2327,6 +2465,9 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   char buffer[65536];
   char *ret = JSON_EncodeObject(oinput, encoder, buffer, sizeof(buffer));
   if (PyErr_Occurred()) {
+    if (ret != buffer) {
+      encoder->free(ret);
+    }
     return NULL;
   }
 
