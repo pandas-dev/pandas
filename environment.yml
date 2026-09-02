@@ -1,7 +1,7 @@
 # Local development dependencies including docs building, website upload, ASV benchmark
 name: pandas-dev
 channels:
-  - conda-forge
+  - mamba-forge
 dependencies:
   - python=3.11
   - pip
