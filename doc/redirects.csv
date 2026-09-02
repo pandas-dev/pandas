@@ -50,6 +50,33 @@ internals,development/internals
 development/meeting,community
 
 # api moved function
+# old ones that were still located in generated/
+generated/pandas.core.common.isnull,../reference/api/pandas.isna
+generated/pandas.core.common.notnull,../reference/api/pandas.notna
+generated/pandas.core.reshape.get_dummies,../reference/api/pandas.get_dummies
+generated/pandas.tools.merge.concat,../reference/api/pandas.concat
+generated/pandas.tools.merge.merge,../reference/api/pandas.merge
+generated/pandas.tools.pivot.pivot_table,../reference/api/pandas.pivot_table
+generated/pandas.tseries.tools.to_datetime,../reference/api/pandas.to_datetime
+generated/pandas.io.clipboard.read_clipboard,../reference/api/pandas.read_clipboard
+generated/pandas.io.excel.ExcelFile.parse,../reference/api/pandas.ExcelFile.parse
+generated/pandas.io.excel.read_excel,../reference/api/pandas.read_excel
+generated/pandas.io.html.read_html,../reference/api/pandas.read_html
+generated/pandas.io.json.read_json,../reference/api/pandas.read_json
+generated/pandas.io.parsers.read_csv,../reference/api/pandas.read_csv
+generated/pandas.io.parsers.read_fwf,../reference/api/pandas.read_fwf
+generated/pandas.io.parsers.read_table,../reference/api/pandas.read_table
+generated/pandas.io.pickle.read_pickle,../reference/api/pandas.read_pickle
+generated/pandas.io.pytables.HDFStore.append,../reference/api/pandas.HDFStore.append
+generated/pandas.io.pytables.HDFStore.get,../reference/api/pandas.HDFStore.get
+generated/pandas.io.pytables.HDFStore.put,../reference/api/pandas.HDFStore.put
+generated/pandas.io.pytables.HDFStore.select,../reference/api/pandas.HDFStore.select
+generated/pandas.io.pytables.read_hdf,../reference/api/pandas.read_hdf
+generated/pandas.io.sql.read_sql,../reference/api/pandas.read_sql
+generated/pandas.io.sql.read_frame,../reference/api/pandas.read_frame
+generated/pandas.io.sql.write_frame,../reference/api/pandas.write_frame
+generated/pandas.io.stata.read_stata,../reference/api/pandas.read_stata
+# new API moves
 reference/api/pandas.io.json.json_normalize,pandas.json_normalize
 
 # rename due to refactors
@@ -1269,6 +1296,59 @@ generated/pandas.unique,../reference/api/pandas.unique
 generated/pandas.util.hash_array,../reference/api/pandas.util.hash_array
 generated/pandas.util.hash_pandas_object,../reference/api/pandas.util.hash_pandas_object
 generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
+# old redirects at generated/
+generated/pandas.tseries.resample.Resampler,../reference/api/pandas.api.typing.Resampler
+generated/pandas.tseries.resample.Resampler.__iter__,../reference/api/pandas.api.typing.Resampler.__iter__
+generated/pandas.tseries.resample.Resampler.agg,../reference/api/pandas.api.typing.Resampler.agg
+generated/pandas.tseries.resample.Resampler.aggregate,../reference/api/pandas.api.typing.Resampler.aggregate
+generated/pandas.tseries.resample.Resampler.apply,../reference/api/pandas.api.typing.Resampler.apply
+generated/pandas.tseries.resample.Resampler.asfreq,../reference/api/pandas.api.typing.Resampler.asfreq
+generated/pandas.tseries.resample.Resampler.bfill,../reference/api/pandas.api.typing.Resampler.bfill
+generated/pandas.tseries.resample.Resampler.count,../reference/api/pandas.api.typing.Resampler.count
+generated/pandas.tseries.resample.Resampler.ffill,../reference/api/pandas.api.typing.Resampler.ffill
+generated/pandas.tseries.resample.Resampler.first,../reference/api/pandas.api.typing.Resampler.first
+generated/pandas.tseries.resample.Resampler.get_group,../reference/api/pandas.api.typing.Resampler.get_group
+generated/pandas.tseries.resample.Resampler.groups,../reference/api/pandas.api.typing.Resampler.groups
+generated/pandas.tseries.resample.Resampler.indices,../reference/api/pandas.api.typing.Resampler.indices
+generated/pandas.tseries.resample.Resampler.interpolate,../reference/api/pandas.api.typing.Resampler.interpolate
+generated/pandas.tseries.resample.Resampler.last,../reference/api/pandas.api.typing.Resampler.last
+generated/pandas.tseries.resample.Resampler.max,../reference/api/pandas.api.typing.Resampler.max
+generated/pandas.tseries.resample.Resampler.mean,../reference/api/pandas.api.typing.Resampler.mean
+generated/pandas.tseries.resample.Resampler.median,../reference/api/pandas.api.typing.Resampler.median
+generated/pandas.tseries.resample.Resampler.min,../reference/api/pandas.api.typing.Resampler.min
+generated/pandas.tseries.resample.Resampler.ndim,../reference/api/pandas.api.typing.Resampler.ndim
+generated/pandas.tseries.resample.Resampler.nearest,../reference/api/pandas.api.typing.Resampler.nearest
+generated/pandas.tseries.resample.Resampler.ngroups,../reference/api/pandas.api.typing.Resampler.ngroups
+generated/pandas.tseries.resample.Resampler.nunique,../reference/api/pandas.api.typing.Resampler.nunique
+generated/pandas.tseries.resample.Resampler.ohlc,../reference/api/pandas.api.typing.Resampler.ohlc
+generated/pandas.tseries.resample.Resampler.pipe,../reference/api/pandas.api.typing.Resampler.pipe
+generated/pandas.tseries.resample.Resampler.prod,../reference/api/pandas.api.typing.Resampler.prod
+generated/pandas.tseries.resample.Resampler.sem,../reference/api/pandas.api.typing.Resampler.sem
+generated/pandas.tseries.resample.Resampler.size,../reference/api/pandas.api.typing.Resampler.size
+generated/pandas.tseries.resample.Resampler.std,../reference/api/pandas.api.typing.Resampler.std
+generated/pandas.tseries.resample.Resampler.sum,../reference/api/pandas.api.typing.Resampler.sum
+generated/pandas.tseries.resample.Resampler.transform,../reference/api/pandas.api.typing.Resampler.transform
+generated/pandas.tseries.resample.Resampler.var,../reference/api/pandas.api.typing.Resampler.var
+generated/pandas.formats.style.Styler,../reference/api/pandas.io.formats.style.Styler
+generated/pandas.formats.style.Styler.apply,../reference/api/pandas.io.formats.style.Styler.apply
+generated/pandas.formats.style.Styler.background_gradient,../reference/api/pandas.io.formats.style.Styler.background_gradient
+generated/pandas.formats.style.Styler.bar,../reference/api/pandas.io.formats.style.Styler.bar
+generated/pandas.formats.style.Styler.clear,../reference/api/pandas.io.formats.style.Styler.clear
+generated/pandas.formats.style.Styler.env,../reference/api/pandas.io.formats.style.Styler.env
+generated/pandas.formats.style.Styler.export,../reference/api/pandas.io.formats.style.Styler.export
+generated/pandas.formats.style.Styler.format,../reference/api/pandas.io.formats.style.Styler.format
+generated/pandas.formats.style.Styler.from_custom_template,../reference/api/pandas.io.formats.style.Styler.from_custom_template
+generated/pandas.formats.style.Styler.highlight_max,../reference/api/pandas.io.formats.style.Styler.highlight_max
+generated/pandas.formats.style.Styler.highlight_min,../reference/api/pandas.io.formats.style.Styler.highlight_min
+generated/pandas.formats.style.Styler.highlight_null,../reference/api/pandas.io.formats.style.Styler.highlight_null
+generated/pandas.formats.style.Styler.loader,../reference/api/pandas.io.formats.style.Styler.loader
+generated/pandas.formats.style.Styler.set_caption,../reference/api/pandas.io.formats.style.Styler.set_caption
+generated/pandas.formats.style.Styler.set_properties,../reference/api/pandas.io.formats.style.Styler.set_properties
+generated/pandas.formats.style.Styler.set_table_attributes,../reference/api/pandas.io.formats.style.Styler.set_table_attributes
+generated/pandas.formats.style.Styler.set_table_styles,../reference/api/pandas.io.formats.style.Styler.set_table_styles
+generated/pandas.formats.style.Styler.set_uuid,../reference/api/pandas.io.formats.style.Styler.set_uuid
+generated/pandas.formats.style.Styler.to_excel,../reference/api/pandas.io.formats.style.Styler.to_excel
+generated/pandas.formats.style.Styler.use,../reference/api/pandas.io.formats.style.Styler.use
 
 # Cached searches
 reference/api/pandas.DataFrame.from_csv,pandas.read_csv
