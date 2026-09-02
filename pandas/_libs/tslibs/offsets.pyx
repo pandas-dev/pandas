@@ -7522,6 +7522,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
 
     Attributes
     ----------
+    m_offset
     weekmask
     holidays
     calendar
@@ -7614,6 +7615,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
 
     Attributes
     ----------
+    m_offset
     weekmask
     holidays
     calendar
