@@ -985,10 +985,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
         elif is_scalar(result):
             # e.g. matmul
-            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -8107,7 +8107,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return maybe_unbox_numpy_scalar(first, dtype=self.dtype)
+                return maybe_unbox_numpy_scalar(first, object_with_dtype=self)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8119,7 +8119,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values._reduce(name="min", skipna=skipna)
 
         return maybe_unbox_numpy_scalar(
-            nanops.nanmin(self._values, skipna=skipna), dtype=self.dtype
+            nanops.nanmin(self._values, skipna=skipna), object_with_dtype=self
         )
 
     def max(
@@ -8182,7 +8182,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return maybe_unbox_numpy_scalar(last, dtype=self.dtype)
+                return maybe_unbox_numpy_scalar(last, object_with_dtype=self)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8194,7 +8194,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values._reduce(name="max", skipna=skipna)
 
         return maybe_unbox_numpy_scalar(
-            nanops.nanmax(self._values, skipna=skipna), dtype=self.dtype
+            nanops.nanmax(self._values, skipna=skipna), object_with_dtype=self
         )
 
     # --------------------------------------------------------------------

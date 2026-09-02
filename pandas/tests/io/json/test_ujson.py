@@ -17,17 +17,7 @@ import pytest
 import pandas._libs._ujson as ujson
 from pandas.compat import IS64
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    NaT,
-    PeriodIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -352,14 +342,14 @@ class TestUltraJSONTests:
         assert expected == output
 
     @pytest.mark.parametrize(
-        "decoded_input", [NaT, np.datetime64("NaT", "ns"), np.nan, np.inf, -np.inf]
+        "decoded_input", [pd.NaT, np.datetime64("NaT", "ns"), np.nan, np.inf, -np.inf]
     )
     def test_encode_as_null(self, decoded_input):
         assert ujson.ujson_dumps(decoded_input) == "null", "Expected null"
 
     def test_datetime_units(self):
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
-        stamp = Timestamp(val).as_unit("ns")
+        stamp = pd.Timestamp(val).as_unit("ns")
 
         roundtrip = ujson.ujson_loads(ujson.ujson_dumps(val, date_unit="s"))
         assert roundtrip == stamp._value // 10**9
@@ -847,7 +837,7 @@ class TestPandasJSONTests:
     def test_dataframe(self, orient):
         dtype = np.int64
 
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
             columns=["x", "y", "z"],
@@ -862,9 +852,9 @@ class TestPandasJSONTests:
         # Ensure proper DataFrame initialization.
         if orient == "split":
             dec = _clean_dict(output)
-            output = DataFrame(**dec)
+            output = pd.DataFrame(**dec)
         else:
-            output = DataFrame(output)
+            output = pd.DataFrame(output)
 
         # Corrections to enable DataFrame comparison.
         if orient == "values":
@@ -879,7 +869,7 @@ class TestPandasJSONTests:
         tm.assert_frame_equal(output, df)
 
     def test_dataframe_nested(self, orient):
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2, 3], [4, 5, 6]], index=["a", "b"], columns=["x", "y", "z"]
         )
 
@@ -894,7 +884,7 @@ class TestPandasJSONTests:
 
     def test_series(self, orient):
         dtype = np.int64
-        s = Series(
+        s = pd.Series(
             [10, 20, 30, 40, 50, 60],
             name="series",
             index=[6, 7, 8, 9, 10, 15],
@@ -909,9 +899,9 @@ class TestPandasJSONTests:
 
         if orient == "split":
             dec = _clean_dict(output)
-            output = Series(**dec)
+            output = pd.Series(**dec)
         else:
-            output = Series(output)
+            output = pd.Series(output)
 
         if orient in (None, "index"):
             s.name = None
@@ -925,7 +915,7 @@ class TestPandasJSONTests:
         tm.assert_series_equal(output, s)
 
     def test_series_nested(self, orient):
-        s = Series(
+        s = pd.Series(
             [10, 20, 30, 40, 50, 60], name="series", index=[6, 7, 8, 9, 10, 15]
         ).sort_values()
         nested = {"s1": s, "s2": s.copy()}
@@ -938,14 +928,14 @@ class TestPandasJSONTests:
         assert ujson.ujson_loads(ujson.ujson_dumps(nested, **kwargs)) == exp
 
     def test_index(self):
-        i = Index([23, 45, 18, 98, 43, 11], name="index")
+        i = pd.Index([23, 45, 18, 98, 43, 11], name="index")
 
         # Column indexed.
-        output = Index(ujson.ujson_loads(ujson.ujson_dumps(i)), name="index")
+        output = pd.Index(ujson.ujson_loads(ujson.ujson_dumps(i)), name="index")
         tm.assert_index_equal(i, output)
 
         dec = _clean_dict(ujson.ujson_loads(ujson.ujson_dumps(i, orient="split")))
-        output = Index(**dec)
+        output = pd.Index(**dec)
 
         tm.assert_index_equal(i, output)
         assert i.name == output.name
@@ -953,17 +943,17 @@ class TestPandasJSONTests:
         tm.assert_index_equal(i, output)
         assert i.name == output.name
 
-        output = Index(
+        output = pd.Index(
             ujson.ujson_loads(ujson.ujson_dumps(i, orient="values")), name="index"
         )
         tm.assert_index_equal(i, output)
 
-        output = Index(
+        output = pd.Index(
             ujson.ujson_loads(ujson.ujson_dumps(i, orient="records")), name="index"
         )
         tm.assert_index_equal(i, output)
 
-        output = Index(
+        output = pd.Index(
             ujson.ujson_loads(ujson.ujson_dumps(i, orient="index")), name="index"
         )
         tm.assert_index_equal(i, output)
@@ -972,19 +962,21 @@ class TestPandasJSONTests:
         date_unit = "ns"
 
         # freq doesn't round-trip
-        rng = DatetimeIndex(
-            list(date_range("1/1/2000", periods=20, unit="ns")), freq=None
+        rng = pd.DatetimeIndex(
+            list(pd.date_range("1/1/2000", periods=20, unit="ns")), freq=None
         )
         encoded = ujson.ujson_dumps(rng, date_unit=date_unit)
 
-        decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))
+        decoded = pd.DatetimeIndex(np.array(ujson.ujson_loads(encoded)))
         tm.assert_index_equal(rng, decoded)
 
-        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        decoded = Series(ujson.ujson_loads(ujson.ujson_dumps(ts, date_unit=date_unit)))
+        ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        decoded = pd.Series(
+            ujson.ujson_loads(ujson.ujson_dumps(ts, date_unit=date_unit))
+        )
 
         idx_values = decoded.index.values.astype(np.int64)
-        decoded.index = DatetimeIndex(idx_values)
+        decoded.index = pd.DatetimeIndex(idx_values)
         tm.assert_series_equal(ts, decoded)
 
     @pytest.mark.parametrize(
@@ -1078,15 +1070,15 @@ class TestPandasJSONTests:
     @pytest.mark.parametrize(
         "td",
         [
-            Timedelta(days=366),
-            Timedelta(days=-1),
-            Timedelta(hours=13, minutes=5, seconds=5),
-            Timedelta(hours=13, minutes=20, seconds=30),
-            Timedelta(days=-1, nanoseconds=5),
-            Timedelta(nanoseconds=1),
-            Timedelta(microseconds=1, nanoseconds=1),
-            Timedelta(milliseconds=1, microseconds=1, nanoseconds=1),
-            Timedelta(milliseconds=999, microseconds=999, nanoseconds=999),
+            pd.Timedelta(days=366),
+            pd.Timedelta(days=-1),
+            pd.Timedelta(hours=13, minutes=5, seconds=5),
+            pd.Timedelta(hours=13, minutes=20, seconds=30),
+            pd.Timedelta(days=-1, nanoseconds=5),
+            pd.Timedelta(nanoseconds=1),
+            pd.Timedelta(microseconds=1, nanoseconds=1),
+            pd.Timedelta(milliseconds=1, microseconds=1, nanoseconds=1),
+            pd.Timedelta(milliseconds=999, microseconds=999, nanoseconds=999),
         ],
     )
     def test_encode_timedelta_iso(self, td):
@@ -1098,8 +1090,8 @@ class TestPandasJSONTests:
 
     def test_encode_periodindex(self):
         # GH 46683
-        p = PeriodIndex(["2022-04-06", "2022-04-07"], freq="D")
-        df = DataFrame(index=p)
+        p = pd.PeriodIndex(["2022-04-06", "2022-04-07"], freq="D")
+        df = pd.DataFrame(index=p)
         assert df.to_json() == "{}"
 
 
@@ -1182,7 +1174,7 @@ def test_encode_set_iter_raises():
 
 def test_encode_labels_lone_surrogate():
     # GH#66356
-    df = DataFrame({_LoneSurrogateStr(): [1, 2, 3]})
+    df = pd.DataFrame({_LoneSurrogateStr(): [1, 2, 3]})
     with pytest.raises(UnicodeEncodeError, match="surrogates not allowed"):
         ujson.ujson_dumps(df)
 
@@ -1230,7 +1222,7 @@ def test_encode_error_not_masked_by_sibling(container):
 
 def test_to_json_error_not_masked_by_sibling():
     # GH#66356
-    ser = Series([[np.complex128(1 + 2j), _Plain()]])
+    ser = pd.Series([[np.complex128(1 + 2j), _Plain()]])
     with pytest.raises(TypeError, match="is not JSON serializable"):
         ser.to_json()
 
@@ -1277,8 +1269,8 @@ def test_to_json_bad_label_frees_values():
     # the labels failed to encode, so Object_beginTypeContext bails out via
     # JT_INVALID; that exit used to drop the reference it had taken on the
     # values array
-    index = Index([_LoneSurrogateStr()], dtype=object)
-    ser = Series(np.arange(1), index=index)
+    index = pd.Index([_LoneSurrogateStr()], dtype=object)
+    ser = pd.Series(np.arange(1), index=index)
     values = ser._mgr.blocks[0].values
     # the encoder reaches the values through _values_for_json; if that ever
     # starts handing back a fresh object the check below would pass vacuously
