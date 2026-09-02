@@ -125,16 +125,18 @@ class OptionError(AttributeError, KeyError):
 # User API
 
 
-def _get_single_key(pat: str) -> str:
+def _get_single_key(pat: str, warn: bool = True, extra_stacklevel: int = 0) -> str:
     keys = _select_options(pat)
     if len(keys) == 0:
-        _warn_if_deprecated(pat)
+        if warn:
+            _warn_if_deprecated(pat, extra_stacklevel=extra_stacklevel)
         raise OptionError(f"No such keys(s): {pat!r}")
     if len(keys) > 1:
         raise OptionError("Pattern matched multiple keys")
     key = keys[0]
 
-    _warn_if_deprecated(key)
+    if warn:
+        _warn_if_deprecated(key, extra_stacklevel=extra_stacklevel)
 
     key = _translate_key(key)
 
@@ -185,11 +187,41 @@ def get_option(pat: str) -> Any:
     >>> pd.get_option("display.max_columns")  # doctest: +SKIP
     4
     """
-    key = _get_single_key(pat)
+    return _get_option_impl(pat)
+
+
+def _get_option_impl(pat: str, warn: bool = True) -> Any:
+    key = _get_single_key(pat, warn=warn)
 
     # walk the nested dict
     root, k = _get_root(key)
     return root[k]
+
+
+def _set_option_impl(*args: Any, warn: bool = True, extra_stacklevel: int = 0) -> None:
+    # GH#63235: `warn` and `extra_stacklevel` let option_context warn exactly
+    # once, aimed at the caller rather than at contextlib.
+    # Handle dictionary input
+    if len(args) == 1 and isinstance(args[0], dict):
+        args = tuple(kv for item in args[0].items() for kv in item)
+
+    nargs = len(args)
+    if not nargs or nargs % 2 != 0:
+        raise ValueError("Must provide an even number of non-keyword arguments")
+
+    for k, v in zip(args[::2], args[1::2], strict=True):
+        key = _get_single_key(k, warn=warn, extra_stacklevel=extra_stacklevel)
+
+        opt = _get_registered_option(key)
+        if opt and opt.validator:
+            opt.validator(v)
+
+        # walk the nested dict
+        root, k_root = _get_root(key)
+        root[k_root] = v
+
+        if opt is not None and opt.cb:
+            opt.cb(key)
 
 
 def set_option(*args: Any) -> None:
@@ -266,27 +298,7 @@ def set_option(*args: Any) -> None:
     >>> pd.reset_option("display.max_columns")
     >>> pd.reset_option("display.precision")
     """
-    # Handle dictionary input
-    if len(args) == 1 and isinstance(args[0], dict):
-        args = tuple(kv for item in args[0].items() for kv in item)
-
-    nargs = len(args)
-    if not nargs or nargs % 2 != 0:
-        raise ValueError("Must provide an even number of non-keyword arguments")
-
-    for k, v in zip(args[::2], args[1::2], strict=True):
-        key = _get_single_key(k)
-
-        opt = _get_registered_option(key)
-        if opt and opt.validator:
-            opt.validator(v)
-
-        # walk the nested dict
-        root, k_root = _get_root(key)
-        root[k_root] = v
-
-        if opt is not None and opt.cb:
-            opt.cb(key)
+    _set_option_impl(*args)
 
 
 def describe_option(pat: str = "", _print_desc: bool = True) -> str | None:
@@ -512,13 +524,17 @@ def option_context(*args: Any) -> Generator[None]:
     ops = tuple(zip(args[::2], args[1::2], strict=True))
     undo: tuple[tuple[Any, Any], ...] = ()
     try:
-        undo = tuple((pat, get_option(pat)) for pat, val in ops)
+        # GH#63235: a deprecated option must warn exactly once per option_context,
+        # so only the entry below warns; reading the old value and restoring it are
+        # bookkeeping the user did not ask for. extra_stacklevel=1 skips the
+        # contextlib.__enter__ frame so the warning lands on the ``with`` statement.
+        undo = tuple((pat, _get_option_impl(pat, warn=False)) for pat, val in ops)
         for pat, val in ops:
-            set_option(pat, val)
+            _set_option_impl(pat, val, extra_stacklevel=1)
         yield
     finally:
         for pat, val in undo:
-            set_option(pat, val)
+            _set_option_impl(pat, val, warn=False)
 
 
 def register_option(
@@ -721,7 +737,7 @@ def _translate_key(key: str) -> str:
         return key
 
 
-def _warn_if_deprecated(key: str) -> bool:
+def _warn_if_deprecated(key: str, extra_stacklevel: int = 0) -> bool:
     """
     Checks if `key` is a deprecated option and if so, prints a warning.
 
@@ -731,11 +747,12 @@ def _warn_if_deprecated(key: str) -> bool:
     """
     d = _get_deprecated_option(key)
     if d:
+        stacklevel = find_stack_level() + extra_stacklevel
         if d.msg:
             warnings.warn(
                 d.msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         else:
             msg = f"'{key}' is deprecated"
@@ -749,7 +766,7 @@ def _warn_if_deprecated(key: str) -> bool:
             warnings.warn(
                 msg,
                 d.category,
-                stacklevel=find_stack_level(),
+                stacklevel=stacklevel,
             )
         return True
     return False

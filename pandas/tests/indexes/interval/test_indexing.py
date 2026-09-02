@@ -5,51 +5,36 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas import (
-    NA,
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    Timedelta,
-    Timestamp,
-    array,
-    date_range,
-    interval_range,
-    isna,
-    period_range,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestGetItem:
     def test_getitem(self, closed):
-        idx = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan), closed=closed)
-        assert idx[0] == Interval(0.0, 1.0, closed=closed)
-        assert idx[1] == Interval(1.0, 2.0, closed=closed)
-        assert isna(idx[2])
+        idx = pd.IntervalIndex.from_arrays(
+            (0, 1, np.nan), (1, 2, np.nan), closed=closed
+        )
+        assert idx[0] == pd.Interval(0.0, 1.0, closed=closed)
+        assert idx[1] == pd.Interval(1.0, 2.0, closed=closed)
+        assert pd.isna(idx[2])
 
         result = idx[0:1]
-        expected = IntervalIndex.from_arrays((0.0,), (1.0,), closed=closed)
+        expected = pd.IntervalIndex.from_arrays((0.0,), (1.0,), closed=closed)
         tm.assert_index_equal(result, expected)
 
         result = idx[0:2]
-        expected = IntervalIndex.from_arrays((0.0, 1), (1.0, 2.0), closed=closed)
+        expected = pd.IntervalIndex.from_arrays((0.0, 1), (1.0, 2.0), closed=closed)
         tm.assert_index_equal(result, expected)
 
         result = idx[1:3]
-        expected = IntervalIndex.from_arrays(
+        expected = pd.IntervalIndex.from_arrays(
             (1.0, np.nan), (2.0, np.nan), closed=closed
         )
         tm.assert_index_equal(result, expected)
 
     def test_getitem_2d_deprecated(self):
         # GH#30588 multi-dim indexing is deprecated, but raising is also acceptable
-        idx = IntervalIndex.from_breaks(range(11), closed="right")
+        idx = pd.IntervalIndex.from_breaks(range(11), closed="right")
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
             idx[:, None]
         with pytest.raises(ValueError, match="multi-dimensional indexing not allowed"):
@@ -64,34 +49,34 @@ class TestWhere:
     def test_where(self, listlike_box):
         klass = listlike_box
 
-        idx = IntervalIndex.from_breaks(range(11), closed="right")
+        idx = pd.IntervalIndex.from_breaks(range(11), closed="right")
         cond = [True] * len(idx)
         expected = idx
         result = expected.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * len(idx[1:])
-        expected = IntervalIndex([np.nan, *idx[1:].tolist()])
+        expected = pd.IntervalIndex([np.nan, *idx[1:].tolist()])
         result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
 
 class TestTake:
     def test_take(self, closed):
-        index = IntervalIndex.from_breaks(range(11), closed=closed)
+        index = pd.IntervalIndex.from_breaks(range(11), closed=closed)
 
         result = index.take(range(10))
         tm.assert_index_equal(result, index)
 
         result = index.take([0, 0, 1])
-        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
+        expected = pd.IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
         tm.assert_index_equal(result, expected)
 
 
 class TestGetLoc:
     @pytest.mark.parametrize("side", ["right", "left", "both", "neither"])
     def test_get_loc_interval(self, closed, side):
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        idx = pd.IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
 
         for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
             # if get_loc is supplied an interval, it should only search
@@ -99,15 +84,15 @@ class TestGetLoc:
             msg = re.escape(f"Interval({bound[0]}, {bound[1]}, closed='{side}')")
             if closed == side:
                 if bound == [0, 1]:
-                    assert idx.get_loc(Interval(0, 1, closed=side)) == 0
+                    assert idx.get_loc(pd.Interval(0, 1, closed=side)) == 0
                 elif bound == [2, 3]:
-                    assert idx.get_loc(Interval(2, 3, closed=side)) == 1
+                    assert idx.get_loc(pd.Interval(2, 3, closed=side)) == 1
                 else:
                     with pytest.raises(KeyError, match=msg):
-                        idx.get_loc(Interval(*bound, closed=side))
+                        idx.get_loc(pd.Interval(*bound, closed=side))
             else:
                 with pytest.raises(KeyError, match=msg):
-                    idx.get_loc(Interval(*bound, closed=side))
+                    idx.get_loc(pd.Interval(*bound, closed=side))
 
     @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
     def test_get_loc_scalar(self, closed, scalar):
@@ -120,7 +105,7 @@ class TestGetLoc:
             "neither": {0.5: 0, 2.5: 1},
         }
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        idx = pd.IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
 
         # if get_loc is supplied a scalar, it should return the index of
         # the interval which contains the scalar, or KeyError.
@@ -133,7 +118,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("scalar", [-1, 0, 0.5, 3, 4.5, 5, 6])
     def test_get_loc_length_one_scalar(self, scalar, closed):
         # GH 20921
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = pd.IntervalIndex.from_tuples([(0, 5)], closed=closed)
         if scalar in index[0]:
             result = index.get_loc(scalar)
             assert result == 0
@@ -144,8 +129,8 @@ class TestGetLoc:
     @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
     def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
         # GH 20921
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
-        interval = Interval(left, right, closed=other_closed)
+        index = pd.IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        interval = pd.Interval(left, right, closed=other_closed)
         if interval == index[0]:
             result = index.get_loc(interval)
             assert result == 0
@@ -160,23 +145,23 @@ class TestGetLoc:
     @pytest.mark.parametrize(
         "breaks",
         [
-            date_range("20180101", periods=4),
-            date_range("20180101", periods=4, tz="US/Eastern"),
-            timedelta_range("0 days", periods=4),
+            pd.date_range("20180101", periods=4),
+            pd.date_range("20180101", periods=4, tz="US/Eastern"),
+            pd.timedelta_range("0 days", periods=4),
         ],
         ids=lambda x: str(x.dtype),
     )
     def test_get_loc_datetimelike_nonoverlapping(self, breaks):
         # GH 20636
         # nonoverlapping = IntervalIndex method and no i8 conversion
-        index = IntervalIndex.from_breaks(breaks)
+        index = pd.IntervalIndex.from_breaks(breaks)
 
         value = index[0].mid
         result = index.get_loc(value)
         expected = 0
         assert result == expected
 
-        interval = Interval(index[0].left, index[0].right)
+        interval = pd.Interval(index[0].left, index[0].right)
         result = index.get_loc(interval)
         expected = 0
         assert result == expected
@@ -184,28 +169,31 @@ class TestGetLoc:
     @pytest.mark.parametrize(
         "arrays",
         [
-            (date_range("20180101", periods=4), date_range("20180103", periods=4)),
             (
-                date_range("20180101", periods=4, tz="US/Eastern"),
-                date_range("20180103", periods=4, tz="US/Eastern"),
+                pd.date_range("20180101", periods=4),
+                pd.date_range("20180103", periods=4),
             ),
             (
-                timedelta_range("0 days", periods=4),
-                timedelta_range("2 days", periods=4),
+                pd.date_range("20180101", periods=4, tz="US/Eastern"),
+                pd.date_range("20180103", periods=4, tz="US/Eastern"),
+            ),
+            (
+                pd.timedelta_range("0 days", periods=4),
+                pd.timedelta_range("2 days", periods=4),
             ),
         ],
         ids=lambda x: str(x[0].dtype),
     )
     def test_get_loc_datetimelike_overlapping(self, arrays):
         # GH 20636
-        index = IntervalIndex.from_arrays(*arrays)
+        index = pd.IntervalIndex.from_arrays(*arrays)
 
-        value = index[0].mid + Timedelta("12 hours")
+        value = index[0].mid + pd.Timedelta("12 hours")
         result = index.get_loc(value)
         expected = slice(0, 2, None)
         assert result == expected
 
-        interval = Interval(index[0].left, index[0].right)
+        interval = pd.Interval(index[0].left, index[0].right)
         result = index.get_loc(interval)
         expected = 0
         assert result == expected
@@ -213,9 +201,9 @@ class TestGetLoc:
     @pytest.mark.parametrize(
         "values",
         [
-            date_range("2018-01-04", periods=4, freq="-1D"),
-            date_range("2018-01-04", periods=4, freq="-1D", tz="US/Eastern"),
-            timedelta_range("3 days", periods=4, freq="-1D"),
+            pd.date_range("2018-01-04", periods=4, freq="-1D"),
+            pd.date_range("2018-01-04", periods=4, freq="-1D", tz="US/Eastern"),
+            pd.timedelta_range("3 days", periods=4, freq="-1D"),
             np.arange(3.0, -1.0, -1.0),
             np.arange(3, -1, -1),
         ],
@@ -223,7 +211,7 @@ class TestGetLoc:
     )
     def test_get_loc_decreasing(self, values):
         # GH 25860
-        index = IntervalIndex.from_arrays(values[1:], values[:-1])
+        index = pd.IntervalIndex.from_arrays(values[1:], values[:-1])
         result = index.get_loc(index[0])
         expected = 0
         assert result == expected
@@ -231,7 +219,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("key", [[5], (2, 3)])
     def test_get_loc_non_scalar_errors(self, key):
         # GH 31117
-        idx = IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
+        idx = pd.IntervalIndex.from_tuples([(1, 3), (2, 4), (3, 5), (7, 10), (3, 10)])
 
         msg = str(key)
         with pytest.raises(InvalidIndexError, match=msg):
@@ -239,15 +227,15 @@ class TestGetLoc:
 
     def test_get_indexer_with_nans(self):
         # GH#41831
-        index = IntervalIndex([np.nan, Interval(1, 2), np.nan])
+        index = pd.IntervalIndex([np.nan, pd.Interval(1, 2), np.nan])
 
         expected = np.array([True, False, True])
-        for key in [None, np.nan, NA]:
+        for key in [None, np.nan, pd.NA]:
             assert key in index
             result = index.get_loc(key)
             tm.assert_numpy_array_equal(result, expected)
 
-        for key in [NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]:
+        for key in [pd.NaT, np.timedelta64("NaT", "ns"), np.datetime64("NaT", "ns")]:
             with pytest.raises(KeyError, match=str(key)):
                 index.get_loc(key)
 
@@ -256,22 +244,34 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "query, expected",
         [
-            ([Interval(2, 4, closed="right")], [1]),
-            ([Interval(2, 4, closed="left")], [-1]),
-            ([Interval(2, 4, closed="both")], [-1]),
-            ([Interval(2, 4, closed="neither")], [-1]),
-            ([Interval(1, 4, closed="right")], [-1]),
-            ([Interval(0, 4, closed="right")], [-1]),
-            ([Interval(0.5, 1.5, closed="right")], [-1]),
-            ([Interval(2, 4, closed="right"), Interval(0, 1, closed="right")], [1, -1]),
-            ([Interval(2, 4, closed="right"), Interval(2, 4, closed="right")], [1, 1]),
-            ([Interval(5, 7, closed="right"), Interval(2, 4, closed="right")], [2, 1]),
-            ([Interval(2, 4, closed="right"), Interval(2, 4, closed="left")], [1, -1]),
+            ([pd.Interval(2, 4, closed="right")], [1]),
+            ([pd.Interval(2, 4, closed="left")], [-1]),
+            ([pd.Interval(2, 4, closed="both")], [-1]),
+            ([pd.Interval(2, 4, closed="neither")], [-1]),
+            ([pd.Interval(1, 4, closed="right")], [-1]),
+            ([pd.Interval(0, 4, closed="right")], [-1]),
+            ([pd.Interval(0.5, 1.5, closed="right")], [-1]),
+            (
+                [pd.Interval(2, 4, closed="right"), pd.Interval(0, 1, closed="right")],
+                [1, -1],
+            ),
+            (
+                [pd.Interval(2, 4, closed="right"), pd.Interval(2, 4, closed="right")],
+                [1, 1],
+            ),
+            (
+                [pd.Interval(5, 7, closed="right"), pd.Interval(2, 4, closed="right")],
+                [2, 1],
+            ),
+            (
+                [pd.Interval(2, 4, closed="right"), pd.Interval(2, 4, closed="left")],
+                [1, -1],
+            ),
         ],
     )
     def test_get_indexer_with_interval(self, query, expected):
         tuples = [(0, 2), (2, 4), (5, 7)]
-        index = IntervalIndex.from_tuples(tuples, closed="right")
+        index = pd.IntervalIndex.from_tuples(tuples, closed="right")
 
         result = index.get_indexer(query)
         expected = np.array(expected, dtype="intp")
@@ -299,7 +299,7 @@ class TestGetIndexer:
     )
     def test_get_indexer_with_int_and_float(self, query, expected):
         tuples = [(0, 1), (1, 2), (3, 4)]
-        index = IntervalIndex.from_tuples(tuples, closed="right")
+        index = pd.IntervalIndex.from_tuples(tuples, closed="right")
 
         result = index.get_indexer(query)
         expected = np.array(expected, dtype="intp")
@@ -308,7 +308,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("item", [[3], np.arange(0.5, 5, 0.5)])
     def test_get_indexer_length_one(self, item, closed):
         # GH 17284
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = pd.IntervalIndex.from_tuples([(0, 5)], closed=closed)
         result = index.get_indexer(item)
         expected = np.array([0] * len(item), dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
@@ -316,25 +316,25 @@ class TestGetIndexer:
     @pytest.mark.parametrize("size", [1, 5])
     def test_get_indexer_length_one_interval(self, size, closed):
         # GH 17284
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
-        result = index.get_indexer([Interval(0, 5, closed)] * size)
+        index = pd.IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_indexer([pd.Interval(0, 5, closed)] * size)
         expected = np.array([0] * size, dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "target",
         [
-            IntervalIndex.from_tuples([(7, 8), (1, 2), (3, 4), (0, 1)]),
-            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4), np.nan]),
-            IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], closed="both"),
+            pd.IntervalIndex.from_tuples([(7, 8), (1, 2), (3, 4), (0, 1)]),
+            pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4), np.nan]),
+            pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)], closed="both"),
             [-1, 0, 0.5, 1, 2, 2.5, np.nan],
             ["foo", "foo", "bar", "baz"],
         ],
     )
     def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
-        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
-        categorical_target = CategoricalIndex(target, ordered=ordered)
+        index = pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        categorical_target = pd.CategoricalIndex(target, ordered=ordered)
 
         result = index.get_indexer(categorical_target)
         expected = index.get_indexer(target)
@@ -342,9 +342,9 @@ class TestGetIndexer:
 
     def test_get_indexer_categorical_with_nans(self):
         # GH#41934 nans in both index and in target
-        ii = IntervalIndex.from_breaks(range(5))
-        ii2 = ii.append(IntervalIndex([np.nan]))
-        ci2 = CategoricalIndex(ii2)
+        ii = pd.IntervalIndex.from_breaks(range(5))
+        ii2 = ii.append(pd.IntervalIndex([np.nan]))
+        ci2 = pd.CategoricalIndex(ii2)
 
         result = ii2.get_indexer(ci2)
         expected = np.arange(5, dtype=np.intp)
@@ -361,10 +361,12 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_datetime(self):
-        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4, unit="ns"))
+        ii = pd.IntervalIndex.from_breaks(
+            pd.date_range("2018-01-01", periods=4, unit="ns")
+        )
         # TODO: with mismatched resolution get_indexer currently raises;
         #  this should probably coerce?
-        target = DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
+        target = pd.DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
         result = ii.get_indexer(target)
         expected = np.array([0], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -388,7 +390,7 @@ class TestGetIndexer:
     )
     def test_get_indexer_errors(self, tuples, closed):
         # IntervalIndex needs non-overlapping for uniqueness when querying
-        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        index = pd.IntervalIndex.from_tuples(tuples, closed=closed)
 
         msg = (
             "cannot handle overlapping indices; use "
@@ -419,7 +421,7 @@ class TestGetIndexer:
     )
     def test_get_indexer_non_unique_with_int_and_float(self, query, expected):
         tuples = [(0, 2.5), (1, 3), (2, 4)]
-        index = IntervalIndex.from_tuples(tuples, closed="left")
+        index = pd.IntervalIndex.from_tuples(tuples, closed="left")
 
         result_indexer, result_missing = index.get_indexer_non_unique(query)
         expected_indexer = np.array(expected[0], dtype="intp")
@@ -433,8 +435,8 @@ class TestGetIndexer:
 
     def test_get_indexer_non_monotonic(self):
         # GH 16410
-        idx1 = IntervalIndex.from_tuples([(2, 3), (4, 5), (0, 1)])
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (6, 7), (8, 9)])
+        idx1 = pd.IntervalIndex.from_tuples([(2, 3), (4, 5), (0, 1)])
+        idx2 = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (6, 7), (8, 9)])
         result = idx1.get_indexer(idx2)
         expected = np.array([2, 0, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -445,8 +447,8 @@ class TestGetIndexer:
 
     def test_get_indexer_with_nans(self):
         # GH#41831
-        index = IntervalIndex([np.nan, np.nan])
-        other = IntervalIndex([np.nan])
+        index = pd.IntervalIndex([np.nan, np.nan])
+        other = pd.IntervalIndex([np.nan])
 
         assert not index._index_as_unique
 
@@ -456,41 +458,41 @@ class TestGetIndexer:
 
     def test_get_index_non_unique_non_monotonic(self):
         # GH#44084 (root cause)
-        index = IntervalIndex.from_tuples(
+        index = pd.IntervalIndex.from_tuples(
             [(0.0, 1.0), (1.0, 2.0), (0.0, 1.0), (1.0, 2.0)]
         )
 
-        result, _ = index.get_indexer_non_unique([Interval(1.0, 2.0)])
+        result, _ = index.get_indexer_non_unique([pd.Interval(1.0, 2.0)])
         expected = np.array([1, 3], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_multiindex_with_intervals(self):
         # GH#44084 (MultiIndex case as reported)
-        interval_index = IntervalIndex.from_tuples(
+        interval_index = pd.IntervalIndex.from_tuples(
             [(2.0, 3.0), (0.0, 1.0), (1.0, 2.0)], name="interval"
         )
-        foo_index = Index([1, 2, 3], name="foo")
+        foo_index = pd.Index([1, 2, 3], name="foo")
 
-        multi_index = MultiIndex.from_product([foo_index, interval_index])
+        multi_index = pd.MultiIndex.from_product([foo_index, interval_index])
 
         result = multi_index.get_level_values("interval").get_indexer_for(
-            [Interval(0.0, 1.0)]
+            [pd.Interval(0.0, 1.0)]
         )
         expected = np.array([1, 4, 7], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [IntervalIndex, array, list])
+    @pytest.mark.parametrize("box", [pd.IntervalIndex, pd.array, list])
     def test_get_indexer_interval_index(self, box):
         # GH#30178
-        rng = period_range("2022-07-01", freq="D", periods=3)
-        idx = box(interval_range(Timestamp("2022-07-01"), freq="3D", periods=3))
+        rng = pd.period_range("2022-07-01", freq="D", periods=3)
+        idx = box(pd.interval_range(pd.Timestamp("2022-07-01"), freq="3D", periods=3))
 
         actual = rng.get_indexer(idx)
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_get_indexer_read_only(self):
-        idx = interval_range(start=0, end=5)
+        idx = pd.interval_range(start=0, end=5)
         arr = np.array([1, 2])
         arr.flags.writeable = False
         result = idx.get_indexer(arr)
@@ -503,11 +505,11 @@ class TestGetIndexer:
     def test_get_indexer_non_unique_right(self):
         # GH#52245
         data = [
-            Interval(Timestamp("2020-05-26"), Timestamp("2020-05-27")),
-            Interval(Timestamp("2020-05-27"), Timestamp("2020-05-27")),
+            pd.Interval(pd.Timestamp("2020-05-26"), pd.Timestamp("2020-05-27")),
+            pd.Interval(pd.Timestamp("2020-05-27"), pd.Timestamp("2020-05-27")),
         ]
 
-        index = IntervalIndex(data)
+        index = pd.IntervalIndex(data)
 
         result = index.get_indexer([index[0]])
         expected = np.array([0], dtype=np.intp)
@@ -524,7 +526,7 @@ def test_get_indexer_scalars_all_closed(closed):
     # GH#47614 - boundary behavior for each closed value
     # Use gaps between all intervals to avoid overlap with closed="both"
     tuples = [(0, 1), (2, 3), (5, 6)]
-    index = IntervalIndex.from_tuples(tuples, closed=closed)
+    index = pd.IntervalIndex.from_tuples(tuples, closed=closed)
 
     # Points to test: before, on boundaries, interior, in gaps, after
     query = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 5.5, 6, 6.5]
@@ -549,7 +551,7 @@ def test_get_indexer_scalars_all_closed(closed):
 
 def test_get_indexer_with_nans_in_target(closed):
     # GH#47614 - NaN in scalar target should return -1
-    index = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+    index = pd.IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
     result = index.get_indexer([0.5, np.nan, 2.5])
     expected = np.array([0, -1, 1], dtype="intp")
     tm.assert_numpy_array_equal(result, expected)
@@ -557,7 +559,7 @@ def test_get_indexer_with_nans_in_target(closed):
 
 def test_get_indexer_non_monotonic_with_scalars():
     # GH#47614 - non-monotonic falls back to IntervalTree
-    index = IntervalIndex.from_tuples([(2, 3), (0, 1)])
+    index = pd.IntervalIndex.from_tuples([(2, 3), (0, 1)])
     result = index.get_indexer([0.5, 2.5, 1.5])
     expected = np.array([1, 0, -1], dtype="intp")
     tm.assert_numpy_array_equal(result, expected)
@@ -565,11 +567,11 @@ def test_get_indexer_non_monotonic_with_scalars():
 
 def test_get_indexer_scalar_monotonic_datetime():
     # GH#47614 - datetime IntervalIndex with scalar targets
-    breaks = date_range("2018-01-01", periods=4, unit="ns")
-    index = IntervalIndex.from_breaks(breaks)
+    breaks = pd.date_range("2018-01-01", periods=4, unit="ns")
+    index = pd.IntervalIndex.from_breaks(breaks)
     # 2018-01-01T12:00 -> interval 0, 2018-01-05 -> past end,
     # 2018-01-02T12:00 -> interval 1
-    target = DatetimeIndex(
+    target = pd.DatetimeIndex(
         ["2018-01-01T12:00", "2018-01-05", "2018-01-02T12:00"], dtype="M8[ns]"
     )
     result = index.get_indexer(target)
@@ -579,9 +581,9 @@ def test_get_indexer_scalar_monotonic_datetime():
 
 def test_get_indexer_scalar_monotonic_timedelta():
     # GH#47614 - timedelta IntervalIndex with scalar targets
-    breaks = timedelta_range("0 days", periods=4)
-    index = IntervalIndex.from_breaks(breaks)
-    target = Index([Timedelta("0.5 days"), Timedelta("3.5 days")])
+    breaks = pd.timedelta_range("0 days", periods=4)
+    index = pd.IntervalIndex.from_breaks(breaks)
+    target = pd.Index([pd.Timedelta("0.5 days"), pd.Timedelta("3.5 days")])
     result = index.get_indexer(target)
     expected = np.array([0, -1], dtype="intp")
     tm.assert_numpy_array_equal(result, expected)
@@ -590,34 +592,52 @@ def test_get_indexer_scalar_monotonic_timedelta():
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
         # increasing monotonically
-        index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
+        index = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 1)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 1)
+        assert index.slice_locs(start=pd.Interval(0, 2), end=pd.Interval(2, 4)) == (
+            0,
+            3,
+        )
+        assert index.slice_locs(start=pd.Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(end=pd.Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(end=pd.Interval(0, 2)) == (0, 1)
+        assert index.slice_locs(start=pd.Interval(2, 4), end=pd.Interval(0, 2)) == (
+            2,
+            1,
+        )
 
         # decreasing monotonically
-        index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
+        index = pd.IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (2, 1)
-        assert index.slice_locs(start=Interval(0, 2)) == (2, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 1)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(start=pd.Interval(0, 2), end=pd.Interval(2, 4)) == (
+            2,
+            1,
+        )
+        assert index.slice_locs(start=pd.Interval(0, 2)) == (2, 3)
+        assert index.slice_locs(end=pd.Interval(2, 4)) == (0, 1)
+        assert index.slice_locs(end=pd.Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(start=pd.Interval(2, 4), end=pd.Interval(0, 2)) == (
+            0,
+            3,
+        )
 
         # sorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
+        index = pd.IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 3)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
+        assert index.slice_locs(start=pd.Interval(0, 2), end=pd.Interval(2, 4)) == (
+            0,
+            3,
+        )
+        assert index.slice_locs(start=pd.Interval(0, 2)) == (0, 3)
+        assert index.slice_locs(end=pd.Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(end=pd.Interval(0, 2)) == (0, 2)
+        assert index.slice_locs(start=pd.Interval(2, 4), end=pd.Interval(0, 2)) == (
+            2,
+            2,
+        )
 
         # unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
+        index = pd.IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
 
         with pytest.raises(
             KeyError,
@@ -626,7 +646,7 @@ class TestSliceLocs:
                 "Interval(0, 2, closed='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2), end=Interval(2, 4))
+            index.slice_locs(start=pd.Interval(0, 2), end=pd.Interval(2, 4))
 
         with pytest.raises(
             KeyError,
@@ -635,18 +655,9 @@ class TestSliceLocs:
                 "Interval(0, 2, closed='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(0, 2))
+            index.slice_locs(start=pd.Interval(0, 2))
 
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 2)
-
-        with pytest.raises(
-            KeyError,
-            match=re.escape(
-                '"Cannot get right slice bound for non-unique label: '
-                "Interval(0, 2, closed='right')\""
-            ),
-        ):
-            index.slice_locs(end=Interval(0, 2))
+        assert index.slice_locs(end=pd.Interval(2, 4)) == (0, 2)
 
         with pytest.raises(
             KeyError,
@@ -655,20 +666,35 @@ class TestSliceLocs:
                 "Interval(0, 2, closed='right')\""
             ),
         ):
-            index.slice_locs(start=Interval(2, 4), end=Interval(0, 2))
+            index.slice_locs(end=pd.Interval(0, 2))
+
+        with pytest.raises(
+            KeyError,
+            match=re.escape(
+                '"Cannot get right slice bound for non-unique label: '
+                "Interval(0, 2, closed='right')\""
+            ),
+        ):
+            index.slice_locs(start=pd.Interval(2, 4), end=pd.Interval(0, 2))
 
         # another unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
+        index = pd.IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
 
-        assert index.slice_locs(start=Interval(0, 2), end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(start=Interval(0, 2)) == (0, 4)
-        assert index.slice_locs(end=Interval(2, 4)) == (0, 3)
-        assert index.slice_locs(end=Interval(0, 2)) == (0, 2)
-        assert index.slice_locs(start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
+        assert index.slice_locs(start=pd.Interval(0, 2), end=pd.Interval(2, 4)) == (
+            0,
+            3,
+        )
+        assert index.slice_locs(start=pd.Interval(0, 2)) == (0, 4)
+        assert index.slice_locs(end=pd.Interval(2, 4)) == (0, 3)
+        assert index.slice_locs(end=pd.Interval(0, 2)) == (0, 2)
+        assert index.slice_locs(start=pd.Interval(2, 4), end=pd.Interval(0, 2)) == (
+            2,
+            2,
+        )
 
     def test_slice_locs_with_ints_and_floats_succeeds(self):
         # increasing non-overlapping
-        index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
+        index = pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
 
         assert index.slice_locs(0, 1) == (0, 1)
         assert index.slice_locs(0, 2) == (0, 2)
@@ -678,7 +704,7 @@ class TestSliceLocs:
         assert index.slice_locs(0, 4) == (0, 3)
 
         # decreasing non-overlapping
-        index = IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
+        index = pd.IntervalIndex.from_tuples([(3, 4), (1, 2), (0, 1)])
         assert index.slice_locs(0, 1) == (3, 3)
         assert index.slice_locs(0, 2) == (3, 2)
         assert index.slice_locs(0, 3) == (3, 1)
@@ -699,7 +725,7 @@ class TestSliceLocs:
     )
     def test_slice_locs_with_ints_and_floats_errors(self, tuples, query):
         start, stop = query
-        index = IntervalIndex.from_tuples(tuples)
+        index = pd.IntervalIndex.from_tuples(tuples)
         with pytest.raises(
             KeyError,
             match=(
@@ -714,25 +740,25 @@ class TestPutmask:
     @pytest.mark.parametrize("tz", ["US/Pacific", None])
     def test_putmask_dt64(self, tz):
         # GH#37968
-        dti = date_range("2016-01-01", periods=9, tz=tz)
-        idx = IntervalIndex.from_breaks(dti)
+        dti = pd.date_range("2016-01-01", periods=9, tz=tz)
+        idx = pd.IntervalIndex.from_breaks(dti)
         mask = np.zeros(idx.shape, dtype=bool)
         mask[0:3] = True
 
         result = idx.putmask(mask, idx[-1])
-        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
+        expected = pd.IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
         tm.assert_index_equal(result, expected)
 
     def test_putmask_td64(self):
         # GH#37968
-        dti = date_range("2016-01-01", periods=9, unit="ns")
+        dti = pd.date_range("2016-01-01", periods=9, unit="ns")
         tdi = dti - dti[0]
-        idx = IntervalIndex.from_breaks(tdi)
+        idx = pd.IntervalIndex.from_breaks(tdi)
         mask = np.zeros(idx.shape, dtype=bool)
         mask[0:3] = True
 
         result = idx.putmask(mask, idx[-1])
-        expected = IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
+        expected = pd.IntervalIndex([idx[-1]] * 3 + list(idx[3:]))
         tm.assert_index_equal(result, expected)
 
 
@@ -740,17 +766,17 @@ class TestContains:
     # .__contains__, not .contains
 
     def test_contains_dunder(self):
-        index = IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
+        index = pd.IntervalIndex.from_arrays([0, 1], [1, 2], closed="right")
 
         # __contains__ requires perfect matches to intervals.
         assert 0 not in index
         assert 1 not in index
         assert 2 not in index
 
-        assert Interval(0, 1, closed="right") in index
-        assert Interval(0, 2, closed="right") not in index
-        assert Interval(0, 0.5, closed="right") not in index
-        assert Interval(3, 5, closed="right") not in index
-        assert Interval(-1, 0, closed="left") not in index
-        assert Interval(0, 1, closed="left") not in index
-        assert Interval(0, 1, closed="both") not in index
+        assert pd.Interval(0, 1, closed="right") in index
+        assert pd.Interval(0, 2, closed="right") not in index
+        assert pd.Interval(0, 0.5, closed="right") not in index
+        assert pd.Interval(3, 5, closed="right") not in index
+        assert pd.Interval(-1, 0, closed="left") not in index
+        assert pd.Interval(0, 1, closed="left") not in index
+        assert pd.Interval(0, 1, closed="both") not in index

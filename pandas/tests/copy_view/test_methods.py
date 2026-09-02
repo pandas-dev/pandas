@@ -4,23 +4,13 @@ import pytest
 from pandas.compat import HAS_PYARROW
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 from pandas.util.version import Version
 
 
 def test_copy():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy()
 
     # the deep copy by defaults takes a shallow copy of the Index
@@ -43,7 +33,7 @@ def test_copy():
 
 
 def test_copy_shallow():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy(deep=False)
 
     # the shallow copy also makes a shallow copy of the index
@@ -110,15 +100,17 @@ def test_copy_shallow():
 def test_methods_copy_keyword(request, method, copy):
     index = None
     if "to_timestamp" in request.node.callspec.id:
-        index = period_range("2012-01-01", freq="D", periods=3)
+        index = pd.period_range("2012-01-01", freq="D", periods=3)
     elif "to_period" in request.node.callspec.id:
-        index = date_range("2012-01-01", freq="D", periods=3)
+        index = pd.date_range("2012-01-01", freq="D", periods=3)
     elif "tz_localize" in request.node.callspec.id:
-        index = date_range("2012-01-01", freq="D", periods=3)
+        index = pd.date_range("2012-01-01", freq="D", periods=3)
     elif "tz_convert" in request.node.callspec.id:
-        index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
+        index = pd.date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
 
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index
+    )
     df2 = method(df, copy=copy)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
@@ -167,17 +159,17 @@ def test_methods_copy_keyword(request, method, copy):
 def test_methods_series_copy_keyword(request, method, copy):
     index = None
     if "to_timestamp" in request.node.callspec.id:
-        index = period_range("2012-01-01", freq="D", periods=3)
+        index = pd.period_range("2012-01-01", freq="D", periods=3)
     elif "to_period" in request.node.callspec.id:
-        index = date_range("2012-01-01", freq="D", periods=3)
+        index = pd.date_range("2012-01-01", freq="D", periods=3)
     elif "tz_localize" in request.node.callspec.id:
-        index = date_range("2012-01-01", freq="D", periods=3)
+        index = pd.date_range("2012-01-01", freq="D", periods=3)
     elif "tz_convert" in request.node.callspec.id:
-        index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
+        index = pd.date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
     elif "swaplevel" in request.node.callspec.id:
-        index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
+        index = pd.MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
 
-    ser = Series([1, 2, 3], index=index)
+    ser = pd.Series([1, 2, 3], index=index)
     ser2 = method(ser, copy=copy)
     assert np.shares_memory(get_array(ser2), get_array(ser))
 
@@ -189,7 +181,7 @@ def test_methods_series_copy_keyword(request, method, copy):
 def test_reset_index():
     # Case: resetting the index (i.e. adding a new column) + mutating the
     # resulting dataframe
-    df = DataFrame(
+    df = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=[10, 11, 12]
     )
     df_orig = df.copy()
@@ -206,9 +198,9 @@ def test_reset_index():
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.parametrize("index", [pd.RangeIndex(0, 2), Index([1, 2])])
+@pytest.mark.parametrize("index", [pd.RangeIndex(0, 2), pd.Index([1, 2])])
 def test_reset_index_series_drop(index):
-    ser = Series([1, 2], index=index)
+    ser = pd.Series([1, 2], index=index)
     ser_orig = ser.copy()
     ser2 = ser.reset_index(drop=True)
     assert np.shares_memory(get_array(ser), get_array(ser2))
@@ -219,7 +211,7 @@ def test_reset_index_series_drop(index):
 
 
 def test_groupby_column_index_in_references():
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": ["a", "b", "c", "d"], "B": [1, 2, 3, 4], "C": ["a", "a", "b", "b"]}
     )
     df = df.set_index("A")
@@ -233,19 +225,19 @@ def test_groupby_modify_series():
     # https://github.com/pandas-dev/pandas/issues/63219
     # Modifying a Series after using it to groupby should not impact
     # the groupby operation.
-    ser = Series([1, 2, 1])
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    ser = pd.Series([1, 2, 1])
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     gb = df.groupby(ser)
     ser.iloc[0] = 100
     result = gb.sum()
-    expected = DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
+    expected = pd.DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
     tm.assert_frame_equal(result, expected)
 
 
 def test_rename_columns():
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.rename(columns=str.upper)
 
@@ -253,7 +245,7 @@ def test_rename_columns():
     df2.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df2, "A"), get_array(df, "a"))
     assert np.shares_memory(get_array(df2, "C"), get_array(df, "c"))
-    expected = DataFrame({"A": [0, 2, 3], "B": [4, 5, 6], "C": [0.1, 0.2, 0.3]})
+    expected = pd.DataFrame({"A": [0, 2, 3], "B": [4, 5, 6], "C": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(df2, expected)
     tm.assert_frame_equal(df, df_orig)
 
@@ -261,7 +253,7 @@ def test_rename_columns():
 def test_rename_columns_modify_parent():
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the original (parent) dataframe
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df2 = df.rename(columns=str.upper)
     df2_orig = df2.copy()
 
@@ -269,13 +261,13 @@ def test_rename_columns_modify_parent():
     df.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df2, "A"), get_array(df, "a"))
     assert np.shares_memory(get_array(df2, "C"), get_array(df, "c"))
-    expected = DataFrame({"a": [0, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    expected = pd.DataFrame({"a": [0, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     tm.assert_frame_equal(df, expected)
     tm.assert_frame_equal(df2, df2_orig)
 
 
 def test_pipe():
-    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1.5})
     df_orig = df.copy()
 
     def testfunc(df):
@@ -293,7 +285,7 @@ def test_pipe():
 
 
 def test_pipe_modify_df():
-    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1.5})
     df_orig = df.copy()
 
     def testfunc(df):
@@ -312,7 +304,7 @@ def test_pipe_modify_df():
 def test_reindex_columns():
     # Case: reindexing the column returns a new dataframe
     # + afterwards modifying the result
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.reindex(columns=["a", "c"])
 
@@ -338,7 +330,7 @@ def test_reindex_columns():
 def test_reindex_rows(index):
     # Case: reindexing the rows with an index that matches the current index
     # can use a shallow copy
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.reindex(index=index(df.index))
 
@@ -352,7 +344,7 @@ def test_reindex_rows(index):
 
 
 def test_drop_on_column():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.drop(columns="a")
     df2._mgr._verify_integrity()
@@ -368,7 +360,7 @@ def test_drop_on_column():
 def test_select_dtypes():
     # Case: selecting columns using `select_dtypes()` returns a new dataframe
     # + afterwards modifying the result
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.select_dtypes("int64")
     df2._mgr._verify_integrity()
@@ -386,7 +378,7 @@ def test_select_dtypes():
 def test_filter(filter_kwargs):
     # Case: selecting columns using `filter()` returns a new dataframe
     # + afterwards modifying the result
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.filter(**filter_kwargs)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -398,9 +390,9 @@ def test_filter(filter_kwargs):
 
 
 def test_shift_no_op():
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2], [3, 4], [5, 6]],
-        index=date_range("2020-01-01", "2020-01-03"),
+        index=pd.date_range("2020-01-01", "2020-01-03"),
         columns=["a", "b"],
     )
     df_orig = df.copy()
@@ -416,9 +408,9 @@ def test_shift_no_op():
 
 
 def test_shift_index():
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2], [3, 4], [5, 6]],
-        index=date_range("2020-01-01", "2020-01-03"),
+        index=pd.date_range("2020-01-01", "2020-01-03"),
         columns=["a", "b"],
     )
     df2 = df.shift(periods=1, axis=0)
@@ -429,13 +421,13 @@ def test_shift_index():
 
 
 def test_shift_rows_freq():
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2], [3, 4], [5, 6]],
-        index=date_range("2020-01-01", "2020-01-03"),
+        index=pd.date_range("2020-01-01", "2020-01-03"),
         columns=["a", "b"],
     )
     df_orig = df.copy()
-    df_orig.index = date_range("2020-01-02", "2020-01-04")
+    df_orig.index = pd.date_range("2020-01-02", "2020-01-04")
     df2 = df.shift(periods=1, freq="1D")
 
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -445,8 +437,8 @@ def test_shift_rows_freq():
 
 
 def test_shift_columns():
-    df = DataFrame(
-        [[1, 2], [3, 4], [5, 6]], columns=date_range("2020-01-01", "2020-01-02")
+    df = pd.DataFrame(
+        [[1, 2], [3, 4], [5, 6]], columns=pd.date_range("2020-01-01", "2020-01-02")
     )
     df2 = df.shift(periods=1, axis=1)
 
@@ -455,15 +447,15 @@ def test_shift_columns():
     assert not np.shares_memory(
         get_array(df2, "2020-01-02"), get_array(df, "2020-01-01")
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[np.nan, 1], [np.nan, 3], [np.nan, 5]],
-        columns=date_range("2020-01-01", "2020-01-02"),
+        columns=pd.date_range("2020-01-01", "2020-01-02"),
     )
     tm.assert_frame_equal(df2, expected)
 
 
 def test_pop():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     view_original = df[:]
     result = df.pop("a")
@@ -487,7 +479,7 @@ def test_pop():
     ],
 )
 def test_align_frame(func):
-    df = DataFrame({"a": [1, 2, 3], "b": "a"})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": "a"})
     df_orig = df.copy()
     df_changed = df[["b", "a"]].copy()
     df2, _ = func(df, df_changed)
@@ -499,7 +491,7 @@ def test_align_frame(func):
 
 
 def test_align_series():
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     ser_orig = ser.copy()
     ser_other = ser.copy()
     ser2, ser_other_result = ser.align(ser_other)
@@ -515,7 +507,7 @@ def test_align_series():
 
 
 def test_align_copy_false():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
     df2, df3 = df.align(df)
 
@@ -530,8 +522,8 @@ def test_align_copy_false():
 
 
 def test_align_with_series_copy_false():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    ser = Series([1, 2, 3], name="x")
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    ser = pd.Series([1, 2, 3], name="x")
     ser_orig = ser.copy()
     df_orig = df.copy()
     df2, ser2 = df.align(ser, axis=0)
@@ -549,7 +541,7 @@ def test_align_with_series_copy_false():
 
 def test_to_frame():
     # Case: converting a Series to a DataFrame with to_frame
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
 
     df = ser[:].to_frame()
@@ -584,7 +576,7 @@ def test_to_frame():
     ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
 def test_chained_methods(method, idx):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     # modify df2 -> don't modify df
@@ -598,9 +590,13 @@ def test_chained_methods(method, idx):
     tm.assert_frame_equal(df2.iloc[:, idx:], df_orig)
 
 
-@pytest.mark.parametrize("obj", [Series([1, 2], name="a"), DataFrame({"a": [1, 2]})])
+@pytest.mark.parametrize(
+    "obj", [pd.Series([1, 2], name="a"), pd.DataFrame({"a": [1, 2]})]
+)
 def test_to_timestamp(obj):
-    obj.index = Index([Period("2012-1-1", freq="D"), Period("2012-1-2", freq="D")])
+    obj.index = pd.Index(
+        [pd.Period("2012-1-1", freq="D"), pd.Period("2012-1-2", freq="D")]
+    )
 
     obj_orig = obj.copy()
     obj2 = obj.to_timestamp()
@@ -613,9 +609,11 @@ def test_to_timestamp(obj):
     tm.assert_equal(obj, obj_orig)
 
 
-@pytest.mark.parametrize("obj", [Series([1, 2], name="a"), DataFrame({"a": [1, 2]})])
+@pytest.mark.parametrize(
+    "obj", [pd.Series([1, 2], name="a"), pd.DataFrame({"a": [1, 2]})]
+)
 def test_to_period(obj):
-    obj.index = Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")])
+    obj.index = pd.Index([pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")])
 
     obj_orig = obj.copy()
     obj2 = obj.to_period(freq="Y")
@@ -630,7 +628,7 @@ def test_to_period(obj):
 
 def test_set_index():
     # GH 49473
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.set_index("a")
 
@@ -643,7 +641,7 @@ def test_set_index():
 
 
 def test_set_index_mutating_parent_does_not_mutate_index():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
     result = df.set_index("a")
     expected = result.copy()
 
@@ -653,7 +651,7 @@ def test_set_index_mutating_parent_does_not_mutate_index():
 
 def test_add_prefix():
     # GH 49473
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.add_prefix("CoW_")
 
@@ -663,7 +661,7 @@ def test_add_prefix():
     assert not np.shares_memory(get_array(df2, "CoW_a"), get_array(df, "a"))
 
     assert np.shares_memory(get_array(df2, "CoW_c"), get_array(df, "c"))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"CoW_a": [0, 2, 3], "CoW_b": [4, 5, 6], "CoW_c": [0.1, 0.2, 0.3]}
     )
     tm.assert_frame_equal(df2, expected)
@@ -672,14 +670,14 @@ def test_add_prefix():
 
 def test_add_suffix():
     # GH 49473
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.add_suffix("_CoW")
     assert np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
     df2.iloc[0, 0] = 0
     assert not np.shares_memory(get_array(df2, "a_CoW"), get_array(df, "a"))
     assert np.shares_memory(get_array(df2, "c_CoW"), get_array(df, "c"))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a_CoW": [0, 2, 3], "b_CoW": [4, 5, 6], "c_CoW": [0.1, 0.2, 0.3]}
     )
     tm.assert_frame_equal(df2, expected)
@@ -688,7 +686,7 @@ def test_add_suffix():
 
 @pytest.mark.parametrize("axis, val", [(0, 5.5), (1, np.nan)])
 def test_dropna(axis, val):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, val, 6], "c": "d"})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, val, 6], "c": "d"})
     df_orig = df.copy()
     df2 = df.dropna(axis=axis)
 
@@ -701,7 +699,7 @@ def test_dropna(axis, val):
 
 @pytest.mark.parametrize("val", [5, 5.5])
 def test_dropna_series(val):
-    ser = Series([1, val, 4])
+    ser = pd.Series([1, val, 4])
     ser_orig = ser.copy()
     ser2 = ser.dropna()
     assert np.shares_memory(ser2.values, ser.values)
@@ -721,7 +719,7 @@ def test_dropna_series(val):
     ],
 )
 def test_head_tail(method):
-    df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = method(df)
     df2._mgr._verify_integrity()
@@ -739,8 +737,8 @@ def test_head_tail(method):
 
 
 def test_infer_objects(using_infer_string):
-    df = DataFrame(
-        {"a": [1, 2], "b": Series(["x", "y"], dtype=object), "c": 1, "d": "x"}
+    df = pd.DataFrame(
+        {"a": [1, 2], "b": pd.Series(["x", "y"], dtype=object), "c": 1, "d": "x"}
     )
     df_orig = df.copy()
     df2 = df.infer_objects()
@@ -759,15 +757,15 @@ def test_infer_objects(using_infer_string):
 
 
 def test_infer_objects_no_reference(using_infer_string):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 2],
-            "b": Series(["x", "y"], dtype=object),
+            "b": pd.Series(["x", "y"], dtype=object),
             "c": 1,
-            "d": Series(
-                [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
+            "d": pd.Series(
+                [pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")], dtype="object"
             ),
-            "e": Series(["z", "w"], dtype=object),
+            "e": pd.Series(["z", "w"], dtype=object),
         }
     )
     df = df.infer_objects()
@@ -778,7 +776,7 @@ def test_infer_objects_no_reference(using_infer_string):
 
     df.iloc[0, 0] = 0
     df.iloc[0, 1] = "d"
-    df.iloc[0, 3] = Timestamp("2018-12-31")
+    df.iloc[0, 3] = pd.Timestamp("2018-12-31")
     assert np.shares_memory(arr_a, get_array(df, "a"))
     if using_infer_string and HAS_PYARROW:
         # note that the underlying memory of arr_b has been copied anyway
@@ -792,13 +790,13 @@ def test_infer_objects_no_reference(using_infer_string):
 
 
 def test_infer_objects_reference():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 2],
-            "b": Series(["x", "y"], dtype=object),
+            "b": pd.Series(["x", "y"], dtype=object),
             "c": 1,
-            "d": Series(
-                [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
+            "d": pd.Series(
+                [pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")], dtype="object"
             ),
         }
     )
@@ -811,7 +809,7 @@ def test_infer_objects_reference():
 
     df.iloc[0, 0] = 0
     df.iloc[0, 1] = "d"
-    df.iloc[0, 3] = Timestamp("2018-12-31")
+    df.iloc[0, 3] = pd.Timestamp("2018-12-31")
     assert not np.shares_memory(arr_a, get_array(df, "a"))
     assert not np.shares_memory(arr_b, get_array(df, "b"))
     assert np.shares_memory(arr_d, get_array(df, "d"))
@@ -825,7 +823,7 @@ def test_infer_objects_reference():
     ],
 )
 def test_truncate(kwargs):
-    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
     df_orig = df.copy()
     df2 = df.truncate(**kwargs)
     df2._mgr._verify_integrity()
@@ -839,7 +837,7 @@ def test_truncate(kwargs):
 
 @pytest.mark.parametrize("method", ["assign", "drop_duplicates"])
 def test_assign_drop_duplicates(method):
-    df = DataFrame({"a": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
     df2 = getattr(df, method)()
     df2._mgr._verify_integrity()
@@ -851,7 +849,7 @@ def test_assign_drop_duplicates(method):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.parametrize("obj", [Series([1, 2]), DataFrame({"a": [1, 2]})])
+@pytest.mark.parametrize("obj", [pd.Series([1, 2]), pd.DataFrame({"a": [1, 2]})])
 def test_take(obj):
     # Check that no copy is made when we take all rows in original order
     obj_orig = obj.copy()
@@ -863,9 +861,9 @@ def test_take(obj):
     tm.assert_equal(obj, obj_orig)
 
 
-@pytest.mark.parametrize("obj", [Series([1, 2]), DataFrame({"a": [1, 2]})])
+@pytest.mark.parametrize("obj", [pd.Series([1, 2]), pd.DataFrame({"a": [1, 2]})])
 def test_between_time(obj):
-    obj.index = date_range("2018-04-09", periods=2, freq="1D20min")
+    obj.index = pd.date_range("2018-04-09", periods=2, freq="1D20min")
     obj_orig = obj.copy()
     obj2 = obj.between_time("0:00", "1:00")
     assert np.shares_memory(obj2.values, obj.values)
@@ -876,8 +874,8 @@ def test_between_time(obj):
 
 
 def test_reindex_like():
-    df = DataFrame({"a": [1, 2], "b": "a"})
-    other = DataFrame({"b": "a", "a": [1, 2]})
+    df = pd.DataFrame({"a": [1, 2], "b": "a"})
+    other = pd.DataFrame({"b": "a", "a": [1, 2]})
 
     df_orig = df.copy()
     df2 = df.reindex_like(other)
@@ -890,7 +888,7 @@ def test_reindex_like():
 
 def test_sort_index():
     # GH 49473
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
     ser2 = ser.sort_index()
     assert np.shares_memory(ser.values, ser2.values)
@@ -903,7 +901,10 @@ def test_sort_index():
 
 @pytest.mark.parametrize(
     "obj, kwargs",
-    [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
+    [
+        (pd.Series([1, 2, 3], name="a"), {}),
+        (pd.DataFrame({"a": [1, 2, 3]}), {"by": "a"}),
+    ],
 )
 def test_sort_values(obj, kwargs):
     obj_orig = obj.copy()
@@ -921,7 +922,10 @@ def test_sort_values(obj, kwargs):
 )
 @pytest.mark.parametrize(
     "obj, kwargs",
-    [(Series([1, 2, 3], name="a"), {}), (DataFrame({"a": [1, 2, 3]}), {"by": "a"})],
+    [
+        (pd.Series([1, 2, 3], name="a"), {}),
+        (pd.DataFrame({"a": [1, 2, 3]}), {"by": "a"}),
+    ],
 )
 def test_sort_values_inplace(obj, kwargs):
     obj_orig = obj.copy()
@@ -938,7 +942,7 @@ def test_sort_values_inplace(obj, kwargs):
 
 @pytest.mark.parametrize("decimals", [-1, 0, 1])
 def test_round(decimals):
-    df = DataFrame({"a": [1, 2], "b": "c"})
+    df = pd.DataFrame({"a": [1, 2], "b": "c"})
     df_orig = df.copy()
     df2 = df.round(decimals=decimals)
 
@@ -961,10 +965,10 @@ def test_round(decimals):
 
 
 def test_reorder_levels():
-    index = MultiIndex.from_tuples(
+    index = pd.MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
     )
-    df = DataFrame({"a": [1, 2, 3, 4]}, index=index)
+    df = pd.DataFrame({"a": [1, 2, 3, 4]}, index=index)
     df_orig = df.copy()
     df2 = df.reorder_levels(order=["two", "one"])
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -975,10 +979,10 @@ def test_reorder_levels():
 
 
 def test_series_reorder_levels():
-    index = MultiIndex.from_tuples(
+    index = pd.MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
     )
-    ser = Series([1, 2, 3, 4], index=index)
+    ser = pd.Series([1, 2, 3, 4], index=index)
     ser_orig = ser.copy()
     ser2 = ser.reorder_levels(order=["two", "one"])
     assert np.shares_memory(ser2.values, ser.values)
@@ -988,9 +992,9 @@ def test_series_reorder_levels():
     tm.assert_series_equal(ser, ser_orig)
 
 
-@pytest.mark.parametrize("obj", [Series([1, 2, 3]), DataFrame({"a": [1, 2, 3]})])
+@pytest.mark.parametrize("obj", [pd.Series([1, 2, 3]), pd.DataFrame({"a": [1, 2, 3]})])
 def test_swaplevel(obj):
-    index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
+    index = pd.MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
     obj.index = index
     obj_orig = obj.copy()
     obj2 = obj.swaplevel()
@@ -1003,7 +1007,7 @@ def test_swaplevel(obj):
 
 def test_frame_set_axis():
     # GH 49473
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.set_axis(["a", "b", "c"], axis="index")
 
@@ -1017,7 +1021,7 @@ def test_frame_set_axis():
 
 def test_series_set_axis():
     # GH 49473
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
     ser2 = ser.set_axis(["a", "b", "c"], axis="index")
     assert np.shares_memory(ser, ser2)
@@ -1029,7 +1033,7 @@ def test_series_set_axis():
 
 
 def test_set_flags():
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
     ser2 = ser.set_flags(allows_duplicate_labels=False)
 
@@ -1043,7 +1047,7 @@ def test_set_flags():
 
 @pytest.mark.parametrize("kwargs", [{"mapper": "test"}, {"index": "test"}])
 def test_rename_axis(kwargs):
-    df = DataFrame({"a": [1, 2, 3, 4]}, index=Index([1, 2, 3, 4], name="a"))
+    df = pd.DataFrame({"a": [1, 2, 3, 4]}, index=pd.Index([1, 2, 3, 4], name="a"))
     df_orig = df.copy()
     df2 = df.rename_axis(**kwargs)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -1058,8 +1062,9 @@ def test_rename_axis(kwargs):
 )
 def test_tz_convert_localize(func, tz):
     # GH 49473
-    ser = Series(
-        [1, 2], index=date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=tz)
+    ser = pd.Series(
+        [1, 2],
+        index=pd.date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=tz),
     )
     ser_orig = ser.copy()
     ser2 = getattr(ser, func)("US/Central")
@@ -1073,8 +1078,8 @@ def test_tz_convert_localize(func, tz):
 
 def test_droplevel():
     # GH 49473
-    index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}, index=index)
+    index = pd.MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}, index=index)
     df_orig = df.copy()
     df2 = df.droplevel(0)
 
@@ -1091,7 +1096,7 @@ def test_droplevel():
 
 
 def test_squeeze():
-    df = DataFrame({"a": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
     series = df.squeeze()
 
@@ -1105,7 +1110,7 @@ def test_squeeze():
 
 
 def test_items():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
 
     # Test this twice, since the second time, the item cache will be
@@ -1123,7 +1128,7 @@ def test_items():
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_putmask(dtype):
-    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
+    df = pd.DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
     view = df[:]
     df_orig = df.copy()
     df[df == df] = 5
@@ -1134,7 +1139,7 @@ def test_putmask(dtype):
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_putmask_no_reference(dtype):
-    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
+    df = pd.DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
     arr_a = get_array(df, "a")
     df[df == df] = 5
     assert np.shares_memory(arr_a, get_array(df, "a"))
@@ -1142,18 +1147,18 @@ def test_putmask_no_reference(dtype):
 
 @pytest.mark.parametrize("dtype", ["float64", "Float64"])
 def test_putmask_aligns_rhs_no_reference(dtype):
-    df = DataFrame({"a": [1.5, 2], "b": 1.5}, dtype=dtype)
+    df = pd.DataFrame({"a": [1.5, 2], "b": 1.5}, dtype=dtype)
     arr_a = get_array(df, "a")
-    df[df == df] = DataFrame({"a": [5.5, 5]})
+    df[df == df] = pd.DataFrame({"a": [5.5, 5]})
     assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
 @pytest.mark.parametrize("val, exp, raises", [(5.5, True, True), (5, False, False)])
 def test_putmask_dont_copy_some_blocks(val, exp, raises: bool):
-    df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
+    df = pd.DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
-    indexer = DataFrame(
+    indexer = pd.DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
     if raises:
@@ -1179,7 +1184,7 @@ def test_putmask_dont_copy_some_blocks(val, exp, raises: bool):
     ],
 )
 def test_where_mask_noop(dtype, func):
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = pd.Series([1, 2, 3], dtype=dtype)
     ser_orig = ser.copy()
 
     result = func(ser)
@@ -1200,7 +1205,7 @@ def test_where_mask_noop(dtype, func):
     ],
 )
 def test_where_mask(dtype, func):
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = pd.Series([1, 2, 3], dtype=dtype)
     ser_orig = ser.copy()
 
     result = func(ser)
@@ -1219,7 +1224,7 @@ def test_where_mask(dtype, func):
     ],
 )
 def test_where_mask_noop_on_single_column(dtype, val, func):
-    df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
     df_orig = df.copy()
 
     result = func(df, val)
@@ -1233,7 +1238,7 @@ def test_where_mask_noop_on_single_column(dtype, val, func):
 
 @pytest.mark.parametrize("func", ["mask", "where"])
 def test_chained_where_mask(func):
-    df = DataFrame({"a": [1, 4, 2], "b": 1})
+    df = pd.DataFrame({"a": [1, 4, 2], "b": 1})
     df_orig = df.copy()
     with tm.raises_chained_assignment_error():
         getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
@@ -1245,9 +1250,9 @@ def test_chained_where_mask(func):
 
 
 def test_asfreq_noop():
-    df = DataFrame(
+    df = pd.DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
-        index=date_range("1/1/2000", periods=4, freq="min"),
+        index=pd.date_range("1/1/2000", periods=4, freq="min"),
     )
     df_orig = df.copy()
     df2 = df.asfreq(freq="min")
@@ -1261,7 +1266,7 @@ def test_asfreq_noop():
 
 
 def test_iterrows():
-    df = DataFrame({"a": 0, "b": 1}, index=[1, 2, 3])
+    df = pd.DataFrame({"a": 0, "b": 1}, index=[1, 2, 3])
     df_orig = df.copy()
 
     for _, sub in df.iterrows():
@@ -1271,7 +1276,7 @@ def test_iterrows():
 
 def test_interpolate_creates_copy():
     # GH#51126
-    df = DataFrame({"a": [1.5, np.nan, 3]})
+    df = pd.DataFrame({"a": [1.5, np.nan, 3]})
     view = df[:]
     expected = df.copy()
 
@@ -1281,7 +1286,7 @@ def test_interpolate_creates_copy():
 
 
 def test_isetitem():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
     df2 = df.copy(deep=False)  # Trigger a CoW
     df2.isetitem(1, np.array([-1, -2, -3]))  # This is inplace
@@ -1297,8 +1302,8 @@ def test_isetitem():
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
 def test_isetitem_series(dtype):
-    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
-    ser = Series([7, 8, 9])
+    df = pd.DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    ser = pd.Series([7, 8, 9])
     ser_orig = ser.copy()
     df.isetitem(0, ser)
 
@@ -1310,18 +1315,18 @@ def test_isetitem_series(dtype):
     tm.assert_series_equal(ser, ser_orig)
 
     # mutating series doesn't update dataframe
-    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
-    ser = Series([7, 8, 9])
+    df = pd.DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    ser = pd.Series([7, 8, 9])
     df.isetitem(0, ser)
 
     ser.loc[0] = 0
-    expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    expected = pd.DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
     tm.assert_frame_equal(df, expected)
 
 
 def test_isetitem_frame():
-    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
-    rhs = DataFrame({"a": [4, 5, 6], "b": 2})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
+    rhs = pd.DataFrame({"a": [4, 5, 6], "b": 2})
     df.isetitem([0, 1], rhs)
     assert np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
     assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
@@ -1334,7 +1339,7 @@ def test_isetitem_frame():
 
 @pytest.mark.parametrize("key", ["a", ["a"]])
 def test_get(key):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
     result = df.get(key)
@@ -1351,7 +1356,7 @@ def test_get(key):
 )
 def test_xs(axis, key, dtype):
     single_block = dtype == "int64"
-    df = DataFrame(
+    df = pd.DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
     df_orig = df.copy()
@@ -1375,8 +1380,10 @@ def test_xs(axis, key, dtype):
 @pytest.mark.parametrize("key, level", [("l1", 0), (2, 1)])
 def test_xs_multiindex(key, level, axis):
     arr = np.arange(18).reshape(6, 3)
-    index = MultiIndex.from_product([["l1", "l2"], [1, 2, 3]], names=["lev1", "lev2"])
-    df = DataFrame(arr, index=index, columns=list("abc"))
+    index = pd.MultiIndex.from_product(
+        [["l1", "l2"], [1, 2, 3]], names=["lev1", "lev2"]
+    )
+    df = pd.DataFrame(arr, index=index, columns=list("abc"))
     if axis == 1:
         df = df.transpose().copy()
     df_orig = df.copy()
@@ -1395,13 +1402,13 @@ def test_xs_multiindex(key, level, axis):
 
 
 def test_update_frame():
-    df1 = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
-    df2 = DataFrame({"b": [100.0]}, index=[1])
+    df1 = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    df2 = pd.DataFrame({"b": [100.0]}, index=[1])
     df1_orig = df1.copy()
     view = df1[:]
     df1.update(df2)
 
-    expected = DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
+    expected = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 100.0, 6.0]})
     tm.assert_frame_equal(df1, expected)
     # df1 is updated, but its view not
     tm.assert_frame_equal(view, df1_orig)
@@ -1410,22 +1417,22 @@ def test_update_frame():
 
 
 def test_update_series():
-    ser1 = Series([1.0, 2.0, 3.0])
-    ser2 = Series([100.0], index=[1])
+    ser1 = pd.Series([1.0, 2.0, 3.0])
+    ser2 = pd.Series([100.0], index=[1])
     ser1_orig = ser1.copy()
     view = ser1[:]
 
     ser1.update(ser2)
 
-    expected = Series([1.0, 100.0, 3.0])
+    expected = pd.Series([1.0, 100.0, 3.0])
     tm.assert_series_equal(ser1, expected)
     # ser1 is updated, but its view not
     tm.assert_series_equal(view, ser1_orig)
 
 
 def test_update_chained_assignment():
-    df = DataFrame({"a": [1, 2, 3]})
-    ser2 = Series([100.0], index=[1])
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    ser2 = pd.Series([100.0], index=[1])
     df_orig = df.copy()
     with tm.raises_chained_assignment_error():
         df["a"].update(ser2)
@@ -1437,7 +1444,7 @@ def test_update_chained_assignment():
 
 
 def test_inplace_arithmetic_series():
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
     data = get_array(ser)
     ser *= 2
@@ -1451,7 +1458,7 @@ def test_inplace_arithmetic_series():
 
 
 def test_inplace_arithmetic_series_with_reference():
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
     view = ser[:]
     ser *= 2
@@ -1460,7 +1467,7 @@ def test_inplace_arithmetic_series_with_reference():
 
 
 def test_transpose():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
     result = df.transpose()
     assert np.shares_memory(get_array(df, "a"), get_array(result, 0))
@@ -1470,7 +1477,7 @@ def test_transpose():
 
 
 def test_transpose_different_dtypes():
-    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1.5})
     df_orig = df.copy()
     result = df.T
 
@@ -1480,7 +1487,7 @@ def test_transpose_different_dtypes():
 
 
 def test_transpose_ea_single_column():
-    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    df = pd.DataFrame({"a": [1, 2, 3]}, dtype="Int64")
     result = df.T
 
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
@@ -1491,8 +1498,8 @@ def test_unstack_multiblock():
     #  of the source for non-consolidated (multi-block) frames; ensure CoW
     #  still tracks the reference so mutating the result leaves the source
     #  unchanged.
-    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
-    df = DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": ["p", "q", "r", "s"]}, index=idx)
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0], "y": ["p", "q", "r", "s"]}, index=idx)
     df_orig = df.copy()
     result = df.unstack()
 
@@ -1504,8 +1511,8 @@ def test_unstack_multiblock():
 @pytest.mark.parametrize(
     "col",
     [
-        date_range("2000", periods=4, tz="UTC"),
-        period_range("2000-01-01", periods=4, freq="D"),
+        pd.date_range("2000", periods=4, tz="UTC"),
+        pd.period_range("2000-01-01", periods=4, freq="D"),
     ],
 )
 def test_unstack_multiblock_ndarray_backed_ea(col):
@@ -1513,8 +1520,8 @@ def test_unstack_multiblock_ndarray_backed_ea(col):
     #  NDArrayBacked EA columns (tz-aware datetime, period): np.asarray boxes
     #  them to object, so the may_share_memory aliasing gate was always False
     #  and mutating the result silently corrupted the source.
-    idx = MultiIndex.from_product([["a", "b"], [1, 2]])
-    df = DataFrame({"f": [1.0, 2.0, 3.0, 4.0], "t": col}, index=idx)
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2]])
+    df = pd.DataFrame({"f": [1.0, 2.0, 3.0, 4.0], "t": col}, index=idx)
     df_orig = df.copy()
     result = df.unstack()
 
@@ -1525,7 +1532,7 @@ def test_unstack_multiblock_ndarray_backed_ea(col):
 
 
 def test_transform_frame():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
 
     def func(ser):
@@ -1537,7 +1544,7 @@ def test_transform_frame():
 
 
 def test_transform_series():
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
 
     def func(ser):
@@ -1549,16 +1556,16 @@ def test_transform_series():
 
 
 def test_count_read_only_array():
-    df = DataFrame({"a": [1, 2], "b": 3})
+    df = pd.DataFrame({"a": [1, 2], "b": 3})
     result = df.count()
     result.iloc[0] = 100
-    expected = Series([100, 2], index=["a", "b"])
+    expected = pd.Series([100, 2], index=["a", "b"])
     tm.assert_series_equal(result, expected)
 
 
 def test_insert_series():
-    df = DataFrame({"a": [1, 2, 3]})
-    ser = Series([1, 2, 3])
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    ser = pd.Series([1, 2, 3])
     ser_orig = ser.copy()
     df.insert(loc=1, value=ser, column="b")
     assert np.shares_memory(get_array(ser), get_array(df, "b"))
@@ -1569,7 +1576,7 @@ def test_insert_series():
 
 
 def test_eval():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
 
     result = df.eval("c = a+b")
@@ -1581,7 +1588,7 @@ def test_eval():
 
 @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
 def test_eval_inplace():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
     df_view = df[:]
 
@@ -1595,7 +1602,7 @@ def test_eval_inplace():
 def test_apply_modify_row():
     # Case: applying a function on each row as a Series object, where the
     # function mutates the row object (which needs to trigger CoW if row is a view)
-    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
     df_orig = df.copy()
 
     def transform(row):
@@ -1607,7 +1614,7 @@ def test_apply_modify_row():
     tm.assert_frame_equal(df, df_orig)
 
     # row Series is a copy
-    df = DataFrame({"A": [1, 2], "B": ["b", "c"]})
+    df = pd.DataFrame({"A": [1, 2], "B": ["b", "c"]})
     df_orig = df.copy()
 
     with tm.assert_produces_warning(None):
@@ -1617,7 +1624,7 @@ def test_apply_modify_row():
 
 
 def test_reduce():
-    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1.5})
 
     result = df.sum()
     assert result.index is not df.columns
@@ -1632,13 +1639,13 @@ def test_reduce():
 
 
 def test_diff():
-    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1.5})
 
     result = df.diff()
     assert result.index is not df.index
     assert result.columns is not df.columns
 
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     result = ser.diff()
     assert result.index is not ser.index
 
@@ -1648,8 +1655,8 @@ def test_column_series_index_setattr_does_not_mutate_parent():
     # must not change the DataFrame -- the symptom was that *re-accessing* the
     # column (df["a"]) returned the mutated index, even though df.index itself
     # looked unchanged
-    idx = date_range("2019-03-30", periods=5, freq="h", tz="UTC")
-    df = DataFrame({"a": range(5), "b": range(10, 15)}, index=idx)
+    idx = pd.date_range("2019-03-30", periods=5, freq="h", tz="UTC")
+    df = pd.DataFrame({"a": range(5), "b": range(10, 15)}, index=idx)
     original = df.index.copy()
     ser = df["a"]
     ser.index = ser.index.tz_convert("Europe/Prague")
