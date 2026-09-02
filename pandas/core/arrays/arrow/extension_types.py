@@ -85,7 +85,11 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     @classmethod
     def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowIntervalType:
         metadata = json.loads(serialized.decode())
-        subtype = pyarrow.type_for_alias(metadata["subtype"])
+        # Take the subtype from the storage type rather than from the serialized
+        # metadata: `pyarrow.type_for_alias` has no alias for parametrized types such
+        # as `timestamp[us, tz=Europe/Brussels]`, so round-tripping those through the
+        # string would fail. The storage type already carries the full type. (GH#67753)
+        subtype = storage_type.field("left").type
         closed = metadata["closed"]
         return ArrowIntervalType(subtype, closed)
 
