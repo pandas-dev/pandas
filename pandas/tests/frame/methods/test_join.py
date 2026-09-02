@@ -8,20 +8,13 @@ import pytest
 from pandas.errors import MergeError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 
 
 @pytest.fixture
 def left_no_dup():
-    return DataFrame(
+    return pd.DataFrame(
         {"a": ["a", "b", "c", "d"], "b": ["cat", "dog", "weasel", "horse"]},
         index=range(4),
     )
@@ -29,7 +22,7 @@ def left_no_dup():
 
 @pytest.fixture
 def right_no_dup():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "a": ["a", "b", "c", "d", "e"],
             "c": ["meow", "bark", "um... weasel noise?", "nay", "chirp"],
@@ -41,46 +34,50 @@ def right_no_dup():
 @pytest.fixture
 def left_w_dups(left_no_dup):
     return concat(
-        [left_no_dup, DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
+        [left_no_dup, pd.DataFrame({"a": ["a"], "b": ["cow"]}, index=[3])], sort=True
     )
 
 
 @pytest.fixture
 def right_w_dups(right_no_dup):
     return concat(
-        [right_no_dup, DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
+        [right_no_dup, pd.DataFrame({"a": ["e"], "c": ["moo"]}, index=[3])]
     ).set_index("a")
 
 
 @pytest.mark.parametrize(
     "how, sort, expected",
     [
-        ("inner", False, DataFrame({"a": [20, 10], "b": [200, 100]}, index=[2, 1])),
-        ("inner", True, DataFrame({"a": [10, 20], "b": [100, 200]}, index=[1, 2])),
+        ("inner", False, pd.DataFrame({"a": [20, 10], "b": [200, 100]}, index=[2, 1])),
+        ("inner", True, pd.DataFrame({"a": [10, 20], "b": [100, 200]}, index=[1, 2])),
         (
             "left",
             False,
-            DataFrame({"a": [20, 10, 0], "b": [200, 100, np.nan]}, index=[2, 1, 0]),
+            pd.DataFrame({"a": [20, 10, 0], "b": [200, 100, np.nan]}, index=[2, 1, 0]),
         ),
         (
             "left",
             True,
-            DataFrame({"a": [0, 10, 20], "b": [np.nan, 100, 200]}, index=[0, 1, 2]),
+            pd.DataFrame({"a": [0, 10, 20], "b": [np.nan, 100, 200]}, index=[0, 1, 2]),
         ),
         (
             "right",
             False,
-            DataFrame({"a": [np.nan, 10, 20], "b": [300, 100, 200]}, index=[3, 1, 2]),
+            pd.DataFrame(
+                {"a": [np.nan, 10, 20], "b": [300, 100, 200]}, index=[3, 1, 2]
+            ),
         ),
         (
             "right",
             True,
-            DataFrame({"a": [10, 20, np.nan], "b": [100, 200, 300]}, index=[1, 2, 3]),
+            pd.DataFrame(
+                {"a": [10, 20, np.nan], "b": [100, 200, 300]}, index=[1, 2, 3]
+            ),
         ),
         (
             "outer",
             False,
-            DataFrame(
+            pd.DataFrame(
                 {"a": [0, 10, 20, np.nan], "b": [np.nan, 100, 200, 300]},
                 index=[0, 1, 2, 3],
             ),
@@ -88,7 +85,7 @@ def right_w_dups(right_no_dup):
         (
             "outer",
             True,
-            DataFrame(
+            pd.DataFrame(
                 {"a": [0, 10, 20, np.nan], "b": [np.nan, 100, 200, 300]},
                 index=[0, 1, 2, 3],
             ),
@@ -96,16 +93,16 @@ def right_w_dups(right_no_dup):
     ],
 )
 def test_join(how, sort, expected):
-    left = DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
-    right = DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
+    left = pd.DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
+    right = pd.DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
     result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
 
 def test_suffix_on_list_join():
-    first = DataFrame({"key": [1, 2, 3, 4, 5]})
-    second = DataFrame({"key": [1, 8, 3, 2, 5], "v1": [1, 2, 3, 4, 5]})
-    third = DataFrame({"keys": [5, 2, 3, 4, 1], "v2": [1, 2, 3, 4, 5]})
+    first = pd.DataFrame({"key": [1, 2, 3, 4, 5]})
+    second = pd.DataFrame({"key": [1, 8, 3, 2, 5], "v1": [1, 2, 3, 4, 5]})
+    third = pd.DataFrame({"keys": [5, 2, 3, 4, 1], "v2": [1, 2, 3, 4, 5]})
 
     # check proper errors are raised
     msg = "Suffixes not supported when joining multiple DataFrames"
@@ -126,8 +123,8 @@ def test_suffix_on_list_join():
 
 def test_join_lsuffix_rsuffix_deprecated():
     # GH#46046, GH#22231
-    df1 = DataFrame({"a": [1, 2], "b": [3, 4]})
-    df2 = DataFrame({"b": [5, 6], "c": [7, 8]})
+    df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    df2 = pd.DataFrame({"b": [5, 6], "c": [7, 8]})
 
     msg = "The 'lsuffix' and 'rsuffix' keywords in DataFrame.join are deprecated"
     with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
@@ -235,7 +232,7 @@ def test_join_on_single_col_dup_on_both(left_w_dups, right_w_dups):
 def test_join_on_multi_col_check_dup():
     # GH 46622
     # Two column join, dups in both, but jointly no dups
-    left = DataFrame(
+    left = pd.DataFrame(
         {
             "a": ["a", "a", "b", "b"],
             "b": [0, 1, 0, 1],
@@ -244,7 +241,7 @@ def test_join_on_multi_col_check_dup():
         index=range(4),
     ).set_index(["a", "b"])
 
-    right = DataFrame(
+    right = pd.DataFrame(
         {
             "a": ["a", "a", "b"],
             "b": [0, 1, 0],
@@ -253,7 +250,7 @@ def test_join_on_multi_col_check_dup():
         index=range(3),
     ).set_index(["a", "b"])
 
-    expected_multi = DataFrame(
+    expected_multi = pd.DataFrame(
         {
             "a": ["a", "a", "b"],
             "b": [0, 1, 0],
@@ -276,7 +273,7 @@ def test_join_index(float_frame):
 
     joined = f.join(f2)
     tm.assert_index_equal(f.index, joined.index)
-    expected_columns = Index(["A", "B", "C", "D"])
+    expected_columns = pd.Index(["A", "B", "C", "D"])
     tm.assert_index_equal(joined.columns, expected_columns)
 
     joined = f.join(f2, how="left")
@@ -369,10 +366,10 @@ def test_join_overlap(float_frame):
 
 
 def test_join_period_index():
-    frame_with_period_index = DataFrame(
+    frame_with_period_index = pd.DataFrame(
         data=np.arange(20).reshape(4, 5),
         columns=list("abcde"),
-        index=period_range(start="2000", freq="Y", periods=4),
+        index=pd.period_range(start="2000", freq="Y", periods=4),
     )
     other = frame_with_period_index.rename(columns=lambda key: f"{key}{key}")
 
@@ -381,7 +378,7 @@ def test_join_period_index():
     joined_cols = frame_with_period_index.columns.append(other.columns)
 
     joined = frame_with_period_index.join(other)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         data=joined_values, columns=joined_cols, index=frame_with_period_index.index
     )
 
@@ -390,13 +387,13 @@ def test_join_period_index():
 
 def test_join_left_sequence_non_unique_index():
     # https://github.com/pandas-dev/pandas/issues/19607
-    df1 = DataFrame({"a": [0, 10, 20]}, index=[1, 2, 3])
-    df2 = DataFrame({"b": [100, 200, 300]}, index=[4, 3, 2])
-    df3 = DataFrame({"c": [400, 500, 600]}, index=[2, 2, 4])
+    df1 = pd.DataFrame({"a": [0, 10, 20]}, index=[1, 2, 3])
+    df2 = pd.DataFrame({"b": [100, 200, 300]}, index=[4, 3, 2])
+    df3 = pd.DataFrame({"c": [400, 500, 600]}, index=[2, 2, 4])
 
     joined = df1.join([df2, df3], how="left")
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": [0, 10, 10, 20],
             "b": [np.nan, 300, 300, 200],
@@ -427,7 +424,7 @@ class TestDataFrameJoin:
         joined = a.join(b, how="outer").reindex(frame.index)
         expected = frame.copy().values.copy()
         expected[np.isnan(joined.values)] = np.nan
-        expected = DataFrame(expected, index=frame.index, columns=frame.columns)
+        expected = pd.DataFrame(expected, index=frame.index, columns=frame.columns)
 
         assert not np.isnan(joined.values).all()
 
@@ -435,8 +432,8 @@ class TestDataFrameJoin:
 
     def test_join_segfault(self):
         # GH#1532
-        df1 = DataFrame({"a": [1, 1], "b": [1, 2], "x": [1, 2]})
-        df2 = DataFrame({"a": [2, 2], "b": [1, 2], "y": [1, 2]})
+        df1 = pd.DataFrame({"a": [1, 1], "b": [1, 2], "x": [1, 2]})
+        df2 = pd.DataFrame({"a": [2, 2], "b": [1, 2], "y": [1, 2]})
         df1 = df1.set_index(["a", "b"])
         df2 = df2.set_index(["a", "b"])
         # it works!
@@ -447,8 +444,8 @@ class TestDataFrameJoin:
         str_dates = ["20120209", "20120222"]
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
 
-        A = DataFrame(str_dates, index=range(2), columns=["aa"])
-        C = DataFrame([[1, 2], [3, 4]], index=str_dates, columns=dt_dates)
+        A = pd.DataFrame(str_dates, index=range(2), columns=["aa"])
+        C = pd.DataFrame([[1, 2], [3, 4]], index=str_dates, columns=dt_dates)
 
         tst = A.join(C, on="aa")
 
@@ -456,7 +453,7 @@ class TestDataFrameJoin:
 
     def test_join_multiindex_leftright(self):
         # GH 10741
-        df1 = DataFrame(
+        df1 = pd.DataFrame(
             [
                 ["a", "x", 0.471780],
                 ["a", "y", 0.774908],
@@ -471,11 +468,11 @@ class TestDataFrameJoin:
             columns=["first", "second", "value1"],
         ).set_index(["first", "second"])
 
-        df2 = DataFrame([["a", 10], ["b", 20]], columns=["first", "value2"]).set_index(
-            ["first"]
-        )
+        df2 = pd.DataFrame(
+            [["a", 10], ["b", 20]], columns=["first", "value2"]
+        ).set_index(["first"])
 
-        exp = DataFrame(
+        exp = pd.DataFrame(
             [
                 [0.471780, 10],
                 [0.774908, 10],
@@ -495,10 +492,10 @@ class TestDataFrameJoin:
         tm.assert_frame_equal(df1.join(df2, how="left"), exp)
         tm.assert_frame_equal(df2.join(df1, how="right"), exp[["value2", "value1"]])
 
-        exp_idx = MultiIndex.from_product(
+        exp_idx = pd.MultiIndex.from_product(
             [["a", "b"], ["x", "y", "z"]], names=["first", "second"]
         )
-        exp = DataFrame(
+        exp = pd.DataFrame(
             [
                 [0.471780, 10],
                 [0.774908, 10],
@@ -518,17 +515,19 @@ class TestDataFrameJoin:
         # GH 33692
         date = pd.Timestamp(2000, 1, 1).date()
 
-        df1_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
-        df1 = DataFrame({"col1": [0]}, index=df1_index)
-        df2_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
-        df2 = DataFrame({"col2": [0]}, index=df2_index)
-        df3_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
-        df3 = DataFrame({"col3": [0]}, index=df3_index)
+        df1_index = pd.MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df1 = pd.DataFrame({"col1": [0]}, index=df1_index)
+        df2_index = pd.MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df2 = pd.DataFrame({"col2": [0]}, index=df2_index)
+        df3_index = pd.MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
+        df3 = pd.DataFrame({"col3": [0]}, index=df3_index)
 
         result = df1.join([df2, df3])
 
-        expected_index = MultiIndex.from_tuples([(0, date)], names=["index_0", "date"])
-        expected = DataFrame(
+        expected_index = pd.MultiIndex.from_tuples(
+            [(0, date)], names=["index_0", "date"]
+        )
+        expected = pd.DataFrame(
             {"col1": [0], "col2": [0], "col3": [0]}, index=expected_index
         )
 
@@ -539,11 +538,11 @@ class TestDataFrameJoin:
         # GH 40993: For raising, enforced in 2.0
 
         # first dataframe
-        df1 = DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
+        df1 = pd.DataFrame(columns=["a", "b"], data=[[1, 11], [0, 22]])
 
         # second dataframe
-        columns = MultiIndex.from_tuples([("a", ""), ("c", "c1")])
-        df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
+        columns = pd.MultiIndex.from_tuples([("a", ""), ("c", "c1")])
+        df2 = pd.DataFrame(columns=columns, data=[[1, 33], [0, 44]])
 
         # merge
         with pytest.raises(
@@ -559,13 +558,13 @@ class TestDataFrameJoin:
 
     def test_frame_join_tzaware(self):
         tz = zoneinfo.ZoneInfo("US/Central")
-        test1 = DataFrame(
+        test1 = pd.DataFrame(
             np.zeros((6, 3)),
-            index=date_range("2012-11-15 00:00:00", periods=6, freq="100ms", tz=tz),
+            index=pd.date_range("2012-11-15 00:00:00", periods=6, freq="100ms", tz=tz),
         )
-        test2 = DataFrame(
+        test2 = pd.DataFrame(
             np.zeros((3, 3)),
-            index=date_range("2012-11-15 00:00:00", periods=3, freq="250ms", tz=tz),
+            index=pd.date_range("2012-11-15 00:00:00", periods=3, freq="250ms", tz=tz),
             columns=range(3, 6),
         )
 
@@ -584,13 +583,13 @@ class TestDataFrameJoin:
         )
         values1 = "a b".split()
         values2 = "foo bar".split()
-        df1 = DataFrame({"hr": cat_data, "values1": values1}).set_index("hr")
-        df2 = DataFrame({"hr": cat_data, "values2": values2}).set_index("hr")
+        df1 = pd.DataFrame({"hr": cat_data, "values1": values1}).set_index("hr")
+        df2 = pd.DataFrame({"hr": cat_data, "values2": values2}).set_index("hr")
         df1.columns = pd.CategoricalIndex([4], dtype=cat_data.dtype, name="other_hr")
         df2.columns = pd.CategoricalIndex([3], dtype=cat_data.dtype, name="other_hr")
 
         df_joined = df1.join(df2)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"hr": cat_data, "values1": values1, "values2": values2}
         ).set_index("hr")
         expected.columns = pd.CategoricalIndex(

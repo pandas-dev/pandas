@@ -9,12 +9,6 @@ from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    NA,
-    ArrowDtype,
-    Series,
-    StringDtype,
-)
 import pandas._testing as tm
 from pandas.core.construction import extract_array
 
@@ -22,15 +16,15 @@ from pandas.core.construction import extract_array
 def string_dtype_highest_priority(dtype1, dtype2):
     if HAS_PYARROW:
         DTYPE_HIERARCHY = [
-            StringDtype("python", na_value=np.nan),
-            StringDtype("pyarrow", na_value=np.nan),
-            StringDtype("python", na_value=NA),
-            StringDtype("pyarrow", na_value=NA),
+            pd.StringDtype("python", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("python", na_value=pd.NA),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
         ]
     else:
         DTYPE_HIERARCHY = [
-            StringDtype("python", na_value=np.nan),
-            StringDtype("python", na_value=NA),
+            pd.StringDtype("python", na_value=np.nan),
+            pd.StringDtype("python", na_value=pd.NA),
         ]
 
     h1 = DTYPE_HIERARCHY.index(dtype1)
@@ -40,9 +34,9 @@ def string_dtype_highest_priority(dtype1, dtype2):
 
 def test_eq_all_na():
     pytest.importorskip("pyarrow")
-    a = pd.array([NA, NA], dtype=StringDtype("pyarrow"))
+    a = pd.array([pd.NA, pd.NA], dtype=pd.StringDtype("pyarrow"))
     result = a == a
-    expected = pd.array([NA, NA], dtype="boolean[pyarrow]")
+    expected = pd.array([pd.NA, pd.NA], dtype="boolean[pyarrow]")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -50,8 +44,8 @@ def test_reversed_logical_ops(any_string_dtype):
     # GH#60234
     dtype = any_string_dtype
     warn = None if dtype == object else Pandas4Warning
-    left = Series([True, False, False, True])
-    right = Series(["", "", "b", "c"], dtype=dtype)
+    left = pd.Series([True, False, False, True])
+    right = pd.Series(["", "", "b", "c"], dtype=dtype)
 
     msg = "operations between boolean dtype and"
     with tm.assert_produces_warning(warn, match=msg):
@@ -80,14 +74,14 @@ def test_pathlib_path_division(any_string_dtype, request):
         request.applymarker(mark)
 
     item = Path("/Users/Irv/")
-    ser = Series(["A", "B", NA], dtype=any_string_dtype)
+    ser = pd.Series(["A", "B", pd.NA], dtype=any_string_dtype)
 
     result = item / ser
-    expected = Series([item / "A", item / "B", ser.dtype.na_value], dtype=object)
+    expected = pd.Series([item / "A", item / "B", ser.dtype.na_value], dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = ser / item
-    expected = Series(["A" / item, "B" / item, ser.dtype.na_value], dtype=object)
+    expected = pd.Series(["A" / item, "B" / item, ser.dtype.na_value], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -114,8 +108,8 @@ def test_arithmetic_custom_object(any_string_dtype):
             return f"<CustomObject({self.val})>"
 
     arr = np.array([CustomObject("a"), CustomObject("b")], dtype=object)
-    ser = Series(["1", "2"], dtype=any_string_dtype)
-    obj_ser = Series(arr)
+    ser = pd.Series(["1", "2"], dtype=any_string_dtype)
+    obj_ser = pd.Series(arr)
 
     cases = [
         (ser + arr[0], [CustomObject("1a"), CustomObject("2a")]),
@@ -126,24 +120,24 @@ def test_arithmetic_custom_object(any_string_dtype):
         (obj_ser + ser, [CustomObject("a1"), CustomObject("b2")]),
     ]
     for result, expected_values in cases:
-        expected = Series(expected_values, dtype=object)
+        expected = pd.Series(expected_values, dtype=object)
         tm.assert_series_equal(result, expected)
 
 
 def test_mixed_object_comparison(any_string_dtype):
     # GH#60228
     dtype = any_string_dtype
-    ser = Series(["a", "b"], dtype=dtype)
+    ser = pd.Series(["a", "b"], dtype=dtype)
 
-    mixed = Series([1, "b"], dtype=object)
+    mixed = pd.Series([1, "b"], dtype=object)
 
     result = ser == mixed
-    expected = Series([False, True], dtype=bool)
+    expected = pd.Series([False, True], dtype=bool)
     if dtype == object:
         pass
-    elif dtype.storage == "python" and dtype.na_value is NA:
+    elif dtype.storage == "python" and dtype.na_value is pd.NA:
         expected = expected.astype("boolean")
-    elif dtype.storage == "pyarrow" and dtype.na_value is NA:
+    elif dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
         expected = expected.astype("bool[pyarrow]")
 
     tm.assert_series_equal(result, expected)
@@ -152,14 +146,14 @@ def test_mixed_object_comparison(any_string_dtype):
 def test_pyarrow_numpy_string_invalid():
     # GH#56008
     pa = pytest.importorskip("pyarrow")
-    ser = Series([False, True])
-    ser2 = Series(["a", "b"], dtype=StringDtype(na_value=np.nan))
+    ser = pd.Series([False, True])
+    ser2 = pd.Series(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
     result = ser == ser2
-    expected_eq = Series(False, index=ser.index)
+    expected_eq = pd.Series(False, index=ser.index)
     tm.assert_series_equal(result, expected_eq)
 
     result = ser != ser2
-    expected_ne = Series(True, index=ser.index)
+    expected_ne = pd.Series(True, index=ser.index)
     tm.assert_series_equal(result, expected_ne)
 
     with pytest.raises(TypeError, match="Invalid comparison"):
@@ -175,7 +169,7 @@ def test_pyarrow_numpy_string_invalid():
     with pytest.raises(TypeError, match="Invalid comparison"):
         ser > ser3
 
-    ser4 = ser2.astype(ArrowDtype(pa.string()))
+    ser4 = ser2.astype(pd.ArrowDtype(pa.string()))
     result4_eq = ser4 == ser
     tm.assert_series_equal(result4_eq, expected_eq.astype("bool[pyarrow]"))
     result4_ne = ser4 != ser
@@ -188,7 +182,7 @@ def test_pyarrow_numpy_string_invalid():
 def test_mul_bool_invalid(any_string_dtype):
     # GH#62595
     dtype = any_string_dtype
-    ser = Series(["a", "b", "c"], dtype=dtype)
+    ser = pd.Series(["a", "b", "c"], dtype=dtype)
 
     if dtype == object:
         pytest.skip("This is not expected to raise")
@@ -215,22 +209,22 @@ def test_add(any_string_dtype, request):
         )
         request.applymarker(mark)
 
-    a = Series(["a", "b", "c", None, None], dtype=dtype)
-    b = Series(["x", "y", None, "z", None], dtype=dtype)
+    a = pd.Series(["a", "b", "c", None, None], dtype=dtype)
+    b = pd.Series(["x", "y", None, "z", None], dtype=dtype)
 
     result = a + b
-    expected = Series(["ax", "by", None, None, None], dtype=dtype)
+    expected = pd.Series(["ax", "by", None, None, None], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
     result = a.add(b)
     tm.assert_series_equal(result, expected)
 
     result = a.radd(b)
-    expected = Series(["xa", "yb", None, None, None], dtype=dtype)
+    expected = pd.Series(["xa", "yb", None, None, None], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
     result = a.add(b, fill_value="-")
-    expected = Series(["ax", "by", "c-", "-z", None], dtype=dtype)
+    expected = pd.Series(["ax", "by", "c-", "-z", None], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -247,7 +241,7 @@ def test_add_2d(any_string_dtype, request):
     with pytest.raises(ValueError, match="3 != 1"):
         a + b
 
-    s = Series(a)
+    s = pd.Series(a)
     with pytest.raises(ValueError, match="3 != 1"):
         s + b
 
@@ -286,9 +280,9 @@ def test_add_sequence(any_string_dtype, request, using_infer_string):
 def test_string_add_missing_values(string_dtype_no_object):
     # GH#64968 Arrow-backed str arrays should return NA when added to missing
     arr = pd.array(["y"], dtype=string_dtype_no_object)
-    expected = pd.array([NA], dtype=string_dtype_no_object)
+    expected = pd.array([pd.NA], dtype=string_dtype_no_object)
 
-    for na_val in [None, np.nan, NA]:
+    for na_val in [None, np.nan, pd.NA]:
         # left side
         result = arr + na_val
         tm.assert_extension_array_equal(result, expected)
@@ -379,7 +373,7 @@ def test_comparison_methods_scalar_pd_na(comparison_op, any_string_dtype):
     dtype = any_string_dtype
     op_name = f"__{comparison_op.__name__}__"
     a = pd.array(["a", None, "c"], dtype=dtype)
-    result = getattr(a, op_name)(NA)
+    result = getattr(a, op_name)(pd.NA)
 
     if dtype == np.dtype(object) or dtype.na_value is np.nan:
         if operator.ne == comparison_op:
@@ -480,7 +474,7 @@ def test_comparison_methods_array_arrow_extension(comparison_op, any_string_dtyp
     dtype2 = any_string_dtype
 
     op_name = f"__{comparison_op.__name__}__"
-    dtype = ArrowDtype(pa.string())
+    dtype = pd.ArrowDtype(pa.string())
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = pd.array([None, None, "c"], dtype=dtype2)
     result = comparison_op(a, other)
@@ -494,7 +488,7 @@ def test_comparison_methods_array_arrow_extension(comparison_op, any_string_dtyp
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("box", [pd.array, pd.Index, Series])
+@pytest.mark.parametrize("box", [pd.array, pd.Index, pd.Series])
 def test_comparison_methods_list(comparison_op, any_string_dtype, box, request):
     dtype = any_string_dtype
 
@@ -541,7 +535,7 @@ def test_comparison_methods_list(comparison_op, any_string_dtype, box, request):
 def test_add_length_zero_keeps_dtype(any_string_dtype):
     # GH#40624 a length-zero operand should give the same result dtype as the
     #  length-zero slice of a full-length operation
-    ser = Series(["a", "b"], dtype=any_string_dtype)
+    ser = pd.Series(["a", "b"], dtype=any_string_dtype)
     empty = ser.iloc[:0]
 
     tm.assert_series_equal(empty + "x", (ser + "x").iloc[:0])
@@ -552,8 +546,8 @@ def test_add_length_zero_keeps_dtype(any_string_dtype):
 def test_add_length_zero_mixed_storage(any_string_dtype, any_string_dtype2):
     # GH#40624 the length-zero result should keep the dtype the full-length
     #  operation resolves to rather than raising
-    left = Series(["a", "b"], dtype=any_string_dtype)
-    right = Series(["c", "d"], dtype=any_string_dtype2)
+    left = pd.Series(["a", "b"], dtype=any_string_dtype)
+    right = pd.Series(["c", "d"], dtype=any_string_dtype2)
 
     result = left.iloc[:0] + right.iloc[:0]
     tm.assert_series_equal(result, (left + right).iloc[:0])
@@ -565,6 +559,6 @@ def test_add_length_zero_object_ndarray():
     #  type, which has no binary_join kernel
     # dtype is specified explicitly so the test exercises the pyarrow-backed
     #  path regardless of the future.infer_string setting
-    arr = pd.array(["a", "b"], dtype=StringDtype("pyarrow"))
+    arr = pd.array(["a", "b"], dtype=pd.StringDtype("pyarrow"))
     result = arr[:0] + np.array([], dtype=object)
     tm.assert_extension_array_equal(result, arr[:0])

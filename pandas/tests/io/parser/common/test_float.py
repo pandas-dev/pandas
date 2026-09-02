@@ -10,7 +10,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -25,13 +25,13 @@ def test_float_parser(all_parsers):
     data = "45e-1,4.5,45.,inf,-inf"
     result = parser.read_csv(StringIO(data), header=None)
 
-    expected = DataFrame([[float(s) for s in data.split(",")]])
+    expected = pd.DataFrame([[float(s) for s in data.split(",")]])
     tm.assert_frame_equal(result, expected)
 
 
 def test_scientific_no_exponent(all_parsers_all_precisions):
     # see gh-12215
-    df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
+    df = pd.DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser, precision = all_parsers_all_precisions
 
@@ -71,7 +71,7 @@ def test_large_exponent(all_parsers_all_precisions, value, expected_value):
     warn = Pandas4Warning if precision is not None else None
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"data": [expected_value]})
+    expected = pd.DataFrame({"data": [expected_value]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -99,7 +99,7 @@ def test_small_int_followed_by_float(
     warn = Pandas4Warning if precision is not None else None
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"data": [42.0, expected_value]})
+    expected = pd.DataFrame({"data": [42.0, expected_value]})
 
     tm.assert_frame_equal(result, expected)
 
@@ -154,7 +154,7 @@ def test_precise_xstrtod_leading_zeros(c_parser_only, value):
     parser = c_parser_only
     data = f"val\n{value}\n"
     result = parser.read_csv(StringIO(data), thousands=",")
-    expected = DataFrame({"val": [float(value)]})
+    expected = pd.DataFrame({"val": [float(value)]})
     # check_exact: the digits lost to the bug are well inside the default rtol
     tm.assert_frame_equal(result, expected, check_exact=True)
 
@@ -166,7 +166,7 @@ def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
     parser = c_parser_only
     data = f"val\n{value}\n"
     result = parser.read_csv(StringIO(data), thousands=",")
-    expected = DataFrame({"val": [float(value)]})
+    expected = pd.DataFrame({"val": [float(value)]})
     tm.assert_frame_equal(result, expected, check_dtype=False, check_exact=True)
 
 
@@ -204,7 +204,7 @@ def test_float_correctly_rounded(all_parsers, value):
     parser = all_parsers
     result = parser.read_csv(StringIO(f"data\n{value}"))
 
-    expected = DataFrame({"data": [float(value)]})
+    expected = pd.DataFrame({"data": [float(value)]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -219,5 +219,5 @@ def test_invalid_float_number(all_parsers_all_precisions, value):
     warn = Pandas4Warning if precision is not None else None
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"h1": ["data1"], "h2": [value], "h3": "data3"})
+    expected = pd.DataFrame({"h1": ["data1"], "h2": [value], "h3": "data3"})
     tm.assert_frame_equal(result, expected)

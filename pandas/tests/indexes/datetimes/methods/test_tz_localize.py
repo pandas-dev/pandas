@@ -20,15 +20,7 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DatetimeIndex,
-    Timedelta,
-    Timestamp,
-    bdate_range,
-    date_range,
-    offsets,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -49,7 +41,7 @@ class TestTZLocalize:
         #  the result was misreported as a nonexistent time.
         lmt = np.timedelta64(9 * 3600 + 18 * 60 + 59, "s")
         lmt_offset = int(lmt // np.timedelta64(1, unit))
-        dti = DatetimeIndex([np.datetime64(-(2**63) + lmt_offset, unit)])
+        dti = pd.DatetimeIndex([np.datetime64(-(2**63) + lmt_offset, unit)])
         with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
             dti.tz_localize("Asia/Tokyo")
 
@@ -60,7 +52,9 @@ class TestTZLocalize:
         # GH#65733 the zoneinfo fallback used past the last cached DST transition
         #  wrapped instead of reporting an out-of-bounds UTC instant, so an
         #  ordinary wall time came back as NaT
-        dti = DatetimeIndex([Timestamp(Timestamp.max._value - 2 * 3600 * 10**9)])
+        dti = pd.DatetimeIndex(
+            [pd.Timestamp(pd.Timestamp.max._value - 2 * 3600 * 10**9)]
+        )
 
         with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
             dti.tz_localize("America/New_York", **kwargs)
@@ -73,7 +67,7 @@ class TestTZLocalize:
         #  minimum representable value, so it underflows.  The fixed-offset loop
         #  only checked for int64 wrap, so it stored the sentinel and the wall time
         #  read back as missing data.
-        dti = DatetimeIndex(
+        dti = pd.DatetimeIndex(
             np.array([-(2**63) + 9 * 3600 * 10**9], dtype="i8").view("M8[ns]")
         )
 
@@ -89,8 +83,8 @@ class TestTZLocalize:
         #  wrapped to a negative year instead of raising.  Needs >= 2 values: for a
         #  length-1 result DatetimeIndex.tz_localize boxes the lone value, and that
         #  incidentally catches the overflow downstream.
-        val = Timestamp.max._value - 2 * 3600 * 10**9
-        dti = DatetimeIndex(np.array([val, val - 10**9], dtype="i8").view("M8[ns]"))
+        val = pd.Timestamp.max._value - 2 * 3600 * 10**9
+        dti = pd.DatetimeIndex(np.array([val, val - 10**9], dtype="i8").view("M8[ns]"))
 
         with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
             dti.tz_localize(tz)
@@ -101,7 +95,7 @@ class TestTZLocalize:
         # GH#66550 the tzlocal loop needs the same sentinel guard as the
         #  fixed-offset one above.  Pin the ambient zone to +9 so the shift lands
         #  exactly on the sentinel.
-        dti = DatetimeIndex(
+        dti = pd.DatetimeIndex(
             np.array([-(2**63) + 9 * 3600 * 10**9], dtype="i8").view("M8[ns]")
         )
 
@@ -115,8 +109,8 @@ class TestTZLocalize:
     def test_tz_localize_overflow_tzlocal(self):
         # GH#65733 same bare-subtraction overflow in the tzlocal loop.  Pin the
         #  ambient zone: the shift only overflows west of UTC.
-        val = Timestamp.max._value - 2 * 3600 * 10**9
-        dti = DatetimeIndex(np.array([val, val - 10**9], dtype="i8").view("M8[ns]"))
+        val = pd.Timestamp.max._value - 2 * 3600 * 10**9
+        dti = pd.DatetimeIndex(np.array([val, val - 10**9], dtype="i8").view("M8[ns]"))
 
         with tm.set_timezone("US/Eastern"):
             with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
@@ -126,7 +120,7 @@ class TestTZLocalize:
         # we only preserve freq in unambiguous cases
 
         # if localized to US/Eastern, this crosses a DST transition
-        dti = date_range("2014-03-08 23:00", "2014-03-09 09:00", freq="h")
+        dti = pd.date_range("2014-03-08 23:00", "2014-03-09 09:00", freq="h")
         assert dti.freq == "h"
 
         result = dti.tz_localize(None)  # no-op
@@ -147,7 +141,7 @@ class TestTZLocalize:
     def test_tz_localize_utc_copies(self, utc_fixture):
         # GH#46460
         times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
-        index = DatetimeIndex(times)
+        index = pd.DatetimeIndex(times)
 
         res = index.tz_localize(utc_fixture)
         assert not tm.shares_memory(res, index)
@@ -158,7 +152,7 @@ class TestTZLocalize:
     def test_dti_tz_localize_nonexistent_raise_coerce(self):
         # GH#13057
         times = ["2015-03-08 01:00", "2015-03-08 02:00", "2015-03-08 03:00"]
-        index = DatetimeIndex(times)
+        index = pd.DatetimeIndex(times)
         tz = "US/Eastern"
         with pytest.raises(ValueError, match="|".join(times)):
             index.tz_localize(tz=tz)
@@ -168,21 +162,25 @@ class TestTZLocalize:
 
         result = index.tz_localize(tz=tz, nonexistent="NaT")
         test_times = ["2015-03-08 01:00-05:00", "NaT", "2015-03-08 03:00-04:00"]
-        dti = to_datetime(test_times, utc=True)
+        dti = pd.to_datetime(test_times, utc=True)
         expected = dti.tz_convert("US/Eastern")
         tm.assert_index_equal(result, expected)
 
     def test_dti_tz_localize_ambiguous_infer(self, tz):
         # November 6, 2011, fall back, repeat 2 AM hour
         # With no repeated hours, we cannot infer the transition
-        dr = date_range(datetime(2011, 11, 6, 0), periods=5, freq=offsets.Hour())
+        dr = pd.date_range(datetime(2011, 11, 6, 0), periods=5, freq=pd.offsets.Hour())
         with pytest.raises(ValueError, match="Cannot infer dst time"):
             dr.tz_localize(tz)
 
     def test_dti_tz_localize_ambiguous_infer2(self, tz, unit):
         # With repeated hours, we can infer the transition
-        dr = date_range(
-            datetime(2011, 11, 6, 0), periods=5, freq=offsets.Hour(), tz=tz, unit=unit
+        dr = pd.date_range(
+            datetime(2011, 11, 6, 0),
+            periods=5,
+            freq=pd.offsets.Hour(),
+            tz=tz,
+            unit=unit,
         )
         times = [
             "11/06/2011 00:00",
@@ -191,51 +189,55 @@ class TestTZLocalize:
             "11/06/2011 02:00",
             "11/06/2011 03:00",
         ]
-        di = DatetimeIndex(times).as_unit(unit)
+        di = pd.DatetimeIndex(times).as_unit(unit)
         result = di.tz_localize(tz, ambiguous="infer")
         expected = dr._with_freq(None)
         tm.assert_index_equal(result, expected)
         depr_msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result2 = DatetimeIndex(times, tz=tz, ambiguous="infer").as_unit(unit)
+            result2 = pd.DatetimeIndex(times, tz=tz, ambiguous="infer").as_unit(unit)
         tm.assert_index_equal(result2, expected)
 
     def test_dti_tz_localize_ambiguous_infer3(self, tz):
         # When there is no dst transition, nothing special happens
-        dr = date_range(datetime(2011, 6, 1, 0), periods=10, freq=offsets.Hour())
+        dr = pd.date_range(datetime(2011, 6, 1, 0), periods=10, freq=pd.offsets.Hour())
         localized = dr.tz_localize(tz)
         localized_infer = dr.tz_localize(tz, ambiguous="infer")
         tm.assert_index_equal(localized, localized_infer)
 
     def test_dti_tz_localize_ambiguous_times(self, tz):
         # March 13, 2011, spring forward, skip from 2 AM to 3 AM
-        dr = date_range(datetime(2011, 3, 13, 1, 30), periods=3, freq=offsets.Hour())
+        dr = pd.date_range(
+            datetime(2011, 3, 13, 1, 30), periods=3, freq=pd.offsets.Hour()
+        )
         with pytest.raises(ValueError, match="2011-03-13 02:30:00"):
             dr.tz_localize(tz)
 
         # after dst transition, it works
-        dr = date_range(
-            datetime(2011, 3, 13, 3, 30), periods=3, freq=offsets.Hour(), tz=tz
+        dr = pd.date_range(
+            datetime(2011, 3, 13, 3, 30), periods=3, freq=pd.offsets.Hour(), tz=tz
         )
 
         # November 6, 2011, fall back, repeat 2 AM hour
-        dr = date_range(datetime(2011, 11, 6, 1, 30), periods=3, freq=offsets.Hour())
+        dr = pd.date_range(
+            datetime(2011, 11, 6, 1, 30), periods=3, freq=pd.offsets.Hour()
+        )
         with pytest.raises(ValueError, match="Cannot infer dst time"):
             dr.tz_localize(tz)
 
         # UTC is OK
-        dr = date_range(
-            datetime(2011, 3, 13), periods=48, freq=offsets.Minute(30), tz=UTC
+        dr = pd.date_range(
+            datetime(2011, 3, 13), periods=48, freq=pd.offsets.Minute(30), tz=UTC
         )
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_dti_tz_localize_pass_dates_to_utc(self, tzstr):
         strdates = ["1/1/2012", "3/1/2012", "4/1/2012"]
 
-        idx = DatetimeIndex(strdates)
+        idx = pd.DatetimeIndex(strdates)
         conv = idx.tz_localize(tzstr)
 
-        fromdates = DatetimeIndex(strdates, tz=tzstr)
+        fromdates = pd.DatetimeIndex(strdates, tz=tzstr)
 
         assert conv.tz == fromdates.tz
         tm.assert_numpy_array_equal(conv.asi8, fromdates.asi8)
@@ -243,10 +245,10 @@ class TestTZLocalize:
     @pytest.mark.parametrize("prefix", ["", "dateutil/"])
     def test_dti_tz_localize(self, prefix):
         tzstr = prefix + "US/Eastern"
-        dti = date_range(start="1/1/2005", end="1/1/2005 0:00:02.256", freq="ms")
+        dti = pd.date_range(start="1/1/2005", end="1/1/2005 0:00:02.256", freq="ms")
         dti2 = dti.tz_localize(tzstr)
 
-        dti_utc = date_range(
+        dti_utc = pd.date_range(
             start="1/1/2005 05:00", end="1/1/2005 5:00:02.256", freq="ms", tz="utc"
         )
 
@@ -255,11 +257,11 @@ class TestTZLocalize:
         dti3 = dti2.tz_convert(prefix + "US/Pacific")
         tm.assert_numpy_array_equal(dti3.to_numpy(), dti_utc.to_numpy())
 
-        dti = date_range(start="11/6/2011 1:59:59", end="11/6/2011 2:00", freq="ms")
+        dti = pd.date_range(start="11/6/2011 1:59:59", end="11/6/2011 2:00", freq="ms")
         with pytest.raises(ValueError, match="Cannot infer dst time"):
             dti.tz_localize(tzstr)
 
-        dti = date_range(start="3/13/2011 1:59:59", end="3/13/2011 2:00", freq="ms")
+        dti = pd.date_range(start="3/13/2011 1:59:59", end="3/13/2011 2:00", freq="ms")
         with pytest.raises(ValueError, match="2011-03-13 02:00:00"):
             dti.tz_localize(tzstr)
 
@@ -268,14 +270,14 @@ class TestTZLocalize:
         #  1) check for DST ambiguities
         #  2) convert to UTC
 
-        rng = date_range("3/10/2012", "3/11/2012", freq="30min")
+        rng = pd.date_range("3/10/2012", "3/11/2012", freq="30min")
 
         converted = rng.tz_localize(tz)
-        expected_naive = rng + offsets.Hour(5)
+        expected_naive = rng + pd.offsets.Hour(5)
         tm.assert_numpy_array_equal(converted.asi8, expected_naive.asi8)
 
         # DST ambiguity, this should fail
-        rng = date_range("3/11/2012", "3/12/2012", freq="30min")
+        rng = pd.date_range("3/11/2012", "3/12/2012", freq="30min")
         # Is this really how it should fail??
         with pytest.raises(ValueError, match="2012-03-11 02:00:00"):
             rng.tz_localize(tz)
@@ -284,7 +286,7 @@ class TestTZLocalize:
         # note: this tz tests that a tz-naive index can be localized
         # and de-localized successfully, when there are no DST transitions
         # in the range.
-        idx = date_range(start="2014-06-01", end="2014-08-30", freq="15min")
+        idx = pd.date_range(start="2014-06-01", end="2014-08-30", freq="15min")
         tz = tz_aware_fixture
         localized = idx.tz_localize(tz)
         # can't localize a tz-aware object
@@ -298,10 +300,10 @@ class TestTZLocalize:
         tm.assert_index_equal(reset, expected)
 
     def test_dti_tz_localize_naive(self):
-        rng = date_range("1/1/2011", periods=100, freq="h")
+        rng = pd.date_range("1/1/2011", periods=100, freq="h")
 
         conv = rng.tz_localize("US/Pacific")
-        exp = date_range("1/1/2011", periods=100, freq="h", tz="US/Pacific")
+        exp = pd.date_range("1/1/2011", periods=100, freq="h", tz="US/Pacific")
 
         tm.assert_index_equal(conv, exp._with_freq(None))
 
@@ -310,11 +312,11 @@ class TestTZLocalize:
         offset = dateutil.tz.tzlocal().utcoffset(datetime(2011, 1, 1))
         offset = int(offset.total_seconds() * 1000000000)
 
-        dti = date_range(start="2001-01-01", end="2001-03-01", unit="ns")
+        dti = pd.date_range(start="2001-01-01", end="2001-03-01", unit="ns")
         dti2 = dti.tz_localize(dateutil.tz.tzlocal())
         tm.assert_numpy_array_equal(dti2.asi8 + offset, dti.asi8)
 
-        dti = date_range(
+        dti = pd.date_range(
             start="2001-01-01", end="2001-03-01", tz=dateutil.tz.tzlocal(), unit="ns"
         )
         dti2 = dti.tz_localize(None)
@@ -328,7 +330,7 @@ class TestTZLocalize:
             "11/06/2011 02:00",
             "11/06/2011 03:00",
         ]
-        di = DatetimeIndex(times)
+        di = pd.DatetimeIndex(times)
         localized = di.tz_localize(tz, ambiguous="NaT")
 
         times = [
@@ -338,7 +340,7 @@ class TestTZLocalize:
             "11/06/2011 02:00",
             "11/06/2011 03:00",
         ]
-        di_test = DatetimeIndex(times, tz="US/Eastern")
+        di_test = pd.DatetimeIndex(times, tz="US/Eastern")
 
         # left dtype is datetime64[ns, US/Eastern]
         # right is datetime64[ns, tzfile('/usr/share/zoneinfo/US/Eastern')]
@@ -348,8 +350,12 @@ class TestTZLocalize:
         # November 6, 2011, fall back, repeat 2 AM hour
 
         # Pass in flags to determine right dst transition
-        dr = date_range(
-            datetime(2011, 11, 6, 0), periods=5, freq=offsets.Hour(), tz=tz, unit=unit
+        dr = pd.date_range(
+            datetime(2011, 11, 6, 0),
+            periods=5,
+            freq=pd.offsets.Hour(),
+            tz=tz,
+            unit=unit,
         )
         times = [
             "11/06/2011 00:00",
@@ -360,7 +366,7 @@ class TestTZLocalize:
         ]
 
         # Test tz_localize
-        di = DatetimeIndex(times).as_unit(unit)
+        di = pd.DatetimeIndex(times).as_unit(unit)
         is_dst = [1, 1, 0, 0, 0]
         localized = di.tz_localize(tz, ambiguous=is_dst)
         expected = dr._with_freq(None)
@@ -368,7 +374,7 @@ class TestTZLocalize:
 
         depr_msg = "The 'ambiguous' keyword in DatetimeIndex is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
+            result = pd.DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(result, expected)
 
         localized = di.tz_localize(tz, ambiguous=np.array(is_dst))
@@ -379,12 +385,12 @@ class TestTZLocalize:
 
         # Test constructor
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
+            localized = pd.DatetimeIndex(times, tz=tz, ambiguous=is_dst).as_unit(unit)
         tm.assert_index_equal(dr, localized, check_freq=False)
 
         # Test duplicate times where inferring the dst fails
         times += times
-        di = DatetimeIndex(times).as_unit(unit)
+        di = pd.DatetimeIndex(times).as_unit(unit)
 
         # When the sizes are incompatible, make sure error is raised
         msg = "Length of ambiguous bool-array must be the same size as vals"
@@ -399,15 +405,15 @@ class TestTZLocalize:
 
     def test_dti_tz_localize_ambiguous_flags2(self, tz):
         # When there is no dst transition, nothing special happens
-        dr = date_range(datetime(2011, 6, 1, 0), periods=10, freq=offsets.Hour())
+        dr = pd.date_range(datetime(2011, 6, 1, 0), periods=10, freq=pd.offsets.Hour())
         is_dst = np.array([1] * 10)
         localized = dr.tz_localize(tz)
         localized_is_dst = dr.tz_localize(tz, ambiguous=is_dst)
         tm.assert_index_equal(localized, localized_is_dst)
 
     def test_dti_tz_localize_bdate_range(self):
-        dr = bdate_range("1/1/2009", "1/1/2010")
-        dr_utc = bdate_range("1/1/2009", "1/1/2010", tz=UTC)
+        dr = pd.bdate_range("1/1/2009", "1/1/2010")
+        dr_utc = pd.bdate_range("1/1/2009", "1/1/2010", tz=UTC)
         localized = dr.tz_localize(UTC)
         tm.assert_index_equal(dr_utc, localized)
 
@@ -482,26 +488,28 @@ class TestTZLocalize:
         tz = tz_type + tz
         if isinstance(shift, str):
             shift = "shift_" + shift
-        dti = DatetimeIndex([Timestamp(start_ts)]).as_unit(unit)
+        dti = pd.DatetimeIndex([pd.Timestamp(start_ts)]).as_unit(unit)
         result = dti.tz_localize(tz, nonexistent=shift)
-        expected = DatetimeIndex([Timestamp(end_ts)]).tz_localize(tz).as_unit(unit)
+        expected = (
+            pd.DatetimeIndex([pd.Timestamp(end_ts)]).tz_localize(tz).as_unit(unit)
+        )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("offset", [-1, 1])
     def test_dti_tz_localize_nonexistent_shift_invalid(self, offset, warsaw):
         # GH#8917
         tz = warsaw
-        dti = DatetimeIndex([Timestamp("2015-03-29 02:20:00")])
+        dti = pd.DatetimeIndex([pd.Timestamp("2015-03-29 02:20:00")])
         msg = "The provided timedelta will relocalize on a nonexistent time"
         with pytest.raises(ValueError, match=msg):
             dti.tz_localize(tz, nonexistent=timedelta(seconds=offset))
 
     def test_dti_tz_localize_nonexistent_shift_overflow(self):
         # GH#66697
-        dti = DatetimeIndex(["2011-03-13 02:30"]).as_unit("ns")
+        dti = pd.DatetimeIndex(["2011-03-13 02:30"]).as_unit("ns")
 
         with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
-            dti.tz_localize("US/Eastern", nonexistent=Timedelta.max)
+            dti.tz_localize("US/Eastern", nonexistent=pd.Timedelta.max)
 
     @pytest.mark.parametrize(
         "tz, start_ts",
@@ -515,9 +523,9 @@ class TestTZLocalize:
     )
     def test_dti_tz_localize_nonexistent_shift_utc_overflow(self, tz, start_ts):
         # GH#66697
-        ts = Timestamp(start_ts).as_unit("ns")
-        dti = DatetimeIndex([ts, ts])
-        shift = Timestamp.max - ts - Timedelta(hours=1)
+        ts = pd.Timestamp(start_ts).as_unit("ns")
+        dti = pd.DatetimeIndex([ts, ts])
+        shift = pd.Timestamp.max - ts - pd.Timedelta(hours=1)
 
         with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
             dti.tz_localize(tz, nonexistent=shift)
@@ -528,12 +536,12 @@ def test_dti_tz_localize_nonexistent_shift_past_last_transition():
     #  deltas array out of bounds, so the same call gave a different answer
     #  each time
     tz = gettz("America/Boise")
-    dti = DatetimeIndex([Timestamp("2015-03-08 02:30")])
-    shift = Timedelta(days=30_000)
+    dti = pd.DatetimeIndex([pd.Timestamp("2015-03-08 02:30")])
+    shift = pd.Timedelta(days=30_000)
 
     result = dti.tz_localize(tz, nonexistent=shift)
 
-    expected = DatetimeIndex([dti[0] + shift]).tz_localize(tz)
+    expected = pd.DatetimeIndex([dti[0] + shift]).tz_localize(tz)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(result, dti.tz_localize(tz, nonexistent=shift))
 
@@ -542,9 +550,9 @@ def test_dti_tz_localize_nonexistent_timedelta_shift_onto_nat_sentinel():
     # GH#66697 shifting a nonexistent time to a wall time whose UTC instant is
     #  exactly the NaT sentinel, one below Timestamp.min, used to come back as a
     #  missing value.  Asia/Tokyo's +9 offset is what makes the two line up.
-    dti = DatetimeIndex([Timestamp("1948-05-02 00:30")]).as_unit("ns")
+    dti = pd.DatetimeIndex([pd.Timestamp("1948-05-02 00:30")]).as_unit("ns")
     jst = 9 * 3600 * 10**9
-    shift = Timedelta(Timestamp.min._value - 1 + jst - dti.asi8[0], "ns")
+    shift = pd.Timedelta(pd.Timestamp.min._value - 1 + jst - dti.asi8[0], "ns")
 
     with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
         dti.tz_localize("Asia/Tokyo", nonexistent=shift)
@@ -581,11 +589,13 @@ def test_dti_tz_localize_nonexistent_shift_at_last_transition():
     #  after it puts the shifted wall time back before that transition; the
     #  offset from before it is the one that applies
     tz = _make_tzfile_ending_in_spring_forward("/pandas-test/LastTransSpringForward")
-    dti = DatetimeIndex([Timestamp("2011-03-27 02:30")])
+    dti = pd.DatetimeIndex([pd.Timestamp("2011-03-27 02:30")])
 
     result = dti.tz_localize(tz, nonexistent="shift_backward")
 
-    expected = DatetimeIndex([Timestamp("2011-03-27 01:59:59.999999")]).tz_localize(tz)
+    expected = pd.DatetimeIndex(
+        [pd.Timestamp("2011-03-27 01:59:59.999999")]
+    ).tz_localize(tz)
     tm.assert_index_equal(result, expected)
     assert result[0].utcoffset() == timedelta(hours=11)
 
@@ -594,11 +604,11 @@ def test_dti_tz_localize_nonexistent_shift_at_last_transition():
 def test_dti_tz_localize_preserves_non_tick_freq(freq):
     # GH#36575 non-Tick offsets are defined in terms of wall times, which
     #  tz_localize leaves unchanged, so the freq is still valid
-    dti = date_range("2020-03-01", periods=8, freq=freq)
+    dti = pd.date_range("2020-03-01", periods=8, freq=freq)
 
     result = dti.tz_localize("Europe/London")
 
-    expected = date_range("2020-03-01", periods=8, freq=freq, tz="Europe/London")
+    expected = pd.date_range("2020-03-01", periods=8, freq=freq, tz="Europe/London")
     tm.assert_index_equal(result, expected)
     assert result.freq == freq
 
@@ -609,11 +619,11 @@ def test_dti_tz_localize_preserves_non_tick_freq(freq):
 def test_dti_tz_localize_non_tick_freq_invalidated_by_shift():
     # GH#36575 shifting nonexistent times changes the wall times, so the
     #  freq is no longer valid
-    dti = date_range("2019-09-06", periods=4, freq="D")
+    dti = pd.date_range("2019-09-06", periods=4, freq="D")
 
     result = dti.tz_localize("America/Santiago", nonexistent="shift_forward")
 
-    assert result[2] == Timestamp("2019-09-08 01:00", tz="America/Santiago")
+    assert result[2] == pd.Timestamp("2019-09-08 01:00", tz="America/Santiago")
     assert result.freq is None
 
 
@@ -628,7 +638,7 @@ def test_dti_tz_localize_non_tick_freq_invalidated_by_shift():
 )
 def test_dti_tz_localize_non_tick_freq_invalidated_by_nat(start, kwargs):
     # GH#36575 introducing NaT invalidates the freq
-    dti = date_range(start, periods=3, freq="D")
+    dti = pd.date_range(start, periods=3, freq="D")
 
     result = dti.tz_localize("Europe/London", **kwargs)
 

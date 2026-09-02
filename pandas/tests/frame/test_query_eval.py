@@ -11,13 +11,6 @@ from pandas.errors import (
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-)
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
@@ -43,7 +36,7 @@ def skip_if_no_pandas_parser(parser):
 class TestCompat:
     @pytest.fixture
     def df(self):
-        return DataFrame({"A": [1, 2, 3]})
+        return pd.DataFrame({"A": [1, 2, 3]})
 
     @pytest.fixture
     def expected1(self, df):
@@ -107,11 +100,11 @@ class TestDataFrameEval:
         # tst ops and reversed ops in evaluation
         # GH7198
 
-        df = DataFrame(1, index=range(n), columns=list("abcd"))
+        df = pd.DataFrame(1, index=range(n), columns=list("abcd"))
         df.iloc[0] = 2
         m = df.mean()
 
-        base = DataFrame(  # noqa: F841
+        base = pd.DataFrame(  # noqa: F841
             np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
         )
 
@@ -134,7 +127,7 @@ class TestDataFrameEval:
     def test_dataframe_sub_numexpr_path(self):
         # GH7192: Note we need a large number of rows to ensure this
         #  goes through the numexpr path
-        df = DataFrame({"A": np.random.default_rng(2).standard_normal(25000)})
+        df = pd.DataFrame({"A": np.random.default_rng(2).standard_normal(25000)})
         df.iloc[0:5] = np.nan
         expected = 1 - np.isnan(df.iloc[0:25])
         result = (1 - np.isnan(df)).iloc[0:25]
@@ -142,23 +135,23 @@ class TestDataFrameEval:
 
     def test_eval_method_call_fillna(self):
         # GH#34045 eval must handle a chained method call such as .fillna(0)
-        df = DataFrame([1, 2], columns=["a"])
+        df = pd.DataFrame([1, 2], columns=["a"])
         result = df.eval("((a - 1) / (a - 1)).fillna(0)")
-        expected = Series([0.0, 1.0], name="a")
+        expected = pd.Series([0.0, 1.0], name="a")
         tm.assert_series_equal(result, expected)
 
     def test_query_method_call_isnull(self, engine):
         # GH#34251 query must support a method call such as name.isnull().
         # The crash was numexpr-engine-specific, so exercise both engines
         # explicitly (the default silently falls back to python without numexpr)
-        df = DataFrame({"id": [0, 1, 2], "name": ["a", None, None]})
+        df = pd.DataFrame({"id": [0, 1, 2], "name": ["a", None, None]})
         result = df.query("name.isnull()", engine=engine)
         expected = df.iloc[[1, 2]]
         tm.assert_frame_equal(result, expected)
 
     def test_query_non_str(self):
         # GH 11485
-        df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "b"]})
+        df = pd.DataFrame({"A": [1, 2, 3], "B": ["a", "b", "b"]})
 
         msg = "expr must be a string to be evaluated"
         with pytest.raises(ValueError, match=msg):
@@ -169,31 +162,31 @@ class TestDataFrameEval:
 
     def test_query_empty_string(self):
         # GH 13139
-        df = DataFrame({"A": [1, 2, 3]})
+        df = pd.DataFrame({"A": [1, 2, 3]})
 
         msg = "expr cannot be an empty string"
         with pytest.raises(ValueError, match=msg):
             df.query("")
 
     def test_query_duplicate_column_name(self, engine, parser):
-        df = DataFrame({"A": range(3), "B": range(3), "C": range(3)}).rename(
+        df = pd.DataFrame({"A": range(3), "B": range(3), "C": range(3)}).rename(
             columns={"B": "A"}
         )
 
         res = df.query("C == 1", engine=engine, parser=parser)
 
-        expect = DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
+        expect = pd.DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
 
         tm.assert_frame_equal(res, expect)
 
     def test_query_duplicate_index_label(self, engine, parser):
         # GH#51815 aligning the terms against a frame whose index has duplicate
         # labels raised "cannot reindex on an axis with duplicate labels"
-        df = Series([1, 2, 3], index=[1, 1, 2], name="col").to_frame()
+        df = pd.Series([1, 2, 3], index=[1, 1, 2], name="col").to_frame()
 
         result = df.query("(index == 1) & (col == 2)", engine=engine, parser=parser)
 
-        expected = DataFrame({"col": [2]}, index=[1])
+        expected = pd.DataFrame({"col": [2]}, index=[1])
         tm.assert_frame_equal(result, expected)
 
     def test_query_datetime_compared_to_string_no_warning(self, engine, parser):
@@ -202,7 +195,7 @@ class TestDataFrameEval:
         # Comparing against a string literal is rewritten to a membership op,
         # which the python parser does not implement.
         skip_if_no_pandas_parser(parser)
-        df = DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
+        df = pd.DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
 
         with tm.assert_produces_warning(None):
             result = df.query("sent == ''", engine=engine, parser=parser)
@@ -213,7 +206,7 @@ class TestDataFrameEval:
         # GH#57028 the `in` operator does go through isin, and strings no longer
         # match datetime64 values there, but neither should warn
         skip_if_no_pandas_parser(parser)
-        df = DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
+        df = pd.DataFrame({"sent": [pd.Timestamp("2024-01-14"), pd.NaT, pd.NaT]})
 
         with tm.assert_produces_warning(None):
             result = df.query("sent in ['2024-01-14']", engine=engine, parser=parser)
@@ -222,14 +215,14 @@ class TestDataFrameEval:
 
     def test_eval_duplicate_column_name(self, engine, parser):
         # GH#65588
-        df = DataFrame({"a": range(3), "b": range(10, 13), "c": range(3)}).rename(
+        df = pd.DataFrame({"a": range(3), "b": range(10, 13), "c": range(3)}).rename(
             columns={"b": "a"}
         )
 
         result_frame = df.eval("a == 1", engine=engine, parser=parser)
         result_func = pd.eval("a == 1", resolvers=(df,), engine=engine, parser=parser)
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[False, False], [True, False], [False, False]],
             columns=["a", "a"],
         )
@@ -239,7 +232,7 @@ class TestDataFrameEval:
 
     def test_eval_resolvers_as_list(self):
         # GH 14095
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)), columns=list("ab")
         )
         dict1 = {"a": 1}
@@ -249,7 +242,7 @@ class TestDataFrameEval:
 
     def test_eval_resolvers_combined(self):
         # GH 34966
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)), columns=list("ab")
         )
         dict1 = {"c": 2}
@@ -262,21 +255,21 @@ class TestDataFrameEval:
 
     def test_eval_object_dtype_binop(self):
         # GH#24883
-        df = DataFrame({"a1": ["Y", "N"]})
+        df = pd.DataFrame({"a1": ["Y", "N"]})
         res = df.eval("c = ((a1 == 'Y') & True)")
-        expected = DataFrame({"a1": ["Y", "N"], "c": [True, False]})
+        expected = pd.DataFrame({"a1": ["Y", "N"], "c": [True, False]})
         tm.assert_frame_equal(res, expected)
 
     def test_using_numpy(self, engine, parser):
         # GH 58041
         skip_if_no_pandas_parser(parser)
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        df = pd.Series([0.2, 1.5, 2.8], name="a").to_frame()
         res = df.eval("@np.floor(a)", engine=engine, parser=parser)
         expected = np.floor(df["a"])
         tm.assert_series_equal(expected, res)
 
     def test_eval_simple(self, engine, parser):
-        df = Series([0.2, 1.5, 2.8], name="a").to_frame()
+        df = pd.Series([0.2, 1.5, 2.8], name="a").to_frame()
         res = df.eval("a", engine=engine, parser=parser)
         expected = df["a"]
         tm.assert_series_equal(expected, res)
@@ -288,21 +281,21 @@ class TestDataFrameEval:
                 reason="numexpr does not support extension array dtypes"
             )
             request.applymarker(mark)
-        df = DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
+        df = pd.DataFrame({"a": pd.array([1, 2, 3]), "b": pd.array([4, 5, 6])})
         result = df.eval("a / b", engine=engine, parser=parser)
-        expected = Series(pd.array([0.25, 0.40, 0.50]))
+        expected = pd.Series(pd.array([0.25, 0.40, 0.50]))
         tm.assert_series_equal(result, expected)
 
     def test_complex_eval(self, engine, parser):
         # GH#21374
-        df = DataFrame({"a": [1 + 2j], "b": [1 + 1j]})
+        df = pd.DataFrame({"a": [1 + 2j], "b": [1 + 1j]})
         result = df.eval("a/b", engine=engine, parser=parser)
-        expected = Series([1.5 + 0.5j])
+        expected = pd.Series([1.5 + 0.5j])
         tm.assert_series_equal(result, expected)
 
     def test_query_period_dtype(self, engine, parser):
         # GH#35247
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "year": pd.period_range("2018", periods=5, freq="Y"),
                 "val": range(5),
@@ -315,7 +308,7 @@ class TestDataFrameEval:
     def test_query_interval_dtype(self, engine, parser):
         # GH#35247
         idx = pd.IntervalIndex.from_breaks(range(6))
-        df = DataFrame({"a": idx, "b": idx})
+        df = pd.DataFrame({"a": idx, "b": idx})
         result = df.query("a == b", engine=engine, parser=parser)
         tm.assert_frame_equal(result, df)
 
@@ -325,9 +318,11 @@ class TestDataFrameQueryWithMultiIndex:
         skip_if_no_pandas_parser(parser)
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
-        index = MultiIndex.from_arrays([a, b], names=["color", "food"])
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
-        ind = Series(
+        index = pd.MultiIndex.from_arrays([a, b], names=["color", "food"])
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), index=index
+        )
+        ind = pd.Series(
             df.index.get_level_values("color").values, index=index, name="color"
         )
 
@@ -375,9 +370,11 @@ class TestDataFrameQueryWithMultiIndex:
         skip_if_no_pandas_parser(parser)
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
-        index = MultiIndex.from_arrays([a, b])
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
-        ind = Series(df.index.get_level_values(0).values, index=index)
+        index = pd.MultiIndex.from_arrays([a, b])
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), index=index
+        )
+        ind = pd.Series(df.index.get_level_values(0).values, index=index)
 
         res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
         res2 = df.query('"red" == ilevel_0', parser=parser, engine=engine)
@@ -419,7 +416,7 @@ class TestDataFrameQueryWithMultiIndex:
         tm.assert_frame_equal(res2, exp)
 
         # ## LEVEL 1
-        ind = Series(df.index.get_level_values(1).values, index=index)
+        ind = pd.Series(df.index.get_level_values(1).values, index=index)
         res1 = df.query('ilevel_1 == "eggs"', parser=parser, engine=engine)
         res2 = df.query('"eggs" == ilevel_1', parser=parser, engine=engine)
         exp = df[ind == "eggs"]
@@ -463,37 +460,39 @@ class TestDataFrameQueryWithMultiIndex:
         skip_if_no_pandas_parser(parser)
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.arange(10)
-        index = MultiIndex.from_arrays([a, b])
+        index = pd.MultiIndex.from_arrays([a, b])
         index.names = [None, "rating"]
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), index=index
+        )
         res = df.query("rating == 1", parser=parser, engine=engine)
-        ind = Series(
+        ind = pd.Series(
             df.index.get_level_values("rating").values, index=index, name="rating"
         )
         exp = df[ind == 1]
         tm.assert_frame_equal(res, exp)
 
         res = df.query("rating != 1", parser=parser, engine=engine)
-        ind = Series(
+        ind = pd.Series(
             df.index.get_level_values("rating").values, index=index, name="rating"
         )
         exp = df[ind != 1]
         tm.assert_frame_equal(res, exp)
 
         res = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
-        ind = Series(df.index.get_level_values(0).values, index=index)
+        ind = pd.Series(df.index.get_level_values(0).values, index=index)
         exp = df[ind == "red"]
         tm.assert_frame_equal(res, exp)
 
         res = df.query('ilevel_0 != "red"', parser=parser, engine=engine)
-        ind = Series(df.index.get_level_values(0).values, index=index)
+        ind = pd.Series(df.index.get_level_values(0).values, index=index)
         exp = df[ind != "red"]
         tm.assert_frame_equal(res, exp)
 
     def test_query_multiindex_get_index_resolvers(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.ones((10, 3)),
-            index=MultiIndex.from_arrays(
+            index=pd.MultiIndex.from_arrays(
                 [range(10) for _ in range(2)], names=["spam", "eggs"]
             ),
         )
@@ -514,9 +513,9 @@ class TestDataFrameQueryWithMultiIndex:
             "clevel_0": col_series,
         }
         for k, v in resolvers.items():
-            if isinstance(v, Index):
+            if isinstance(v, pd.Index):
                 assert v.is_(expected[k])
-            elif isinstance(v, Series):
+            elif isinstance(v, pd.Series):
                 tm.assert_series_equal(v, expected[k])
             else:
                 raise AssertionError("object must be a Series or Index")
@@ -534,10 +533,10 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_date_query_with_attribute_access(self, engine, parser):
         skip_if_no_pandas_parser(parser)
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=5)
-        df["dates2"] = date_range("1/1/2013", periods=5)
-        df["dates3"] = date_range("1/1/2014", periods=5)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=5)
+        df["dates2"] = pd.date_range("1/1/2013", periods=5)
+        df["dates3"] = pd.date_range("1/1/2014", periods=5)
         res = df.query(
             "@df.dates1 < 20130101 < @df.dates3", engine=engine, parser=parser
         )
@@ -545,20 +544,20 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(res, expec)
 
     def test_date_query_no_attribute_access(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=5)
-        df["dates2"] = date_range("1/1/2013", periods=5)
-        df["dates3"] = date_range("1/1/2014", periods=5)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=5)
+        df["dates2"] = pd.date_range("1/1/2013", periods=5)
+        df["dates3"] = pd.date_range("1/1/2014", periods=5)
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
     def test_date_query_with_NaT(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates2"] = date_range("1/1/2013", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates2"] = pd.date_range("1/1/2013", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates3"] = pd.NaT
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
@@ -567,9 +566,9 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_date_index_query(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
@@ -579,11 +578,11 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_index_query_with_NaT(self, engine, parser):
         n = 10
         # Cast to object to avoid implicit cast when setting entry to pd.NaT below
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3))).astype(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3))).astype(
             {0: object}
         )
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
@@ -594,9 +593,9 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_index_query_with_NaT_duplicates(self, engine, parser):
         n = 10
         d = {}
-        d["dates1"] = date_range("1/1/2012", periods=n)
-        d["dates3"] = date_range("1/1/2014", periods=n)
-        df = DataFrame(d)
+        d["dates1"] = pd.date_range("1/1/2012", periods=n)
+        d["dates3"] = pd.date_range("1/1/2014", periods=n)
+        df = pd.DataFrame(d)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
@@ -606,9 +605,9 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_date_query_with_non_date(self, engine, parser):
         n = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "dates": date_range("1/1/2012", periods=n, unit="ns"),
+                "dates": pd.date_range("1/1/2012", periods=n, unit="ns"),
                 "nondate": np.arange(n),
             }
         )
@@ -625,7 +624,7 @@ class TestDataFrameQueryNumExprPandas:
                 df.query(f"dates {op} nondate", parser=parser, engine=engine)
 
     def test_query_syntax_error(self, engine, parser):
-        df = DataFrame({"i": range(10), "+": range(3, 13), "r": range(4, 14)})
+        df = pd.DataFrame({"i": range(10), "+": range(3, 13), "r": range(4, 14)})
         msg = "invalid syntax"
         with pytest.raises(SyntaxError, match=msg):
             df.query("i - +", engine=engine, parser=parser)
@@ -633,7 +632,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_query_scope(self, engine, parser):
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((20, 2)), columns=list("ab")
         )
 
@@ -658,7 +657,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_query_doesnt_pickup_local(self, engine, parser):
         n = m = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(m, size=(n, 3)), columns=list("abc")
         )
 
@@ -668,7 +667,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_query_builtin(self, engine, parser):
         n = m = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(m, size=(n, 3)), columns=list("abc")
         )
 
@@ -678,7 +677,7 @@ class TestDataFrameQueryNumExprPandas:
             df.query("sin > 5", engine=engine, parser=parser)
 
     def test_query(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )
 
@@ -691,9 +690,9 @@ class TestDataFrameQueryNumExprPandas:
         )
 
     def test_query_index_with_name(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(10, size=(10, 3)),
-            index=Index(range(10), name="blob"),
+            index=pd.Index(range(10), name="blob"),
             columns=["a", "b", "c"],
         )
         res = df.query("(blob < 5) & (a < b)", engine=engine, parser=parser)
@@ -706,7 +705,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(res, expec)
 
     def test_query_index_without_name(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(10, size=(10, 3)),
             index=range(10),
             columns=["a", "b", "c"],
@@ -725,8 +724,8 @@ class TestDataFrameQueryNumExprPandas:
     def test_nested_scope(self, engine, parser):
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df2 = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         expected = df[(df > 0) & (df2 > 0)]
 
         result = df.query("(@df > 0) & (@df2 > 0)", engine=engine, parser=parser)
@@ -746,7 +745,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_nested_raises_on_local_self_reference(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
 
         # can't reference ourself b/c we're a local so @ is necessary
         with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
@@ -755,7 +754,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_local_syntax(self, engine, parser):
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((100, 10)),
             columns=list("abcdefghij"),
         )
@@ -771,7 +770,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_chained_cmp_and_in(self, engine, parser):
         skip_if_no_pandas_parser(parser)
         cols = list("abc")
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((100, len(cols))), columns=cols
         )
         res = df.query(
@@ -783,15 +782,15 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_local_variable_with_in(self, engine, parser):
         skip_if_no_pandas_parser(parser)
-        a = Series(np.random.default_rng(2).integers(3, size=15), name="a")
-        b = Series(np.random.default_rng(2).integers(10, size=15), name="b")
-        df = DataFrame({"a": a, "b": b})
+        a = pd.Series(np.random.default_rng(2).integers(3, size=15), name="a")
+        b = pd.Series(np.random.default_rng(2).integers(10, size=15), name="b")
+        df = pd.DataFrame({"a": a, "b": b})
 
         expected = df.loc[(df.b - 1).isin(a)]
         result = df.query("b - 1 in a", engine=engine, parser=parser)
         tm.assert_frame_equal(expected, result)
 
-        b = Series(np.random.default_rng(2).integers(10, size=15), name="b")
+        b = pd.Series(np.random.default_rng(2).integers(10, size=15), name="b")
         expected = df.loc[(b - 1).isin(a)]
         result = df.query("@b - 1 in a", engine=engine, parser=parser)
         tm.assert_frame_equal(expected, result)
@@ -799,7 +798,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_at_inside_string(self, engine, parser):
         skip_if_no_pandas_parser(parser)
         c = 1  # noqa: F841
-        df = DataFrame({"a": ["a", "a", "b", "b", "@c", "@c"]})
+        df = pd.DataFrame({"a": ["a", "a", "b", "b", "@c", "@c"]})
         result = df.query('a == "@c"', engine=engine, parser=parser)
         expected = df[df.a == "@c"]
         tm.assert_frame_equal(result, expected)
@@ -808,7 +807,7 @@ class TestDataFrameQueryNumExprPandas:
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=list("ab"))
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)), columns=list("ab"))
         with pytest.raises(
             UndefinedVariableError, match="local variable 'c' is not defined"
         ):
@@ -820,7 +819,7 @@ class TestDataFrameQueryNumExprPandas:
         n = 1  # noqa: F841
         a = np.r_[20:101:20]
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {"index": a, "b": np.random.default_rng(2).standard_normal(a.size)}
         )
         df.index.name = "index"
@@ -828,14 +827,16 @@ class TestDataFrameQueryNumExprPandas:
         expected = df[df["index"] > 5]
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {"index": a, "b": np.random.default_rng(2).standard_normal(a.size)}
         )
         result = df.query("ilevel_0 > 5", engine=engine, parser=parser)
         expected = df.loc[df.index[df.index > 5]]
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame({"a": a, "b": np.random.default_rng(2).standard_normal(a.size)})
+        df = pd.DataFrame(
+            {"a": a, "b": np.random.default_rng(2).standard_normal(a.size)}
+        )
         df.index.name = "a"
         result = df.query("a > 5", engine=engine, parser=parser)
         expected = df[df.a > 5]
@@ -848,7 +849,7 @@ class TestDataFrameQueryNumExprPandas:
     @pytest.mark.parametrize("op, f", [["==", operator.eq], ["!=", operator.ne]])
     def test_inf(self, op, f, engine, parser):
         n = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).random(n),
                 "b": np.random.default_rng(2).random(n),
@@ -863,22 +864,22 @@ class TestDataFrameQueryNumExprPandas:
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
-        df_index = date_range(
+        df_index = pd.date_range(
             start="2019-01-01", freq="1D", periods=10, tz=tz, name="time"
         )
-        expected = DataFrame(index=df_index)
-        df = DataFrame(index=df_index)
+        expected = pd.DataFrame(index=df_index)
+        df = pd.DataFrame(index=df_index)
         result = df.query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame(df_index)
+        expected = pd.DataFrame(df_index)
         result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
         tm.assert_frame_equal(result, expected)
 
     def test_method_calls_in_query(self, engine, parser):
         # https://github.com/pandas-dev/pandas/issues/22435
         n = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": 2 * np.random.default_rng(2).random(n),
                 "b": np.random.default_rng(2).random(n),
@@ -888,7 +889,7 @@ class TestDataFrameQueryNumExprPandas:
         result = df.query("a.astype('int') == 0", engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.where(
                     np.random.default_rng(2).random(n) < 0.5,
@@ -914,10 +915,10 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         return "python"
 
     def test_date_query_no_attribute_access(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=5)
-        df["dates2"] = date_range("1/1/2013", periods=5)
-        df["dates3"] = date_range("1/1/2014", periods=5)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=5)
+        df["dates2"] = pd.date_range("1/1/2013", periods=5)
+        df["dates3"] = pd.date_range("1/1/2014", periods=5)
         res = df.query(
             "(dates1 < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -926,10 +927,10 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_query_with_NaT(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates2"] = date_range("1/1/2013", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates2"] = pd.date_range("1/1/2013", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates3"] = pd.NaT
         res = df.query(
@@ -940,9 +941,9 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_index_query(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
         res = df.query(
@@ -954,11 +955,11 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT(self, engine, parser):
         n = 10
         # Cast to object to avoid implicit cast when setting entry to pd.NaT below
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3))).astype(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3))).astype(
             {0: object}
         )
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
@@ -970,9 +971,9 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_index_query_with_NaT_duplicates(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=n)
-        df["dates3"] = date_range("1/1/2014", periods=n)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=n)
+        df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
@@ -986,8 +987,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         result = pd.eval("x + 1", engine=engine, parser=parser)
         assert result == 2
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df2 = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
 
         # don't have the pandas parser
         msg = r"The '@' prefix is only supported by the pandas parser"
@@ -1008,7 +1009,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         tm.assert_frame_equal(expected, result)
 
     def test_query_numexpr_with_min_and_max_columns(self):
-        df = DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
+        df = pd.DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
         regex_to_match = (
             r"Variables in expression \"\(min\) == \(1\)\" "
             r"overlap with builtins: \('min'\)"
@@ -1035,7 +1036,7 @@ class TestDataFrameQueryPythonPandas(TestDataFrameQueryNumExprPandas):
 
     def test_query_builtin(self, engine, parser):
         n = m = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(m, size=(n, 3)), columns=list("abc")
         )
 
@@ -1056,7 +1057,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
     def test_query_builtin(self, engine, parser):
         n = m = 10
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(m, size=(n, 3)), columns=list("abc")
         )
 
@@ -1071,15 +1072,17 @@ class TestDataFrameQueryStrings:
         # GH#15186 comparing an ordered categorical column against a scalar
         #  string in .query should work for all engines/parsers
         bands = [f"{i}AM" for i in range(10)]
-        df = DataFrame({"Time": bands})
+        df = pd.DataFrame({"Time": bands})
         df["Time"] = df["Time"].astype(pd.CategoricalDtype(bands, ordered=True))
         result = df.query("Time >= '5AM'", parser=parser, engine=engine)
         expected = df[df["Time"] >= "5AM"]
         tm.assert_frame_equal(result, expected)
 
     def test_str_query_method(self, parser, engine):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
-        df["strings"] = Series(list("aabbccddee"))
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 1)), columns=["b"]
+        )
+        df["strings"] = pd.Series(list("aabbccddee"))
         expect = df[df.strings == "a"]
 
         if parser != "pandas":
@@ -1119,8 +1122,10 @@ class TestDataFrameQueryStrings:
             tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
 
     def test_str_list_query_method(self, parser, engine):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
-        df["strings"] = Series(list("aabbccddee"))
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 1)), columns=["b"]
+        )
+        df["strings"] = pd.Series(list("aabbccddee"))
         expect = df[df.strings.isin(["a", "b"])]
 
         if parser != "pandas":
@@ -1154,7 +1159,7 @@ class TestDataFrameQueryStrings:
             tm.assert_frame_equal(res, expect)
 
     def test_query_with_string_columns(self, parser, engine):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": list("aaaabbbbcccc"),
                 "b": list("aabbccddeeff"),
@@ -1180,7 +1185,7 @@ class TestDataFrameQueryStrings:
                 df.query("a in b and c < d", parser=parser, engine=engine)
 
     def test_object_array_eq_ne(self, parser, engine):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": list("aaaabbbbcccc"),
                 "b": list("aabbccddeeff"),
@@ -1201,9 +1206,9 @@ class TestDataFrameQueryStrings:
         events = [
             f"page {n} {act}" for n in range(1, 4) for act in ["load", "exit"]
         ] * 2
-        stamps1 = date_range("2014-01-01 0:00:01", freq="30s", periods=6)
-        stamps2 = date_range("2014-02-01 1:00:01", freq="30s", periods=6)
-        df = DataFrame(
+        stamps1 = pd.date_range("2014-01-01 0:00:01", freq="30s", periods=6)
+        stamps2 = pd.date_range("2014-02-01 1:00:01", freq="30s", periods=6)
+        df = pd.DataFrame(
             {
                 "id": np.arange(1, 7).repeat(2),
                 "event": events,
@@ -1217,7 +1222,7 @@ class TestDataFrameQueryStrings:
 
     def test_query_with_nested_special_character(self, parser, engine):
         skip_if_no_pandas_parser(parser)
-        df = DataFrame({"a": ["a", "b", "test & test"], "b": [1, 2, 3]})
+        df = pd.DataFrame({"a": ["a", "b", "test & test"], "b": [1, 2, 3]})
         res = df.query('a == "test & test"', parser=parser, engine=engine)
         expec = df[df.a == "test & test"]
         tm.assert_frame_equal(res, expec)
@@ -1232,9 +1237,9 @@ class TestDataFrameQueryStrings:
         ],
     )
     def test_query_lex_compare_strings(self, parser, engine, op, func):
-        a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
-        b = Series(np.arange(a.size))
-        df = DataFrame({"X": a, "Y": b})
+        a = pd.Series(np.random.default_rng(2).choice(list("abcde"), 20))
+        b = pd.Series(np.arange(a.size))
+        df = pd.DataFrame({"X": a, "Y": b})
 
         res = df.query(f'X {op} "d"', engine=engine, parser=parser)
         expected = df[func(df.X, "d")]
@@ -1243,14 +1248,14 @@ class TestDataFrameQueryStrings:
     def test_query_single_element_booleans(self, parser, engine):
         columns = "bid", "bidsize", "ask", "asksize"
         data = np.random.default_rng(2).integers(2, size=(1, len(columns))).astype(bool)
-        df = DataFrame(data, columns=columns)
+        df = pd.DataFrame(data, columns=columns)
         res = df.query("bid & ask", engine=engine, parser=parser)
         expected = df[df.bid & df.ask]
         tm.assert_frame_equal(res, expected)
 
     def test_query_string_scalar_variable(self, parser, engine):
         skip_if_no_pandas_parser(parser)
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "Symbol": ["BUD US", "BUD US", "IBM US", "IBM US"],
                 "Price": [109.70, 109.72, 183.30, 183.35],
@@ -1278,10 +1283,10 @@ class TestDataFrameQueryStrings:
         engine = "python"
         expected = {i: value for i, value in enumerate(in_list) if value == "asdf"}
 
-        df_expected = DataFrame({"a": expected}, dtype="string")
+        df_expected = pd.DataFrame({"a": expected}, dtype="string")
         df_expected.index = df_expected.index.astype("int64")
-        df = DataFrame({"a": in_list}, dtype="string")
-        df.index = Index(list(df.index), dtype=df.index.dtype)
+        df = pd.DataFrame({"a": in_list}, dtype="string")
+        df.index = pd.Index(list(df.index), dtype=df.index.dtype)
         res1 = df.query("a == 'asdf'", parser=parser, engine=engine)
         res2 = df[df["a"] == "asdf"]
         res3 = df.query("a <= 'asdf'", parser=parser, engine=engine)
@@ -1294,7 +1299,7 @@ class TestDataFrameQueryStrings:
 class TestDataFrameEvalWithFrame:
     @pytest.fixture
     def frame(self):
-        return DataFrame(
+        return pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
 
@@ -1310,7 +1315,7 @@ class TestDataFrameEvalWithFrame:
 
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
     def test_invalid_type_for_operator_raises(self, parser, engine, op):
-        df = DataFrame({"a": [1, 2], "b": ["c", "d"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["c", "d"]})
         msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
 
         with pytest.raises(TypeError, match=msg):
@@ -1325,7 +1330,7 @@ class TestDataFrameQueryBacktickQuoting:
         by backticks. The last two columns cannot be escaped by backticks
         and should raise a ValueError.
         """
-        return DataFrame(
+        return pd.DataFrame(
             {
                 "A": [1, 2, 3],
                 "B B": [3, 2, 1],
@@ -1478,28 +1483,28 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_expr_with_column_name_with_hashtag_character(self):
         # GH 59285
-        df = DataFrame((1, 2, 3), columns=["a#"])
+        df = pd.DataFrame((1, 2, 3), columns=["a#"])
         result = df.query("`a#` < 2")
         expected = df[df["a#"] < 2]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_comment(self):
         # GH 59285
-        df = DataFrame((1, 2, 3), columns=["a#"])
+        df = pd.DataFrame((1, 2, 3), columns=["a#"])
         result = df.query("`a#` < 2  # This is a comment")
         expected = df[df["a#"] < 2]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_column_name_with_backtick_and_hash(self):
         # GH 59285
-        df = DataFrame((1, 2, 3), columns=["a`#b"])
+        df = pd.DataFrame((1, 2, 3), columns=["a`#b"])
         result = df.query("`a``#b` < 2")
         expected = df[df["a`#b"] < 2]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_column_name_with_backtick(self):
         # GH 59285
-        df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
+        df = pd.DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
         result = df.query("`a``b` < 2")
         # Note: Formatting checks may wrongly consider the above ``inline code``.
         expected = df[df["a`b"] < 2]
@@ -1507,14 +1512,14 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_expr_with_string_with_backticks(self):
         # GH 59285
-        df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
+        df = pd.DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
         result = df.query("'```' < `#backticks`")
         expected = df["```" < df["#backticks"]]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_string_with_backticked_substring_same_as_column_name(self):
         # GH 59285
-        df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
+        df = pd.DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
         result = df.query("'`#backticks`' < `#backticks`")
         expected = df["`#backticks`" < df["#backticks"]]
         tm.assert_frame_equal(result, expected)
@@ -1530,7 +1535,7 @@ class TestDataFrameQueryBacktickQuoting:
     )
     def test_expr_with_column_names_with_special_characters(self, col1, col2, expr):
         # GH 59285
-        df = DataFrame(
+        df = pd.DataFrame(
             [
                 {col1: 1, col2: 2},
                 {col1: 3, col2: 4},
@@ -1544,27 +1549,27 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_expr_with_no_backticks(self):
         # GH 59285
-        df = DataFrame(("aaa", "vvv", "zzz"), columns=["column_name"])
+        df = pd.DataFrame(("aaa", "vvv", "zzz"), columns=["column_name"])
         result = df.query("'value' < column_name")
         expected = df["value" < df["column_name"]]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_no_quotes_and_backtick_is_unmatched(self):
         # GH 59285
-        df = DataFrame((1, 5, 10), columns=["column-name"])
+        df = pd.DataFrame((1, 5, 10), columns=["column-name"])
         with pytest.raises((SyntaxError, TokenError), match="invalid syntax"):
             df.query("5 < `column-name")
 
     def test_expr_with_no_quotes_and_backtick_is_matched(self):
         # GH 59285
-        df = DataFrame((1, 5, 10), columns=["column-name"])
+        df = pd.DataFrame((1, 5, 10), columns=["column-name"])
         result = df.query("5 < `column-name`")
         expected = df[5 < df["column-name"]]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_backtick_opened_before_quote_and_backtick_is_unmatched(self):
         # GH 59285
-        df = DataFrame((1, 5, 10), columns=["It's"])
+        df = pd.DataFrame((1, 5, 10), columns=["It's"])
         with pytest.raises(
             (SyntaxError, TokenError), match="unterminated string literal"
         ):
@@ -1572,14 +1577,14 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_expr_with_backtick_opened_before_quote_and_backtick_is_matched(self):
         # GH 59285
-        df = DataFrame((1, 5, 10), columns=["It's"])
+        df = pd.DataFrame((1, 5, 10), columns=["It's"])
         result = df.query("5 < `It's`")
         expected = df[5 < df["It's"]]
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_quote_opened_before_backtick_and_quote_is_unmatched(self):
         # GH 59285
-        df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
+        df = pd.DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
         with pytest.raises(
             (SyntaxError, TokenError), match="unterminated string literal"
         ):
@@ -1587,14 +1592,14 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_at_end(self):
         # GH 59285
-        df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
+        df = pd.DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
         result = df.query("`column-name` < 'It`s that\\'s \"quote\" #hash'")
         expected = df[df["column-name"] < 'It`s that\'s "quote" #hash']
         tm.assert_frame_equal(result, expected)
 
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_in_mid(self):
         # GH 59285
-        df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
+        df = pd.DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
         result = df.query("'It`s that\\'s \"quote\" #hash' < `column-name`")
         expected = df['It`s that\'s "quote" #hash' < df["column-name"]]
         tm.assert_frame_equal(result, expected)
@@ -1622,7 +1627,7 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
         # GH#29618
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
@@ -1633,7 +1638,7 @@ class TestDataFrameQueryBacktickQuoting:
         )
         with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - a")
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[1, 2, 1], [3, 4, 1]],
             columns=["a", "b", "c"],
             dtype=any_numeric_ea_and_arrow_dtype,
@@ -1642,7 +1647,7 @@ class TestDataFrameQueryBacktickQuoting:
 
     def test_ea_dtypes_and_scalar(self):
         # GH#29618
-        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"], dtype="Float64")
         warning = RuntimeWarning if NUMEXPR_INSTALLED else None
         msg = (
             "Engine has switched to 'python' because numexpr does not "
@@ -1651,22 +1656,22 @@ class TestDataFrameQueryBacktickQuoting:
         )
         with tm.assert_produces_warning(warning, match=msg):
             result = df.eval("c = b - 1")
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[1, 2, 1], [3, 4, 3]], columns=["a", "b", "c"], dtype="Float64"
         )
         tm.assert_frame_equal(result, expected)
 
     def test_ea_dtypes_and_scalar_operation(self, any_numeric_ea_and_arrow_dtype):
         # GH#29618
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2], [3, 4]], columns=["a", "b"], dtype=any_numeric_ea_and_arrow_dtype
         )
         result = df.eval("c = 2 - 1")
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "a": Series([1, 3], dtype=any_numeric_ea_and_arrow_dtype),
-                "b": Series([2, 4], dtype=any_numeric_ea_and_arrow_dtype),
-                "c": Series([1, 1], dtype=result["c"].dtype),
+                "a": pd.Series([1, 3], dtype=any_numeric_ea_and_arrow_dtype),
+                "b": pd.Series([2, 4], dtype=any_numeric_ea_and_arrow_dtype),
+                "c": pd.Series([1, 1], dtype=result["c"].dtype),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -1676,7 +1681,7 @@ class TestDataFrameQueryBacktickQuoting:
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
         # GH#50261
-        df = DataFrame({"a": [1, 2]}, dtype=dtype)
+        df = pd.DataFrame({"a": [1, 2]}, dtype=dtype)
         ref = {2}  # noqa: F841
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
         msg = (
@@ -1686,7 +1691,7 @@ class TestDataFrameQueryBacktickQuoting:
         )
         with tm.assert_produces_warning(warning, match=msg):
             result = df.query("a in @ref")
-        expected = DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
+        expected = pd.DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("engine", ["python", "numexpr"])
@@ -1698,8 +1703,11 @@ class TestDataFrameQueryBacktickQuoting:
             pytest.skip("numexpr not installed")
         if dtype == "int64[pyarrow]":
             pytest.importorskip("pyarrow")
-        df = DataFrame(
-            {"A": Series([1, 1, 2], dtype="Int64"), "B": Series([1, 2, 2], dtype=dtype)}
+        df = pd.DataFrame(
+            {
+                "A": pd.Series([1, 1, 2], dtype="Int64"),
+                "B": pd.Series([1, 2, 2], dtype=dtype),
+            }
         )
         msg = (
             "Engine has switched to 'python' because numexpr does not "
@@ -1708,10 +1716,10 @@ class TestDataFrameQueryBacktickQuoting:
         )
         with tm.assert_produces_warning(warning, match=msg):
             result = df.query("A == B", engine=engine)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "A": Series([1, 2], dtype="Int64", index=range(0, 4, 2)),
-                "B": Series([1, 2], dtype=dtype, index=range(0, 4, 2)),
+                "A": pd.Series([1, 2], dtype="Int64", index=range(0, 4, 2)),
+                "B": pd.Series([1, 2], dtype=dtype, index=range(0, 4, 2)),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -1719,9 +1727,9 @@ class TestDataFrameQueryBacktickQuoting:
     def test_all_nat_in_object(self):
         # GH#57068
         now = pd.Timestamp("2011-01-01", tz="UTC")  # noqa: F841
-        df = DataFrame({"a": pd.to_datetime([None, None], utc=True)}, dtype=object)
+        df = pd.DataFrame({"a": pd.to_datetime([None, None], utc=True)}, dtype=object)
         result = df.query("a > @now")
-        expected = DataFrame({"a": []}, dtype=object)
+        expected = pd.DataFrame({"a": []}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
 
@@ -1734,25 +1742,25 @@ class TestDataFrameQueryInWithColumnRefs:
             pytest.skip(f"cannot evaluate with parser={parser}")
 
     def test_in_column_refs_numeric_first_row(self, engine, parser):
-        df = DataFrame({"a": [1, 2, 3], "b": [1, 4, 9], "c": [1, 8, 27]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 4, 9], "c": [1, 8, 27]})
         result = df.query("b in (a, c)", engine=engine, parser=parser)
         expected = df[(df["b"] == df["a"]) | (df["b"] == df["c"])]
         tm.assert_frame_equal(result, expected)
 
     def test_in_column_refs_numeric_all_rows(self, engine, parser):
-        df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [10, 20, 30]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [10, 20, 30]})
         result = df.query("b in (a, c)", engine=engine, parser=parser)
         expected = df
         tm.assert_frame_equal(result, expected)
 
     def test_in_column_refs_numeric_no_match(self, engine, parser):
-        df = DataFrame({"a": [1, 2, 3], "b": [5, 6, 7], "c": [10, 20, 30]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [5, 6, 7], "c": [10, 20, 30]})
         result = df.query("b in (a, c)", engine=engine, parser=parser)
         expected = df.iloc[:0]
         tm.assert_frame_equal(result, expected)
 
     def test_in_column_refs_string(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": ["a", "a", "b"], "b": ["a", "b", "c"], "c": ["b", "b", "c"]}
         )
         result = df.query("b in (a, c)", engine=engine, parser=parser)
@@ -1761,7 +1769,7 @@ class TestDataFrameQueryInWithColumnRefs:
 
     @td.skip_if_no("pyarrow")
     def test_in_column_refs_string_pyarrow(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": ["a", "a", "b"], "b": ["a", "b", "c"], "c": ["b", "b", "c"]},
             dtype="string[pyarrow]",
         )
@@ -1779,13 +1787,13 @@ class TestDataFrameQueryInWithColumnRefs:
         tm.assert_frame_equal(result, expected)
 
     def test_not_in_column_refs_numeric(self, engine, parser):
-        df = DataFrame({"a": [1, 2, 3], "b": [1, 4, 9], "c": [1, 8, 27]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 4, 9], "c": [1, 8, 27]})
         result = df.query("b not in (a, c)", engine=engine, parser=parser)
         expected = df[(df["b"] != df["a"]) & (df["b"] != df["c"])]
         tm.assert_frame_equal(result, expected)
 
     def test_not_in_column_refs_string(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": ["x", "y", "z"], "b": ["a", "y", "z"], "c": ["b", "b", "c"]}
         )
         result = df.query("b not in (a, c)", engine=engine, parser=parser)
@@ -1793,13 +1801,13 @@ class TestDataFrameQueryInWithColumnRefs:
         tm.assert_frame_equal(result, expected)
 
     def test_in_column_ref_and_literal(self, engine, parser):
-        df = DataFrame({"a": [1, 2, 3], "b": [1, 99, 5]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 99, 5]})
         result = df.query("b in (a, 99)", engine=engine, parser=parser)
         expected = df[(df["b"] == df["a"]) | (df["b"] == 99)]
         tm.assert_frame_equal(result, expected)
 
     def test_in_pure_literals(self, engine, parser):
-        df = DataFrame({"a": [1, 2, 3, 4]})
+        df = pd.DataFrame({"a": [1, 2, 3, 4]})
         result = df.query("a in (2, 3)", engine=engine, parser=parser)
         expected = df[df["a"].isin([2, 3])]
         tm.assert_frame_equal(result, expected)

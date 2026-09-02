@@ -11,13 +11,6 @@ from pandas.errors import (
 )
 
 import pandas as pd
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-    get_option,
-    read_clipboard,
-)
 import pandas._testing as tm
 
 from pandas.io.clipboard import (
@@ -54,32 +47,32 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return DataFrame({"a": ['"a,\t"b|c', "d\tef`"], "b": ["hi'j", "k''lm"]})
+        return pd.DataFrame({"a": ['"a,\t"b|c', "d\tef`"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return DataFrame({"a": ["µasd", "Ωœ∑`"], "b": ["øπ∆˚¬", "œ∑`®"]})
+        return pd.DataFrame({"a": ["µasd", "Ωœ∑`"], "b": ["øπ∆˚¬", "œ∑`®"]})
     elif data_type == "utf16":
-        return DataFrame(
+        return pd.DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
         )
     elif data_type == "string":
-        return DataFrame(
+        return pd.DataFrame(
             np.array([f"i-{i}" for i in range(15)]).reshape(5, 3), columns=list("abc")
         )
     elif data_type == "long":
-        max_rows = get_option("display.max_rows")
-        return DataFrame(
+        max_rows = pd.get_option("display.max_rows")
+        return pd.DataFrame(
             np.random.default_rng(2).integers(0, 10, size=(max_rows + 1, 3)),
             columns=list("abc"),
         )
     elif data_type == "nonascii":
-        return DataFrame({"en": "in English".split(), "es": "en español".split()})
+        return pd.DataFrame({"en": "in English".split(), "es": "en español".split()})
     elif data_type == "colwidth":
-        _cw = get_option("display.max_colwidth") + 1
-        return DataFrame(
+        _cw = pd.get_option("display.max_colwidth") + 1
+        return pd.DataFrame(
             np.array(["x" * _cw for _ in range(15)]).reshape(5, 3), columns=list("abc")
         )
     elif data_type == "mixed":
-        return DataFrame(
+        return pd.DataFrame(
             {
                 "a": np.arange(1.0, 6.0) + 0.01,
                 "b": np.arange(1, 6).astype(np.int64),
@@ -87,9 +80,11 @@ def df(request):
             }
         )
     elif data_type == "float":
-        return DataFrame(np.random.default_rng(2).random((5, 3)), columns=list("abc"))
+        return pd.DataFrame(
+            np.random.default_rng(2).random((5, 3)), columns=list("abc")
+        )
     elif data_type == "int":
-        return DataFrame(
+        return pd.DataFrame(
             np.random.default_rng(2).integers(0, 10, (5, 3)), columns=list("abc")
         )
     else:
@@ -257,13 +252,13 @@ class TestClipboard:
     @pytest.mark.parametrize("encoding", [None, "UTF-8", "utf-8", "utf8"])
     def test_round_trip_frame_sep(self, df, sep, encoding):
         df.to_clipboard(excel=None, sep=sep, encoding=encoding)
-        result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
+        result = pd.read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
         tm.assert_frame_equal(df, result)
 
     # Test white space separator
     def test_round_trip_frame_string(self, df):
         df.to_clipboard(excel=False, sep=None)
-        result = read_clipboard()
+        result = pd.read_clipboard()
         assert df.to_string() == result.to_string()
         assert df.shape == result.shape
 
@@ -296,7 +291,7 @@ class TestClipboard:
     def test_clipboard_copy_strings(self, sep, df):
         kwargs = build_kwargs(sep, False)
         df.to_clipboard(**kwargs)
-        result = read_clipboard(sep=r"\s+")
+        result = pd.read_clipboard(sep=r"\s+")
         assert result.to_string() == df.to_string()
         assert df.shape == result.shape
 
@@ -312,7 +307,7 @@ class TestClipboard:
             """.strip()
         )
         clipboard.setText(text)
-        df = read_clipboard(**clip_kwargs)
+        df = pd.read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
         assert df.iloc[1, 1] == "Harry Carney"
@@ -326,7 +321,7 @@ class TestClipboard:
             """.strip()
         )
         clipboard.setText(text)
-        res = read_clipboard(**clip_kwargs)
+        res = pd.read_clipboard(**clip_kwargs)
 
         text = dedent(
             """
@@ -336,7 +331,7 @@ class TestClipboard:
             """.strip()
         )
         clipboard.setText(text)
-        exp = read_clipboard(**clip_kwargs)
+        exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
@@ -345,8 +340,8 @@ class TestClipboard:
         text = "col1\tcol2\n1\tred\n\tblue\n2\tgreen"
 
         clipboard.setText(text)
-        df = read_clipboard()
-        df_expected = DataFrame(
+        df = pd.read_clipboard()
+        df_expected = pd.DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]}
         )
 
@@ -379,8 +374,8 @@ class TestClipboard:
         # GH41108
 
         clipboard.setText(multiindex[0])
-        df = read_clipboard()
-        df_expected = DataFrame(
+        df = pd.read_clipboard()
+        df_expected = pd.DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
             index=multiindex[1],
         )
@@ -394,14 +389,14 @@ class TestClipboard:
         with pytest.raises(ValueError, match=msg):
             df.to_clipboard(encoding="ascii")
         with pytest.raises(NotImplementedError, match=msg):
-            read_clipboard(encoding="ascii")
+            pd.read_clipboard(encoding="ascii")
 
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑`...", "abcd..."])
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
-        df = DataFrame({"data": [data]})
+        df = pd.DataFrame({"data": [data]})
         df.to_clipboard()
-        result = read_clipboard()
+        result = pd.read_clipboard()
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
@@ -421,25 +416,27 @@ y,2,5.0,,,,,False,"""
         clipboard.setText(text)
 
         with pd.option_context("mode.string_storage", string_storage):
-            result = read_clipboard(sep=",", dtype_backend=dtype_backend, engine=engine)
+            result = pd.read_clipboard(
+                sep=",", dtype_backend=dtype_backend, engine=engine
+            )
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
-                "a": Series(["x", "y"], dtype=string_dtype),
-                "b": Series([1, 2], dtype="Int64"),
-                "c": Series([4.0, 5.0], dtype="Float64"),
-                "d": Series(["x", None], dtype=string_dtype),
-                "e": Series([2, NA], dtype="Int64"),
-                "f": Series([4.0, NA], dtype="Float64"),
-                "g": Series([NA, NA], dtype="Int64"),
-                "h": Series([True, False], dtype="boolean"),
-                "i": Series([False, NA], dtype="boolean"),
+                "a": pd.Series(["x", "y"], dtype=string_dtype),
+                "b": pd.Series([1, 2], dtype="Int64"),
+                "c": pd.Series([4.0, 5.0], dtype="Float64"),
+                "d": pd.Series(["x", None], dtype=string_dtype),
+                "e": pd.Series([2, pd.NA], dtype="Int64"),
+                "f": pd.Series([4.0, pd.NA], dtype="Float64"),
+                "g": pd.Series([pd.NA, pd.NA], dtype="Int64"),
+                "h": pd.Series([True, False], dtype="boolean"),
+                "i": pd.Series([False, pd.NA], dtype="boolean"),
             }
         )
         if dtype_backend == "pyarrow":
             from pandas.arrays import ArrowExtensionArray
 
-            expected = DataFrame(
+            expected = pd.DataFrame(
                 {
                     col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
                     for col in expected.columns
@@ -460,4 +457,4 @@ y,2,5.0,,,,,False,"""
             "'pyarrow' are allowed."
         )
         with pytest.raises(ValueError, match=msg):
-            read_clipboard(dtype_backend="numpy")
+            pd.read_clipboard(dtype_backend="numpy")
