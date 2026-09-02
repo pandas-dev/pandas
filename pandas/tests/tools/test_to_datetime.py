@@ -2198,7 +2198,7 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(value, unit="ns", errors="raise")
 
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds timestamp"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.Timestamp(value, unit="ns")
 
@@ -2214,7 +2214,7 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(uint64_max, unit="ns", errors="raise")
         # scalar via Timestamp constructor
-        msg = "Out of bounds nanosecond timestamp"
+        msg = "Out of bounds timestamp"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.Timestamp(uint64_max, unit="ns")
 

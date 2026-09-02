@@ -38,6 +38,7 @@ from pandas._libs.portable cimport checked_sub
 from pandas._libs.tslibs.ccalendar cimport get_days_in_month
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
+    get_default_reso,
     get_supported_reso,
     npy_unit_to_attrname,
     periods_per_second,
@@ -513,14 +514,13 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             ts = <int64_t>ts
         except OverflowError:
             # GH#26651 re-raise as OutOfBoundsDatetime
-            raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp {ts}")
+            raise OutOfBoundsDatetime(f"Out of bounds timestamp {ts}")
         if ts == NPY_NAT:
             obj.value = NPY_NAT
         else:
             if unit is None:
                 unit = "ns"
-            in_reso = abbrev_to_npy_unit(unit)
-            reso = get_supported_reso(in_reso)
+            reso = abbrev_to_npy_unit(get_default_reso(unit))
             ts = cast_from_unit(ts, unit, reso)
             obj.value = ts
             obj.creso = reso
