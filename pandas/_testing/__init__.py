@@ -86,7 +86,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Iterable,
-        Sequence,
     )
     from contextlib import AbstractContextManager
 
@@ -273,6 +272,36 @@ arithmetic_dunder_methods = [
 
 comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
 
+comparison_ops = [
+    operator.eq,
+    operator.ne,
+    operator.gt,
+    operator.ge,
+    operator.lt,
+    operator.le,
+]
+
+numeric_reductions = [
+    "count",
+    "sum",
+    "max",
+    "min",
+    "mean",
+    "prod",
+    "std",
+    "var",
+    "median",
+    "kurt",
+    "skew",
+    "sem",
+]
+
+boolean_reductions = ["all", "any"]
+
+all_reductions = numeric_reductions + boolean_reductions
+
+numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -401,32 +430,6 @@ def external_error_raised(
     import pytest
 
     return pytest.raises(expected_exception, match=None)
-
-
-def get_cython_table_params(
-    ndframe: DataFrame | Series,
-    func_names_and_expected: Iterable[Sequence[Any]],
-) -> list[tuple[DataFrame | Series, str, Any]]:
-    """
-    Combine frame, functions from com._cython_table
-    keys and expected result.
-
-    Parameters
-    ----------
-    ndframe : DataFrame or Series
-    func_names_and_expected : Sequence of two items
-        The first item is a name of an NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value.
-
-    Returns
-    -------
-    list
-        List of three items (DataFrame, function, expected result)
-    """
-    results = []
-    for func_name, expected in func_names_and_expected:
-        results.append((ndframe, func_name, expected))
-    return results
 
 
 def get_op_from_name(op_name: str) -> Callable:
@@ -651,7 +654,6 @@ __all__ = [
     "convert_rows_list_to_csv_str",
     "decompress_file",
     "external_error_raised",
-    "get_cython_table_params",
     "get_dtype",
     "get_finest_unit",
     "get_locales",

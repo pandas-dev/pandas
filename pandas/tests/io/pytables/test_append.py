@@ -8,16 +8,7 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    _testing as tm,
-    concat,
-    date_range,
-    read_hdf,
-)
+import pandas._testing as tm
 
 pytestmark = [pytest.mark.single_cpu]
 
@@ -28,10 +19,10 @@ tables = pytest.importorskip("tables")
 def test_append(temp_hdfstore):
     # this is allowed by almost always don't want to do it
     # tables.NaturalNameWarning):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((20, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=20, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=20, freq="B"),
     )
     temp_hdfstore.append("df1", df[:10])
     temp_hdfstore.append("df1", df[10:])
@@ -52,28 +43,28 @@ def test_append(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore["df3 foo"], df)
 
     # dtype issues - mizxed type in a single object column
-    df = DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
+    df = pd.DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
     df["mixed_column"] = "testing"
     df.loc[2, "mixed_column"] = np.nan
     temp_hdfstore.append("df", df)
     tm.assert_frame_equal(temp_hdfstore["df"], df)
 
     # uints - test storage of uints
-    uint_data = DataFrame(
+    uint_data = pd.DataFrame(
         {
-            "u08": Series(
+            "u08": pd.Series(
                 np.random.default_rng(2).integers(0, high=255, size=5),
                 dtype=np.uint8,
             ),
-            "u16": Series(
+            "u16": pd.Series(
                 np.random.default_rng(2).integers(0, high=65535, size=5),
                 dtype=np.uint16,
             ),
-            "u32": Series(
+            "u32": pd.Series(
                 np.random.default_rng(2).integers(0, high=2**30, size=5),
                 dtype=np.uint32,
             ),
-            "u64": Series(
+            "u64": pd.Series(
                 [2**58, 2**59, 2**60, 2**61, 2**62],
                 dtype=np.uint64,
             ),
@@ -92,11 +83,11 @@ def test_append(temp_hdfstore):
 
 def test_append_series(temp_hdfstore):
     # basic
-    ss = Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
-    ts = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    ss = pd.Series(range(20), dtype=np.float64, index=[f"i_{i}" for i in range(20)])
+    ts = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
-    ns = Series(np.arange(100))
+    ns = pd.Series(np.arange(100))
 
     temp_hdfstore.append("ss", ss)
     result = temp_hdfstore["ss"]
@@ -122,12 +113,12 @@ def test_append_series(temp_hdfstore):
     # select on the index and values
     expected = ns[(ns > 70) & (ns.index < 90)]
     # Reading/writing RangeIndex info is not supported yet
-    expected.index = Index(expected.index._data)
+    expected.index = pd.Index(expected.index._data)
     result = temp_hdfstore.select("ns", "foo>70 and index<90")
     tm.assert_series_equal(result, expected, check_index_type=True)
 
     # multi-index
-    mi = DataFrame(np.random.default_rng(2).standard_normal((5, 1)), columns=["A"])
+    mi = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 1)), columns=["A"])
     mi["B"] = np.arange(len(mi))
     mi["C"] = "foo"
     mi.loc[3:5, "C"] = "bar"
@@ -139,9 +130,11 @@ def test_append_series(temp_hdfstore):
 
 
 def test_append_some_nans(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "A": Series(np.random.default_rng(2).standard_normal(20)).astype("int32"),
+            "A": pd.Series(np.random.default_rng(2).standard_normal(20)).astype(
+                "int32"
+            ),
             "A1": np.random.default_rng(2).standard_normal(20),
             "A2": np.random.default_rng(2).standard_normal(20),
             "B": "foo",
@@ -181,7 +174,7 @@ def test_append_some_nans(temp_hdfstore):
 
 
 def test_append_all_nans(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A1": np.random.default_rng(2).standard_normal(20),
             "A2": np.random.default_rng(2).standard_normal(20),
@@ -222,10 +215,10 @@ def test_append_dropna_table_option_deprecated():
 
 def test_append_frame_column_oriented(temp_hdfstore):
     # column oriented
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df.index = df.index._with_freq(None)  # freq doesn't round-trip
 
@@ -254,17 +247,17 @@ def test_append_frame_column_oriented(temp_hdfstore):
 def test_append_with_different_block_ordering(temp_hdfstore):
     # GH 4096; using same frames, but different block orderings
     for i in range(10):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
         )
         df["index"] = range(10)
         df["index"] += i * 10
-        df["int64"] = Series([1] * len(df), dtype="int64")
-        df["int16"] = Series([1] * len(df), dtype="int16")
+        df["int64"] = pd.Series([1] * len(df), dtype="int64")
+        df["int16"] = pd.Series([1] * len(df), dtype="int16")
 
         if i % 2 == 0:
             del df["int64"]
-            df["int64"] = Series([1] * len(df), dtype="int64")
+            df["int64"] = pd.Series([1] * len(df), dtype="int64")
         if i % 3 == 0:
             a = df.pop("A")
             df["A"] = a
@@ -275,18 +268,18 @@ def test_append_with_different_block_ordering(temp_hdfstore):
 
     # test a different ordering but with more fields (like invalid
     # combinations)
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 2)),
         columns=list("AB"),
         dtype="float64",
     )
-    df["int64"] = Series([1] * len(df), dtype="int64")
-    df["int16"] = Series([1] * len(df), dtype="int16")
+    df["int64"] = pd.Series([1] * len(df), dtype="int64")
+    df["int16"] = pd.Series([1] * len(df), dtype="int16")
     temp_hdfstore.remove("df")
     temp_hdfstore.append("df", df)
 
     # store additional fields in different blocks
-    df["int16_2"] = Series([1] * len(df), dtype="int16")
+    df["int16_2"] = pd.Series([1] * len(df), dtype="int16")
     msg = re.escape(
         "cannot match existing table structure for [int16] on appending data"
     )
@@ -294,7 +287,7 @@ def test_append_with_different_block_ordering(temp_hdfstore):
         temp_hdfstore.append("df", df)
 
     # store multiple additional fields in different blocks
-    df["float_3"] = Series([1.0] * len(df), dtype="float64")
+    df["float_3"] = pd.Series([1.0] * len(df), dtype="float64")
     msg = re.escape("cannot match existing table structure for [A,B] on appending data")
     with pytest.raises(ValueError, match=msg):
         temp_hdfstore.append("df", df)
@@ -308,27 +301,27 @@ def test_append_with_strings(temp_hdfstore):
         )
 
     # avoid truncation on elements
-    df = DataFrame([[123, "asdqwerty"], [345, "dggnhebbsdfbdfb"]])
+    df = pd.DataFrame([[123, "asdqwerty"], [345, "dggnhebbsdfbdfb"]])
     temp_hdfstore.append("df_big", df)
     tm.assert_frame_equal(temp_hdfstore.select("df_big"), df)
     check_col("df_big", "values_block_1", 15)
 
     # appending smaller string ok
-    df2 = DataFrame([[124, "asdqy"], [346, "dggnhefbdfb"]])
+    df2 = pd.DataFrame([[124, "asdqy"], [346, "dggnhefbdfb"]])
     temp_hdfstore.append("df_big", df2)
-    expected = concat([df, df2])
+    expected = pd.concat([df, df2])
     tm.assert_frame_equal(temp_hdfstore.select("df_big"), expected)
     check_col("df_big", "values_block_1", 15)
 
     # avoid truncation on elements
-    df = DataFrame([[123, "asdqwerty"], [345, "dggnhebbsdfbdfb"]])
+    df = pd.DataFrame([[123, "asdqwerty"], [345, "dggnhebbsdfbdfb"]])
     temp_hdfstore.append("df_big2", df, min_itemsize={"values": 50})
     tm.assert_frame_equal(temp_hdfstore.select("df_big2"), df)
     check_col("df_big2", "values_block_1", 50)
 
     # bigger string on next append
     temp_hdfstore.append("df_new", df)
-    df_new = DataFrame([[124, "abcdefqhij"], [346, "abcdefghijklmnopqrtsuvwxyz"]])
+    df_new = pd.DataFrame([[124, "abcdefqhij"], [346, "abcdefghijklmnopqrtsuvwxyz"]])
     msg = (
         r"Trying to store a string with len \[26\] in "
         r"\[values_block_1\] column but\n"
@@ -340,12 +333,12 @@ def test_append_with_strings(temp_hdfstore):
         temp_hdfstore.append("df_new", df_new)
 
     # min_itemsize on Series index (GH 11412)
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
             "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-            "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"]),
-            "D": date_range("20130101", periods=5),
+            "C": pd.Index(["foo1", "foo2", "foo3", "foo4", "foo5"]),
+            "D": pd.date_range("20130101", periods=5),
         }
     ).set_index("C")
     temp_hdfstore.append("ss", df["B"], min_itemsize={"index": 4})
@@ -362,20 +355,20 @@ def test_append_with_strings(temp_hdfstore):
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")
     temp_hdfstore.append("ss3", df2)
-    tm.assert_frame_equal(temp_hdfstore.select("ss3"), concat([df, df2]))
+    tm.assert_frame_equal(temp_hdfstore.select("ss3"), pd.concat([df, df2]))
 
     # same as above, with a Series
     temp_hdfstore.put(
         "ss4", df["B"], format="table", min_itemsize={"index": 6}, track_times=False
     )
     temp_hdfstore.append("ss4", df2["B"])
-    tm.assert_series_equal(temp_hdfstore.select("ss4"), concat([df["B"], df2["B"]]))
+    tm.assert_series_equal(temp_hdfstore.select("ss4"), pd.concat([df["B"], df2["B"]]))
 
     # with nans
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df["string"] = "foo"
     df.loc[df.index[1:4], "string"] = np.nan
@@ -395,7 +388,7 @@ def test_append_with_strings2(temp_hdfstore):
             == size
         )
 
-    df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
+    df = pd.DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
     # a min_itemsize that creates a data_column
     temp_hdfstore.append("df", df, min_itemsize={"A": 200})
@@ -422,7 +415,7 @@ def test_append_with_strings2(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore["df"], df)
 
     # invalid min_itemsize keys
-    df = DataFrame(["foo", "foo", "foo", "barh", "barh", "barh"], columns=["A"])
+    df = pd.DataFrame(["foo", "foo", "foo", "barh", "barh", "barh"], columns=["A"])
     temp_hdfstore.remove("df")
     msg = re.escape(
         "min_itemsize has the key [foo] which is not an axis or data_column"
@@ -437,9 +430,9 @@ def test_append_min_itemsize_multiindex_columns(temp_hdfstore):
     # opaque ("not an axis or data_column" / "non-object label
     # DataIndexableCol"). Ensure the user gets a clear message pointing at
     # the workaround.
-    df = DataFrame(
+    df = pd.DataFrame(
         [["xx", "yy", "zz"], ["aa", "bb", "cc"]],
-        columns=MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")]),
+        columns=pd.MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")]),
     )
 
     msg = (
@@ -464,8 +457,8 @@ def test_append_min_itemsize_multiindex_columns(temp_hdfstore):
 def test_append_min_itemsize_index_multiindex_columns(temp_hdfstore):
     # GH#12154 the row-index key ('index') is not a per-column request and must
     # still reserve the index string width, even with MultiIndex columns.
-    columns = MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")])
-    df = DataFrame(
+    columns = pd.MultiIndex.from_tuples([(1, "a"), (1, "b"), (2, "c")])
+    df = pd.DataFrame(
         [["xx", "yy", "zz"], ["aa", "bb", "cc"]],
         columns=columns,
         index=["s1", "s2"],
@@ -474,28 +467,28 @@ def test_append_min_itemsize_index_multiindex_columns(temp_hdfstore):
 
     # appending a longer index label than the initial rows would overflow the
     # index column had min_itemsize={'index': 50} not sized it.
-    df2 = DataFrame(
+    df2 = pd.DataFrame(
         [["dd", "ee", "ff"]],
         columns=columns,
         index=["a_long_index_label_over_default_width"],
     )
     temp_hdfstore.append("df", df2)
-    tm.assert_frame_equal(temp_hdfstore.select("df"), concat([df, df2]))
+    tm.assert_frame_equal(temp_hdfstore.select("df"), pd.concat([df, df2]))
 
 
 def test_append_with_empty_string(temp_hdfstore):
     # with all empty strings (GH 12242)
-    df = DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})
+    df = pd.DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})
     temp_hdfstore.append("df", df[:-1], min_itemsize={"x": 1})
     temp_hdfstore.append("df", df[-1:], min_itemsize={"x": 1})
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
 def test_append_with_data_columns(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.iloc[0, df.columns.get_loc("B")] = 1.0
     temp_hdfstore.append("df", df[:2], data_columns=["B"])
@@ -618,8 +611,8 @@ def test_append_with_data_columns(temp_hdfstore):
 
     # doc example part 2
 
-    index = date_range("1/1/2000", periods=8)
-    df_dc = DataFrame(
+    index = pd.date_range("1/1/2000", periods=8)
+    df_dc = pd.DataFrame(
         np.random.default_rng(2).standard_normal((8, 3)),
         index=index,
         columns=["A", "B", "C"],
@@ -657,16 +650,16 @@ def test_append_hierarchical(temp_hdfstore, multiindex_dataframe_random_data):
     tm.assert_frame_equal(result, expected)
 
     df.to_hdf(temp_hdfstore, key="df", format="table")
-    result = read_hdf(temp_hdfstore, "df", columns=["A", "B"])
+    result = pd.read_hdf(temp_hdfstore, "df", columns=["A", "B"])
     expected = df.reindex(columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_append_misc(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     temp_hdfstore.append("df", df, chunksize=1)
     result = temp_hdfstore.select("df")
@@ -680,10 +673,10 @@ def test_append_misc(temp_hdfstore):
 @pytest.mark.parametrize("chunksize", [10, 200, 1000])
 def test_append_misc_chunksize(temp_hdfstore, chunksize):
     # more chunksize in append tests
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df["string"] = "foo"
     df["float322"] = 1.0
@@ -699,7 +692,7 @@ def test_append_misc_chunksize(temp_hdfstore, chunksize):
 def test_append_misc_empty_frame(temp_hdfstore):
     # empty frame, GH#4273, GH#13016
     # 0 len
-    df_empty = DataFrame(columns=list("ABC"))
+    df_empty = pd.DataFrame(columns=list("ABC"))
     msg = "Writing an empty DataFrame or Series with format='table'"
     with tm.assert_produces_warning(UserWarning, match=msg):
         temp_hdfstore.append("df", df_empty)
@@ -707,7 +700,7 @@ def test_append_misc_empty_frame(temp_hdfstore):
         temp_hdfstore.select("df")
 
     # repeated append of 0/non-zero frames
-    df = DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
+    df = pd.DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
     temp_hdfstore.append("df", df)
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
     with tm.assert_produces_warning(UserWarning, match=msg):
@@ -715,7 +708,7 @@ def test_append_misc_empty_frame(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
     # store with fixed format stores the empty frame without warning
-    df = DataFrame(columns=list("ABC"))
+    df = pd.DataFrame(columns=list("ABC"))
     temp_hdfstore.put("df2", df, track_times=False)
     tm.assert_frame_equal(temp_hdfstore.select("df2"), df)
 
@@ -730,10 +723,10 @@ def test_append_raise(temp_hdfstore):
     # test append with invalid input to get good error messages
 
     # list in column
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df["invalid"] = [["a"]] * len(df)
     assert df.dtypes["invalid"] == np.object_
@@ -751,12 +744,12 @@ because its data contents are not [string] but [mixed] object dtype"""
         temp_hdfstore.append("df", df)
 
     # datetime with embedded nans as object
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
-    s = Series(datetime.datetime(2001, 1, 2), index=df.index)
+    s = pd.Series(datetime.datetime(2001, 1, 2), index=df.index)
     s = s.astype(object)
     s[0:5] = np.nan
     df["invalid"] = s
@@ -776,13 +769,13 @@ because its data contents are not [string] but [mixed] object dtype"""
         "[group->df,value-><class 'pandas.Series'>]"
     )
     with pytest.raises(TypeError, match=msg):
-        temp_hdfstore.append("df", Series(np.arange(10)))
+        temp_hdfstore.append("df", pd.Series(np.arange(10)))
 
     # appending an incompatible table
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     temp_hdfstore.append("df", df)
 
@@ -814,7 +807,7 @@ def test_append_with_timedelta(temp_hdfstore, unit):
     # append timedelta
 
     ts = Timestamp("20130101").as_unit("ns")
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ts,
             "B": [ts + timedelta(days=i, seconds=10) for i in range(10)],
@@ -855,14 +848,14 @@ def test_append_with_timedelta(temp_hdfstore, unit):
 
 
 def test_append_to_multiple(temp_hdfstore):
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
-    df = concat([df1, df2], axis=1)
+    df = pd.concat([df1, df2], axis=1)
 
     # exceptions
     msg = "append_to_multiple requires a selector that is in passed dict"
@@ -895,11 +888,11 @@ def test_append_to_multiple(temp_hdfstore):
 def test_append_to_multiple_duplicate_index(temp_hdfstore):
     # GH#13547 a DataFrame with duplicate index values round-trips without
     # exploding into extra rows
-    index = MultiIndex.from_arrays(
+    index = pd.MultiIndex.from_arrays(
         [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
         names=["a", "c"],
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 2)),
         columns=["d", "e"],
         index=index,
@@ -913,11 +906,11 @@ def test_append_to_multiple_duplicate_index(temp_hdfstore):
 def test_append_to_multiple_dropna_duplicate_index(temp_hdfstore):
     # GH#13547 dropna=True with duplicate index values used to explode into
     # extra rows on read-back; now all original rows are preserved
-    index = MultiIndex.from_arrays(
+    index = pd.MultiIndex.from_arrays(
         [[1, 1, 1, 1, 1, 2, 2, 2, 2, 2], [6, 7, 6, 7, 6, 7, 6, 7, 6, 7]],
         names=["a", "c"],
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 2)),
         columns=["d", "e"],
         index=index,
@@ -935,18 +928,18 @@ def test_append_to_multiple_dropna_duplicate_index(temp_hdfstore):
 
 
 def test_append_to_multiple_dropna(temp_hdfstore):
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
-    df2 = DataFrame(
+    df2 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     ).rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
-    df = concat([df1, df2], axis=1)
+    df = pd.concat([df1, df2], axis=1)
 
     msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
     # dropna=True should guarantee rows are synchronized
@@ -963,14 +956,14 @@ def test_append_to_multiple_dropna(temp_hdfstore):
 
 
 def test_append_to_multiple_dropna_false(temp_hdfstore):
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
-    df = concat([df1, df2], axis=1)
+    df = pd.concat([df1, df2], axis=1)
 
     depr_msg = "The 'dropna' keyword in HDFStore.append_to_multiple is deprecated"
     # dropna=False shouldn't synchronize row indexes
@@ -989,7 +982,7 @@ def test_append_to_multiple_dropna_false(temp_hdfstore):
 
 def test_append_to_multiple_min_itemsize(temp_hdfstore):
     # GH 11238
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "IX": np.arange(1, 21),
             "Num": np.arange(1, 21),
@@ -1000,7 +993,7 @@ def test_append_to_multiple_min_itemsize(temp_hdfstore):
     )
     expected = df.iloc[[0]]
     # Reading/writing RangeIndex info is not supported yet
-    expected.index = Index(list(range(len(expected.index))))
+    expected.index = pd.Index(list(range(len(expected.index))))
 
     temp_hdfstore.append_to_multiple(
         {
@@ -1018,7 +1011,7 @@ def test_append_to_multiple_min_itemsize(temp_hdfstore):
 
 def test_append_string_nan_rep(temp_hdfstore):
     # GH 16300
-    df = DataFrame({"A": "a", "B": "foo"}, index=np.arange(10))
+    df = pd.DataFrame({"A": "a", "B": "foo"}, index=np.arange(10))
     df_nan = df.copy()
     df_nan.loc[0:4, :] = np.nan
     msg = "NaN representation is too large for existing column size"
@@ -1037,5 +1030,5 @@ def test_append_string_nan_rep(temp_hdfstore):
     temp_hdfstore.append("sc", df["A"], nan_rep="n")
     temp_hdfstore.append("sc", df_nan["A"])
     result = temp_hdfstore["sc"]
-    expected = concat([df["A"], df_nan["A"]])
+    expected = pd.concat([df["A"], df_nan["A"]])
     tm.assert_series_equal(result, expected)

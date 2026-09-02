@@ -11,7 +11,6 @@ import numpy as np
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 
 if TYPE_CHECKING:
@@ -406,7 +405,7 @@ def _check_box_return_type(
                 assert isinstance(r, Axes)
             return
 
-        assert isinstance(returned, Series)
+        assert isinstance(returned, pd.Series)
 
         assert sorted(returned.keys()) == sorted(expected_keys)
         for key, value in returned.items():
@@ -495,8 +494,8 @@ def assert_is_valid_plot_return_object(objs) -> None:
     from matplotlib.artist import Artist
     from matplotlib.axes import Axes
 
-    if isinstance(objs, (Series, np.ndarray)):
-        if isinstance(objs, Series):
+    if isinstance(objs, (pd.Series, np.ndarray)):
+        if isinstance(objs, pd.Series):
             objs = objs._values
         for el in objs.reshape(-1):
             msg = (

@@ -33,15 +33,6 @@ from pandas.core.dtypes.dtypes import (
 )
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    DatetimeIndex,
-    IntervalIndex,
-    Series,
-    SparseDtype,
-    date_range,
-)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -129,7 +120,7 @@ class TestCategoricalDtype(Base):
     dtype2 = CategoricalDtype(["x", "y"], ordered=False)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        c = Categorical([0, 1], dtype=dtype1)
+        c = pd.Categorical([0, 1], dtype=dtype1)
 
     @pytest.mark.parametrize(
         "values, categories, ordered, dtype, expected",
@@ -176,9 +167,9 @@ class TestCategoricalDtype(Base):
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_categorical_dtype(dtype)
 
-            factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
+            factor = pd.Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
 
-            s = Series(factor, name="A")
+            s = pd.Series(factor, name="A")
 
             # dtypes
             assert is_categorical_dtype(s.dtype)
@@ -200,15 +191,15 @@ class TestCategoricalDtype(Base):
         ],
     )
     def test_is_boolean(self, categories, expected):
-        cat = Categorical(categories)
+        cat = pd.Categorical(categories)
         assert cat.dtype._is_boolean is expected
         assert is_bool_dtype(cat) is expected
         assert is_bool_dtype(cat.dtype) is expected
 
     def test_dtype_specific_categorical_dtype(self):
         expected = "datetime64[ns]"
-        dti = DatetimeIndex([], dtype=expected)
-        result = str(Categorical(dti).categories.dtype)
+        dti = pd.DatetimeIndex([], dtype=expected)
+        result = str(pd.Categorical(dti).categories.dtype)
         assert result == expected
 
     def test_not_string(self):
@@ -228,12 +219,14 @@ class TestCategoricalDtype(Base):
 
     def test_update_dtype(self):
         # GH 27338
-        result = CategoricalDtype(["a"]).update_dtype(Categorical(["b"], ordered=True))
+        result = CategoricalDtype(["a"]).update_dtype(
+            pd.Categorical(["b"], ordered=True)
+        )
         expected = CategoricalDtype(["b"], ordered=True)
         assert result == expected
 
     def test_repr(self):
-        cat = Categorical(pd.Index([1, 2, 3], dtype="int32"))
+        cat = pd.Categorical(pd.Index([1, 2, 3], dtype="int32"))
         result = cat.dtype.__repr__()
         expected = (
             "CategoricalDtype(categories=[1, 2, 3], ordered=False, "
@@ -366,8 +359,8 @@ class TestDatetimeTZDtype(Base):
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_datetime64tz_dtype(dtype)
 
-        dr = date_range("20130101", periods=3, tz="US/Eastern")
-        s = Series(dr, name="A")
+        dr = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        s = pd.Series(dr, name="A")
 
         # dtypes
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
@@ -377,12 +370,12 @@ class TestDatetimeTZDtype(Base):
             assert not is_datetime64tz_dtype(1.0)
 
     def test_dst(self):
-        dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
-        s1 = Series(dr1, name="A")
+        dr1 = pd.date_range("2013-01-01", periods=3, tz="US/Eastern")
+        s1 = pd.Series(dr1, name="A")
         assert isinstance(s1.dtype, DatetimeTZDtype)
 
-        dr2 = date_range("2013-08-01", periods=3, tz="US/Eastern")
-        s2 = Series(dr2, name="A")
+        dr2 = pd.date_range("2013-08-01", periods=3, tz="US/Eastern")
+        s2 = pd.Series(dr2, name="A")
         assert isinstance(s2.dtype, DatetimeTZDtype)
         assert s1.dtype == s2.dtype
 
@@ -403,7 +396,7 @@ class TestDatetimeTZDtype(Base):
         # GH 24713
         pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
-        dr = date_range("2013-01-01", periods=3, tz=tz)
+        dr = pd.date_range("2013-01-01", periods=3, tz=tz)
         dtype = DatetimeTZDtype("ns", dr.tz)
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)
@@ -549,7 +542,7 @@ class TestPeriodDtype(Base):
             assert is_period_dtype(pidx.dtype)
             assert is_period_dtype(pidx)
 
-            s = Series(pidx, name="A")
+            s = pd.Series(pidx, name="A")
 
             assert is_period_dtype(s.dtype)
             assert is_period_dtype(s)
@@ -826,12 +819,12 @@ class TestIntervalDtype(Base):
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_interval_dtype(dtype)
 
-            ii = IntervalIndex.from_breaks(range(3))
+            ii = pd.IntervalIndex.from_breaks(range(3))
 
             assert is_interval_dtype(ii.dtype)
             assert is_interval_dtype(ii)
 
-            s = Series(ii, name="A")
+            s = pd.Series(ii, name="A")
 
             assert is_interval_dtype(s.dtype)
             assert is_interval_dtype(s)
@@ -840,10 +833,10 @@ class TestIntervalDtype(Base):
         msg = "is_interval_dtype is deprecated"
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_interval_dtype("interval[int64, both]")
-            assert is_interval_dtype(IntervalIndex.from_tuples([(0, 1)]))
-            assert is_interval_dtype(IntervalIndex.from_breaks(np.arange(4)))
+            assert is_interval_dtype(pd.IntervalIndex.from_tuples([(0, 1)]))
+            assert is_interval_dtype(pd.IntervalIndex.from_breaks(np.arange(4)))
             assert is_interval_dtype(
-                IntervalIndex.from_breaks(date_range("20130101", periods=3))
+                pd.IntervalIndex.from_breaks(pd.date_range("20130101", periods=3))
             )
             assert not is_interval_dtype("U")
             assert not is_interval_dtype("S")
@@ -893,7 +886,7 @@ class TestCategoricalDtypeParametrized:
             np.arange(1000),
             ["a", "b", 10, 2, 1.3, True],
             [True, False],
-            date_range("2017", periods=4),
+            pd.date_range("2017", periods=4),
         ],
     )
     def test_basic(self, categories, ordered):
@@ -1037,25 +1030,25 @@ class TestCategoricalDtypeParametrized:
         assert hash(a) != hash(b)
 
     def test_from_categorical_dtype_identity(self):
-        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        c1 = pd.Categorical([1, 2], categories=[1, 2, 3], ordered=True)
         # Identity test for no changes
         c2 = CategoricalDtype._from_categorical_dtype(c1)
         assert c2 is c1
 
     def test_from_categorical_dtype_categories(self):
-        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        c1 = pd.Categorical([1, 2], categories=[1, 2, 3], ordered=True)
         # override categories
         result = CategoricalDtype._from_categorical_dtype(c1, categories=[2, 3])
         assert result == CategoricalDtype([2, 3], ordered=True)
 
     def test_from_categorical_dtype_ordered(self):
-        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        c1 = pd.Categorical([1, 2], categories=[1, 2, 3], ordered=True)
         # override ordered
         result = CategoricalDtype._from_categorical_dtype(c1, ordered=False)
         assert result == CategoricalDtype([1, 2, 3], ordered=False)
 
     def test_from_categorical_dtype_both(self):
-        c1 = Categorical([1, 2], categories=[1, 2, 3], ordered=True)
+        c1 = pd.Categorical([1, 2], categories=[1, 2, 3], ordered=True)
         # override ordered
         result = CategoricalDtype._from_categorical_dtype(
             c1, categories=[1, 2], ordered=False
@@ -1074,9 +1067,9 @@ class TestCategoricalDtypeParametrized:
 
     def test_categorical_categories(self):
         # GH17884
-        c1 = CategoricalDtype(Categorical(["a", "b"]))
+        c1 = CategoricalDtype(pd.Categorical(["a", "b"]))
         tm.assert_index_equal(c1.categories, pd.Index(["a", "b"]))
-        c1 = CategoricalDtype(CategoricalIndex(["a", "b"]))
+        c1 = CategoricalDtype(pd.CategoricalIndex(["a", "b"]))
         tm.assert_index_equal(c1.categories, pd.Index(["a", "b"]))
 
     @pytest.mark.parametrize(
@@ -1165,11 +1158,11 @@ def test_register_extension_dtype_no_name_gh46093():
         (bool, True),
         (np.bool_, True),
         (np.array(["a", "b"]), False),
-        (Series([1, 2]), False),
+        (pd.Series([1, 2]), False),
         (np.array([True, False]), True),
-        (Series([True, False]), True),
+        (pd.Series([True, False]), True),
         (SparseArray([True, False]), True),
-        (SparseDtype(bool), True),
+        (pd.SparseDtype(bool), True),
     ],
 )
 def test_is_bool_dtype(dtype, expected):
@@ -1178,7 +1171,7 @@ def test_is_bool_dtype(dtype, expected):
 
 
 def test_is_bool_dtype_sparse():
-    result = is_bool_dtype(Series(SparseArray([True, False])))
+    result = is_bool_dtype(pd.Series(SparseArray([True, False])))
     assert result is True
 
 
@@ -1243,11 +1236,11 @@ def test_cast_string_to_complex():
 
 
 def test_categorical_complex():
-    result = Categorical([1, 2 + 2j])
-    expected = Categorical([1.0 + 0.0j, 2.0 + 2.0j])
+    result = pd.Categorical([1, 2 + 2j])
+    expected = pd.Categorical([1.0 + 0.0j, 2.0 + 2.0j])
     tm.assert_categorical_equal(result, expected)
-    result = Categorical([1, 2, 2 + 2j])
-    expected = Categorical([1.0 + 0.0j, 2.0 + 0.0j, 2.0 + 2.0j])
+    result = pd.Categorical([1, 2, 2 + 2j])
+    expected = pd.Categorical([1.0 + 0.0j, 2.0 + 0.0j, 2.0 + 2.0j])
     tm.assert_categorical_equal(result, expected)
 
 
@@ -1278,7 +1271,7 @@ def test_loc_setitem_empty_labels_no_dtype_conversion():
 def test_categorical_nan_no_dtype_conversion():
     # GH 43996
 
-    df = pd.DataFrame({"a": Categorical([np.nan], [1]), "b": [1]})
-    expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
+    df = pd.DataFrame({"a": pd.Categorical([np.nan], [1]), "b": [1]})
+    expected = pd.DataFrame({"a": pd.Categorical([1], [1]), "b": [1]})
     df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)
