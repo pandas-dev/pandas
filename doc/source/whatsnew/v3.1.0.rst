@@ -924,6 +924,7 @@ Other
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 - Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
 - Bug in the ``display.max_colwidth`` option where values smaller than ``4`` were silently ignored, leaving the repr untruncated and its column headers misaligned (:issue:`16097`)
+- Bug in :meth:`DataFrame.rename_axis` and :meth:`Series.rename_axis` raising a ``ValueError`` when passing a hashable tuple name to a 1-dimensional index (:issue:`66656`)
 
 .. ***DO NOT USE THIS SECTION***
 

@@ -1346,7 +1346,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                monkey     2
         """
         axis = self._get_axis_number(axis)
-        idx = self._get_axis(axis).set_names(name)
+        cur_axis = self._get_axis(axis)
+        if not isinstance(cur_axis, MultiIndex) and is_hashable(name):
+            idx = cur_axis.rename(name)
+        else:
+            idx = cur_axis.set_names(name)
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         renamed = self if inplace else self.copy(deep=False)
