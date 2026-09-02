@@ -25,7 +25,7 @@ class TestCategoricalConstructors:
             ([1.5, 2.0], CategoricalDtype([1, 2, 3]), [-1, 1]),
             (
                 np.array([200], dtype="int64"),
-                CategoricalDtype(Index([-56], dtype="int8")),
+                CategoricalDtype(pd.Index([-56], dtype="int8")),
                 [-1],
             ),
             ([1, 2, "a"], CategoricalDtype([1, 2, 3]), [0, 1, -1]),
@@ -35,9 +35,9 @@ class TestCategoricalConstructors:
         # GH#66688
         msg = "Constructing a Categorical with a dtype and values containing"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = Categorical(values, dtype=dtype)
+            result = pd.Categorical(values, dtype=dtype)
 
-        expected = Categorical.from_codes(codes, dtype=dtype)
+        expected = pd.Categorical.from_codes(codes, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
 
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
