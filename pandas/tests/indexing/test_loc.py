@@ -3982,7 +3982,9 @@ def test_loc_setitem_extension_array_into_object_series():
 class TestLocSetitemDataFrameAlignment:
     def test_loc_setitem_scalar_column_dataframe_alignment(self):
         # GH 58482
-        df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
         item = pd.DataFrame([100], columns=["A"], index=["v"])
 
         # Setting a single block dataframe's column with a dataframe should align
@@ -3995,7 +3997,9 @@ class TestLocSetitemDataFrameAlignment:
 
     def test_loc_setitem_scalar_column_dataframe_non_unique_columns(self):
         # GH 58482
-        df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
         item = pd.DataFrame(
             [[10.0, 20.0], [30.0, 40.0]], index=["x", "y"], columns=["A", "A"]
         )
@@ -4005,7 +4009,9 @@ class TestLocSetitemDataFrameAlignment:
 
     def test_loc_setitem_scalar_column_dataframe_row_slice(self):
         # GH 58482
-        df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
         other = pd.DataFrame([[100.0]], columns=["A"], index=["x"])
         df.loc[["x"], "A"] = other
         expected = pd.DataFrame(
