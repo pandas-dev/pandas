@@ -17,7 +17,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    float32_t,
     float64_t,
     int64_t,
     ndarray,
@@ -55,12 +54,6 @@ cdef extern from "pandas/skiplist.h":
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
-    float32_t MINfloat32 = -np.inf
-    float64_t MINfloat64 = -np.inf
-
-    float32_t MAXfloat32 = np.inf
-    float64_t MAXfloat64 = np.inf
-
     float64_t NaN = <float64_t>np.nan
     float64_t EpsF64 = np.finfo(np.float64).eps
 
