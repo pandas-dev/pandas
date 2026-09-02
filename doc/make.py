@@ -148,7 +148,12 @@ class DocBuilder:
             SOURCE_PATH,
             os.path.join(BUILD_PATH, kind),
         ]
-        return subprocess.call(cmd)
+        # sphinx-build calls locale.setlocale(locale.LC_ALL, '') on startup,
+        # which adopts the system locale. We force the C locale here to ensure
+        # doc examples relying on C locale formatting (e.g. date/number formatting)
+        # build consistently regardless of the local machine.
+        env = {**os.environ, "LC_ALL": "C"}
+        return subprocess.call(cmd, env=env)
 
     def _open_browser(self, single_doc_html) -> None:
         """

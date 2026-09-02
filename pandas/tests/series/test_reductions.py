@@ -4,14 +4,13 @@ import pytest
 from pandas.compat import HAS_PYARROW
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 
 
 @pytest.mark.parametrize("operation, expected", [("min", "a"), ("max", "b")])
 def test_reductions_series_strings(operation, expected):
     # GH#31746
-    ser = Series(["a", "b"], dtype="string")
+    ser = pd.Series(["a", "b"], dtype="string")
     res_operation_serie = getattr(ser, operation)()
     assert res_operation_serie == expected
 
@@ -19,7 +18,7 @@ def test_reductions_series_strings(operation, expected):
 @pytest.mark.parametrize("as_period", [True, False])
 def test_mode_extension_dtype(as_period):
     # GH#41927 preserve dt64tz dtype
-    ser = Series([pd.Timestamp(1979, 4, n) for n in range(1, 5)])
+    ser = pd.Series([pd.Timestamp(1979, 4, n) for n in range(1, 5)])
 
     if as_period:
         ser = ser.dt.to_period("D")
@@ -33,60 +32,60 @@ def test_mode_extension_dtype(as_period):
 
 def test_mode_nullable_dtype(any_numeric_ea_dtype):
     # GH#55340
-    ser = Series([1, 3, 2, pd.NA, 3, 2, pd.NA], dtype=any_numeric_ea_dtype)
+    ser = pd.Series([1, 3, 2, pd.NA, 3, 2, pd.NA], dtype=any_numeric_ea_dtype)
     result = ser.mode(dropna=False)
-    expected = Series([2, 3, pd.NA], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([2, 3, pd.NA], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.mode(dropna=True)
-    expected = Series([2, 3], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([2, 3], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
     ser[-1] = pd.NA
 
     result = ser.mode(dropna=True)
-    expected = Series([2, 3], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([2, 3], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.mode(dropna=False)
-    expected = Series([pd.NA], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([pd.NA], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
 
 def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
     # GH##58926
-    ser = Series([1, 2, 3, 1], dtype=any_numeric_ea_dtype)
+    ser = pd.Series([1, 2, 3, 1], dtype=any_numeric_ea_dtype)
     result = ser.mode(dropna=False)
-    expected = Series([1], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([1], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
-    ser2 = Series([1, 1, 2, 3, pd.NA], dtype=any_numeric_ea_dtype)
+    ser2 = pd.Series([1, 1, 2, 3, pd.NA], dtype=any_numeric_ea_dtype)
     result = ser2.mode(dropna=False)
-    expected = Series([1], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([1], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
-    ser3 = Series([1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+    ser3 = pd.Series([1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
     result = ser3.mode(dropna=False)
-    expected = Series([pd.NA], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([pd.NA], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
-    ser4 = Series([1, 1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+    ser4 = pd.Series([1, 1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
     result = ser4.mode(dropna=False)
-    expected = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
+    expected = pd.Series([1, pd.NA], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
 
 def test_mode_string(any_string_dtype):
     # GH#56183
-    ser = Series(["a", "b"], dtype=any_string_dtype)
+    ser = pd.Series(["a", "b"], dtype=any_string_dtype)
     result = ser.mode()
-    expected = Series(["a", "b"], dtype=any_string_dtype)
+    expected = pd.Series(["a", "b"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
 def test_reductions_td64_with_nat():
     # GH#8617
-    ser = Series([0, pd.NaT], dtype="m8[ns]")
+    ser = pd.Series([0, pd.NaT], dtype="m8[ns]")
     exp = ser[0]
     assert ser.median() == exp
     assert ser.min() == exp
@@ -95,7 +94,7 @@ def test_reductions_td64_with_nat():
 
 def test_td64_sum_empty(skipna):
     # GH#37151
-    ser = Series([], dtype="timedelta64[ns]")
+    ser = pd.Series([], dtype="timedelta64[ns]")
 
     result = ser.sum(skipna=skipna)
     assert isinstance(result, pd.Timedelta)
@@ -104,7 +103,7 @@ def test_td64_sum_empty(skipna):
 
 def test_td64_summation_overflow():
     # GH#9442
-    ser = Series(pd.date_range("20130101", periods=100000, freq="h", unit="ns"))
+    ser = pd.Series(pd.date_range("20130101", periods=100000, freq="h", unit="ns"))
     ser[0] += pd.Timedelta("1s 1ms")
 
     # mean
@@ -131,29 +130,29 @@ def test_td64_summation_overflow():
 def test_td64_sum_all_nat_skipna_false():
     # GH#43178: an all-NaT sum with skipna=False must return NaT rather than be
     #  mistaken for an overflow (the NaT sentinels accumulate past int64 bounds)
-    ser = Series(np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]"))
+    ser = pd.Series(np.array(["NaT", "NaT", "NaT"], dtype="m8[ns]"))
     assert ser.sum(skipna=False) is pd.NaT
 
 
 def test_td64_sum_exact():
     # GH#66551: the sum used to accumulate in float64, whose 53-bit mantissa
     #  silently rounded results above 2**53
-    ser = Series([pd.Timedelta(2**53 + 1, "ns"), pd.Timedelta(0, "ns")])
+    ser = pd.Series([pd.Timedelta(2**53 + 1, "ns"), pd.Timedelta(0, "ns")])
     assert ser.sum()._value == 2**53 + 1
 
     # a single representable value has to survive the round trip
-    ser = Series([pd.Timedelta.min])
+    ser = pd.Series([pd.Timedelta.min])
     assert ser.sum() == pd.Timedelta.min
 
     # operands that individually round but cancel exactly
-    ser = Series([pd.Timedelta(2**62 + 1, "ns"), pd.Timedelta(-(2**62), "ns")])
+    ser = pd.Series([pd.Timedelta(2**62 + 1, "ns"), pd.Timedelta(-(2**62), "ns")])
     assert ser.sum() == pd.Timedelta(1, "ns")
 
 
 def test_td64_sum_on_nat_sentinel():
     # GH#66551: a total of exactly int64.min is representable but
     #  indistinguishable from NaT once stored
-    ser = Series([pd.Timedelta.min, pd.Timedelta(-1, "ns")])
+    ser = pd.Series([pd.Timedelta.min, pd.Timedelta(-1, "ns")])
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
         ser.sum()
 
@@ -161,27 +160,27 @@ def test_td64_sum_on_nat_sentinel():
 def test_td64_sum_nat_positions_exempt():
     # GH#66551: with skipna=False the result is NaT anyway, so an overflow among
     #  the entries the NaT masks must not raise
-    ser = Series([pd.Timedelta.max, pd.NaT, pd.Timedelta.max])
+    ser = pd.Series([pd.Timedelta.max, pd.NaT, pd.Timedelta.max])
     assert ser.sum(skipna=False) is pd.NaT
 
 
 def test_td64_sum_below_min_count_exempt():
     # GH#66551: min_count nulls the result out, so it must not raise
-    ser = Series([pd.Timedelta.max] * 2)
+    ser = pd.Series([pd.Timedelta.max] * 2)
     assert ser.sum(min_count=5) is pd.NaT
 
 
 def test_prod_numpy16_bug():
-    ser = Series([1.0, 1.0, 1.0], index=range(3))
+    ser = pd.Series([1.0, 1.0, 1.0], index=range(3))
     result = ser.prod()
 
-    assert not isinstance(result, Series)
+    assert not isinstance(result, pd.Series)
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
 @pytest.mark.parametrize("kwargs", [{"keepdims": True}, {"out": object()}])
 def test_validate_any_all_out_keepdims_raises(kwargs, func):
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     param = next(iter(kwargs))
     name = func.__name__
 
@@ -195,7 +194,7 @@ def test_validate_any_all_out_keepdims_raises(kwargs, func):
 
 
 def test_validate_sum_initial():
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     msg = (
         r"the 'initial' parameter is not "
         r"supported in the pandas "
@@ -206,7 +205,7 @@ def test_validate_sum_initial():
 
 
 def test_validate_median_initial():
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     msg = (
         r"the 'overwrite_input' parameter is not "
         r"supported in the pandas "
@@ -219,7 +218,7 @@ def test_validate_median_initial():
 
 
 def test_validate_stat_keepdims():
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     msg = (
         r"the 'keepdims' parameter is not "
         r"supported in the pandas "
@@ -231,7 +230,7 @@ def test_validate_stat_keepdims():
 
 def test_mean_with_convertible_string_raises(using_infer_string):
     # GH#44008
-    ser = Series(["1", "2"])
+    ser = pd.Series(["1", "2"])
     assert ser.sum() == "12"
 
     # str dtype vs object dtype (infer_string=False) raise differently; drop the
@@ -306,7 +305,7 @@ def test_median_with_convertible_string_raises(using_infer_string):
         if using_infer_string
         else r"Cannot convert \['1' '2' '3'\] to numeric"
     )
-    ser = Series(["1", "2", "3"])
+    ser = pd.Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 

@@ -1,25 +1,20 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    NaT,
-    date_range,
-)
+import pandas as pd
 
 
 @pytest.fixture
-def datetime_frame() -> DataFrame:
+def datetime_frame() -> pd.DataFrame:
     """
     Fixture for DataFrame of floats with DatetimeIndex
 
     Columns are ['A', 'B', 'C', 'D']
     """
-    return DataFrame(
+    return pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
 
 
@@ -30,10 +25,10 @@ def float_string_frame():
 
     Columns are ['A', 'B', 'C', 'D', 'foo'].
     """
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((30, 4)),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD")),
+        index=pd.Index([f"foo_{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD")),
     )
     df["foo"] = "bar"
     return df
@@ -46,14 +41,14 @@ def mixed_float_frame():
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             col: np.random.default_rng(2).random(30, dtype=dtype)
             for col, dtype in zip(
                 list("ABCD"), ["float32", "float32", "float32", "float64"], strict=True
             )
         },
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        index=pd.Index([f"foo_{i}" for i in range(30)], dtype=object),
     )
     # not supported by numpy random
     df["C"] = df["C"].astype("float16")
@@ -67,14 +62,14 @@ def mixed_int_frame():
 
     Columns are ['A', 'B', 'C', 'D'].
     """
-    return DataFrame(
+    return pd.DataFrame(
         {
             col: np.ones(30, dtype=dtype)
             for col, dtype in zip(
                 list("ABCD"), ["int32", "uint64", "uint8", "int64"], strict=True
             )
         },
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
+        index=pd.Index([f"foo_{i}" for i in range(30)], dtype=object),
     )
 
 
@@ -90,13 +85,13 @@ def timezone_frame():
     1 2013-01-02                       NaT                       NaT
     2 2013-01-03 2013-01-03 00:00:00-05:00 2013-01-03 00:00:00+01:00
     """
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "A": date_range("20130101", periods=3, unit="ns"),
-            "B": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
-            "C": date_range("20130101", periods=3, tz="CET", unit="ns"),
+            "A": pd.date_range("20130101", periods=3, unit="ns"),
+            "B": pd.date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
+            "C": pd.date_range("20130101", periods=3, tz="CET", unit="ns"),
         }
     )
-    df.iloc[1, 1] = NaT
-    df.iloc[1, 2] = NaT
+    df.iloc[1, 1] = pd.NaT
+    df.iloc[1, 2] = pd.NaT
     return df

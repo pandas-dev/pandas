@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -30,19 +26,19 @@ class TestDataFrameRenameAxis:
 
     def test_rename_axis_with_allows_duplicate_labels_false(self):
         # GH#44958
-        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
             allows_duplicate_labels=False
         )
 
         result = df.rename_axis("idx", axis=0)
-        expected = DataFrame(
-            [[1, 2], [3, 4]], index=Index([0, 1], name="idx"), columns=["a", "b"]
+        expected = pd.DataFrame(
+            [[1, 2], [3, 4]], index=pd.Index([0, 1], name="idx"), columns=["a", "b"]
         )
         tm.assert_frame_equal(result, expected, check_flags=False)
 
     def test_rename_axis_raises(self):
         # GH#17833
-        df = DataFrame({"A": [1, 2], "B": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
         with pytest.raises(ValueError, match="Use `.rename`"):
             df.rename_axis(id, axis=0)
 
@@ -57,18 +53,18 @@ class TestDataFrameRenameAxis:
 
     def test_rename_axis_mapper(self):
         # GH#19978
-        mi = MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
-        df = DataFrame(
+        mi = pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]], names=["ll", "nn"])
+        df = pd.DataFrame(
             {"x": list(range(len(mi))), "y": [i * 10 for i in range(len(mi))]}, index=mi
         )
 
         # Test for rename of the Index object of columns
         result = df.rename_axis("cols", axis=1)
-        tm.assert_index_equal(result.columns, Index(["x", "y"], name="cols"))
+        tm.assert_index_equal(result.columns, pd.Index(["x", "y"], name="cols"))
 
         # Test for rename of the Index object of columns using dict
         result = result.rename_axis(columns={"cols": "new"}, axis=1)
-        tm.assert_index_equal(result.columns, Index(["x", "y"], name="new"))
+        tm.assert_index_equal(result.columns, pd.Index(["x", "y"], name="new"))
 
         # Test for renaming index using dict
         result = df.rename_axis(index={"ll": "foo"})
@@ -111,13 +107,13 @@ class TestDataFrameRenameAxis:
     )
     def test_rename_axis_none(self, kwargs, rename_index, rename_columns):
         # GH 25034
-        index = Index(list("abc"), name="foo")
-        columns = Index(["col1", "col2"], name="bar")
+        index = pd.Index(list("abc"), name="foo")
+        columns = pd.Index(["col1", "col2"], name="bar")
         data = np.arange(6).reshape(3, 2)
-        df = DataFrame(data, index, columns)
+        df = pd.DataFrame(data, index, columns)
 
         result = df.rename_axis(**kwargs)
         expected_index = index.rename(None) if rename_index else index
         expected_columns = columns.rename(None) if rename_columns else columns
-        expected = DataFrame(data, expected_index, expected_columns)
+        expected = pd.DataFrame(data, expected_index, expected_columns)
         tm.assert_frame_equal(result, expected)

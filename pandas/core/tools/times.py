@@ -28,8 +28,8 @@ def to_time(
 ):
     """
     Parse time strings to time objects using fixed strptime formats ("%H:%M",
-    "%H%M", "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-    "%I%M%S%p")
+    "%H%M", "%I:%M%p", "%I:%M %p", "%I%M%p", "%I%M %p", "%H:%M:%S", "%H%M%S",
+    "%I:%M:%S%p", "%I:%M:%S %p", "%I%M%S%p", "%I%M%S %p")
 
     Use infer_time_format if all the strings are in the same format to speed
     up conversion.
@@ -130,11 +130,15 @@ _time_formats = [
     "%H:%M",
     "%H%M",
     "%I:%M%p",
+    "%I:%M %p",
     "%I%M%p",
+    "%I%M %p",
     "%H:%M:%S",
     "%H%M%S",
     "%I:%M:%S%p",
+    "%I:%M:%S %p",
     "%I%M%S%p",
+    "%I%M%S %p",
 ]
 
 

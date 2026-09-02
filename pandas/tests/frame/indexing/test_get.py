@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -24,4 +24,4 @@ class TestGet:
     )
     def test_get_none(self, columns, index):
         # see gh-5652
-        assert DataFrame(columns=columns, index=index).get(None) is None
+        assert pd.DataFrame(columns=columns, index=index).get(None) is None

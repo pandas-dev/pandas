@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+import pandas as pd
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -12,7 +9,7 @@ from pandas.io.formats.style import Styler
 
 @pytest.fixture
 def df():
-    return DataFrame(
+    return pd.DataFrame(
         data=[[0, 1, 2], [3, 4, 5], [6, 7, 8]],
         columns=["A", "B", "C"],
         index=["x", "y", "z"],
@@ -34,7 +31,7 @@ def styler(df):
     ],
 )
 def test_tooltip_render(data, columns, index, styler):
-    ttips = DataFrame(data=data, columns=columns, index=index)
+    ttips = pd.DataFrame(data=data, columns=columns, index=index)
 
     # GH 21266
     result = styler.set_tooltips(ttips).to_html()
@@ -71,7 +68,7 @@ def test_tooltip_ignored(styler):
 def test_tooltip_css_class(styler):
     # GH 21266
     result = styler.set_tooltips(
-        DataFrame([["tooltip"]], index=["x"], columns=["A"]),
+        pd.DataFrame([["tooltip"]], index=["x"], columns=["A"]),
         css_class="other-class",
         props=[("color", "green")],
     ).to_html()
@@ -80,7 +77,7 @@ def test_tooltip_css_class(styler):
 
     # GH 39563
     result = styler.set_tooltips(  # set_tooltips overwrites previous
-        DataFrame([["tooltip"]], index=["x"], columns=["A"]),
+        pd.DataFrame([["tooltip"]], index=["x"], columns=["A"]),
         css_class="another-class",
         props="color:green;color:red;",
     ).to_html()
@@ -97,7 +94,7 @@ def test_tooltip_css_class(styler):
     ],
 )
 def test_tooltip_render_as_title(data, columns, index, styler):
-    ttips = DataFrame(data=data, columns=columns, index=index)
+    ttips = pd.DataFrame(data=data, columns=columns, index=index)
     # GH 56605
     result = styler.set_tooltips(ttips, as_title_attribute=True).to_html()
 
@@ -130,19 +127,19 @@ def test_tooltip_render_as_title(data, columns, index, styler):
 
 
 def test_tooltip_render_as_title_with_hidden_index_level():
-    df = DataFrame(
+    df = pd.DataFrame(
         data=[[0, 1, 2], [3, 4, 5], [6, 7, 8]],
         columns=["A", "B", "C"],
-        index=MultiIndex.from_arrays(
+        index=pd.MultiIndex.from_arrays(
             [["x", "y", "z"], [1, 2, 3], ["aa", "bb", "cc"]],
             names=["alpha", "num", "char"],
         ),
     )
-    ttips = DataFrame(
+    ttips = pd.DataFrame(
         # Test basic reindex and ignoring blank, and hide level 2 (num) from index
         data=[["Min", "Max"], [np.nan, ""]],
         columns=["A", "C"],
-        index=MultiIndex.from_arrays(
+        index=pd.MultiIndex.from_arrays(
             [["x", "y"], [1, 2], ["aa", "bb"]], names=["alpha", "num", "char"]
         ),
     )

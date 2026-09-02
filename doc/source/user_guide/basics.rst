@@ -2450,7 +2450,7 @@ You can also pass the name of a dtype in the `NumPy dtype hierarchy
 
    df.select_dtypes(include=["bool"])
 
-:meth:`~pandas.DataFrame.select_dtypes` also works with generic dtypes as well.
+:meth:`~pandas.DataFrame.select_dtypes` also works with generic dtypes.
 
 For example, to select all numeric and boolean columns while excluding unsigned
 integers:

@@ -815,7 +815,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             values = self
 
         try:
-            res_values = offset._apply_array(values._ndarray)
+            res_values = offset._add_datetime_ndarray(values._ndarray)
             if res_values.dtype.kind == "i":
                 # values is tz-naive here, so its dtype is the ndarray's
                 res_values = res_values.view(values._ndarray.dtype)
@@ -1030,10 +1030,9 @@ default 'raise'
 
         >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
         >>> tz_aware
-        DatetimeIndex(['2018-03-01 09:00:00-05:00',
-                       '2018-03-02 09:00:00-05:00',
+        DatetimeIndex(['2018-03-01 09:00:00-05:00', '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[us, US/Eastern]', freq=None)
+                      dtype='datetime64[us, US/Eastern]', freq='D')
 
         With ``tz=None`` we can remove the time zone information while
         preserving the wall time (no conversion to UTC):
@@ -1041,7 +1040,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[us]', freq=None)
+                      dtype='datetime64[us]', freq='D')
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -1644,8 +1643,8 @@ default 'raise'
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
-        iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="UInt32"
+        iso_calendar_df = DataFrame(sarray, columns=["year", "week", "day"]).astype(
+            {"year": "Int32", "week": "UInt32", "day": "UInt32"}
         )
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
@@ -3225,7 +3224,8 @@ def _generate_range(
         if (
             start_tod
             # Check if the offset preserves start's time-of-day
-            and (offset._apply(start) - offset._apply(start).normalize()) == start_tod
+            and (offset._add_datetime(start) - offset._add_datetime(start).normalize())
+            == start_tod
         ):
             if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
                 end = end.normalize() + start_tod
@@ -3267,7 +3267,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._add_datetime(cur)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -3282,7 +3282,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._add_datetime(cur)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")

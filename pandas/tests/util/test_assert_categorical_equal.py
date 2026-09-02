@@ -1,19 +1,19 @@
 import pytest
 
-from pandas import Categorical
+import pandas as pd
 import pandas._testing as tm
 
 
 @pytest.mark.parametrize("c", [None, [1, 2, 3, 4, 5]])
 def test_categorical_equal(c):
-    c = Categorical([1, 2, 3, 4], categories=c)
+    c = pd.Categorical([1, 2, 3, 4], categories=c)
     tm.assert_categorical_equal(c, c)
 
 
 @pytest.mark.parametrize("check_category_order", [True, False])
 def test_categorical_equal_order_mismatch(check_category_order):
-    c1 = Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
-    c2 = Categorical([1, 2, 3, 4], categories=[4, 3, 2, 1])
+    c1 = pd.Categorical([1, 2, 3, 4], categories=[1, 2, 3, 4])
+    c2 = pd.Categorical([1, 2, 3, 4], categories=[4, 3, 2, 1])
     kwargs = {"check_category_order": check_category_order}
 
     if check_category_order:
@@ -35,8 +35,8 @@ Categorical\\.categories values are different \\(25\\.0 %\\)
 \\[left\\]:  Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Index\\(\\[1, 2, 3, 5\\], dtype='int64'\\)"""
 
-    c1 = Categorical([1, 2, 3, 4])
-    c2 = Categorical([1, 2, 3, 5])
+    c1 = pd.Categorical([1, 2, 3, 4])
+    c2 = pd.Categorical([1, 2, 3, 5])
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_categorical_equal(c1, c2)
@@ -50,8 +50,8 @@ Categorical\\.codes values are different \\(50\\.0 %\\)
 \\[left\\]:  \\[0, 1, 3, 2\\]
 \\[right\\]: \\[0, 1, 2, 3\\]"""
 
-    c1 = Categorical([1, 2, 4, 3], categories=categories)
-    c2 = Categorical([1, 2, 3, 4], categories=categories)
+    c1 = pd.Categorical([1, 2, 4, 3], categories=categories)
+    c2 = pd.Categorical([1, 2, 3, 4], categories=categories)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_categorical_equal(c1, c2)
@@ -65,8 +65,8 @@ Attribute "ordered" are different
 \\[left\\]:  False
 \\[right\\]: True"""
 
-    c1 = Categorical(data, ordered=False)
-    c2 = Categorical(data, ordered=True)
+    c1 = pd.Categorical(data, ordered=False)
+    c2 = pd.Categorical(data, ordered=True)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_categorical_equal(c1, c2)
@@ -81,8 +81,8 @@ Attribute "ordered" are different
 \\[left\\]:  False
 \\[right\\]: True"""
 
-    c1 = Categorical(data, ordered=False)
-    c2 = Categorical(data, ordered=True)
+    c1 = pd.Categorical(data, ordered=False)
+    c2 = pd.Categorical(data, ordered=True)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_categorical_equal(c1, c2, obj=obj)
