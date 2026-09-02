@@ -653,7 +653,7 @@ def test_assert_series_equal_category_order_with_na():
     #  for the last category when the two sides order their categories
     #  differently
     values = ["B", None, "D"]
-    left = Series(Categorical(values, categories=["B", "D"]))
-    right = Series(Categorical(values, categories=["D", "B"]))
+    left = pd.Series(pd.Categorical(values, categories=["B", "D"]))
+    right = pd.Series(pd.Categorical(values, categories=["D", "B"]))
 
     tm.assert_series_equal(left, right, check_category_order=False)
