@@ -143,9 +143,9 @@ def df_full():
 
 @pytest.fixture(
     params=[
-        datetime.datetime.now(datetime.UTC),
-        datetime.datetime.now(datetime.timezone.min),
-        datetime.datetime.now(datetime.timezone.max),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.UTC),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.timezone.min),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.timezone.max),
         datetime.datetime.strptime("2019-01-04T16:41:24+0200", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24+0215", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24-0200", "%Y-%m-%dT%H:%M:%S%z"),

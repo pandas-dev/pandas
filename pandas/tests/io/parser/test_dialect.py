@@ -10,7 +10,7 @@ import pytest
 
 from pandas.errors import ParserWarning
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -65,7 +65,9 @@ fruit:vegetable
 apple:broccoli
 pear:tomato
 """
-    exp = DataFrame({"fruit": ["apple", "pear"], "vegetable": ["broccoli", "tomato"]})
+    exp = pd.DataFrame(
+        {"fruit": ["apple", "pear"], "vegetable": ["broccoli", "tomato"]}
+    )
 
     with tm.with_csv_dialect(dialect_name, delimiter=":"):
         if parser.engine == "pyarrow":
@@ -100,7 +102,7 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
     dialect_name, dialect_kwargs = custom_dialect
     parser = all_parsers
 
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
     data = "a:b\n1:2"
 
     warning_klass = None
@@ -165,7 +167,7 @@ def test_dialect_conflict_delimiter(all_parsers, custom_dialect, kwargs, warning
     dialect_name, dialect_kwargs = custom_dialect
     parser = all_parsers
 
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
     data = "a:b\n1:2"
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
