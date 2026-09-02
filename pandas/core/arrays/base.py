@@ -9,6 +9,7 @@ An interface for extending pandas with custom arrays.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 import operator
 from typing import (
     TYPE_CHECKING,
@@ -87,7 +88,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Iterator,
-        Sequence,
     )
 
     from pandas._libs.missing import NAType
@@ -2703,20 +2703,11 @@ class ExtensionArray:
         ----------
         mask : np.ndarray[bool]
         value : scalar or listlike
-            If listlike, must be arraylike with same length as self.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Unlike np.putmask, we do not repeat listlike values with mismatched length.
-        'value' should either be a scalar or an arraylike with the same length
-        as self.
+            If listlike, must hold one entry per position ``mask`` selects, or
+            have the same length as self, or have length 1.
         """
         if is_list_like(value):
-            val = value[mask]
+            val = self._align_putmask_value(value, mask)
         else:
             val = value
 
@@ -2730,6 +2721,8 @@ class ExtensionArray:
         ----------
         mask : np.ndarray[bool]
         value : scalar or listlike
+            If listlike, must have the same length as self, or length 1, in
+            which case it is broadcast.
 
         Returns
         -------
@@ -2738,12 +2731,54 @@ class ExtensionArray:
         result = self.copy()
 
         if is_list_like(value):
-            val = value[~mask]
+            val = self._align_mask_value(value)[~mask]
         else:
             val = value
 
         result[~mask] = val
         return result
+
+    def _align_mask_value(self, value):
+        """
+        Convert a list-like ``value`` passed to ``_where`` into an array with
+        the same length as self.
+
+        A length-1 ``value`` is broadcast, matching the semantics numpy dtypes
+        get from ``np.where`` (GH#63842).
+        """
+        if not isinstance(value, (np.ndarray, ExtensionArray)):
+            if not isinstance(value, Sequence):
+                # e.g. dict or set: list-like, but with no element order to
+                #  line up against the mask.  Pass it through unchanged so the
+                #  indexing below handles it exactly as it did before.
+                return value
+            value = construct_1d_object_array_from_listlike(value)
+
+        if len(value) == 1 and len(self) != 1:
+            value = value.repeat(len(self))
+        elif len(value) != len(self):
+            raise ValueError(
+                f"Length of value ({len(value)}) does not match length of "
+                f"the array ({len(self)})"
+            )
+        return value
+
+    def _align_putmask_value(self, value, mask: npt.NDArray[np.bool_]):
+        """
+        Select the entries of a list-like ``value`` that ``mask`` will write.
+
+        ``putmask`` takes one more shape than ``where`` does: as in
+        ``putmask_without_repeat``, a ``value`` holding one entry per selected
+        position is used as-is, the way ``np.place`` does (GH#63842).
+        """
+        if isinstance(value, Sequence):
+            value = construct_1d_object_array_from_listlike(value)
+
+        if isinstance(value, (np.ndarray, ExtensionArray)) and len(value) == mask.sum():
+            return value
+        # anything else -- a dict or set included -- is left to
+        #  _align_mask_value, which passes it through untouched
+        return self._align_mask_value(value)[mask]
 
     @property
     def _is_monotonic_increasing(self) -> bool:
