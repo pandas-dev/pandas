@@ -1475,25 +1475,37 @@ class IntervalDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import IntervalArray
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
             chunks = array.chunks
 
+        # An ExtensionDtype subtype (e.g. DatetimeTZDtype) cannot be handed to
+        # `np.asarray` as a dtype, so defer to the subtype's own arrow conversion.
+        # (GH#67753)
+        subtype_is_numpy = isinstance(self.subtype, np.dtype)
+
+        def _convert(values: pyarrow.Array):
+            if subtype_is_numpy:
+                return np.asarray(values, dtype=self.subtype)
+            return self.subtype.__from_arrow__(values)
+
         results = []
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            left = _convert(arr.field("left"))
+            right = _convert(arr.field("right"))
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
+            empty = pyarrow.array([], type=to_pyarrow_type(self.subtype))
             return IntervalArray.from_arrays(
-                np.array([], dtype=self.subtype),
-                np.array([], dtype=self.subtype),
+                _convert(empty),
+                _convert(empty),
                 closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)
