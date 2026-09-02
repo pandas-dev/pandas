@@ -2130,7 +2130,7 @@ class Index(IndexOpsMixin, PandasObject):
             # as a single scalar name rather than a sequence of per-level
             # names (a plain/Frozen list still means the latter, even though
             # FrozenList happens to be hashable)
-            names = [names]  # type: ignore[assignment]
+            names = [names]
         if level is not None and not is_list_like(level):
             level = [level]
 
