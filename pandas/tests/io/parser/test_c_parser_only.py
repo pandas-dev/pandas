@@ -13,6 +13,7 @@ from io import (
 )
 import mmap
 import tarfile
+import tracemalloc
 
 import numpy as np
 import pytest
@@ -1492,3 +1493,25 @@ def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
     for _ in range(2):
         with pytest.raises(StopIteration):
             next(reader)
+
+
+def test_decode_failure_frees_string_table(c_parser_only):
+    # GH#67931
+    # the string columns are interned through a khash table that was freed only
+    # on the success path, so a decode failure part-way through a column leaked
+    # the whole table
+    parser = c_parser_only
+    rows = "\n".join(f"s{i}" for i in range(2000)).encode()
+    data = b"a\n" + rows + b"\n\xff\n"
+
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot()
+    for _ in range(50):
+        with pytest.raises(UnicodeDecodeError):
+            parser.read_csv(BytesIO(data), encoding_errors="strict")
+    after = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+    # the leaked table was ~100 KiB per failed parse, so ~5 MiB over this loop
+    assert grew < 100_000

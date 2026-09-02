@@ -758,6 +758,7 @@ I/O
 - Fixed bug in :func:`read_pickle` where the timezone of a :class:`Timestamp` was silently dropped when reading a pickle written by pandas 1.2 or earlier, so the timestamp came back tz-naive at its UTC wall time (:issue:`61792`, :issue:`31930`)
 - Fixed bug where a file opened by pandas was left open when :func:`read_csv` and other readers raised while opening it -- for example a ZIP or TAR archive holding more than one file -- so on Windows the file could not be renamed or deleted (:issue:`58131`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
+- Fixed memory leak in :func:`read_csv` with ``engine="c"`` when a string column failed to decode, for example invalid UTF-8 under ``encoding_errors="strict"`` (:issue:`67931`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
 - Fixed segfault when instantiating the internal ``pandas._libs.parsers.TextReader`` with no arguments; it now raises ``TypeError`` (:issue:`53131`)

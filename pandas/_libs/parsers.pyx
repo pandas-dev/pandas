@@ -2009,38 +2009,41 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         khiter_t k
 
     table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
+    try:
+        lines = line_end - line_start
+        result = np.empty(lines, dtype=np.object_)
+        coliter_setup(&it, parser, col, line_start)
 
-    for i in range(lines):
-        word = coliter_next_with_idx(&it, &token_idx)
-        word_len = _token_len(parser, token_idx)
+        for i in range(lines):
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_len = _token_len(parser, token_idx)
 
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
-                # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
+            if na_filter:
+                if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
+                    # in the hash table
+                    na_count += 1
+                    result[i] = NA
+                    continue
 
-        # no deletions from this table, so ret == 0 means already present.
-        # The key carries its length, so two fields that differ only past an
-        # embedded NUL no longer intern to the same object.
-        k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+            # no deletions from this table, so ret == 0 means already present.
+            # The key carries its length, so two fields that differ only past an
+            # embedded NUL no longer intern to the same object.
+            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
 
-        # in the hash table
-        if ret == 0:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            # in the hash table
+            if ret == 0:
+                # this increments the refcount, but need to test
+                pyval = <object>table.vals[k]
+            else:
+                # this raises for invalid UTF-8 under encoding_errors="strict",
+                # so the table has to be freed in a finally
+                pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
-            table.vals[k] = <PyObject *>pyval
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
 
     return result, na_count
 
@@ -2400,24 +2403,27 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
         khiter_t k
 
     table = kh_init_strbox()
-    for i in range(lines):
-        if offsets[i] == -1:
-            result[i] = NA
-            continue
-        word = buf + offsets[i]
-        word_len = strlen(word)
+    try:
+        for i in range(lines):
+            if offsets[i] == -1:
+                result[i] = NA
+                continue
+            word = buf + offsets[i]
+            word_len = strlen(word)
 
-        k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
-        if k != table.n_buckets:
-            pyval = <object>table.vals[k]
-        else:
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
-            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
-            table.vals[k] = <PyObject *>pyval
+            k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
+            if k != table.n_buckets:
+                pyval = <object>table.vals[k]
+            else:
+                # this raises for invalid UTF-8 under encoding_errors="strict",
+                # so the table has to be freed in a finally
+                pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+                k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
     return result
 
 
