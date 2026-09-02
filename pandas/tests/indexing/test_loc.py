@@ -3982,21 +3982,21 @@ def test_loc_setitem_extension_array_into_object_series():
 class TestLocSetitemDataFrameAlignment:
     def test_loc_setitem_scalar_column_dataframe_alignment(self):
         # GH 58482
-        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
-        item = DataFrame([100], columns=["A"], index=["v"])
+        df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        item = pd.DataFrame([100], columns=["A"], index=["v"])
 
         # Setting a single block dataframe's column with a dataframe should align
         df.loc[:, "A"] = item
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[np.nan, 2.0], [np.nan, 4.0]], index=["x", "y"], columns=["A", "B"]
         )
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_scalar_column_dataframe_non_unique_columns(self):
         # GH 58482
-        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
-        item = DataFrame(
+        df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        item = pd.DataFrame(
             [[10.0, 20.0], [30.0, 40.0]], index=["x", "y"], columns=["A", "A"]
         )
         msg = "Setting with non-unique columns is not allowed."
@@ -4005,10 +4005,10 @@ class TestLocSetitemDataFrameAlignment:
 
     def test_loc_setitem_scalar_column_dataframe_row_slice(self):
         # GH 58482
-        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
-        other = DataFrame([[100.0]], columns=["A"], index=["x"])
+        df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"])
+        other = pd.DataFrame([[100.0]], columns=["A"], index=["x"])
         df.loc[["x"], "A"] = other
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[100.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
         )
         tm.assert_frame_equal(df, expected)
