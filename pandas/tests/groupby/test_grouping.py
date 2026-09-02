@@ -321,7 +321,7 @@ class TestGrouping:
         assert keys == expected
 
     def test_grouper_column_and_index(self):
-        # GH#14327
+        # GH 14327
 
         # Grouping a multi-index frame by a column and an index level should
         # be equivalent to resetting the index and grouping by two columns
