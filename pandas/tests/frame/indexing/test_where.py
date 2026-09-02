@@ -886,6 +886,11 @@ def test_where_listlike_other_keeps_string_dtype(
     frame_or_series, any_string_dtype, box
 ):
     # GH#63842
+    if box is tuple and any_string_dtype == object:
+        # GH#37681 a tuple is a valid object-dtype scalar, so for object dtype
+        #  it is filled in as a scalar; see test_where_tuple_scalar_object_dtype
+        pytest.skip("tuple is treated as a scalar for object dtype")
+
     obj = frame_or_series(pd.array(["a", "bc", "cde", "fghi"], dtype=any_string_dtype))
     cond = pd.Series([True, False, True, False])
     if frame_or_series is pd.DataFrame:
