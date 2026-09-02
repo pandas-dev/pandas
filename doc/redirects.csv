@@ -50,33 +50,6 @@ internals,development/internals
 development/meeting,community
 
 # api moved function
-# old ones that were still located in generated/
-generated/pandas.core.common.isnull,../reference/api/pandas.isna
-generated/pandas.core.common.notnull,../reference/api/pandas.notna
-generated/pandas.core.reshape.get_dummies,../reference/api/pandas.get_dummies
-generated/pandas.tools.merge.concat,../reference/api/pandas.concat
-generated/pandas.tools.merge.merge,../reference/api/pandas.merge
-generated/pandas.tools.pivot.pivot_table,../reference/api/pandas.pivot_table
-generated/pandas.tseries.tools.to_datetime,../reference/api/pandas.to_datetime
-generated/pandas.io.clipboard.read_clipboard,../reference/api/pandas.read_clipboard
-generated/pandas.io.excel.ExcelFile.parse,../reference/api/pandas.ExcelFile.parse
-generated/pandas.io.excel.read_excel,../reference/api/pandas.read_excel
-generated/pandas.io.html.read_html,../reference/api/pandas.read_html
-generated/pandas.io.json.read_json,../reference/api/pandas.read_json
-generated/pandas.io.parsers.read_csv,../reference/api/pandas.read_csv
-generated/pandas.io.parsers.read_fwf,../reference/api/pandas.read_fwf
-generated/pandas.io.parsers.read_table,../reference/api/pandas.read_table
-generated/pandas.io.pickle.read_pickle,../reference/api/pandas.read_pickle
-generated/pandas.io.pytables.HDFStore.append,../reference/api/pandas.HDFStore.append
-generated/pandas.io.pytables.HDFStore.get,../reference/api/pandas.HDFStore.get
-generated/pandas.io.pytables.HDFStore.put,../reference/api/pandas.HDFStore.put
-generated/pandas.io.pytables.HDFStore.select,../reference/api/pandas.HDFStore.select
-generated/pandas.io.pytables.read_hdf,../reference/api/pandas.read_hdf
-generated/pandas.io.sql.read_sql,../reference/api/pandas.read_sql
-generated/pandas.io.sql.read_frame,../reference/api/pandas.read_frame
-generated/pandas.io.sql.write_frame,../reference/api/pandas.write_frame
-generated/pandas.io.stata.read_stata,../reference/api/pandas.read_stata
-# new API moves
 reference/api/pandas.io.json.json_normalize,pandas.json_normalize
 
 # rename due to refactors
@@ -1297,6 +1270,31 @@ generated/pandas.util.hash_array,../reference/api/pandas.util.hash_array
 generated/pandas.util.hash_pandas_object,../reference/api/pandas.util.hash_pandas_object
 generated/pandas.wide_to_long,../reference/api/pandas.wide_to_long
 # old redirects at generated/
+generated/pandas.core.common.isnull,../reference/api/pandas.isna
+generated/pandas.core.common.notnull,../reference/api/pandas.notna
+generated/pandas.core.reshape.get_dummies,../reference/api/pandas.get_dummies
+generated/pandas.tools.merge.concat,../reference/api/pandas.concat
+generated/pandas.tools.merge.merge,../reference/api/pandas.merge
+generated/pandas.tools.pivot.pivot_table,../reference/api/pandas.pivot_table
+generated/pandas.tseries.tools.to_datetime,../reference/api/pandas.to_datetime
+generated/pandas.io.clipboard.read_clipboard,../reference/api/pandas.read_clipboard
+generated/pandas.io.excel.ExcelFile.parse,../reference/api/pandas.ExcelFile.parse
+generated/pandas.io.excel.read_excel,../reference/api/pandas.read_excel
+generated/pandas.io.html.read_html,../reference/api/pandas.read_html
+generated/pandas.io.json.read_json,../reference/api/pandas.read_json
+generated/pandas.io.parsers.read_csv,../reference/api/pandas.read_csv
+generated/pandas.io.parsers.read_fwf,../reference/api/pandas.read_fwf
+generated/pandas.io.parsers.read_table,../reference/api/pandas.read_table
+generated/pandas.io.pickle.read_pickle,../reference/api/pandas.read_pickle
+generated/pandas.io.pytables.HDFStore.append,../reference/api/pandas.HDFStore.append
+generated/pandas.io.pytables.HDFStore.get,../reference/api/pandas.HDFStore.get
+generated/pandas.io.pytables.HDFStore.put,../reference/api/pandas.HDFStore.put
+generated/pandas.io.pytables.HDFStore.select,../reference/api/pandas.HDFStore.select
+generated/pandas.io.pytables.read_hdf,../reference/api/pandas.read_hdf
+generated/pandas.io.sql.read_sql,../reference/api/pandas.read_sql
+generated/pandas.io.sql.read_frame,../reference/api/pandas.read_frame
+generated/pandas.io.sql.write_frame,../reference/api/pandas.write_frame
+generated/pandas.io.stata.read_stata,../reference/api/pandas.read_stata
 generated/pandas.tseries.resample.Resampler,../reference/api/pandas.api.typing.Resampler
 generated/pandas.tseries.resample.Resampler.__iter__,../reference/api/pandas.api.typing.Resampler.__iter__
 generated/pandas.tseries.resample.Resampler.agg,../reference/api/pandas.api.typing.Resampler.agg
