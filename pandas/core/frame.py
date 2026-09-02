@@ -2573,8 +2573,9 @@ class DataFrame(NDFrame, OpsMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer
-            :ref:`here <io.remote>`.
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
@@ -2757,8 +2758,9 @@ class DataFrame(NDFrame, OpsMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer
-            :ref:`here <io.remote>`.
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         **kwargs
             These parameters will be passed to `tabulate <https://pypi.org/project/tabulate>`_.
@@ -2912,8 +2914,9 @@ class DataFrame(NDFrame, OpsMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer
-            :ref:`here <io.remote>`.
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
         filesystem : fsspec or pyarrow filesystem, default None
             Filesystem object to use when reading the parquet file. Only implemented
             for ``engine="pyarrow"``.
@@ -3545,8 +3548,9 @@ class DataFrame(NDFrame, OpsMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer
-            :ref:`here <io.remote>`.
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         Returns
         -------
@@ -4017,8 +4021,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -5878,7 +5883,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "This behavior is deprecated and will be removed in a future "
                 "version. Explicitly pass 'str' to `include` to select them, "
                 "or to `exclude` to remove them and silence this warning.\nSee "
-                "https://pandas.pydata.org/docs/user_guide/migration.html"
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
                 "#string-migration-select-dtypes for details on how to write code "
                 "that works with pandas 2 and 3.",
                 Pandas4Warning,
@@ -6170,8 +6175,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -6266,8 +6272,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         level : int or name
             Match index values on the specified level of a MultiIndex.
@@ -6779,8 +6786,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
@@ -13124,10 +13132,10 @@ class DataFrame(NDFrame, OpsMixin):
             index. If a dict or Series is passed, the Series or dict VALUES
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of length
-            equal to the number of rows is passed (see the
-            :ref:`groupby user guide <groupby.split>`), the values are used
-            as-is to determine the groups. A label or list of labels may be
-            passed to group by the columns in ``self``.
+            equal to the number of rows is passed (see the `groupby user guide
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            the values are used as-is to determine the groups. A label or list
+            of labels may be passed to group by the columns in ``self``.
             Notice that a tuple is interpreted as a (single) key.
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -13136,20 +13144,23 @@ class DataFrame(NDFrame, OpsMixin):
             Return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
             effectively "SQL-style" grouped output. This argument has no effect
-            on filtrations (see the :ref:`filtrations in the user guide
-            <groupby.filter>`), such as ``head()``, ``tail()``, ``nth()`` and in
-            transformations (see the :ref:`transformations in the user guide
-            <groupby.transform>`).
+            on filtrations (see the `filtrations in the user guide
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#transformation>`_).
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
             DataFrame.
-            This argument has no effect on filtrations (see the
-            :ref:`filtrations in the user guide <groupby.filter>`), such as
-            ``head()``, ``tail()``, ``nth()`` and in transformations (see the
-            :ref:`transformations in the user guide <groupby.transform>`).
+            This argument has no effect on filtrations (see the `filtrations
+            in the user guide
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#transformation>`_).
 
             .. versionchanged:: 2.0.0
 
@@ -13193,8 +13204,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        See the :ref:`user guide <groupby>` for more detailed usage and
-        examples, including splitting an object into groups,
+        See the `user guide
+        <https://pandas.pydata.org/docs/user_guide/groupby.html>`__ for more
+        detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
         The implementation of groupby is hash-based, meaning in particular that
@@ -15562,8 +15574,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         indicator : bool or str, default False
             If True, adds a column to the output DataFrame called "_merge" with
@@ -19321,8 +19334,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -19406,8 +19420,9 @@ class DataFrame(NDFrame, OpsMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
-                <copy_on_write>` for more details.
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------

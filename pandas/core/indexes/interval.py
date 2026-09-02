@@ -227,7 +227,9 @@ class IntervalIndex(ExtensionIndex):
 
     Notes
     -----
-    See the :ref:`user guide <advanced.intervalindex>` for more.
+    See the `user guide
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
+    for more.
 
     Examples
     --------

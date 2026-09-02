@@ -1243,7 +1243,8 @@ def read_csv(
     Also supports optionally iterating or breaking of the file
     into chunks.
 
-    Additional help can be found in the online docs for :ref:`IO Tools <io>`.
+    Additional help can be found in the online docs for
+    `IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -1469,7 +1470,8 @@ def read_csv(
     chunksize : int, optional
         Number of lines to read from the file per chunk. Passing a value will cause the
         function to return a ``TextFileReader`` object for iteration.
-        See the :ref:`IO Tools docs <io.chunking>`
+        See the `IO Tools docs
+        <https://pandas.pydata.org/docs/user_guide/io.html#io-chunking>`_
         for more information on ``iterator`` and ``chunksize``.
 
     compression : str or dict, default 'infer'
@@ -1604,7 +1606,9 @@ def read_csv(
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer :ref:`here <io.remote>`.
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -1843,7 +1847,8 @@ def read_table(
     Also supports optionally iterating or breaking of the file
     into chunks.
 
-    Additional help can be found in the online docs for :ref:`IO Tools <io>`.
+    Additional help can be found in the online docs for
+    `IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -2065,7 +2070,8 @@ def read_table(
     chunksize : int, optional
         Number of lines to read from the file per chunk. Passing a value will cause the
         function to return a ``TextFileReader`` object for iteration.
-        See the :ref:`IO Tools docs <io.chunking>`
+        See the `IO Tools docs
+        <https://pandas.pydata.org/docs/user_guide/io.html#io-chunking>`_
         for more information on ``iterator`` and ``chunksize``.
 
     compression : str or dict, default 'infer'
@@ -2200,7 +2206,9 @@ def read_table(
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer :ref:`here <io.remote>`.
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -2387,7 +2395,8 @@ def read_fwf(
     Also supports optionally iterating or breaking of the file
     into chunks.
 
-    Additional help can be found in the :ref:`online docs for IO Tools <io>`.
+    Additional help can be found in the `online docs for IO Tools
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
 
     Parameters
     ----------

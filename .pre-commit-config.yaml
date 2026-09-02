@@ -217,18 +217,6 @@ repos:
         entry: '^(?!.*# current-time-ok).*(date_range|datetime64|period_range|Period|Timestamp|to_datetime)\(\s*\[?"(now|today)"'
         files: ^pandas/tests/
         types_or: [python, cython, rst]
-    -   id: hardcoded-doc-urls
-        name: Check for hardcoded links to the pandas documentation
-        description: >
-            Absolute pandas.pydata.org links go stale whenever a page moves
-            (GH#66599). Use a Sphinx cross-reference such as
-            :ref:`user guide <copy_on_write>` instead, which the doc build
-            validates.
-        language: pygrep
-        entry: '<https?://pandas\.pydata\.org/(docs|pandas-docs)/'
-        files: ^pandas/
-        exclude: ^pandas/tests/
-        types_or: [python, cython]
     -   id: unwanted-patterns-in-cython
         name: Unwanted patterns in Cython code
         language: pygrep

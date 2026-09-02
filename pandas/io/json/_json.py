@@ -792,7 +792,8 @@ def read_json(
 
     chunksize : int, optional
         Return JsonReader object for iteration.
-        See the :ref:`line-delimited json docs <io.jsonl>`
+        See the `line-delimited json docs
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#line-delimited-json>`_
         for more information on ``chunksize``.
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
@@ -826,7 +827,9 @@ def read_json(
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer :ref:`here <io.remote>`.
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`

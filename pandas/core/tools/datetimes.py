@@ -874,8 +874,10 @@ def to_datetime(
           offsets (typically, daylight savings), see :ref:`Examples
           <to_datetime_tz_examples>` section for details.
 
-        See also: pandas general documentation about
-        :ref:`timezone conversion and localization <timeseries.timezone>`.
+        See also: pandas general documentation about `timezone conversion and
+        localization
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+        #time-zone-handling>`_.
 
     format : str, default None
         The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
@@ -1028,8 +1030,9 @@ def to_datetime(
     with :class:`datetime64` dtype):
 
     - when any input element is before :const:`Timestamp.min` or after
-      :const:`Timestamp.max`, see
-      :ref:`timestamp limitations <timeseries.timestamp-limits>`.
+      :const:`Timestamp.max`, see `timestamp limitations
+      <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
+      #timeseries-timestamp-limits>`_.
 
     - when ``utc=False`` (default) and the input is an array-like or
       :class:`Series` containing mixed naive/aware datetime, or aware with mixed

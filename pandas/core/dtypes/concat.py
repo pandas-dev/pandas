@@ -271,7 +271,8 @@ def union_categoricals(
 
     Notes
     -----
-    To learn more about categories, see :ref:`link <categorical.union>`
+    To learn more about categories, see `link
+    <https://pandas.pydata.org/pandas-docs/stable/user_guide/categorical.html#unioning>`__
 
     Examples
     --------
