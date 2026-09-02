@@ -2371,6 +2371,21 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
         return TimedeltaIndexResampler
 
 
+def _rule_code_or_empty(freq: BaseOffset) -> str:
+    """
+    ``rule_code`` for offsets that define one, the empty string otherwise.
+
+    A generic ``DateOffset``, e.g. ``DateOffset(months=1)``, has no frequency
+    string and raises ``NotImplementedError``. Such an offset is never one of
+    the end-anchored frequencies that the callers test for, so an empty rule
+    code gives them the right answer.
+    """
+    try:
+        return freq.rule_code
+    except NotImplementedError:
+        return ""
+
+
 def get_resampler(obj: Series | DataFrame, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
@@ -2482,7 +2497,7 @@ class TimeGrouper(Grouper):
                 )
 
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
-        rule = freq.rule_code
+        rule = _rule_code_or_empty(freq)
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
                 closed = "right"
@@ -2724,9 +2739,8 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.rule_code in ("BME", "ME", "W") or self.freq.rule_code.split("-")[
-            0
-        ] in (
+        rule_code = _rule_code_or_empty(self.freq)
+        if rule_code in ("BME", "ME", "W") or rule_code.split("-")[0] in (
             "BQE",
             "BYE",
             "QE",

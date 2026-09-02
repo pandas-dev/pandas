@@ -2378,3 +2378,55 @@ def test_groupby_multiday_grouper_closed_right_intraday():
         index=DatetimeIndex(["2019-12-31", "2020-01-02", "2020-01-04"], freq="2D"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "offset, equivalent_freq",
+    [
+        (pd.DateOffset(days=1), "1D"),
+        (pd.DateOffset(days=10), "10D"),
+        (pd.DateOffset(weeks=1), "7D"),
+    ],
+)
+def test_resample_generic_dateoffset_matches_freq_string(offset, equivalent_freq):
+    # GH#31697 a plain DateOffset has no rule code; resample used to raise
+    #  NotImplementedError("Prefix not defined") although the rule parameter
+    #  is documented to accept a DateOffset.
+    index = date_range("2020-01-01", periods=48, freq="h")
+    df = pd.DataFrame({"a": np.arange(len(index), dtype=float)}, index=index)
+
+    result = df.resample(offset).sum()
+    expected = df.resample(equivalent_freq).sum()
+    tm.assert_frame_equal(result, expected, check_freq=False)
+
+
+def test_resample_generic_dateoffset_calendar_bins():
+    # GH#31697 a calendar offset, binned from the first observation because
+    #  a plain DateOffset is not anchored
+    index = DatetimeIndex(["2020-01-05", "2020-01-20", "2020-02-10", "2020-03-15"])
+    df = pd.DataFrame({"a": [10, 20, 20, 25]}, index=index)
+
+    result = df.resample(pd.DateOffset(months=1)).sum()
+    expected = pd.DataFrame(
+        {"a": [30, 20, 25]},
+        index=DatetimeIndex(["2020-01-05", "2020-02-05", "2020-03-05"]),
+    )
+    tm.assert_frame_equal(result, expected, check_freq=False)
+
+
+def test_resample_generic_dateoffset_on_column():
+    # GH#31697 the example from the report, which used ``on=``
+    df = pd.DataFrame(
+        {
+            "Timestamp": date_range("2020-01", "2020-03", periods=5),
+            "Amount": [5, 10, 15, 20, 25],
+        }
+    )
+    result = df.resample(pd.DateOffset(months=1), on="Timestamp").sum()
+    expected = pd.DataFrame(
+        {"Amount": [30, 20, 25]},
+        index=DatetimeIndex(
+            ["2020-01-01", "2020-02-01", "2020-03-01"], name="Timestamp"
+        ),
+    )
+    tm.assert_frame_equal(result, expected, check_freq=False)
