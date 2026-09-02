@@ -465,11 +465,17 @@ class TestTimedeltas:
     def test_uint64_to_timedelta_raise_oob(self):
         # GH#60677 uint64 values > int64 max overflow silently
         uint64_max = np.iinfo(np.uint64).max
-        arr = np.array([uint64_max], dtype=np.uint64)
 
         msg = "Cannot convert input with unit 'ns'"
+
+        # arrays via to_timedelta
+        arr = np.array([uint64_max], dtype=np.uint64)
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             pd.to_timedelta(arr, unit="ns")
+        for con in [pd.array, pd.Series, pd.Index]:
+            arr = con([uint64_max], dtype="UInt64")
+            with pytest.raises(OutOfBoundsTimedelta, match=msg):
+                pd.to_timedelta(arr, unit="ns")
         # scalar via to_timedelta
         with pytest.raises(OutOfBoundsTimedelta):
             pd.to_timedelta(uint64_max, unit="ns")
@@ -481,11 +487,21 @@ class TestTimedeltas:
     def test_uint64_to_timedelta_coerce(self):
         # GH#60677
         uint64_max = np.iinfo(np.uint64).max
-        arr = np.array([uint64_max], dtype=np.uint64)
 
+        arr = np.array([0, uint64_max], dtype=np.uint64)
         result = pd.to_timedelta(arr, unit="ns", errors="coerce")
-        expected = pd.TimedeltaIndex([pd.NaT], dtype="m8[ns]")
+        expected = pd.TimedeltaIndex([pd.Timedelta(0), pd.NaT], dtype="m8[ns]")
         tm.assert_index_equal(result, expected)
+
+        for con in [pd.array, pd.Series, pd.Index]:
+            arr = con([0, uint64_max, None], dtype="UInt64")
+            result = pd.to_timedelta(arr, unit="ns", errors="coerce")
+            expected = pd.TimedeltaIndex(
+                [pd.Timedelta(0), pd.NaT, pd.NaT], dtype="m8[ns]"
+            )
+            if con is pd.Series:
+                expected = pd.Series(expected)
+            tm.assert_equal(result, expected)
 
         # scalar
         result = pd.to_timedelta(uint64_max, unit="ns", errors="coerce")
@@ -497,6 +513,29 @@ class TestTimedeltas:
         result = pd.to_timedelta(arr, unit="ns")
         expected = pd.to_timedelta(arr.astype(np.int64), unit="ns")
         tm.assert_index_equal(result, expected)
+
+        arr = pd.array([1_000_000, 2_000_000, None], dtype="UInt64")
+        result = pd.to_timedelta(arr, unit="ns")
+        expected = expected.append(pd.to_timedelta([pd.NaT]))
+        tm.assert_index_equal(result, expected)
+
+    def test_nullable_int_to_timedelta_no_float_precision_loss(
+        self, index_or_series_or_array
+    ):
+        # GH#66988 a nullable int array with a value that is not exactly
+        #  representable as float64 should not lose precision by going
+        #  through a float64 intermediate when it contains NA values
+        value = 2**60 + 1
+        arr = index_or_series_or_array([value, None], dtype="Int64")
+        result = pd.to_timedelta(arr, unit="ns")
+        expected = pd.TimedeltaIndex([pd.Timedelta(value, unit="ns"), pd.NaT])
+        if isinstance(arr, pd.Series):
+            expected = pd.Series(expected)
+        tm.assert_equal(result, expected)
+
+        uarr = index_or_series_or_array([value, None], dtype="UInt64")
+        result = pd.to_timedelta(uarr, unit="ns")
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["ps", "fs", "as"])
     def test_sub_nano_unit_raises(self, unit):
