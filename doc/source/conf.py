@@ -676,33 +676,6 @@ for old, new in moved_classes:
     # ... and each of its public methods
     moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
-
-offset_attrs = ["freqstr", "kwds", "name", "nanos", "normalize", "rule_code", "n"]
-offset_methods = [
-    "copy",
-    "is_on_offset",
-    "is_month_start",
-    "is_month_end",
-    "is_quarter_start",
-    "is_quarter_end",
-    "is_year_start",
-    "is_year_end",
-    "rollback",
-    "rollforward",
-]
-
-for cls_name in pandas.tseries.offsets.__all__:
-    if cls_name == "BaseOffset":
-        continue
-    moved_api_pages.extend(
-        (
-            f"pandas.tseries.offsets.{cls_name}.{name}",
-            f"pandas.tseries.offsets.BaseOffset.{name}",
-        )
-        for name in offset_attrs + offset_methods
-    )
-
-
 if include_api:
     html_additional_pages = {
         "generated/" + page[0]: "api_redirect.html" for page in moved_api_pages
