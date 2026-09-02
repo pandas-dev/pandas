@@ -1,9 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: github-actions
-    directories:
-      - "/"
-      - "/.github/actions/setup-pixi"
+    directory: /
     schedule:
       interval: weekly
     labels:
