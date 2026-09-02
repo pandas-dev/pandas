@@ -24,6 +24,7 @@ moments_lib = static_library(
     'moments_@0@.cpp'.format(simd_target),
     include_directories: [inc_pd],
     dependencies: [xsimd_dep],
+    cpp_args: strict_c_args,
 )
 
 moments_simd_dep = declare_dependency(
