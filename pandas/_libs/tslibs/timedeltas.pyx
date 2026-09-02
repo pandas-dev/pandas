@@ -376,10 +376,7 @@ def array_to_timedelta64(
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
 
-    if unit is None or unit == "ns":
-        int_reso = NPY_FR_ns
-    else:
-        int_reso = NPY_FR_us
+    int_reso = NPY_FR_ns if parsed_unit == "ns" else NPY_FR_us
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -2729,11 +2726,7 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
                 unit = parse_timedelta_unit(unit)
-                out_reso = (
-                    NPY_DATETIMEUNIT.NPY_FR_ns
-                    if unit == "ns"
-                    else NPY_DATETIMEUNIT.NPY_FR_us
-                )
+                out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
                 value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
                 return cls._from_value_and_reso(value, reso=out_reso)
 
@@ -2747,11 +2740,7 @@ class Timedelta(_Timedelta):
             if value.is_integer():
                 if value != NPY_NAT:
                     # round float -> treat like an int
-                    out_reso = (
-                        NPY_DATETIMEUNIT.NPY_FR_ns
-                        if unit == "ns"
-                        else NPY_DATETIMEUNIT.NPY_FR_us
-                    )
+                    out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
                     value = _numeric_to_td64ns(int(value), unit, out_reso=out_reso)
                     return cls._from_value_and_reso(value, reso=out_reso)
             else:
