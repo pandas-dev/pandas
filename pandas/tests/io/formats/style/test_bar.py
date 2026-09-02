@@ -3,11 +3,7 @@ import io
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    read_csv,
-)
+import pandas as pd
 
 pytest.importorskip("jinja2")
 
@@ -45,17 +41,17 @@ def bar_from_to(x, y, color="#d65f5f"):
 
 @pytest.fixture
 def df_pos():
-    return DataFrame([[1], [2], [3]])
+    return pd.DataFrame([[1], [2], [3]])
 
 
 @pytest.fixture
 def df_neg():
-    return DataFrame([[-1], [-2], [-3]])
+    return pd.DataFrame([[-1], [-2], [-3]])
 
 
 @pytest.fixture
 def df_mix():
-    return DataFrame([[-3], [1], [2]])
+    return pd.DataFrame([[-3], [1], [2]])
 
 
 @pytest.mark.parametrize(
@@ -178,7 +174,7 @@ def test_align_mixed_cases(df_mix, align, exp, nans):
 @pytest.mark.parametrize("axis", ["index", "columns", "none"])
 def test_align_axis(align, exp, axis):
     # test all axis combinations with positive values and different aligns
-    data = DataFrame([[1, 2], [3, 4]])
+    data = pd.DataFrame([[1, 2], [3, 4]])
     result = (
         data.style.bar(align=align, axis=None if axis == "none" else axis)
         ._compute()
@@ -263,7 +259,7 @@ def test_vmin_vmax_widening(df_pos, df_neg, df_mix, values, vmin, vmax, nullify,
 
 def test_numerics():
     # test data is preselected for numeric values
-    data = DataFrame([[1, "a"], [2, "b"]])
+    data = pd.DataFrame([[1, "a"], [2, "b"]])
     result = data.style.bar()._compute().ctx
     assert (0, 1) not in result
     assert (1, 1) not in result
@@ -279,14 +275,14 @@ def test_numerics():
     ],
 )
 def test_colors_mixed(align, exp):
-    data = DataFrame([[-1], [3]])
+    data = pd.DataFrame([[-1], [3]])
     result = data.style.bar(align=align, color=["red", "green"])._compute().ctx
     assert result == {(0, 0): exp[0], (1, 0): exp[1]}
 
 
 def test_bar_align_height():
     # test when keyword height is used 'no-repeat center' and 'background-size' present
-    data = DataFrame([[1], [2]])
+    data = pd.DataFrame([[1], [2]])
     result = data.style.bar(align="left", height=50)._compute().ctx
     bg_s = "linear-gradient(90deg, #d65f5f 100.0%, transparent 100.0%) no-repeat center"
     expected = {
@@ -301,7 +297,7 @@ def test_bar_align_height():
 
 
 def test_bar_value_error_raises():
-    df = DataFrame({"A": [-100, -60, -30, -20]})
+    df = pd.DataFrame({"A": [-100, -60, -30, -20]})
 
     msg = "`align` should be in {'left', 'right', 'mid', 'mean', 'zero'} or"
     with pytest.raises(ValueError, match=msg):
@@ -317,7 +313,7 @@ def test_bar_value_error_raises():
 
 
 def test_bar_color_and_cmap_error_raises():
-    df = DataFrame({"A": [1, 2, 3, 4]})
+    df = pd.DataFrame({"A": [1, 2, 3, 4]})
     msg = "`color` and `cmap` cannot both be given"
     # Test that providing both color and cmap raises a ValueError
     with pytest.raises(ValueError, match=msg):
@@ -325,7 +321,7 @@ def test_bar_color_and_cmap_error_raises():
 
 
 def test_bar_invalid_color_type_error_raises():
-    df = DataFrame({"A": [1, 2, 3, 4]})
+    df = pd.DataFrame({"A": [1, 2, 3, 4]})
     msg = (
         r"`color` must be string or list or tuple of 2 strings,"
         r"\(eg: color=\['#d65f5f', '#5fba7d'\]\)"
@@ -340,8 +336,8 @@ def test_bar_invalid_color_type_error_raises():
 
 
 def test_styler_bar_with_NA_values():
-    df1 = DataFrame({"A": [1, 2, NA, 4]})
-    df2 = DataFrame([[NA, NA], [NA, NA]])
+    df1 = pd.DataFrame({"A": [1, 2, pd.NA, 4]})
+    df2 = pd.DataFrame([[pd.NA, pd.NA], [pd.NA, pd.NA]])
     expected_substring = "style type="
     html_output1 = df1.style.bar(subset="A").to_html()
     html_output2 = df2.style.bar(align="left", axis=None).to_html()
@@ -356,7 +352,7 @@ def test_style_bar_with_pyarrow_NA_values():
         Bob,16,81.0,82,Ashby
         Dave,16,89.0,84,Jones
         Fred,15,,88,Jones"""
-    df = read_csv(io.StringIO(data), dtype_backend="pyarrow")
+    df = pd.read_csv(io.StringIO(data), dtype_backend="pyarrow")
     expected_substring = "style type="
     html_output = df.style.bar(subset="test1").to_html()
     assert expected_substring in html_output

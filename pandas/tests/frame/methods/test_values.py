@@ -1,14 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -39,12 +32,12 @@ class TestDataFrameValues:
         arr = float_string_frame[["foo", "A"]].values
         assert arr[0, 0] == "bar"
 
-        df = DataFrame({"complex": [1j, 2j, 3j], "real": [1, 2, 3]})
+        df = pd.DataFrame({"complex": [1j, 2j, 3j], "real": [1, 2, 3]})
         arr = df.values
         assert arr[0, 0] == 1j
 
     def test_values_duplicates(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2, "a", "b"], [1, 2, "a", "b"]], columns=["one", "one", "two", "two"]
         )
 
@@ -54,39 +47,39 @@ class TestDataFrameValues:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_values_with_duplicate_columns(self):
-        df = DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=["x", "x"])
+        df = pd.DataFrame([[1, 2.5], [3, 4.5]], index=[1, 2], columns=["x", "x"])
         result = df.values
         expected = np.array([[1, 2.5], [3, 4.5]])
         assert (result == expected).all().all()
 
-    @pytest.mark.parametrize("constructor", [date_range, period_range])
+    @pytest.mark.parametrize("constructor", [pd.date_range, pd.period_range])
     def test_values_casts_datetimelike_to_object(self, constructor):
-        series = Series(constructor("2000-01-01", periods=10, freq="D"))
+        series = pd.Series(constructor("2000-01-01", periods=10, freq="D"))
 
         expected = series.astype("object")
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": series, "b": np.random.default_rng(2).standard_normal(len(series))}
         )
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
 
-        df = DataFrame({"a": series, "b": ["foo"] * len(series)})
+        df = pd.DataFrame({"a": series, "b": ["foo"] * len(series)})
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
 
     def test_frame_values_with_tz(self):
         tz = "US/Central"
-        df = DataFrame({"A": date_range("2000", periods=4, tz=tz)})
+        df = pd.DataFrame({"A": pd.date_range("2000", periods=4, tz=tz)})
         result = df.values
         expected = np.array(
             [
-                [Timestamp("2000-01-01", tz=tz)],
-                [Timestamp("2000-01-02", tz=tz)],
-                [Timestamp("2000-01-03", tz=tz)],
-                [Timestamp("2000-01-04", tz=tz)],
+                [pd.Timestamp("2000-01-01", tz=tz)],
+                [pd.Timestamp("2000-01-02", tz=tz)],
+                [pd.Timestamp("2000-01-03", tz=tz)],
+                [pd.Timestamp("2000-01-04", tz=tz)],
             ]
         )
         tm.assert_numpy_array_equal(result, expected)
@@ -104,10 +97,10 @@ class TestDataFrameValues:
 
         new = np.array(
             [
-                [Timestamp("2000-01-01T01:00:00", tz=est)],
-                [Timestamp("2000-01-02T01:00:00", tz=est)],
-                [Timestamp("2000-01-03T01:00:00", tz=est)],
-                [Timestamp("2000-01-04T01:00:00", tz=est)],
+                [pd.Timestamp("2000-01-01T01:00:00", tz=est)],
+                [pd.Timestamp("2000-01-02T01:00:00", tz=est)],
+                [pd.Timestamp("2000-01-03T01:00:00", tz=est)],
+                [pd.Timestamp("2000-01-04T01:00:00", tz=est)],
             ]
         )
         expected = np.concatenate([expected, new], axis=1)
@@ -120,19 +113,19 @@ class TestDataFrameValues:
         expected = np.array(
             [
                 [
-                    Timestamp("2013-01-01 00:00:00"),
-                    Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
+                    pd.Timestamp("2013-01-01 00:00:00"),
+                    pd.Timestamp("2013-01-02 00:00:00"),
+                    pd.Timestamp("2013-01-03 00:00:00"),
                 ],
                 [
-                    Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
-                    NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
+                    pd.Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
+                    pd.NaT,
+                    pd.Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
                 ],
                 [
-                    Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
-                    NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
+                    pd.Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
+                    pd.NaT,
+                    pd.Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
                 ],
                 ["foo", "foo", "foo"],
             ],
@@ -145,19 +138,19 @@ class TestDataFrameValues:
         expected = np.array(
             [
                 [
-                    Timestamp("2013-01-01 00:00:00"),
-                    Timestamp("2013-01-02 00:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
+                    pd.Timestamp("2013-01-01 00:00:00"),
+                    pd.Timestamp("2013-01-02 00:00:00"),
+                    pd.Timestamp("2013-01-03 00:00:00"),
                 ],
                 [
-                    Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
-                    NaT,
-                    Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
+                    pd.Timestamp("2013-01-01 00:00:00-0500", tz="US/Eastern"),
+                    pd.NaT,
+                    pd.Timestamp("2013-01-03 00:00:00-0500", tz="US/Eastern"),
                 ],
                 [
-                    Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
-                    NaT,
-                    Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
+                    pd.Timestamp("2013-01-01 00:00:00+0100", tz="CET"),
+                    pd.NaT,
+                    pd.Timestamp("2013-01-03 00:00:00+0100", tz="CET"),
                 ],
             ],
             dtype=object,
@@ -165,8 +158,8 @@ class TestDataFrameValues:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_values_interleave_non_unique_cols(self):
-        df = DataFrame(
-            [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
+        df = pd.DataFrame(
+            [[pd.Timestamp("20130101"), 3.5], [pd.Timestamp("20130102"), 4.5]],
             columns=["x", "x"],
             index=[1, 2],
         )
@@ -225,9 +218,9 @@ class TestDataFrameValues:
 
 class TestPrivateValues:
     def test_private_values_dt64tz(self):
-        dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
+        dta = pd.date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
-        df = DataFrame(dta, columns=["A"])
+        df = pd.DataFrame(dta, columns=["A"])
         tm.assert_equal(df._values, dta)
 
         assert not np.shares_memory(df._values._ndarray, dta._ndarray)
@@ -238,9 +231,9 @@ class TestPrivateValues:
         tm.assert_equal(df2._values, tda)
 
     def test_private_values_dt64tz_multicol(self):
-        dta = date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
+        dta = pd.date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
 
-        df = DataFrame(dta, columns=["A", "B"])
+        df = pd.DataFrame(dta, columns=["A", "B"])
         tm.assert_equal(df._values, dta)
 
         assert not np.shares_memory(df._values._ndarray, dta._ndarray)
@@ -251,9 +244,9 @@ class TestPrivateValues:
         tm.assert_equal(df2._values, tda)
 
     def test_private_values_dt64_multiblock(self):
-        dta = date_range("2000", periods=8)._data
+        dta = pd.date_range("2000", periods=8)._data
 
-        df = DataFrame({"A": dta[:4]}, copy=False)
+        df = pd.DataFrame({"A": dta[:4]}, copy=False)
         df["B"] = dta[4:]
 
         assert len(df._mgr.blocks) == 2

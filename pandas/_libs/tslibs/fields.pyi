@@ -7,7 +7,7 @@ def build_field_sarray(
     reso: int,  # NPY_DATETIMEUNIT
 ) -> np.ndarray: ...
 def month_position_check(
-    fields: np.ndarray,  # structured ndarray with "Y", "M", "D" int32 fields
+    fields: np.ndarray,  # structured ndarray with int64 "Y", int32 "M"/"D" fields
     weekdays: npt.NDArray[np.integer],
 ) -> str | None: ...
 def get_date_name_field(

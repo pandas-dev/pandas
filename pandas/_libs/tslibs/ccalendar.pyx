@@ -153,13 +153,13 @@ cdef bint is_leapyear(int64_t year) noexcept nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_week_of_year(int year, int month, int day) noexcept nogil:
+cpdef int32_t get_week_of_year(int64_t year, int month, int day) noexcept nogil:
     """
     Return the ordinal week-of-year for the given day.
 
     Parameters
     ----------
-    year : int
+    year : int64_t
     month : int
     day : int
 
@@ -176,19 +176,19 @@ cpdef int32_t get_week_of_year(int year, int month, int day) noexcept nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) noexcept nogil:
+cpdef iso_calendar_t get_iso_calendar(int64_t year, int month, int day) noexcept nogil:
     """
     Return the year, week, and day of year corresponding to ISO 8601
 
     Parameters
     ----------
-    year : int
+    year : int64_t
     month : int
     day : int
 
     Returns
     -------
-    year : int32_t
+    year : int64_t
     week : int32_t
     day : int32_t
 
@@ -198,7 +198,8 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) noexcept nog
     """
     cdef:
         int32_t doy, dow
-        int32_t iso_year, iso_week
+        int32_t iso_week
+        int64_t iso_year
 
     doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)
@@ -230,13 +231,13 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) noexcept nog
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_day_of_year(int year, int month, int day) noexcept nogil:
+cpdef int32_t get_day_of_year(int64_t year, int month, int day) noexcept nogil:
     """
     Return the ordinal day-of-year for the given day.
 
     Parameters
     ----------
-    year : int
+    year : int64_t
     month : int
     day : int
 

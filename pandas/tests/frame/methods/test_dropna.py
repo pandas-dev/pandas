@@ -7,10 +7,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
 import pandas._testing as tm
 
 
@@ -21,8 +17,8 @@ class TestDataFrameMissingData:
         mat = np.random.default_rng(2).standard_normal(N)
         mat[:5] = np.nan
 
-        frame = DataFrame({"foo": mat}, index=float_frame.index)
-        original = Series(mat, index=float_frame.index, name="foo")
+        frame = pd.DataFrame({"foo": mat}, index=float_frame.index)
+        original = pd.Series(mat, index=float_frame.index, name="foo")
         expected = original.dropna()
         inplace_frame1, inplace_frame2 = frame.copy(), frame.copy()
 
@@ -46,16 +42,16 @@ class TestDataFrameMissingData:
         mat = np.random.default_rng(2).standard_normal(N)
         mat[:5] = np.nan
 
-        frame = DataFrame({"foo": mat}, index=float_frame.index)
+        frame = pd.DataFrame({"foo": mat}, index=float_frame.index)
         frame["bar"] = 5
-        original = Series(mat, index=float_frame.index, name="foo")
+        original = pd.Series(mat, index=float_frame.index, name="foo")
         inp_frame1, inp_frame2 = frame.copy(), frame.copy()
 
         smaller_frame = frame.dropna()
         tm.assert_series_equal(frame["foo"], original)
         return_value = inp_frame1.dropna(inplace=True)
 
-        exp = Series(mat[5:], index=float_frame.index[5:], name="foo")
+        exp = pd.Series(mat[5:], index=float_frame.index[5:], name="foo")
         tm.assert_series_equal(smaller_frame["foo"], exp)
         tm.assert_series_equal(inp_frame1["foo"], exp)
         assert return_value is None
@@ -70,7 +66,7 @@ class TestDataFrameMissingData:
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     def test_dropna(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((6, 4)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((6, 4)))
         df.iloc[:2, 2] = np.nan
 
         dropped = df.dropna(axis=1)
@@ -140,9 +136,9 @@ class TestDataFrameMissingData:
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     def test_drop_and_dropna_caching(self):
         # tst that cacher updates
-        original = Series([1, 2, np.nan], name="A")
-        expected = Series([1, 2], dtype=original.dtype, name="A")
-        df = DataFrame({"A": original.values.copy()})
+        original = pd.Series([1, 2, np.nan], name="A")
+        expected = pd.Series([1, 2], dtype=original.dtype, name="A")
+        df = pd.DataFrame({"A": original.values.copy()})
         df2 = df.copy()
         df["A"].dropna()
         tm.assert_series_equal(df["A"], original)
@@ -173,7 +169,7 @@ class TestDataFrameMissingData:
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.dropna")
     def test_dropna_multiple_axes(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [
                 [1, np.nan, 2, 3],
                 [4, np.nan, 5, 6],
@@ -194,32 +190,32 @@ class TestDataFrameMissingData:
 
     def test_dropna_tz_aware_datetime(self):
         # GH13407
-        df = DataFrame()
+        df = pd.DataFrame()
         dt1 = datetime.datetime(2015, 1, 1, tzinfo=dateutil.tz.tzutc())
         dt2 = datetime.datetime(2015, 2, 2, tzinfo=dateutil.tz.tzutc())
         df["Time"] = [dt1]
         result = df.dropna(axis=0)
-        expected = DataFrame({"Time": [dt1]})
+        expected = pd.DataFrame({"Time": [dt1]})
         tm.assert_frame_equal(result, expected)
 
         # Ex2
-        df = DataFrame({"Time": [dt1, None, np.nan, dt2]})
+        df = pd.DataFrame({"Time": [dt1, None, np.nan, dt2]})
         result = df.dropna(axis=0)
-        expected = DataFrame([dt1, dt2], columns=["Time"], index=range(0, 6, 3))
+        expected = pd.DataFrame([dt1, dt2], columns=["Time"], index=range(0, 6, 3))
         tm.assert_frame_equal(result, expected)
 
     def test_dropna_categorical_interval_index(self):
         # GH 25087
         ii = pd.IntervalIndex.from_breaks([0, 2.78, 3.14, 6.28])
         ci = pd.CategoricalIndex(ii)
-        df = DataFrame({"A": list("abc")}, index=ci)
+        df = pd.DataFrame({"A": list("abc")}, index=ci)
 
         expected = df
         result = df.dropna()
         tm.assert_frame_equal(result, expected)
 
     def test_dropna_with_duplicate_columns(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(5),
                 "B": np.random.default_rng(2).standard_normal(5),
@@ -241,8 +237,8 @@ class TestDataFrameMissingData:
 
     def test_set_single_column_subset(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.nan, 5]})
-        expected = DataFrame(
+        df = pd.DataFrame({"A": [1, 2, 3], "B": list("abc"), "C": [4, np.nan, 5]})
+        expected = pd.DataFrame(
             {"A": [1, 3], "B": list("ac"), "C": [4.0, 5.0]}, index=range(0, 4, 2)
         )
         result = df.dropna(subset="C")
@@ -250,7 +246,7 @@ class TestDataFrameMissingData:
 
     def test_single_column_not_present_in_axis(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, 3]})
+        df = pd.DataFrame({"A": [1, 2, 3]})
 
         # Column not present
         with pytest.raises(KeyError, match="['D']"):
@@ -258,21 +254,21 @@ class TestDataFrameMissingData:
 
     def test_subset_is_nparray(self):
         # GH 41021
-        df = DataFrame({"A": [1, 2, np.nan], "B": list("abc"), "C": [4, np.nan, 5]})
-        expected = DataFrame({"A": [1.0], "B": ["a"], "C": [4.0]})
+        df = pd.DataFrame({"A": [1, 2, np.nan], "B": list("abc"), "C": [4, np.nan, 5]})
+        expected = pd.DataFrame({"A": [1.0], "B": ["a"], "C": [4.0]})
         result = df.dropna(subset=np.array(["A", "C"]))
         tm.assert_frame_equal(result, expected)
 
     def test_no_nans_in_frame(self, axis):
         # GH#41965
-        df = DataFrame([[1, 2], [3, 4]], columns=pd.RangeIndex(0, 2))
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=pd.RangeIndex(0, 2))
         expected = df.copy()
         result = df.dropna(axis=axis)
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
     def test_how_thresh_param_incompatible(self):
         # GH46575
-        df = DataFrame([1, 2, pd.NA])
+        df = pd.DataFrame([1, 2, pd.NA])
         msg = "You cannot set both the how and thresh arguments at the same time"
         with pytest.raises(TypeError, match=msg):
             df.dropna(how="all", thresh=2)
@@ -287,9 +283,9 @@ class TestDataFrameMissingData:
     @pytest.mark.parametrize("val", [1, 1.5])
     def test_dropna_ignore_index(self, val):
         # GH#31725
-        df = DataFrame({"a": [1, 2, val]}, index=[3, 2, 1])
+        df = pd.DataFrame({"a": [1, 2, val]}, index=[3, 2, 1])
         result = df.dropna(ignore_index=True)
-        expected = DataFrame({"a": [1, 2, val]})
+        expected = pd.DataFrame({"a": [1, 2, val]})
         tm.assert_frame_equal(result, expected)
 
         df.dropna(ignore_index=True, inplace=True)
@@ -299,9 +295,9 @@ class TestDataFrameMissingData:
 def test_dropna_inplace_depr():
     msg = "The inplace keyword in DataFrame.dropna is deprecated"
 
-    df = DataFrame({"a": [1.0, 1.5, np.nan, 2.0]})
+    df = pd.DataFrame({"a": [1.0, 1.5, np.nan, 2.0]})
     df_orig = df.copy()
-    expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=[0, 1, 3])
+    expected = pd.DataFrame({"a": [1.0, 1.5, 2.0]}, index=[0, 1, 3])
 
     # does not use keyword, no warning
     with tm.assert_produces_warning(False):

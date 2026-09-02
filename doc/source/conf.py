@@ -114,6 +114,7 @@ sys.setrecursionlimit(5000)
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
+sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.abspath("../sphinxext"))
 sys.path.extend(
     [
@@ -121,6 +122,7 @@ sys.path.extend(
         os.path.join(os.path.dirname(__file__), "..", "../..", "sphinxext")
     ]
 )
+from signature_overrides import apply_signature_overrides
 
 # -- General configuration -----------------------------------------------
 
@@ -464,7 +466,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year},"
+copyright = f"{datetime.now().year},"  # noqa: TID251
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -1079,6 +1081,8 @@ _BUSINED_ALIASES = [
         "CBMonthBegin",
     ]
 ]
+
+apply_signature_overrides()
 
 
 def process_business_alias_docstrings(app, what, name, obj, options, lines) -> None:

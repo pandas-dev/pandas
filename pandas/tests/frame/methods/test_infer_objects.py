@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestInferObjects:
     def test_infer_objects(self):
         # GH#11221
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": ["a", 1, 2, 3],
                 "b": ["b", 2.0, 3.0, 4.1],
@@ -28,7 +28,7 @@ class TestInferObjects:
         assert df["c"].dtype == "M8[us]"
         assert df["d"].dtype == "object"
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "a": [1, 2, 3],
                 "b": [2.0, 3.0, 4.1],
