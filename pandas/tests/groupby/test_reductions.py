@@ -13,14 +13,6 @@ from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-)
 import pandas._testing as tm
 from pandas.tests.extension.decimal import DecimalArray
 from pandas.tests.groupby import get_groupby_method_args
@@ -28,7 +20,7 @@ from pandas.tests.groupby import get_groupby_method_args
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
 def test_basic_aggregations(dtype):
-    data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
+    data = pd.Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
 
     index = np.arange(9)
     np.random.default_rng(2).shuffle(index)
@@ -70,7 +62,7 @@ def test_basic_aggregations(dtype):
 
     # corner cases
     result = grouped.aggregate(lambda x: x * 2)
-    expected = Series(
+    expected = pd.Series(
         [
             (data[data.index // 3 == 0] * 2).to_numpy(),
             (data[data.index // 3 == 1] * 2).to_numpy(),
@@ -100,16 +92,16 @@ def test_basic_aggregations(dtype):
     ],
 )
 def test_groupby_bool_aggs(skipna, all_boolean_reductions, vals):
-    df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
+    df = pd.DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
 
     # Figure out expectation using Python builtin
     exp = getattr(builtins, all_boolean_reductions)(vals)
 
     # edge case for missing data with skipna and 'any'
-    if skipna and all(isna(vals)) and all_boolean_reductions == "any":
+    if skipna and all(pd.isna(vals)) and all_boolean_reductions == "any":
         exp = False
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [exp] * 2, columns=["val"], index=pd.Index(["a", "b"], name="key")
     )
     result = getattr(df.groupby("key"), all_boolean_reductions)(skipna=skipna)
@@ -117,11 +109,11 @@ def test_groupby_bool_aggs(skipna, all_boolean_reductions, vals):
 
 
 def test_any():
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, "baz"]],
         columns=["A", "B", "C"],
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[True, True], [False, True]], columns=["B", "C"], index=[1, 3]
     )
     expected.index.name = "A"
@@ -131,7 +123,7 @@ def test_any():
 
 def test_bool_aggs_dup_column_labels(all_boolean_reductions):
     # GH#21668
-    df = DataFrame([[True, True]], columns=["a", "a"])
+    df = pd.DataFrame([[True, True]], columns=["a", "a"])
     grp_by = df.groupby([0])
     result = getattr(grp_by, all_boolean_reductions)()
 
@@ -152,12 +144,12 @@ def test_bool_aggs_dup_column_labels(all_boolean_reductions):
 )
 def test_masked_kleene_logic(all_boolean_reductions, skipna, data):
     # GH#37506
-    ser = Series(data, dtype="boolean")
+    ser = pd.Series(data, dtype="boolean")
 
     # The result should match aggregating on the whole series. Correctness
     # there is verified in test_reductions.py::test_any_all_boolean_kleene_logic
     expected_data = getattr(ser, all_boolean_reductions)(skipna=skipna)
-    expected = Series(expected_data, index=np.array([0]), dtype="boolean")
+    expected = pd.Series(expected_data, index=np.array([0]), dtype="boolean")
 
     result = ser.groupby([0, 0, 0]).agg(all_boolean_reductions, skipna=skipna)
     tm.assert_series_equal(result, expected)
@@ -196,12 +188,12 @@ def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
     # GH#37506
     data1 = [1.0, np.nan] if dtype1.startswith("f") else [1.0, pd.NA]
     data2 = [1.0, np.nan] if dtype2.startswith("f") else [1.0, pd.NA]
-    df = DataFrame(
+    df = pd.DataFrame(
         {"col1": pd.array(data1, dtype=dtype1), "col2": pd.array(data2, dtype=dtype2)}
     )
     result = df.groupby([1, 1]).agg("all", skipna=False)
 
-    expected = DataFrame({"col1": exp_col1, "col2": exp_col2}, index=np.array([1]))
+    expected = pd.DataFrame({"col1": exp_col1, "col2": exp_col2}, index=np.array([1]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -239,14 +231,14 @@ def test_object_type_missing_vals(bool_agg_func, data, expected_res, frame_or_se
 
 def test_object_NA_raises_with_skipna_false(all_boolean_reductions):
     # GH#37501
-    ser = Series([pd.NA], dtype=object)
+    ser = pd.Series([pd.NA], dtype=object)
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
         ser.groupby([1]).agg(all_boolean_reductions, skipna=False)
 
 
 def test_empty(frame_or_series, all_boolean_reductions):
     # GH 45231
-    kwargs = {"columns": ["a"]} if frame_or_series is DataFrame else {"name": "a"}
+    kwargs = {"columns": ["a"]} if frame_or_series is pd.DataFrame else {"name": "a"}
     obj = frame_or_series(**kwargs, dtype=object)
     result = getattr(obj.groupby(obj.index), all_boolean_reductions)()
     expected = frame_or_series(**kwargs, dtype=bool)
@@ -257,11 +249,11 @@ def test_empty(frame_or_series, all_boolean_reductions):
 def test_numpy_bool_unobserved_categorical_group_returns_identity(method, fill_value):
     # GH#65100
     key = pd.Categorical(["A", "B"], categories=["A", "B", "C"])
-    ser = Series(np.array([True, False], dtype=bool))
+    ser = pd.Series(np.array([True, False], dtype=bool))
 
     result = getattr(ser.groupby(key, observed=False), method)()
 
-    expected = Series(
+    expected = pd.Series(
         [True, False, fill_value],
         index=pd.CategoricalIndex(["A", "B", "C"], categories=["A", "B", "C"]),
         dtype=bool,
@@ -278,13 +270,13 @@ def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
     info = np.iinfo if "int" in any_real_numpy_dtype else np.finfo
     min_value = info(any_real_numpy_dtype).min
     max_value = info(any_real_numpy_dtype).max
-    df = DataFrame(
+    df = pd.DataFrame(
         {"a": [2, 1, 1, 2], "b": [min_value, max_value, max_value, min_value]},
         dtype=any_real_numpy_dtype,
     )
     gb = df.groupby("a")
     result = getattr(gb, how)()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"b": [1, 0]}, index=pd.Index([1, 2], name="a", dtype=any_real_numpy_dtype)
     )
     tm.assert_frame_equal(result, expected)
@@ -295,10 +287,10 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     # GH#57040
     min_value = np.finfo(float_numpy_dtype).min
     max_value = np.finfo(float_numpy_dtype).max
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "a": Series(np.repeat(range(1, 5), repeats=2), dtype="intp"),
-            "b": Series(
+            "a": pd.Series(np.repeat(range(1, 5), repeats=2), dtype="intp"),
+            "b": pd.Series(
                 [
                     np.nan,
                     min_value,
@@ -321,7 +313,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
             getattr(gb, how)(skipna=skipna)
         return
     result = getattr(gb, how)(skipna=skipna)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"b": [1, 3, 4, 6]}, index=pd.Index(range(1, 5), name="a", dtype="intp")
     )
     tm.assert_frame_equal(result, expected)
@@ -332,7 +324,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
 def test_idxmin_idxmax_skipna_false_no_na(how, dtype):
     # GH#56903 with skipna=False and no NA values, the group_idxmin_idxmax
     # kernel previously skipped every group and returned the all-NA sentinel.
-    df = DataFrame(
+    df = pd.DataFrame(
         {"a": [1, 1, 2, 2, 2], "b": [3, 1, 4, 9, 2]},
         index=[10, 11, 12, 13, 14],
     ).astype({"b": dtype})
@@ -353,7 +345,7 @@ def test_idxmin_idxmax_skipna_false_no_na(how, dtype):
 @pytest.mark.parametrize("numeric_only", [True, False])
 def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     # GH 25444
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "name": ["A", "A", "B", "B"],
             "c_int": [1, 2, 3, 4],
@@ -370,7 +362,7 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
 
     result = getattr(df.groupby("name"), func)(numeric_only=numeric_only)
 
-    expected = DataFrame(values, index=pd.Index(["A", "B"], name="name"))
+    expected = pd.DataFrame(values, index=pd.Index(["A", "B"], name="name"))
     if numeric_only:
         expected = expected.drop(columns=["c_date"])
     else:
@@ -387,8 +379,8 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     "data",
     [
         (
-            Timestamp("2011-01-15 12:50:28.502376"),
-            Timestamp("2011-01-20 12:50:28.593448"),
+            pd.Timestamp("2011-01-15 12:50:28.502376"),
+            pd.Timestamp("2011-01-20 12:50:28.593448"),
         ),
         (24650000000000001, 24650000000000002),
     ],
@@ -396,7 +388,7 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
 @pytest.mark.parametrize("method", ["count", "min", "max", "first", "last"])
 def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
     # GH#6620, GH#9311
-    df = DataFrame({"a": [1, 1], "b": data})
+    df = pd.DataFrame({"a": [1, 1], "b": data})
 
     grouped = df.groupby("a")
     result = getattr(grouped, method)()
@@ -408,7 +400,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
         expected_value = data[1]
     else:
         expected_value = getattr(df["b"], method)()
-    expected = DataFrame({"b": [expected_value]}, index=pd.Index([1], name="a"))
+    expected = pd.DataFrame({"b": [expected_value]}, index=pd.Index([1], name="a"))
 
     tm.assert_frame_equal(result, expected)
 
@@ -417,7 +409,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
 def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     # GH#57019
     na_value = na_value_for_dtype(pandas_dtype(any_real_nullable_dtype))
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [2, 1, 1, 2, 3, 3],
             # TODO: test that has mixed na_value and NaN either working for
@@ -447,7 +439,7 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
 def test_first_last_ea_min_count(any_real_nullable_dtype, how):
     # GH#57591
     na_val = na_value_for_dtype(pandas_dtype(any_real_nullable_dtype))
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 2, 2, 3],
             "b": pd.array([1, 2, na_val, na_val, 5], dtype=any_real_nullable_dtype),
@@ -463,7 +455,7 @@ def test_first_last_ea_min_count(any_real_nullable_dtype, how):
         expected_vals = pd.array([1, na_val, na_val], dtype=any_real_nullable_dtype)
     else:
         expected_vals = pd.array([2, na_val, na_val], dtype=any_real_nullable_dtype)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"b": expected_vals},
         index=pd.Index([1, 2, 3], name="a"),
     )
@@ -473,7 +465,7 @@ def test_first_last_ea_min_count(any_real_nullable_dtype, how):
 @pytest.mark.parametrize("how", ["first", "last"])
 def test_first_last_ea_all_na_group(how):
     # GH#57591
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 2, 2],
             "b": pd.array([pd.NA, pd.NA, 3, 4], dtype="Int64"),
@@ -484,7 +476,7 @@ def test_first_last_ea_all_na_group(how):
         expected_vals = pd.array([pd.NA, 3], dtype="Int64")
     else:
         expected_vals = pd.array([pd.NA, 4], dtype="Int64")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"b": expected_vals},
         index=pd.Index([1, 2], name="a"),
     )
@@ -497,7 +489,7 @@ def test_first_last_skipna_ea_types(how, skipna):
     # GH#57591 - test skipna with various non-numeric EA types
     intervals = pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3])
     cat_dtype = pd.CategoricalDtype(categories=["b", "c"])
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "g": [1, 1, 2],
             "cat": pd.Categorical([pd.NA, "b", "c"], dtype=cat_dtype),
@@ -508,7 +500,7 @@ def test_first_last_skipna_ea_types(how, skipna):
 
     if how == "first" and not skipna:
         # cat column: first element is NA, skipna=False keeps it
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "cat": pd.Categorical([pd.NA, "c"], dtype=cat_dtype),
                 "interval": intervals[[0, 2]],
@@ -516,7 +508,7 @@ def test_first_last_skipna_ea_types(how, skipna):
             index=pd.Index([1, 2], name="g"),
         )
     elif how == "first":
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "cat": pd.Categorical(["b", "c"], dtype=cat_dtype),
                 "interval": intervals[[0, 2]],
@@ -524,7 +516,7 @@ def test_first_last_skipna_ea_types(how, skipna):
             index=pd.Index([1, 2], name="g"),
         )
     elif how == "last":
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "cat": pd.Categorical(["b", "c"], dtype=cat_dtype),
                 "interval": intervals[[1, 2]],
@@ -542,9 +534,11 @@ def test_first_last_skipna_ea_types(how, skipna):
 def test_min_max_skipna_false_string_dtypes(how, dtype):
     # GH#18588: string and object dtypes have no cython group_min_max, so they
     # reduce through the pure-python fallback, which used to drop skipna
-    df = DataFrame({"g": [1, 1, 2, 2], "v": Series(["a", None, "y", "z"], dtype=dtype)})
+    df = pd.DataFrame(
+        {"g": [1, 1, 2, 2], "v": pd.Series(["a", None, "y", "z"], dtype=dtype)}
+    )
     result = getattr(df.groupby("g")["v"], how)(skipna=False)
-    expected = Series(
+    expected = pd.Series(
         # np.nan rather than None: each group reduces to a scalar NA, which
         # matters when "str" is plain object
         [np.nan, "y" if how == "min" else "z"],
@@ -561,9 +555,11 @@ def test_prod_skipna_false_object():
     # pure-python fallback, which dropped skipna; the underlying Series.prod
     # then raised on the object NA.  (object *sum* has a cython implementation
     # and already honoured skipna.)
-    df = DataFrame({"g": [1, 1, 2, 2], "v": Series([2, None, 3, 4], dtype=object)})
+    df = pd.DataFrame(
+        {"g": [1, 1, 2, 2], "v": pd.Series([2, None, 3, 4], dtype=object)}
+    )
     result = df.groupby("g")["v"].prod(skipna=False)
-    assert isna(result.loc[1])
+    assert pd.isna(result.loc[1])
     assert result.loc[2] == 12
 
 
@@ -574,9 +570,9 @@ def test_sum_prod_skipna_false_ea_fallback(how):
     values = DecimalArray(
         [Decimal(2), Decimal("NaN"), Decimal(3), Decimal(4)],
     )
-    df = DataFrame({"g": [1, 1, 2, 2], "v": values})
+    df = pd.DataFrame({"g": [1, 1, 2, 2], "v": values})
     result = getattr(df.groupby("g")["v"], how)(skipna=False)
-    assert isna(result.loc[1])
+    assert pd.isna(result.loc[1])
     assert result.loc[2] == (7 if how == "sum" else 12)
 
 
@@ -585,11 +581,11 @@ def test_min_max_skipna_false_frame_object_block(how):
     # GH#18588: DataFrameGroupBy on an object column reaches _agg_py_fallback
     # through its 2D branch, unlike the 1D SeriesGroupBy one.  That branch also
     # keeps object dtype rather than re-inferring str, as it does for skipna=True.
-    df = DataFrame(
-        {"g": [1, 1, 2, 2], "v": Series(["a", None, "y", "z"], dtype=object)}
+    df = pd.DataFrame(
+        {"g": [1, 1, 2, 2], "v": pd.Series(["a", None, "y", "z"], dtype=object)}
     )
     result = getattr(df.groupby("g"), how)(skipna=False)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"v": [np.nan, "y" if how == "min" else "z"]},
         index=pd.Index([1, 2], name="g"),
         dtype=object,
@@ -602,9 +598,9 @@ def test_min_max_skipna_false_interval_dtype(how):
     # GH#18588: any EA whose _groupby_op raises NotImplementedError takes the
     # same pure-python fallback
     intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), None, (2, 3), (4, 5)])
-    df = DataFrame({"g": [1, 1, 2, 2], "v": intervals})
+    df = pd.DataFrame({"g": [1, 1, 2, 2], "v": intervals})
     result = getattr(df.groupby("g")["v"], how)(skipna=False)
-    expected = Series(
+    expected = pd.Series(
         pd.arrays.IntervalArray.from_tuples([None, (2, 3) if how == "min" else (4, 5)]),
         index=pd.Index([1, 2], name="g"),
         name="v",
@@ -614,7 +610,7 @@ def test_min_max_skipna_false_interval_dtype(how):
 
 def test_groupby_mean_no_overflow():
     # Regression test for (#22487)
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "user": ["A", "A", "A", "A", "A"],
             "connections": [4970, 4749, 4719, 4704, 18446744073699999744],
@@ -625,9 +621,9 @@ def test_groupby_mean_no_overflow():
 
 def test_mean_on_timedelta():
     # GH 17382
-    df = DataFrame({"time": pd.to_timedelta(range(10)), "cat": ["A", "B"] * 5})
+    df = pd.DataFrame({"time": pd.to_timedelta(range(10)), "cat": ["A", "B"] * 5})
     result = df.groupby("cat")["time"].mean()
-    expected = Series(
+    expected = pd.Series(
         pd.to_timedelta([4, 5]), name="time", index=pd.Index(["A", "B"], name="cat")
     )
     tm.assert_series_equal(result, expected)
@@ -662,7 +658,7 @@ def test_mean_on_timedelta():
 )
 def test_mean_skipna(values, dtype, result_dtype, skipna):
     # GH#15675
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "val": values,
             "cat": ["A", "B"] * 5,
@@ -690,7 +686,7 @@ def test_mean_skipna(values, dtype, result_dtype, skipna):
 )
 def test_sum_skipna(values, dtype, skipna):
     # GH#15675
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "val": values,
             "cat": ["A", "B"] * 5,
@@ -707,18 +703,18 @@ def test_sum_skipna(values, dtype, skipna):
 
 def test_sum_skipna_object(skipna):
     # GH#15675
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "val": ["a", "b", np.nan, "d", "e", "f", "g", "h", "i", "j"],
             "cat": ["A", "B"] * 5,
         }
     ).astype({"val": object})
     if skipna:
-        expected = Series(
+        expected = pd.Series(
             ["aegi", "bdfhj"], index=pd.Index(["A", "B"], name="cat"), name="val"
         ).astype(object)
     else:
-        expected = Series(
+        expected = pd.Series(
             [np.nan, "bdfhj"], index=pd.Index(["A", "B"], name="cat"), name="val"
         ).astype(object)
     result = df.groupby("cat")["val"].sum(skipna=skipna)
@@ -849,7 +845,7 @@ def test_sum_skipna_object(skipna):
 )
 def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
     # GH#15675
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "val": values,
             "cat": ["A", "B"] * 5,
@@ -869,7 +865,7 @@ def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
 def test_cython_median():
     arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan
-    df = DataFrame(arr)
+    df = pd.DataFrame(arr)
 
     labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
@@ -878,14 +874,14 @@ def test_cython_median():
     exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
-    df = DataFrame(np.random.default_rng(2).standard_normal((1000, 5)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((1000, 5)))
     rs = df.groupby(labels).agg(np.median)
     xp = df.groupby(labels).median()
     tm.assert_frame_equal(rs, xp)
 
 
 def test_median_empty_bins(observed):
-    df = DataFrame(np.random.default_rng(2).integers(0, 44, 500))
+    df = pd.DataFrame(np.random.default_rng(2).integers(0, 44, 500))
 
     grps = range(0, 55, 5)
     bins = pd.cut(df[0], grps)
@@ -897,7 +893,7 @@ def test_median_empty_bins(observed):
 
 def test_max_min_non_numeric():
     # #2700
-    aa = DataFrame({"nn": [11, 11, 22, 22], "ii": [1, 2, 3, 4], "ss": 4 * ["mama"]})
+    aa = pd.DataFrame({"nn": [11, 11, 22, 22], "ii": [1, 2, 3, 4], "ss": 4 * ["mama"]})
 
     result = aa.groupby("nn").max()
     assert "ss" in result
@@ -917,7 +913,7 @@ def test_max_min_object_multiple_columns(using_infer_string):
     # others; we split object blocks column-wise, consistent with
     # DataFrame._reduce
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [1, 1, 2, 2, 3],
             "B": [1, "foo", 2, "bar", False],
@@ -932,26 +928,26 @@ def test_max_min_object_multiple_columns(using_infer_string):
     result = gb[["C"]].max()
     # "max" is valid for column "C" but not for "B"
     ei = pd.Index([1, 2, 3], name="A")
-    expected = DataFrame({"C": ["b", "d", "e"]}, index=ei)
+    expected = pd.DataFrame({"C": ["b", "d", "e"]}, index=ei)
     tm.assert_frame_equal(result, expected)
 
     result = gb[["C"]].min()
     # "min" is valid for column "C" but not for "B"
     ei = pd.Index([1, 2, 3], name="A")
-    expected = DataFrame({"C": ["a", "c", "e"]}, index=ei)
+    expected = pd.DataFrame({"C": ["a", "c", "e"]}, index=ei)
     tm.assert_frame_equal(result, expected)
 
 
 def test_min_date_with_nans():
     # GH26321
     dates = pd.to_datetime(
-        Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
+        pd.Series(["2019-05-09", "2019-05-09", "2019-05-09"]), format="%Y-%m-%d"
     ).dt.date
-    df = DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
+    df = pd.DataFrame({"a": [np.nan, "1", np.nan], "b": [0, 1, 1], "c": dates})
 
     result = df.groupby("b", as_index=False)["c"].min()["c"]
     expected = pd.to_datetime(
-        Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
+        pd.Series(["2019-05-09", "2019-05-09"], name="c"), format="%Y-%m-%d"
     ).dt.date
     tm.assert_series_equal(result, expected)
 
@@ -962,21 +958,21 @@ def test_min_date_with_nans():
 
 def test_max_inat():
     # GH#40767 dont interpret iNaT as NaN
-    ser = Series([1, iNaT])
+    ser = pd.Series([1, iNaT])
     key = np.array([1, 1], dtype=np.int64)
     gb = ser.groupby(key)
 
     result = gb.max(min_count=2)
-    expected = Series({1: 1}, dtype=np.int64)
+    expected = pd.Series({1: 1}, dtype=np.int64)
     tm.assert_series_equal(result, expected, check_exact=True)
 
     result = gb.min(min_count=2)
-    expected = Series({1: iNaT}, dtype=np.int64)
+    expected = pd.Series({1: iNaT}, dtype=np.int64)
     tm.assert_series_equal(result, expected, check_exact=True)
 
     # not enough entries -> gets masked to NaN
     result = gb.min(min_count=3)
-    expected = Series({1: np.nan})
+    expected = pd.Series({1: np.nan})
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
@@ -984,12 +980,12 @@ def test_max_inat_not_all_na():
     # GH#40767 dont interpret iNaT as NaN
 
     # make sure we dont round iNaT+1 to iNaT
-    ser = Series([1, iNaT, 2, iNaT + 1])
+    ser = pd.Series([1, iNaT, 2, iNaT + 1])
     gb = ser.groupby([1, 2, 3, 3])
     result = gb.min(min_count=2)
 
     # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
-    expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
+    expected = pd.Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
     expected.index = expected.index.astype(int)
     tm.assert_series_equal(result, expected, check_exact=True)
 
@@ -999,11 +995,11 @@ def test_groupby_aggregate_period_column(func):
     # GH 31471
     groups = [1, 2]
     periods = pd.period_range("2020", periods=2, freq="Y")
-    df = DataFrame({"a": groups, "b": periods})
+    df = pd.DataFrame({"a": groups, "b": periods})
 
     result = getattr(df.groupby("a")["b"], func)()
     idx = pd.Index([1, 2], name="a")
-    expected = Series(periods, index=idx, name="b")
+    expected = pd.Series(periods, index=idx, name="b")
 
     tm.assert_series_equal(result, expected)
 
@@ -1013,11 +1009,11 @@ def test_groupby_aggregate_period_frame(func):
     # GH 31471
     groups = [1, 2]
     periods = pd.period_range("2020", periods=2, freq="Y")
-    df = DataFrame({"a": groups, "b": periods})
+    df = pd.DataFrame({"a": groups, "b": periods})
 
     result = getattr(df.groupby("a"), func)()
     idx = pd.Index([1, 2], name="a")
-    expected = DataFrame({"b": periods}, index=idx)
+    expected = pd.DataFrame({"b": periods}, index=idx)
 
     tm.assert_frame_equal(result, expected)
 
@@ -1026,12 +1022,12 @@ def test_aggregate_numeric_object_dtype():
     # https://github.com/pandas-dev/pandas/issues/39329
     # simplified case: multiple object columns where one is all-NaN
     # -> gets split as the all-NaN is inferred as float
-    df = DataFrame(
+    df = pd.DataFrame(
         {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": [np.nan] * 4},
     ).astype(object)
     result = df.groupby("key").min()
     expected = (
-        DataFrame(
+        pd.DataFrame(
             {"key": ["A", "B"], "col1": ["a", "c"], "col2": [np.nan, np.nan]},
         )
         .set_index("key")
@@ -1040,12 +1036,12 @@ def test_aggregate_numeric_object_dtype():
     tm.assert_frame_equal(result, expected)
 
     # same but with numbers
-    df = DataFrame(
+    df = pd.DataFrame(
         {"key": ["A", "A", "B", "B"], "col1": list("abcd"), "col2": range(4)},
     ).astype(object)
     result = df.groupby("key").min()
     expected = (
-        DataFrame({"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]})
+        pd.DataFrame({"key": ["A", "B"], "col1": ["a", "c"], "col2": [0, 2]})
         .set_index("key")
         .astype(object)
     )
@@ -1055,10 +1051,10 @@ def test_aggregate_numeric_object_dtype():
 @pytest.mark.parametrize("func", ["min", "max"])
 def test_aggregate_categorical_lost_index(func: str):
     # GH: 28641 groupby drops index, when grouping over categorical column with min/max
-    ds = Series(["b"], dtype="category").cat.as_ordered()
-    df = DataFrame({"A": [1997], "B": ds})
+    ds = pd.Series(["b"], dtype="category").cat.as_ordered()
+    df = pd.DataFrame({"A": [1997], "B": ds})
     result = df.groupby("A").agg({"B": func})
-    expected = DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
+    expected = pd.DataFrame({"B": ["b"]}, index=pd.Index([1997], name="A"))
 
     # ordered categorical dtype should be preserved
     expected["B"] = expected["B"].astype(ds.dtype)
@@ -1076,7 +1072,7 @@ def test_groupby_min_max_nullable(dtype):
     else:
         ts = 4.0
 
-    df = DataFrame({"id": [2, 2], "ts": [ts, ts + 1]})
+    df = pd.DataFrame({"id": [2, 2], "ts": [ts, ts + 1]})
     df["ts"] = df["ts"].astype(dtype)
 
     gb = df.groupby("id")
@@ -1090,14 +1086,14 @@ def test_groupby_min_max_nullable(dtype):
     tm.assert_frame_equal(res_max, expected_max)
 
     result2 = gb.min(min_count=3)
-    expected2 = DataFrame({"ts": [pd.NA]}, index=expected.index, dtype=dtype)
+    expected2 = pd.DataFrame({"ts": [pd.NA]}, index=expected.index, dtype=dtype)
     tm.assert_frame_equal(result2, expected2)
 
     res_max2 = gb.max(min_count=3)
     tm.assert_frame_equal(res_max2, expected2)
 
     # Case with NA values
-    df2 = DataFrame({"id": [2, 2, 2], "ts": [ts, pd.NA, ts + 1]})
+    df2 = pd.DataFrame({"id": [2, 2, 2], "ts": [ts, pd.NA, ts + 1]})
     df2["ts"] = df2["ts"].astype(dtype)
     gb2 = df2.groupby("id")
 
@@ -1117,13 +1113,13 @@ def test_groupby_min_max_nullable(dtype):
 def test_min_max_nullable_uint64_empty_group():
     # don't raise NotImplementedError from libgroupby
     cat = pd.Categorical([0] * 10, categories=[0, 1])
-    df = DataFrame({"A": cat, "B": pd.array(np.arange(10, dtype=np.uint64))})
+    df = pd.DataFrame({"A": cat, "B": pd.array(np.arange(10, dtype=np.uint64))})
     gb = df.groupby("A", observed=False)
 
     res = gb.min()
 
     idx = pd.CategoricalIndex([0, 1], dtype=cat.dtype, name="A")
-    expected = DataFrame({"B": pd.array([0, pd.NA], dtype="UInt64")}, index=idx)
+    expected = pd.DataFrame({"B": pd.array([0, pd.NA], dtype="UInt64")}, index=idx)
     tm.assert_frame_equal(res, expected)
 
     res = gb.max()
@@ -1134,7 +1130,7 @@ def test_min_max_nullable_uint64_empty_group():
 @pytest.mark.parametrize("func", ["first", "last", "min", "max"])
 def test_groupby_min_max_categorical(func):
     # GH: 52151
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "col1": pd.Categorical(["A"], categories=list("AB"), ordered=True),
             "col2": pd.Categorical([1], categories=[1, 2], ordered=True),
@@ -1144,7 +1140,7 @@ def test_groupby_min_max_categorical(func):
     result = getattr(df.groupby("col1", observed=False), func)()
 
     idx = pd.CategoricalIndex(data=["A", "B"], name="col1", ordered=True)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col2": pd.Categorical([1, None], categories=[1, 2], ordered=True),
             "value": [0.1, None],
@@ -1158,9 +1154,9 @@ def test_groupby_min_max_categorical(func):
 def test_min_empty_string_dtype(func, string_dtype_no_object):
     # GH#55619
     dtype = string_dtype_no_object
-    df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
+    df = pd.DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
     result = getattr(df.groupby("a"), func)()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         columns=["b", "c"], dtype=dtype, index=pd.Index([], dtype=dtype, name="a")
     )
     tm.assert_frame_equal(result, expected)
@@ -1220,7 +1216,7 @@ def test_string_dtype_all_na(
         # https://github.com/pandas-dev/pandas/pull/60936
         expected_value = ""
 
-    df = DataFrame({"a": ["x"], "b": [pd.NA]}, dtype=dtype)
+    df = pd.DataFrame({"a": ["x"], "b": [pd.NA]}, dtype=dtype)
     obj = df["b"] if test_series else df
     args = get_groupby_method_args(reduction_func, obj)
     gb = obj.groupby(df["a"])
@@ -1254,14 +1250,18 @@ def test_string_dtype_all_na(
     index = pd.Index(["x"], name="a", dtype=dtype)
     if test_series or reduction_func == "size":
         name = None if not test_series and reduction_func == "size" else "b"
-        expected = Series(expected_value, index=index, dtype=expected_dtype, name=name)
+        expected = pd.Series(
+            expected_value, index=index, dtype=expected_dtype, name=name
+        )
     else:
-        expected = DataFrame({"b": expected_value}, index=index, dtype=expected_dtype)
+        expected = pd.DataFrame(
+            {"b": expected_value}, index=index, dtype=expected_dtype
+        )
     tm.assert_equal(result, expected)
 
 
 def test_max_nan_bug():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "Unnamed: 0": ["-04-23", "-05-06", "-05-07"],
             "Date": [
@@ -1269,7 +1269,7 @@ def test_max_nan_bug():
                 "2013-05-06 00:00:00",
                 "2013-05-07 00:00:00",
             ],
-            "app": Series([np.nan, np.nan, "OE"]),
+            "app": pd.Series([np.nan, np.nan, "OE"]),
             "File": ["log080001.log", "log.log", "xlsx"],
         }
     )
@@ -1286,8 +1286,8 @@ def test_max_nan_bug():
 def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
     n = 100
     m = 10
-    days = date_range("2015-08-23", periods=10)
-    df = DataFrame(
+    days = pd.date_range("2015-08-23", periods=10)
+    df = pd.DataFrame(
         {
             "jim": np.random.default_rng(2).choice(list(ascii_lowercase), n),
             "joe": np.random.default_rng(2).choice(days, n),
@@ -1306,7 +1306,7 @@ def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
     left = gr["julie"].nunique(dropna=dropna)
 
     gr = df.groupby(keys, as_index=as_index, sort=sort)
-    right = gr["julie"].apply(Series.nunique, dropna=dropna)
+    right = gr["julie"].apply(pd.Series.nunique, dropna=dropna)
     if not as_index:
         right = right.reset_index(drop=True)
 
@@ -1318,9 +1318,9 @@ def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
 
 
 def test_nunique():
-    df = DataFrame({"A": list("abbacc"), "B": list("abxacc"), "C": list("abbacx")})
+    df = pd.DataFrame({"A": list("abbacc"), "B": list("abxacc"), "C": list("abbacx")})
 
-    expected = DataFrame({"A": list("abc"), "B": [1, 2, 1], "C": [1, 1, 2]})
+    expected = pd.DataFrame({"A": list("abc"), "B": [1, 2, 1], "C": [1, 1, 2]})
     result = df.groupby("A", as_index=False).nunique()
     tm.assert_frame_equal(result, expected)
 
@@ -1336,7 +1336,7 @@ def test_nunique():
     tm.assert_frame_equal(result, expected)
 
     # dropna
-    expected = DataFrame({"B": [1] * 3, "C": [1] * 3}, index=list("abc"))
+    expected = pd.DataFrame({"B": [1] * 3, "C": [1] * 3}, index=list("abc"))
     expected.index.name = "A"
     result = df.replace({"x": None}).groupby("A").nunique()
     tm.assert_frame_equal(result, expected)
@@ -1344,7 +1344,7 @@ def test_nunique():
 
 def test_nunique_with_object():
     # GH 11077
-    data = DataFrame(
+    data = pd.DataFrame(
         [
             [100, 1, "Alice"],
             [200, 2, "Bob"],
@@ -1356,33 +1356,33 @@ def test_nunique_with_object():
     )
 
     result = data.groupby(["id", "amount"])["name"].nunique()
-    index = MultiIndex.from_arrays([data.id, data.amount])
-    expected = Series([1] * 5, name="name", index=index)
+    index = pd.MultiIndex.from_arrays([data.id, data.amount])
+    expected = pd.Series([1] * 5, name="name", index=index)
     tm.assert_series_equal(result, expected)
 
 
 def test_nunique_with_empty_series():
     # GH 12553
-    data = Series(name="name", dtype=object)
+    data = pd.Series(name="name", dtype=object)
     result = data.groupby(level=0).nunique()
-    expected = Series(name="name", dtype="int64")
+    expected = pd.Series(name="name", dtype="int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_nunique_with_timegrouper():
     # GH 13453
-    test = DataFrame(
+    test = pd.DataFrame(
         {
             "time": [
-                Timestamp("2016-06-28 09:35:35"),
-                Timestamp("2016-06-28 16:09:30"),
-                Timestamp("2016-06-28 16:46:28"),
+                pd.Timestamp("2016-06-28 09:35:35"),
+                pd.Timestamp("2016-06-28 16:09:30"),
+                pd.Timestamp("2016-06-28 16:46:28"),
             ],
             "data": ["1", "2", "3"],
         }
     ).set_index("time")
     result = test.groupby(pd.Grouper(freq="h"))["data"].nunique()
-    expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(Series.nunique)
+    expected = test.groupby(pd.Grouper(freq="h"))["data"].apply(pd.Series.nunique)
     tm.assert_series_equal(result, expected)
 
 
@@ -1391,15 +1391,15 @@ def test_nunique_with_timegrouper():
     [
         (
             ["x", "x", "x"],
-            [Timestamp("2019-01-01"), pd.NaT, Timestamp("2019-01-01")],
+            [pd.Timestamp("2019-01-01"), pd.NaT, pd.Timestamp("2019-01-01")],
             True,
-            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+            pd.Series([1], index=pd.Index(["x"], name="key"), name="data"),
         ),
         (
             ["x", "x", "x"],
             [dt.date(2019, 1, 1), pd.NaT, dt.date(2019, 1, 1)],
             True,
-            Series([1], index=pd.Index(["x"], name="key"), name="data"),
+            pd.Series([1], index=pd.Index(["x"], name="key"), name="data"),
         ),
         (
             ["x", "x", "x", "y", "y"],
@@ -1411,7 +1411,7 @@ def test_nunique_with_timegrouper():
                 dt.date(2019, 1, 1),
             ],
             False,
-            Series([2, 2], index=pd.Index(["x", "y"], name="key"), name="data"),
+            pd.Series([2, 2], index=pd.Index(["x", "y"], name="key"), name="data"),
         ),
         (
             ["x", "x", "x", "x", "y"],
@@ -1423,55 +1423,55 @@ def test_nunique_with_timegrouper():
                 dt.date(2019, 1, 1),
             ],
             False,
-            Series([2, 1], index=pd.Index(["x", "y"], name="key"), name="data"),
+            pd.Series([2, 1], index=pd.Index(["x", "y"], name="key"), name="data"),
         ),
     ],
 )
 def test_nunique_with_NaT(key, data, dropna, expected):
     # GH 27951
-    df = DataFrame({"key": key, "data": data})
+    df = pd.DataFrame({"key": key, "data": data})
     result = df.groupby(["key"])["data"].nunique(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
 
 def test_nunique_preserves_column_level_names():
     # GH 23222
-    test = DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
+    test = pd.DataFrame([1, 2, 2], columns=pd.Index(["A"], name="level_0"))
     result = test.groupby([0, 0, 0]).nunique()
-    expected = DataFrame([2], index=np.array([0]), columns=test.columns)
+    expected = pd.DataFrame([2], index=np.array([0]), columns=test.columns)
     tm.assert_frame_equal(result, expected)
 
 
 def test_nunique_transform_with_datetime():
     # GH 35109 - transform with nunique on datetimes results in integers
-    df = DataFrame(date_range("2008-12-31", "2009-01-02"), columns=["date"])
+    df = pd.DataFrame(pd.date_range("2008-12-31", "2009-01-02"), columns=["date"])
     result = df.groupby([0, 0, 1])["date"].transform("nunique")
-    expected = Series([2, 2, 1], name="date")
+    expected = pd.Series([2, 2, 1], name="date")
     tm.assert_series_equal(result, expected)
 
 
 def test_empty_categorical(observed):
     # GH#21334
-    cat = Series([1]).astype("category")
+    cat = pd.Series([1]).astype("category")
     ser = cat[:0]
     gb = ser.groupby(ser, observed=observed)
     result = gb.nunique()
     if observed:
-        expected = Series([], index=cat[:0], dtype="int64")
+        expected = pd.Series([], index=cat[:0], dtype="int64")
     else:
-        expected = Series([0], index=cat, dtype="int64")
+        expected = pd.Series([0], index=cat, dtype="int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_intercept_builtin_sum():
-    s = Series([1.0, 2.0, np.nan, 3.0])
+    s = pd.Series([1.0, 2.0, np.nan, 3.0])
     grouped = s.groupby([0, 1, 2, 2])
 
     # GH#53425
     result = grouped.agg(builtins.sum)
     # GH#53425
     result2 = grouped.apply(builtins.sum)
-    expected = Series([1.0, 2.0, np.nan], index=np.array([0, 1, 2]))
+    expected = pd.Series([1.0, 2.0, np.nan], index=np.array([0, 1, 2]))
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
 
@@ -1483,16 +1483,16 @@ def test_groupby_sum_mincount_boolean(min_count):
     na = np.nan
     dfg = pd.array([b, b, na, na, a, a, b], dtype="boolean")
 
-    df = DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": dfg})
+    df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": dfg})
     result = df.groupby("A").sum(min_count=min_count)
     if min_count == 0:
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"B": pd.array([3, 0, 0], dtype="Int64")},
             index=pd.Index([1, 2, 3], name="A"),
         )
         tm.assert_frame_equal(result, expected)
     else:
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"B": pd.array([pd.NA] * 3, dtype="Int64")},
             index=pd.Index([1, 2, 3], name="A"),
         )
@@ -1501,22 +1501,24 @@ def test_groupby_sum_mincount_boolean(min_count):
 
 def test_groupby_sum_below_mincount_nullable_integer():
     # https://github.com/pandas-dev/pandas/issues/32861
-    df = DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
+    df = pd.DataFrame({"a": [0, 1, 2], "b": [0, 1, 2], "c": [0, 1, 2]}, dtype="Int64")
     grouped = df.groupby("a")
     idx = pd.Index([0, 1, 2], name="a", dtype="Int64")
 
     result = grouped["b"].sum(min_count=2)
-    expected = Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
+    expected = pd.Series([pd.NA] * 3, dtype="Int64", index=idx, name="b")
     tm.assert_series_equal(result, expected)
 
     result = grouped.sum(min_count=2)
-    expected = DataFrame({"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx)
+    expected = pd.DataFrame(
+        {"b": [pd.NA] * 3, "c": [pd.NA] * 3}, dtype="Int64", index=idx
+    )
     tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_sum_timedelta_with_nat():
     # GH#42659
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 2, 2],
             "b": [pd.Timedelta("1D"), pd.Timedelta("2D"), pd.Timedelta("3D"), pd.NaT],
@@ -1527,14 +1529,14 @@ def test_groupby_sum_timedelta_with_nat():
     gb = df.groupby("a")
 
     res = gb.sum()
-    expected = DataFrame({"b": [td3, td3]}, index=pd.Index([1, 2], name="a"))
+    expected = pd.DataFrame({"b": [td3, td3]}, index=pd.Index([1, 2], name="a"))
     tm.assert_frame_equal(res, expected)
 
     res = gb["b"].sum()
     tm.assert_series_equal(res, expected["b"])
 
     res = gb["b"].sum(min_count=2)
-    expected = Series([td3, pd.NaT], dtype="m8[us]", name="b", index=expected.index)
+    expected = pd.Series([td3, pd.NaT], dtype="m8[us]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
 
 
@@ -1542,7 +1544,7 @@ def test_groupby_sum_timedelta_overflow():
     # GH#66551: a running total that leaves the int64 range used to wrap
     #  silently; Series.sum on the same group already raised
     msg = "overflow in timedelta operation"
-    ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.Timedelta("1D")])
+    ser = pd.Series([pd.Timedelta.max, pd.Timedelta.max, pd.Timedelta("1D")])
 
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
         ser.groupby([0, 0, 1]).sum()
@@ -1550,12 +1552,12 @@ def test_groupby_sum_timedelta_overflow():
     # the group that does not overflow is not enough to make the whole
     #  aggregation succeed, matching DataFrame.sum
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match=msg):
-        DataFrame({"a": ser}).groupby([0, 0, 1]).sum()
+        pd.DataFrame({"a": ser}).groupby([0, 0, 1]).sum()
 
     # groups that stay in range are unaffected
-    ser = Series([pd.Timedelta.max, pd.Timedelta("1D"), pd.Timedelta("2D")])
+    ser = pd.Series([pd.Timedelta.max, pd.Timedelta("1D"), pd.Timedelta("2D")])
     res = ser.groupby([0, 1, 1]).sum()
-    expected = Series(
+    expected = pd.Series(
         [pd.Timedelta.max, pd.Timedelta("3D")], index=pd.Index([0, 1], dtype=np.intp)
     )
     tm.assert_series_equal(res, expected)
@@ -1564,17 +1566,17 @@ def test_groupby_sum_timedelta_overflow():
 def test_groupby_sum_timedelta_overflow_sentinel():
     # GH#66551: a total landing exactly on iNaT is not a missing value
     mx, mn = pd.Timedelta.max, pd.Timedelta.min
-    ser = Series([mn, pd.Timedelta(-1, "ns")])
+    ser = pd.Series([mn, pd.Timedelta(-1, "ns")])
     with pytest.raises(pd.errors.OutOfBoundsTimedelta, match="overflow"):
         ser.groupby([0, 0]).sum()
 
     # ... but an intermediate that merely passes through the sentinel is fine,
     #  so the result must not depend on the order values arrive in
     for order in ([mx, mn, mx], [mx, mx, mn], [mn, mx, mx]):
-        res = Series(order).groupby([0, 0, 0]).sum()
+        res = pd.Series(order).groupby([0, 0, 0]).sum()
         tm.assert_series_equal(
             res,
-            Series([mx + mn + mx], index=pd.Index([0], dtype=np.intp)),
+            pd.Series([mx + mn + mx], index=pd.Index([0], dtype=np.intp)),
             check_dtype=False,
         )
 
@@ -1582,26 +1584,26 @@ def test_groupby_sum_timedelta_overflow_sentinel():
 def test_groupby_sum_timedelta_overflow_na_result():
     # GH#66551: a group whose result is NA anyway must not raise, matching
     #  Series.sum
-    ser = Series([pd.Timedelta.max, pd.Timedelta.max])
+    ser = pd.Series([pd.Timedelta.max, pd.Timedelta.max])
 
     res = ser.groupby([0, 0]).sum(min_count=3)
     tm.assert_series_equal(
-        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+        res, pd.Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
     )
 
-    ser = Series([pd.Timedelta.max, pd.Timedelta.max, pd.NaT])
+    ser = pd.Series([pd.Timedelta.max, pd.Timedelta.max, pd.NaT])
     res = ser.groupby([0, 0, 0]).sum(skipna=False)
     tm.assert_series_equal(
-        res, Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
+        res, pd.Series([pd.NaT], dtype="m8[ns]", index=pd.Index([0], dtype=np.intp))
     )
 
 
 def test_groupby_sum_int64_still_wraps():
     # GH#66551: only the datetimelike path is checked; plain int64 keeps
     #  wrapping like NumPy
-    ser = Series([2**62] * 4)
+    ser = pd.Series([2**62] * 4)
     res = ser.groupby([0] * 4).sum()
-    tm.assert_series_equal(res, Series([0], index=pd.Index([0], dtype=np.intp)))
+    tm.assert_series_equal(res, pd.Series([0], index=pd.Index([0], dtype=np.intp)))
 
 
 @pytest.mark.parametrize(
@@ -1619,7 +1621,7 @@ def test_groupby_sum_int64_still_wraps():
 )
 def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     # GH9311, GH6620
-    df = DataFrame(
+    df = pd.DataFrame(
         [{"a": 1, "b": 1}, {"a": 1, "b": 2}, {"a": 2, "b": 3}, {"a": 2, "b": 4}]
     )
 
@@ -1634,7 +1636,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
         out_type = dtype
 
     exp = data["df"]
-    df_out = DataFrame(exp)
+    df_out = pd.DataFrame(exp)
 
     df_out["b"] = df_out.b.astype(out_type)
     df_out.set_index("a", inplace=True)
@@ -1668,7 +1670,7 @@ def scipy_sem(*args, **kwargs):
     ],
 )
 def test_ops_general(op, targop):
-    df = DataFrame(np.random.default_rng(2).standard_normal(1000))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal(1000))
     labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     result = getattr(df.groupby(labels), op)()
@@ -1693,9 +1695,9 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     output = 0.5 if function == "var" else 1.5
     arr = np.array([output] * 3, dtype=float)
     idx = pd.Index([1, 2, 3], name="a", dtype="Int64")
-    expected = DataFrame({"b": arr}, index=idx).astype("Float64")
+    expected = pd.DataFrame({"b": arr}, index=idx).astype("Float64")
 
-    groups = DataFrame(values, dtype="Int64").groupby("a")
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
 
     result = getattr(groups, function)()
     tm.assert_frame_equal(result, expected)
@@ -1704,7 +1706,7 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     tm.assert_frame_equal(result, expected)
 
     result = groups.agg([function])
-    expected.columns = MultiIndex.from_tuples([("b", function)])
+    expected.columns = pd.MultiIndex.from_tuples([("b", function)])
     tm.assert_frame_equal(result, expected)
 
 
@@ -1728,7 +1730,7 @@ def test_regression_allowlist_methods(op, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
-    frame = DataFrame([0])
+    frame = pd.DataFrame([0])
 
     grouped = frame.groupby(level=0, sort=sort)
 
@@ -1765,22 +1767,22 @@ def test_groupby_prod_with_int64_dtype():
         [1, 19],
         [1, 88],
     ]
-    df = DataFrame(data, columns=["A", "B"], dtype="int64")
+    df = pd.DataFrame(data, columns=["A", "B"], dtype="int64")
     result = df.groupby(["A"]).prod().reset_index()
-    expected = DataFrame({"A": [1], "B": [180970905912331920]}, dtype="int64")
+    expected = pd.DataFrame({"A": [1], "B": [180970905912331920]}, dtype="int64")
     tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_std_datetimelike():
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000, unit="ns")
-    ser = Series(tdi)
+    ser = pd.Series(tdi)
     ser[::5] *= 2  # get different std for different groups
 
     df = ser.to_frame("A").copy()
 
-    df["B"] = ser + Timestamp(0)
-    df["C"] = ser + Timestamp(0, tz="UTC")
+    df["B"] = ser + pd.Timestamp(0)
+    df["C"] = ser + pd.Timestamp(0, tz="UTC")
     df.iloc[-1] = pd.NaT  # last group includes NaTs
 
     gb = df.groupby(list(range(5)) * 2000)
@@ -1793,15 +1795,15 @@ def test_groupby_std_datetimelike():
     #  same operation on int64 data xref GH#51332
     td1 = pd.Timedelta("2887 days 11:21:02.326710176")
     td4 = pd.Timedelta("2886 days 00:42:34.664668096")
-    exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
-    expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
+    exp_ser = pd.Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
+    expected = pd.DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)
 
 
 def test_mean_numeric_only_validates_bool():
     # GH#62778
 
-    df = DataFrame({"A": range(5), "B": range(5)})
+    df = pd.DataFrame({"A": range(5), "B": range(5)})
 
     msg = "numeric_only accepts only Boolean values"
     with pytest.raises(ValueError, match=msg):
@@ -1831,18 +1833,18 @@ def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is
     values = np.array([1.0, 2.0, 3.0, 4.0, np.nan], dtype="float64")
     mask = np.array([False, False, False, False, False], dtype="bool")
 
-    ser = Series(pd.arrays.FloatingArray(values, mask))
-    df = DataFrame({"A": [1] * 5, "B": ser})
+    ser = pd.Series(pd.arrays.FloatingArray(values, mask))
+    df = pd.DataFrame({"A": [1] * 5, "B": ser})
 
     gb = df.groupby("A")["B"]
     result = getattr(gb, method)(skipna=skipna)
 
     if using_nan_is_na:
-        expected = Series(
+        expected = pd.Series(
             [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
     else:
-        expected = Series(
+        expected = pd.Series(
             [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
     tm.assert_series_equal(result, expected)
@@ -1865,10 +1867,10 @@ def test_groupby_skipna_false_propagates_na_when_distinguish_nan_and_na(method):
     # GH-65372: under future.distinguish_nan_and_na, a genuine NA with
     # skipna=False must propagate to NA.
     with pd.option_context("future.distinguish_nan_and_na", True):
-        ser = Series([1.0, 2.0, 3.0, 4.0, pd.NA], dtype="Float64")
-        df = DataFrame({"A": [1] * 5, "B": ser})
+        ser = pd.Series([1.0, 2.0, 3.0, 4.0, pd.NA], dtype="Float64")
+        df = pd.DataFrame({"A": [1] * 5, "B": ser})
         gb = df.groupby("A")["B"]
-        expected = Series(
+        expected = pd.Series(
             [pd.NA], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
         result = getattr(gb, method)(skipna=False)

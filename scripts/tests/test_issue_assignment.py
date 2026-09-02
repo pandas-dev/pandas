@@ -702,7 +702,7 @@ def activity(
 
 def ago(days: int) -> datetime:
     # The sweeps read the wall clock, so fixtures are relative to real now.
-    return datetime.now(UTC) - timedelta(days=days)
+    return datetime.now(UTC) - timedelta(days=days)  # noqa: TID251
 
 
 def changes(days_ago: int) -> list[core.Review]:

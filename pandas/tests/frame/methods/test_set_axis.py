@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -106,7 +103,7 @@ class SharedSetAxisTests:
 class TestDataFrameSetAxis(SharedSetAxisTests):
     @pytest.fixture
     def obj(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [1.1, 2.2, 3.3], "B": [5.0, 6.1, 7.2], "C": [4.4, 5.5, 6.6]},
             index=[2010, 2011, 2012],
         )
@@ -114,17 +111,17 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
 
     def test_set_axis_with_allows_duplicate_labels_false(self):
         # GH#44958
-        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
             allows_duplicate_labels=False
         )
 
         result = df.set_axis(labels=["x", "y"], axis=0)
-        expected = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"])
+        expected = pd.DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"])
         tm.assert_frame_equal(result, expected, check_flags=False)
 
 
 class TestSeriesSetAxis(SharedSetAxisTests):
     @pytest.fixture
     def obj(self):
-        ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
+        ser = pd.Series(np.arange(4), index=[1, 3, 5, 7], dtype="int64")
         return ser
