@@ -225,9 +225,8 @@ def concat(
             This keyword is ignored and will be removed in pandas 4.0. Since
             pandas 3.0, this method always returns a new object using a lazy
             copy mechanism that defers copies until necessary
-            (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            for more details.
+            (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+            <copy_on_write>` for more details.
 
     union_categories : bool, default False
         If True and all values for a given column have categorical dtype,
@@ -260,8 +259,7 @@ def concat(
     The keys, levels, and names arguments are all optional.
 
     A walkthrough of how this method fits in with other tools for combining
-    pandas objects can be found `here
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
+    pandas objects can be found :ref:`here <merging>`.
 
     It is not recommended to build DataFrames by adding single rows in a
     for loop. Build a list of rows and make a DataFrame in a single concat.

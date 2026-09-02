@@ -410,9 +410,7 @@ def read_excel(
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer `here
-        <https://pandas.pydata.org/docs/user_guide/io.html?
-        highlight=storage_options#reading-writing-remote-files>`_.
+        details, and for more examples on storage options refer :ref:`here <io.remote>`.
 
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
@@ -1047,9 +1045,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer `here
-        <https://pandas.pydata.org/docs/user_guide/io.html?
-        highlight=storage_options#reading-writing-remote-files>`_.
+        details, and for more examples on storage options refer :ref:`here <io.remote>`.
 
     if_sheet_exists : {'error', 'new', 'replace', 'overlay'}, default 'error'
         How to behave when trying to write to a sheet that already
@@ -1494,9 +1490,7 @@ def inspect_excel_format(
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer `here
-        <https://pandas.pydata.org/docs/user_guide/io.html?
-        highlight=storage_options#reading-writing-remote-files>`_.
+        details, and for more examples on storage options refer :ref:`here <io.remote>`.
 
     Returns
     -------
@@ -1599,9 +1593,7 @@ class ExcelFile:
         are forwarded to ``urllib.request.Request`` as header options. For other
         URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
         forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer `here
-        <https://pandas.pydata.org/docs/user_guide/io.html?
-        highlight=storage_options#reading-writing-remote-files>`_.
+        details, and for more examples on storage options refer :ref:`here <io.remote>`.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
 

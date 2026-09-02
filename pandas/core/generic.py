@@ -434,9 +434,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         allows_duplicate_labels : bool, optional
             Whether the returned object allows duplicate labels.
@@ -717,9 +716,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         Returns
         -------
@@ -1148,9 +1146,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
@@ -2288,9 +2285,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer `here
-            <https://pandas.pydata.org/docs/user_guide/io.html?
-            highlight=storage_options#reading-writing-remote-files>`_.
+            details, and for more examples on storage options refer
+            :ref:`here <io.remote>`.
 
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
@@ -2508,9 +2504,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer `here
-            <https://pandas.pydata.org/docs/user_guide/io.html?
-            highlight=storage_options#reading-writing-remote-files>`_.
+            details, and for more examples on storage options refer
+            :ref:`here <io.remote>`.
 
         mode : str, default 'w' (writing)
             Specify the IO mode for output when supplying a path_or_buf.
@@ -3239,9 +3234,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer `here
-            <https://pandas.pydata.org/docs/user_guide/io.html?
-            highlight=storage_options#reading-writing-remote-files>`_.
+            details, and for more examples on storage options refer
+            :ref:`here <io.remote>`.
 
         See Also
         --------
@@ -4055,9 +4049,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             are forwarded to ``urllib.request.Request`` as header options. For other
             URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
             forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-            details, and for more examples on storage options refer `here
-            <https://pandas.pydata.org/docs/user_guide/io.html?
-            highlight=storage_options#reading-writing-remote-files>`_.
+            details, and for more examples on storage options refer
+            :ref:`here <io.remote>`.
 
         Returns
         -------
@@ -4644,9 +4637,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
@@ -5395,9 +5387,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         level : int or name
             Match index values on the specified level of a MultiIndex.
@@ -6392,8 +6383,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         "Pandas doesn't allow columns to be "
                         "created via a new attribute name - see "
-                        "https://pandas.pydata.org/pandas-docs/"
-                        "stable/indexing.html#attribute-access",
+                        "https://pandas.pydata.org/docs/user_guide/"
+                        "indexing.html#attribute-access",
                         stacklevel=find_stack_level(),
                     )
                 object.__setattr__(self, name, value)
@@ -6548,9 +6539,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
@@ -6859,9 +6849,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         Returns
         -------
@@ -9396,12 +9385,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
-        for more.
+        See the :ref:`user guide <timeseries.resampling>` for more.
 
-        To learn more about the offset strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        To learn more about the offset strings, please see
+        :ref:`this link <timeseries.offsets>`.
 
         Examples
         --------
@@ -10004,9 +9991,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
@@ -11027,9 +11013,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         Returns
         -------
@@ -11210,9 +11195,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         Returns
         -------
@@ -11316,9 +11300,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 This keyword is ignored and will be removed in pandas 4.0. Since
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
+                (Copy-on-Write). See the :ref:`user guide on Copy-on-Write
+                <copy_on_write>` for more details.
 
         ambiguous : 'infer', bool, bool-ndarray, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.

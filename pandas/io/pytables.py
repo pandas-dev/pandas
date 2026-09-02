@@ -1388,8 +1388,7 @@ class HDFStore:
             Str to use as str nan representation.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
-            See `here
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            See :ref:`here <io.hdf5-query-data-columns>`.
         encoding : str, default None
             Provide an encoding for strings.
         errors : str, default 'strict'
@@ -1631,8 +1630,8 @@ class HDFStore:
         data_columns : list of columns, or True, default None
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See `here
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            of the object are indexed. See
+            :ref:`here <io.hdf5-query-data-columns>`.
         encoding : default None
             Provide an encoding for str.
         errors : str, default 'strict'

@@ -521,8 +521,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Notes
         -----
-        See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+        See more :ref:`here <groupby.pipe>`
 
         Examples
         --------

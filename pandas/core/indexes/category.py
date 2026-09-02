@@ -149,9 +149,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     Notes
     -----
-    See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`__
-    for more.
+    See the :ref:`user guide <advanced.categoricalindex>` for more.
 
     Examples
     --------
