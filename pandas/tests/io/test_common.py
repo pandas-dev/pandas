@@ -31,10 +31,6 @@ import pandas._testing as tm
 
 import pandas.io.common as icom
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 class CustomFSPath:
     """For testing fspath on unknown objects"""
@@ -292,15 +288,10 @@ Look,a snake,🐍"""
                 ("io", "data", "fixed_width", "fixed_width_format.txt"),
             ),
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
-            # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
-            # suppress until we migrate the implementation (GH#66177)
-            pytest.param(
+            (
                 pd.read_feather,
                 "pyarrow",
-                ("io", "data", "feather", "feather-0_3_1.feather"),
-                marks=pytest.mark.filterwarnings(
-                    "ignore:Feather V1 files are deprecated:DeprecationWarning"
-                ),
+                ("io", "data", "feather", "simple_dataset.feather"),
             ),
             (
                 pd.read_hdf,

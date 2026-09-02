@@ -4,14 +4,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-    isna,
-    notna,
-)
 import pandas._testing as tm
 
 
@@ -30,26 +22,26 @@ class TestMultiIndexSetItem:
     def test_setitem_multiindex(self):
         # GH#7190
         cols = ["A", "w", "l", "a", "x", "X", "d", "profit"]
-        index = MultiIndex.from_product(
+        index = pd.MultiIndex.from_product(
             [np.arange(0, 100), np.arange(0, 80)], names=["time", "firm"]
         )
         t, n = 0, 2
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.nan,
             columns=cols,
             index=index,
         )
         self.check(target=df, indexers=((t, n), "X"), value=0)
 
-        df = DataFrame(-999, columns=cols, index=index)
+        df = pd.DataFrame(-999, columns=cols, index=index)
         self.check(target=df, indexers=((t, n), "X"), value=1)
 
-        df = DataFrame(columns=cols, index=index)
+        df = pd.DataFrame(columns=cols, index=index)
         self.check(target=df, indexers=((t, n), "X"), value=2)
 
         # gh-7218: assigning with 0-dim arrays
-        df = DataFrame(-999, columns=cols, index=index)
+        df = pd.DataFrame(-999, columns=cols, index=index)
         self.check(
             target=df,
             indexers=((t, n), "X"),
@@ -59,14 +51,14 @@ class TestMultiIndexSetItem:
 
     def test_setitem_multiindex2(self):
         # GH#5206
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(25).reshape(5, 5), columns="A,B,C,D,E".split(","), dtype=float
         )
         df["F"] = 99
         row_selection = df["A"] % 2 == 0
         col_selection = ["B", "C"]
         df.loc[row_selection, col_selection] = df["F"]
-        output = DataFrame(99.0, index=[0, 2, 4], columns=["B", "C"])
+        output = pd.DataFrame(99.0, index=[0, 2, 4], columns=["B", "C"])
         tm.assert_frame_equal(df.loc[row_selection, col_selection], output)
         self.check(
             target=df,
@@ -78,25 +70,25 @@ class TestMultiIndexSetItem:
 
     def test_setitem_multiindex3(self):
         # GH#11372
-        idx = MultiIndex.from_product(
-            [["A", "B", "C"], date_range("2015-01-01", "2015-04-01", freq="MS")]
+        idx = pd.MultiIndex.from_product(
+            [["A", "B", "C"], pd.date_range("2015-01-01", "2015-04-01", freq="MS")]
         )
-        cols = MultiIndex.from_product(
-            [["foo", "bar"], date_range("2016-01-01", "2016-02-01", freq="MS")]
+        cols = pd.MultiIndex.from_product(
+            [["foo", "bar"], pd.date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((12, 4)), index=idx, columns=cols
         )
 
-        subidx = MultiIndex.from_arrays(
-            [["A", "A"], date_range("2015-01-01", "2015-02-01", freq="MS")]
+        subidx = pd.MultiIndex.from_arrays(
+            [["A", "A"], pd.date_range("2015-01-01", "2015-02-01", freq="MS")]
         )
-        subcols = MultiIndex.from_arrays(
-            [["foo", "foo"], date_range("2016-01-01", "2016-02-01", freq="MS")]
+        subcols = pd.MultiIndex.from_arrays(
+            [["foo", "foo"], pd.date_range("2016-01-01", "2016-02-01", freq="MS")]
         )
 
-        vals = DataFrame(
+        vals = pd.DataFrame(
             np.random.default_rng(2).random((2, 2)), index=subidx, columns=subcols
         )
         self.check(
@@ -106,7 +98,7 @@ class TestMultiIndexSetItem:
             compare_fn=tm.assert_frame_equal,
         )
         # set all columns
-        vals = DataFrame(
+        vals = pd.DataFrame(
             np.random.default_rng(2).random((2, 4)), index=subidx, columns=cols
         )
         self.check(
@@ -134,7 +126,7 @@ class TestMultiIndexSetItem:
             np.arange(0, 6, 1),
         ]
 
-        df_orig = DataFrame(
+        df_orig = pd.DataFrame(
             np.random.default_rng(2).standard_normal((6, 3)),
             index=arrays,
             columns=["A", "B", "C"],
@@ -153,7 +145,7 @@ class TestMultiIndexSetItem:
     def test_multiindex_setitem2(self):
         # from SO
         # https://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
-        df_orig = DataFrame.from_dict(
+        df_orig = pd.DataFrame.from_dict(
             {
                 "price": {
                     ("DE", "Coal", "Stock"): 2,
@@ -165,7 +157,7 @@ class TestMultiIndexSetItem:
                 }
             }
         )
-        df_orig.index = MultiIndex.from_tuples(
+        df_orig.index = pd.MultiIndex.from_tuples(
             df_orig.index, names=["Sit", "Com", "Type"]
         )
 
@@ -185,7 +177,7 @@ class TestMultiIndexSetItem:
         # GH3777 part 2
 
         # mixed dtype
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
@@ -194,14 +186,14 @@ class TestMultiIndexSetItem:
         arr = np.array([0.0, 1.0])
 
         df.loc[4, "d"] = arr
-        tm.assert_series_equal(df.loc[4, "d"], Series(arr, index=[8, 10], name="d"))
+        tm.assert_series_equal(df.loc[4, "d"], pd.Series(arr, index=[8, 10], name="d"))
 
     def test_multiindex_assignment_single_dtype(self):
         # GH3777 part 2b
         # single dtype
         arr = np.array([0.0, 1.0])
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
@@ -210,7 +202,7 @@ class TestMultiIndexSetItem:
 
         # arr can be losslessly cast to int, so this setitem is inplace
         df.loc[4, "c"] = arr
-        exp = Series(arr, index=[8, 10], name="c", dtype="int64")
+        exp = pd.Series(arr, index=[8, 10], name="c", dtype="int64")
         result = df.loc[4, "c"]
         tm.assert_series_equal(result, exp)
 
@@ -223,7 +215,7 @@ class TestMultiIndexSetItem:
 
         # scalar ok
         df.loc[4, "c"] = 10
-        exp = Series(10, index=[8, 10], name="c", dtype="float64")
+        exp = pd.Series(10, index=[8, 10], name="c", dtype="float64")
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
@@ -246,7 +238,7 @@ class TestMultiIndexSetItem:
         col_names = ["A" + num for num in map(str, np.arange(NUM_COLS).tolist())]
         index_cols = col_names[:5]
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(5, size=(NUM_ROWS, NUM_COLS)),
             dtype=np.int64,
             columns=col_names,
@@ -266,12 +258,12 @@ class TestMultiIndexSetItem:
         s = ymd["A"]
 
         s[2000, 3] = np.nan
-        assert isna(s.values[42:65]).all()
-        assert notna(s.values[:42]).all()
-        assert notna(s.values[65:]).all()
+        assert pd.isna(s.values[42:65]).all()
+        assert pd.notna(s.values[:42]).all()
+        assert pd.notna(s.values[65:]).all()
 
         s[2000, 3, 10] = np.nan
-        assert isna(s.iloc[49])
+        assert pd.isna(s.iloc[49])
 
         with pytest.raises(KeyError, match="49"):
             # GH#33355 dont fall-back to positional when leading level is int
@@ -305,8 +297,8 @@ class TestMultiIndexSetItem:
     def test_frame_getitem_setitem_multislice(self):
         levels = [["t1", "t2"], ["a", "b", "c"]]
         codes = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
-        midx = MultiIndex(codes=codes, levels=levels, names=[None, "id"])
-        df = DataFrame({"value": [1, 2, 3, 7, 8]}, index=midx)
+        midx = pd.MultiIndex(codes=codes, levels=levels, names=[None, "id"])
+        df = pd.DataFrame({"value": [1, 2, 3, 7, 8]}, index=midx)
 
         result = df.loc[:, "value"]
         tm.assert_series_equal(df["value"], result)
@@ -326,7 +318,7 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df, result)
 
     def test_frame_setitem_multi_column(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=[["a", "a", "b", "b"], [0, 1, 0, 1]],
         )
@@ -343,8 +335,8 @@ class TestMultiIndexSetItem:
     def test_frame_setitem_multi_column2(self):
         # ---------------------------------------
         # GH#1803
-        columns = MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")])
-        df = DataFrame(index=[1, 3, 5], columns=columns)
+        columns = pd.MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")])
+        df = pd.DataFrame(index=[1, 3, 5], columns=columns)
 
         # Works, but adds a column instead of updating the two existing ones
         df["A"] = 0.0  # Doesn't work
@@ -375,11 +367,11 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
         )
 
-        obj = DataFrame(
+        obj = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 4)),
             index=index,
             columns=["a", "b", "c", "d"],
@@ -418,12 +410,12 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(frame, frame_original)
 
     def test_nonunique_assignment_1750(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 1, "x", "X"], [1, 1, "y", "Y"], [1, 2, "z", "Z"]], columns=list("ABCD")
         )
 
         df = df.set_index(["A", "B"])
-        mi = MultiIndex.from_tuples([(1, 1)])
+        mi = pd.MultiIndex.from_tuples([(1, 1)])
 
         df.loc[mi, "C"] = "_"
 
@@ -432,8 +424,8 @@ class TestMultiIndexSetItem:
     def test_astype_assignment_with_dups(self):
         # GH 4686
         # assignment with dups that has a dtype change
-        cols = MultiIndex.from_tuples([("A", "1"), ("B", "1"), ("A", "2")])
-        df = DataFrame(np.arange(3).reshape((1, 3)), columns=cols, dtype=object)
+        cols = pd.MultiIndex.from_tuples([("A", "1"), ("B", "1"), ("A", "2")])
+        df = pd.DataFrame(np.arange(3).reshape((1, 3)), columns=cols, dtype=object)
         index = df.index.copy()
 
         df["A"] = df["A"].astype(np.float64)
@@ -441,12 +433,12 @@ class TestMultiIndexSetItem:
 
     def test_setitem_nonmonotonic(self):
         # https://github.com/pandas-dev/pandas/issues/31449
-        index = MultiIndex.from_tuples(
+        index = pd.MultiIndex.from_tuples(
             [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
         )
-        df = DataFrame(data=[0, 1, 2], index=index, columns=["e"])
+        df = pd.DataFrame(data=[0, 1, 2], index=index, columns=["e"])
         df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
-        expected = DataFrame({"e": [99, 1, 100]}, index=index)
+        expected = pd.DataFrame({"e": [99, 1, 100]}, index=index)
         tm.assert_frame_equal(df, expected)
 
 
@@ -459,8 +451,10 @@ class TestSetitemWithExpansionMultiIndex:
         ]
 
         tuples = sorted(zip(*arrays, strict=True))
-        index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
+        index = pd.MultiIndex.from_tuples(tuples)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((4, 6)), columns=index
+        )
 
         result = df.copy()
         expected = df.copy()
@@ -471,21 +465,21 @@ class TestSetitemWithExpansionMultiIndex:
 
     def test_setitem_new_column_all_na(self):
         # GH#1534
-        mix = MultiIndex.from_tuples([("1a", "2a"), ("1a", "2b"), ("1a", "2c")])
-        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
-        s = Series({(1, 1): 1, (1, 2): 2})
+        mix = pd.MultiIndex.from_tuples([("1a", "2a"), ("1a", "2b"), ("1a", "2c")])
+        df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], index=mix)
+        s = pd.Series({(1, 1): 1, (1, 2): 2})
         df["new"] = s
         assert df["new"].isna().all()
 
     def test_setitem_enlargement_keep_index_names(self):
         # GH#53053
-        mi = MultiIndex.from_tuples([(1, 2, 3)], names=["i1", "i2", "i3"])
-        df = DataFrame(data=[[10, 20, 30]], index=mi, columns=["A", "B", "C"])
+        mi = pd.MultiIndex.from_tuples([(1, 2, 3)], names=["i1", "i2", "i3"])
+        df = pd.DataFrame(data=[[10, 20, 30]], index=mi, columns=["A", "B", "C"])
         df.loc[(0, 0, 0)] = df.loc[(1, 2, 3)]
-        mi_expected = MultiIndex.from_tuples(
+        mi_expected = pd.MultiIndex.from_tuples(
             [(1, 2, 3), (0, 0, 0)], names=["i1", "i2", "i3"]
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             data=[[10, 20, 30], [10, 20, 30]],
             index=mi_expected,
             columns=["A", "B", "C"],
@@ -495,15 +489,15 @@ class TestSetitemWithExpansionMultiIndex:
     def test_setitem_enlargement_multiindex_with_none(self):
         # GH#59153
         # enlarging a DataFrame with a MultiIndex containing None values
-        index = MultiIndex.from_tuples(
+        index = pd.MultiIndex.from_tuples(
             [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None)]
         )
-        df = DataFrame([(0.0, 6.0), (1.0, 5.0), (2.0, 4.0), (3.0, 7.0)], index=index)
+        df = pd.DataFrame([(0.0, 6.0), (1.0, 5.0), (2.0, 4.0), (3.0, 7.0)], index=index)
         df.loc[("A", None), :] = [12.0, 13.0]
-        expected_index = MultiIndex.from_tuples(
+        expected_index = pd.MultiIndex.from_tuples(
             [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None), ("A", None)]
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[0.0, 6.0], [1.0, 5.0], [2.0, 4.0], [3.0, 7.0], [12.0, 13.0]],
             index=expected_index,
             columns=[0, 1],
@@ -539,7 +533,7 @@ def test_frame_setitem_copy_no_write(multiindex_dataframe_random_data):
 
 def test_frame_setitem_partial_multiindex():
     # GH 54875
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 2, 3],
             "b": [3, 4, 5],
@@ -547,7 +541,7 @@ def test_frame_setitem_partial_multiindex():
             "d": 7,
         }
     ).set_index(["a", "b", "c"])
-    ser = Series(8, index=df.index.droplevel("c"))
+    ser = pd.Series(8, index=df.index.droplevel("c"))
     result = df.copy()
     result["d"] = ser
     expected = df.copy()
@@ -559,7 +553,7 @@ def test_loc_scalar_setitem_scalar_column_multiindex_columns():
     # GH#13474 adding a scalar (non-tuple) column to a frame with MultiIndex
     #  columns should give scalar .loc access and correct in-place augmented
     #  assignment, rather than returning a 1-element Series / writing NaN
-    df = DataFrame(0, index=range(2), columns=MultiIndex.from_product([[1], [2]]))
+    df = pd.DataFrame(0, index=range(2), columns=pd.MultiIndex.from_product([[1], [2]]))
     msg = "Setting a new column on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         # GH#17024 padding the scalar key is deprecated
@@ -569,7 +563,7 @@ def test_loc_scalar_setitem_scalar_column_multiindex_columns():
     assert df.loc[0, "oth"] == 1
     # while the column-slice form stays a Series (the dimensionality the issue
     # was retitled around)
-    assert isinstance(df.loc[:, "oth"], Series)
+    assert isinstance(df.loc[:, "oth"], pd.Series)
 
     df.loc[0, "oth"] += 1
     assert df.loc[0, "oth"] == 2
@@ -580,9 +574,9 @@ def test_loc_scalar_setitem_scalar_column_multiindex_columns():
 
 def test_loc_scalar_key_expansion_warns():
     # GH#17024 - deprecate .loc expansion with non-tuple key on MultiIndex
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2], [3, 4]],
-        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+        index=pd.MultiIndex.from_product([["a", "b"], ["c"]]),
     )
     msg = "Setting a new row on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -591,9 +585,9 @@ def test_loc_scalar_key_expansion_warns():
 
 def test_loc_scalar_key_expansion_empty_warns():
     # GH#17024 - deprecate .loc expansion with non-tuple key on empty DataFrame
-    df = DataFrame(
+    df = pd.DataFrame(
         columns=[0, 1],
-        index=MultiIndex.from_tuples([], names=["x", "y"]),
+        index=pd.MultiIndex.from_tuples([], names=["x", "y"]),
     )
     msg = "Setting a new row on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -602,7 +596,7 @@ def test_loc_scalar_key_expansion_empty_warns():
 
 def test_loc_scalar_key_expansion_zero_columns_warns():
     # GH#17024 - the GH#17895 zero-columns path pads the MultiIndex too
-    df = DataFrame(index=MultiIndex.from_tuples([], names=["x", "y"]))
+    df = pd.DataFrame(index=pd.MultiIndex.from_tuples([], names=["x", "y"]))
     msg = "Setting a new row on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         df.loc["all"] = [5, 6]
@@ -611,32 +605,32 @@ def test_loc_scalar_key_expansion_zero_columns_warns():
 
 def test_loc_tuple_key_expansion_no_warning():
     # GH#17024 - full-length tuple key should not warn
-    mi = MultiIndex.from_tuples([("a", "b", "c")], names=["x", "y", "z"])
-    df = DataFrame([[1, 2]], index=mi)
+    mi = pd.MultiIndex.from_tuples([("a", "b", "c")], names=["x", "y", "z"])
+    df = pd.DataFrame([[1, 2]], index=mi)
     with tm.assert_produces_warning(None):
         df.loc[("d", "e", "f")] = [5, 6]
-    assert isinstance(df.index, MultiIndex)
+    assert isinstance(df.index, pd.MultiIndex)
 
 
 def test_loc_tuple_key_expansion_two_levels_no_warning():
     # GH#17024 - the recommended replacement for df.loc["x"] = values; with
     #  a two-level MultiIndex the column slice is needed to avoid the tuple
     #  being interpreted as (row_key, column_key)
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2], [3, 4]],
-        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+        index=pd.MultiIndex.from_product([["a", "b"], ["c"]]),
     )
     with tm.assert_produces_warning(None):
         df.loc[("x", ""), :] = [5, 6]
-    assert isinstance(df.index, MultiIndex)
+    assert isinstance(df.index, pd.MultiIndex)
     assert df.index[-1] == ("x", "")
 
 
 def test_loc_series_scalar_key_expansion_warns():
     # GH#17024 - deprecate .loc expansion with non-tuple key on Series MultiIndex
-    ser = Series(
+    ser = pd.Series(
         [1, 2],
-        index=MultiIndex.from_product([["a", "b"], ["c"]]),
+        index=pd.MultiIndex.from_product([["a", "b"], ["c"]]),
     )
     msg = "Setting a new value on a Series with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -645,16 +639,16 @@ def test_loc_series_scalar_key_expansion_warns():
 
 def test_loc_series_tuple_key_expansion_no_warning():
     # GH#17024 - full-length tuple key on Series should not warn
-    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
-    ser = Series([1], index=mi)
+    mi = pd.MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    ser = pd.Series([1], index=mi)
     with tm.assert_produces_warning(None):
         ser.loc[("d", "e")] = 5
 
 
 def test_setitem_new_column_multiindex_scalar_key_warns():
     # GH#17024 - df["scalar"] = values should warn when columns is MultiIndex
-    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
-    df = DataFrame([[1]], columns=mi)
+    mi = pd.MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = pd.DataFrame([[1]], columns=mi)
     msg = "Setting a new column on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         df["new"] = [2]
@@ -662,17 +656,17 @@ def test_setitem_new_column_multiindex_scalar_key_warns():
 
 def test_setitem_new_column_multiindex_full_tuple_no_warning():
     # GH#17024 - df[("a", "b")] = values should not warn
-    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
-    df = DataFrame([[1]], columns=mi)
+    mi = pd.MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = pd.DataFrame([[1]], columns=mi)
     with tm.assert_produces_warning(None):
         df[("c", "d")] = [2]
-    assert isinstance(df.columns, MultiIndex)
+    assert isinstance(df.columns, pd.MultiIndex)
 
 
 def test_insert_multiindex_scalar_key_warns():
     # GH#17024 - df.insert with a non-tuple key pads MultiIndex columns
-    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
-    df = DataFrame([[1]], columns=mi)
+    mi = pd.MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = pd.DataFrame([[1]], columns=mi)
     msg = "Setting a new column on a DataFrame with a MultiIndex"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         df.insert(1, "new", [2])
@@ -681,8 +675,8 @@ def test_insert_multiindex_scalar_key_warns():
 
 def test_insert_multiindex_full_tuple_no_warning():
     # GH#17024 - df.insert with a full-length tuple key should not warn
-    mi = MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
-    df = DataFrame([[1]], columns=mi)
+    mi = pd.MultiIndex.from_tuples([("a", "b")], names=["x", "y"])
+    df = pd.DataFrame([[1]], columns=mi)
     with tm.assert_produces_warning(None):
         df.insert(1, ("c", "d"), [2])
     assert df.columns.tolist() == [("a", "b"), ("c", "d")]

@@ -9,6 +9,7 @@ import pytest
 from pandas._libs.tslibs import iNaT
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import pa_version_under22p0
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -29,7 +30,7 @@ def test_categorical_dtype(data):
     }
     df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         col = df.__dataframe__().get_column_by_name("A")
     assert col.dtype[0] == DtypeKind.CATEGORICAL
     assert col.null_count == 0
@@ -43,7 +44,7 @@ def test_categorical_dtype(data):
         desc_cat["categories"]._col, pd.Series(["a", "d", "e", "s", "t"])
     )
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
@@ -54,7 +55,7 @@ def test_categorical_pyarrow():
     arr = ["Mon", "Tue", "Mon", "Wed", "Mon", "Thu", "Fri", "Sat", "Sun"]
     table = pa.table({"weekday": pa.array(arr).dictionary_encode()})
     exchange_df = table.__dataframe__()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = from_dataframe(exchange_df)
     weekday = pd.Categorical(
         arr, categories=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -63,9 +64,6 @@ def test_categorical_pyarrow():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:Constructing a Categorical with a dtype and values containing"
-)
 def test_empty_categorical_pyarrow():
     # https://github.com/pandas-dev/pandas/issues/53077
     pa = pytest.importorskip("pyarrow", "11.0.0")
@@ -73,7 +71,7 @@ def test_empty_categorical_pyarrow():
     arr = [None]
     table = pa.table({"arr": pa.array(arr, "float64").dictionary_encode()})
     exchange_df = table.__dataframe__()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = pd.api.interchange.from_dataframe(exchange_df)
     expected = pd.DataFrame({"arr": pd.Categorical([np.nan])})
     tm.assert_frame_equal(result, expected)
@@ -86,14 +84,16 @@ def test_large_string_pyarrow():
     arr = ["Mon", "Tue"]
     table = pa.table({"weekday": pa.array(arr, "large_string")})
     exchange_df = table.__dataframe__()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = from_dataframe(exchange_df)
     expected = pd.DataFrame({"weekday": ["Mon", "Tue"]})
     tm.assert_frame_equal(result, expected)
 
     # check round-trip
     # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
-    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Interchange", check_stacklevel=False
+    ):
         assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
 
 
@@ -115,14 +115,16 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
     arr = [3.3, None, 2.1]
     table = pa.table({"arr": arr}).slice(offset, length)
     exchange_df = table.__dataframe__()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = from_dataframe(exchange_df)
     expected = pd.DataFrame({"arr": expected_values})
     tm.assert_frame_equal(result, expected)
 
     # check round-trip
     # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
-    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Interchange", check_stacklevel=False
+    ):
         assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
 
 
@@ -148,7 +150,7 @@ def test_dataframe(data):
     }
     df = pd.DataFrame(data)
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         df2 = df.__dataframe__()
 
     assert df2.num_columns() == NCOLS
@@ -159,7 +161,7 @@ def test_dataframe(data):
     indices = (0, 2)
     names = tuple(list(data.keys())[idx] for idx in indices)
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = from_dataframe(df2.select_columns(indices))
         expected = from_dataframe(df2.select_columns_by_name(names))
     tm.assert_frame_equal(result, expected)
@@ -185,7 +187,7 @@ def test_missing_from_masked():
         ]
         df.loc[null_idx, col] = None
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         df2 = df.__dataframe__()
 
     assert df2.get_column_by_name("x").null_count == dict_null["x"]
@@ -207,7 +209,7 @@ def test_missing_from_masked():
 )
 def test_mixed_data(data):
     df = pd.DataFrame(data)
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         df2 = df.__dataframe__()
 
     for col_name in df.columns:
@@ -223,7 +225,7 @@ def test_mixed_missing():
         }
     )
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         df2 = df.__dataframe__()
 
     for col_name in df.columns:
@@ -242,7 +244,7 @@ def test_string():
     }
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         col = df.__dataframe__().get_column_by_name("A")
 
     assert col.size() == 6
@@ -251,7 +253,7 @@ def test_string():
     assert col.describe_null == (ColumnNullType.USE_BYTEMASK, 0)
 
     df_sliced = df[1:]
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         col = df_sliced.__dataframe__().get_column_by_name("A")
     assert col.size() == 5
     assert col.null_count == 1
@@ -261,7 +263,7 @@ def test_string():
 
 def test_nonstring_object():
     df = pd.DataFrame({"A": ["a", 10, 1.0, ()]})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         col = df.__dataframe__().get_column_by_name("A")
     with pytest.raises(NotImplementedError, match="not supported yet"):
         col.dtype
@@ -269,7 +271,7 @@ def test_nonstring_object():
 
 def test_datetime():
     df = pd.DataFrame({"A": [pd.Timestamp("2022-01-01"), pd.NaT]})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         col = df.__dataframe__().get_column_by_name("A")
 
     assert col.size() == 2
@@ -277,14 +279,14 @@ def test_datetime():
     assert col.dtype[0] == DtypeKind.DATETIME
     assert col.describe_null == (ColumnNullType.USE_SENTINEL, iNaT)
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         col = df.__dataframe__().get_column_by_name("A")
     result = np.from_dlpack(col.get_buffers()["data"][0])
     expected = np.array([0, 1, 0], dtype="int8")
@@ -299,7 +301,9 @@ def test_empty_pyarrow(data):
 
     expected = pd.DataFrame(data)
     # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
-    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Interchange", check_stacklevel=False
+    ):
         arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
     tm.assert_frame_equal(result, expected, check_column_type=False)
@@ -323,13 +327,13 @@ def test_multi_chunk_column() -> None:
     df = pd.concat([ser, ser], ignore_index=True).to_frame("a")
     df_orig = df.copy()
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         with pytest.raises(
             RuntimeError,
             match="Found multi-chunk pyarrow array, but `allow_copy` is False",
         ):
             pd.api.interchange.from_dataframe(df.__dataframe__(allow_copy=False))
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = pd.api.interchange.from_dataframe(df.__dataframe__(allow_copy=True))
     # Interchange protocol defaults to creating numpy-backed columns, so currently this
     # is 'float64'.
@@ -359,7 +363,7 @@ def test_timestamp_ns_pyarrow():
         name="col0",
     ).to_frame()
 
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfi = df.__dataframe__()
         result = pd.api.interchange.from_dataframe(dfi)["col0"].item()
 
@@ -374,7 +378,7 @@ def test_datetimetzdtype(tz, unit):
         pd.date_range("2018-01-01", periods=5, freq="D").tz_localize(tz).as_unit(unit)
     )
     df = pd.DataFrame({"ts_tz": tz_data})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
@@ -397,7 +401,7 @@ def test_interchange_from_non_pandas_tz_aware(request):
     arr = pc.assume_timezone(arr, "Asia/Kathmandu")
     table = pa.table({"arr": arr})
     exchange_df = table.__dataframe__()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = from_dataframe(exchange_df)
 
     expected = pd.DataFrame(
@@ -410,7 +414,7 @@ def test_interchange_from_non_pandas_tz_aware(request):
 
 def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     # https://github.com/pandas-dev/pandas/issues/54781
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         df = pd.DataFrame({"a": ["foo", "bar"]}).__dataframe__()
         interchange = df.__dataframe__()
     column = interchange.get_column_by_name("a")
@@ -427,14 +431,14 @@ def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
     column.get_buffers = lambda: buffers
     interchange.get_column_by_name = lambda _: column
     monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         pd.api.interchange.from_dataframe(df)
 
 
 def test_empty_string_column():
     # https://github.com/pandas-dev/pandas/issues/56703
     df = pd.DataFrame({"a": []}, dtype=str)
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         df2 = df.__dataframe__()
         result = pd.api.interchange.from_dataframe(df2)
     tm.assert_frame_equal(df, result)
@@ -445,7 +449,9 @@ def test_large_string():
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
     # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
-    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Interchange", check_stacklevel=False
+    ):
         result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="str")
     tm.assert_frame_equal(result, expected)
@@ -454,7 +460,7 @@ def test_large_string():
 def test_non_str_names():
     # https://github.com/pandas-dev/pandas/issues/56701
     df = pd.Series([1, 2, 3], name=0).to_frame()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         names = df.__dataframe__().column_names()
     assert names == ["0"]
 
@@ -462,9 +468,9 @@ def test_non_str_names():
 def test_non_str_names_w_duplicates():
     # https://github.com/pandas-dev/pandas/issues/56701
     df = pd.DataFrame({"0": [1, 2, 3], 0: [4, 5, 6]})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfi = df.__dataframe__()
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         with pytest.raises(
             TypeError,
             match=(
@@ -534,7 +540,7 @@ def test_pandas_nullable_with_missing_values(
         expected_dtype = pa.timestamp("us", "Asia/Kathmandu")
 
     df = pd.DataFrame({"a": data}, dtype=dtype)
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = pai.from_dataframe(df.__dataframe__())["a"]
     assert result.type == expected_dtype
     assert result[0].as_py() == data[0]
@@ -601,7 +607,7 @@ def test_pandas_nullable_without_missing_values(
         expected_dtype = pa.timestamp("us", "Asia/Kathmandu")
 
     df = pd.DataFrame({"a": data}, dtype=dtype)
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = pai.from_dataframe(df.__dataframe__())["a"]
     assert result.type == expected_dtype
     assert result[0].as_py() == data[0]
@@ -613,7 +619,7 @@ def test_string_validity_buffer() -> None:
     # https://github.com/pandas-dev/pandas/issues/57761
     pytest.importorskip("pyarrow", "11.0.0")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         result = df.__dataframe__().get_column_by_name("a").get_buffers()["validity"]
     assert result is None
 
@@ -622,7 +628,7 @@ def test_string_validity_buffer_no_missing() -> None:
     # https://github.com/pandas-dev/pandas/issues/57762
     pytest.importorskip("pyarrow", "11.0.0")
     df = pd.DataFrame({"a": ["x", None]}, dtype="large_string[pyarrow]")
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         validity = df.__dataframe__().get_column_by_name("a").get_buffers()["validity"]
     assert validity is not None
     result = validity[1]
@@ -633,7 +639,7 @@ def test_string_validity_buffer_no_missing() -> None:
 def test_empty_dataframe():
     # https://github.com/pandas-dev/pandas/issues/56700
     df = pd.DataFrame({"a": []}, dtype="int8")
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfi = df.__dataframe__()
         result = pd.api.interchange.from_dataframe(dfi, allow_copy=False)
     expected = pd.DataFrame({"a": []}, dtype="int8")
@@ -680,7 +686,7 @@ def test_buffer_dtype_categorical(
 ) -> None:
     # https://github.com/pandas-dev/pandas/issues/54781
     df = pd.DataFrame({"data": data})
-    with tm.assert_produces_warning(match="Interchange"):
+    with tm.assert_produces_warning(Pandas4Warning, match="Interchange"):
         dfi = df.__dataframe__()
     col = dfi.get_column_by_name("data")
     assert col.dtype == expected_dtype

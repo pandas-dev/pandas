@@ -14,21 +14,7 @@ from pandas._config import using_string_dtype
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    get_option,
-    option_context,
-    read_csv,
-    timedelta_range,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -43,16 +29,16 @@ class TestDataFrameToStringFormatters:
             "Starting with pandas version 4.0 all arguments of to_string "
             "except for the argument 'buf' will be keyword-only."
         )
-        s = Series(["a", "b"])
+        s = pd.Series(["a", "b"])
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             s.to_string(None, "NaN")
 
     def test_to_string_masked_ea_with_formatter(self):
         # GH#39336
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
-                "b": Series([1, 2], dtype="Int64"),
+                "a": pd.Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": pd.Series([1, 2], dtype="Int64"),
             }
         )
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
@@ -66,7 +52,7 @@ class TestDataFrameToStringFormatters:
 
     def test_to_string_object_dtype_with_formatter(self):
         # GH#39850 formatter applied to floats stored in an object-dtype column
-        df = DataFrame([0.123456789, 1.123456789, 2.123456789], columns=["value"])
+        df = pd.DataFrame([0.123456789, 1.123456789, 2.123456789], columns=["value"])
         df = df.astype({"value": "object"})
         result = df.to_string(formatters=["{:.2f}".format])
         expected = dedent(
@@ -79,7 +65,7 @@ class TestDataFrameToStringFormatters:
         assert result == expected
 
     def test_to_string_with_formatters(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "int": [1, 2, 3],
                 "float": [1.0, 2.0, 3.0],
@@ -105,7 +91,7 @@ class TestDataFrameToStringFormatters:
 
     def test_to_string_with_datetime64_monthformatter(self):
         months = [datetime(2016, 1, 1), datetime(2016, 2, 2)]
-        x = DataFrame({"months": months})
+        x = pd.DataFrame({"months": months})
 
         def format_func(x):
             return x.strftime("%Y-%m")
@@ -120,8 +106,12 @@ class TestDataFrameToStringFormatters:
         assert result.strip() == expected
 
     def test_to_string_with_datetime64_hourformatter(self):
-        x = DataFrame(
-            {"hod": to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")}
+        x = pd.DataFrame(
+            {
+                "hod": pd.to_datetime(
+                    ["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f"
+                )
+            }
         )
 
         def format_func(x):
@@ -137,7 +127,7 @@ class TestDataFrameToStringFormatters:
         assert result.strip() == expected
 
     def test_to_string_with_formatters_unicode(self):
-        df = DataFrame({"c/\u03c3": [1, 2, 3]})
+        df = pd.DataFrame({"c/\u03c3": [1, 2, 3]})
         result = df.to_string(formatters={"c/\u03c3": str})
         expected = dedent(
             """\
@@ -149,7 +139,7 @@ class TestDataFrameToStringFormatters:
         assert result == expected
 
     def test_to_string_index_formatter(self):
-        df = DataFrame([range(5), range(5, 10), range(10, 15)])
+        df = pd.DataFrame([range(5), range(5, 10), range(10, 15)])
         rs = df.to_string(formatters={"__index__": lambda x: "abc"[x]})
         xp = dedent(
             """\
@@ -166,7 +156,7 @@ class TestDataFrameToStringFormatters:
         col2 = "PANDAS"
         col3 = "to_string"
         expected = f"{col1:<6s} {col2:<7s} {col3:<10s}"
-        df = DataFrame([{"col1": "TEST", "col2": "PANDAS", "col3": "to_string"}])
+        df = pd.DataFrame([{"col1": "TEST", "col2": "PANDAS", "col3": "to_string"}])
         d = {"col1": "{:<6s}".format, "col2": "{:<7s}".format, "col3": "{:<10s}".format}
         result = df.to_string(index=False, header=False, formatters=d)
         assert result == expected
@@ -174,7 +164,7 @@ class TestDataFrameToStringFormatters:
 
 class TestDataFrameToStringColSpace:
     def test_to_string_with_column_specific_col_space_raises(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
         )
 
@@ -193,7 +183,7 @@ class TestDataFrameToStringColSpace:
             df.to_string(col_space={"a": "foo", "b": 23, "d": 34})
 
     def test_to_string_with_column_specific_col_space(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
         )
 
@@ -205,7 +195,7 @@ class TestDataFrameToStringColSpace:
         assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
 
     def test_to_string_with_col_space(self):
-        df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).random(size=(1, 3)))
         c10 = len(df.to_string(col_space=10).split("\n")[1])
         c20 = len(df.to_string(col_space=20).split("\n")[1])
         c30 = len(df.to_string(col_space=30).split("\n")[1])
@@ -221,7 +211,7 @@ class TestDataFrameToStringColSpace:
     def test_to_string_repr_tuples(self):
         buf = StringIO()
 
-        df = DataFrame({"tups": list(zip(range(10), range(10), strict=True))})
+        df = pd.DataFrame({"tups": list(zip(range(10), range(10), strict=True))})
         repr(df)
         df.to_string(col_space=10, buf=buf)
 
@@ -229,13 +219,13 @@ class TestDataFrameToStringColSpace:
 class TestDataFrameToStringHeader:
     def test_to_string_header_false(self):
         # GH#49230
-        df = DataFrame([1, 2])
+        df = pd.DataFrame([1, 2])
         df.index.name = "a"
         s = df.to_string(header=False)
         expected = "a   \n0  1\n1  2"
         assert s == expected
 
-        df = DataFrame([[1, 2], [3, 4]])
+        df = pd.DataFrame([[1, 2], [3, 4]])
         df.index.name = "a"
         s = df.to_string(header=False)
         expected = "a      \n0  1  2\n1  3  4"
@@ -243,13 +233,15 @@ class TestDataFrameToStringHeader:
 
     def test_to_string_multindex_header(self):
         # GH#16718
-        df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]}).set_index(["a", "b"])
+        df = pd.DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]}).set_index(
+            ["a", "b"]
+        )
         res = df.to_string(header=["r1", "r2"])
         exp = "    r1 r2\na b      \n0 1  2  3"
         assert res == exp
 
     def test_to_string_no_header(self):
-        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(header=False)
         expected = "0  1  4\n1  2  5\n2  3  6"
@@ -257,7 +249,7 @@ class TestDataFrameToStringHeader:
         assert df_s == expected
 
     def test_to_string_specified_header(self):
-        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(header=["X", "Y"])
         expected = "   X  Y\n0  1  4\n1  2  5\n2  3  6"
@@ -271,27 +263,27 @@ class TestDataFrameToStringHeader:
 
 class TestDataFrameToStringLineWidth:
     def test_to_string_line_width(self):
-        df = DataFrame(123, index=range(10, 15), columns=range(30))
+        df = pd.DataFrame(123, index=range(10, 15), columns=range(30))
         lines = df.to_string(line_width=80)
         assert max(len(line) for line in lines.split("\n")) == 80
 
     def test_to_string_line_width_no_index(self):
         # GH#13998, GH#22505
-        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
         expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
         expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+        df = pd.DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False)
         expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
@@ -300,21 +292,21 @@ class TestDataFrameToStringLineWidth:
 
     def test_to_string_line_width_no_header(self):
         # GH#53054
-        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, header=False)
         expected = "0  1  \\\n1  2   \n2  3   \n\n0  4  \n1  5  \n2  6  "
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, header=False)
         expected = "0  11  \\\n1  22   \n2  33   \n\n0  4  \n1  5  \n2  6  "
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+        df = pd.DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, header=False)
         expected = "0  11  \\\n1  22   \n2 -33   \n\n0  4  \n1  5  \n2 -6  "
@@ -323,7 +315,7 @@ class TestDataFrameToStringLineWidth:
 
     def test_to_string_line_width_with_both_index_and_header(self):
         # GH#53054
-        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1)
         expected = (
@@ -332,7 +324,7 @@ class TestDataFrameToStringLineWidth:
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1)
         expected = (
@@ -341,7 +333,7 @@ class TestDataFrameToStringLineWidth:
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+        df = pd.DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1)
         expected = (
@@ -352,21 +344,21 @@ class TestDataFrameToStringLineWidth:
 
     def test_to_string_line_width_no_index_no_header(self):
         # GH#53054
-        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False, header=False)
         expected = "1  \\\n2   \n3   \n\n4  \n5  \n6  "
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+        df = pd.DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False, header=False)
         expected = "11  \\\n22   \n33   \n\n4  \n5  \n6  "
 
         assert df_s == expected
 
-        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+        df = pd.DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False, header=False)
         expected = " 11  \\\n 22   \n-33   \n\n 4  \n 5  \n-6  "
@@ -377,17 +369,17 @@ class TestDataFrameToStringLineWidth:
 class TestToStringNumericFormatting:
     def test_to_string_float_format_no_fixed_width(self):
         # GH#21625
-        df = DataFrame({"x": [0.19999]})
+        df = pd.DataFrame({"x": [0.19999]})
         expected = "      x\n0 0.200"
         assert df.to_string(float_format="%.3f") == expected
 
         # GH#22270
-        df = DataFrame({"x": [100.0]})
+        df = pd.DataFrame({"x": [100.0]})
         expected = "    x\n0 100"
         assert df.to_string(float_format="%.0f") == expected
 
     def test_to_string_small_float_values(self):
-        df = DataFrame({"a": [1.5, 1e-17, -5.5e-7]})
+        df = pd.DataFrame({"a": [1.5, 1e-17, -5.5e-7]})
 
         result = df.to_string()
         # sadness per above
@@ -409,8 +401,8 @@ class TestToStringNumericFormatting:
 
     def test_to_string_complex_float_formatting(self):
         # GH #25514, 25745
-        with option_context("display.precision", 5):
-            df = DataFrame(
+        with pd.option_context("display.precision", 5):
+            df = pd.DataFrame(
                 {
                     "x": [
                         (0.4467846931321966 + 0.0715185102060818j),
@@ -431,8 +423,8 @@ class TestToStringNumericFormatting:
 
     def test_to_string_complex_float_formatting_with_exponents(self):
         # GH #60393
-        with option_context("display.precision", 6):
-            df = DataFrame(
+        with pd.option_context("display.precision", 6):
+            df = pd.DataFrame(
                 {
                     "x": [
                         (1.8816e-09 + 0j),
@@ -449,7 +441,7 @@ class TestToStringNumericFormatting:
 
     def test_to_string_format_inf(self):
         # GH#24861
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [-np.inf, np.inf, -1, -2.1234, 3, 4],
                 "B": [-np.inf, np.inf, "foo", "foooo", "fooooo", "bar"],
@@ -468,7 +460,7 @@ class TestToStringNumericFormatting:
         )
         assert result == expected
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [-np.inf, np.inf, -1.0, -2.0, 3.0, 4.0],
                 "B": [-np.inf, np.inf, "foo", "foooo", "fooooo", "bar"],
@@ -488,7 +480,7 @@ class TestToStringNumericFormatting:
         assert result == expected
 
     def test_to_string_int_formatting(self):
-        df = DataFrame({"x": [-15, 20, 25, -35]})
+        df = pd.DataFrame({"x": [-15, 20, 25, -35]})
         assert issubclass(df["x"].dtype.type, np.integer)
 
         output = df.to_string()
@@ -496,13 +488,13 @@ class TestToStringNumericFormatting:
         assert output == expected
 
     def test_to_string_float_formatting(self):
-        with option_context(
+        with pd.option_context(
             "display.precision",
             5,
             "display.notebook_repr_html",
             False,
         ):
-            df = DataFrame(
+            df = pd.DataFrame(
                 {"x": [0, 0.25, 3456.000, 12e45, 1.64e6, 1.7e8, 1.253456, np.pi, -1e6]}
             )
 
@@ -524,15 +516,15 @@ class TestToStringNumericFormatting:
                 )
             assert df_s == expected
 
-            df = DataFrame({"x": [3234, 0.253]})
+            df = pd.DataFrame({"x": [3234, 0.253]})
             df_s = df.to_string()
 
             expected = "          x\n0  3234.000\n1     0.253"
             assert df_s == expected
 
-        assert get_option("display.precision") == 6
+        assert pd.get_option("display.precision") == 6
 
-        df = DataFrame({"x": [1e9, 0.2512]})
+        df = pd.DataFrame({"x": [1e9, 0.2512]})
         df_s = df.to_string()
 
         if _three_digit_exp():
@@ -545,18 +537,18 @@ class TestToStringNumericFormatting:
 class TestDataFrameToString:
     def test_to_string_decimal(self):
         # GH#23614
-        df = DataFrame({"A": [6.0, 3.1, 2.2]})
+        df = pd.DataFrame({"A": [6.0, 3.1, 2.2]})
         expected = "     A\n0  6,0\n1  3,1\n2  2,2"
         assert df.to_string(decimal=",") == expected
 
     def test_to_string_left_justify_cols(self):
-        df = DataFrame({"x": [3234, 0.253]})
+        df = pd.DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")
         expected = "   x       \n0  3234.000\n1     0.253"
         assert df_s == expected
 
     def test_to_string_format_na(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [np.nan, -1, -2.1234, 3, 4],
                 "B": [np.nan, "foo", "foooo", "fooooo", "bar"],
@@ -574,7 +566,7 @@ class TestDataFrameToString:
         )
         assert result == expected
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [np.nan, -1.0, -2.0, 3.0, 4.0],
                 "B": [np.nan, "foo", "foooo", "fooooo", "bar"],
@@ -593,7 +585,7 @@ class TestDataFrameToString:
         assert result == expected
 
     def test_to_string_with_dict_entries(self):
-        df = DataFrame({"A": [{"a": 1, "b": 2}]})
+        df = pd.DataFrame({"A": [{"a": 1, "b": 2}]})
 
         val = df.to_string()
         assert "'a': 1" in val
@@ -603,8 +595,8 @@ class TestDataFrameToString:
         # GH#35439
         data = [[4, 2], [3, 2], [4, 3]]
         cols = ["aaaaaaaaa", "b"]
-        df = DataFrame(data, columns=cols)
-        df_cat_cols = DataFrame(data, columns=CategoricalIndex(cols))
+        df = pd.DataFrame(data, columns=cols)
+        df_cat_cols = pd.DataFrame(data, columns=pd.CategoricalIndex(cols))
 
         assert df.to_string() == df_cat_cols.to_string()
 
@@ -613,14 +605,14 @@ class TestDataFrameToString:
         for i in range(len(arr)):
             arr["err"][i] = np.random.default_rng(2).standard_normal(i)
 
-        df = DataFrame(arr)
+        df = pd.DataFrame(arr)
         repr(df["err"])
         repr(df)
         df.to_string()
 
     def test_to_string_truncate(self):
         # GH 9784 - dont truncate when calling DataFrame.to_string
-        df = DataFrame(
+        df = pd.DataFrame(
             [
                 {
                     "a": "foo",
@@ -641,7 +633,7 @@ class TestDataFrameToString:
             "1  foo  bar                                         "
             "                                            stuff  1"
         )
-        with option_context("max_colwidth", 20):
+        with pd.option_context("max_colwidth", 20):
             # the display option has no effect on the to_string method
             assert df.to_string() == (
                 "     a    b                                         "
@@ -667,7 +659,7 @@ class TestDataFrameToString:
     )
     def test_format_remove_leading_space_dataframe(self, input_array, expected):
         # GH#24980
-        df = DataFrame(input_array).to_string(index=False)
+        df = pd.DataFrame(input_array).to_string(index=False)
         assert df == expected
 
     @pytest.mark.parametrize(
@@ -689,7 +681,7 @@ class TestDataFrameToString:
     )
     def test_to_string_max_rows_zero(self, data, expected):
         # GH#35394
-        result = DataFrame(data=data).to_string(max_rows=0)
+        result = pd.DataFrame(data=data).to_string(max_rows=0)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -736,14 +728,14 @@ class TestDataFrameToString:
         ],
     )
     def test_truncation_no_index(self, max_cols, max_rows, expected):
-        df = DataFrame([[0] * 11] * 4)
+        df = pd.DataFrame([[0] * 11] * 4)
         assert (
             df.to_string(index=False, max_cols=max_cols, max_rows=max_rows) == expected
         )
 
     def test_to_string_no_index(self):
         # GH#16839, GH#13032
-        df = DataFrame({"x": [11, 22], "y": [33, -44], "z": ["AAA", "   "]})
+        df = pd.DataFrame({"x": [11, 22], "y": [33, -44], "z": ["AAA", "   "]})
 
         df_s = df.to_string(index=False)
         # Leading space is expected for positive numbers.
@@ -755,7 +747,7 @@ class TestDataFrameToString:
         assert df_s == expected
 
     def test_to_string_unicode_columns(self, float_frame):
-        df = DataFrame({"\u03c3": np.arange(10.0)})
+        df = pd.DataFrame({"\u03c3": np.arange(10.0)})
 
         buf = StringIO()
         df.to_string(buf=buf)
@@ -771,7 +763,7 @@ class TestDataFrameToString:
     @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
     def test_to_string_na_rep_and_float_format(self, na_rep):
         # GH#13828
-        df = DataFrame([["A", 1.2225], ["A", None]], columns=["Group", "Data"])
+        df = pd.DataFrame([["A", 1.2225], ["A", None]], columns=["Group", "Data"])
         result = df.to_string(na_rep=na_rep, float_format="{:.2f}".format)
         expected = dedent(
             f"""\
@@ -783,16 +775,16 @@ class TestDataFrameToString:
 
     def test_to_string_na_rep_datetime_and_timedelta(self):
         # GH#55426
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "dt": to_datetime(["2021-01-01", NaT, "2021-01-03"]),
-                "td": timedelta_range("1 day", periods=3),
-                "dt_tz": to_datetime(["2021-01-01", NaT, "2021-01-03"]).tz_localize(
-                    "US/Eastern"
-                ),
+                "dt": pd.to_datetime(["2021-01-01", pd.NaT, "2021-01-03"]),
+                "td": pd.timedelta_range("1 day", periods=3),
+                "dt_tz": pd.to_datetime(
+                    ["2021-01-01", pd.NaT, "2021-01-03"]
+                ).tz_localize("US/Eastern"),
             }
         )
-        df.loc[1, "td"] = NaT
+        df.loc[1, "td"] = pd.NaT
         result = df.to_string(na_rep="MISSING")
         assert "NaT" not in result
         assert result.count("MISSING") == 3
@@ -800,7 +792,7 @@ class TestDataFrameToString:
     def test_to_string_string_dtype(self):
         # GH#50099
         pytest.importorskip("pyarrow")
-        df = DataFrame(
+        df = pd.DataFrame(
             {"x": ["foo", "bar", "baz"], "y": ["a", "b", "c"], "z": [1, 2, 3]}
         )
         df = df.astype(
@@ -817,24 +809,24 @@ class TestDataFrameToString:
 
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode()
-        df = DataFrame([1, 2], columns=[n])
+        df = pd.DataFrame([1, 2], columns=[n])
 
-        with option_context("display.max_rows", 1):
+        with pd.option_context("display.max_rows", 1):
             repr(df)
 
     def test_to_string_unicode_two(self):
-        dm = DataFrame({"c/\u03c3": []})
+        dm = pd.DataFrame({"c/\u03c3": []})
         buf = StringIO()
         dm.to_string(buf)
 
     def test_to_string_unicode_three(self):
-        dm = DataFrame(["\xc2"])
+        dm = pd.DataFrame(["\xc2"])
         buf = StringIO()
         dm.to_string(buf)
 
     def test_to_string_with_float_index(self):
-        index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(np.arange(5), index=index)
+        index = pd.Index([1.5, 2, 3, 4, 5])
+        df = pd.DataFrame(np.arange(5), index=index)
 
         result = df.to_string()
         expected = "     0\n1.5  0\n2.0  1\n3.0  2\n4.0  3\n5.0  4"
@@ -842,10 +834,10 @@ class TestDataFrameToString:
 
     def test_to_string(self):
         # big mixed
-        biggie = DataFrame(
+        biggie = pd.DataFrame(
             {
                 "A": np.random.default_rng(2).standard_normal(200),
-                "B": Index([f"{i}?!" for i in range(200)]),
+                "B": pd.Index([f"{i}?!" for i in range(200)]),
             },
         )
 
@@ -867,7 +859,7 @@ class TestDataFrameToString:
         lines = result.split("\n")
         header = lines[0].strip().split()
         joined = "\n".join([re.sub(r"\s+", " ", x).strip() for x in lines[1:]])
-        recons = read_csv(StringIO(joined), names=header, header=None, sep=" ")
+        recons = pd.read_csv(StringIO(joined), names=header, header=None, sep=" ")
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()
         assert (np.abs(recons["A"].dropna() - biggie["A"].dropna()) < 0.1).all()
@@ -883,14 +875,14 @@ class TestDataFrameToString:
         biggie.to_string(columns=["B", "A"], float_format=str)
         biggie.to_string(columns=["B", "A"], col_space=12, float_format=str)
 
-        frame = DataFrame(index=np.arange(200))
+        frame = pd.DataFrame(index=np.arange(200))
         frame.to_string()
 
     # TODO: split or simplify this test?
     @pytest.mark.xfail(using_string_dtype(), reason="fix when arrow is default")
     def test_to_string_index_with_nan(self):
         # GH#2850
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "id1": {0: "1a3", 1: "9h4"},
                 "id2": {0: np.nan, 1: "d67"},
@@ -948,7 +940,7 @@ class TestDataFrameToString:
         )
         assert result == expected
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "id1": {0: np.nan, 1: "9h4"},
                 "id2": {0: np.nan, 1: "d67"},
@@ -966,13 +958,13 @@ class TestDataFrameToString:
         assert result == expected
 
     def test_to_string_nonunicode_nonascii_alignment(self):
-        df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
+        df = pd.DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
         lines = rep_str.split("\n")
         assert len(lines[1]) == len(lines[2])
 
     def test_unicode_problem_decoding_as_ascii(self):
-        df = DataFrame({"c/\u03c3": Series({"test": np.nan})})
+        df = pd.DataFrame({"c/\u03c3": pd.Series({"test": np.nan})})
         str(df.to_string())
 
     def test_to_string_repr_unicode(self):
@@ -980,7 +972,7 @@ class TestDataFrameToString:
 
         unicode_values = ["\u03c3"] * 10
         unicode_values = np.array(unicode_values, dtype=object)
-        df = DataFrame({"unicode": unicode_values})
+        df = pd.DataFrame({"unicode": unicode_values})
         df.to_string(col_space=10, buf=buf)
 
         # it works!
@@ -994,8 +986,8 @@ class TestDataFrameToString:
             sys.stdin = _stdin
 
     def test_nested_dataframe(self):
-        df1 = DataFrame({"level1": [["row1"], ["row2"]]})
-        df2 = DataFrame({"level3": [{"level2": df1}]})
+        df1 = pd.DataFrame({"level1": [["row1"], ["row2"]]})
+        df2 = pd.DataFrame({"level3": [{"level2": df1}]})
         result = df2.to_string()
         expected = "                   level3\n0  {'level2': ['level1']}"
         assert result == expected
@@ -1004,13 +996,13 @@ class TestDataFrameToString:
 class TestSeriesToString:
     def test_to_string_without_index(self):
         # GH#11729 Test index=False option
-        ser = Series([1, 2, 3, 4])
+        ser = pd.Series([1, 2, 3, 4])
         result = ser.to_string(index=False)
         expected = "\n".join(["1", "2", "3", "4"])
         assert result == expected
 
     def test_to_string_name(self):
-        ser = Series(range(100), dtype="int64")
+        ser = pd.Series(range(100), dtype="int64")
         ser.name = "myser"
         res = ser.to_string(max_rows=2, name=True)
         exp = "0      0\n      ..\n99    99\nName: myser"
@@ -1020,7 +1012,7 @@ class TestSeriesToString:
         assert res == exp
 
     def test_to_string_dtype(self):
-        ser = Series(range(100), dtype="int64")
+        ser = pd.Series(range(100), dtype="int64")
         res = ser.to_string(max_rows=2, dtype=True)
         exp = "0      0\n      ..\n99    99\ndtype: int64"
         assert res == exp
@@ -1029,25 +1021,25 @@ class TestSeriesToString:
         assert res == exp
 
     def test_to_string_length(self):
-        ser = Series(range(100), dtype="int64")
+        ser = pd.Series(range(100), dtype="int64")
         res = ser.to_string(max_rows=2, length=True)
         exp = "0      0\n      ..\n99    99\nLength: 100"
         assert res == exp
 
     def test_to_string_na_rep(self):
-        ser = Series(index=range(100), dtype=np.float64)
+        ser = pd.Series(index=range(100), dtype=np.float64)
         res = ser.to_string(na_rep="foo", max_rows=2)
         exp = "0    foo\n      ..\n99   foo"
         assert res == exp
 
     def test_to_string_float_format(self):
-        ser = Series(range(10), dtype="float64")
+        ser = pd.Series(range(10), dtype="float64")
         res = ser.to_string(float_format=lambda x: f"{x:2.1f}", max_rows=2)
         exp = "0   0.0\n     ..\n9   9.0"
         assert res == exp
 
     def test_to_string_header(self):
-        ser = Series(range(10), dtype="int64")
+        ser = pd.Series(range(10), dtype="int64")
         ser.index.name = "foo"
         res = ser.to_string(header=True, max_rows=2)
         exp = "foo\n0    0\n    ..\n9    9"
@@ -1058,15 +1050,15 @@ class TestSeriesToString:
 
     def test_to_string_empty_col(self):
         # GH#13653
-        ser = Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
+        ser = pd.Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
         res = ser.to_string(index=False)
         exp = "      \n Hello\n World\n      \n      \nMooooo\n      \n      "
         assert re.match(exp, res)
 
     def test_to_string_timedelta64(self):
-        Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
+        pd.Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
 
-        ser = Series(date_range("2012-1-1", periods=3, freq="D"))
+        ser = pd.Series(pd.date_range("2012-1-1", periods=3, freq="D"))
 
         # GH#2146
 
@@ -1078,25 +1070,25 @@ class TestSeriesToString:
         assert "NaT" in result
 
         # with frac seconds
-        o = Series([datetime(2012, 1, 1, microsecond=150)] * 3)
+        o = pd.Series([datetime(2012, 1, 1, microsecond=150)] * 3)
         y = ser - o
         result = y.to_string()
         assert "-1 days +23:59:59.999850" in result
 
         # rounding?
-        o = Series([datetime(2012, 1, 1, 1)] * 3)
+        o = pd.Series([datetime(2012, 1, 1, 1)] * 3)
         y = ser - o
         result = y.to_string()
         assert "-1 days +23:00:00" in result
         assert "1 days 23:00:00" in result
 
-        o = Series([datetime(2012, 1, 1, 1, 1)] * 3)
+        o = pd.Series([datetime(2012, 1, 1, 1, 1)] * 3)
         y = ser - o
         result = y.to_string()
         assert "-1 days +22:59:00" in result
         assert "1 days 22:59:00" in result
 
-        o = Series([datetime(2012, 1, 1, 1, 1, microsecond=150)] * 3)
+        o = pd.Series([datetime(2012, 1, 1, 1, 1, microsecond=150)] * 3)
         y = ser - o
         result = y.to_string()
         assert "-1 days +22:58:59.999850" in result
@@ -1104,26 +1096,26 @@ class TestSeriesToString:
 
         # neg time
         td = timedelta(minutes=5, seconds=3)
-        s2 = Series(date_range("2012-1-1", periods=3, freq="D")) + td
+        s2 = pd.Series(pd.date_range("2012-1-1", periods=3, freq="D")) + td
         y = ser - s2
         result = y.to_string()
         assert "-1 days +23:54:57" in result
 
         td = timedelta(microseconds=550)
-        s2 = Series(date_range("2012-1-1", periods=3, freq="D")) + td
+        s2 = pd.Series(pd.date_range("2012-1-1", periods=3, freq="D")) + td
         y = ser - td
         result = y.to_string()
         assert "2012-01-01 23:59:59.999450" in result
 
         # no boxing of the actual elements
-        td = Series(timedelta_range("1 days", periods=3))
+        td = pd.Series(pd.timedelta_range("1 days", periods=3))
         result = td.to_string()
         assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_to_string(self):
-        ts = Series(
+        ts = pd.Series(
             np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10, freq="B"),
+            index=pd.date_range("2020-01-01", periods=10, freq="B"),
         )
         buf = StringIO()
 
@@ -1170,12 +1162,12 @@ class TestSeriesToString:
     )
     def test_format_remove_leading_space_series(self, input_array, expected):
         # GH: 24980
-        ser = Series(input_array)
+        ser = pd.Series(input_array)
         result = ser.to_string(index=False)
         assert result == expected
 
     def test_to_string_complex_number_trims_zeros(self):
-        ser = Series([1.000000 + 1.000000j, 1.0 + 1.0j, 1.05 + 1.0j])
+        ser = pd.Series([1.000000 + 1.000000j, 1.0 + 1.0j, 1.05 + 1.0j])
         result = ser.to_string()
         expected = dedent(
             """\
@@ -1188,7 +1180,7 @@ class TestSeriesToString:
     def test_nullable_float_to_string(self, float_ea_dtype):
         # https://github.com/pandas-dev/pandas/issues/36775
         dtype = float_ea_dtype
-        ser = Series([0.0, 1.0, None], dtype=dtype)
+        ser = pd.Series([0.0, 1.0, None], dtype=dtype)
         result = ser.to_string()
         expected = dedent(
             """\
@@ -1201,7 +1193,7 @@ class TestSeriesToString:
     def test_nullable_int_to_string(self, any_int_ea_dtype):
         # https://github.com/pandas-dev/pandas/issues/36775
         dtype = any_int_ea_dtype
-        ser = Series([0, 1, None], dtype=dtype)
+        ser = pd.Series([0, 1, None], dtype=dtype)
         result = ser.to_string()
         expected = dedent(
             """\
@@ -1212,24 +1204,24 @@ class TestSeriesToString:
         assert result == expected
 
     def test_to_string_mixed(self):
-        ser = Series(["foo", np.nan, -1.23, 4.56])
+        ser = pd.Series(["foo", np.nan, -1.23, 4.56])
         result = ser.to_string()
         expected = "".join(["0     foo\n", "1     NaN\n", "2   -1.23\n", "3    4.56"])
         assert result == expected
 
         # but don't count NAs as floats
-        ser = Series(["foo", np.nan, "bar", "baz"])
+        ser = pd.Series(["foo", np.nan, "bar", "baz"])
         result = ser.to_string()
         expected = "".join(["0    foo\n", "1    NaN\n", "2    bar\n", "3    baz"])
         assert result == expected
 
-        ser = Series(["foo", 5, "bar", "baz"])
+        ser = pd.Series(["foo", 5, "bar", "baz"])
         result = ser.to_string()
         expected = "".join(["0    foo\n", "1      5\n", "2    bar\n", "3    baz"])
         assert result == expected
 
     def test_to_string_float_na_spacing(self):
-        ser = Series([0.0, 1.5678, 2.0, -3.0, 4.0])
+        ser = pd.Series([0.0, 1.5678, 2.0, -3.0, 4.0])
         ser[::2] = np.nan
 
         result = ser.to_string()
@@ -1237,14 +1229,14 @@ class TestSeriesToString:
         assert result == expected
 
     def test_to_string_with_datetimeindex(self):
-        index = date_range("20130102", periods=6)
-        ser = Series(1, index=index)
+        index = pd.date_range("20130102", periods=6)
+        ser = pd.Series(1, index=index)
         result = ser.to_string()
         assert "2013-01-02" in result
 
         # nat in index
-        s2 = Series(2, index=[Timestamp("20130111"), NaT])
-        ser = concat([s2, ser])
+        s2 = pd.Series(2, index=[pd.Timestamp("20130111"), pd.NaT])
+        ser = pd.concat([s2, ser])
         result = ser.to_string()
         assert "NaT" in result
 
