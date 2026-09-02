@@ -2058,10 +2058,10 @@ class TestToDatetimeUnit:
         alt = pd.Timestamp(value, unit="s")
         assert alt == result
 
-    @pytest.mark.parametrize("dtype", [int, float])
+    @pytest.mark.parametrize("dtype", [int, float, "Int64", "Float64"])
     def test_to_datetime_unit(self, dtype):
         epoch = 1370745748
-        ser = pd.Series([epoch + t for t in range(20)]).astype(dtype)
+        ser = pd.Series([epoch + t for t in range(20)], dtype=dtype)
         result = pd.to_datetime(ser, unit="s")
         expected = pd.Series(
             [
@@ -2072,10 +2072,13 @@ class TestToDatetimeUnit:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("null", [iNaT, np.nan])
-    def test_to_datetime_unit_with_nulls(self, null):
+    @pytest.mark.parametrize(
+        "null,dtype",
+        [(iNaT, int), (iNaT, "Int64"), (np.nan, float), (np.nan, "Float64")],
+    )
+    def test_to_datetime_unit_with_nulls(self, null, dtype):
         epoch = 1370745748
-        ser = pd.Series([epoch + t for t in range(20)] + [null])
+        ser = pd.Series([epoch + t for t in range(20)] + [null], dtype=dtype)
         result = pd.to_datetime(ser, unit="s")
         expected = pd.Series(
             [
