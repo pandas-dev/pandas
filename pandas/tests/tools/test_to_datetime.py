@@ -2205,11 +2205,18 @@ class TestToDatetimeUnit:
     def test_uint64_to_datetime_raise_oob(self):
         # GH#60677 uint64 values > int64 max overflow silently
         uint64_max = np.iinfo(np.uint64).max
-        arr = np.array([uint64_max], dtype=np.uint64)
 
         msg = "cannot convert input with unit 'ns'"
+
+        # arrays via to_datetime
+        arr = np.array([uint64_max], dtype=np.uint64)
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(arr, unit="ns", errors="raise")
+        for con in [pd.array, pd.Series, pd.Index]:
+            arr = con([uint64_max, None], dtype="UInt64")
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
+                pd.to_datetime(arr, unit="ns", errors="raise")
+
         # scalar via to_datetime
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(uint64_max, unit="ns", errors="raise")
@@ -2221,11 +2228,19 @@ class TestToDatetimeUnit:
     def test_uint64_to_datetime_coerce(self):
         # GH#60677
         uint64_max = np.iinfo(np.uint64).max
-        arr = np.array([uint64_max], dtype=np.uint64)
 
+        arr = np.array([uint64_max], dtype=np.uint64)
         result = pd.to_datetime(arr, unit="ns", errors="coerce")
         expected = pd.DatetimeIndex(["NaT"], dtype="datetime64[ns]")
         tm.assert_index_equal(result, expected)
+
+        for con in [pd.array, pd.Series, pd.Index]:
+            arr = con([uint64_max, None], dtype="UInt64")
+            result = pd.to_datetime(arr, unit="ns", errors="coerce")
+            expected = pd.DatetimeIndex(["NaT", "NaT"], dtype="datetime64[ns]")
+            if con is pd.Series:
+                expected = pd.Series(expected)
+            tm.assert_equal(result, expected)
 
         # scalar
         result = pd.to_datetime(uint64_max, unit="ns", errors="coerce")
@@ -2237,6 +2252,69 @@ class TestToDatetimeUnit:
         result = pd.to_datetime(arr, unit="ns")
         expected = pd.to_datetime(arr.astype(np.int64), unit="ns")
         tm.assert_index_equal(result, expected)
+
+        arr = pd.array([1_000_000, 2_000_000, None], dtype="UInt64")
+        result = pd.to_datetime(arr, unit="ns")
+        expected = expected.append(pd.to_datetime([pd.NaT]))
+        tm.assert_index_equal(result, expected)
+
+    def test_nullable_int_to_datetime_no_float_precision_loss(
+        self, index_or_series_or_array
+    ):
+        # GH#66988 a nullable int array with a value that is not exactly
+        #  representable as float64 should not lose precision by going
+        #  through a float64 intermediate when it contains NA values
+        value = 2**60 + 1
+        arr = index_or_series_or_array([value, None], dtype="Int64")
+        result = pd.to_datetime(arr, unit="ns")
+        expected = pd.DatetimeIndex([pd.Timestamp(value, unit="ns"), pd.NaT])
+        if isinstance(arr, pd.Series):
+            expected = pd.Series(expected)
+        tm.assert_equal(result, expected)
+
+        uarr = index_or_series_or_array([value, None], dtype="UInt64")
+        result = pd.to_datetime(uarr, unit="ns")
+        tm.assert_equal(result, expected)
+
+    def test_int64_oob_raise(self):
+        # GH#66988 an int64 can be out of bounds when the unit is not supported
+        # and we have to cast
+        value = 2**60 - 1
+
+        # arrays via to_datetime
+        arr = np.array([value], dtype=np.int64)
+        msg = "Out of bounds second timestamp"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime(arr, unit="D", errors="raise")
+        arr = pd.array([value, None], dtype="Int64")
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime(arr, unit="D", errors="raise")
+        # scalar via to_datetime
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime(value, unit="D", errors="raise")
+        # scalar via Timestamp constructor
+        msg = "cannot convert input"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.Timestamp(value, unit="D")
+
+    def test_int64_oob_coerce(self):
+        # GH#66988 an int64 can be out of bounds when the unit is not supported
+        # and we have to cast
+        value = 2**60 - 1
+
+        arr = np.array([value], dtype=np.int64)
+        result = pd.to_datetime(arr, unit="D", errors="coerce")
+        expected = pd.DatetimeIndex(["NaT"], dtype="datetime64[s]")
+        tm.assert_index_equal(result, expected)
+
+        arr = pd.array([value, None], dtype="Int64")
+        expected = pd.DatetimeIndex(["NaT", "NaT"], dtype="datetime64[s]")
+        result = pd.to_datetime(arr, unit="D", errors="coerce")
+        tm.assert_index_equal(result, expected)
+
+        # scalar
+        result = pd.to_datetime(value, unit="D", errors="coerce")
+        assert result is pd.NaT
 
     @pytest.mark.parametrize("typ,frac", [(int, 0), (float, 0), (float, 0.1)])
     @pytest.mark.parametrize("unit", ["ps", "fs", "as"])
