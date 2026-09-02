@@ -21,7 +21,7 @@ Properties
 
     BaseOffset.freqstr
     BaseOffset.kwds
-    DateOffset.name
+    BaseOffset.name
     BaseOffset.nanos
     BaseOffset.normalize
     BaseOffset.rule_code
