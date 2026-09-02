@@ -166,6 +166,36 @@ raised. Multiple columns can also be set in this manner:
 You may find this useful for applying a transform (in-place) to a subset of the
 columns.
 
+.. warning::
+
+   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``.
+
+   This will **not** modify ``df`` because the column alignment is before value assignment.
+
+   .. ipython:: python
+
+      df[['A', 'B']]
+      df.loc[:, ['B', 'A']] = df[['A', 'B']]
+      df[['A', 'B']]
+
+   The correct way to swap column values is by using raw values:
+
+   .. ipython:: python
+
+      df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
+      df[['A', 'B']]
+
+   However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``
+   because ``.iloc`` operates by position.
+
+   This will modify ``df`` because the column alignment is not done before value assignment.
+
+   .. ipython:: python
+
+      df[['A', 'B']]
+      df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df[['A','B']]
+
 .. _indexing.select:
 
 Selecting columns with ``select``
@@ -197,37 +227,6 @@ the result can contain duplicate column labels:
 .. ipython:: python
 
    df.select('A', A=pd.col('A') * 2, E=pd.col('A'))
-
-
-.. warning::
-
-   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``.
-
-   This will **not** modify ``df`` because the column alignment is before value assignment.
-
-   .. ipython:: python
-
-      df[['A', 'B']]
-      df.loc[:, ['B', 'A']] = df[['A', 'B']]
-      df[['A', 'B']]
-
-   The correct way to swap column values is by using raw values:
-
-   .. ipython:: python
-
-      df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
-      df[['A', 'B']]
-
-   However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``
-   because ``.iloc`` operates by position.
-
-   This will modify ``df`` because the column alignment is not done before value assignment.
-
-   .. ipython:: python
-
-      df[['A', 'B']]
-      df.iloc[:, [1, 0]] = df[['A', 'B']]
-      df[['A','B']]
 
 
 Attribute access
