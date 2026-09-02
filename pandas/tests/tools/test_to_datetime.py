@@ -2283,7 +2283,7 @@ class TestToDatetimeUnit:
 
         # arrays via to_datetime
         arr = np.array([value], dtype=np.int64)
-        msg = "Out of bounds second timestamp"
+        msg = "Out of bounds microsecond timestamp"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(arr, unit="D", errors="raise")
         arr = pd.array([value, None], dtype="Int64")
@@ -2304,11 +2304,11 @@ class TestToDatetimeUnit:
 
         arr = np.array([value], dtype=np.int64)
         result = pd.to_datetime(arr, unit="D", errors="coerce")
-        expected = pd.DatetimeIndex(["NaT"], dtype="datetime64[s]")
+        expected = pd.DatetimeIndex(["NaT"], dtype="datetime64[us]")
         tm.assert_index_equal(result, expected)
 
         arr = pd.array([value, None], dtype="Int64")
-        expected = pd.DatetimeIndex(["NaT", "NaT"], dtype="datetime64[s]")
+        expected = pd.DatetimeIndex(["NaT", "NaT"], dtype="datetime64[us]")
         result = pd.to_datetime(arr, unit="D", errors="coerce")
         tm.assert_index_equal(result, expected)
 
