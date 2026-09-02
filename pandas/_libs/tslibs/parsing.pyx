@@ -742,7 +742,7 @@ cdef datetime dateutil_parse(
         )
     if not ignoretz:
         if res.tzoffset == 0:
-            # GH#58002 dateutil resolves "UTC", "GMT", "Z" and "z" to a zero
+            # GH#66827 dateutil resolves "UTC", "GMT", "Z" and "z" to a zero
             #  offset regardless of the system timezone, so these are not
             #  system-dependent even when they match time.tzname.
             ret = ret.replace(tzinfo=timezone.utc)

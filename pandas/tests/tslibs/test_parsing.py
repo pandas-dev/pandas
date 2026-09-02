@@ -64,15 +64,14 @@ def test_parsing_tzlocal_deprecated():
             Timestamp(dtstr)
 
 
-@pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
 @pytest.mark.skipif(
-    is_platform_windows() or ISMUSL,
-    reason="TZ setting incorrect on Windows and MUSL Linux",
+    is_platform_windows() or WASM,
+    reason="requires a working tzset to set the system timezone",
 )
 @pytest.mark.parametrize("tzname", ["UTC", "GMT", "Z", "z"])
 @pytest.mark.parametrize("system_tz", ["US/Eastern", "Europe/London", "Africa/Abidjan"])
 def test_parsing_utc_tzname_not_tzlocal(tzname, system_tz):
-    # GH#58002 these all denote a zero offset regardless of the system
+    # GH#66827 these all denote a zero offset regardless of the system
     #  timezone, so they must parse the same way even when they happen to
     #  match time.tzname (e.g. "GMT" under Europe/London or Africa/Abidjan)
     dtstr = f"Jan 15 2004 03:00 {tzname}"
