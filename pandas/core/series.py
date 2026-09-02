@@ -5684,14 +5684,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Assign desired index to given axis.
 
-        .. deprecated:: 3.0.0
-            This keyword is ignored and will be removed in pandas 4.0. Since
-            pandas 3.0, this method always returns a new object using a lazy
-            copy mechanism that defers copies until necessary
-            (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            for more details.
-
         Indexes for row labels can be changed by assigning a list-like or Index.
 
         Parameters
@@ -5704,6 +5696,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
