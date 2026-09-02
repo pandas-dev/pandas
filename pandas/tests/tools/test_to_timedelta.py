@@ -537,6 +537,25 @@ class TestTimedeltas:
         result = pd.to_timedelta(uarr, unit="ns")
         tm.assert_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["ps", "fs", "as"])
+    def test_sub_nano_unit_raises(self, unit):
+
+        msg = f"invalid unit abbreviation: {unit}"
+
+        with pytest.raises(ValueError, match=msg):
+            pd.to_timedelta([1000], unit=unit)
+
+        with pytest.raises(ValueError, match=msg):
+            pd.to_timedelta(np.array([1000]), unit=unit)
+
+        # scalar via to_datetime
+        with pytest.raises(ValueError, match=msg):
+            pd.to_timedelta(1000, unit=unit)
+
+        # scalar via Timestamp constructor
+        with pytest.raises(ValueError, match=msg):
+            pd.Timedelta(1000, unit=unit)
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425
