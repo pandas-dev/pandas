@@ -36,6 +36,7 @@ from pandas._libs.tslibs.conversion import (
     cast_from_unit_vectorized,
     datetime_from_fields,
 )
+from pandas._libs.tslibs.dtypes import get_default_reso
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -562,8 +563,11 @@ def _to_datetime_with_unit(
                     )
             arr = arg.astype(f"datetime64[{unit}]", copy=False)
             if unit not in ["us", "ns"]:
+                out_unit = get_default_reso(unit)
                 try:
-                    arr = astype_overflowsafe(arr, np.dtype("M8[us]"), copy=False)
+                    arr = astype_overflowsafe(
+                        arr, np.dtype(f"M8[{out_unit}]"), copy=False
+                    )
                 except OutOfBoundsDatetime:
                     if errors == "raise":
                         raise

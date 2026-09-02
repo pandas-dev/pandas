@@ -28,6 +28,8 @@ import numpy as np
 cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
+    abbrev_to_npy_unit,
+    get_default_reso,
     get_supported_reso,
     npy_unit_to_abbrev,
     periods_per_day,
@@ -442,11 +444,8 @@ cpdef array_to_datetime(
             int_reso = NPY_FR_ns
         else:
             int_reso = creso
-    elif unit_for_numerics == "ns":
-        int_reso = NPY_FR_ns
     else:
-        # for any other numeric input unit, infer as 'us' for the output unit
-        int_reso = NPY_DATETIMEUNIT.NPY_FR_us
+        int_reso = abbrev_to_npy_unit(get_default_reso(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
