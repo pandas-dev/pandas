@@ -457,7 +457,7 @@ cdef class _TSObject:
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                                    bint dayfirst, bint yearfirst, int32_t nanos=0,
-                                   bint* warned_quarter=NULL):
+                                   bint* warned_quarter=NULL, str out_unit=None):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -520,7 +520,9 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         else:
             if unit is None:
                 unit = "ns"
-            reso = abbrev_to_npy_unit(get_default_reso(unit))
+            if out_unit is None:
+                out_unit = get_default_reso(unit)
+            reso = abbrev_to_npy_unit(out_unit)
             ts = cast_from_unit(ts, unit, reso)
             obj.value = ts
             obj.creso = reso

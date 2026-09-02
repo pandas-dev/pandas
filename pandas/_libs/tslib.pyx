@@ -688,6 +688,7 @@ def array_to_datetime_with_tz(
                     yearfirst=yearfirst,
                     nanos=0,
                     warned_quarter=&warned_quarter,
+                    # ?
                 )
                 # aware strings come back with tzinfo set and value in UTC
                 is_wall = tsobj.tzinfo is None
@@ -713,6 +714,7 @@ def array_to_datetime_with_tz(
                     yearfirst=yearfirst,
                     nanos=0,
                     warned_quarter=&warned_quarter,
+                    out_unit=abbrev,
                 )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)
