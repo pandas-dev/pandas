@@ -20,6 +20,7 @@ from pandas._libs.tslibs import (
 )
 
 import pandas._testing as tm
+from pandas.tests.arithmetic.common import NoInitialMaxArray
 
 
 class TestTimestampArithmetic:
@@ -441,19 +442,17 @@ def test_dt_subclass_add_timedelta(lh, rh):
 
 def test_addsub_m8ndarray_subclass():
     # GH#66552 the overflow guard views the operand as i8 and rebuilds a plain
-    #  ndarray, which drops an ndarray subclass' own semantics; a MaskedArray
-    #  used to come back unmasked, exposing the payload under the mask
+    #  ndarray, so an ndarray subclass came back stripped of its type
     ts = Timestamp("2000-01-01").as_unit("s")
-    other = np.ma.MaskedArray(np.array([86400, 1], dtype="m8[s]"), mask=[True, False])
+    values = np.array([86400, 1], dtype="m8[s]")
+    other = values.view(NoInitialMaxArray)
 
     for result, expected in [
-        (ts + other, ts.asm8 + other),
-        (ts - other, ts.asm8 - other),
+        (ts + other, ts.asm8 + values),
+        (ts - other, ts.asm8 - values),
     ]:
-        assert isinstance(result, np.ma.MaskedArray)
-        mask = np.ma.getmaskarray(expected)
-        tm.assert_numpy_array_equal(np.ma.getmaskarray(result), mask)
-        tm.assert_numpy_array_equal(result.data[~mask], expected.data[~mask])
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
 def test_addsub_m8ndarray_unit_multiplier():

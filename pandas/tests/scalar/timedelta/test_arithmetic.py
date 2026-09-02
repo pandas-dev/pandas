@@ -27,6 +27,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.tests.arithmetic.common import NoInitialMaxArray
 
 
 class TestTimedeltaAdditionSubtraction:
@@ -1707,60 +1708,53 @@ def test_td_integral_float_op_is_exact(op):
     assert op(td, 1.0) == op(td, 1)
 
 
-def assert_masked_array_equal(result, expected):
-    # what a MaskedArray holds underneath a masked slot is unspecified, so only
-    #  the mask itself and the visible values are meaningful
-    assert isinstance(result, np.ma.MaskedArray)
-    mask = np.ma.getmaskarray(expected)
-    tm.assert_numpy_array_equal(np.ma.getmaskarray(result), mask)
-    tm.assert_numpy_array_equal(result.data[~mask], expected.data[~mask])
-
-
 @pytest.mark.parametrize("kind", ["m", "M"])
 def test_td_add_sub_ndarray_subclass(kind):
     # GH#66552 the overflow guard views the operand as i8 and rebuilds a plain
-    #  ndarray, which drops an ndarray subclass' own semantics; a MaskedArray
-    #  used to come back unmasked, exposing the payload under the mask
+    #  ndarray, so an ndarray subclass came back stripped of its type
     td = Timedelta(5, "ns")
-    other = np.ma.MaskedArray(
-        np.array([10, 20], dtype=f"{kind}8[ns]"), mask=[False, True]
-    )
+    values = np.array([10, 20], dtype=f"{kind}8[ns]")
+    other = values.view(NoInitialMaxArray)
     m8 = td.to_timedelta64()
 
-    assert_masked_array_equal(td + other, m8 + other)
-    assert_masked_array_equal(other + td, other + m8)
-    assert_masked_array_equal(other - td, other - m8)
+    cases = [
+        (td + other, m8 + values),
+        (other + td, values + m8),
+        (other - td, values - m8),
+    ]
     if kind == "m":
-        assert_masked_array_equal(td - other, m8 - other)
+        cases.append((td - other, m8 - values))
+
+    for result, expected in cases:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
 @pytest.mark.parametrize("dtype", ["i8", "f8"])
 def test_td_mul_ndarray_subclass(dtype):
     # GH#66552 the float overflow guard reduces with np.max(..., initial=0.0),
-    #  which dispatches to a subclass' own max() and raised there
+    #  which an ndarray subclass' own max() need not accept
     td = Timedelta(4, "ns")
-    other = np.ma.MaskedArray(np.array([2, 3], dtype=dtype), mask=[False, True])
-    m8 = td.to_timedelta64()
+    values = np.array([2, 3], dtype=dtype)
+    other = values.view(NoInitialMaxArray)
 
-    assert_masked_array_equal(td * other, other * m8)
-    assert_masked_array_equal(other * td, other * m8)
+    expected = values * td.to_timedelta64()
+    for result in [td * other, other * td]:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
-@pytest.mark.filterwarnings("ignore:__array_wrap__:DeprecationWarning")
 def test_td_div_ndarray_subclass():
     # GH#66552 the overflow guard reduces with np.max(..., initial=, where=),
-    #  which dispatches to a subclass' own max() and raised there.
-    # NB: numpy's own MaskedArray.__array_wrap__ is broken on this path, with
-    #  an m8 divisor or not: it drops the mask and emits the DeprecationWarning
-    #  filtered above. So the expected values are not meaningful on their own;
-    #  they are taken from numpy so that what is pinned is only that Timedelta
-    #  does not diverge from timedelta64.
+    #  which an ndarray subclass' own max() need not accept
     td = Timedelta(4, "ns")
-    other = np.ma.MaskedArray(np.array([2.0, 4.0]), mask=[False, True])
+    values = np.array([2.0, 4.0])
+    other = values.view(NoInitialMaxArray)
     m8 = td.to_timedelta64()
 
-    assert_masked_array_equal(td / other, m8 / other)
-    assert_masked_array_equal(td // other, m8 // other)
+    for result, expected in [(td / other, m8 / values), (td // other, m8 // values)]:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
 @pytest.mark.parametrize("kind", ["m", "M"])

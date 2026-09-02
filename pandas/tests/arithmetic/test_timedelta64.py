@@ -36,6 +36,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import NumpyExtensionArray
 from pandas.tests.arithmetic.common import (
+    NoInitialMaxArray,
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
@@ -1692,17 +1693,12 @@ class TestTimedeltaArraylikeMulDivOps:
     @pytest.mark.parametrize("dtype", ["i8", "f8"])
     def test_td64arr_mul_ndarray_subclass(self, index_or_series, dtype):
         # GH#43178: the float overflow guard reduces with
-        #  np.max(..., initial=0.0), which dispatches to an ndarray subclass'
-        #  own max() and raised there.
-        # NB: pandas does not carry an ndarray subclass' semantics through td64
-        #  arithmetic, so a MaskedArray's mask is dropped rather than propagated
-        #  to NaT. That is pre-existing behavior of the integer path, which reads
-        #  the raw values through mul_overflowsafe; what is pinned here is only
-        #  that the float path agrees with it instead of raising.
+        #  np.max(..., initial=0.0), which an ndarray subclass' own max() need
+        #  not accept
         tdi = TimedeltaIndex([Timedelta(1, "ns"), Timedelta(2, "ns")])
         tdi = tm.box_expected(tdi, index_or_series)
         raw = np.array([2, 3], dtype=dtype)
-        other = np.ma.MaskedArray(raw, mask=[False, True])
+        other = raw.view(NoInitialMaxArray)
 
         expected = TimedeltaIndex([Timedelta(2, "ns"), Timedelta(6, "ns")])
         expected = tm.box_expected(expected, index_or_series)
