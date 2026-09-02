@@ -118,10 +118,12 @@ class TestDataFrameRenameAxis:
         expected = pd.DataFrame(data, expected_index, expected_columns)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("name", [(1, 2, 3), frozenset([1, 2, 3]), range(3)])
+    @pytest.mark.parametrize(
+        "name", [(1, 2, 3), ("a",), frozenset([1, 2, 3]), range(3)]
+    )
     def test_rename_axis_hashable_iterable_name_1d_index(self, name):
         # GH#66656
-        df = DataFrame([1], index=Index([1], name=name))
+        df = pd.DataFrame([1], index=pd.Index([1], name=name))
         result = df.rename_axis(name)
         assert result.index.name == name
 
