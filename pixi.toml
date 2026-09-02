@@ -79,6 +79,9 @@ pytest-xdist = ">=3.6.1"
 pytest-cov = ">=7.0.0"
 # Exercises the tests behind the `ip` fixture in pandas/conftest.py
 ipython = "*"
+# Lets the ZoneInfo.from_file tests read tzdata's own zone files off-Windows,
+#  where it is otherwise pulled in only by [target.win.dependencies]
+tzdata = ">=2023.3"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"

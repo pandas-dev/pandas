@@ -496,24 +496,24 @@ def test_zoneinfo_from_file_without_key(key):
     keyless = _zoneinfo_from_file(key)
     assert keyless.key is None
 
-    naive = date_range("2025-01-01", "2025-12-31", freq="7h")
+    naive = pd.date_range("2025-01-01", "2025-12-31", freq="7h")
     kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
     tm.assert_numpy_array_equal(
         naive.tz_localize(keyless, **kwargs).tz_convert("UTC").asi8,
         naive.tz_localize(keyed, **kwargs).tz_convert("UTC").asi8,
     )
 
-    utc = date_range("2025-01-01", "2025-12-31", freq="7h", tz="UTC")
+    utc = pd.date_range("2025-01-01", "2025-12-31", freq="7h", tz="UTC")
     assert [ts.utcoffset() for ts in utc.tz_convert(keyless)] == [
         ts.utcoffset() for ts in utc.tz_convert(keyed)
     ]
 
-    ts = Timestamp("2025-06-15 12:00")
+    ts = pd.Timestamp("2025-06-15 12:00")
     assert ts.tz_localize(keyless).utcoffset() == ts.tz_localize(keyed).utcoffset()
 
-    result = date_range("2025-06-15", periods=3, freq="h", tz=keyless)
+    result = pd.date_range("2025-06-15", periods=3, freq="h", tz=keyless)
     assert result.tz is keyless
-    expected = date_range("2025-06-15", periods=3, freq="h", tz=keyed)
+    expected = pd.date_range("2025-06-15", periods=3, freq="h", tz=keyed)
     tm.assert_numpy_array_equal(
         result.tz_convert("UTC").asi8, expected.tz_convert("UTC").asi8
     )
@@ -528,7 +528,7 @@ def test_zoneinfo_from_file_without_key(key):
         ("2025-03-09", "raise", "shift_forward"),
         ("2025-03-09", "raise", "shift_backward"),
         ("2025-03-09", "raise", "NaT"),
-        ("2025-03-09", "raise", Timedelta("1h")),
+        ("2025-03-09", "raise", pd.Timedelta("1h")),
     ],
 )
 def test_zoneinfo_from_file_without_key_dst_transition(start, ambiguous, nonexistent):
@@ -537,7 +537,7 @@ def test_zoneinfo_from_file_without_key_dst_transition(start, ambiguous, nonexis
     keyed = zoneinfo.ZoneInfo("US/Eastern")
     keyless = _zoneinfo_from_file("US/Eastern")
 
-    naive = date_range(start, periods=48, freq="h")
+    naive = pd.date_range(start, periods=48, freq="h")
     expected = naive.tz_localize(keyed, ambiguous=ambiguous, nonexistent=nonexistent)
     result = naive.tz_localize(keyless, ambiguous=ambiguous, nonexistent=nonexistent)
     tm.assert_numpy_array_equal(
@@ -551,7 +551,7 @@ def test_zoneinfo_from_file_without_key_ambiguous_infer():
     keyed = zoneinfo.ZoneInfo("US/Eastern")
     keyless = _zoneinfo_from_file("US/Eastern")
 
-    times = to_datetime(
+    times = pd.to_datetime(
         [
             "2025-11-02 00:00",
             "2025-11-02 01:00",
@@ -586,7 +586,7 @@ def test_zoneinfo_from_file_unresolvable_key(bad_key):
     assert tz.key == bad_key
     assert timezones._p_tz_cache_key(tz) is None
 
-    naive = date_range("2025-01-01", "2025-12-31", freq="7h")
+    naive = pd.date_range("2025-01-01", "2025-12-31", freq="7h")
     kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
     tm.assert_numpy_array_equal(
         naive.tz_localize(tz, **kwargs).tz_convert("UTC").asi8,
@@ -608,7 +608,7 @@ def test_zoneinfo_from_file_key_not_matching_data(data_key, label):
     tz = _zoneinfo_from_file(data_key, new_key=label)
     assert timezones._p_tz_cache_key(tz) is None
 
-    naive = date_range("2025-06-15", periods=3, freq="h")
+    naive = pd.date_range("2025-06-15", periods=3, freq="h")
     result = naive.tz_localize(tz)
     expected = naive.tz_localize(data_key)
     tm.assert_numpy_array_equal(
@@ -617,12 +617,28 @@ def test_zoneinfo_from_file_key_not_matching_data(data_key, label):
 
 
 @pytest.mark.parametrize("key", ["US/Eastern", "Etc/GMT+5"])
-def test_zoneinfo_matching_data_keeps_fast_path(key):
+def test_zoneinfo_no_cache_keeps_fast_path(key):
     # GH#64379 a ZoneInfo that is not the stdlib's interned instance still
-    #  gets the cached transition fast path as long as its data matches the
-    #  installed zone it names
-    for tz in [zoneinfo.ZoneInfo.no_cache(key), _zoneinfo_from_file(key, new_key=key)]:
-        assert timezones._p_tz_cache_key(tz) == f"zoneinfo/{key}"
-        assert timezones.is_fixed_offset(tz) == timezones.is_fixed_offset(
-            zoneinfo.ZoneInfo(key)
-        )
+    #  gets the cached transition fast path, as long as it was loaded from the
+    #  installed tzdata under its key
+    tz = zoneinfo.ZoneInfo.no_cache(key)
+    assert timezones._p_tz_cache_key(tz) == f"zoneinfo/{key}"
+    assert timezones.is_fixed_offset(tz) == timezones.is_fixed_offset(
+        zoneinfo.ZoneInfo(key)
+    )
+
+
+@pytest.mark.parametrize("key", ["US/Eastern", "Etc/GMT+5"])
+def test_zoneinfo_from_file_matching_data_is_correct(key):
+    # GH#64379 a from_file object whose data happens to match the zone its key
+    #  names cannot be told apart from one whose data does not, so it takes
+    #  the tzinfo-API path.  Results must still be correct.
+    tz = _zoneinfo_from_file(key, new_key=key)
+    assert timezones._p_tz_cache_key(tz) is None
+
+    naive = pd.date_range("2025-01-01", "2025-12-31", freq="7h")
+    kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
+    tm.assert_numpy_array_equal(
+        naive.tz_localize(tz, **kwargs).tz_convert("UTC").asi8,
+        naive.tz_localize(zoneinfo.ZoneInfo(key), **kwargs).tz_convert("UTC").asi8,
+    )

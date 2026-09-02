@@ -1,10 +1,10 @@
 cimport cython
 
-from bisect import bisect_right
 from datetime import (
     timedelta,
     timezone,
 )
+import pickle
 import weakref
 import zoneinfo
 from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
@@ -54,12 +54,6 @@ cdef type ZoneInfo = zoneinfo.ZoneInfo
 #  interned by the stdlib, so a strong key would pin one entry per object for
 #  the life of the process.
 cdef object _zoneinfo_twin_cache = weakref.WeakKeyDictionary()
-
-# Probe grid used by _zoneinfo_offsets_agree: 1880-01-01 onward, one point
-#  every ~30.44 days, through ~2060.
-cdef int64_t _GRID_START = -2840140800
-cdef int64_t _GRID_STEP = 2629746
-cdef Py_ssize_t _GRID_NPERIODS = 2160
 
 
 # ----------------------------------------------------------------------
@@ -330,6 +324,17 @@ cdef object get_zoneinfo_twin(tzinfo tz):
     built from.  In those cases we have no way to see the transitions and
     callers must fall back to the tzinfo API.  GH#64379
 
+    Whether the key describes the object is decided by asking it to pickle.
+    The stdlib documents that a ``from_file`` object cannot be pickled,
+    because its data is not recoverable from its key -- which is exactly what
+    we would be assuming.
+
+    A ``from_file`` object whose data does happen to match the installed zone
+    its key names is not told apart from one whose data does not, so it takes
+    the fallback too.  That is correct, only slower.  Loading a different
+    tzdata release by key, e.g. after ``zoneinfo.reset_tzpath``, keeps the
+    fast path.
+
     Parameters
     ----------
     tz : ZoneInfo
@@ -356,104 +361,19 @@ cdef object _build_zoneinfo_twin(tzinfo tz):
         return None
 
     try:
-        tz_py = _ZoneInfo(key)
-        is_interned = tz is ZoneInfo(key)
-    except (KeyError, ValueError, OSError):
-        # e.g. ZoneInfo.from_file(fobj, key="my/custom"), where the key names
-        #  no installed zone.  ZoneInfoNotFoundError subclasses KeyError.
+        tz.__reduce__()
+    except pickle.PicklingError:
+        # Both implementations refuse this for a from_file object.  A
+        #  __reduce__ that succeeds tells us the object was loaded from the
+        #  installed tzdata under its key, by ZoneInfo() or no_cache().
         return None
 
-    if is_interned:
-        # tz is the instance the stdlib caches for this key, so it was loaded
-        #  from the same tzdata file tz_py was and needs no further checking.
-        return tz_py
-
-    if _zoneinfo_offsets_agree(tz, tz_py):
-        return tz_py
-    return None
-
-
-cdef bint _zoneinfo_offsets_agree(tzinfo tz, object tz_py) except -1:
-    """
-    Check that `tz` and its candidate twin `tz_py` describe the same zone.
-
-    Probes `tz` on both sides of every transition `tz_py` knows about, which
-    pins down both the transition times and the offsets they separate, and on
-    a ~monthly grid running up to the last of them.  A `tz` built by
-    ``ZoneInfo.from_file`` from a different tzdata release disagrees at the
-    transitions whose rules changed between the two.
-
-    The grid is what catches a transition `tz` has and `tz_py` lacks, which
-    the transition probes are blind to by construction: a fixed-offset `tz_py`
-    offers no transitions to probe around at all.  A step below the shortest
-    DST season keeps the grid from stepping over one.
-
-    Expected offsets are read out of `tz_py`'s transition table rather than
-    from ``tz_py.utcoffset``, both because the table is what the fast path
-    will go on to use and because the pure-python ``fromutc`` misreports the
-    hours just after a zone's first transition when that transition moves
-    clocks backwards, e.g. Antarctica/Rothera in 1976.
-
-    Nothing before `tz_py`'s first transition is probed.  The C zoneinfo
-    reports a different offset than the table does there for a handful of
-    zones -- again Antarctica/Rothera, where the table and zdump agree on -00
-    before 1976 and the C implementation says -03 -- so probing it would
-    reject those zones over a bug that is not ours.  The cost is that a `tz`
-    differing from `tz_py` only in its pre-first-transition LMT offset, which
-    for most zones means before the 1910s, is accepted.
-
-    NB: this still cannot be exhaustive, since the transitions we are checking
-    for are exactly the ones we have no way to enumerate on `tz`.
-
-    The transitions that `tz_py` derives from a POSIX TZ rule rather than from
-    the file are not checked here; _get_zoneinfo_trans_and_deltas verifies
-    those against `tz` separately and drops them if they disagree.
-    """
-    cdef:
-        list probes = []
-        int64_t first_trans = 0
-        int64_t grid_ts
-        bint has_trans = False
-        bint has_future_rule
-        Py_ssize_t i
-
     try:
-        trans_utc = tz_py._trans_utc
-        ttinfos = tz_py._ttinfos
-
-        for i in range(len(trans_utc)):
-            if i == 0:
-                first_trans = trans_utc[0]
-                has_trans = True
-            else:
-                probes.append((trans_utc[i] - 1, ttinfos[i - 1].utcoff))
-            probes.append((trans_utc[i], ttinfos[i].utcoff))
-
-        has_future_rule = hasattr(getattr(tz_py, "_tz_after", None), "transitions")
-        for i in range(_GRID_NPERIODS):
-            grid_ts = _GRID_START + i * _GRID_STEP
-            if not has_trans:
-                # a zone with no transitions at all holds one offset forever
-                probes.append((grid_ts, tz_py._tti_before.utcoff))
-            elif grid_ts < first_trans:
-                continue
-            elif has_future_rule and grid_ts > trans_utc[len(trans_utc) - 1]:
-                # past the file's transitions the offsets come from a POSIX TZ
-                #  rule, which _get_zoneinfo_trans_and_deltas verifies itself
-                break
-            else:
-                probes.append(
-                    (grid_ts, ttinfos[bisect_right(trans_utc, grid_ts) - 1].utcoff)
-                )
-
-        for probe_ts, expected in probes:
-            probe = datetime.fromtimestamp(probe_ts, timezone.utc)
-            if probe.astimezone(tz).utcoffset() != expected:
-                return 0
-    except (AttributeError, IndexError, OSError, OverflowError, ValueError):
-        return 0
-
-    return 1
+        return _ZoneInfo(key)
+    except (KeyError, ValueError, OSError):
+        # Belt and braces: the C and pure-python loaders search the same
+        #  TZPATH, so having gotten this far the key resolves for both.
+        return None
 
 
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
