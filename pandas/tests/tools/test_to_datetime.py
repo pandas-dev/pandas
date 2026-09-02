@@ -2244,6 +2244,47 @@ class TestToDatetimeUnit:
         expected = pd.to_datetime(arr.astype(np.int64), unit="ns")
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("typ,frac", [(int, 0), (float, 0), (float, 0.1)])
+    @pytest.mark.parametrize("unit", ["ps", "fs", "as"])
+    def test_sub_nano_unit(self, typ, frac, unit):
+        value = np.datetime64(1, "ns").astype(f"M8[{unit}]").item()
+        value = typ(value)
+        if frac != 0:
+            # this fractional part gets discarded, but it still works
+            value = value + frac
+
+        result = pd.to_datetime([value], unit=unit)
+        expected = pd.DatetimeIndex([pd.Timestamp(1, unit="ns")], dtype="M8[ns]")
+        tm.assert_index_equal(result, expected)
+
+        if frac != 0:
+            # TODO typed array code path fails this case - internal error
+            with pytest.raises(ValueError, match=None):  # noqa: PT011
+                pd.to_datetime(np.array([value]), unit=unit)
+
+            with pytest.raises(ValueError, match=None):  # noqa: PT011
+                pd.to_datetime(pd.array([value, None]), unit=unit)
+
+            with pytest.raises(ValueError, match=None):  # noqa: PT011
+                pd.to_datetime(value, unit=unit)
+        else:
+            result = pd.to_datetime(np.array([value]), unit=unit)
+            tm.assert_index_equal(result, expected)
+
+            result = pd.to_datetime(pd.array([value, None]), unit=unit)
+            expected = pd.DatetimeIndex(
+                [pd.Timestamp(1, unit="ns"), pd.NaT], dtype="M8[ns]"
+            )
+            tm.assert_index_equal(result, expected)
+
+            # scalar via to_datetime
+            result = pd.to_datetime(value, unit=unit)
+            assert result == pd.Timestamp(1, unit="ns")
+
+        # scalar via Timestamp constructor
+        result = pd.Timestamp(value, unit=unit)
+        assert result == pd.Timestamp(1, unit="ns")
+
 
 class TestToDatetimeDataFrame:
     @pytest.fixture
