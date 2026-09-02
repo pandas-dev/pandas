@@ -2218,9 +2218,11 @@ class TestToDatetimeUnit:
         arr = np.array([uint64_max], dtype=np.uint64)
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(arr, unit="ns", errors="raise")
-        arr = pd.array([uint64_max, None], dtype="UInt64")
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            pd.to_datetime(arr, unit="ns", errors="raise")
+        for con in [pd.array, pd.Series, pd.Index]:
+            arr = con([uint64_max, None], dtype="UInt64")
+            with pytest.raises(OutOfBoundsDatetime, match=msg):
+                pd.to_datetime(arr, unit="ns", errors="raise")
+
         # scalar via to_datetime
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.to_datetime(uint64_max, unit="ns", errors="raise")
@@ -2238,10 +2240,13 @@ class TestToDatetimeUnit:
         expected = pd.DatetimeIndex(["NaT"], dtype="datetime64[ns]")
         tm.assert_index_equal(result, expected)
 
-        arr = pd.array([uint64_max, None], dtype="UInt64")
-        expected = pd.DatetimeIndex(["NaT", "NaT"], dtype="datetime64[ns]")
-        result = pd.to_datetime(arr, unit="ns", errors="coerce")
-        tm.assert_index_equal(result, expected)
+        for con in [pd.array, pd.Series, pd.Index]:
+            arr = con([uint64_max, None], dtype="UInt64")
+            result = pd.to_datetime(arr, unit="ns", errors="coerce")
+            expected = pd.DatetimeIndex(["NaT", "NaT"], dtype="datetime64[ns]")
+            if con is pd.Series:
+                expected = pd.Series(expected)
+            tm.assert_equal(result, expected)
 
         # scalar
         result = pd.to_datetime(uint64_max, unit="ns", errors="coerce")
@@ -2259,21 +2264,23 @@ class TestToDatetimeUnit:
         expected = expected.append(pd.to_datetime([pd.NaT]))
         tm.assert_index_equal(result, expected)
 
-    def test_nullable_int_to_datetime_no_float_precision_loss(self):
+    def test_nullable_int_to_datetime_no_float_precision_loss(
+        self, index_or_series_or_array
+    ):
         # GH#66988 a nullable int array with a value that is not exactly
         #  representable as float64 should not lose precision by going
         #  through a float64 intermediate when it contains NA values
         value = 2**60 + 1
-        arr = pd.array([value, None], dtype="Int64")
+        arr = index_or_series_or_array([value, None], dtype="Int64")
         result = pd.to_datetime(arr, unit="ns")
-        expected = pd.DatetimeIndex([pd.Timestamp(value, unit="ns"), pd.NaT]).as_unit(
-            "ns"
-        )
-        tm.assert_index_equal(result, expected)
+        expected = pd.DatetimeIndex([pd.Timestamp(value, unit="ns"), pd.NaT])
+        if isinstance(arr, pd.Series):
+            expected = pd.Series(expected)
+        tm.assert_equal(result, expected)
 
-        uarr = pd.array([value, None], dtype="UInt64")
+        uarr = index_or_series_or_array([value, None], dtype="UInt64")
         result = pd.to_datetime(uarr, unit="ns")
-        tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_int64_oob_raise(self):
         # GH#66988 an int64 can be out of bounds when the unit is not supported
