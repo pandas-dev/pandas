@@ -75,6 +75,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -1256,6 +1257,8 @@ def sequence_to_td64ns(
 
     if unit is not None:
         unit = parse_timedelta_unit(unit)
+
+    data = extract_array(data, extract_numpy=True)
 
     int_mask = None
     if isinstance(data, IntegerArray):
