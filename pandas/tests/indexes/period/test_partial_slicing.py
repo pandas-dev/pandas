@@ -58,8 +58,8 @@ class TestPeriodIndex:
         # get_loc already resolved it to.
         periods = 12 if freq.startswith("Q") else 8
         start = "2000Q1" if freq.startswith("Q") else "2000"
-        pi = period_range(start, periods=periods, freq=freq)
-        ser = Series(range(periods), index=pi)
+        pi = pd.period_range(start, periods=periods, freq=freq)
+        ser = pd.Series(range(periods), index=pi)
         result = ser.loc[label:label]
         expected = ser.iloc[[pi.get_loc(label)]]
         tm.assert_series_equal(result, expected)
@@ -98,8 +98,8 @@ class TestPeriodIndex:
         # the GH#66571 shortcut only covers quarterly/annual labels at the
         # index's own resolution; day-level labels on W/B/D indexes still go
         # through the calendar-freq path
-        pi = period_range("2001-01-01", periods=20, freq=freq)
-        ser = Series(range(len(pi)), index=pi)
+        pi = pd.period_range("2001-01-01", periods=20, freq=freq)
+        ser = pd.Series(range(len(pi)), index=pi)
         result = ser.loc[start:stop]
         assert list(result.index.astype(str)) == expected
 
