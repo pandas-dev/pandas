@@ -6,11 +6,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-)
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
@@ -32,7 +27,7 @@ class TestDataFramePlotsSubplots:
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["bar", "barh", "line", "area"])
     def test_subplots(self, kind):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -62,7 +57,7 @@ class TestDataFramePlotsSubplots:
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["bar", "barh", "line", "area"])
     def test_subplots_no_share_x(self, kind):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -77,7 +72,7 @@ class TestDataFramePlotsSubplots:
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["bar", "barh", "line", "area"])
     def test_subplots_no_legend(self, kind):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -87,8 +82,8 @@ class TestDataFramePlotsSubplots:
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_subplots_timeseries(self, kind):
-        idx = date_range(start="2014-07-01", freq="ME", periods=10)
-        df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
+        idx = pd.date_range(start="2014-07-01", freq="ME", periods=10)
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
 
         axes = df.plot(kind=kind, subplots=True, sharex=True)
         _check_axes_shape(axes, axes_num=3, layout=(3, 1))
@@ -110,8 +105,8 @@ class TestDataFramePlotsSubplots:
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_subplots_timeseries_rot(self, kind):
-        idx = date_range(start="2014-07-01", freq="ME", periods=10)
-        df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
+        idx = pd.date_range(start="2014-07-01", freq="ME", periods=10)
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
         axes = df.plot(kind=kind, subplots=True, sharex=False, rot=45, fontsize=7)
         for ax in axes:
             _check_visible(ax.xaxis)
@@ -145,7 +140,7 @@ class TestDataFramePlotsSubplots:
             ],
             "text": ["This", "should", "fail"],
         }
-        testdata = DataFrame(data)
+        testdata = pd.DataFrame(data)
 
         ax = testdata.plot(y=col)
         result = ax.get_lines()[0].get_data()[1]
@@ -159,7 +154,7 @@ class TestDataFramePlotsSubplots:
         dti = pd.to_datetime(
             ["2017-08-01 00:00:00", "2017-08-01 02:00:00", "2017-08-02 00:00:00"]
         )
-        ser = Series(dti.tz_localize("US/Eastern"), name="dt_tz")
+        ser = pd.Series(dti.tz_localize("US/Eastern"), name="dt_tz")
 
         ax = ser.to_frame().plot(y="dt_tz")
 
@@ -180,7 +175,7 @@ class TestDataFramePlotsSubplots:
             "numeric": np.array([1, 2, 5]),
             "text": ["This", "should", "fail"],
         }
-        testdata = DataFrame(data)
+        testdata = pd.DataFrame(data)
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             testdata.plot(y="text")
@@ -220,7 +215,7 @@ class TestDataFramePlotsSubplots:
                 pd.to_datetime("2017-08-02 00:00:00"),
             ],
         }
-        testdata = DataFrame(data)
+        testdata = pd.DataFrame(data)
         ax_period = testdata.plot(x="numeric", y="period")
         assert (
             ax_period.get_lines()[0].get_data()[1] == testdata["period"].values
@@ -249,7 +244,7 @@ class TestDataFramePlotsSubplots:
     )
     def test_subplots_layout_multi_column(self, layout, exp_layout):
         # GH 6667
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -260,7 +255,7 @@ class TestDataFramePlotsSubplots:
 
     def test_subplots_layout_multi_column_error(self):
         # GH 6667
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -284,7 +279,7 @@ class TestDataFramePlotsSubplots:
         self, kwargs, expected_axes_num, expected_layout, expected_shape
     ):
         # GH 6667
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 1)),
             index=list(string.ascii_letters[:10]),
         )
@@ -297,17 +292,19 @@ class TestDataFramePlotsSubplots:
         assert axes.shape == expected_shape
 
     @pytest.mark.slow
-    @pytest.mark.parametrize("idx", [range(5), date_range("1/1/2000", periods=5)])
+    @pytest.mark.parametrize("idx", [range(5), pd.date_range("1/1/2000", periods=5)])
     def test_subplots_warnings(self, idx):
         # GH 9464
         with tm.assert_produces_warning(None):
-            df = DataFrame(np.random.default_rng(2).standard_normal((5, 4)), index=idx)
+            df = pd.DataFrame(
+                np.random.default_rng(2).standard_normal((5, 4)), index=idx
+            )
             df.plot(subplots=True, layout=(3, 2))
 
     def test_subplots_multiple_axes(self):
         # GH 5353, 6970, GH 7069
         fig, axes = mpl.pyplot.subplots(2, 3)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -325,7 +322,7 @@ class TestDataFramePlotsSubplots:
 
     def test_subplots_multiple_axes_error(self):
         # GH 5353, 6970, GH 7069
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
@@ -351,7 +348,7 @@ class TestDataFramePlotsSubplots:
         # (show warning is tested in
         # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
         _, axes = mpl.pyplot.subplots(2, 2)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 4)),
             index=list(string.ascii_letters[:10]),
         )
@@ -366,7 +363,7 @@ class TestDataFramePlotsSubplots:
         # GH 5353, 6970, GH 7069
         # single column
         _, axes = mpl.pyplot.subplots(1, 1)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).random((10, 1)),
             index=list(string.ascii_letters[:10]),
         )
@@ -379,9 +376,9 @@ class TestDataFramePlotsSubplots:
         # GH 3964
         _, axes = mpl.pyplot.subplots(3, 3, sharex=True, sharey=True)
         mpl.pyplot.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 9)),
-            index=date_range(start="2014-07-01", freq="ME", periods=10),
+            index=pd.date_range(start="2014-07-01", freq="ME", periods=10),
         )
         for i, ax in enumerate(axes.ravel()):
             df[i].plot(ax=ax, fontsize=5)
@@ -407,7 +404,7 @@ class TestDataFramePlotsSubplots:
     def test_subplots_sharex_axes_existing_axes(self):
         # GH 9158
         d = {"A": [1.0, 2.0, 3.0, 4.0], "B": [4.0, 3.0, 2.0, 1.0], "C": [5, 1, 3, 4]}
-        df = DataFrame(d, index=date_range("2014 10 11", "2014 10 14"))
+        df = pd.DataFrame(d, index=pd.date_range("2014 10 11", "2014 10 14"))
 
         axes = df[["A", "B"]].plot(subplots=True)
         df["C"].plot(ax=axes[0], secondary_y=True)
@@ -419,7 +416,9 @@ class TestDataFramePlotsSubplots:
 
     def test_subplots_dup_columns(self):
         # GH 10962
-        df = DataFrame(np.random.default_rng(2).random((5, 5)), columns=list("aaaaa"))
+        df = pd.DataFrame(
+            np.random.default_rng(2).random((5, 5)), columns=list("aaaaa")
+        )
         axes = df.plot(subplots=True)
         for ax in axes:
             _check_legend_labels(ax, labels=["a"])
@@ -427,7 +426,9 @@ class TestDataFramePlotsSubplots:
 
     def test_subplots_dup_columns_secondary_y(self):
         # GH 10962
-        df = DataFrame(np.random.default_rng(2).random((5, 5)), columns=list("aaaaa"))
+        df = pd.DataFrame(
+            np.random.default_rng(2).random((5, 5)), columns=list("aaaaa")
+        )
         axes = df.plot(subplots=True, secondary_y="a")
         for ax in axes:
             # (right) is only attached when subplots=False
@@ -436,7 +437,9 @@ class TestDataFramePlotsSubplots:
 
     def test_subplots_dup_columns_secondary_y_no_subplot(self):
         # GH 10962
-        df = DataFrame(np.random.default_rng(2).random((5, 5)), columns=list("aaaaa"))
+        df = pd.DataFrame(
+            np.random.default_rng(2).random((5, 5)), columns=list("aaaaa")
+        )
         ax = df.plot(secondary_y="a")
         _check_legend_labels(ax, labels=["a (right)"] * 5)
         assert len(ax.lines) == 0
@@ -454,7 +457,7 @@ class TestDataFramePlotsSubplots:
         )
 
         # no subplots
-        df = DataFrame({"A": [3] * 5, "B": list(range(1, 6))}, index=range(5))
+        df = pd.DataFrame({"A": [3] * 5, "B": list(range(1, 6))}, index=range(5))
         ax = df.plot.bar(grid=True, log=True)
         result = ax.yaxis.get_ticklocs()
         # GH#64317 on some linux builds these are flaky with a tiny difference.
@@ -471,7 +474,7 @@ class TestDataFramePlotsSubplots:
             else np.array([0.1, 1.0, 10.0, 100.0, 1000.0])
         )
 
-        ax = DataFrame([Series([200, 300]), Series([300, 500])]).plot.bar(
+        ax = pd.DataFrame([pd.Series([200, 300]), pd.Series([300, 500])]).plot.bar(
             log=True, subplots=True
         )
 
@@ -488,7 +491,7 @@ class TestDataFramePlotsSubplots:
 
         # normal style: return_type=None
         result = df.plot.box(subplots=True)
-        assert isinstance(result, Series)
+        assert isinstance(result, pd.Series)
         _check_box_return_type(
             result, None, expected_keys=["height", "weight", "category"]
         )
@@ -506,9 +509,9 @@ class TestDataFramePlotsSubplots:
 
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)),
-            index=date_range("1/1/2000", periods=10),
+            index=pd.date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
 
@@ -526,9 +529,9 @@ class TestDataFramePlotsSubplots:
 
     def test_df_subplots_patterns_minorticks_1st_ax_hidden(self):
         # GH 10657
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)),
-            index=date_range("1/1/2000", periods=10),
+            index=pd.date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
         _, axes = plt.subplots(2, 1)
@@ -545,9 +548,9 @@ class TestDataFramePlotsSubplots:
 
     def test_df_subplots_patterns_minorticks_not_shared(self):
         # GH 10657
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)),
-            index=date_range("1/1/2000", periods=10),
+            index=pd.date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
         # not shared
@@ -562,7 +565,7 @@ class TestDataFramePlotsSubplots:
     def test_subplots_sharex_false(self):
         # test when sharex is set to False, two plots should have different
         # labels, GH 25160
-        df = DataFrame(np.random.default_rng(2).random((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
         df.iloc[5:, 1] = np.nan
         df.iloc[:5, 0] = np.nan
 
@@ -577,8 +580,8 @@ class TestDataFramePlotsSubplots:
 
     def test_subplots_constrained_layout(self, temp_file):
         # GH 25261
-        idx = date_range(start="now", periods=10)
-        df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
+        idx = pd.date_range(start="now", periods=10)
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
         kwargs = {}
         if hasattr(mpl.pyplot.Figure, "get_constrained_layout"):
             kwargs["constrained_layout"] = True
@@ -603,7 +606,7 @@ class TestDataFramePlotsSubplots:
         self, kind, index_name, old_label, new_label
     ):
         # GH 9093
-        df = DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
+        df = pd.DataFrame([[1, 2], [2, 5]], columns=["Type A", "Type B"])
         df.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name
@@ -651,7 +654,7 @@ class TestDataFramePlotsSubplots:
     )
     def test_bar_align_multiple_columns(self, kwargs):
         # GH2157
-        df = DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
+        df = pd.DataFrame({"A": [3] * 5, "B": list(range(5))}, index=range(5))
         self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.parametrize(
@@ -666,7 +669,7 @@ class TestDataFramePlotsSubplots:
         ],
     )
     def test_bar_align_single_column(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal(5))
         self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.parametrize(
@@ -681,13 +684,13 @@ class TestDataFramePlotsSubplots:
         ],
     )
     def test_bar_barwidth_position(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
     @pytest.mark.parametrize("w", [1, 1.0])
     def test_bar_barwidth_position_int(self, w):
         # GH 12979
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot.bar(stacked=True, width=w)
         ticks = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
@@ -708,7 +711,7 @@ class TestDataFramePlotsSubplots:
     )
     def test_bar_barwidth_position_int_width_1(self, kind, kwargs):
         # GH 12979
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         self._check_bar_alignment(df, kind=kind, width=1, **kwargs)
 
     def _check_bar_alignment(

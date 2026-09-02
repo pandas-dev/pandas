@@ -15,10 +15,6 @@ import pytest
 from pandas.errors import EmptyDataError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-)
 import pandas._testing as tm
 
 from pandas.io.common import urlopen
@@ -38,7 +34,7 @@ A         B            C            D
 201162    502.953953   173.237159   12468.3
 """
     result = read_fwf(StringIO(data))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [201158, 360.242940, 149.910199, 11950.7],
             [201159, 444.953632, 166.985655, 11788.4],
@@ -63,7 +59,7 @@ A   B     C            D            E
     colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
     result = read_fwf(StringIO(data), colspecs=colspecs)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [2011, 58, 360.242940, 149.910199, 11950.7],
             [2011, 59, 444.953632, 166.985655, 11788.4],
@@ -87,7 +83,7 @@ A    B    C            D            E
 """
     result = read_fwf(StringIO(data), widths=[5, 5, 13, 13, 7])
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [2011, 58, 360.242940, 149.910199, 11950.7],
             [2011, 59, 444.953632, 166.985655, 11788.4],
@@ -118,7 +114,7 @@ A~~~~B~~~~C~~~~~~~~~~~~D~~~~~~~~~~~~E
     colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
     result = read_fwf(StringIO(data), colspecs=colspecs, delimiter="~")
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [2011, 58, 360.242940, 149.910199, 11950.7],
             [2011, 59, 444.953632, 166.985655, 11788.4],
@@ -186,7 +182,7 @@ A   B     C            D            E
 def test_bytes_io_input():
     data = BytesIO("שלום\nשלום".encode())  # noqa: RUF001
     result = read_fwf(data, widths=[2, 2], encoding="utf8")
-    expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
+    expected = pd.DataFrame([["של", "ום"]], columns=["של", "ום"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -237,7 +233,7 @@ def test_fwf_colspecs_none(colspecs, exp_data):
 123456
 456789
 """
-    expected = DataFrame(exp_data)
+    expected = pd.DataFrame(exp_data)
 
     result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
     tm.assert_frame_equal(result, expected)
@@ -258,7 +254,7 @@ def test_fwf_colspecs_infer_nrows(infer_nrows, exp_data):
   1  2
 123 98
 """
-    expected = DataFrame(exp_data)
+    expected = pd.DataFrame(exp_data)
 
     result = read_fwf(StringIO(data), infer_nrows=infer_nrows, header=None)
     tm.assert_frame_equal(result, expected)
@@ -278,7 +274,7 @@ def test_fwf_regression():
 2009164205000   9.5810  9.0896  8.4009  7.4652  6.0322  5.8189  5.4379
 2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
 """
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [9.5403, 9.4105, 8.6571, 7.8372, 6.0612, 5.8843, 5.5192],
             [9.5435, 9.2010, 8.6167, 7.8176, 6.0804, 5.8728, 5.4869],
@@ -286,7 +282,7 @@ def test_fwf_regression():
             [9.5810, 9.0896, 8.4009, 7.4652, 6.0322, 5.8189, 5.4379],
             [9.6034, 9.0897, 8.3822, 7.4905, 6.0908, 5.7904, 5.4039],
         ],
-        index=DatetimeIndex(
+        index=pd.DatetimeIndex(
             [
                 "2009-06-13 20:20:00",
                 "2009-06-13 20:30:00",
@@ -325,7 +321,7 @@ def test_fwf_for_uint8():
         },
     )
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [1421302965.213420, 3, 61184, 23, 40, 8],
             [1421302964.226776, 6, 61442, None, 71, 8],
@@ -345,7 +341,7 @@ def test_fwf_comment(comment):
     data = data.replace("#", comment)
 
     colspecs = [(0, 3), (4, 9), (9, 25)]
-    expected = DataFrame([[1, 2.0, 4], [5, np.nan, 10.0]])
+    expected = pd.DataFrame([[1, 2.0, 4], [5, np.nan, 10.0]])
 
     result = read_fwf(StringIO(data), colspecs=colspecs, header=None, comment=comment)
     tm.assert_almost_equal(result, expected)
@@ -364,7 +360,7 @@ A         B            C            D
 
 """
     result = read_fwf(StringIO(data), skip_blank_lines=True)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [201158, 360.242940, 149.910199, 11950.7],
             [201159, 444.953632, 166.985655, 11788.4],
@@ -383,7 +379,7 @@ A         B            C            D
 201162    502.953953   173.237159   12468.3
 """
     result = read_fwf(StringIO(data), skip_blank_lines=False)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [201158, 360.242940, 149.910199, 11950.7],
             [201159, 444.953632, 166.985655, 11788.4],
@@ -405,7 +401,7 @@ def test_fwf_thousands(thousands):
     data = data.replace(",", thousands)
 
     colspecs = [(0, 3), (3, 11), (12, 16)]
-    expected = DataFrame([[1, 2334.0, 5], [10, 13, 10.0]])
+    expected = pd.DataFrame([[1, 2334.0, 5], [10, 13, 10.0]])
 
     result = read_fwf(
         StringIO(data), header=None, colspecs=colspecs, thousands=thousands
@@ -555,7 +551,7 @@ def test_dtype(dtype):
     colspecs = [(0, 5), (5, 10), (10, None)]
     result = read_fwf(StringIO(data), colspecs=colspecs, dtype=dtype)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a": [1, 3], "b": [2, 4], "c": [3.2, 5.2]}, columns=["a", "b", "c"]
     )
 
@@ -671,7 +667,7 @@ def test_binary_mode(temp_file):
     """
     data = """aaa aaa aaa
 bba bab b a"""
-    df_reference = DataFrame(
+    df_reference = pd.DataFrame(
         [["bba", "bab", "b a"]], columns=["aaa", "aaa.1", "aaa.2"], index=[0]
     )
     path = temp_file
@@ -699,7 +695,7 @@ def test_encoding_mmap(memory_map, temp_file):
         encoding=encoding,
         memory_map=memory_map,
     )
-    df_reference = DataFrame([[1, "A", "Ä", 2]])
+    df_reference = pd.DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
 
 
@@ -767,7 +763,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             list("abc"),
             None,
             0,
-            DataFrame(
+            pd.DataFrame(
                 index=["col1", "ba"],
                 columns=["a", "b", "c"],
                 data=[["col2", "col3", "col4"], ["b   ba", "2", np.nan]],
@@ -778,7 +774,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             list("ab"),
             None,
             [0, 1],
-            DataFrame(
+            pd.DataFrame(
                 index=[["col1", "ba"], ["col2", "b   ba"]],
                 columns=["a", "b"],
                 data=[["col3", "col4"], ["2", np.nan]],
@@ -789,7 +785,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             list("a"),
             None,
             [0, 1, 2],
-            DataFrame(
+            pd.DataFrame(
                 index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
                 columns=["a"],
                 data=[["col4"], [np.nan]],
@@ -800,7 +796,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             list("abc"),
             [6] * 4,
             0,
-            DataFrame(
+            pd.DataFrame(
                 index=["col1", "ba"],
                 columns=["a", "b", "c"],
                 data=[["col2", "col3", "col4"], ["b   ba", "2", np.nan]],
@@ -811,7 +807,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             list("ab"),
             [6] * 4,
             [0, 1],
-            DataFrame(
+            pd.DataFrame(
                 index=[["col1", "ba"], ["col2", "b   ba"]],
                 columns=["a", "b"],
                 data=[["col3", "col4"], ["2", np.nan]],
@@ -822,7 +818,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             list("a"),
             [6] * 4,
             [0, 1, 2],
-            DataFrame(
+            pd.DataFrame(
                 index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
                 columns=["a"],
                 data=[["col4"], [np.nan]],
@@ -851,7 +847,7 @@ def test_colspecs_with_comment():
     result = read_fwf(
         StringIO("#\nA1K\n"), colspecs=[(1, 2), (2, 3)], comment="#", header=None
     )
-    expected = DataFrame([[1, "K"]], columns=[0, 1])
+    expected = pd.DataFrame([[1, "K"]], columns=[0, 1])
     tm.assert_frame_equal(result, expected)
 
 
@@ -866,7 +862,7 @@ def test_skip_rows_and_n_rows():
 6\t f
     """
     result = read_fwf(StringIO(data), nrows=4, skiprows=[2, 4])
-    expected = DataFrame({"a": [1, 3, 5, 6], "b": ["a", "c", "e", "f"]})
+    expected = pd.DataFrame({"a": [1, 3, 5, 6], "b": ["a", "c", "e", "f"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -892,9 +888,9 @@ def test_skiprows_with_iterator():
         skiprows=[0, 1, 2, 6, 9],
     )
     expected_frames = [
-        DataFrame({"a": [3, 4]}),
-        DataFrame({"a": [5, 7]}, index=[2, 3]),
-        DataFrame({"a": [8]}, index=[4]),
+        pd.DataFrame({"a": [3, 4]}),
+        pd.DataFrame({"a": [5, 7]}, index=[2, 3]),
+        pd.DataFrame({"a": [8]}, index=[4]),
     ]
     for i, result in enumerate(df_iter):
         tm.assert_frame_equal(result, expected_frames[i])
@@ -906,7 +902,7 @@ def test_names_and_infer_colspecs():
       959.0    345   22.2
     """
     result = read_fwf(StringIO(data), skiprows=1, usecols=[0, 2], names=["a", "b"])
-    expected = DataFrame({"a": [959.0], "b": 22.2})
+    expected = pd.DataFrame({"a": [959.0], "b": 22.2})
     tm.assert_frame_equal(result, expected)
 
 
@@ -923,7 +919,7 @@ def test_widths_and_usecols():
         index_col=False,
         names=("c0", "c1", "c3"),
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "c0": 0,
             "c1": [1, 2, 3],
@@ -947,7 +943,7 @@ def test_dtype_backend(string_storage, dtype_backend):
     else:
         string_dtype = pd.StringDtype(string_storage)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.Series([1, 3], dtype="Int64"),
             "b": pd.Series([2.5, 4.5], dtype="Float64"),
@@ -964,7 +960,7 @@ def test_dtype_backend(string_storage, dtype_backend):
         pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
                 for col in expected.columns
