@@ -231,6 +231,9 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.IncompatibilityWarning$",
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
+    # Offset class docstrings - parameters (PR02) and order (GL07)
+    # Note: the order is ignored intentionally (to put Attributes/Methods at the end)
+    r"pandas\.tseries\.offsets\.[a-zA-Z0-9]+$",
     # Offset .base properties
     r"pandas\.tseries\.offsets\.BaseOffset\.base$",
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
