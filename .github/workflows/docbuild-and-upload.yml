@@ -77,6 +77,13 @@ jobs:
           exit 1
         fi
 
+        # Docs for all patch releases of a minor series are published under
+        # the same major.minor path, e.g. 3.0.5 -> pandas-docs/version/3.0
+        if [[ -n "$PANDAS_VERSION" ]]; then
+          PANDAS_DOCS_VERSION=$(echo "$PANDAS_VERSION" | grep -oE '^[0-9]+\.[0-9]+')
+          echo "PANDAS_DOCS_VERSION=$PANDAS_DOCS_VERSION" >> "$GITHUB_ENV"
+        fi
+
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
@@ -136,28 +143,45 @@ jobs:
           ci-build-documentation \
           zip_html
 
-    - name: Install ssh key
-      run: |
-        mkdir -m 700 -p ~/.ssh
-        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFjYkJBk7sos+r7yATODogQc3jUdW1aascGpyOD4bohj8dWjzwLJv/OJ/fyOQ5lmj81WKDk67tGtqNJYGL9acII=" > ~/.ssh/known_hosts
-      if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))) || github.event_name == 'workflow_dispatch'
-
     - name: Copy cheatsheets into site directory
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
+    - name: Checkout pandas-dev.github.io
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: pandas-dev/pandas-dev.github.io
+        ssh-key: ${{ secrets.PANDAS_DEV_GITHUB_IO_DEPLOY_KEY }}
+        path: pandas-dev.github.io
+        persist-credentials: true
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true'
+
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
-      if: false # github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: rsync -a --delete --exclude='.git' --exclude='README.md' --exclude='CNAME' --exclude='.nojekyll' --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ pandas-dev.github.io/
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs
-      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/dev
-      if: false # github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/dev
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload prod docs
-      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${{ env.PANDAS_VERSION }}
-      if: false # ${{ env.PUBLISH_PROD == 'true' }}
+      run: rsync -a --delete doc/build/html/ pandas-dev.github.io/pandas-docs/version/${PANDAS_DOCS_VERSION}
+      if: env.PUBLISH_PROD == 'true'
+
+    - name: Commit and push to pandas-dev.github.io
+      working-directory: pandas-dev.github.io
+      env:
+        COMMIT_MSG: ${{ env.PUBLISH_PROD == 'true' && format('Update site for pandas {0} (pandas-dev/pandas@{1})', env.PANDAS_DOCS_VERSION, github.sha) || format('Update site from pandas-dev/pandas@{0}', github.sha) }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No changes to publish"
+          exit 0
+        fi
+        git commit -m "${COMMIT_MSG}"
+        git push || (git pull --rebase && git push)
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || env.PUBLISH_PROD == 'true'
 
     - name: Move docs into site directory
       run: mv doc/build/html web/build/docs

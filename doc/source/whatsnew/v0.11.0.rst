@@ -72,36 +72,78 @@ Dtypes
 
 Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``, or a passed ``Series``), then it will be preserved in DataFrame operations. Furthermore, different numeric dtypes will **NOT** be combined. The following example will give you a taste.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float64')
-   df1
-   df1.dtypes
-   df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float32'),
-                       'B': pd.Series(np.random.randn(8)),
-                       'C': pd.Series(range(8), dtype='uint8')})
-   df2
-   df2.dtypes
+   >>> df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float64')
+   >>> df1
+             A
+   0  0.469112
+   1 -0.282863
+   2 -1.509059
+   3 -1.135632
+   4  1.212112
+   5 -0.173215
+   6  0.119209
+   7 -1.044236
+   >>> df1.dtypes
+   A    float64
+   dtype: object
+   >>> df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float32'),
+   ...                     'B': pd.Series(np.random.randn(8)),
+   ...                     'C': pd.Series(range(8), dtype='uint8')})
+   >>> df2
+             A         B  C
+   0 -0.861849 -0.424972  0
+   1 -2.104569  0.567020  1
+   2 -0.494929  0.276232  2
+   3  1.071804 -1.087401  3
+   4  0.721555 -0.673690  4
+   5 -0.706771  0.113648  5
+   6 -1.039575 -1.478427  6
+   7  0.271860  0.524988  7
+   >>> df2.dtypes
+   A    float32
+   B    float64
+   C      uint8
+   dtype: object
 
    # here you get some upcasting
-   df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
-   df3
-   df3.dtypes
+   >>> df3 = df1.reindex_like(df2).fillna(value=0.0) + df2
+   >>> df3
+             A         B    C
+   0 -0.392737 -0.424972  0.0
+   1 -2.387433  0.567020  1.0
+   2 -2.003988  0.276232  2.0
+   3 -0.063829 -1.087401  3.0
+   4  1.933667 -0.673690  4.0
+   5 -0.879986  0.113648  5.0
+   6 -0.920366 -1.478427  6.0
+   7 -0.772376  0.524988  7.0
+   >>> df3.dtypes
+   A    float64
+   B    float64
+   C    float64
+   dtype: object
 
 Dtype conversion
 ~~~~~~~~~~~~~~~~
 
 This is lower-common-denominator upcasting, meaning you get the dtype which can accommodate all of the types
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df3.values.dtype
+   >>> df3.values.dtype
+   dtype('float64')
 
 Conversion
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df3.astype('float32').dtypes
+   >>> df3.astype('float32').dtypes
+   A    float32
+   B    float32
+   C    float32
+   dtype: object
 
 Mixed conversion
 
@@ -288,33 +330,61 @@ in addition to the traditional ``NaT``, or not-a-time. This allows convenient na
 Furthermore ``datetime64[ns]`` columns are created by default, when passed datetimelike objects (*this change was introduced in 0.10.1*)
 (:issue:`2809`, :issue:`2810`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(np.random.randn(6, 2), pd.date_range('20010102', periods=6),
-                     columns=['A', ' B'])
-   df['timestamp'] = pd.Timestamp('20010103')
-   df
+   >>> df = pd.DataFrame(np.random.randn(6, 2), pd.date_range('20010102', periods=6),
+   ...                   columns=['A', ' B'])
+   >>> df['timestamp'] = pd.Timestamp('20010103')
+   >>> df
+                      A         B  timestamp
+   2001-01-02  0.404705  0.577046 2001-01-03
+   2001-01-03 -1.715002 -1.039268 2001-01-03
+   2001-01-04 -0.370647 -1.157892 2001-01-03
+   2001-01-05 -1.344312  0.844885 2001-01-03
+   2001-01-06  1.075770 -0.109050 2001-01-03
+   2001-01-07  1.643563 -1.469388 2001-01-03
 
    # datetime64[ns] out of the box
-   df.dtypes.value_counts()
+   >>> df.dtypes.value_counts()
+   float64           2
+   datetime64[us]    1
+   Name: count, dtype: int64
 
    # use the traditional nan, which is mapped to NaT internally
-   df.loc[df.index[2:4], ['A', 'timestamp']] = np.nan
-   df
+   >>> df.loc[df.index[2:4], ['A', 'timestamp']] = np.nan
+   >>> df
+                      A         B  timestamp
+   2001-01-02  0.404705  0.577046 2001-01-03
+   2001-01-03 -1.715002 -1.039268 2001-01-03
+   2001-01-04       NaN -1.157892        NaT
+   2001-01-05       NaN  0.844885        NaT
+   2001-01-06  1.075770 -0.109050 2001-01-03
+   2001-01-07  1.643563 -1.469388 2001-01-03
 
 Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT`` to ``np.nan``
 
-.. ipython:: python
+.. code-block:: pycon
 
-   import datetime
-   s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
-   s.dtype
-   s[1] = np.nan
-   s
-   s.dtype
-   s = s.astype('O')
-   s
-   s.dtype
+   >>> import datetime
+   >>> s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
+   >>> s.dtype
+   dtype('<M8[us]')
+   >>> s[1] = np.nan
+   >>> s
+   0   2001-01-02
+   1          NaT
+   2   2001-01-02
+   dtype: datetime64[us]
+   >>> s.dtype
+   dtype('<M8[us]')
+   >>> s = s.astype('O')
+   >>> s
+   0    2001-01-02 00:00:00
+   1                    NaT
+   2    2001-01-02 00:00:00
+   dtype: object
+   >>> s.dtype
+   dtype('O')
 
 
 API changes
@@ -344,19 +414,14 @@ Enhancements
 
     - support ``read_hdf/to_hdf`` API similar to ``read_csv/to_csv``
 
-      .. ipython:: python
+      .. code-block:: pycon
 
-          df = pd.DataFrame({'A': range(5), 'B': range(5)})
-          df.to_hdf('store.h5', key='table', append=True)
-          pd.read_hdf('store.h5', 'table', where=['index > 2'])
-
-      .. ipython:: python
-          :suppress:
-          :okexcept:
-
-          import os
-
-          os.remove('store.h5')
+         >>> df = pd.DataFrame({'A': range(5), 'B': range(5)})
+         >>> df.to_hdf('store.h5', key='table', append=True)
+         >>> pd.read_hdf('store.h5', 'table', where=['index > 2'])
+            A  B
+         3  3  3
+         4  4  4
 
     - provide dotted attribute access to ``get`` from stores, e.g. ``store.df == store['df']``
 

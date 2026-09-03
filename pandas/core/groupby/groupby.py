@@ -5859,14 +5859,6 @@ def get_groupby(
     Parameters
     ----------
     obj : pandas object
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : str
-        Most users should ignore this
 
     Returns
     -------

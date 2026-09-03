@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    to_datetime,
-)
+import pandas as pd
 
 
 @pytest.fixture(autouse=True)
@@ -19,14 +16,14 @@ def hist_df():
     gender = rng.choice(["Male", "Female"], size=n)
     classroom = rng.choice(["A", "B", "C"], size=n)
 
-    hist_df = DataFrame(
+    hist_df = pd.DataFrame(
         {
             "gender": gender,
             "classroom": classroom,
             "height": rng.normal(66, 4, size=n),
             "weight": rng.normal(161, 32, size=n),
             "category": rng.integers(4, size=n),
-            "datetime": to_datetime(
+            "datetime": pd.to_datetime(
                 rng.integers(
                     812419200000000000,
                     819331200000000000,

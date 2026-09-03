@@ -6,19 +6,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    date_range,
-)
 import pandas._testing as tm
 
 
 class TestDataFrame:
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name(self, func):
-        df = DataFrame([[1, 2], [3, 4]])
+        df = pd.DataFrame([[1, 2], [3, 4]])
 
         result = methodcaller(func, "foo")(df)
         assert df.index.name is None
@@ -30,10 +24,10 @@ class TestDataFrame:
 
     @pytest.mark.parametrize("func", ["_set_axis_name", "rename_axis"])
     def test_set_axis_name_mi(self, func):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.empty((3, 3)),
-            index=MultiIndex.from_tuples([("A", x) for x in list("aBc")]),
-            columns=MultiIndex.from_tuples([("C", x) for x in list("xyz")]),
+            index=pd.MultiIndex.from_tuples([("A", x) for x in list("aBc")]),
+            columns=pd.MultiIndex.from_tuples([("C", x) for x in list("xyz")]),
         )
 
         level_names = ["L1", "L2"]
@@ -47,14 +41,14 @@ class TestDataFrame:
         assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
-        df = DataFrame([[False, False]])
+        df = pd.DataFrame([[False, False]])
         msg_err = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg_err):
             bool(df)
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -67,9 +61,9 @@ class TestDataFrame:
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((1000, 2)),
-            index=date_range("20130101", periods=1000, freq="s"),
+            index=pd.date_range("20130101", periods=1000, freq="s"),
         )
         result = df.resample("1min")
         tm.assert_metadata_equivalent(df, result)
@@ -79,8 +73,8 @@ class TestDataFrame:
         # GH 6923
 
         def finalize(
-            self: DataFrame,
-            other: DataFrame,
+            self: pd.DataFrame,
+            other: pd.DataFrame,
             method: Literal["merge", "concat"] | None = None,
             **kwargs,
         ):
@@ -104,16 +98,16 @@ class TestDataFrame:
             return self
 
         with monkeypatch.context() as m:
-            m.setattr(DataFrame, "_metadata", ["filename"])
-            m.setattr(DataFrame, "__finalize__", finalize)
+            m.setattr(pd.DataFrame, "_metadata", ["filename"])
+            m.setattr(pd.DataFrame, "__finalize__", finalize)
 
-            df1 = DataFrame(
+            df1 = pd.DataFrame(
                 np.random.default_rng(2).integers(0, 4, (3, 2)), columns=["a", "b"]
             )
-            df2 = DataFrame(
+            df2 = pd.DataFrame(
                 np.random.default_rng(2).integers(0, 4, (3, 2)), columns=["c", "d"]
             )
-            DataFrame._metadata = ["filename"]
+            pd.DataFrame._metadata = ["filename"]
             df1.filename = "fname1.csv"
             df2.filename = "fname2.csv"
 
@@ -122,7 +116,7 @@ class TestDataFrame:
 
             # concat
             # GH#6927
-            df1 = DataFrame(
+            df1 = pd.DataFrame(
                 np.random.default_rng(2).integers(0, 4, (3, 2)), columns=list("ab")
             )
             df1.filename = "foo"
@@ -133,19 +127,19 @@ class TestDataFrame:
     def test_set_attribute(self):
         # Test for consistent setattr behavior when an attribute and a column
         # have the same name (Issue #8994)
-        df = DataFrame({"x": [1, 2, 3]})
+        df = pd.DataFrame({"x": [1, 2, 3]})
 
         df.y = 2
         df["y"] = [2, 4, 6]
         df.y = 5
 
         assert df.y == 5
-        tm.assert_series_equal(df["y"], Series([2, 4, 6], name="y"))
+        tm.assert_series_equal(df["y"], pd.Series([2, 4, 6], name="y"))
 
     def test_deepcopy_empty(self):
         # This test covers empty frame copying with non-empty column sets
         # as reported in issue GH15370
-        empty_frame = DataFrame(data=[], index=[], columns=["A"])
+        empty_frame = pd.DataFrame(data=[], index=[], columns=["A"])
         empty_frame_copy = deepcopy(empty_frame)
 
         tm.assert_frame_equal(empty_frame_copy, empty_frame)
@@ -156,7 +150,7 @@ class TestDataFrame2:
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
@@ -182,7 +176,7 @@ class TestDataFrame2:
 
     def test_unexpected_keyword(self):
         # GH8597
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=["jim", "joe"]
         )
         ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
