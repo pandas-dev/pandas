@@ -2115,7 +2115,7 @@ class TestDataFrameReductions:
     def test_reduce_axis1_fused_matches_fallback(
         self, monkeypatch, method, dtype, skipna
     ):
-        nrows = 4096
+        nrows = 4096 if method == "sum" else 32_768
         df = pd.DataFrame(index=range(nrows))
         dtype_obj = np.dtype(dtype)
         for i in range(4):
@@ -2165,7 +2165,7 @@ class TestDataFrameReductions:
     def test_reduce_axis1_fused_promotion_matches_fallback(
         self, monkeypatch, method, dtypes, skipna
     ):
-        nrows = 4096
+        nrows = 4096 if method == "sum" else 32_768
         df = pd.DataFrame(index=range(nrows))
         for i, dtype in enumerate(dtypes):
             values = ((np.arange(nrows) + i) % 3).astype(dtype)
@@ -2188,11 +2188,12 @@ class TestDataFrameReductions:
         "method,nrows,uses_fused_path",
         [
             ("sum", 1, True),
-            ("prod", 1, True),
-            ("min", 4095, False),
-            ("max", 4095, False),
-            ("min", 4096, True),
-            ("max", 4096, True),
+            ("prod", 32_767, False),
+            ("min", 32_767, False),
+            ("max", 32_767, False),
+            ("prod", 32_768, True),
+            ("min", 32_768, True),
+            ("max", 32_768, True),
         ],
     )
     def test_reduce_axis1_fused_routing(

@@ -57,7 +57,7 @@ class FrameMixedDtypesOps:
 class FrameAxis1BlockFusion:
     params = [
         ["sum", "prod", "min", "max"],
-        [2048, 4096, 100_000],
+        [2048, 32_768, 100_000],
         [2, 8],
         ["float64", "mixed_float", "int64"],
     ]

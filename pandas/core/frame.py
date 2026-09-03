@@ -267,12 +267,12 @@ if TYPE_CHECKING:
     from pandas.io.formats.style import Styler
 
 
-# Rows-per-block threshold below which the fused min/max path in
+# Rows-per-block threshold below which the fused prod/min/max path in
 # DataFrame._reduce_axis1 is skipped: for short blocks the eligibility
-# checks cost more than the temporaries and passes they avoid.  sum/prod
-# additionally skip per-block nanops overhead and win at any block
-# length, so they are not gated.
-_AXIS1_FUSE_MINMAX_MIN_ROWS = 4096
+# checks cost more than the temporaries and passes they avoid.  sum also
+# skips per-block nanops overhead and wins at any block length, so it is
+# not gated.
+_AXIS1_FUSE_MIN_ROWS = 32_768
 
 _AXIS1_FUSE_DTYPES = ("int64", "uint64", "float32", "float64")
 
@@ -17016,10 +17016,10 @@ class DataFrame(NDFrame, OpsMixin):
         scratch = None
         for block in self._mgr.blocks:
             vals = block.values
-            if name in ("sum", "prod") or (
-                name in ("min", "max")
+            if name == "sum" or (
+                name in ("prod", "min", "max")
                 and vals.ndim == 2
-                and vals.shape[1] >= _AXIS1_FUSE_MINMAX_MIN_ROWS
+                and vals.shape[1] >= _AXIS1_FUSE_MIN_ROWS
             ):
                 # For eligible numpy blocks, accumulate rows into the
                 # running result in place.  This avoids the per-block
