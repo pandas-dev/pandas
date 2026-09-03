@@ -48,53 +48,100 @@ pandas has gained the ability to hold integer dtypes with missing values. This l
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
 marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`, :issue:`21789`, :issue:`22346`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([1, 2, pd.NA], dtype='Int64')
-   s
+   >>> s = pd.Series([1, 2, np.nan], dtype='Int64')
+   >>> s
+   0      1
+   1      2
+   2    NaN
+   dtype: Int64
 
 
 Operations on these dtypes will propagate ``NaN`` as other pandas operations.
 
-.. ipython:: python
+.. code-block:: pycon
 
    # arithmetic
-   s + 1
+   >>> s + 1
+   0      2
+   1      3
+   2    NaN
+   dtype: Int64
 
    # comparison
-   s == 1
+   >>> s == 1
+   0     True
+   1    False
+   2    False
+   dtype: bool
 
    # indexing
-   s.iloc[1:3]
+   >>> s.iloc[1:3]
+   1      2
+   2    NaN
+   dtype: Int64
 
    # operate with other dtypes
-   s + s.iloc[1:3].astype('Int8')
+   >>> s + s.iloc[1:3].astype('Int8')
+   0    NaN
+   1      4
+   2    NaN
+   dtype: Int64
 
    # coerce when needed
-   s + 0.01
+   >>> s + 0.01
+   0    1.01
+   1    2.01
+   2     NaN
+   dtype: float64
 
 These dtypes can operate as part of a ``DataFrame``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
-   df
-   df.dtypes
+   >>> df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
+   >>> df
+        A  B  C
+   0    1  1  a
+   1    2  1  a
+   2  NaN  3  b
+   >>> df.dtypes
+   A     Int64
+   B     int64
+   C    object
+   dtype: object
 
 
 These dtypes can be merged, reshaped, and casted.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
-   df['A'].astype(float)
+   >>> pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
+   A     Int64
+   B     int64
+   C    object
+   dtype: object
+   >>> df['A'].astype(float)
+   0    1.0
+   1    2.0
+   2    NaN
+   Name: A, dtype: float64
 
 Reduction and groupby operations such as ``sum`` work.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.sum()
-   df.groupby('B').A.sum()
+   >>> df.sum()
+   A      3
+   B      5
+   C    aab
+   dtype: object
+   >>> df.groupby('B').A.sum()
+   B
+   1    3
+   3    0
+   Name: A, dtype: Int64
 
 .. warning::
 
@@ -111,11 +158,17 @@ Accessing the values in a Series or Index
 :attr:`Series.array` and :attr:`Index.array` have been added for extracting the array backing a
 ``Series`` or ``Index``. (:issue:`19954`, :issue:`23623`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx = pd.period_range('2000', periods=4)
-   idx.array
-   pd.Series(idx).array
+   >>> idx = pd.period_range('2000', periods=4)
+   >>> idx.array
+   <PeriodArray>
+   ['2000-01-01', '2000-01-02', '2000-01-03', '2000-01-04']
+   Length: 4, dtype: period[D]
+   >>> pd.Series(idx).array
+   <PeriodArray>
+   ['2000-01-01', '2000-01-02', '2000-01-03', '2000-01-04']
+   Length: 4, dtype: period[D]
 
 Historically, this would have been done with ``series.values``, but with
 ``.values`` it was unclear whether the returned value would be the actual array,
@@ -123,8 +176,7 @@ some transformation of it, or one of pandas custom arrays (like
 ``Categorical``). For example, with :class:`PeriodIndex`, ``.values`` generates
 a new ndarray of period objects each time.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
    idx.values
    id(idx.values)
@@ -132,10 +184,14 @@ a new ndarray of period objects each time.
 
 If you need an actual NumPy array, use :meth:`Series.to_numpy` or :meth:`Index.to_numpy`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx.to_numpy()
-   pd.Series(idx).to_numpy()
+   >>> idx.to_numpy()
+   array([Period('2000-01-01', 'D'), Period('2000-01-02', 'D'),
+          Period('2000-01-03', 'D'), Period('2000-01-04', 'D')], dtype=object)
+   >>> pd.Series(idx).to_numpy()
+   array([Period('2000-01-01', 'D'), Period('2000-01-02', 'D'),
+          Period('2000-01-03', 'D'), Period('2000-01-04', 'D')], dtype=object)
 
 For Series and Indexes backed by normal NumPy arrays, :attr:`Series.array` will return a
 new :class:`arrays.PandasArray`, which is a thin (no-copy) wrapper around a
@@ -143,11 +199,15 @@ new :class:`arrays.PandasArray`, which is a thin (no-copy) wrapper around a
 but it does provide the same interface as any extension array defined in pandas or by
 a third-party library.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series([1, 2, 3])
-   ser.array
-   ser.to_numpy()
+   >>> ser = pd.Series([1, 2, 3])
+   >>> ser.array
+   <PandasArray>
+   [1, 2, 3]
+   Length: 3, dtype: int64
+   >>> ser.to_numpy()
+   array([1, 2, 3])
 
 We haven't removed or deprecated :attr:`Series.values` or :attr:`DataFrame.values`, but we
 highly recommend and using ``.array`` or ``.to_numpy()`` instead.
@@ -165,18 +225,26 @@ This can be used to create any :ref:`extension array <extending.extension-types>
 extension arrays registered by `3rd party libraries <https://pandas.pydata.org/community/ecosystem.html>`_.
 See the :ref:`dtypes docs <basics.dtypes>` for more on extension arrays.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.array([1, 2, pd.NA], dtype='Int64')
-   pd.array(['a', 'b', 'c'], dtype='category')
+   >>> pd.array([1, 2, np.nan], dtype='Int64')
+   <IntegerArray>
+   [1, 2, NaN]
+   Length: 3, dtype: Int64
+   >>> pd.array(['a', 'b', 'c'], dtype='category')
+   [a, b, c]
+   Categories (3, object): [a, b, c]
 
 Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
 will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
 wrapper around a :class:`numpy.ndarray` that satisfies the pandas extension array interface.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.array([1, 2, 3])
+   >>> pd.array([1, 2, 3])
+   <PandasArray>
+   [1, 2, 3]
+   Length: 3, dtype: int64
 
 On their own, a :class:`~arrays.PandasArray` isn't a very useful object.
 But if you need write low-level code that works generically for any
@@ -188,9 +256,12 @@ array is inferred from the data. In particular, note that the first example of
 ``[1, 2, np.nan]`` would have returned a floating-point array, since ``NaN``
 is a float.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.array([1, 2, np.nan])
+   >>> pd.array([1, 2, np.nan])
+   <PandasArray>
+   [1.0, 2.0, nan]
+   Length: 3, dtype: float64
 
 
 .. _whatsnew_0240.enhancements.interval:
@@ -201,19 +272,33 @@ Storing Interval and Period data in Series and DataFrame
 :class:`Interval` and :class:`Period` data may now be stored in a :class:`Series` or :class:`DataFrame`, in addition to an
 :class:`IntervalIndex` and :class:`PeriodIndex` like previously (:issue:`19453`, :issue:`22862`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series(pd.interval_range(0, 5))
-   ser
-   ser.dtype
+   >>> ser = pd.Series(pd.interval_range(0, 5))
+   >>> ser
+   0    (0, 1]
+   1    (1, 2]
+   2    (2, 3]
+   3    (3, 4]
+   4    (4, 5]
+   dtype: interval
+   >>> ser.dtype
+   interval[int64]
 
 For periods:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pser = pd.Series(pd.period_range("2000", freq="D", periods=5))
-   pser
-   pser.dtype
+   >>> pser = pd.Series(pd.period_range("2000", freq="D", periods=5))
+   >>> pser
+   0    2000-01-01
+   1    2000-01-02
+   2    2000-01-03
+   3    2000-01-04
+   4    2000-01-05
+   dtype: period[D]
+   >>> pser.dtype
+   period[D]
 
 Previously, these would be cast to a NumPy array with object dtype. In general,
 this should result in better performance when storing an array of intervals or periods
@@ -222,10 +307,16 @@ in a :class:`Series` or column of a :class:`DataFrame`.
 Use :attr:`Series.array` to extract the underlying array of intervals or periods
 from the ``Series``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser.array
-   pser.array
+   >>> ser.array
+   IntervalArray([(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]],
+                 closed='right',
+                 dtype='interval[int64]')
+   >>> pser.array
+   <PeriodArray>
+   ['2000-01-01', '2000-01-02', '2000-01-03', '2000-01-04', '2000-01-05']
+   Length: 5, dtype: period[D]
 
 These return an instance of :class:`arrays.IntervalArray` or :class:`arrays.PeriodArray`,
 the new extension arrays that back interval and period data.
@@ -251,30 +342,40 @@ Joining with two multi-indexes
 See the :ref:`Merge, join, and concatenate
 <merging.Join_with_two_multi_indexes>` documentation section.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
-                                          ('K1', 'X2')],
-                                          names=['key', 'X'])
+   >>> index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
+   ...                                        ('K1', 'X2')],
+   ...                                        names=['key', 'X'])
 
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']}, index=index_left)
+   >>> left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
+   ...                      'B': ['B0', 'B1', 'B2']}, index=index_left)
 
-   index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
-                                           ('K2', 'Y2'), ('K2', 'Y3')],
-                                           names=['key', 'Y'])
+   >>> index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
+   ...                                         ('K2', 'Y2'), ('K2', 'Y3')],
+   ...                                         names=['key', 'Y'])
 
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
+   >>> right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+   ...                       'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
 
-   left.join(right)
+   >>> left.join(right)
+               A   B   C   D
+   key X  Y
+   K0  X0 Y0  A0  B0  C0  D0
+       X1 Y0  A1  B1  C0  D0
+   K1  X2 Y1  A2  B2  C1  D1
 
 For earlier versions this can be done using the following.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.merge(left.reset_index(), right.reset_index(),
-            on=['key'], how='inner').set_index(['key', 'X', 'Y'])
+   >>> pd.merge(left.reset_index(), right.reset_index(),
+   ...          on=['key'], how='inner').set_index(['key', 'X', 'Y'])
+               A   B   C   D
+   key X  Y
+   K0  X0 Y0  A0  B0  C0  D0
+       X1 Y0  A1  B1  C0  D0
+   K1  X2 Y1  A2  B2  C1  D1
 
 .. _whatsnew_0240.enhancements.read_html:
 
@@ -285,22 +386,21 @@ Function ``read_html`` enhancements
 Now it understands them, treating them as sequences of cells with the same
 value. (:issue:`17054`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    from io import StringIO
-    result = pd.read_html(StringIO("""
-      <table>
-        <thead>
-          <tr>
-            <th>A</th><th>B</th><th>C</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="2">1</td><td>2</td>
-          </tr>
-        </tbody>
-      </table>"""))
+   >>> result = pd.read_html("""
+   ...   <table>
+   ...     <thead>
+   ...       <tr>
+   ...         <th>A</th><th>B</th><th>C</th>
+   ...       </tr>
+   ...     </thead>
+   ...     <tbody>
+   ...       <tr>
+   ...         <td colspan="2">1</td><td>2</td>
+   ...       </tr>
+   ...     </tbody>
+   ...   </table>""")
 
 *Previous behavior*:
 
@@ -313,9 +413,11 @@ value. (:issue:`17054`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    result
+   >>> result
+   [   A  B  C
+   0  1  1  2]
 
 
 New ``Styler.pipe()`` method
@@ -325,15 +427,15 @@ The :class:`~pandas.io.formats.style.Styler` class has gained a
 convenient way to apply users' predefined styling functions, and can help reduce
 "boilerplate" when using DataFrame styling functionality repeatedly within a notebook. (:issue:`23229`)
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+   df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
 
-    def format_and_align(styler):
-        return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
-                      .set_properties(**{'text-align': 'right'}))
+   def format_and_align(styler):
+       return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
+                     .set_properties(**{'text-align': 'right'}))
 
-    df.style.pipe(format_and_align).set_caption('Summary of results.')
+   df.style.pipe(format_and_align).set_caption('Summary of results.')
 
 Similar methods already exist for other classes in pandas, including :meth:`DataFrame.pipe`,
 :meth:`GroupBy.pipe() <.GroupBy.pipe>`, and :meth:`Resampler.pipe() <.Resampler.pipe>`.
@@ -351,13 +453,33 @@ of a ``MultiIndex`` can be changed.
 
 Example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
-                                    names=['AB', 'CD', 'EF'])
-    df = pd.DataFrame(list(range(len(mi))), index=mi, columns=['N'])
-    df
-    df.rename_axis(index={'CD': 'New'})
+   >>> mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
+   ...                                 names=['AB', 'CD', 'EF'])
+   >>> df = pd.DataFrame([i for i in range(len(mi))], index=mi, columns=['N'])
+   >>> df
+             N
+   AB CD EF
+   A  C  E   0
+         F   1
+      D  E   2
+         F   3
+   B  C  E   4
+         F   5
+      D  E   6
+         F   7
+   >>> df.rename_axis(index={'CD': 'New'})
+              N
+   AB New EF
+   A  C   E   0
+          F   1
+      D   E   2
+          F   3
+   B  C   E   4
+          F   5
+      D   E   6
+          F   7
 
 See the :ref:`Advanced documentation on renaming<advanced.index_names>` for more details.
 
@@ -566,11 +688,6 @@ engine, where missing values turned to ``'nan'`` with ``dtype=str`` and
 ``na_filter=True``. Now, these missing values are converted to the string
 missing indicator, ``np.nan``. (:issue:`20377`)
 
-.. ipython:: python
-   :suppress:
-
-   from io import StringIO
-
 *Previous behavior*:
 
 .. code-block:: ipython
@@ -583,11 +700,12 @@ missing indicator, ``np.nan``. (:issue:`20377`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   data = 'a,b,c\n1,,3\n4,5,6'
-   df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
-   df.loc[0, 'b']
+   >>> data = 'a,b,c\n1,,3\n4,5,6'
+   >>> df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
+   >>> df.loc[0, 'b']
+   nan
 
 Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
 
@@ -620,16 +738,19 @@ UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.to_datetime("2015-11-18 15:30:00+05:30")
-    pd.Timestamp("2015-11-18 15:30:00+05:30")
+   >>> pd.to_datetime("2015-11-18 15:30:00+05:30")
+   Timestamp('2015-11-18 15:30:00+0530', tz='pytz.FixedOffset(330)')
+   >>> pd.Timestamp("2015-11-18 15:30:00+05:30")
+   Timestamp('2015-11-18 15:30:00+0530', tz='pytz.FixedOffset(330)')
 
 Parsing datetime strings with the same UTC offset will preserve the UTC offset in the ``tz``
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30"] * 2)
+   >>> pd.to_datetime(["2015-11-18 15:30:00+05:30"] * 2)
+   DatetimeIndex(['2015-11-18 15:30:00+05:30', '2015-11-18 15:30:00+05:30'], dtype='datetime64[ns, pytz.FixedOffset(330)]', freq=None)
 
 Parsing datetime strings with different UTC offsets will now create an Index of
 ``datetime.datetime`` objects with different UTC offsets
@@ -651,10 +772,11 @@ Parsing datetime strings with different UTC offsets will now create an Index of
 Passing ``utc=True`` will mimic the previous behavior but will correctly indicate
 that the dates have been converted to UTC
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                    "2015-11-18 16:30:00+06:30"], utc=True)
+   >>> pd.to_datetime(["2015-11-18 15:30:00+05:30",
+   ...                 "2015-11-18 16:30:00+06:30"], utc=True)
+   DatetimeIndex(['2015-11-18 10:00:00+00:00', '2015-11-18 10:00:00+00:00'], dtype='datetime64[ns, UTC]', freq=None)
 
 
 .. _whatsnew_0240.api_breaking.read_csv_mixed_tz:
@@ -745,14 +867,16 @@ or :func:`PeriodIndex.to_timestamp` with ``how='end'`` (:issue:`17157`)
 Calling :attr:`Series.dt.end_time` will now result in a time of '23:59:59.999999999' as
 is the case with :attr:`Period.end_time`, for example
 
-.. ipython:: python
+.. code-block:: pycon
 
-   p = pd.Period('2017-01-01', 'D')
-   pi = pd.PeriodIndex([p])
+   >>> p = pd.Period('2017-01-01', 'D')
+   >>> pi = pd.PeriodIndex([p])
 
-   pd.Series(pi).dt.end_time[0]
+   >>> pd.Series(pi).dt.end_time[0]
+   Timestamp('2017-01-01 23:59:59.999999999')
 
-   p.end_time
+   >>> p.end_time
+   Timestamp('2017-01-01 23:59:59.999999999')
 
 .. _whatsnew_0240.api_breaking.datetime_unique:
 
@@ -762,10 +886,10 @@ Series.unique for timezone-aware data
 The return type of :meth:`Series.unique` for datetime with timezone values has changed
 from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays.DatetimeArray` (:issue:`24024`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
-                    pd.Timestamp('2000', tz='UTC')])
+   >>> ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
+   ...                  pd.Timestamp('2000', tz='UTC')])
 
 *Previous behavior*:
 
@@ -777,9 +901,12 @@ from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser.unique()
+   >>> ser.unique()
+   <DatetimeArray>
+   ['2000-01-01 00:00:00+00:00']
+   Length: 1, dtype: datetime64[ns, UTC]
 
 
 .. _whatsnew_0240.api_breaking.sparse_values:
@@ -816,10 +943,11 @@ In addition to these API breaking changes, many :ref:`Performance Improvements a
 
 Finally, a ``Series.sparse`` accessor was added to provide sparse-specific methods like :meth:`Series.sparse.from_coo`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
-   s.sparse.density
+   >>> s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
+   >>> s.sparse.density
+   0.6
 
 .. _whatsnew_0240.api_breaking.get_dummies:
 
@@ -846,19 +974,16 @@ then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was retur
    In [4]: type(pd.get_dummies(df[['B', 'C']], sparse=True))
    Out[4]: pandas.core.sparse.frame.SparseDataFrame
 
-.. ipython:: python
-   :suppress:
-
-   df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
-
 *New behavior*
 
 Now, the return type is consistently a :class:`DataFrame`.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   type(pd.get_dummies(df, sparse=True))
-   type(pd.get_dummies(df[['B', 'C']], sparse=True))
+   >>> type(pd.get_dummies(df, sparse=True))
+   <class 'pandas.core.frame.DataFrame'>
+   >>> type(pd.get_dummies(df[['B', 'C']], sparse=True))
+   <class 'pandas.core.sparse.frame.SparseDataFrame'>
 
 .. note::
 
@@ -874,13 +999,18 @@ Raise ValueError in ``DataFrame.to_dict(orient='index')``
 Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 ``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
 
-.. ipython:: python
-    :okexcept:
+.. code-block:: pycon
 
-    df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
-    df
+   >>> df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+   >>> df
+      a     b
+   A  1  0.50
+   A  2  0.75
 
-    df.to_dict(orient='index')
+   >>> df.to_dict(orient='index')
+   Traceback (most recent call last):
+       ...
+   ValueError: DataFrame index must be unique for orient='index'.
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -916,11 +1046,12 @@ where addition could fail to be monotone or associative.  (:issue:`21427`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ts = pd.Timestamp('2018-06-11 18:01:14')
-    tic = pd.offsets.Hour(n=2)
-    ts + tic + tic + tic == ts + (tic + tic + tic)
+   >>> ts = pd.Timestamp('2018-06-11 18:01:14')
+   >>> tic = pd.offsets.Hour(n=2)
+   >>> ts + tic + tic + tic == ts + (tic + tic + tic)
+   True
 
 
 .. _whatsnew_0240.api.datetimelike:
@@ -947,11 +1078,12 @@ instead of an integer (:issue:`21314`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    june = pd.Period('June 2018')
-    april = pd.Period('April 2018')
-    june - april
+   >>> june = pd.Period('June 2018')
+   >>> april = pd.Period('April 2018')
+   >>> june - april
+   <2 * MonthEnds>
 
 Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
 an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
@@ -967,10 +1099,11 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pi = pd.period_range('June 2018', freq='M', periods=3)
-    pi - pi[0]
+   >>> pi = pd.period_range('June 2018', freq='M', periods=3)
+   >>> pi - pi[0]
+   Index([<0 * MonthEnds>, <MonthEnd>, <2 * MonthEnds>], dtype='object')
 
 
 .. _whatsnew_0240.api.timedelta64_subtract_nan:
@@ -983,10 +1116,12 @@ Adding or subtracting ``NaN`` from a :class:`DataFrame` column with
 all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 ``Series`` behavior (:issue:`22163`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame([pd.Timedelta(days=1)])
-   df
+   >>> df = pd.DataFrame([pd.Timedelta(days=1)])
+   >>> df
+          0
+   0 1 days
 
 *Previous behavior*:
 
@@ -1023,11 +1158,15 @@ The affected cases are:
 - a list or tuple with length matching the number of rows in the :class:`DataFrame` will now raise ``ValueError`` instead of operating column-by-column (:issue:`22880`).
 - a list or tuple with length matching the number of columns in the :class:`DataFrame` will now operate row-by-row instead of raising ``ValueError`` (:issue:`22880`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   arr = np.arange(6).reshape(3, 2)
-   df = pd.DataFrame(arr)
-   df
+   >>> arr = np.arange(6).reshape(3, 2)
+   >>> df = pd.DataFrame(arr)
+   >>> df
+      0  1
+   0  0  1
+   1  2  3
+   2  4  5
 
 *Previous behavior*:
 
@@ -1070,18 +1209,33 @@ The affected cases are:
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
    # Comparison operations and arithmetic operations both broadcast.
-   df == arr[[0], :]
-   df + arr[[0], :]
+   >>> df == arr[[0], :]
+          0      1
+   0   True   True
+   1  False  False
+   2  False  False
+   >>> df + arr[[0], :]
+      0  1
+   0  0  2
+   1  2  4
+   2  4  6
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
    # Comparison operations and arithmetic operations both broadcast.
-   df == (1, 2)
-   df + (1, 2)
+   >>> df == (1, 2)
+          0      1
+   0  False  False
+   1  False  False
+   2  False  False
+   >>> df + (1, 2)
+      0  1
+   0  1  3
+   1  3  5
+   2  5  7
 
 .. code-block:: ipython
 
@@ -1103,11 +1257,15 @@ DataFrame arithmetic operations broadcasting changes
 ``np.ndarray`` objects now broadcast in the same way as ``np.ndarray``
 broadcast.  (:issue:`23000`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   arr = np.arange(6).reshape(3, 2)
-   df = pd.DataFrame(arr)
-   df
+   >>> arr = np.arange(6).reshape(3, 2)
+   >>> df = pd.DataFrame(arr)
+   >>> df
+      0  1
+   0  0  1
+   1  2  3
+   2  4  5
 
 *Previous behavior*:
 
@@ -1122,10 +1280,18 @@ broadcast.  (:issue:`23000`)
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df + arr[[0], :]   # 1 row, 2 columns
-   df + arr[:, [1]]   # 1 column, 3 rows
+   >>> df + arr[[0], :]   # 1 row, 2 columns
+      0  1
+   0  0  2
+   1  2  4
+   2  4  6
+   >>> df + arr[:, [1]]   # 1 column, 3 rows
+      0   1
+   0  1   2
+   1  5   6
+   2  9  10
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -1162,10 +1328,10 @@ Calling :func:`pandas.concat` on a ``Categorical`` of ints with NA values now
 causes them to be processed as objects when concatenating with anything
 other than another ``Categorical`` of ints (:issue:`19214`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    s = pd.Series([0, 1, np.nan])
-    c = pd.Series([0, 1, np.nan], dtype="category")
+   >>> s = pd.Series([0, 1, np.nan])
+   >>> c = pd.Series([0, 1, np.nan], dtype="category")
 
 *Previous behavior*
 
@@ -1183,9 +1349,16 @@ other than another ``Categorical`` of ints (:issue:`19214`)
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.concat([s, c])
+   >>> pd.concat([s, c])
+   0      0
+   1      1
+   2    NaN
+   0      0
+   1      1
+   2    NaN
+   dtype: object
 
 Datetimelike API changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1434,15 +1607,17 @@ The default behavior remains the same, but issues a warning:
 As the warning message explains, opt in to the future behavior by specifying that
 the integer values are UTC, and then converting to the final timezone:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime([946684800000000000], utc=True).tz_convert('US/Central')
+   >>> pd.to_datetime([946684800000000000], utc=True).tz_convert('US/Central')
+   DatetimeIndex(['1999-12-31 18:00:00-06:00'], dtype='datetime64[ns, US/Central]', freq=None)
 
 The old behavior can be retained with by localizing directly to the final timezone:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime([946684800000000000]).tz_localize('US/Central')
+   >>> pd.to_datetime([946684800000000000]).tz_localize('US/Central')
+   DatetimeIndex(['2000-01-01 00:00:00-06:00'], dtype='datetime64[ns, US/Central]', freq=None)
 
 .. _whatsnew_0240.deprecations.tz_aware_array:
 
@@ -1464,10 +1639,13 @@ Future versions of pandas will preserve the timezone information by returning an
 object-dtype NumPy array where each value is a :class:`Timestamp` with the correct
 timezone attached
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
-   ser
+   >>> ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   >>> ser
+   0   2000-01-01 00:00:00+01:00
+   1   2000-01-02 00:00:00+01:00
+   dtype: datetime64[ns, CET]
 
 The default behavior remains the same, but issues a warning
 
@@ -1490,24 +1668,34 @@ the ``dtype``
 
 *Previous behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.asarray(ser, dtype='datetime64[ns]')
+   >>> np.asarray(ser, dtype='datetime64[ns]')
+   array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00.000000000'],
+         dtype='datetime64[ns]')
 
 *Future behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
    # New behavior
-   np.asarray(ser, dtype=object)
+   >>> np.asarray(ser, dtype=object)
+   array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
+          Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+         dtype=object)
 
 
 Or by using :meth:`Series.to_numpy`
 
-.. ipython:: python
+.. code-block:: pycon
 
-   ser.to_numpy()
-   ser.to_numpy(dtype="datetime64[ns]")
+   >>> ser.to_numpy()
+   array([Timestamp('2000-01-01 00:00:00+0100', tz='CET', freq='D'),
+          Timestamp('2000-01-02 00:00:00+0100', tz='CET', freq='D')],
+         dtype=object)
+   >>> ser.to_numpy(dtype="datetime64[ns]")
+   array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00.000000000'],
+         dtype='datetime64[ns]')
 
 All the above applies to a :class:`DatetimeIndex` with tz-aware values as well.
 
