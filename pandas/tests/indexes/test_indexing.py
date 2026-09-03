@@ -274,6 +274,57 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
 
+class TestPairwiseIndexer:
+    def test_pairwise_indexer(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        idx = pd.Index(["a", "a", "b"])
+        target = pd.Index(["a", "a", "b", "c"])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, 1, 2, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_unsorted(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        idx = pd.Index(["b", "a", "a"])
+        target = pd.Index(["a", "a", "b"])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([1, 2, 0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_more_occurrences_in_target(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        idx = pd.Index(["a", "b"])
+        target = pd.Index(["a", "a", "b", "b"])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, -1, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_unique_matches_get_indexer(self, index):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        if not index._index_as_unique or isinstance(index, pd.MultiIndex):
+            pytest.skip("covered by duplicate-specific tests")
+        result = index._pairwise_indexer(index)
+        expected = index.get_indexer(index)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_overlapping_intervals(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        # get_indexer raises for overlapping intervals; exact matching is used
+        idx = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (0, 2)])
+        target = pd.IntervalIndex.from_tuples([(0, 2), (0, 2), (1, 3), (4, 5)])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, 2, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_empty(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        idx = pd.Index([], dtype=object)
+        target = pd.Index(["a", "a"], dtype=object)
+        result = idx._pairwise_indexer(target)
+        expected = np.array([-1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+
 class TestConvertSliceIndexer:
     def test_convert_almost_null_slice(self, index):
         # slice with None at both ends, but not step
