@@ -57,9 +57,9 @@ class TestOverlaps:
         # GH#26893 an empty interval contains no points, so it never overlaps,
         # whether it lies inside the other interval or on one of its endpoints
         start, shift = start_shift
-        interval = Interval(start, start + 2 * shift, other_closed)
+        interval = pd.Interval(start, start + 2 * shift, other_closed)
         point = start + offset * shift
-        empty = Interval(point, point, empty_closed)
+        empty = pd.Interval(point, point, empty_closed)
 
         assert not interval.overlaps(empty)
         assert not empty.overlaps(interval)
@@ -68,8 +68,8 @@ class TestOverlaps:
     def test_overlaps_point(self, start_shift, closed):
         # GH#26893 Interval(x, x, closed="both") is a point, not empty
         start, shift = start_shift
-        interval = Interval(start, start + 2 * shift, closed)
-        point = Interval(start + shift, start + shift, "both")
+        interval = pd.Interval(start, start + 2 * shift, closed)
+        point = pd.Interval(start + shift, start + shift, "both")
 
         assert interval.overlaps(point)
         assert point.overlaps(interval)

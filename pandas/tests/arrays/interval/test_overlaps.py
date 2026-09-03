@@ -88,14 +88,14 @@ class TestOverlaps:
         ]
         interval_container = constructor.from_tuples(tuples, closed)
 
-        empty = Interval(start + shift, start + shift, empty_closed)
+        empty = pd.Interval(start + shift, start + shift, empty_closed)
         expected = np.array([False, False, False])
         result = interval_container.overlaps(empty)
         tm.assert_numpy_array_equal(result, expected)
 
         if closed != "both":
             # the empty element of the container does not overlap either
-            interval = Interval(start, start + 3 * shift, closed)
+            interval = pd.Interval(start, start + 3 * shift, closed)
             result = interval_container.overlaps(interval)
             assert not result[1]
 
