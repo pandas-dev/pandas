@@ -2775,6 +2775,12 @@ class IndexCol:
         kwargs = {}
         kwargs["name"] = self.index_name
 
+        if val_kind == "string" and using_string_dtype():
+            # GH#9604: an all-missing string Index -- or an all-missing
+            #  slice/chunk of one -- cannot be inferred back to str, which
+            #  would make the index dtype depend on which rows were read.
+            kwargs["dtype"] = "str"
+
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
@@ -2812,11 +2818,8 @@ class IndexCol:
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
-                new_pd_index = factory(
-                    values,
-                    dtype=StringDtype(storage="python", na_value=np.nan),
-                    **kwargs,
-                )
+                kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
+                new_pd_index = factory(values, **kwargs)
             else:
                 raise
         except ValueError:
@@ -3822,6 +3825,13 @@ class GenericFixed(Fixed):
         # GH#9604: per-index string NaN sentinel (absent for old files)
         nan_rep = getattr(node._v_attrs, "nan_rep", None)
 
+        if kind == "string" and using_string_dtype():
+            # GH#9604: once the sentinel is substituted back to NaN, dtype
+            #  inference can only recover str if some non-missing string
+            #  survives, so an all-missing index would silently degrade to
+            #  object. Pin the dtype the values were written with instead.
+            kwargs["dtype"] = "str"
+
         if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
@@ -3849,6 +3859,7 @@ class GenericFixed(Fixed):
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
+                    kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
                     index = factory(
                         _unconvert_index(
                             data,
@@ -3857,7 +3868,6 @@ class GenericFixed(Fixed):
                             errors=self.errors,
                             nan_rep=nan_rep,
                         ),
-                        dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
                     )
                 else:
