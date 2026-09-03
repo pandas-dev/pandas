@@ -1,5 +1,6 @@
 from functools import partial
 from itertools import pairwise
+import re
 
 import numpy as np
 import pytest
@@ -522,3 +523,28 @@ def test_ea_dtype(dtype):
     assert result.dtype == interval_dtype
     expected = pd.IntervalIndex.from_tuples(bins, closed="left").astype(interval_dtype)
     tm.assert_index_equal(result, expected)
+
+
+def test_left_gt_right_message():
+    # GH#66807 the message points at the offending intervals, with positions
+    #  relative to the full arrays, not to the non-NA subset
+    left = [np.nan, 5, 7, 1]
+    right = [np.nan, 2, 3, 4]
+    msg = re.escape(
+        "left side of interval must be <= right side; offending intervals "
+        "(position: interval): 1: (5.0, 2.0), 2: (7.0, 3.0)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        pd.IntervalIndex.from_arrays(left, right)
+
+
+def test_left_gt_right_message_truncated():
+    # GH#66807 at most 5 offenders are shown
+    breaks = range(10, -1, -1)
+    msg = re.escape(
+        "left side of interval must be <= right side; offending intervals "
+        "(position: interval): 0: (10, 9), 1: (9, 8), 2: (8, 7), 3: (7, 6), "
+        "4: (6, 5), ... (5 more)"
+    )
+    with pytest.raises(ValueError, match=msg):
+        pd.IntervalIndex.from_breaks(breaks)
