@@ -1228,16 +1228,18 @@ class FrameApply(NDFrameApply):
         # function ourselves and letting np.array infer the result's
         # shape/dtype from *all* the results at once sidesteps both.
         elif self.axis == 0:
+            func = cast("Callable", self.func)
             # np.apply_along_axis with axis=0 stacks per-slice results
             # along axis 0 of the output; iterating self.values.T
             # naturally stacks them along axis 1 instead, so transpose
             # back to match.
             result = np.array(
-                [self.func(col, *self.args, **self.kwargs) for col in self.values.T]
+                [func(col, *self.args, **self.kwargs) for col in self.values.T]
             ).T
         else:
+            func = cast("Callable", self.func)
             result = np.array(
-                [self.func(row, *self.args, **self.kwargs) for row in self.values]
+                [func(row, *self.args, **self.kwargs) for row in self.values]
             )
 
         # TODO: mixed type case
