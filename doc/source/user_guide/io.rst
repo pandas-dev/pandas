@@ -3748,9 +3748,8 @@ pandas chooses an Excel writer via two methods:
 By default, pandas uses the `XlsxWriter`_  for ``.xlsx``, `openpyxl`_
 for ``.xlsm``. If you have multiple
 engines installed, you can set the default engine through :ref:`setting the
-config options <options>` ``io.excel.xlsx.writer`` and
-``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
-files if `Xlsxwriter`_ is not available.
+config option <options>` ``io.excel.xlsx.writer``. pandas will fall back on
+`openpyxl`_ for ``.xlsx`` files if `Xlsxwriter`_ is not available.
 
 .. _XlsxWriter: https://xlsxwriter.readthedocs.io
 .. _openpyxl: https://openpyxl.readthedocs.io/
@@ -3846,8 +3845,10 @@ for reading binary Excel files mostly match what can be done for
 
 .. note::
 
-   The ``pyxlsb`` engine is also available for reading ``.xlsb`` files but is
-   deprecated; prefer ``engine="calamine"``.
+   The ``pyxlsb`` engine is still used for ``.xlsb`` files by default whenever it
+   is installed, but it is deprecated and does not recognize datetime types in
+   files, returning the raw Excel serial numbers instead. Prefer
+   ``engine="calamine"``.
 
 .. note::
 
