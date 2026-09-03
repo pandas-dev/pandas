@@ -242,6 +242,57 @@ Build
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. _deprecation-inplace:
+
+Deprecated ``inplace`` keyword for various methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+PDEP-8: https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html
+
+The ``inplace`` keyword is deprecated (and will eventually be removed) for all
+methods that do not actually work "inplace".
+
+The ``inplace`` keyword has been used in various methods throughout pandas, but
+often, it is essentially syntactic sugar for reassigning the result to the
+calling DataFrame or Series, because it never modifies the underlying values
+directly. Additionally, with the introduction of Copy-on-Write in pandas 3.0,
+users don't need the ``inplace`` keyword to avoid a copy of the data.
+
+For those reasons, the ``inplace`` keyword is deprecated for those methods which
+do not work inplace. In practice, this are the methods :meth:`~DataFrame.drop`,
+:meth:`~DataFrame.rename`, :meth:`~DataFrame.rename_axis`,
+:meth:`~DataFrame.reset_index`, :meth:`~DataFrame.set_index`,
+:meth:`~DataFrame.dropna`, :meth:`~DataFrame.drop_duplicates`,
+:meth:`~DataFrame.sort_values`, :meth:`~DataFrame.sort_index`,
+:meth:`~DataFrame.eval`, :meth:`~DataFrame.query`.
+
+If you have code that uses a deprecated instance of ``inplace``, such as:
+
+.. code-block:: python
+
+    >>> df = pd.DataFrame({"foo": [1, 2, 3]})
+    >>> df.reset_index(inplace=True)
+
+Then you can update that call to re-assign the result:
+
+.. code-block:: python
+
+    >>> df = pd.DataFrame({"foo": [1, 2, 3]})
+    >>> df = df.reset_index()
+
+In practice, this is also what happened under the hood (i.e. it is not less efficient),
+and this is more friendly to method chaining.
+
+Other methods, such as :meth:`~DataFrame.fillna` and :meth:`~DataFrame.replace`,
+which can actually update the underlying values, keep the keyword (with a
+default of ``False``, and since pandas 3.0 those also return the updated object).
+
+For more background about the change, see the motivation section in `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__.
+
+Other deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Added ``check_freq`` keyword to :func:`testing.assert_index_equal` with a deprecated default: currently a ``freq`` mismatch on a :class:`DatetimeIndex` or :class:`TimedeltaIndex` only warns; in a future version ``check_freq=True`` will be the default and mismatches will raise. The same deprecation applies to the ``freq`` of :class:`DatetimeIndex`/:class:`TimedeltaIndex` columns in :func:`testing.assert_frame_equal`, which were previously never checked. Pass ``check_freq`` explicitly to silence the warning (:issue:`51920`)
 - Deprecated :attr:`PeriodIndex.is_full`; use ``index.empty or len(index.unique()) == len(period_range(index.min(), index.max(), freq=index.freq))`` instead. Unlike ``is_full``, this is also correct for frequencies with a multiple (e.g. ``"2D"``) and does not raise on a non-monotonic index (:issue:`64938`)
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
