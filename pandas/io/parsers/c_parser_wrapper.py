@@ -271,8 +271,13 @@ class CParserWrapper(ParserBase):
                 chunks = self._reader.read_low_memory(nrows)
                 # assert for mypy, orig_names is List or None
                 assert self.orig_names is not None
+                # The chunks are keyed by the column's position in the file.
+                # With an implicit index the leading columns hold it and have
+                # no name, so pad to keep the named ones lined up.
+                chunk_names: list[Hashable] = [None] * self._reader.leading_cols
+                chunk_names += self.orig_names
                 # destructive to chunks
-                data = _concatenate_chunks(chunks, self.orig_names)
+                data = _concatenate_chunks(chunks, chunk_names)
             else:
                 data = self._reader.read(nrows)
                 if self.wrap_deferred:
@@ -443,7 +448,8 @@ def _concatenate_chunks(
     # column is dropped from it while still present in the chunks, so the
     # warning named the wrong column. Pair the two up by sorted key order, the
     # way ``read`` renames the dict keys (GH#67375). ``strict=False`` because a
-    # caller may pass more names than the chunks hold.
+    # caller may pass more names than the chunks hold; a column with no name of
+    # its own falls back to its position.
     labels = dict(zip(sorted(names), column_names, strict=False))
     warning_columns = []
 
@@ -474,7 +480,10 @@ def _concatenate_chunks(
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(labels[name])
+                label = labels.get(name, name)
+                # ``None`` marks a column the caller has no name for, such as
+                # the leading columns of an implicit index.
+                warning_columns.append(name if label is None else label)
 
     if warning_columns and warn_mixed:
         warning_names = ", ".join(

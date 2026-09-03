@@ -1029,6 +1029,33 @@ def test_mixed_type_warning_names_column_past_index_col(c_parser_only, monkeypat
     assert result["target"].dtype == object
 
 
+def test_mixed_type_warning_names_column_with_implicit_index(
+    c_parser_only, monkeypatch
+):
+    # GH#67375: with more fields than header names the leading columns hold an
+    # implicit index; they are in the chunks but have no name, so the names had
+    # to be padded for the rest to line up
+    parser = c_parser_only
+    if not parser.low_memory:
+        pytest.skip("chunks are only combined with low_memory=True")
+
+    values = [str(i) for i in range(7)]
+    rows = [f"{i},x,{v}" for i, v in enumerate([*values, "a", "b", *values])]
+    data = "first,target\n" + "\n".join(rows)
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv_check_warnings(
+            DtypeWarning,
+            r"Columns \(0: target\) have mixed types. "
+            "Specify dtype option on import or set low_memory=False.",
+            StringIO(data),
+        )
+
+    assert result.columns.tolist() == ["first", "target"]
+    assert result["target"].dtype == object
+
+
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_mutable(kwargs):
     # GH#66619: the fast path builds its result without going through the
