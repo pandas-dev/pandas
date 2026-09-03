@@ -51,6 +51,29 @@ def test_arrow_array():
         pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
 
 
+def test_arrow_array_tz_subtype():
+    # GH#67753 an ExtensionDtype subtype such as DatetimeTZDtype used to be rejected
+    pa = pytest.importorskip("pyarrow")
+
+    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
+
+    breaks = pd.date_range("2017", periods=4, freq="D", tz="Europe/Brussels")
+    arr = IntervalArray.from_breaks(breaks)
+
+    result = pa.array(arr)
+    assert isinstance(result.type, ArrowIntervalType)
+    assert result.type.closed == arr.closed
+    assert result.type.subtype == pa.timestamp(breaks.unit, "Europe/Brussels")
+
+    # the extension type must survive a serialize/deserialize cycle, which reads the
+    # subtype back off the storage type rather than out of the metadata string
+    restored = ArrowIntervalType.__arrow_ext_deserialize__(
+        result.type.storage_type, result.type.__arrow_ext_serialize__()
+    )
+    assert restored == result.type
+    assert restored.subtype == result.type.subtype
+
+
 def test_arrow_array_missing(using_nan_is_na):
     pa = pytest.importorskip("pyarrow")
 
@@ -82,8 +105,12 @@ def test_arrow_array_missing(using_nan_is_na):
 
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
-    ids=["float", "datetime64[ns]"],
+    [
+        [0.0, 1.0, 2.0, 3.0],
+        pd.date_range("2017", periods=4, freq="D"),
+        pd.date_range("2017", periods=4, freq="D", tz="Europe/Brussels"),
+    ],
+    ids=["float", "datetime64[ns]", "datetime64[ns, tz]"],
 )
 def test_arrow_table_roundtrip(breaks):
     pa = pytest.importorskip("pyarrow")
@@ -115,8 +142,12 @@ def test_arrow_table_roundtrip(breaks):
 
 @pytest.mark.parametrize(
     "breaks",
-    [[0.0, 1.0, 2.0, 3.0], pd.date_range("2017", periods=4, freq="D")],
-    ids=["float", "datetime64[ns]"],
+    [
+        [0.0, 1.0, 2.0, 3.0],
+        pd.date_range("2017", periods=4, freq="D"),
+        pd.date_range("2017", periods=4, freq="D", tz="Europe/Brussels"),
+    ],
+    ids=["float", "datetime64[ns]", "datetime64[ns, tz]"],
 )
 def test_arrow_table_roundtrip_without_metadata(breaks):
     pa = pytest.importorskip("pyarrow")

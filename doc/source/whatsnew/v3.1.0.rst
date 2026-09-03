@@ -635,6 +635,7 @@ Interval
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors allowing unsupported ``object`` dtype on the right endpoint, causing ``dtype.subtype`` to disagree with ``right.dtype`` (:issue:`66518`)
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
+- Bug in :meth:`DataFrame.to_parquet` and conversion to pyarrow raising ``TypeError`` for :class:`IntervalDtype` with a timezone-aware subtype, and such columns not round-tripping back to the same dtype (:issue:`67753`)
 
 Indexing
 ^^^^^^^^
