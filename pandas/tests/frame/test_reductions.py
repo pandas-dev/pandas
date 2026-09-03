@@ -22,6 +22,7 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+from pandas.core.arrays import BaseMaskedArray
 from pandas.tests.extension.decimal import DecimalArray
 
 is_windows_np2_or_is32 = not IS64
@@ -3164,3 +3165,234 @@ def test_numeric_only_validates_bool():
     df_num.mean(numeric_only=False)
     df_num.sum(numeric_only=True)
     df_num.std(numeric_only=True)
+
+
+# ----------------------------------------------------------------------
+# Axis=1 sum/prod/min/max on masked / Arrow numeric and boolean
+# frames run through the groupby kernels with the frame viewed as
+# (nrows, ncols) and a single group (BaseMaskedArray._groupby_op_axis1).
+
+_AXIS1_MASKED_DTYPES = [
+    "Int8",
+    "Int16",
+    "Int32",
+    "Int64",
+    "UInt8",
+    "UInt16",
+    "UInt32",
+    "UInt64",
+    "Float32",
+    "Float64",
+    "boolean",
+]
+_AXIS1_ARROW_DTYPES = [
+    pytest.param(f"{t}[pyarrow]", marks=td.skip_if_no("pyarrow"))
+    for t in [
+        "int8",
+        "int16",
+        "int32",
+        "int64",
+        "uint8",
+        "uint16",
+        "uint32",
+        "uint64",
+        "float",
+        "double",
+        "bool",
+    ]
+]
+
+# rows: no NA / NA in first col / NA in last col / all NA / one value / repeated
+_AXIS1_DATA = [
+    [1, 0, 3],
+    [None, 2, 3],
+    [1, 2, None],
+    [None, None, None],
+    [None, 5, None],
+    [4, 4, 4],
+]
+
+
+def _axis1_frame(dtype):
+    if dtype in ("boolean", "bool[pyarrow]"):
+        data = [[None if v is None else bool(v) for v in row] for row in _AXIS1_DATA]
+    else:
+        data = _AXIS1_DATA
+    return pd.DataFrame(data, dtype=dtype, columns=list("abc"))
+
+
+def _axis1_expected(df, how, skipna, min_count=0):
+    # computed independently with numpy on a float64/NaN copy
+    values = df.astype(object).to_numpy()
+    nrows, ncols = values.shape
+    out = []
+    for row in values:
+        vals = [float(v) for v in row if v is not None and v is not pd.NA]
+        count = len(vals)
+        if (not skipna and count < ncols) or count < max(
+            min_count, 0 if how in ("sum", "prod") else 1
+        ):
+            out.append(pd.NA)
+        elif how == "sum":
+            out.append(sum(vals))
+        elif how == "prod":
+            out.append(np.prod(vals))
+        elif how == "min":
+            out.append(min(vals))
+        else:
+            out.append(max(vals))
+
+    dtype = df.dtypes.iloc[0]
+    if how in ("sum", "prod") and str(dtype) in ("boolean", "bool[pyarrow]"):
+        dtype = "int64[pyarrow]" if "pyarrow" in str(dtype) else "Int64"
+    if str(dtype) in ("boolean", "bool[pyarrow]"):
+        out = [v if v is pd.NA else bool(v) for v in out]
+    else:
+        out = [v if v is pd.NA else int(v) if float(v).is_integer() else v for v in out]
+    return pd.Series(pd.array(out, dtype=dtype), index=df.index)
+
+
+@pytest.mark.parametrize("dtype", _AXIS1_MASKED_DTYPES + _AXIS1_ARROW_DTYPES)
+@pytest.mark.parametrize("how", ["sum", "prod", "min", "max"])
+def test_reduce_axis1_ea_kernel_fastpath(dtype, how, skipna):
+    df = _axis1_frame(dtype)
+    result = getattr(df, how)(axis=1, skipna=skipna)
+    expected = _axis1_expected(df, how, skipna)
+    tm.assert_series_equal(result, expected)
+
+    # the frame path must agree with reducing the transposed frame
+    transposed = getattr(df.T, how)(axis=0, skipna=skipna)
+    tm.assert_series_equal(
+        result.astype("Float64"), transposed.astype("Float64"), check_names=False
+    )
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "Float64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("how", ["sum", "prod"])
+@pytest.mark.parametrize("min_count", [0, 1, 2, 3, 4])
+def test_reduce_axis1_ea_kernel_fastpath_min_count(dtype, how, skipna, min_count):
+    df = _axis1_frame(dtype)
+    result = getattr(df, how)(axis=1, skipna=skipna, min_count=min_count)
+    expected = _axis1_expected(df, how, skipna, min_count=min_count)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "Float32",
+        "boolean",
+        pytest.param("int8[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("double[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("shape", [(1, 1), (1, 4), (4, 1), (2, 2)])
+@pytest.mark.parametrize("how", ["sum", "prod", "min", "max"])
+def test_reduce_axis1_ea_kernel_fastpath_shapes(dtype, shape, how, skipna):
+    # Degenerate shapes must reshape/transposed correctly.
+    nrows, ncols = shape
+    values = [
+        [(r + c) % 3 if (r + c) % 4 else None for c in range(ncols)]
+        for r in range(nrows)
+    ]
+    if dtype in ("boolean", "bool[pyarrow]"):
+        values = [[None if v is None else bool(v) for v in row] for row in values]
+    df = pd.DataFrame(values, dtype=dtype)
+    result = getattr(df, how)(axis=1, skipna=skipna)
+    expected = _axis1_expected(df, how, skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["Float64", pytest.param("double[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+def test_reduce_axis1_ea_kernel_fastpath_inf(dtype):
+    # Infinities are values, not NA, and must propagate like numpy.
+    df = pd.DataFrame(
+        [[np.inf, 1.0, 2.0], [-np.inf, np.inf, 1.0], [-np.inf, 2.0, None]],
+        dtype=dtype,
+    )
+    tm.assert_series_equal(
+        df.sum(axis=1), pd.Series(pd.array([np.inf, np.nan, -np.inf], dtype=dtype))
+    )
+    tm.assert_series_equal(
+        df.prod(axis=1), pd.Series(pd.array([np.inf, -np.inf, -np.inf], dtype=dtype))
+    )
+    tm.assert_series_equal(
+        df.min(axis=1), pd.Series(pd.array([1.0, -np.inf, -np.inf], dtype=dtype))
+    )
+    tm.assert_series_equal(
+        df.max(axis=1), pd.Series(pd.array([np.inf, np.inf, 2.0], dtype=dtype))
+    )
+    tm.assert_series_equal(
+        df.sum(axis=1, skipna=False),
+        pd.Series(pd.array([np.inf, np.nan, None], dtype=dtype)),
+    )
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "boolean",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("how", ["sum", "prod", "min", "max"])
+def test_reduce_axis1_ea_kernel_fastpath_is_taken(monkeypatch, dtype, how):
+    # The label-based _groupby_op must not be reached for these
+    # dtypes; if it were, the fast path silently regressed to the slow path.
+    def boom(self, **kwargs):
+        raise AssertionError("_groupby_op should not be called")
+
+    monkeypatch.setattr(BaseMaskedArray, "_groupby_op", boom)
+    df = _axis1_frame(dtype)
+    result = getattr(df, how)(axis=1)
+    tm.assert_series_equal(result, _axis1_expected(df, how, skipna=True))
+
+
+@pytest.mark.parametrize("how", ["sum", "min", "max"])
+def test_reduce_axis1_ea_kernel_fastpath_not_taken_for_unsupported(monkeypatch, how):
+    # String and decimal Arrow arrays must fall through to the
+    # existing path and never reach the masked-array kernel entry point.
+    pa = pytest.importorskip("pyarrow")
+
+    def boom(self, **kwargs):
+        raise AssertionError("_groupby_op_axis1 should not be reached")
+
+    monkeypatch.setattr(BaseMaskedArray, "_groupby_op_axis1", boom)
+
+    if how != "sum":
+        df = pd.DataFrame({"a": ["b", "c"], "b": ["a", "d"]}, dtype="string[pyarrow]")
+        result = getattr(df, how)(axis=1)
+        expected = pd.Series(
+            ["a", "c"] if how == "min" else ["b", "d"], dtype="string[pyarrow]"
+        )
+        tm.assert_series_equal(result, expected)
+
+    dtype = pd.ArrowDtype(pa.decimal128(5, 2))
+    df = pd.DataFrame(
+        {"a": [Decimal("1.5"), None], "b": [Decimal("2.25"), Decimal("3")]},
+        dtype=dtype,
+    )
+    result = getattr(df, how)(axis=1)
+    values = {
+        "sum": [Decimal("3.75"), Decimal("3.00")],
+        "min": [Decimal("1.50"), Decimal("3.00")],
+        "max": [Decimal("2.25"), Decimal("3.00")],
+    }[how]
+    tm.assert_series_equal(
+        result.astype("Float64"),
+        pd.Series(values, dtype=dtype).astype("Float64"),
+    )

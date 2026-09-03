@@ -129,6 +129,7 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
@@ -4143,7 +4144,6 @@ class DataFrame(NDFrame, OpsMixin):
             elif isinstance(first_dtype, ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
-                    ArrowExtensionArray,
                     transpose_homogeneous_pyarrow,
                 )
 
@@ -16822,6 +16822,32 @@ class DataFrame(NDFrame, OpsMixin):
                     arr = concat_compat(list(df._iter_column_arrays()))
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
+                    op_kwargs = dict(kwds)
+                    min_count = op_kwargs.pop("min_count", -1)
+                    if name in ("sum", "prod", "min", "max") and isinstance(
+                        arr, (BaseMaskedArray, ArrowExtensionArray)
+                    ):
+                        # Masked and Arrow numeric/boolean arrays can run these
+                        # reductions through the groupby kernels with the
+                        # flattened frame viewed as (nrows, ncols) and a
+                        # single group, which gives the same result as the
+                        # ngroups=nrows call below without allocating the
+                        # nrows*ncols label array. The array raises
+                        # NotImplementedError for what it does not handle
+                        # (e.g. ArrowStringArray, decimal or timestamp types).
+                        try:
+                            res_values = arr._groupby_op_axis1(
+                                how=name,
+                                nrows=nrows,
+                                ncols=ncols,
+                                min_count=min_count,
+                                skipna=skipna,
+                                **op_kwargs,
+                            )
+                        except NotImplementedError:
+                            pass
+                        else:
+                            return Series(res_values, index=df.index)
                     row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
@@ -16829,8 +16855,6 @@ class DataFrame(NDFrame, OpsMixin):
                             raise ValueError(
                                 f"{name} with skipna=False encountered an NA value."
                             )
-                    op_kwargs = dict(kwds)
-                    min_count = op_kwargs.pop("min_count", -1)
                     try:
                         res_values = arr._groupby_op(
                             how=name,

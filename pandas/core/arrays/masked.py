@@ -2160,6 +2160,74 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------
     # GroupBy Methods
 
+    def _groupby_op_axis1(
+        self,
+        *,
+        how: str,
+        nrows: int,
+        ncols: int,
+        min_count: int,
+        skipna: bool,
+        **kwargs,
+    ) -> BaseMaskedArray:
+        """
+        Row-wise reduction of an ``(nrows, ncols)`` frame flattened column-major.
+
+        Used by ``DataFrame._reduce`` for ``axis=1``.  ``self`` must be the 1D
+        concatenation of the frame's column arrays, i.e. frame element
+        ``[r, c]`` is ``self[c * nrows + r]``; this is what
+        ``concat_compat(list(df._iter_column_arrays()))`` produces.  Only the
+        size can be checked here, not the layout, so a row-major caller would
+        get wrong values rather than an error.
+
+        The work is done by the groupby aggregation kernels: ``_data`` is
+        viewed as ``(ncols, nrows)`` and transposed to the ``(K, N)`` block
+        layout that ``_call_cython_op`` expects (it transposes again
+        internally), so the ``ncols`` values of a row are the observations of
+        one group (``ngroups=1``) and the ``nrows`` rows are the kernel's
+        columns.  Each output cell consumes the same values in the same
+        (column) order as ``_groupby_op`` with ``ngroups=nrows`` and tiled row
+        labels, so results are bit-identical to that formulation, without
+        allocating a label per element.
+
+        Raises NotImplementedError for anything not handled so that the
+        caller can fall back to ``_groupby_op``.
+        """
+        if (
+            how not in ("sum", "prod", "min", "max")
+            or self.ndim != 1
+            or nrows <= 0
+            or ncols <= 0
+            or self.size != nrows * ncols
+        ):
+            raise NotImplementedError
+
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=False)
+
+        # reshape is a view of the column-major buffer; the transpose gives the
+        # (K=nrows, N=ncols) orientation that _call_cython_op transposes back.
+        values = self._data.reshape(ncols, nrows).T
+        mask = self._mask.reshape(ncols, nrows).T
+        ids = np.zeros(ncols, dtype=np.intp)
+        result_mask = np.zeros((nrows, 1), dtype=bool)
+
+        result = op._cython_op_ndim_compat(
+            values,
+            min_count=min_count,
+            ngroups=1,
+            comp_ids=ids,
+            mask=mask,
+            result_mask=result_mask,
+            skipna=skipna,
+            **kwargs,
+        )
+        return self._maybe_mask_result(
+            result.squeeze(axis=1), result_mask.squeeze(axis=1)
+        )
+
     def _groupby_op(
         self,
         *,

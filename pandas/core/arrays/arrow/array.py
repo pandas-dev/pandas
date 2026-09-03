@@ -137,6 +137,25 @@ if HAS_PYARROW:
         "rxor": lambda x, y: pc.bit_wise_xor(y, x),
     }
 
+    # Arrow types whose DataFrame axis=1 sum/prod/min/max are routed through
+    # the masked-array groupby kernels (see _groupby_op_axis1).  Every entry
+    # is a key of _arrow_dtype_mapping(), which _to_masked requires.
+    _AXIS1_REDUCTION_TYPES = frozenset(
+        {
+            pa.int8(),
+            pa.int16(),
+            pa.int32(),
+            pa.int64(),
+            pa.uint8(),
+            pa.uint16(),
+            pa.uint32(),
+            pa.uint64(),
+            pa.float32(),
+            pa.float64(),
+            pa.bool_(),
+        }
+    )
+
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
     ) -> tuple[pa.ChunkedArray, pa.Array | pa.Scalar]:
@@ -3503,6 +3522,43 @@ class ArrowExtensionArray(
             return self._to_timedeltaarray()
         else:
             return self._to_masked()
+
+    def _groupby_op_axis1(
+        self,
+        *,
+        how: str,
+        nrows: int,
+        ncols: int,
+        min_count: int,
+        skipna: bool,
+        **kwargs,
+    ) -> ArrayLike:
+        """
+        Row-wise ``how`` over a column-major-flattened ``(nrows, ncols)`` frame.
+
+        See ``BaseMaskedArray._groupby_op_axis1`` for the layout contract.
+        Handles plain ``ArrowExtensionArray`` (subclasses such as
+        ``ArrowStringArray`` are excluded) with an integer, floating or boolean
+        type; raises NotImplementedError otherwise so the caller falls back to
+        ``_groupby_op``.
+        """
+        if (
+            type(self) is not ArrowExtensionArray
+            or how not in ("sum", "prod", "min", "max")
+            or self._pa_array.type not in _AXIS1_REDUCTION_TYPES
+        ):
+            raise NotImplementedError
+
+        values = self._to_masked()
+        result = values._groupby_op_axis1(
+            how=how,
+            nrows=nrows,
+            ncols=ncols,
+            min_count=min_count,
+            skipna=skipna,
+            **kwargs,
+        )
+        return self._groupby_result_to_arrow(result)
 
     def _groupby_result_to_arrow(self, result: ArrayLike) -> ArrayLike:
         """Convert a groupby result from a delegated type back to Arrow."""
