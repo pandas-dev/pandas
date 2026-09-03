@@ -849,9 +849,8 @@ def test_where_string_dtype(frame_or_series):
     tm.assert_equal(result, expected)
 
 
-@pytest.mark.parametrize("box", [list, tuple])
 def test_where_listlike_other_keeps_ea_dtype(
-    frame_or_series, any_numeric_ea_and_arrow_dtype, box
+    frame_or_series, any_numeric_ea_and_arrow_dtype
 ):
     # GH#63842 a list-like 'other' should not cast to object or raise
     dtype = any_numeric_ea_and_arrow_dtype
@@ -860,16 +859,16 @@ def test_where_listlike_other_keeps_ea_dtype(
     if frame_or_series is pd.DataFrame:
         cond = cond.to_frame()
 
-    result = obj.where(cond, box([9, 8, 7, 6]))
+    result = obj.where(cond, [9, 8, 7, 6])
     expected = frame_or_series(pd.array([1, 8, 3, 6], dtype=dtype))
     tm.assert_equal(result, expected)
 
     # a length-1 'other' is broadcast, as it is for numpy dtypes
-    result = obj.where(cond, box([9]))
+    result = obj.where(cond, [9])
     expected = frame_or_series(pd.array([1, 9, 3, 9], dtype=dtype))
     tm.assert_equal(result, expected)
 
-    obj.mask(~cond, box([9]), inplace=True)
+    obj.mask(~cond, [9], inplace=True)
     tm.assert_equal(obj, expected)
 
 
@@ -881,34 +880,35 @@ def test_where_listlike_other_wrong_length_raises(any_numeric_ea_and_arrow_dtype
         ser.where(pd.Series([True, False, True, False]), [9, 8])
 
 
-@pytest.mark.parametrize("box", [list, tuple])
-def test_where_listlike_other_keeps_string_dtype(
-    frame_or_series, any_string_dtype, box
-):
+def test_where_listlike_other_keeps_string_dtype(frame_or_series, any_string_dtype):
     # GH#63842
-    if box is tuple and any_string_dtype == object:
-        # GH#37681 a tuple is a valid object-dtype scalar, so for object dtype
-        #  it is filled in as a scalar; see test_where_tuple_scalar_object_dtype
-        pytest.skip("tuple is treated as a scalar for object dtype")
-
     obj = frame_or_series(pd.array(["a", "bc", "cde", "fghi"], dtype=any_string_dtype))
     cond = pd.Series([True, False, True, False])
     if frame_or_series is pd.DataFrame:
         cond = cond.to_frame()
 
-    result = obj.where(cond, box(["w", "x", "y", "z"]))
+    result = obj.where(cond, ["w", "x", "y", "z"])
     expected = frame_or_series(pd.array(["a", "x", "cde", "z"], dtype=any_string_dtype))
     tm.assert_equal(result, expected)
 
     # a length-1 'other' is broadcast, as it is for numpy dtypes
-    result = obj.where(cond, box(["cudf"]))
+    result = obj.where(cond, ["cudf"])
     expected = frame_or_series(
         pd.array(["a", "cudf", "cde", "cudf"], dtype=any_string_dtype)
     )
     tm.assert_equal(result, expected)
 
-    result = obj.mask(~cond, box(["cudf"]))
+    result = obj.mask(~cond, ["cudf"])
     tm.assert_equal(result, expected)
+
+
+def test_where_tuple_other_treated_as_scalar(any_string_dtype):
+    # GH#37681 a tuple is a valid scalar, so -- as for numpy dtypes -- it is
+    #  filled in whole rather than lined up against the mask
+    ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
+    result = ser.where(pd.Series([True, False, True]), ("x", "y", "z"))
+    expected = pd.Series(["a", ("x", "y", "z"), "c"], dtype=object)
+    tm.assert_series_equal(result, expected)
 
 
 def test_where_listlike_other_keeps_interval_dtype(frame_or_series):
@@ -986,6 +986,22 @@ def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtyp
 
     result = idx.putmask(~cond, [9, 8, 7, 6])
     tm.assert_index_equal(result, pd.Index(pd.array([1, 8, 3, 6], dtype=dtype)))
+
+
+@pytest.mark.parametrize(
+    "dtype", ["datetime64[ns]", "datetime64[ns, UTC]", "period[D]"]
+)
+def test_where_listlike_other_2d_block_column_like(dtype):
+    # GH#63842 datetimelike blocks are 2D, so a list 'other' used to reach
+    #  np.where unaligned and broadcast row-like, silently filling every
+    #  masked position with other[0]
+    values = pd.array(pd.date_range("2016-01-01", periods=4), dtype=dtype)
+    other = list(values[[1, 0, 1, 0]])
+    df = pd.DataFrame({"a": values})
+
+    result = df.where(pd.DataFrame({"a": [True, False, True, False]}), other)
+    expected = pd.DataFrame({"a": values[[0, 0, 2, 0]]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_where_mapping_other_treated_as_scalar(any_string_dtype):
