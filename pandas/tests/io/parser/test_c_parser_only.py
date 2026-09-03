@@ -995,7 +995,7 @@ def test_mixed_type_warning_usecols_not_first_column(c_parser_only, monkeypatch)
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
         result = parser.read_csv_check_warnings(
             DtypeWarning,
-            r"Columns \(0: target\) have mixed types. "
+            r"Columns \(1: target\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             StringIO(data),
             usecols=["target"],
@@ -1020,7 +1020,7 @@ def test_mixed_type_warning_names_column_past_index_col(c_parser_only, monkeypat
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
         result = parser.read_csv_check_warnings(
             DtypeWarning,
-            r"Columns \(0: target\) have mixed types. "
+            r"Columns \(2: target\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             StringIO(data),
             index_col="idx",
@@ -1047,13 +1047,40 @@ def test_mixed_type_warning_names_column_with_implicit_index(
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
         result = parser.read_csv_check_warnings(
             DtypeWarning,
-            r"Columns \(0: target\) have mixed types. "
+            r"Columns \(2: target\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             StringIO(data),
         )
 
     assert result.columns.tolist() == ["first", "target"]
     assert result["target"].dtype == object
+
+
+def test_mixed_type_warning_numbers_columns_by_position(c_parser_only, monkeypatch):
+    # GH#67375: the number beside each name is the column's position in the
+    # file, which is what GH#58174 asked to keep when it added the names.
+    # Numbering with enumerate made it a count of the warned columns instead,
+    # so it stopped saying anything about where they were. Two mixed columns
+    # at positions 1 and 3 tell the two readings apart.
+    parser = c_parser_only
+    if not parser.low_memory:
+        pytest.skip("chunks are only combined with low_memory=True")
+
+    values = [str(i) for i in range(7)]
+    rows = [f"x,{v},y,{v}" for v in [*values, "a", "b", *values]]
+    data = "w,first,z,second\n" + "\n".join(rows)
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", 2**3)
+        result = parser.read_csv_check_warnings(
+            DtypeWarning,
+            r"Columns \(1: first, 3: second\) have mixed types. "
+            "Specify dtype option on import or set low_memory=False.",
+            StringIO(data),
+        )
+
+    assert result["first"].dtype == object
+    assert result["second"].dtype == object
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])

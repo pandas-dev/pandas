@@ -47,7 +47,7 @@ def test_concatenate_chunks_usecols_positions():
         {50: ArrowExtensionArray(pa.array(["a", "b"]))},
     ]
     with tm.assert_produces_warning(
-        DtypeWarning, match="Columns \\(0: column_50\\) have mixed types"
+        DtypeWarning, match="Columns \\(50: column_50\\) have mixed types"
     ):
         result = _concatenate_chunks(chunks, ["column_50"])
     expected = np.concatenate(

@@ -480,14 +480,21 @@ def _concatenate_chunks(
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                label = labels.get(name, name)
                 # ``None`` marks a column the caller has no name for, such as
-                # the leading columns of an implicit index.
-                warning_columns.append(name if label is None else label)
+                # the leading columns of an implicit index; those are reported
+                # by position alone.
+                warning_columns.append((name, labels.get(name)))
 
     if warning_columns and warn_mixed:
+        # The number is the column's position in the file, which is what
+        # GH#58174 asked to keep alongside the names it added. Numbering with
+        # enumerate instead made it a count of the warned columns, so it no
+        # longer said anything about where they were (GH#67375).
         warning_names = ", ".join(
-            [f"{index}: {name}" for index, name in enumerate(warning_columns)]
+            [
+                f"{position}: {label}" if label is not None else f"{position}"
+                for position, label in warning_columns
+            ]
         )
         warning_message = " ".join(
             [
