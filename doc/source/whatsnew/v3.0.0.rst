@@ -144,21 +144,29 @@ instead.
 
 For example, if you have a dataframe
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({'a': [1, 1, 2], 'b': [4, 5, 6]})
+   >>> df = pd.DataFrame({'a': [1, 1, 2], 'b': [4, 5, 6]})
 
 and you want to create a new column ``'c'`` by summing ``'a'`` and ``'b'``, then instead of
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.assign(c = lambda df: df['a'] + df['b'])
+   >>> df.assign(c = lambda df: df['a'] + df['b'])
+      a  b  c
+   0  1  4  5
+   1  1  5  6
+   2  2  6  8
 
 you can now write:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.assign(c = pd.col('a') + pd.col('b'))
+   >>> df.assign(c = pd.col('a') + pd.col('b'))
+      a  b  c
+   0  1  4  5
+   1  1  5  6
+   2  2  6  8
 
 The expression object returned by :func:`col` supports all standard operators
 (like ``+``, ``-``, ``*``, ``/``, etc.) and all Series methods and namespaces
@@ -349,18 +357,28 @@ A number of bugs have been fixed due to improved handling of unobserved groups. 
 
 In previous versions of pandas, a single grouping with :meth:`.DataFrameGroupBy.apply` or :meth:`.DataFrameGroupBy.agg` would pass the unobserved groups to the provided function, resulting correctly in ``0`` below.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame(
-        {
-            "key1": pd.Categorical(list("aabb"), categories=list("abc")),
-            "key2": [1, 1, 1, 2],
-            "values": [1, 2, 3, 4],
-        }
-    )
-    df
-    gb = df.groupby("key1", observed=False)
-    gb[["values"]].apply(lambda x: x.sum())
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "key1": pd.Categorical(list("aabb"), categories=list("abc")),
+   ...         "key2": [1, 1, 1, 2],
+   ...         "values": [1, 2, 3, 4],
+   ...     }
+   ... )
+   >>> df
+     key1  key2  values
+   0    a     1       1
+   1    a     1       2
+   2    b     1       3
+   3    b     2       4
+   >>> gb = df.groupby("key1", observed=False)
+   >>> gb[["values"]].apply(lambda x: x.sum())
+         values
+   key1
+   a          3
+   b          7
+   c          0
 
 However this was not the case when using multiple groupings, resulting in ``NaN`` below.
 
@@ -380,10 +398,18 @@ However this was not the case when using multiple groupings, resulting in ``NaN`
 
 Now using multiple groupings will also pass the unobserved groups to the provided function.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    gb = df.groupby(["key1", "key2"], observed=False)
-    gb[["values"]].apply(lambda x: x.sum())
+   >>> gb = df.groupby(["key1", "key2"], observed=False)
+   >>> gb[["values"]].apply(lambda x: x.sum())
+              values
+   key1 key2
+   a    1          3
+        2          0
+   b    1          3
+        2          4
+   c    1          0
+        2          0
 
 Similarly:
 
@@ -428,19 +454,24 @@ The general rules for the various types of input:
 For example, the following would always have given nanosecond resolution previously,
 but now infer:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    # parsing strings
-    print(pd.to_datetime(["2024-03-22 11:36"]).dtype)
-    # converting integers
-    print(pd.to_datetime([0], unit="s").dtype)
-    # converting stdlib datetime object
-    dt = pd.Timestamp("2024-03-22 11:36").to_pydatetime()
-    print(pd.to_datetime([dt]).dtype)
-    # the same when inferring a datetime dtype in the generic constructors
-    print(pd.Series([dt]).dtype)
-    # converting numpy objects
-    print(pd.Series([np.datetime64("2024-03-22", "ms")]).dtype)
+   # parsing strings
+   >>> print(pd.to_datetime(["2024-03-22 11:36"]).dtype)
+   datetime64[us]
+   # converting integers
+   >>> print(pd.to_datetime([0], unit="s").dtype)
+   datetime64[s]
+   # converting stdlib datetime object
+   >>> dt = pd.Timestamp("2024-03-22 11:36").to_pydatetime()
+   >>> print(pd.to_datetime([dt]).dtype)
+   datetime64[us]
+   # the same when inferring a datetime dtype in the generic constructors
+   >>> print(pd.Series([dt]).dtype)
+   datetime64[us]
+   # converting numpy objects
+   >>> print(pd.Series([np.datetime64("2024-03-22", "ms")]).dtype)
+   datetime64[ms]
 
 Similar when passed a sequence of ``np.datetime64`` objects, the resolution of the passed objects will be retained (or for lower-than-second resolution, second resolution will be used).
 
@@ -448,11 +479,14 @@ When parsing strings, the default is now microseconds (which also impacts I/O
 methods reading from text files, such as :func:`read_csv` and :func:`read_json`).
 Except when the string has nanosecond precision, in which case nanosecond resolution is used:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    print(pd.to_datetime(["2024-03-22 11:43:01.123"]).dtype)
-    print(pd.to_datetime(["2024-03-22 11:43:01.123456"]).dtype)
-    print(pd.to_datetime(["2024-03-22 11:43:01.123456789"]).dtype)
+   >>> print(pd.to_datetime(["2024-03-22 11:43:01.123"]).dtype)
+   datetime64[us]
+   >>> print(pd.to_datetime(["2024-03-22 11:43:01.123456"]).dtype)
+   datetime64[us]
+   >>> print(pd.to_datetime(["2024-03-22 11:43:01.123456789"]).dtype)
+   datetime64[ns]
 
 This is also a change for the :class:`Timestamp` constructor with a string input, which in version 2.x.y could give second or millisecond unit (:issue:`52653`).
 
@@ -488,10 +522,11 @@ timezone string to various methods. (:issue:`34916`)
 
 *New behavior:*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
-    ts.tz
+   >>> ts = pd.Timestamp(2024, 1, 1).tz_localize("US/Pacific")
+   >>> ts.tz
+   zoneinfo.ZoneInfo(key='US/Pacific')
 
 ``pytz`` timezone objects are still supported when passed directly, but they will no longer be returned by default
 from string inputs.
@@ -540,15 +575,23 @@ will receive a warning about :func:`concat` even though they are not directly
 calling this function. If this does occur, we ask users to open an issue so that
 we may address any potential behavior changes.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    idx1 = pd.date_range("2025-01-02", periods=3, freq="h")
-    df1 = pd.DataFrame({"a": [1, 2, 3]}, index=idx1)
-    df1
+   >>> idx1 = pd.date_range("2025-01-02", periods=3, freq="h")
+   >>> df1 = pd.DataFrame({"a": [1, 2, 3]}, index=idx1)
+   >>> df1
+                        a
+   2025-01-02 00:00:00  1
+   2025-01-02 01:00:00  2
+   2025-01-02 02:00:00  3
 
-    idx2 = pd.date_range("2025-01-01", periods=3, freq="h")
-    df2 = pd.DataFrame({"b": [1, 2, 3]}, index=idx2)
-    df2
+   >>> idx2 = pd.date_range("2025-01-01", periods=3, freq="h")
+   >>> df2 = pd.DataFrame({"b": [1, 2, 3]}, index=idx2)
+   >>> df2
+                        b
+   2025-01-01 00:00:00  1
+   2025-01-01 01:00:00  2
+   2025-01-01 02:00:00  3
 
 *Old behavior*
 
@@ -566,9 +609,16 @@ we may address any potential behavior changes.
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.concat([df1, df2], axis=1, sort=False)
+   >>> pd.concat([df1, df2], axis=1, sort=False)
+                          a    b
+   2025-01-02 00:00:00  1.0  NaN
+   2025-01-02 01:00:00  2.0  NaN
+   2025-01-02 02:00:00  3.0  NaN
+   2025-01-01 00:00:00  NaN  1.0
+   2025-01-01 01:00:00  NaN  2.0
+   2025-01-01 02:00:00  NaN  3.0
 
 Cases where pandas' internal usage of :func:`concat` resulted in inconsistent sorting
 that are now fixed in this release are as follows.
@@ -585,15 +635,24 @@ Changed behavior in :meth:`DataFrame.value_counts` and :meth:`.DataFrameGroupBy.
 
 In previous versions of pandas, :meth:`DataFrame.value_counts` with ``sort=False`` would sort the result by row labels (as was documented). This was nonintuitive and inconsistent with :meth:`Series.value_counts` which would maintain the order of the input. Now :meth:`DataFrame.value_counts` will maintain the order of the input. (:issue:`59745`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame(
-        {
-            "a": [2, 2, 2, 2, 1, 1, 1, 1],
-            "b": [2, 1, 3, 1, 2, 3, 1, 1],
-        }
-    )
-    df
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "a": [2, 2, 2, 2, 1, 1, 1, 1],
+   ...         "b": [2, 1, 3, 1, 2, 3, 1, 1],
+   ...     }
+   ... )
+   >>> df
+      a  b
+   0  2  2
+   1  2  1
+   2  2  3
+   3  2  1
+   4  1  2
+   5  1  3
+   6  1  1
+   7  1  1
 
 *Old behavior*
 
@@ -612,9 +671,17 @@ In previous versions of pandas, :meth:`DataFrame.value_counts` with ``sort=False
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.value_counts(sort=False)
+   >>> df.value_counts(sort=False)
+   a  b
+   2  2    1
+      1    2
+      3    1
+   1  2    1
+      3    1
+      1    2
+   Name: count, dtype: int64
 
 This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there are two options for sorting: one ``sort`` passed to :meth:`DataFrame.groupby` and one passed directly to :meth:`.DataFrameGroupBy.value_counts`. The former will determine whether to sort the groups, the latter whether to sort the counts. All non-grouping columns will maintain the order of the input *within groups*.
 
@@ -635,9 +702,17 @@ This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there 
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df.groupby("a", sort=True).value_counts(sort=False)
+   >>> df.groupby("a", sort=True).value_counts(sort=False)
+   a  b
+   1  2    1
+      3    1
+      1    2
+   2  2    1
+      1    2
+      3    1
+   Name: count, dtype: int64
 
 .. _whatsnew_300.api_breaking.offsets_day_not_a_tick:
 
@@ -658,10 +733,11 @@ behaves as a calendar-day, preserving time-of-day across DST transitions. (:issu
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
-    ts + pd.offsets.Day(1)
+   >>> ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
+   >>> ts + pd.offsets.Day(1)
+   Timestamp('2025-03-09 08:00:00-0400', tz='US/Eastern')
 
 This change fixes a long-standing bug in :func:`date_range` (:issue:`51716`, :issue:`35388`), but causes several
 small behavior differences as collateral:
@@ -716,12 +792,21 @@ entries produce :class:`NA` entries instead.
 
 *New behavior:*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ser = pd.Series([0, np.nan], dtype=pd.Float64Dtype())
-    ser
-    ser / 0
-    (ser / 0).isna()
+   >>> ser = pd.Series([0, np.nan], dtype=pd.Float64Dtype())
+   >>> ser
+   0     0.0
+   1    <NA>
+   dtype: Float64
+   >>> ser / 0
+   0    <NA>
+   1    <NA>
+   dtype: Float64
+   >>> (ser / 0).isna()
+   0    True
+   1    True
+   dtype: bool
 
 In the future, the intention is to consider ``NaN`` and :class:`NA` as distinct
 values, and an option to control this behaviour is added in 3.0 through
@@ -739,11 +824,12 @@ it cannot be used with integer dtypes.
 
 *New behavior:*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    with pd.option_context("future.distinguish_nan_and_na", True):
-        ser = pd.Series([1, np.nan], dtype=pd.Float64Dtype())
-        print(ser[1])
+   >>> with pd.option_context("future.distinguish_nan_and_na", True):
+   ...     ser = pd.Series([1, np.nan], dtype=pd.Float64Dtype())
+   ...     print(ser[1])
+   nan
 
 If we had passed ``pd.Int64Dtype()`` or ``"int64[pyarrow]"`` for the dtype in
 the latter example, this would raise, as a float ``NaN`` cannot be held by an
