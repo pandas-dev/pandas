@@ -732,7 +732,9 @@ INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin, char *end) {
 // enclosing frame writes its separator, indent or closing bracket, so those
 // writes have to reserve for themselves.
 static void Buffer_AppendCharChecked(JSONObjectEncoder *enc, char chr) {
-  // a failed Buffer_Realloc leaves enc->start NULL, so do not reserve again
+  // an error is already set, so the output is going to be discarded -- and if
+  // it was a failed Buffer_Realloc the buffer cannot grow, so the write would
+  // be out of bounds
   if (enc->errorMsg) {
     return;
   }
@@ -750,7 +752,7 @@ void Buffer_AppendIndentNewlineChecked(JSONObjectEncoder *enc) {
 }
 
 // This function could be refactored to only accept enc as an argument,
-// but this is a straight vendor from ujson source
+// but the signature is vendored from ujson source
 void Buffer_AppendIndentChecked(JSONObjectEncoder *enc, JSINT32 value) {
   int i;
   if (enc->indent > 0) {

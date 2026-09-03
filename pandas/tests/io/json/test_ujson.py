@@ -1286,21 +1286,40 @@ def test_to_json_bad_label_frees_values():
 
 
 @pytest.mark.parametrize("indent", [1, 2, 4, 8])
-def test_indent_deeply_nested_does_not_overflow_buffer(indent):
+@pytest.mark.parametrize(
+    "wrap", [lambda value: [value], lambda value: {"k": value}], ids=["list", "dict"]
+)
+def test_indent_deeply_nested_does_not_overflow_buffer(indent, wrap):
     # GH#67929
     # encode() reserves a fixed 256 bytes per frame, but the writes a frame
     # makes after its recursive encode() calls -- the indent, the separator and
     # the closing bracket -- are not covered by that reservation, so deep
-    # nesting wrote past the output buffer. Which depths overflow depends on
-    # where the writes land relative to the end of the buffer, so sweep.
+    # nesting wrote past the output buffer. Arrays and objects have their own
+    # copies of those writes. Which depths overflow depends on where the writes
+    # land relative to the end of the buffer, so sweep.
     for depth in range(2, 400):
         nested = [1]
         for _ in range(depth):
-            nested = [nested]
+            nested = wrap(nested)
 
         result = ujson.ujson_dumps(nested, indent=indent)
 
-        assert json.loads(result) == nested
+        assert json.loads(result) == nested, depth
+
+
+@pytest.mark.parametrize("indent", [0, 1, 2])
+def test_indent_past_recursion_max_raises(indent):
+    # GH#67929
+    # nesting past recursionMax unwinds ~1024 frames with the error already
+    # set. Each of those frames still wrote its indent -- half a megabyte of
+    # spaces in all -- so the OverflowError came back as a crash instead.
+    # indent=0 is the control: one bracket per frame stayed in bounds.
+    nested = [1]
+    for _ in range(1100):
+        nested = [nested]
+
+    with pytest.raises(OverflowError, match="Maximum recursion level reached"):
+        ujson.ujson_dumps(nested, indent=indent)
 
 
 def test_dumps_string_filling_buffer_does_not_overflow():
@@ -1316,7 +1335,7 @@ def test_dumps_string_filling_buffer_does_not_overflow():
 
             result = ujson.ujson_dumps(doc)
 
-            assert json.loads(result) == doc
+            assert json.loads(result) == doc, (nfill, pad)
 
 
 def test_to_json_indent_deeply_nested_does_not_overflow_buffer():
