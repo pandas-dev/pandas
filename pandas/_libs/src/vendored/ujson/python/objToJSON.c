@@ -60,6 +60,7 @@ typedef const char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
 
 int object_is_decimal_type(PyObject *obj);
 int object_is_datetimetz_dtype(PyObject *dtype);
+int object_is_extension_dtype(PyObject *dtype);
 int object_is_dataframe_type(PyObject *obj);
 int object_is_series_type(PyObject *obj);
 int object_is_index_type(PyObject *obj);
@@ -133,6 +134,9 @@ typedef struct __PyObjectEncoder {
 
   // pass through the PdBlockContext when encoding blocks
   PdBlockContext *blkCtxtPassthru;
+
+  // pass through whether to prevent NumPy dtype encoding
+  int dirValuePassthru;
 
   // pass-through to encode numpy data directly
   int npyType;
@@ -569,6 +573,30 @@ static const char *PyDecimalToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
   }
   *len = s_len;
 
+  return outValue;
+}
+
+static const char *PyArrayDescrToUTF8Callback(JSOBJ _obj, JSONTypeContext *tc,
+                                              size_t *len) {
+  PyObject *obj = (PyObject *)_obj;
+  PyObject *str = PyObject_Str(obj);
+
+  if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
+
+  GET_TC(tc)->newObj = str;
+
+  Py_ssize_t str_len;
+  const char *outValue = PyUnicode_AsUTF8AndSize(str, &str_len);
+  if (outValue == NULL) {
+    *len = 0;
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
+    return NULL;
+  }
+
+  *len = str_len;
   return outValue;
 }
 
@@ -1168,6 +1196,7 @@ static int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
 }
 
 static JSOBJ Dir_iterGetValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+  ((PyObjectEncoder *)tc->encoder)->dirValuePassthru = 1;
   return GET_TC(tc)->itemValue;
 }
 
@@ -1700,6 +1729,9 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
   PyObject *obj = (PyObject *)_obj;
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
 
+  const int from_dir = enc->dirValuePassthru;
+  enc->dirValuePassthru = 0;
+
   if (PyBool_Check(obj)) {
     tc->type = (obj == Py_True) ? JT_TRUE : JT_FALSE;
     return;
@@ -1787,6 +1819,21 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     return;
   } else if (PyUnicode_Check(obj)) {
     pc->PyTypeToUTF8 = PyUnicodeToUTF8;
+    tc->type = JT_UTF8;
+    return;
+  } else if (object_is_extension_dtype(obj)) {
+    if (enc->defaultHandler) {
+      Object_invokeDefaultHandler(obj, enc);
+      goto INVALID;
+    }
+    PyErr_SetString(PyExc_TypeError,
+                    "ExtensionDtype is not supported for serialization");
+    goto INVALID;
+  } else if (PyArray_DescrCheck(obj) && enc->defaultHandler) {
+    Object_invokeDefaultHandler(obj, enc);
+    goto INVALID;
+  } else if (PyArray_DescrCheck(obj) && !from_dir) {
+    pc->PyTypeToUTF8 = PyArrayDescrToUTF8Callback;
     tc->type = JT_UTF8;
     return;
   } else if (object_is_decimal_type(obj)) {
@@ -2380,6 +2427,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
       },
       .npyCtxtPassthru = NULL,
       .blkCtxtPassthru = NULL,
+      .dirValuePassthru = 0,
       .npyType = -1,
       .npyValue = NULL,
       .datetimeIso = 0,
