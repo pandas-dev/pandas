@@ -55,6 +55,30 @@ class TestOverlaps:
         expected = interval1.closed_right and interval2.closed_left
         assert result == expected
 
+    @pytest.mark.parametrize("empty_closed", ["left", "right", "neither"])
+    @pytest.mark.parametrize("offset", [0, 1, 2])
+    def test_overlaps_empty(self, start_shift, other_closed, empty_closed, offset):
+        # GH#26893 an empty interval contains no points, so it never overlaps,
+        # whether it lies inside the other interval or on one of its endpoints
+        start, shift = start_shift
+        interval = Interval(start, start + 2 * shift, other_closed)
+        point = start + offset * shift
+        empty = Interval(point, point, empty_closed)
+
+        assert not interval.overlaps(empty)
+        assert not empty.overlaps(interval)
+        assert not empty.overlaps(empty)
+
+    def test_overlaps_point(self, start_shift, closed):
+        # GH#26893 Interval(x, x, closed="both") is a point, not empty
+        start, shift = start_shift
+        interval = Interval(start, start + 2 * shift, closed)
+        point = Interval(start + shift, start + shift, "both")
+
+        assert interval.overlaps(point)
+        assert point.overlaps(interval)
+        assert point.overlaps(point)
+
     @pytest.mark.parametrize(
         "other",
         [10, True, "foo", Timedelta("1 day"), Timestamp("2018-01-01")],
