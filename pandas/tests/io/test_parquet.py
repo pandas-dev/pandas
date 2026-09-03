@@ -529,10 +529,7 @@ class TestBasic(Base):
 
     def test_multiindex_with_columns(self, pa, temp_file):
         engine = pa
-        # the freq is not round-tripped through parquet
-        dates = pd.date_range(
-            "01-Jan-2018", "01-Dec-2018", freq="MS", unit="ns"
-        )._with_freq(None)
+        dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS", unit="ns")
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((2 * len(dates), 3)),
             columns=list("ABC"),

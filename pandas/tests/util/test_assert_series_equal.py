@@ -672,6 +672,28 @@ def test_assert_series_equal_check_freq_multiindex_level():
         tm.assert_series_equal(left, right, check_freq=False)
 
 
+def test_assert_series_equal_check_freq_categorical_values():
+    # GH#66761 the freq of datetimelike Categorical categories was not checked
+    #  before the check_freq deprecation, and check_freq has to reach it so the
+    #  warning can be silenced
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = pd.Series(pd.Categorical(dates, categories=dates))
+    right = pd.Series(
+        pd.Categorical(dates._with_freq(None), categories=dates._with_freq(None))
+    )
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_series_equal(left, right)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_series_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_series_equal(left, right, check_freq=False)
+
+
 def test_assert_series_equal_category_order_with_na():
     # GH#62008 NA has code -1, which must not be read as a positional indexer
     #  for the last category when the two sides order their categories

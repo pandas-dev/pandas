@@ -166,8 +166,7 @@ def test_multi_index_parse_dates(all_parsers, index_col):
 20090103,three,c,4,5
 """
     parser = all_parsers
-    # the freq is not round-tripped through the csv
-    dti = date_range("2009-01-01", periods=3, freq="D", unit="us")._with_freq(None)
+    dti = date_range("2009-01-01", periods=3, freq="D", unit="us")
     index = pd.MultiIndex.from_product(
         [
             dti,

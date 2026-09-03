@@ -159,8 +159,6 @@ class TestGroupBy:
     def test_timegrouper_with_reg_groups(self):
         # GH 3794
         # allow combination of timegrouper/reg groups
-        # the results carry the grouper freq on the datetimelike MultiIndex level
-        #  that the set_index expecteds do not, hence check_freq=False below
 
         df_original = pd.DataFrame(
             {
@@ -197,7 +195,7 @@ class TestGroupBy:
 
             msg = "The default value of numeric_only"
             result = df.groupby([Grouper(freq="YE"), "Buyer"]).sum(numeric_only=True)
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
             expected = pd.DataFrame(
                 {
@@ -212,7 +210,7 @@ class TestGroupBy:
                 }
             ).set_index(["Date", "Buyer"])
             result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum(numeric_only=True)
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
         df_original = pd.DataFrame(
             {
@@ -249,7 +247,7 @@ class TestGroupBy:
             ).set_index(["Date", "Buyer"])
 
             result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum(numeric_only=True)
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
             result = df.groupby([Grouper(freq="1ME"), "Buyer"]).sum(numeric_only=True)
             expected = pd.DataFrame(
@@ -263,14 +261,14 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
             # passing the name
             df = df.reset_index()
             result = df.groupby([Grouper(freq="1ME", key="Date"), "Buyer"]).sum(
                 numeric_only=True
             )
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
             with pytest.raises(KeyError, match="'The grouper name foo is not found'"):
                 df.groupby([Grouper(freq="1ME", key="foo"), "Buyer"]).sum()
@@ -280,11 +278,11 @@ class TestGroupBy:
             result = df.groupby([Grouper(freq="1ME", level="Date"), "Buyer"]).sum(
                 numeric_only=True
             )
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
             result = df.groupby([Grouper(freq="1ME", level=0), "Buyer"]).sum(
                 numeric_only=True
             )
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
             with pytest.raises(ValueError, match="The level foo is not valid"):
                 df.groupby([Grouper(freq="1ME", level="foo"), "Buyer"]).sum()
@@ -306,7 +304,7 @@ class TestGroupBy:
                     ],
                 }
             ).set_index(["Date", "Buyer"])
-            tm.assert_frame_equal(result, expected, check_freq=False)
+            tm.assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
             msg = "The Grouper cannot specify both a key and a level!"
@@ -395,12 +393,10 @@ class TestGroupBy:
         result1 = (
             df.sort_index().groupby([Grouper(freq=freq), "user_id"])["whole_cost"].sum()
         )
-        # the resample path retains the grouper freq on the datetimelike
-        #  MultiIndex level while the groupby path does not
-        tm.assert_series_equal(result1, expected, check_freq=False)
+        tm.assert_series_equal(result1, expected)
 
         result2 = df.groupby([Grouper(freq=freq), "user_id"])["whole_cost"].sum()
-        tm.assert_series_equal(result2, expected, check_freq=False)
+        tm.assert_series_equal(result2, expected)
 
     def test_timegrouper_get_group(self):
         # GH 6914
