@@ -202,9 +202,6 @@ repos:
             # pd.api.types instead of from pandas.api.types import ...
             |(pd|pandas)\.api\.types\.
 
-            # np.array_equal
-            |(numpy|np)\.array_equal
-
             # pytest raises without context
             |\s\ pytest.raises
 
