@@ -2969,7 +2969,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0], dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result.iloc[0], object_with_dtype=self)
 
     def corr(
         self,
@@ -3059,7 +3059,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = nanops.nancorr(
                 this_values, other_values, method=method, min_periods=min_periods
             )
-            result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            result = maybe_unbox_numpy_scalar(result, object_with_dtype=self)
             return result
 
         raise ValueError(
@@ -3115,7 +3115,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
-        result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+        result = maybe_unbox_numpy_scalar(result, object_with_dtype=self)
         return result
 
     def describe(
@@ -3434,7 +3434,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
-        return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def __matmul__(self, other):
         """
@@ -5684,14 +5684,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Assign desired index to given axis.
 
-        .. deprecated:: 3.0.0
-            This keyword is ignored and will be removed in pandas 4.0. Since
-            pandas 3.0, this method always returns a new object using a lazy
-            copy mechanism that defers copies until necessary
-            (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            for more details.
-
         Indexes for row labels can be changed by assigning a list-like or Index.
 
         Parameters
@@ -5704,6 +5696,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -6271,7 +6272,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item), dtype=self.dtype)
+        return maybe_unbox_numpy_scalar(super().pop(item=item), object_with_dtype=self)
 
     def info(
         self,
@@ -8987,7 +8988,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # any/all coerce to bool for all dtypes, so unbox even for object
         result = maybe_unbox_numpy_scalar(
-            result, dtype=None if name in ["any", "all"] else self.dtype
+            result, object_with_dtype=None if name in ["any", "all"] else self
         )
         return result
 

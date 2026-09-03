@@ -6,13 +6,6 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Index,
-    Timedelta,
-    merge_asof,
-    option_context,
-    to_datetime,
-)
 import pandas._testing as tm
 from pandas.core.reshape.merge import MergeError
 
@@ -23,7 +16,7 @@ class TestAsOfMerge:
             df = df.drop_duplicates(["time", "ticker"], keep="last").reset_index(
                 drop=True
             )
-        df.time = to_datetime(df.time)
+        df.time = pd.to_datetime(df.time)
         return df
 
     @pytest.fixture
@@ -612,7 +605,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, 3, 7]}
         )
 
-        result = merge_asof(left, right, on="a")
+        result = pd.merge_asof(left, right, on="a")
         tm.assert_frame_equal(result, expected)
 
     def test_examples2(self, unit):
@@ -624,7 +617,7 @@ class TestAsOfMerge:
             )
         trades = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.038",
@@ -642,7 +635,7 @@ class TestAsOfMerge:
 
         quotes = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -670,13 +663,15 @@ class TestAsOfMerge:
             columns=["time", "ticker", "bid", "ask"],
         )
 
-        merge_asof(trades, quotes, on="time", by="ticker")
+        pd.merge_asof(trades, quotes, on="time", by="ticker")
 
-        merge_asof(trades, quotes, on="time", by="ticker", tolerance=Timedelta("2ms"))
+        pd.merge_asof(
+            trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("2ms")
+        )
 
         expected = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.038",
@@ -694,12 +689,12 @@ class TestAsOfMerge:
             columns=["time", "ticker", "price", "quantity", "bid", "ask"],
         )
 
-        result = merge_asof(
+        result = pd.merge_asof(
             trades,
             quotes,
             on="time",
             by="ticker",
-            tolerance=Timedelta("10ms"),
+            tolerance=pd.Timedelta("10ms"),
             allow_exact_matches=False,
         )
         tm.assert_frame_equal(result, expected)
@@ -715,7 +710,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, 6, np.nan]}
         )
 
-        result = merge_asof(left, right, on="a", direction="forward")
+        result = pd.merge_asof(left, right, on="a", direction="forward")
         tm.assert_frame_equal(result, expected)
 
     def test_examples4(self):
@@ -729,13 +724,13 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, 6, 7]}
         )
 
-        result = merge_asof(left, right, on="a", direction="nearest")
+        result = pd.merge_asof(left, right, on="a", direction="nearest")
         tm.assert_frame_equal(result, expected)
 
     def test_basic(self, trades, asof, quotes):
         expected = asof
 
-        result = merge_asof(trades, quotes, on="time", by="ticker")
+        result = pd.merge_asof(trades, quotes, on="time", by="ticker")
         tm.assert_frame_equal(result, expected)
 
     def test_basic_categorical(self, trades, asof, quotes):
@@ -744,7 +739,7 @@ class TestAsOfMerge:
         quotes.ticker = quotes.ticker.astype("category")
         expected.ticker = expected.ticker.astype("category")
 
-        result = merge_asof(trades, quotes, on="time", by="ticker")
+        result = pd.merge_asof(trades, quotes, on="time", by="ticker")
         tm.assert_frame_equal(result, expected)
 
     def test_basic_left_index(self, trades, asof, quotes):
@@ -752,7 +747,7 @@ class TestAsOfMerge:
         expected = asof
         trades = trades.set_index("time")
 
-        result = merge_asof(
+        result = pd.merge_asof(
             trades, quotes, left_index=True, right_on="time", by="ticker"
         )
         # left-only index uses right"s index, oddly
@@ -765,7 +760,7 @@ class TestAsOfMerge:
         expected = asof
         quotes = quotes.set_index("time")
 
-        result = merge_asof(
+        result = pd.merge_asof(
             trades, quotes, left_on="time", right_index=True, by="ticker"
         )
         tm.assert_frame_equal(result, expected)
@@ -775,7 +770,7 @@ class TestAsOfMerge:
         trades = trades.set_index("time")
         quotes = quotes.set_index("time")
 
-        result = merge_asof(
+        result = pd.merge_asof(
             trades, quotes, left_index=True, right_index=True, by="ticker"
         )
         tm.assert_frame_equal(result, expected)
@@ -785,14 +780,14 @@ class TestAsOfMerge:
         trades = trades.set_index(["time", "price"])
         quotes = quotes.set_index("time")
         with pytest.raises(MergeError, match="left can only have one index"):
-            merge_asof(trades, quotes, left_index=True, right_index=True)
+            pd.merge_asof(trades, quotes, left_index=True, right_index=True)
 
     def test_multi_index_right(self, trades, quotes):
         # MultiIndex is prohibited
         trades = trades.set_index("time")
         quotes = quotes.set_index(["time", "bid"])
         with pytest.raises(MergeError, match="right can only have one index"):
-            merge_asof(trades, quotes, left_index=True, right_index=True)
+            pd.merge_asof(trades, quotes, left_index=True, right_index=True)
 
     def test_on_and_index_left_on(self, trades, quotes):
         # "on" parameter and index together is prohibited
@@ -800,7 +795,7 @@ class TestAsOfMerge:
         quotes = quotes.set_index("time")
         msg = 'Can only pass argument "left_on" OR "left_index" not both.'
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
+            pd.merge_asof(
                 trades, quotes, left_on="price", left_index=True, right_index=True
             )
 
@@ -809,7 +804,7 @@ class TestAsOfMerge:
         quotes = quotes.set_index("time")
         msg = 'Can only pass argument "right_on" OR "right_index" not both.'
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
+            pd.merge_asof(
                 trades, quotes, right_on="bid", left_index=True, right_index=True
             )
 
@@ -817,7 +812,7 @@ class TestAsOfMerge:
         # GH14253
         expected = asof
 
-        result = merge_asof(
+        result = pd.merge_asof(
             trades, quotes, on="time", left_by="ticker", right_by="ticker"
         )
         tm.assert_frame_equal(result, expected)
@@ -826,7 +821,7 @@ class TestAsOfMerge:
         expected = asof
 
         q = quotes[quotes.ticker != "MSFT"]
-        result = merge_asof(trades, q, on="time", by="ticker")
+        result = pd.merge_asof(trades, q, on="time", by="ticker")
         expected.loc[expected.ticker == "MSFT", ["bid", "ask"]] = np.nan
         tm.assert_frame_equal(result, expected)
 
@@ -834,7 +829,7 @@ class TestAsOfMerge:
         # GH13936
         trades = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -853,7 +848,7 @@ class TestAsOfMerge:
 
         quotes = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -873,7 +868,7 @@ class TestAsOfMerge:
 
         expected = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -892,7 +887,7 @@ class TestAsOfMerge:
             columns=["time", "ticker", "exch", "price", "quantity", "bid", "ask"],
         )
 
-        result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
+        result = pd.merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["object", "string"])
@@ -900,7 +895,7 @@ class TestAsOfMerge:
         # GH13936
         trades = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -920,7 +915,7 @@ class TestAsOfMerge:
 
         quotes = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -941,7 +936,7 @@ class TestAsOfMerge:
 
         expected = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.023",
                         "20160525 13:30:00.023",
@@ -961,17 +956,17 @@ class TestAsOfMerge:
         )
         expected = expected.astype({"ticker": dtype, "exch": dtype})
 
-        result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
+        result = pd.merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
 
     def test_mismatched_index_dtype(self):
         # similar to test_multiby_indexed, but we change the dtype on left.index
         left = pd.DataFrame(
             [
-                [to_datetime("20160602"), 1, "a"],
-                [to_datetime("20160602"), 2, "a"],
-                [to_datetime("20160603"), 1, "b"],
-                [to_datetime("20160603"), 2, "b"],
+                [pd.to_datetime("20160602"), 1, "a"],
+                [pd.to_datetime("20160602"), 2, "a"],
+                [pd.to_datetime("20160603"), 1, "b"],
+                [pd.to_datetime("20160603"), 2, "b"],
             ],
             columns=["time", "k1", "k2"],
         ).set_index("time")
@@ -980,51 +975,53 @@ class TestAsOfMerge:
 
         right = pd.DataFrame(
             [
-                [to_datetime("20160502"), 1, "a", 1.0],
-                [to_datetime("20160502"), 2, "a", 2.0],
-                [to_datetime("20160503"), 1, "b", 3.0],
-                [to_datetime("20160503"), 2, "b", 4.0],
+                [pd.to_datetime("20160502"), 1, "a", 1.0],
+                [pd.to_datetime("20160502"), 2, "a", 2.0],
+                [pd.to_datetime("20160503"), 1, "b", 3.0],
+                [pd.to_datetime("20160503"), 2, "b", 4.0],
             ],
             columns=["time", "k1", "k2", "value"],
         ).set_index("time")
 
         msg = "incompatible merge keys"
         with pytest.raises(MergeError, match=msg):
-            merge_asof(left, right, left_index=True, right_index=True, by=["k1", "k2"])
+            pd.merge_asof(
+                left, right, left_index=True, right_index=True, by=["k1", "k2"]
+            )
 
     def test_multiby_indexed(self):
         # GH15676
         left = pd.DataFrame(
             [
-                [to_datetime("20160602"), 1, "a"],
-                [to_datetime("20160602"), 2, "a"],
-                [to_datetime("20160603"), 1, "b"],
-                [to_datetime("20160603"), 2, "b"],
+                [pd.to_datetime("20160602"), 1, "a"],
+                [pd.to_datetime("20160602"), 2, "a"],
+                [pd.to_datetime("20160603"), 1, "b"],
+                [pd.to_datetime("20160603"), 2, "b"],
             ],
             columns=["time", "k1", "k2"],
         ).set_index("time")
 
         right = pd.DataFrame(
             [
-                [to_datetime("20160502"), 1, "a", 1.0],
-                [to_datetime("20160502"), 2, "a", 2.0],
-                [to_datetime("20160503"), 1, "b", 3.0],
-                [to_datetime("20160503"), 2, "b", 4.0],
+                [pd.to_datetime("20160502"), 1, "a", 1.0],
+                [pd.to_datetime("20160502"), 2, "a", 2.0],
+                [pd.to_datetime("20160503"), 1, "b", 3.0],
+                [pd.to_datetime("20160503"), 2, "b", 4.0],
             ],
             columns=["time", "k1", "k2", "value"],
         ).set_index("time")
 
         expected = pd.DataFrame(
             [
-                [to_datetime("20160602"), 1, "a", 1.0],
-                [to_datetime("20160602"), 2, "a", 2.0],
-                [to_datetime("20160603"), 1, "b", 3.0],
-                [to_datetime("20160603"), 2, "b", 4.0],
+                [pd.to_datetime("20160602"), 1, "a", 1.0],
+                [pd.to_datetime("20160602"), 2, "a", 2.0],
+                [pd.to_datetime("20160603"), 1, "b", 3.0],
+                [pd.to_datetime("20160603"), 2, "b", 4.0],
             ],
             columns=["time", "k1", "k2", "value"],
         ).set_index("time")
 
-        result = merge_asof(
+        result = pd.merge_asof(
             left, right, left_index=True, right_index=True, by=["k1", "k2"]
         )
 
@@ -1033,7 +1030,7 @@ class TestAsOfMerge:
         with pytest.raises(
             MergeError, match="left_by and right_by must be the same length"
         ):
-            merge_asof(
+            pd.merge_asof(
                 left,
                 right,
                 left_index=True,
@@ -1898,7 +1895,7 @@ class TestAsOfMerge:
         quotes["ask"] = quotes["ask"].astype("float64")
         quotes = self.prep_data(quotes, dedupe=True)
 
-        result = merge_asof(trades, quotes, on="time", by="ticker")
+        result = pd.merge_asof(trades, quotes, on="time", by="ticker")
         tm.assert_frame_equal(result, expected)
 
     def test_basic_no_by(self, trades, asof, quotes):
@@ -1911,20 +1908,20 @@ class TestAsOfMerge:
         trades = f(trades)
         quotes = f(quotes)
 
-        result = merge_asof(trades, quotes, on="time")
+        result = pd.merge_asof(trades, quotes, on="time")
         tm.assert_frame_equal(result, expected)
 
     def test_valid_join_keys(self, trades, quotes):
         msg = r"incompatible merge keys \[1\] .* must be the same type"
 
         with pytest.raises(MergeError, match=msg):
-            merge_asof(trades, quotes, left_on="time", right_on="bid", by="ticker")
+            pd.merge_asof(trades, quotes, left_on="time", right_on="bid", by="ticker")
 
         with pytest.raises(MergeError, match="can only asof on a key for left"):
-            merge_asof(trades, quotes, on=["time", "ticker"], by="ticker")
+            pd.merge_asof(trades, quotes, on=["time", "ticker"], by="ticker")
 
         with pytest.raises(MergeError, match="can only asof on a key for left"):
-            merge_asof(trades, quotes, by="ticker")
+            pd.merge_asof(trades, quotes, by="ticker")
 
     def test_with_duplicates(self, datapath, trades, quotes, asof):
         q = (
@@ -1932,14 +1929,14 @@ class TestAsOfMerge:
             .sort_values(["time", "ticker"])
             .reset_index(drop=True)
         )
-        result = merge_asof(trades, q, on="time", by="ticker")
+        result = pd.merge_asof(trades, q, on="time", by="ticker")
         expected = self.prep_data(asof)
         tm.assert_frame_equal(result, expected)
 
     def test_with_duplicates_no_on(self):
         df1 = pd.DataFrame({"key": [1, 1, 3], "left_val": [1, 2, 3]})
         df2 = pd.DataFrame({"key": [1, 2, 2], "right_val": [1, 2, 3]})
-        result = merge_asof(df1, df2, on="key")
+        result = pd.merge_asof(df1, df2, on="key")
         expected = pd.DataFrame(
             {"key": [1, 1, 3], "left_val": [1, 2, 3], "right_val": [1, 1, 3]}
         )
@@ -1949,16 +1946,18 @@ class TestAsOfMerge:
         msg = "allow_exact_matches must be boolean, passed foo"
 
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
+            pd.merge_asof(
                 trades, quotes, on="time", by="ticker", allow_exact_matches="foo"
             )
 
     def test_valid_tolerance(self, trades, quotes):
         # dti
-        merge_asof(trades, quotes, on="time", by="ticker", tolerance=Timedelta("1s"))
+        pd.merge_asof(
+            trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta("1s")
+        )
 
         # integer
-        merge_asof(
+        pd.merge_asof(
             trades.reset_index(),
             quotes.reset_index(),
             on="index",
@@ -1970,11 +1969,11 @@ class TestAsOfMerge:
 
         # incompat
         with pytest.raises(MergeError, match=msg):
-            merge_asof(trades, quotes, on="time", by="ticker", tolerance=1)
+            pd.merge_asof(trades, quotes, on="time", by="ticker", tolerance=1)
 
         # invalid
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
+            pd.merge_asof(
                 trades.reset_index(),
                 quotes.reset_index(),
                 on="index",
@@ -1986,12 +1985,12 @@ class TestAsOfMerge:
 
         # invalid negative
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
-                trades, quotes, on="time", by="ticker", tolerance=-Timedelta("1s")
+            pd.merge_asof(
+                trades, quotes, on="time", by="ticker", tolerance=-pd.Timedelta("1s")
             )
 
         with pytest.raises(MergeError, match=msg):
-            merge_asof(
+            pd.merge_asof(
                 trades.reset_index(),
                 quotes.reset_index(),
                 on="index",
@@ -2007,28 +2006,28 @@ class TestAsOfMerge:
         assert not trades.time.is_monotonic_increasing
         assert not quotes.time.is_monotonic_increasing
         with pytest.raises(ValueError, match="left keys must be sorted"):
-            merge_asof(trades, quotes, on="time", by="ticker")
+            pd.merge_asof(trades, quotes, on="time", by="ticker")
 
         trades = trades.sort_values("time")
         assert trades.time.is_monotonic_increasing
         assert not quotes.time.is_monotonic_increasing
         with pytest.raises(ValueError, match="right keys must be sorted"):
-            merge_asof(trades, quotes, on="time", by="ticker")
+            pd.merge_asof(trades, quotes, on="time", by="ticker")
 
         quotes = quotes.sort_values("time")
         assert trades.time.is_monotonic_increasing
         assert quotes.time.is_monotonic_increasing
 
         # ok, though has dupes
-        merge_asof(trades, quotes, on="time", by="ticker")
+        pd.merge_asof(trades, quotes, on="time", by="ticker")
 
     @pytest.mark.parametrize(
         "tolerance_ts",
-        [Timedelta("1day"), datetime.timedelta(days=1)],
+        [pd.Timedelta("1day"), datetime.timedelta(days=1)],
         ids=["Timedelta", "datetime.timedelta"],
     )
     def test_tolerance(self, tolerance_ts, trades, quotes, tolerance):
-        result = merge_asof(
+        result = pd.merge_asof(
             trades, quotes, on="time", by="ticker", tolerance=tolerance_ts
         )
         expected = tolerance
@@ -2044,7 +2043,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, np.nan, 11]}
         )
 
-        result = merge_asof(left, right, on="a", direction="forward", tolerance=1)
+        result = pd.merge_asof(left, right, on="a", direction="forward", tolerance=1)
         tm.assert_frame_equal(result, expected)
 
     def test_tolerance_nearest(self):
@@ -2057,7 +2056,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [1, np.nan, 11]}
         )
 
-        result = merge_asof(left, right, on="a", direction="nearest", tolerance=1)
+        result = pd.merge_asof(left, right, on="a", direction="nearest", tolerance=1)
         tm.assert_frame_equal(result, expected)
 
     def test_tolerance_tz(self, unit):
@@ -2065,7 +2064,7 @@ class TestAsOfMerge:
         left = pd.DataFrame(
             {
                 "date": pd.date_range(
-                    start=to_datetime("2016-01-02"),
+                    start=pd.to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
                     tz=datetime.UTC,
@@ -2077,7 +2076,7 @@ class TestAsOfMerge:
         right = pd.DataFrame(
             {
                 "date": pd.date_range(
-                    start=to_datetime("2016-01-01"),
+                    start=pd.to_datetime("2016-01-01"),
                     freq="D",
                     periods=5,
                     tz=datetime.UTC,
@@ -2086,12 +2085,12 @@ class TestAsOfMerge:
                 "value2": list("ABCDE"),
             }
         )
-        result = merge_asof(left, right, on="date", tolerance=Timedelta("1 day"))
+        result = pd.merge_asof(left, right, on="date", tolerance=pd.Timedelta("1 day"))
 
         expected = pd.DataFrame(
             {
                 "date": pd.date_range(
-                    start=to_datetime("2016-01-02"),
+                    start=pd.to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
                     tz=datetime.UTC,
@@ -2118,7 +2117,7 @@ class TestAsOfMerge:
             }
         )
 
-        result = merge_asof(left, right, on="a", direction="nearest", tolerance=0.5)
+        result = pd.merge_asof(left, right, on="a", direction="nearest", tolerance=0.5)
         tm.assert_frame_equal(result, expected)
 
     def test_index_tolerance(self, trades, quotes, tolerance):
@@ -2127,18 +2126,18 @@ class TestAsOfMerge:
         trades = trades.set_index("time")
         quotes = quotes.set_index("time")
 
-        result = merge_asof(
+        result = pd.merge_asof(
             trades,
             quotes,
             left_index=True,
             right_index=True,
             by="ticker",
-            tolerance=Timedelta("1day"),
+            tolerance=pd.Timedelta("1day"),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches(self, trades, quotes):
-        result = merge_asof(
+        result = pd.merge_asof(
             trades, quotes, on="time", by="ticker", allow_exact_matches=False
         )
         df = pd.DataFrame(
@@ -2390,7 +2389,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [2, 7, 11]}
         )
 
-        result = merge_asof(
+        result = pd.merge_asof(
             left, right, on="a", direction="forward", allow_exact_matches=False
         )
         tm.assert_frame_equal(result, expected)
@@ -2405,18 +2404,18 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [2, 3, 11]}
         )
 
-        result = merge_asof(
+        result = pd.merge_asof(
             left, right, on="a", direction="nearest", allow_exact_matches=False
         )
         tm.assert_frame_equal(result, expected)
 
     def test_allow_exact_matches_and_tolerance(self, trades, quotes):
-        result = merge_asof(
+        result = pd.merge_asof(
             trades,
             quotes,
             on="time",
             by="ticker",
-            tolerance=Timedelta("100ms"),
+            tolerance=pd.Timedelta("100ms"),
             allow_exact_matches=False,
         )
         df = pd.DataFrame(
@@ -2661,47 +2660,47 @@ class TestAsOfMerge:
     def test_allow_exact_matches_and_tolerance2(self):
         # GH 13695
         df1 = pd.DataFrame(
-            {"time": to_datetime(["2016-07-15 13:30:00.030"]), "username": ["bob"]}
+            {"time": pd.to_datetime(["2016-07-15 13:30:00.030"]), "username": ["bob"]}
         )
         df2 = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     ["2016-07-15 13:30:00.000", "2016-07-15 13:30:00.030"]
                 ),
                 "version": [1, 2],
             }
         )
 
-        result = merge_asof(df1, df2, on="time")
+        result = pd.merge_asof(df1, df2, on="time")
         expected = pd.DataFrame(
             {
-                "time": to_datetime(["2016-07-15 13:30:00.030"]),
+                "time": pd.to_datetime(["2016-07-15 13:30:00.030"]),
                 "username": ["bob"],
                 "version": [2],
             }
         )
         tm.assert_frame_equal(result, expected)
 
-        result = merge_asof(df1, df2, on="time", allow_exact_matches=False)
+        result = pd.merge_asof(df1, df2, on="time", allow_exact_matches=False)
         expected = pd.DataFrame(
             {
-                "time": to_datetime(["2016-07-15 13:30:00.030"]),
+                "time": pd.to_datetime(["2016-07-15 13:30:00.030"]),
                 "username": ["bob"],
                 "version": [1],
             }
         )
         tm.assert_frame_equal(result, expected)
 
-        result = merge_asof(
+        result = pd.merge_asof(
             df1,
             df2,
             on="time",
             allow_exact_matches=False,
-            tolerance=Timedelta("10ms"),
+            tolerance=pd.Timedelta("10ms"),
         )
         expected = pd.DataFrame(
             {
-                "time": to_datetime(["2016-07-15 13:30:00.030"]),
+                "time": pd.to_datetime(["2016-07-15 13:30:00.030"]),
                 "username": ["bob"],
                 "version": [np.nan],
             }
@@ -2712,7 +2711,7 @@ class TestAsOfMerge:
         # GH 13709
         df1 = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     ["2016-07-15 13:30:00.030", "2016-07-15 13:30:00.030"]
                 ),
                 "username": ["bob", "charlie"],
@@ -2720,23 +2719,23 @@ class TestAsOfMerge:
         )
         df2 = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     ["2016-07-15 13:30:00.000", "2016-07-15 13:30:00.030"]
                 ),
                 "version": [1, 2],
             }
         )
 
-        result = merge_asof(
+        result = pd.merge_asof(
             df1,
             df2,
             on="time",
             allow_exact_matches=False,
-            tolerance=Timedelta("10ms"),
+            tolerance=pd.Timedelta("10ms"),
         )
         expected = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     ["2016-07-15 13:30:00.030", "2016-07-15 13:30:00.030"]
                 ),
                 "username": ["bob", "charlie"],
@@ -2755,7 +2754,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [np.nan, 6, 11]}
         )
 
-        result = merge_asof(
+        result = pd.merge_asof(
             left,
             right,
             on="a",
@@ -2775,7 +2774,7 @@ class TestAsOfMerge:
             {"a": [1, 5, 10], "left_val": ["a", "b", "c"], "right_val": [np.nan, 4, 11]}
         )
 
-        result = merge_asof(
+        result = pd.merge_asof(
             left,
             right,
             on="a",
@@ -2812,7 +2811,7 @@ class TestAsOfMerge:
             }
         )
 
-        result = merge_asof(left, right, on="a", by="b", direction="forward")
+        result = pd.merge_asof(left, right, on="a", by="b", direction="forward")
         tm.assert_frame_equal(result, expected)
 
     def test_nearest_by(self):
@@ -2842,14 +2841,14 @@ class TestAsOfMerge:
             }
         )
 
-        result = merge_asof(left, right, on="a", by="b", direction="nearest")
+        result = pd.merge_asof(left, right, on="a", by="b", direction="nearest")
         tm.assert_frame_equal(result, expected)
 
     def test_by_int(self):
         # we specialize by type, so test that this is correct
         df1 = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.020",
                         "20160525 13:30:00.030",
@@ -2866,7 +2865,7 @@ class TestAsOfMerge:
 
         df2 = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.015",
                         "20160525 13:30:00.020",
@@ -2884,11 +2883,11 @@ class TestAsOfMerge:
             columns=["time", "key", "value2"],
         )
 
-        result = merge_asof(df1, df2, on="time", by="key")
+        result = pd.merge_asof(df1, df2, on="time", by="key")
 
         expected = pd.DataFrame(
             {
-                "time": to_datetime(
+                "time": pd.to_datetime(
                     [
                         "20160525 13:30:00.020",
                         "20160525 13:30:00.030",
@@ -2923,7 +2922,7 @@ class TestAsOfMerge:
 
         df1 = df1.sort_values("price").reset_index(drop=True)
 
-        result = merge_asof(df1, df2, on="price")
+        result = pd.merge_asof(df1, df2, on="price")
 
         expected = pd.DataFrame(
             {
@@ -2953,7 +2952,7 @@ class TestAsOfMerge:
         df2.value = dtype(df2.value)
 
         df1 = df1.sort_values("value").reset_index(drop=True)
-        result = merge_asof(df1, df2, on="value")
+        result = pd.merge_asof(df1, df2, on="value")
 
         expected = pd.DataFrame(
             {
@@ -2988,7 +2987,7 @@ class TestAsOfMerge:
         df2.value = dtype(df2.value)
 
         df1 = df1.sort_values("value").reset_index(drop=True)
-        result = merge_asof(df1, df2, on="value", by="key")
+        result = pd.merge_asof(df1, df2, on="value", by="key")
 
         expected = pd.DataFrame(
             {
@@ -3036,7 +3035,7 @@ class TestAsOfMerge:
         df1 = df1.sort_values("price").reset_index(drop=True)
         df2 = df2.sort_values("price").reset_index(drop=True)
 
-        result = merge_asof(df1, df2, on="price", by="exch")
+        result = pd.merge_asof(df1, df2, on="price", by="exch")
 
         expected = pd.DataFrame(
             {
@@ -3067,7 +3066,7 @@ class TestAsOfMerge:
         right = pd.DataFrame({"right_val": [1, 2, 3, 6, 7], "a": [1, 2, 3, 6, 7]})
 
         with pytest.raises(MergeError, match=msg):
-            merge_asof(left, right, on="a")
+            pd.merge_asof(left, right, on="a")
 
     def test_merge_datatype_categorical_error_raises(self):
         msg = (
@@ -3086,17 +3085,17 @@ class TestAsOfMerge:
         )
 
         with pytest.raises(MergeError, match=msg):
-            merge_asof(left, right, on="a")
+            pd.merge_asof(left, right, on="a")
 
     def test_merge_groupby_multiple_column_with_categorical_column(self):
         # GH 16454
         df = pd.DataFrame({"x": [0], "y": [0], "z": pd.Categorical([0])})
-        result = merge_asof(df, df, on="x", by=["y", "z"])
+        result = pd.merge_asof(df, df, on="x", by=["y", "z"])
         expected = pd.DataFrame({"x": [0], "y": [0], "z": pd.Categorical([0])})
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "func", [lambda x: x, to_datetime], ids=["numeric", "datetime"]
+        "func", [lambda x: x, pd.to_datetime], ids=["numeric", "datetime"]
     )
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_merge_on_nans(self, func, side):
@@ -3109,9 +3108,9 @@ class TestAsOfMerge:
 
         with pytest.raises(ValueError, match=msg):
             if side == "left":
-                merge_asof(df_null, df, on="a")
+                pd.merge_asof(df_null, df, on="a")
             else:
-                merge_asof(df, df_null, on="a")
+                pd.merge_asof(df, df_null, on="a")
 
     def test_by_nullable(self, any_numeric_ea_dtype, using_infer_string):
         # Note: this test passes if instead of using pd.array we use
@@ -3145,7 +3144,7 @@ class TestAsOfMerge:
             }
         )
 
-        result = merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
+        result = pd.merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
         expected = pd.DataFrame(
             {
                 "by_col1": arr,
@@ -3175,7 +3174,7 @@ class TestAsOfMerge:
                 "values": ["b"],
             }
         )
-        result = merge_asof(left, right, by="by_col", on="on_col")
+        result = pd.merge_asof(left, right, by="by_col", on="on_col")
         expected = pd.DataFrame(
             [[pd.Timestamp("2018-01-01", tz="UTC"), 2, "a", "b"]],
             columns=["by_col", "on_col", "values_x", "values_y"],
@@ -3200,7 +3199,7 @@ class TestAsOfMerge:
                 "value": ["b"],
             }
         )
-        result = merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
+        result = pd.merge_asof(left, right, by=["by_col1", "by_col2"], on="on_col")
         expected = pd.DataFrame(
             [[pd.Timestamp("2018-01-01", tz="UTC"), "HELLO", 2, "a"]],
             columns=["by_col1", "by_col2", "on_col", "value_x"],
@@ -3227,7 +3226,7 @@ class TestAsOfMerge:
                 "value": ["b"],
             }
         )
-        result = merge_asof(left, right, by="by_col", on="on_col")
+        result = pd.merge_asof(left, right, by="by_col", on="on_col")
         expected = pd.DataFrame(
             {
                 "by_col": np.array([1], dtype=dtype),
@@ -3274,8 +3273,8 @@ class TestAsOfMerge:
 
         expected["time"] = pd.to_timedelta(expected["time"], "ms").astype(f"m8[{unit}]")
 
-        result = merge_asof(
-            left, right, on="time", tolerance=Timedelta("1ms"), direction="nearest"
+        result = pd.merge_asof(
+            left, right, on="time", tolerance=pd.Timedelta("1ms"), direction="nearest"
         )
 
         tm.assert_frame_equal(result, expected)
@@ -3293,7 +3292,7 @@ class TestAsOfMerge:
         )
         expected["a"] = expected["a"].astype(any_int_dtype)
 
-        result = merge_asof(left, right, on="a", tolerance=10)
+        result = pd.merge_asof(left, right, on="a", tolerance=10)
         tm.assert_frame_equal(result, expected)
 
     def test_merge_index_column_tz(self):
@@ -3301,7 +3300,7 @@ class TestAsOfMerge:
         index = pd.date_range("2019-10-01", freq="30min", periods=5, tz="UTC")
         left = pd.DataFrame([0.9, 0.8, 0.7, 0.6], columns=["xyz"], index=index[1:])
         right = pd.DataFrame({"from_date": index, "abc": [2.46] * 4 + [2.19]})
-        result = merge_asof(
+        result = pd.merge_asof(
             left=left, right=right, left_index=True, right_on=["from_date"]
         )
         expected = pd.DataFrame(
@@ -3316,7 +3315,7 @@ class TestAsOfMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-        result = merge_asof(
+        result = pd.merge_asof(
             left=right, right=left, right_index=True, left_on=["from_date"]
         )
         expected = pd.DataFrame(
@@ -3325,7 +3324,7 @@ class TestAsOfMerge:
                 "abc": [2.46] * 4 + [2.19],
                 "xyz": [np.nan, 0.9, 0.8, 0.7, 0.6],
             },
-            index=Index([0, 1, 2, 3, 4]),
+            index=pd.Index([0, 1, 2, 3, 4]),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -3338,7 +3337,7 @@ class TestAsOfMerge:
 
         dr1 = pd.date_range(
             start="1/1/2020", end="1/20/2020", freq="2D", unit=unit
-        ) + Timedelta(seconds=0.4).as_unit(unit)
+        ) + pd.Timedelta(seconds=0.4).as_unit(unit)
         dr2 = pd.date_range(start="1/1/2020", end="2/1/2020", unit=unit)
 
         df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
@@ -3347,12 +3346,12 @@ class TestAsOfMerge:
         expected = pd.DataFrame(
             {"val1": "foo", "val2": "bar"}, index=pd.DatetimeIndex(dr1)
         )
-        result = merge_asof(
+        result = pd.merge_asof(
             df1,
             df2,
             left_index=True,
             right_index=True,
-            tolerance=Timedelta(seconds=0.5),
+            tolerance=pd.Timedelta(seconds=0.5),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -3369,14 +3368,14 @@ class TestAsOfMerge:
 )
 def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
-    with option_context("future.infer_string", infer_string):
+    with pd.option_context("future.infer_string", infer_string):
         left = pd.DataFrame({"x": data}, index=data)
         right = pd.DataFrame({"x": data}, index=data)
         with pytest.raises(
             MergeError,
             match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
         ):
-            merge_asof(left, right, **kwargs)
+            pd.merge_asof(left, right, **kwargs)
 
 
 def test_merge_asof_non_numerical_dtype_object():
@@ -3387,7 +3386,7 @@ def test_merge_asof_non_numerical_dtype_object():
         MergeError,
         match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
     ):
-        merge_asof(
+        pd.merge_asof(
             left,
             right,
             left_on="left_val1",
@@ -3407,10 +3406,10 @@ def test_merge_asof_non_numerical_dtype_object():
 )
 def test_merge_asof_index_behavior(kwargs):
     # GH 33463
-    index = Index([1, 5, 10], name="test")
+    index = pd.Index([1, 5, 10], name="test")
     left = pd.DataFrame({"left": ["a", "b", "c"], "left_time": [1, 4, 10]}, index=index)
     right = pd.DataFrame({"right": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
-    result = merge_asof(left, right, **kwargs)
+    result = pd.merge_asof(left, right, **kwargs)
 
     expected = pd.DataFrame(
         {"left": ["a", "b", "c"], "left_time": [1, 4, 10], "right": [1, 3, 7]},
@@ -3421,10 +3420,10 @@ def test_merge_asof_index_behavior(kwargs):
 
 def test_merge_asof_numeric_column_in_index():
     # GH#34488
-    left = pd.DataFrame({"b": [10, 11, 12]}, index=Index([1, 2, 3], name="a"))
-    right = pd.DataFrame({"c": [20, 21, 22]}, index=Index([0, 2, 3], name="a"))
+    left = pd.DataFrame({"b": [10, 11, 12]}, index=pd.Index([1, 2, 3], name="a"))
+    right = pd.DataFrame({"c": [20, 21, 22]}, index=pd.Index([0, 2, 3], name="a"))
 
-    result = merge_asof(left, right, left_on="a", right_on="a")
+    result = pd.merge_asof(left, right, left_on="a", right_on="a")
     expected = pd.DataFrame({"a": [1, 2, 3], "b": [10, 11, 12], "c": [20, 21, 22]})
     tm.assert_frame_equal(result, expected)
 
@@ -3440,21 +3439,21 @@ def test_merge_asof_numeric_column_in_multiindex():
         index=pd.MultiIndex.from_arrays([[1, 2, 3], ["x", "y", "z"]], names=["a", "y"]),
     )
 
-    result = merge_asof(left, right, left_on="a", right_on="a")
+    result = pd.merge_asof(left, right, left_on="a", right_on="a")
     expected = pd.DataFrame({"a": [1, 2, 3], "b": [10, 11, 12], "c": [20, 21, 22]})
     tm.assert_frame_equal(result, expected)
 
 
 def test_merge_asof_numeri_column_in_index_object_dtype():
     # GH#34488
-    left = pd.DataFrame({"b": [10, 11, 12]}, index=Index(["1", "2", "3"], name="a"))
-    right = pd.DataFrame({"c": [20, 21, 22]}, index=Index(["m", "n", "o"], name="a"))
+    left = pd.DataFrame({"b": [10, 11, 12]}, index=pd.Index(["1", "2", "3"], name="a"))
+    right = pd.DataFrame({"c": [20, 21, 22]}, index=pd.Index(["m", "n", "o"], name="a"))
 
     with pytest.raises(
         MergeError,
         match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
     ):
-        merge_asof(left, right, left_on="a", right_on="a")
+        pd.merge_asof(left, right, left_on="a", right_on="a")
 
     left = left.reset_index().set_index(["a", "b"])
     right = right.reset_index().set_index(["a", "c"])
@@ -3463,7 +3462,7 @@ def test_merge_asof_numeri_column_in_index_object_dtype():
         MergeError,
         match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
     ):
-        merge_asof(left, right, left_on="a", right_on="a")
+        pd.merge_asof(left, right, left_on="a", right_on="a")
 
 
 def test_merge_asof_array_as_on(unit):
@@ -3481,7 +3480,7 @@ def test_merge_asof_array_as_on(unit):
         start=pd.Timestamp("2021/01/01 00:00"), periods=3, freq="1h", unit=unit
     )
     left = pd.DataFrame({"b": [4, 8, 7]})
-    result = merge_asof(
+    result = pd.merge_asof(
         left,
         right,
         left_on=ts_merge,
@@ -3492,7 +3491,7 @@ def test_merge_asof_array_as_on(unit):
     expected = pd.DataFrame({"b": [4, 8, 7], "a": [np.nan, 2, 6], "ts": ts_merge})
     tm.assert_frame_equal(result, expected)
 
-    result = merge_asof(
+    result = pd.merge_asof(
         right,
         left,
         left_on="ts",
@@ -3516,13 +3515,13 @@ def test_merge_asof_raise_for_duplicate_columns():
     right = pd.DataFrame([[1, 1, 1]], columns=["a", "a", "right_val"])
 
     with pytest.raises(ValueError, match="column label 'a'"):
-        merge_asof(left, right, on="a")
+        pd.merge_asof(left, right, on="a")
 
     with pytest.raises(ValueError, match="column label 'a'"):
-        merge_asof(left, right, left_on="a", right_on="right_val")
+        pd.merge_asof(left, right, left_on="a", right_on="right_val")
 
     with pytest.raises(ValueError, match="column label 'a'"):
-        merge_asof(left, right, left_on="left_val", right_on="a")
+        pd.merge_asof(left, right, left_on="left_val", right_on="a")
 
 
 @pytest.mark.parametrize(
@@ -3549,7 +3548,7 @@ def test_merge_asof_extension_dtype(dtype):
     )
     left = left.astype({"join_col": dtype})
     right = right.astype({"join_col": dtype})
-    result = merge_asof(left, right, on="join_col")
+    result = pd.merge_asof(left, right, on="join_col")
     expected = pd.DataFrame(
         {
             "join_col": [1, 3, 5],
@@ -3573,7 +3572,7 @@ def test_merge_asof_pyarrow_td_tolerance():
             "value": [1],
         }
     )
-    result = merge_asof(df, df, on="timestamp", tolerance=Timedelta("1s"))
+    result = pd.merge_asof(df, df, on="timestamp", tolerance=pd.Timedelta("1s"))
     expected = pd.DataFrame(
         {
             "timestamp": ser,
@@ -3591,7 +3590,7 @@ def test_merge_asof_read_only_ndarray():
     # set to read-only
     left.index.values.flags.writeable = False
     right.index.values.flags.writeable = False
-    result = merge_asof(left, right, left_index=True, right_index=True)
+    result = pd.merge_asof(left, right, left_index=True, right_index=True)
     expected = pd.DataFrame({"left": [2], "right": [1]}, index=[2])
     tm.assert_frame_equal(result, expected)
 
@@ -3614,7 +3613,7 @@ def test_merge_asof_multiby_with_categorical():
             "v": range(2),
         }
     )
-    result = merge_asof(
+    result = pd.merge_asof(
         left,
         right,
         by=["c1", "c2"],

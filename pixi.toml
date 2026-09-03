@@ -77,10 +77,13 @@ python-freethreading = "3.13.*"
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
 pytest-cov = ">=7.0.0"
+# Exercises the tests behind the `ip` fixture in pandas/conftest.py
+ipython = "*"
 
 [feature.test-network.dependencies]
 pytest-localserver = ">=0.9.0"
 boto3 = ">=1.40.46"
+botocore = ">=1.40.46"
 
 [feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"

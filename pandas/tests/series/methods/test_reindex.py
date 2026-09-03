@@ -3,22 +3,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    NA,
-    Categorical,
-    Float64Dtype,
-    Index,
-    MultiIndex,
-    NaT,
-    Period,
-    PeriodIndex,
-    RangeIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    isna,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -57,7 +42,7 @@ def test_reindex(datetime_series, string_series):
 
 
 def test_reindex_nan():
-    ts = Series([2, 3, 5, 7], index=[1, 4, np.nan, 8])
+    ts = pd.Series([2, 3, 5, 7], index=[1, 4, np.nan, 8])
 
     i, j = [np.nan, 1, np.nan, 8, 4, np.nan], [2, 0, 2, 3, 1, 2]
     tm.assert_series_equal(ts.reindex(i), ts.iloc[j])
@@ -69,8 +54,8 @@ def test_reindex_nan():
 
 
 def test_reindex_series_add_nat():
-    rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
-    series = Series(rng)
+    rng = pd.date_range("1/1/2000 00:00:00", periods=10, freq="10s")
+    series = pd.Series(rng)
 
     result = series.reindex(range(15))
     assert np.issubdtype(result.dtype, np.dtype("M8[ns]"))
@@ -81,8 +66,8 @@ def test_reindex_series_add_nat():
 
 
 def test_reindex_with_datetimes():
-    rng = date_range("1/1/2000", periods=20)
-    ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
+    rng = pd.date_range("1/1/2000", periods=20)
+    ts = pd.Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
@@ -95,7 +80,7 @@ def test_reindex_with_datetimes():
 
 def test_reindex_corner(datetime_series):
     # (don't forget to fix this) I think it's fixed
-    empty = Series(index=[])
+    empty = pd.Series(index=[])
     empty.reindex(datetime_series.index, method="pad")  # it works
 
     # corner case: pad empty series
@@ -117,22 +102,22 @@ def test_reindex_corner(datetime_series):
 
 
 def test_reindex_pad():
-    s = Series(np.arange(10), dtype="int64")
+    s = pd.Series(np.arange(10), dtype="int64")
     s2 = s[::2]
 
     reindexed = s2.reindex(s.index, method="pad")
     reindexed2 = s2.reindex(s.index, method="ffill")
     tm.assert_series_equal(reindexed, reindexed2)
 
-    expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
+    expected = pd.Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
 
 def test_reindex_pad2():
     # GH4604
-    s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
+    s = pd.Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
-    expected = Series([1, 1, 3, 3.0], index=new_index)
+    expected = pd.Series([1, 1, 3, 3.0], index=new_index)
 
     # this changes dtype because the ffill happens after
     result = s.reindex(new_index).ffill()
@@ -141,47 +126,47 @@ def test_reindex_pad2():
     result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected)
 
-    expected = Series([1, 5, 3, 5], index=new_index)
+    expected = pd.Series([1, 5, 3, 5], index=new_index)
     result = s.reindex(new_index, method="ffill")
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_inference():
     # inference of new dtype
-    s = Series([True, False, False, True], index=list("abcd"))
+    s = pd.Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
     result = s.reindex(list(new_index)).ffill()
-    expected = Series([True, True, False], index=list(new_index), dtype=object)
+    expected = pd.Series([True, True, False], index=list(new_index), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_downcasting():
     # GH4618 shifted series downcasting
-    s = Series(False, index=range(5))
+    s = pd.Series(False, index=range(5))
     result = s.shift(1).bfill()
-    expected = Series(False, index=range(5), dtype=object)
+    expected = pd.Series(False, index=range(5), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_nearest():
-    s = Series(np.arange(10, dtype="int64"))
+    s = pd.Series(np.arange(10, dtype="int64"))
     target = [0.1, 0.9, 1.5, 2.0]
     result = s.reindex(target, method="nearest")
-    expected = Series(np.around(target).astype("int64"), target)
+    expected = pd.Series(np.around(target).astype("int64"), target)
     tm.assert_series_equal(expected, result)
 
     result = s.reindex(target, method="nearest", tolerance=0.2)
-    expected = Series([0, 1, np.nan, 2], target)
+    expected = pd.Series([0, 1, np.nan, 2], target)
     tm.assert_series_equal(expected, result)
 
     result = s.reindex(target, method="nearest", tolerance=[0.3, 0.01, 0.4, 3])
-    expected = Series([0, np.nan, np.nan, 2], target)
+    expected = pd.Series([0, np.nan, np.nan, 2], target)
     tm.assert_series_equal(expected, result)
 
 
 def test_reindex_int(datetime_series):
     ts = datetime_series[::2]
-    int_ts = Series(np.zeros(len(ts), dtype=int), index=ts.index)
+    int_ts = pd.Series(np.zeros(len(ts), dtype=int), index=ts.index)
 
     # this should work fine
     reindexed_int = int_ts.reindex(datetime_series.index)
@@ -197,7 +182,7 @@ def test_reindex_int(datetime_series):
 def test_reindex_bool(datetime_series):
     # A series other than float, int, string, or object
     ts = datetime_series[::2]
-    bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
+    bool_ts = pd.Series(np.zeros(len(ts), dtype=bool), index=ts.index)
 
     # this should work fine
     reindexed_bool = bool_ts.reindex(datetime_series.index)
@@ -213,32 +198,33 @@ def test_reindex_bool(datetime_series):
 def test_reindex_bool_pad(datetime_series):
     # fail
     ts = datetime_series[5:]
-    bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
+    bool_ts = pd.Series(np.zeros(len(ts), dtype=bool), index=ts.index)
     filled_bool = bool_ts.reindex(datetime_series.index, method="pad")
-    assert isna(filled_bool[:5]).all()
+    assert pd.isna(filled_bool[:5]).all()
 
 
 def test_reindex_categorical():
-    index = date_range("20000101", periods=3)
+    index = pd.date_range("20000101", periods=3)
 
     # reindexing to an invalid Categorical
-    s = Series(["a", "b", "c"], dtype="category")
+    s = pd.Series(["a", "b", "c"], dtype="category")
     result = s.reindex(index)
-    expected = Series(
-        Categorical(values=[np.nan, np.nan, np.nan], categories=["a", "b", "c"])
+    expected = pd.Series(
+        pd.Categorical(values=[np.nan, np.nan, np.nan], categories=["a", "b", "c"])
     )
     expected.index = index
     tm.assert_series_equal(result, expected)
 
     # partial reindexing
-    expected = Series(
-        Categorical(values=["b", "c"], categories=["a", "b", "c"]), index=range(1, 3)
+    expected = pd.Series(
+        pd.Categorical(values=["b", "c"], categories=["a", "b", "c"]), index=range(1, 3)
     )
     result = s.reindex([1, 2])
     tm.assert_series_equal(result, expected)
 
-    expected = Series(
-        Categorical(values=["c", np.nan], categories=["a", "b", "c"]), index=range(2, 4)
+    expected = pd.Series(
+        pd.Categorical(values=["c", np.nan], categories=["a", "b", "c"]),
+        index=range(2, 4),
     )
     result = s.reindex([2, 3])
     tm.assert_series_equal(result, expected)
@@ -246,7 +232,7 @@ def test_reindex_categorical():
 
 def test_reindex_astype_order_consistency():
     # GH#17444
-    ser = Series([1, 2, 3], index=[2, 0, 1])
+    ser = pd.Series([1, 2, 3], index=[2, 0, 1])
     new_index = [0, 1, 2]
     temp_dtype = "category"
     new_dtype = str
@@ -258,76 +244,76 @@ def test_reindex_astype_order_consistency():
 def test_reindex_fill_value():
     # -----------------------------------------------------------
     # floats
-    floats = Series([1.0, 2.0, 3.0])
+    floats = pd.Series([1.0, 2.0, 3.0])
     result = floats.reindex([1, 2, 3])
-    expected = Series([2.0, 3.0, np.nan], index=range(1, 4))
+    expected = pd.Series([2.0, 3.0, np.nan], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     result = floats.reindex([1, 2, 3], fill_value=0)
-    expected = Series([2.0, 3.0, 0], index=range(1, 4))
+    expected = pd.Series([2.0, 3.0, 0], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
     # ints
-    ints = Series([1, 2, 3])
+    ints = pd.Series([1, 2, 3])
 
     result = ints.reindex([1, 2, 3])
-    expected = Series([2.0, 3.0, np.nan], index=range(1, 4))
+    expected = pd.Series([2.0, 3.0, np.nan], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     # don't upcast
     result = ints.reindex([1, 2, 3], fill_value=0)
-    expected = Series([2, 3, 0], index=range(1, 4))
+    expected = pd.Series([2, 3, 0], index=range(1, 4))
     assert issubclass(result.dtype.type, np.integer)
     tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
     # objects
-    objects = Series([1, 2, 3], dtype=object)
+    objects = pd.Series([1, 2, 3], dtype=object)
 
     result = objects.reindex([1, 2, 3])
-    expected = Series([2, 3, np.nan], index=range(1, 4), dtype=object)
+    expected = pd.Series([2, 3, np.nan], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = objects.reindex([1, 2, 3], fill_value="foo")
-    expected = Series([2, 3, "foo"], index=range(1, 4), dtype=object)
+    expected = pd.Series([2, 3, "foo"], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------
     # bools
-    bools = Series([True, False, True])
+    bools = pd.Series([True, False, True])
 
     result = bools.reindex([1, 2, 3])
-    expected = Series([False, True, np.nan], index=range(1, 4), dtype=object)
+    expected = pd.Series([False, True, np.nan], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = bools.reindex([1, 2, 3], fill_value=False)
-    expected = Series([False, True, False], index=range(1, 4))
+    expected = pd.Series([False, True, False], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
-@pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
+@pytest.mark.parametrize("fill_value", ["string", 0, pd.Timedelta(0)])
 def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
     # https://github.com/pandas-dev/pandas/issues/42921
-    if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
+    if dtype == "timedelta64[ns]" and fill_value == pd.Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test
-        fill_value = Timestamp(0)
+        fill_value = pd.Timestamp(0)
 
-    ser = Series([NaT], dtype=dtype)
+    ser = pd.Series([pd.NaT], dtype=dtype)
 
     msg = "reindexing with a fill_value that cannot be held"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([NaT, fill_value], index=range(2), dtype=object)
+    expected = pd.Series([pd.NaT, fill_value], index=range(2), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
-    idx = date_range("20131101", tz="America/Chicago", periods=7, unit="ns")
-    newidx = date_range("20131103", periods=10, freq="h", unit="ns")
-    s = Series(range(7), index=idx)
+    idx = pd.date_range("20131101", tz="America/Chicago", periods=7, unit="ns")
+    newidx = pd.date_range("20131103", periods=10, freq="h", unit="ns")
+    s = pd.Series(range(7), index=idx)
     msg = (
         r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "
         r"and datetime64\[ns\]"
@@ -338,8 +324,8 @@ def test_reindex_datetimeindexes_tz_naive_and_aware():
 
 def test_reindex_empty_series_tz_dtype():
     # GH 20869
-    result = Series(dtype="datetime64[ns, UTC]").reindex([0, 1])
-    expected = Series([NaT] * 2, dtype="datetime64[ns, UTC]")
+    result = pd.Series(dtype="datetime64[ns, UTC]").reindex([0, 1])
+    expected = pd.Series([pd.NaT] * 2, dtype="datetime64[ns, UTC]")
     tm.assert_equal(result, expected)
 
 
@@ -347,14 +333,14 @@ def test_reindex_empty_series_tz_dtype():
     "p_values, o_values, values, expected_values",
     [
         (
-            [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
-            [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC"), "All"],
+            [pd.Period("2019Q1", "Q-DEC"), pd.Period("2019Q2", "Q-DEC")],
+            [pd.Period("2019Q1", "Q-DEC"), pd.Period("2019Q2", "Q-DEC"), "All"],
             [1.0, 1.0],
             [1.0, 1.0, np.nan],
         ),
         (
-            [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
-            [Period("2019Q1", "Q-DEC"), Period("2019Q2", "Q-DEC")],
+            [pd.Period("2019Q1", "Q-DEC"), pd.Period("2019Q2", "Q-DEC")],
+            [pd.Period("2019Q1", "Q-DEC"), pd.Period("2019Q2", "Q-DEC")],
             [1.0, 1.0],
             [1.0, 1.0],
         ),
@@ -362,18 +348,18 @@ def test_reindex_empty_series_tz_dtype():
 )
 def test_reindex_periodindex_with_object(p_values, o_values, values, expected_values):
     # GH#28337
-    period_index = PeriodIndex(p_values)
-    object_index = Index(o_values)
+    period_index = pd.PeriodIndex(p_values)
+    object_index = pd.Index(o_values)
 
-    ser = Series(values, index=period_index)
+    ser = pd.Series(values, index=period_index)
     result = ser.reindex(object_index)
-    expected = Series(expected_values, index=object_index)
+    expected = pd.Series(expected_values, index=object_index)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_too_many_args():
     # GH 40980
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], False)
@@ -381,7 +367,7 @@ def test_reindex_too_many_args():
 
 def test_reindex_double_index():
     # GH 40980
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     msg = r"reindex\(\) got multiple values for argument 'index'"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([2, 3], index=[3, 4])
@@ -389,28 +375,28 @@ def test_reindex_double_index():
 
 def test_reindex_no_posargs():
     # GH 40980
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     result = ser.reindex(index=[1, 0])
-    expected = Series([2, 1], index=[1, 0])
+    expected = pd.Series([2, 1], index=[1, 0])
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("values", [[["a"], ["x"]], [[], []]])
 def test_reindex_empty_with_level(values):
     # GH41170
-    ser = Series(
-        range(len(values[0])), index=MultiIndex.from_arrays(values), dtype="object"
+    ser = pd.Series(
+        range(len(values[0])), index=pd.MultiIndex.from_arrays(values), dtype="object"
     )
     result = ser.reindex(np.array(["b"]), level=0)
-    expected = Series(
-        index=MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype="object"
+    expected = pd.Series(
+        index=pd.MultiIndex(levels=[["b"], values[1]], codes=[[], []]), dtype="object"
     )
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_missing_category():
     # GH#18185
-    ser = Series([1, 2, 3, 1], dtype="category")
+    ser = pd.Series([1, 2, 3, 1], dtype="category")
     msg = r"Cannot setitem on a Categorical with a new category \(-1\)"
     with pytest.raises(TypeError, match=msg):
         ser.reindex([1, 2, 3, 4, 5], fill_value=-1)
@@ -418,23 +404,23 @@ def test_reindex_missing_category():
 
 def test_reindexing_with_float64_NA_log():
     # GH 47055
-    s = Series([1.0, NA], dtype=Float64Dtype())
+    s = pd.Series([1.0, pd.NA], dtype=pd.Float64Dtype())
     s_reindex = s.reindex(range(3))
     result = s_reindex.values._data
     expected = np.array([1, np.nan, np.nan])
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, NA, NA], dtype=Float64Dtype())
+        expected_log = pd.Series([0, pd.NA, pd.NA], dtype=pd.Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
 
 
 @pytest.mark.parametrize("dtype", ["timedelta64", "datetime64"])
 def test_reindex_expand_nonnano_nat(dtype):
     # GH 53497
-    ser = Series(np.array([1], dtype=f"{dtype}[s]"))
-    result = ser.reindex(RangeIndex(2))
-    expected = Series(
+    ser = pd.Series(np.array([1], dtype=f"{dtype}[s]"))
+    result = ser.reindex(pd.RangeIndex(2))
+    expected = pd.Series(
         np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
     )
     tm.assert_series_equal(result, expected)
@@ -449,26 +435,26 @@ def test_reindex_expand_nonnano_nat(dtype):
     ],
 )
 def test_reindex_multiindex_automatic_level(name, expected_match_level_a):
-    series = Series([26.73, 24.255], index=Index([81, 82], name=name))
-    target = MultiIndex.from_product(
+    series = pd.Series([26.73, 24.255], index=pd.Index([81, 82], name=name))
+    target = pd.MultiIndex.from_product(
         [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]], names=["a", "b", "c"]
     )
 
     result = series.reindex(target)
 
     if expected_match_level_a:
-        expected = Series(
+        expected = pd.Series(
             data=[26.73, 26.73, 24.255, 24.255],
-            index=MultiIndex.from_product(
+            index=pd.MultiIndex.from_product(
                 [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]],
                 names=["a", "b", "c"],
             ),
             dtype=series.dtype,
         )
     else:
-        expected = Series(
+        expected = pd.Series(
             data=[np.nan] * 4,
-            index=MultiIndex.from_product(
+            index=pd.MultiIndex.from_product(
                 [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]],
                 names=["a", "b", "c"],
             ),

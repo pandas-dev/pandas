@@ -1254,9 +1254,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # multiply by python ints: numpy's scalar multiply spuriously reports
         #  overflow for a np.int64 count of INT64_MIN on Windows
         counts = new_i8_data.ravel().tolist()
-        new_data = np.array([self.freq.base * count for count in counts]).reshape(
-            new_i8_data.shape
-        )
+        # dtype=object is necessary for the length-zero case, where numpy
+        #  would otherwise infer float64 (GH#40624)
+        new_data = np.array(
+            [self.freq.base * count for count in counts], dtype=object
+        ).reshape(new_i8_data.shape)
 
         if o_mask is None:
             # i.e. Period scalar

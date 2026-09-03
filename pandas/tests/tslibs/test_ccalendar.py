@@ -8,7 +8,7 @@ import pytest
 
 from pandas._libs.tslibs import ccalendar
 
-from pandas import Timestamp
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -66,8 +66,8 @@ def test_dt_correct_iso_8601_year_week_and_day(input_date_tuple, expected_iso_tu
         datetime(2010, 1, 1),
         datetime(2020, 1, 1),
         datetime(2020, 12, 31),
-        Timestamp.min.to_pydatetime(warn=False),
-        Timestamp.max.to_pydatetime(warn=False),
+        pd.Timestamp.min.to_pydatetime(warn=False),
+        pd.Timestamp.max.to_pydatetime(warn=False),
     ],
 )
 def test_isocalendar(dt):
