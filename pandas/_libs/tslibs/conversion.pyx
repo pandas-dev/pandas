@@ -678,10 +678,10 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if info.use_utc:
         pass
-    elif info.use_tzlocal:
+    elif info.use_tzinfo_api:
         info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
     elif info.use_dst and not info.use_pytz:
-        # i.e. dateutil
+        # i.e. zoneinfo, dateutil
         info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
 
     # Keep the converter same as PyDateTime's
