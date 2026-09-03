@@ -405,7 +405,7 @@ def test_apply_raw_array_return_matches_apply_along_axis(axis, engine):
     #  slice, in particular the axis=0 transpose.
     if engine == "numba":
         pytest.skip("numba engine raw path uses a different mechanism")
-    df = DataFrame(np.arange(12).reshape(3, 4), dtype="int64")
+    df = pd.DataFrame(np.arange(12).reshape(3, 4), dtype="int64")
     func = lambda x: x[::-1]
     result = df.apply(func, axis=axis, engine=engine, raw=True)
     expected = np.apply_along_axis(func, axis, df.to_numpy())
