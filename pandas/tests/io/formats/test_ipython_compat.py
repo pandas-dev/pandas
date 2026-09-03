@@ -26,7 +26,7 @@ class TestTableSchemaRepr:
         # the latex repr goes through Styler, which needs jinja2
         pytest.importorskip("jinja2")
         ipython = ip.instance(config=ip.config)
-        df = DataFrame({"A": [1, 2]})
+        df = pd.DataFrame({"A": [1, 2]})
 
         with cf.option_context(
             "display.html.table_schema", True, "styler.render.repr", "latex"

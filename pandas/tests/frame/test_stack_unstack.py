@@ -1443,15 +1443,15 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
 )
 def test_unstack_sort_false_nan_series(levels2):
     # GH#66672
-    index = MultiIndex.from_product([["r"], levels2], names=["x", "z"])
-    ser = Series([1.0, 2.0, 3.0], index=index)
+    index = pd.MultiIndex.from_product([["r"], levels2], names=["x", "z"])
+    ser = pd.Series([1.0, 2.0, 3.0], index=index)
 
     result = ser.unstack(level="z", sort=False)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1.0, 2.0, 3.0]],
-        index=Index(["r"], name="x"),
-        columns=Index(levels2, name="z"),
+        index=pd.Index(["r"], name="x"),
+        columns=pd.Index(levels2, name="z"),
     )
     tm.assert_frame_equal(result, expected)
 
