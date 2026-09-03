@@ -390,11 +390,26 @@ def test_apply_raw_float_frame_lambda(float_frame, axis, engine):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_raw_float_frame_no_reduction(float_frame, engine):
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_raw_float_frame_no_reduction(float_frame, axis, engine):
     # no reduction
-    result = float_frame.apply(lambda x: x * 2, engine=engine, raw=True)
+    result = float_frame.apply(lambda x: x * 2, axis=axis, engine=engine, raw=True)
     expected = float_frame * 2
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_raw_array_return_matches_apply_along_axis(axis, engine):
+    # GH#66203 raw=True's fast path (replacing np.apply_along_axis) must
+    #  preserve its shape convention for functions returning an array per
+    #  slice, in particular the axis=0 transpose.
+    if engine == "numba":
+        pytest.skip("numba engine raw path uses a different mechanism")
+    df = DataFrame(np.arange(12).reshape(3, 4), dtype="int64")
+    func = lambda x: x[::-1]
+    result = df.apply(func, axis=axis, engine=engine, raw=True)
+    expected = np.apply_along_axis(func, axis, df.to_numpy())
+    tm.assert_numpy_array_equal(result.to_numpy(), expected)
 
 
 @pytest.mark.parametrize("axis", [0, 1])

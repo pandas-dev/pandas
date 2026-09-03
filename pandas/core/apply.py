@@ -1200,21 +1200,6 @@ class FrameApply(NDFrameApply):
     def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
-        def wrap_function(func):
-            """
-            Wrap user supplied function to work around numpy issue.
-
-            see https://github.com/numpy/numpy/issues/8352
-            """
-
-            def wrapper(*args, **kwargs):
-                result = func(*args, **kwargs)
-                if isinstance(result, str):
-                    result = np.array(result, dtype=object)
-                return result
-
-            return wrapper
-
         if engine == "numba":
             args, kwargs = prepare_function_arguments(
                 self.func,  # type: ignore[arg-type]
@@ -1234,13 +1219,30 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+            # values is always 2-D, so avoid np.apply_along_axis: its
+            # generic N-D machinery (dynamic coordinate tuples,
+            # slice-by-slice writes, and inferring the output dtype from
+            # only the first call) adds substantial Python-level overhead
+            # here, and that first-call dtype probe can even silently
+            # truncate later, longer string results (GH#35940,
+            # https://github.com/numpy/numpy/issues/8352). Applying the
+            # function ourselves and letting np.array infer the result's
+            # shape/dtype from *all* the results at once sidesteps both.
+            if self.axis == 0:
+                # np.apply_along_axis with axis=0 stacks per-slice results
+                # along axis 0 of the output; iterating self.values.T
+                # naturally stacks them along axis 1 instead, so transpose
+                # back to match.
+                result = np.array(
+                    [
+                        self.func(col, *self.args, **self.kwargs)
+                        for col in self.values.T
+                    ]
+                ).T
+            else:
+                result = np.array(
+                    [self.func(row, *self.args, **self.kwargs) for row in self.values]
+                )
 
         # TODO: mixed type case
         if result.ndim == 2:

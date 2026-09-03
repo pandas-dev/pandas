@@ -310,6 +310,7 @@ Performance improvements
 - Performance improvement in :class:`.DataFrameGroupBy` aggregations (``sum``, ``mean``, ``min``, ``max``, ``prod``) when the grouping keys are already sorted (:issue:`65103`)
 - Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` reductions for :class:`ArrowDtype` decimal columns (``sum``, ``prod``, ``min``, ``max``, ``mean``, ``var``) and for Arrow-backed string columns (``min``, ``max``), i.e. :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"``, by dispatching to PyArrow's native ``group_by`` instead of a slower fallback (:issue:`63416`)
 - Performance improvement in :class:`.DataFrameGroupBy` and :class:`.SeriesGroupBy` with ``sort=True``, as well as :func:`factorize` and :func:`merge` with ``sort=True``, when the keys are integers with many unique values (:issue:`66129`)
+- Performance improvement in :meth:`DataFrame.apply` with ``raw=True`` and the default ``engine="python"`` by avoiding :func:`numpy.apply_along_axis`'s generic N-dimensional overhead (:issue:`66203`)
 - Performance improvement in casting integer and boolean dtypes to ``string[pyarrow]`` by using PyArrow's native cast instead of element-wise conversion (:issue:`56505`)
 - Performance improvement in :meth:`DataFrame.__getitem__` when selecting a
   single column by label on a :class:`DataFrame` with duplicate column names.
