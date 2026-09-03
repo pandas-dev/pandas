@@ -617,7 +617,7 @@ class DataFrameFormatter:
         """Adjust max_rows using display logic.
 
         See description here:
-        https://pandas.pydata.org/docs/user_guide/options.html#frequently-used-options
+        https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
 
         GH #37359
         """

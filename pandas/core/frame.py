@@ -4022,7 +4022,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         Returns
@@ -6176,7 +6176,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         Returns
@@ -6273,7 +6273,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         level : int or name
@@ -6787,7 +6787,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -13145,10 +13145,10 @@ class DataFrame(NDFrame, OpsMixin):
             index. Only relevant for DataFrame input. as_index=False is
             effectively "SQL-style" grouped output. This argument has no effect
             on filtrations (see the `filtrations in the user guide
-            <https://pandas.pydata.org/docs/user_guide/groupby.html#filtration>`_),
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
             such as ``head()``, ``tail()``, ``nth()`` and in transformations
             (see the `transformations in the user guide
-            <https://pandas.pydata.org/docs/user_guide/groupby.html#transformation>`_).
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
@@ -13157,10 +13157,10 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame.
             This argument has no effect on filtrations (see the `filtrations
             in the user guide
-            <https://pandas.pydata.org/docs/user_guide/groupby.html#filtration>`_),
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
             such as ``head()``, ``tail()``, ``nth()`` and in transformations
             (see the `transformations in the user guide
-            <https://pandas.pydata.org/docs/user_guide/groupby.html#transformation>`_).
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
 
             .. versionchanged:: 2.0.0
 
@@ -13205,7 +13205,7 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/docs/user_guide/groupby.html>`__ for more
+        <https://pandas.pydata.org/docs/dev/user_guide/groupby.html>`__ for more
         detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
@@ -15575,7 +15575,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         indicator : bool or str, default False
@@ -19335,7 +19335,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         Returns
@@ -19421,7 +19421,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
                 for more details.
 
         Returns

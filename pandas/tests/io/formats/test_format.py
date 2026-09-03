@@ -1406,7 +1406,7 @@ class TestDataFrameFormatting:
         GH #37359
 
         See description here:
-        https://pandas.pydata.org/docs/user_guide/options.html#frequently-used-options
+        https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
         """
         formatter = fmt.DataFrameFormatter(
             pd.DataFrame(np.random.default_rng(2).random((length, 3))),

@@ -241,7 +241,7 @@ def merge(
             pandas 3.0, this method always returns a new object using a lazy
             copy mechanism that defers copies until necessary
             (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/user_guide/copy_on_write.html>`__
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
             for more details.
 
     indicator : bool or str, default False
