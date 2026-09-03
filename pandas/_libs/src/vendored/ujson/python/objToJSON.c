@@ -1830,12 +1830,12 @@ static void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     }
     PyArray_Descr *dtype = PyArray_DescrFromScalar(obj);
     if (dtype == NULL) {
-      return;
+      goto INVALID;
     }
     if (!PyTypeNum_ISDATETIME(dtype->type_num)) {
       PyErr_Format(PyExc_ValueError, "Could not get resolution of datetime");
       Py_DECREF(dtype);
-      return;
+      goto INVALID;
     }
 
     PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
