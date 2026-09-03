@@ -145,3 +145,11 @@ def test_get_dummies_categorical():
     result = s.str.get_dummies("|")
     expected = DataFrame([[1, 1, 0], [0, 0, 1], [0, 0, 0]], columns=["NaN", "a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+def test_get_dummies_no_tags_nullable_dtype(any_string_dtype):
+    # GH#XXXXX an all-tagless input must not crash for an extension dtype. The
+    # empty branch used to hand the raw dtype to np.empty, which cannot take one.
+    ser = Series(["", None], dtype=any_string_dtype)
+    result = ser.str.get_dummies("|", dtype="Int64")
+    assert list(result.columns) == []

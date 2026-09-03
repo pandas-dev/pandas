@@ -552,15 +552,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         dummies_pa, labels = ArrowExtensionArray(self._pa_array)._str_get_dummies(
             sep, dtype
         )
-        if len(labels) == 0:
-            return np.empty(shape=(len(self), 0), dtype=dtype), labels
-        dummies = np.vstack(dummies_pa.to_numpy())
         _dtype = pandas_dtype(dtype)
         dummies_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
             dummies_dtype = _dtype
         else:
             dummies_dtype = np.bool_
+        if len(labels) == 0:
+            # No tags anywhere. Keep the row count, and normalize the dtype first:
+            # an extension dtype such as Int64 is not a valid np.empty argument.
+            return np.empty(shape=(len(self), 0), dtype=dummies_dtype), labels
+        dummies = np.vstack(dummies_pa.to_numpy())
         return dummies.astype(dummies_dtype, copy=False), labels
 
     def _convert_int_result(self, result):
