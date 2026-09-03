@@ -1,28 +1,18 @@
-# UBSan suppressions.
-#
 # Entries are matched as a substring of the source path UBSan reports, which is
 # the Cython-generated C file inside meson's private build directory. Meson does
 # not guarantee the layout of that directory (1.12.0 stopped mirroring the source
 # tree inside it), so these match on the file name only (GH#66805).
 #
-# What is being suppressed is `function` (call through a pointer of the wrong
-# type) in Cython-generated C. Cython implements cdef-class inheritance by
-# storing a subclass override in a vtable slot typed for the base class, e.g.
-# in index.pyx.c:
+# Suppressed is `function` (call through a pointer of the wrong type) in
+# Cython-generated C. Cython implements cdef-class inheritance by storing a
+# subclass override in a vtable slot typed for the base class, so every virtual
+# dispatch is a genuine type mismatch; CyFunction wrapper dispatch (__pyx_pw_*)
+# trips the same check. Neither is fixable in pandas source -- it would take a
+# Cython codegen change -- and a full-suite run with these suppressions removed
+# reports nothing else: 181 reports, 31 sites, all of them this.
 #
-#   __pyx_vtable_...ObjectEngine.__pyx_base._make_hash_table =
-#       (PyObject *(*)(struct __pyx_obj_...IndexEngine *, Py_ssize_t))
-#           __pyx_f_...12ObjectEngine__make_hash_table;
-#
-# so every virtual dispatch is a genuine type mismatch. Cython's CyFunction
-# wrapper dispatch (__pyx_pw_*) trips the same check. Neither is fixable in
-# pandas source -- it would take a codegen change in Cython -- and a full-suite
-# run with these suppressions removed reports nothing else: 181 reports, 31
-# sites, all of them this.
-#
-# The glob covers every generated module, so no entry has to be added when a
-# .pyx is added or renamed, and it cannot go inert if meson moves the file
-# again. Matching only the generated file names keeps the check fully active
-# for the hand-written C/C++ (tokenizer, ujson, np_datetime, khash).
+# The glob means no entry has to be added when a .pyx is added or renamed, and
+# matching only the generated file names keeps the check fully active for the
+# hand-written C/C++ (tokenizer, ujson, np_datetime, khash).
 function:*.pyx.c
 function:_cyutility.c
