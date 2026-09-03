@@ -8,7 +8,7 @@ runs:
   using: composite
   steps:
     - name: Install ${{ inputs.environment }}
-      uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
       with:
         pixi-version: v0.76.2
         log-level: vv
@@ -16,3 +16,21 @@ runs:
         environments: ${{ inputs.environment }}
         cache: true
         cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+      if: ${{ inputs.environment != 'pyarrow-nightly' }}
+
+    - name: Install ${{ inputs.environment }}
+      uses: prefix-dev/setup-pixi@d3f436a425481402e6a95a1d1fc10331c708cd9e # v0.10.2
+      with:
+        pixi-version: v0.76.2
+        log-level: vv
+        manifest-path: pixi.toml
+        run-install: false
+        cache: false
+      if: ${{ inputs.environment == 'pyarrow-nightly' }}
+
+    - name: Install PyArrow Nightly
+      if: ${{ inputs.environment == 'pyarrow-nightly' }}
+      shell: bash -euox pipefail {0}
+      run: |
+        pixi update -e pyarrow-nightly pyarrow
+        pixi install -e pyarrow-nightly
