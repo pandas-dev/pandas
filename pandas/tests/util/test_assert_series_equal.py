@@ -646,3 +646,14 @@ def test_assert_series_equal_check_index_false_ignores_freq():
     right = pd.Series([1, 2, 3], index=idx._with_freq(None))
     with tm.assert_produces_warning(None):
         tm.assert_series_equal(left, right, check_index=False)
+
+
+def test_assert_series_equal_category_order_with_na():
+    # GH#62008 NA has code -1, which must not be read as a positional indexer
+    #  for the last category when the two sides order their categories
+    #  differently
+    values = ["B", None, "D"]
+    left = pd.Series(pd.Categorical(values, categories=["B", "D"]))
+    right = pd.Series(pd.Categorical(values, categories=["D", "B"]))
+
+    tm.assert_series_equal(left, right, check_category_order=False)

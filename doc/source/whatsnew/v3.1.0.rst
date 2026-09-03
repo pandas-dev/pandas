@@ -48,6 +48,7 @@ Other enhancements
 - Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
 - Building from source no longer fails on a checkout with CRLF line endings, such as under WSL (:issue:`64272`)
 - Display formatting for float sequences in DataFrame cells now respects the ``display.precision`` option (:issue:`60503`).
+- Improved the error message raised when constructing an :class:`IntervalIndex` or :class:`arrays.IntervalArray` with a left side greater than the right side, which now shows the offending intervals and their positions (:issue:`66807`)
 - Improved the precision of float parsing in :func:`read_csv` (:issue:`64395`)
 - Improved the string ``repr`` of :class:`pd.core.arrays.SparseArray` (:issue:`64547`)
 - Improved type inference of comparison and arithmetic operators on :class:`Series` and :class:`DataFrame` for static type checkers (e.g. ``ser == "a"`` is now inferred as :class:`Series` instead of ``Any``) (:issue:`40762`)
@@ -258,6 +259,7 @@ Deprecations
 - Deprecated expanding a :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` using a key that is not a full-length tuple (e.g., ``df.loc["x"] = values`` or ``df["x"] = values``). Use a full-length tuple key instead (e.g., ``df.loc[("x", ""), :] = values`` for rows or ``df[("x", "")] = values`` for columns), or call ``df.index = df.index.to_flat_index()`` before expanding (:issue:`17024`)
 - Deprecated grouping by an index level name when the name matches multiple levels of a :class:`MultiIndex`. Use the level number instead (:issue:`49434`)
 - Deprecated implicit conversion of ``datetime.date`` objects to :class:`Timestamp` when indexing or joining a :class:`DatetimeIndex`. Use :func:`to_datetime` to explicitly convert to :class:`DatetimeIndex` instead (:issue:`62158`)
+- Deprecated indexing with ``[]`` on the result of :meth:`.GroupBy.nth` (e.g. ``gb.nth[0, 1]``); call it instead (e.g. ``gb.nth([0, 1])``) (:issue:`66346`)
 - Deprecated parsing quarterly strings (e.g. ``"2014Q2"``) in :class:`Timestamp`, :func:`to_datetime`, :class:`DatetimeIndex`, and partial-string indexing on a :class:`DatetimeIndex` (e.g. ``ser["2014Q2"]``). This extends to string arguments that are parsed as datetimes internally, such as the bounds of :meth:`Series.truncate` and the ``where`` of :meth:`Series.asof`, which warn even when the index is a :class:`PeriodIndex`. Use :class:`Period` or :class:`PeriodIndex` with :meth:`PeriodIndex.to_timestamp` instead (:issue:`50907`)
 - Deprecated passing ``"datetimetz"`` or ``"datetime64tz"`` to the ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`. Pass :class:`DatetimeTZDtype` to select all timezone-aware columns, or a string such as ``"datetime64[ns, US/Eastern]"`` to select a single timezone (:issue:`24558`)
 - Deprecated passing ``None`` inside the list-like ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`, which silently selects float64 columns. Pass ``"float64"`` explicitly instead (:issue:`28943`)
@@ -294,7 +296,7 @@ Deprecations
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
 - Deprecated passing integers to :class:`Period`, :class:`PeriodIndex`, :func:`period_range`, :func:`period_array`, and :meth:`PeriodArray._from_sequence`. In a future version, integers will be treated as period ordinals instead of calendar years. To get the future behavior now, use ``Period(ordinal=...)`` or :meth:`PeriodIndex.from_ordinals`; to keep the current behavior, pass strings, e.g. ``Period(str(value), freq=...)`` or ``data.astype(str)`` (:issue:`64227`)
-- Deprecated ``inplace`` keyword for :meth:`DataFrame.rename`, :meth:`DataFrame.drop`, :meth:`DataFrame.dropna`, :meth:`DataFrame.drop_duplicates`, :meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`DataFrame.eval`, :meth:`DataFrame.query` (and the ``Series`` equivalents). This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
+- Deprecated ``inplace`` keyword for :meth:`DataFrame.rename`, :meth:`DataFrame.drop`, :meth:`DataFrame.dropna`, :meth:`DataFrame.drop_duplicates`, :meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`DataFrame.eval`, :meth:`DataFrame.query`, :meth:`DataFrame.rename_axis` (and the ``Series`` equivalents). This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
 - Deprecated the ``infer_objects``, ``convert_string``, ``convert_integer``, ``convert_boolean``, and ``convert_floating`` keywords in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` (:issue:`62022`)
 - Deprecated using ``isinstance(obj, DateOffset)`` and ``issubclass(cls, DateOffset)`` to check for offset types that are not :class:`DateOffset`; these will return ``False`` in a future version. Use ``pd.offsets.BaseOffset`` instead (:issue:`48262`)
 - Deprecated passing tuple keys to :meth:`Resampler.__getitem__` and other
@@ -635,6 +637,7 @@ Interval
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors allowing unsupported ``object`` dtype on the right endpoint, causing ``dtype.subtype`` to disagree with ``right.dtype`` (:issue:`66518`)
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
+- Bug in :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` reporting an overlap with an empty interval such as ``Interval(0, 0, closed="left")``, which contains no points; empty intervals now never overlap (:issue:`26893`)
 
 Indexing
 ^^^^^^^^
@@ -916,6 +919,7 @@ Other
 - Bug in :func:`eval` and :meth:`DataFrame.eval` where passing a :class:`Series` or :class:`DataFrame` as ``expr`` silently parsed its (possibly truncated) repr instead of raising, producing a confusing error (:issue:`16289`)
 - Bug in :func:`option_context` where deprecation warnings pointed to ``contextlib.__enter__`` instead of user code (:issue:`63235`)
 - Bug in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_index_equal` where the ``first diff`` line of the failure message did not quote strings, so a string-vs-number mismatch such as ``"1"`` against ``1`` was reported as ``1 != 1`` (:issue:`37488`)
+- Bug in :func:`testing.assert_series_equal` with ``check_category_order=False`` raising for equal :class:`Categorical` values when missing values were present and the two objects stored their categories in a different order (:issue:`62008`)
 - Bug in :func:`testing.assert_series_equal`, :func:`testing.assert_frame_equal` and :func:`testing.assert_extension_array_equal` raising ``TypeError`` instead of reporting the difference when comparing unequal :class:`~pandas.api.extensions.ExtensionArray` objects whose scalars define ``__len__``, such as ``pint``'s ``Quantity`` (:issue:`45240`)
 - Bug in :func:`util.hash_array` and :func:`util.hash_pandas_object` with float and complex dtypes returning different hashes for ``0.0`` and ``-0.0``, and for ``NaN`` values whose sign or payload bits differ (:issue:`28363`)
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
