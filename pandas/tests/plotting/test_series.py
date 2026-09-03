@@ -864,12 +864,12 @@ class TestSeriesPlots:
 
         ser.replace({4: 100}, inplace=True)
         after = ax.yaxis.get_ticklocs()
-        tm.assert_numpy_array_equal(before, after)
+        assert list(before) == list(after)
 
         _, ax = mpl.pyplot.subplots()
         ax = ser.plot.line(ax=ax)
         new = ax.yaxis.get_ticklocs()
-        assert not np.array_equal(before, new)
+        assert list(new) != list(before)
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_plot_xlim_for_series(self, kind):
