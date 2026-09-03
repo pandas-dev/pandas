@@ -759,6 +759,7 @@ I/O
 - Fixed bug where a file opened by pandas was left open when :func:`read_csv` and other readers raised while opening it -- for example a ZIP or TAR archive holding more than one file -- so on Windows the file could not be renamed or deleted (:issue:`58131`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
+- Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing object-dtype ``numpy.datetime64`` values (:issue:`67930`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
 - Fixed segfault when instantiating the internal ``pandas._libs.parsers.TextReader`` with no arguments; it now raises ``TypeError`` (:issue:`53131`)
 - Fixed several segfaults in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing python objects that are very abnormal, including massive :class:`int` values, and strings that cannot be encoded as utf-8 (:issue:`66356`)
