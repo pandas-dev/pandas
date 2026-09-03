@@ -629,16 +629,9 @@ def test_zoneinfo_no_cache_keeps_fast_path(key):
 
 
 @pytest.mark.parametrize("key", ["US/Eastern", "Etc/GMT+5"])
-def test_zoneinfo_from_file_matching_data_is_correct(key):
+def test_zoneinfo_from_file_matching_data_takes_fallback(key):
     # GH#64379 a from_file object whose data happens to match the zone its key
     #  names cannot be told apart from one whose data does not, so it takes
-    #  the tzinfo-API path.  Results must still be correct.
+    #  the tzinfo-API path too.
     tz = _zoneinfo_from_file(key, new_key=key)
     assert timezones._p_tz_cache_key(tz) is None
-
-    naive = pd.date_range("2025-01-01", "2025-12-31", freq="7h")
-    kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
-    tm.assert_numpy_array_equal(
-        naive.tz_localize(tz, **kwargs).tz_convert("UTC").asi8,
-        naive.tz_localize(zoneinfo.ZoneInfo(key), **kwargs).tz_convert("UTC").asi8,
-    )

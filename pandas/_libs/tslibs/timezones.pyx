@@ -50,9 +50,9 @@ cdef tzinfo utc_zoneinfo = None
 cdef type ZoneInfo = zoneinfo.ZoneInfo
 
 # Pure-python ZoneInfo twins of the ZoneInfo objects we have vetted, see
-#  get_zoneinfo_twin.  Weakly keyed because ZoneInfo.from_file objects are not
-#  interned by the stdlib, so a strong key would pin one entry per object for
-#  the life of the process.
+#  get_zoneinfo_twin.  Weakly keyed so that we do not keep the tz objects we
+#  are passed alive for the life of the process; the stdlib interns only some
+#  of them.
 cdef object _zoneinfo_twin_cache = weakref.WeakKeyDictionary()
 
 
@@ -319,21 +319,13 @@ cdef object get_zoneinfo_twin(tzinfo tz):
     pure-python implementation exposes, and the only handle we have for
     rebuilding it is ``tz.key``.  That handle is good when `tz` was loaded
     from the installed tzdata under that key, but ``ZoneInfo.from_file``
-    objects can carry no key at all, a key naming no installed zone, or a key
-    naming a zone whose installed tzdata differs from the file the object was
-    built from.  In those cases we have no way to see the transitions and
-    callers must fall back to the tzinfo API.  GH#64379
+    objects have no reliable key (absent or not necessarily matching with
+    tzdata).  In those cases we have no way to see the transitions and callers
+    must fall back to the tzinfo API.  GH#64379
 
     Whether the key describes the object is decided by asking it to pickle.
     The stdlib documents that a ``from_file`` object cannot be pickled,
-    because its data is not recoverable from its key -- which is exactly what
-    we would be assuming.
-
-    A ``from_file`` object whose data does happen to match the installed zone
-    its key names is not told apart from one whose data does not, so it takes
-    the fallback too.  That is correct, only slower.  Loading a different
-    tzdata release by key, e.g. after ``zoneinfo.reset_tzpath``, keeps the
-    fast path.
+    because its data is not recoverable from its key.
 
     Parameters
     ----------
@@ -354,25 +346,19 @@ cdef object get_zoneinfo_twin(tzinfo tz):
 
 
 cdef object _build_zoneinfo_twin(tzinfo tz):
-    key = tz.key
-    if not isinstance(key, str):
-        # i.e. ZoneInfo.from_file with key=None or with a non-str key;
-        #  either way there is nothing to look up.
-        return None
-
     try:
         tz.__reduce__()
     except pickle.PicklingError:
-        # Both implementations refuse this for a from_file object.  A
-        #  __reduce__ that succeeds tells us the object was loaded from the
+        # i.e. ZoneInfo.from_file, for which both implementations refuse this.
+        #  A __reduce__ that succeeds tells us the object was loaded from the
         #  installed tzdata under its key, by ZoneInfo() or no_cache().
         return None
 
     try:
-        return _ZoneInfo(key)
+        return _ZoneInfo(tz.key)
     except (KeyError, ValueError, OSError):
-        # Belt and braces: the C and pure-python loaders search the same
-        #  TZPATH, so having gotten this far the key resolves for both.
+        # Not expected to be reached: the C and pure-python loaders search the
+        #  same TZPATH, so having gotten this far the key resolves for both.
         return None
 
 
@@ -405,8 +391,8 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
         bint valid
 
-    # NB: only reached via get_dst_info, which bails out through
-    #  tz_cache_key when there is no twin.
+    # NB: only reached via get_dst_info, whose callers all avoid it when
+    #  there is no twin, so this is non-None here.
     tz_py = get_zoneinfo_twin(tz)
 
     if tz_py._fixed_offset:
