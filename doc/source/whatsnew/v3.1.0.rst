@@ -635,6 +635,7 @@ Interval
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors allowing unsupported ``object`` dtype on the right endpoint, causing ``dtype.subtype`` to disagree with ``right.dtype`` (:issue:`66518`)
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
+- Bug in :meth:`IntervalDtype.__from_arrow__` returning incorrect (non-NA) intervals for null struct entries because the parent struct's validity bitmap was not applied to the child ``left``/``right`` arrays (:issue:`67754`)
 
 Indexing
 ^^^^^^^^
