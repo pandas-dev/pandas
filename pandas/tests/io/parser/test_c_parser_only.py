@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
+from pandas._libs.hashtable import get_hashtable_trace_domain
 from pandas.compat import WASM
 from pandas.errors import (
     Pandas4Warning,
@@ -1495,23 +1496,33 @@ def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
             next(reader)
 
 
-def test_decode_failure_frees_string_table(c_parser_only):
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_decode_failure_frees_string_table(c_parser_only, dtype):
     # GH#67931
     # the string columns are interned through a khash table that was freed only
     # on the success path, so a decode failure part-way through a column leaked
-    # the whole table
+    # the whole table -- ~100 KiB per failed parse here, so ~5 MiB over the loop
     parser = c_parser_only
     rows = "\n".join(f"s{i}" for i in range(2000)).encode()
     data = b"a\n" + rows + b"\n\xff\n"
 
-    tracemalloc.start()
-    before = tracemalloc.take_snapshot()
-    for _ in range(50):
+    def read():
         with pytest.raises(UnicodeDecodeError):
-            parser.read_csv(BytesIO(data), encoding_errors="strict")
-    after = tracemalloc.take_snapshot()
-    tracemalloc.stop()
+            parser.read_csv(BytesIO(data), dtype=dtype, encoding_errors="strict")
 
-    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
-    # the leaked table was ~100 KiB per failed parse, so ~5 MiB over this loop
-    assert grew < 100_000
+    # measure only the khash domain, so unrelated allocations cannot mask or
+    # fake the leak
+    khash_only = (tracemalloc.DomainFilter(True, get_hashtable_trace_domain()),)
+
+    tracemalloc.start()
+    try:
+        # warm up, so first-call caching lands outside the measured window
+        read()
+        before = tracemalloc.take_snapshot().filter_traces(khash_only)
+        for _ in range(50):
+            read()
+        after = tracemalloc.take_snapshot().filter_traces(khash_only)
+    finally:
+        tracemalloc.stop()
+
+    assert sum(stat.size_diff for stat in after.compare_to(before, "filename")) == 0
