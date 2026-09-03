@@ -1292,8 +1292,6 @@ generated/pandas.io.pytables.HDFStore.put,../reference/api/pandas.HDFStore.put
 generated/pandas.io.pytables.HDFStore.select,../reference/api/pandas.HDFStore.select
 generated/pandas.io.pytables.read_hdf,../reference/api/pandas.read_hdf
 generated/pandas.io.sql.read_sql,../reference/api/pandas.read_sql
-generated/pandas.io.sql.read_frame,../reference/api/pandas.read_frame
-generated/pandas.io.sql.write_frame,../reference/api/pandas.write_frame
 generated/pandas.io.stata.read_stata,../reference/api/pandas.read_stata
 generated/pandas.tseries.resample.Resampler,../reference/api/pandas.api.typing.Resampler
 generated/pandas.tseries.resample.Resampler.__iter__,../reference/api/pandas.api.typing.Resampler.__iter__
