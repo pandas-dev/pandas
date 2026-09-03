@@ -750,6 +750,63 @@ class BaseMethodsTests:
         ser.mask(~cond, other, inplace=True)
         tm.assert_equal(ser, expected)
 
+    def _listlike_other_setup(self, data, as_frame):
+        assert data[0] != data[1]
+        cls = type(data)
+        first, second = data[:2]
+
+        orig = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
+        if as_frame:
+            orig = orig.to_frame(name="a")
+            cond = pd.DataFrame({"a": cond})
+
+        def expected(values):
+            res = pd.Series(cls._from_sequence(values, dtype=data.dtype))
+            return res.to_frame(name="a") if as_frame else res
+
+        return orig, cond, expected, first, second
+
+    def test_where_series_listlike_other(self, data, as_frame):
+        # GH#63842 a list-like 'other' is lined up against the mask without
+        #  casting to object
+        orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
+
+        result = orig.where(cond, [first, second, first, second])
+        tm.assert_equal(result, expected([first, second, second, second]))
+
+        # a length-1 'other' is broadcast, as it is for numpy dtypes
+        result = orig.where(cond, [first])
+        tm.assert_equal(result, expected([first, first, second, first]))
+
+    def test_where_series_listlike_other_wrong_length(self, data):
+        # GH#63842 a length that is neither 1 nor len(self) cannot be lined up
+        cls = type(data)
+        first, second = data[:2]
+        ser = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
+
+        msg = r"Length of value \(3\) does not match length of the array \(4\)"
+        with pytest.raises(ValueError, match=msg):
+            ser.where(cond, [first, second, first])
+
+    def test_mask_listlike_other_inplace(self, data, as_frame):
+        # GH#63842 putmask takes one more shape than where does: a value
+        #  holding one entry per selected position
+        orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
+
+        obj = orig.copy()
+        obj.mask(~cond, [first], inplace=True)
+        tm.assert_equal(obj, expected([first, first, second, first]))
+
+        obj = orig.copy()
+        obj.mask(~cond, [second, first], inplace=True)
+        tm.assert_equal(obj, expected([first, second, second, first]))
+
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
         arr = type(data)._from_sequence(data[:3], dtype=data.dtype)
