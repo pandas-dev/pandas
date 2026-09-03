@@ -619,7 +619,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
         if not (left[left_mask] <= right[left_mask]).all():
-            msg = "left side of interval must be <= right side"
+            # GH#66807 point at the offending intervals
+            invalid = left_mask.copy()
+            invalid[left_mask] = left[left_mask] > right[left_mask]
+            positions = np.flatnonzero(invalid)
+            examples = ", ".join(
+                f"{pos}: ({left[pos]}, {right[pos]})" for pos in positions[:5]
+            )
+            if len(positions) > 5:
+                examples += f", ... ({len(positions) - 5} more)"
+            msg = (
+                "left side of interval must be <= right side; offending "
+                f"intervals (position: interval): {examples}"
+            )
             raise ValueError(msg)
 
     def _shallow_copy(self, left, right) -> Self:
