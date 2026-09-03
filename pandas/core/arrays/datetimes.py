@@ -2814,7 +2814,6 @@ def objects_to_datetime64(
     result : ndarray
         np.datetime64[out_unit] if returned values represent wall times or UTC
         timestamps.
-        object if mixed timezones
     inferred_tz : tzinfo or None
         If not None, then the datetime64 values in `result` denote UTC timestamps.
 
@@ -2843,16 +2842,8 @@ def objects_to_datetime64(
         return result, tz_parsed
     elif result.dtype.kind == "M":
         return result, tz_parsed
-    elif result.dtype == object:
-        # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
-        #  array is allowed.  When called via `pd.DatetimeIndex`, we can
-        #  only accept datetime64 dtype, so raise TypeError if object-dtype
-        #  is returned, as that indicates the values can be recognized as
-        #  datetimes but they have conflicting timezones/awareness
-        raise TypeError("DatetimeIndex has mixed timezones")
     else:  # pragma: no cover
-        # GH#23675 this TypeError should never be hit, whereas the TypeError
-        #  in the object-dtype branch above is reachable.
+        # this TypeError should never be hit
         raise TypeError(result)
 
 
