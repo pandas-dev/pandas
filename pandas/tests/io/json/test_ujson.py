@@ -1285,20 +1285,38 @@ def test_to_json_bad_label_frees_values():
     assert ref() is None
 
 
-@pytest.mark.parametrize("indent", [1, 2, 8])
+@pytest.mark.parametrize("indent", [1, 2, 4, 8])
 def test_indent_deeply_nested_does_not_overflow_buffer(indent):
     # GH#67929
-    # encode() reserves a fixed 256 bytes per frame, but the indent writes are
-    # level*indent bytes and the recursive encode() calls could consume the
-    # frame's whole reservation, so deep nesting wrote past the output buffer.
-    # The overflow tracked indent*depth, hence the parametrize.
-    nested = [1]
-    for _ in range(400):
-        nested = [nested]
+    # encode() reserves a fixed 256 bytes per frame, but the writes a frame
+    # makes after its recursive encode() calls -- the indent, the separator and
+    # the closing bracket -- are not covered by that reservation, so deep
+    # nesting wrote past the output buffer. Which depths overflow depends on
+    # where the writes land relative to the end of the buffer, so sweep.
+    for depth in range(2, 400):
+        nested = [1]
+        for _ in range(depth):
+            nested = [nested]
 
-    result = ujson.ujson_dumps(nested, indent=indent)
+        result = ujson.ujson_dumps(nested, indent=indent)
 
-    assert json.loads(result) == nested
+        assert json.loads(result) == nested
+
+
+def test_dumps_string_filling_buffer_does_not_overflow():
+    # GH#67929
+    # a string whose escaped form exactly fills the reservation it asked for
+    # leaves the enclosing array with no room for the separator and closing
+    # bracket that follow it. "\x01" escapes to six bytes, so "\x01" * 100 is an
+    # exact fit; the leading elements put it near the end of the output buffer,
+    # and the two sweeps walk it across the boundary a byte at a time.
+    for nfill in range(1505, 1515):
+        for pad in range(46):
+            doc = ["a" * 40] * nfill + ["a" * pad] + ["\x01" * 100] + ["z"] * 2000
+
+            result = ujson.ujson_dumps(doc)
+
+            assert json.loads(result) == doc
 
 
 def test_to_json_indent_deeply_nested_does_not_overflow_buffer():

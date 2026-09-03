@@ -727,37 +727,46 @@ INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin, char *end) {
     aux = *end, *end-- = *begin, *begin++ = aux;
 }
 
-void Buffer_AppendIndentNewlineUnchecked(JSONObjectEncoder *enc) {
+// encode() reserves a fixed amount once per frame, but the recursive encode()
+// calls in the JT_ARRAY/JT_OBJECT loops can consume all of it before the
+// enclosing frame writes its separator, indent or closing bracket, so those
+// writes have to reserve for themselves.
+static void Buffer_AppendCharChecked(JSONObjectEncoder *enc, char chr) {
+  // a failed Buffer_Realloc leaves enc->start NULL, so do not reserve again
+  if (enc->errorMsg) {
+    return;
+  }
+  Buffer_Reserve(enc, 1);
+  if (enc->errorMsg) {
+    return;
+  }
+  Buffer_AppendCharUnchecked(enc, chr);
+}
+
+void Buffer_AppendIndentNewlineChecked(JSONObjectEncoder *enc) {
   if (enc->indent > 0) {
-    // encode() reserves a fixed amount once per frame, but the recursive
-    // encode() calls in the JT_ARRAY/JT_OBJECT loops can consume all of it, so
-    // this write is not covered by that reservation
-    Buffer_Reserve(enc, 1);
-    if (enc->errorMsg) {
-      return;
-    }
-    Buffer_AppendCharUnchecked(enc, '\n');
+    Buffer_AppendCharChecked(enc, '\n');
   }
 }
 
 // This function could be refactored to only accept enc as an argument,
 // but this is a straight vendor from ujson source
-void Buffer_AppendIndentUnchecked(JSONObjectEncoder *enc, JSINT32 value) {
+void Buffer_AppendIndentChecked(JSONObjectEncoder *enc, JSINT32 value) {
   int i;
   if (enc->indent > 0) {
-    // `value` is the nesting level, so this writes level*indent bytes: an
-    // amount bounded by neither, which encode()'s fixed 256-byte frame
-    // reservation cannot cover. Deep enough nesting (or a large enough indent)
-    // overflowed the output buffer.
-    if (value > 0) {
-      Buffer_Reserve(enc, (size_t)value * (size_t)enc->indent);
+    // `value` is the nesting level, so this writes level*indent bytes; reserve
+    // one level at a time, as the product can overflow
+    while (value-- > 0) {
       if (enc->errorMsg) {
         return;
       }
-    }
-    while (value-- > 0)
+      Buffer_Reserve(enc, (size_t)enc->indent);
+      if (enc->errorMsg) {
+        return;
+      }
       for (i = 0; i < enc->indent; i++)
         Buffer_AppendCharUnchecked(enc, ' ');
+    }
   }
 }
 
@@ -997,29 +1006,29 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     enc->iterBegin(obj, &tc);
 
     Buffer_AppendCharUnchecked(enc, '[');
-    Buffer_AppendIndentNewlineUnchecked(enc);
+    Buffer_AppendIndentNewlineChecked(enc);
 
     while (enc->iterNext(obj, &tc)) {
       if (count > 0) {
-        Buffer_AppendCharUnchecked(enc, ',');
+        Buffer_AppendCharChecked(enc, ',');
 #ifndef JSON_NO_EXTRA_WHITESPACE
         Buffer_AppendCharUnchecked(buffer, ' ');
 #endif
-        Buffer_AppendIndentNewlineUnchecked(enc);
+        Buffer_AppendIndentNewlineChecked(enc);
       }
 
       iterObj = enc->iterGetValue(obj, &tc);
 
       enc->level++;
-      Buffer_AppendIndentUnchecked(enc, enc->level);
+      Buffer_AppendIndentChecked(enc, enc->level);
       encode(iterObj, enc, NULL, 0);
       count++;
     }
 
     enc->iterEnd(obj, &tc);
-    Buffer_AppendIndentNewlineUnchecked(enc);
-    Buffer_AppendIndentUnchecked(enc, enc->level);
-    Buffer_AppendCharUnchecked(enc, ']');
+    Buffer_AppendIndentNewlineChecked(enc);
+    Buffer_AppendIndentChecked(enc, enc->level);
+    Buffer_AppendCharChecked(enc, ']');
     break;
   }
 
@@ -1028,30 +1037,30 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     enc->iterBegin(obj, &tc);
 
     Buffer_AppendCharUnchecked(enc, '{');
-    Buffer_AppendIndentNewlineUnchecked(enc);
+    Buffer_AppendIndentNewlineChecked(enc);
 
     while (enc->iterNext(obj, &tc)) {
       if (count > 0) {
-        Buffer_AppendCharUnchecked(enc, ',');
+        Buffer_AppendCharChecked(enc, ',');
 #ifndef JSON_NO_EXTRA_WHITESPACE
         Buffer_AppendCharUnchecked(enc, ' ');
 #endif
-        Buffer_AppendIndentNewlineUnchecked(enc);
+        Buffer_AppendIndentNewlineChecked(enc);
       }
 
       iterObj = enc->iterGetValue(obj, &tc);
       objName = enc->iterGetName(obj, &tc, &szlen);
 
       enc->level++;
-      Buffer_AppendIndentUnchecked(enc, enc->level);
+      Buffer_AppendIndentChecked(enc, enc->level);
       encode(iterObj, enc, objName, szlen);
       count++;
     }
 
     enc->iterEnd(obj, &tc);
-    Buffer_AppendIndentNewlineUnchecked(enc);
-    Buffer_AppendIndentUnchecked(enc, enc->level);
-    Buffer_AppendCharUnchecked(enc, '}');
+    Buffer_AppendIndentNewlineChecked(enc);
+    Buffer_AppendIndentChecked(enc, enc->level);
+    Buffer_AppendCharChecked(enc, '}');
     break;
   }
 
@@ -1107,6 +1116,10 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
       return;
     }
     Buffer_Reserve(enc, RESERVE_STRING(szlen));
+    if (enc->errorMsg) {
+      enc->endTypeContext(obj, &tc);
+      return;
+    }
     Buffer_AppendCharUnchecked(enc, '\"');
 
     if (enc->forceASCII) {
