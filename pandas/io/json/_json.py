@@ -1750,10 +1750,14 @@ def _parses_strict_iso8601(data: Series) -> bool:
     default-filled parse on the object-dtype path, which -- unlike the
     string-dtype path -- does not attempt ``format="ISO8601"`` itself.
     """
-    try:
-        to_datetime(data, errors="raise", format="ISO8601")
-    except Exception:
-        return False
+    with warnings.catch_warnings():
+        # a speculative probe whose result is discarded; anything it emits
+        #  would be about a parse the caller never adopts
+        warnings.simplefilter("ignore")
+        try:
+            to_datetime(data, errors="raise", format="ISO8601")
+        except Exception:
+            return False
     return True
 
 
