@@ -109,7 +109,7 @@ def test_frame_iat_setitem():
 
 @pytest.mark.parametrize("value", [None, "warn", "raise"])
 def test_chained_assignment_option_deprecation(value):
-    # GH#XXXXX
+    # GH#67987
     msg = "The 'mode.chained_assignment' option is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         with pd.option_context("mode.chained_assignment", value):
