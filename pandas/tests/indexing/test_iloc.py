@@ -891,8 +891,8 @@ class TestiLocBaseIndependent:
 
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_mismatched_tuples_single_column(self, indexer):
-        # GH#37629 mismatched-length tuples aimed at a single column are cell
-        # values, and the column key may be a list and not just a scalar label
+        # GH#37629 mismatched-length tuples into a single column are cell values,
+        # even when the column key is a list rather than a scalar label
         df = pd.DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
         value = [(1, 2), (3, 4)]
         if indexer == "loc":
@@ -907,10 +907,8 @@ class TestiLocBaseIndependent:
 
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_mismatched_tuples_arrow_list_column(self, indexer):
-        # GH#65264 the per-cell hatch keys on the target being a single
-        # column, not on it being object dtype: a pyarrow list column takes
-        # tuple rows as list values, so narrowing the gate to object would
-        # start raising here
+        # GH#65264 the per-cell hatch keys on the target being a single column,
+        # not on it being object dtype
         pa = pytest.importorskip("pyarrow")
         dtype = pd.ArrowDtype(pa.list_(pa.int64()))
         df = pd.DataFrame({"a": pd.array([[9], [9]], dtype=dtype), "b": [0, 0]})
@@ -933,8 +931,8 @@ class TestiLocBaseIndependent:
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_list_of_len1_arrays_single_column(self, indexer, box):
         # GH#64230 len-1 rows into a single column is the shape that *does*
-        # match, the counterpart to the mismatch above. Tuples are included
-        # because they behave like every other box here, not per cell (GH#65264)
+        # match, the counterpart to the mismatch above. Tuples go this route
+        # too, like every other box (GH#65264)
         df = pd.DataFrame({"a": np.zeros(2), "b": [0, 0]})
         value = [box([1]), box([2])]
         if indexer == "loc":

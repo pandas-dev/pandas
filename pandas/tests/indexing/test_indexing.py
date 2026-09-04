@@ -1210,9 +1210,8 @@ def test_loc_setitem_2d_list_on_object_frame(value):
     ids=["tuples", "lists", "ndarray"],
 )
 def test_setitem_2d_value_wrong_shape_multi_column(value, indexer_li):
-    # GH#65264 - a 2D value whose rows don't match the number of target
-    #  columns must raise regardless of how the rows are spelled; the
-    #  list-of-tuples spelling used to be silently written column-major
+    # GH#65264 a 2D value whose rows don't match the target column count must
+    #  raise however the rows are spelled; list-of-tuples was written column-major
     df = pd.DataFrame({"a": ["x", "y", "z"], "b": [1, 2, 3], "c": [4.0, 5.0, 6.0]})
     key = ["b", "c"] if indexer_li is tm.loc else [1, 2]
 
@@ -1231,10 +1230,8 @@ def test_setitem_2d_value_wrong_shape_multi_column(value, indexer_li):
     ids=["tuples", "lists", "ndarray"],
 )
 def test_setitem_2d_value_wrong_shape_all_false_mask(value, indexer_li):
-    # GH#65264 - the shape mismatch has to be caught even when the row mask
-    #  selects nothing. A value as long as the frame reaches the zero-length
-    #  carve-out, where the list-of-tuples spelling used to be silently
-    #  discarded rather than rejected
+    # GH#65264 the shape mismatch must be caught even when the row mask selects
+    #  nothing: a value as long as the frame reaches the zero-length carve-out
     df = pd.DataFrame({"a": ["x", "y", "z"], "b": [1, 2, 3], "c": [4.0, 5.0, 6.0]})
     key = ["b", "c"] if indexer_li is tm.loc else [1, 2]
 

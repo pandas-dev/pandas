@@ -3563,11 +3563,9 @@ def _is_2d_value_for_columns(value, ncols: int) -> bool:
     """
     Whether ``value`` is a 2-D value spanning ``ncols`` selected columns.
 
-    A list of tuples aimed at a *single* column whose tuples are not length-1 is
-    per-cell values -- e.g. tuples being stored into an object-dtype column --
-    rather than a 2-D block with one entry per selected column (GH#37629). With
-    more than one target column the same value is just a shape mismatch, left to
-    the 2-D path to reject. GH#65264
+    A list of tuples aimed at a single column is per-cell values unless the
+    tuples are length-1 (GH#37629). With more than one target column it is a
+    shape mismatch, left for the 2-D path to reject. GH#65264
     """
     if not _is_2d_value(value):
         return False
