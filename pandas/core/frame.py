@@ -138,6 +138,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.computation.parsing import clean_column_name
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -5074,6 +5075,14 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame resulting from the provided query expression or
             None if ``inplace=True``.
 
+        Raises
+        ------
+        ValueError
+            If ``expr`` refers to a column label that is not unique and still
+            evaluates to a DataFrame, since there is then no row mask to select
+            with. Reducing those columns back to one dimension, as in
+            ``df.query("a.max(axis=1) > 4")``, is fine.
+
         See Also
         --------
         eval : Evaluate a string describing operations on
@@ -5193,6 +5202,12 @@ class DataFrame(NDFrame, OpsMixin):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
 
+        query_resolvers: tuple[Mapping[Any, Any], ...] = tuple(resolvers or ())
+        duplicates: _DuplicateColumnRecorder | None = None
+        if self.columns.has_duplicates:
+            duplicates = _DuplicateColumnRecorder.from_columns(self.columns)
+            query_resolvers += (duplicates,)
+
         res = self.eval(
             expr,
             level=level + 1,
@@ -5201,8 +5216,20 @@ class DataFrame(NDFrame, OpsMixin):
             engine=engine,
             local_dict=local_dict,
             global_dict=global_dict,
-            resolvers=resolvers or (),
+            resolvers=query_resolvers,
         )
+
+        if (
+            duplicates is not None
+            and duplicates.referenced
+            and getattr(res, "ndim", 1) == 2
+        ):
+            raise ValueError(
+                "expr referenced a duplicated column label, which resolves to "
+                "a DataFrame rather than a Series, so expr did not evaluate to "
+                "a row mask. Rename or drop the duplicate labels, or reduce "
+                "the result to one dimension with e.g. .any(axis=1)."
+            )
 
         try:
             result = self.loc[res]
@@ -20065,6 +20092,49 @@ class DataFrame(NDFrame, OpsMixin):
                [ 2., nan]], dtype=float32)
         """
         return self._mgr.as_array()
+
+
+class _DuplicateColumnRecorder(dict):
+    """
+    Notes whether a query expression referenced a duplicated column label.
+
+    Such a label resolves to a :class:`DataFrame` rather than a
+    :class:`Series` (GH#65588), which is fine for an expression that reduces it
+    back to one dimension and useless to :meth:`DataFrame.query` otherwise, so
+    this only takes note and ``query`` decides once it can see the result.
+
+    Lookups always raise ``KeyError`` so that the column resolvers behind this
+    one still supply the value. The names live in an attribute rather than in
+    the dict itself because the scope machinery rewrites an ``@local``
+    reference by writing it into the first resolver that *contains* that name
+    (``Scope.swapkey``), so anything stored here would capture locals sharing a
+    name with a duplicated column.
+    """
+
+    def __init__(self, names: set[Hashable]) -> None:
+        super().__init__()
+        self.names = names
+        self.referenced = False
+
+    @classmethod
+    def from_columns(cls, columns: Index) -> _DuplicateColumnRecorder:
+        # _get_cleaned_column_resolvers keys on the cleaned name and lets the
+        # last label win, and clean_column_name is not injective, so work out
+        # which label each name resolves to before asking whether that one is
+        # duplicated.
+        resolved = dict(
+            zip(
+                (clean_column_name(label) for label in columns),
+                columns.duplicated(keep=False),
+                strict=True,
+            )
+        )
+        return cls({name for name, is_duplicated in resolved.items() if is_duplicated})
+
+    def __getitem__(self, key):
+        if key in self.names:
+            self.referenced = True
+        raise KeyError(key)
 
 
 def _from_nested_dict(
