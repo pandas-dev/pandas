@@ -434,7 +434,7 @@ def test_max_sas_date_iterator(datapath):
     results = []
     for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
         # GH 19732: Timestamps imported from sas will incur floating point errors
-        df.reset_index(inplace=True, drop=True)
+        df = df.reset_index(drop=True)
         results.append(df)
     expected = [
         pd.DataFrame(
