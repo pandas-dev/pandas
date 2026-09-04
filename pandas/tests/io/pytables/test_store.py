@@ -786,13 +786,16 @@ def test_coordinates_array_mask(temp_hdfstore):
     with pytest.raises(TypeError, match=msg):
         store.select("df", where=np.arange(len(df), dtype="float64"))
 
-    with pytest.raises(TypeError, match=msg):
+    # GH#68029 out-of-range coordinates report the range check, not the
+    #  grammar error they used to fall through to
+    msg = "where must have index locations >= start and < stop"
+    with pytest.raises(ValueError, match=msg):
         store.select("df", where=np.arange(len(df) + 1))
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         store.select("df", where=np.arange(len(df)), start=5)
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         store.select("df", where=np.arange(len(df)), start=5, stop=10)
 
     # selection with filter
@@ -819,6 +822,32 @@ def test_coordinates_array_mask(temp_hdfstore):
     result = store.select("df2", start=5, stop=10)
     expected = df[5:10]
     tm.assert_frame_equal(result, expected)
+
+
+def test_select_out_of_range_coordinates(temp_hdfstore):
+    # GH#68029 an out-of-range coordinate `where` used to surface as a
+    #  TypeError about the query grammar, because the range check's
+    #  ValueError was swallowed and the coordinates fell through to the
+    #  expression parser
+    df = pd.DataFrame({"a": range(10)})
+    temp_hdfstore.append("df", df)
+
+    msg = "where must have index locations >= start and < stop"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=[100])
+
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=[1, 2, 3], start=5)
+
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select_as_coordinates("df", where=[1, 2, 3], stop=2)
+
+    # in-range coordinates are unaffected
+    result = temp_hdfstore.select("df", where=[1, 2, 3])
+    tm.assert_frame_equal(result, df.iloc[[1, 2, 3]])
+
+    result = temp_hdfstore.select("df", where=[6, 7], start=5)
+    tm.assert_frame_equal(result, df.iloc[[6, 7]])
 
 
 def test_start_stop_table(temp_hdfstore):
