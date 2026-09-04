@@ -401,7 +401,7 @@ def test_categorical_where_non_category_with_nan(temp_h5_path, where, mask):
 
 @pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
 def test_categorical_where_ordering_op_unordered_raises(temp_h5_path, op):
-    # GH#67000 - in memory this raises, so the query must not answer it
+    # GH#68040 - in memory this raises, so the query must not answer it
     df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
 
@@ -412,7 +412,7 @@ def test_categorical_where_ordering_op_unordered_raises(temp_h5_path, op):
 
 @pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
 def test_categorical_index_where_ordering_op_unordered_raises(temp_h5_path, op):
-    # GH#67000 - same for an unordered CategoricalIndex
+    # GH#68040 - same for an unordered CategoricalIndex
     df = pd.DataFrame({"v": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
     df.to_hdf(temp_h5_path, key="df", format="table")
 
@@ -427,7 +427,7 @@ def test_categorical_index_where_ordering_op_unordered_raises(temp_h5_path, op):
 )
 @pytest.mark.parametrize("as_index", [True, False])
 def test_categorical_where_ordering_op_ordered(temp_h5_path, op, comparison, as_index):
-    # GH#67000 - non-lexicographic categories, so the result distinguishes
+    # GH#68040 - non-lexicographic categories, so the result distinguishes
     #  "compare by category order" from "compare the values themselves"
     cat = pd.Categorical(["a", "b", "c"], categories=["c", "b", "a"], ordered=True)
     if as_index:
@@ -443,7 +443,7 @@ def test_categorical_where_ordering_op_ordered(temp_h5_path, op, comparison, as_
 
 
 def test_categorical_where_equality_op_unordered(temp_h5_path):
-    # GH#67000 - equality comparisons are unaffected
+    # GH#68040 - equality comparisons are unaffected
     df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
 
@@ -455,7 +455,7 @@ def test_categorical_where_equality_op_unordered(temp_h5_path):
 
 
 def test_categorical_where_ordering_op_numpy_bool_ordered(temp_h5_path):
-    # GH#67000 - CategoricalDtype keeps a np.bool_ `ordered` as passed
+    # GH#68040 - CategoricalDtype keeps a np.bool_ `ordered` as passed
     df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"], ordered=np.False_)})
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
 
@@ -465,7 +465,7 @@ def test_categorical_where_ordering_op_numpy_bool_ordered(temp_h5_path):
 
 
 def test_categorical_where_ordering_op_unrecorded_ordered(temp_h5_path):
-    # GH#67000 - no flag recorded, so the query cannot tell and stays permissive
+    # GH#68040 - no flag recorded, so the query cannot tell and stays permissive
     tables = pytest.importorskip("tables")
 
     df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})

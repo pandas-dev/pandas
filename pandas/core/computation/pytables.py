@@ -271,7 +271,7 @@ class BinOp(ops.BinOp):
             ordered = self.ordered
             is_unordered = ordered is not None and not ordered
             if is_unordered and self.op in ["<", "<=", ">", ">="]:
-                # GH#67000 the stored codes are orderable, but the categories
+                # GH#68040 the stored codes are orderable, but the categories
                 #  they stand for are not; match the in-memory comparison.
                 raise TypeError(
                     "Unordered Categoricals can only compare equality or not"
