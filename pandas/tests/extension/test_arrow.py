@@ -48,6 +48,7 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -563,7 +564,6 @@ class TestArrowArray(base.ExtensionTests):
             }[arr.dtype.kind]
         return cmp_dtype
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
@@ -849,16 +849,14 @@ class TestArrowArray(base.ExtensionTests):
 
     def _is_temporal_supported(self, opname, pa_dtype):
         return (
-            (
-                opname
-                in (
-                    "__add__",
-                    "__radd__",
-                    "__truediv__",
-                    "__rtruediv__",
-                    "__floordiv__",
-                    "__rfloordiv__",
-                )
+            opname
+            in (
+                "__add__",
+                "__radd__",
+                "__truediv__",
+                "__rtruediv__",
+                "__floordiv__",
+                "__rfloordiv__",
             )
             and pa.types.is_duration(pa_dtype)
         ) or (opname in ("__sub__", "__rsub__") and pa.types.is_temporal(pa_dtype))
@@ -2463,6 +2461,74 @@ def test_str_expand_no_width(data, pa_type, method):
     tm.assert_frame_equal(result, expected, check_column_type=True)
 
 
+# (method, args, kwargs, result pa type as a function of the input's own type)
+_ELEMENTWISE_STR_FALLBACKS = [
+    ("casefold", (), {}, lambda pa_type: pa_type),
+    ("normalize", ("NFC",), {}, lambda pa_type: pa_type),
+    ("translate", ({97: "b"},), {}, lambda pa_type: pa_type),
+    ("wrap", (3,), {}, lambda pa_type: pa_type),
+    ("join", ("-",), {}, lambda pa_type: pa_type),
+    (
+        "encode",
+        ("utf-8",),
+        {},
+        lambda pa_type: (
+            pa.large_binary() if pa.types.is_large_string(pa_type) else pa.binary()
+        ),
+    ),
+    ("partition", ("b",), {"expand": False}, lambda pa_type: pa.list_(pa_type)),
+    ("rpartition", ("b",), {"expand": False}, lambda pa_type: pa.list_(pa_type)),
+    ("findall", ("b",), {}, lambda pa_type: pa.list_(pa_type)),
+    ("index", ("b",), {}, lambda pa_type: pa.int64()),
+    ("rindex", ("b",), {}, lambda pa_type: pa.int64()),
+    ("rfind", ("b",), {}, lambda pa_type: pa.int64()),
+]
+
+_elementwise_str_fallback_params = pytest.mark.parametrize(
+    "method, args, kwargs, result_pa_type",
+    _ELEMENTWISE_STR_FALLBACKS,
+    ids=[entry[0] for entry in _ELEMENTWISE_STR_FALLBACKS],
+)
+
+
+@_elementwise_str_fallback_params
+@pytest.mark.parametrize(
+    "chunks",
+    [[], [[None, None]], [[None], ["abcba"]]],
+    ids=["no-chunks", "all-na", "na-chunk-first"],
+)
+def test_str_elementwise_fallback_degenerate_chunks(
+    method, args, kwargs, result_pa_type, chunks
+):
+    # GH#66706 the elementwise fallbacks rebuild the result with an explicit
+    #  type, so chunkings that give pyarrow nothing to infer from -- no chunks
+    #  at all, or a leading all-null chunk -- no longer raise or come back as
+    #  null[pyarrow]
+    arr = pa.chunked_array(
+        [pa.array(chunk, type=pa.string()) for chunk in chunks], type=pa.string()
+    )
+    result = getattr(pd.Series(ArrowExtensionArray(arr)).str, method)(*args, **kwargs)
+    assert result.dtype == ArrowDtype(result_pa_type(pa.string()))
+
+    data = [val for chunk in chunks for val in chunk]
+    unchunked = pd.Series(data, dtype=ArrowDtype(pa.string()))
+    expected = getattr(unchunked.str, method)(*args, **kwargs)
+    tm.assert_series_equal(result, expected)
+
+
+@_elementwise_str_fallback_params
+def test_str_elementwise_fallback_keeps_large_string(
+    method, args, kwargs, result_pa_type
+):
+    # GH#66221 a large_string input must not silently come back as string; the
+    #  string-valued results keep large_string, encode gives the matching
+    #  large_binary, and the list-valued results nest large_string just like
+    #  the native pc.split_pattern kernels do
+    ser = pd.Series(["abcba", None], dtype=ArrowDtype(pa.large_string()))
+    result = getattr(ser.str, method)(*args, **kwargs)
+    assert result.dtype == ArrowDtype(result_pa_type(pa.large_string()))
+
+
 @pytest.mark.parametrize("method", ["rsplit", "split"])
 def test_str_split_pat_none(method):
     # GH 56271
@@ -3562,6 +3628,39 @@ def test_from_sequence_of_strings_boolean():
     strings = ["True", "foo"]
     with pytest.raises(pa.ArrowInvalid, match="Failed to parse"):
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_empty_string_float():
+    # GH#66834 match numpy float64: empty string is not a valid float
+    strings = ["1.5", "", "2.0"]
+    dtype = ArrowDtype(pa.float64())
+    with pytest.raises(ValueError, match=r"could not convert string to double"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_empty_string_with_na():
+    # GH#66834 pd.NA must not make the empty-string check raise TypeError
+    strings = np.array(["1.5", pd.NA, ""], dtype=object)
+    dtype = ArrowDtype(pa.float64())
+    with pytest.raises(ValueError, match=r"could not convert string to double"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_empty_string_int():
+    # GH#66834
+    strings = ["1", "", "2"]
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(ValueError, match=r"could not convert string to int64"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_none_float():
+    # GH#66834
+    strings = ["1.5", None, "2.0"]
+    dtype = ArrowDtype(pa.float64())
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_concat_empty_arrow_backed_series(dtype):
@@ -4695,6 +4794,15 @@ def test_string_to_time_parsing_cast():
     expected = pd.Series(
         ArrowExtensionArray(pa.array([time(11, 41, 43, 76160)], from_pandas=True))
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_not_english_lc_time
+@pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
+def test_string_to_time_parsing_cast_meridiem(dtype):
+    # GH#18793 the space before AM/PM used to make these coerce to null
+    result = pd.Series(["3:25:00 PM"], dtype=dtype)
+    expected = pd.Series(["15:25:00"], dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 

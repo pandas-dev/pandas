@@ -550,6 +550,14 @@ cdef class Parser:
         uint8_t *cached_page
         Py_ssize_t cached_page_len
         int current_row_on_page_index
+        # How many rows a mix page hands out before the parser moves on. Held
+        # here rather than read off the reader per row so that a metadata page
+        # reached partway through a chunk cannot move the boundary for the rest
+        # of it -- sas7bdat.py rejects the file once the chunk is done. An int,
+        # like the row index above that it is compared against: a wider one
+        # would take a count no page can hold, never reach it, and hand out the
+        # rest of the page as rows.
+        int mix_page_row_count
         int current_page_block_count
         int n_data_subheaders
         int current_page_subheaders_count
@@ -607,6 +615,7 @@ cdef class Parser:
         self.data_subheader_offsets = parser._data_subheader_offsets
         self.data_subheader_lengths = parser._data_subheader_lengths
         self.row_length = parser.row_length
+        self.mix_page_row_count = min(parser.row_count, parser._mix_page_row_count)
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
         self.is_little_endian = parser.byte_order == "<"
@@ -754,7 +763,7 @@ cdef class Parser:
         cdef:
             Py_ssize_t offset, length
             int bit_offset, align_correction
-            int subheader_pointer_length, mn
+            int subheader_pointer_length
             bint done, flag
 
         bit_offset = self.bit_offset
@@ -796,8 +805,7 @@ cdef class Parser:
                 offset += self.current_page_subheaders_count * subheader_pointer_length
                 offset += self.current_row_on_page_index * self.row_length
                 self.process_byte_array_with_data(offset, self.row_length)
-                mn = min(self.parser.row_count, self.parser._mix_page_row_count)
-                if self.current_row_on_page_index == mn:
+                if self.current_row_on_page_index == self.mix_page_row_count:
                     done = self.read_next_page()
                     if done:
                         return True
