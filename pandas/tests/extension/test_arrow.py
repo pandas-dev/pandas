@@ -1693,7 +1693,7 @@ def test_setitem_null_slice(data):
     ],
 )
 def test_setitem_null_slice_no_alias(dtype, np_dtype):
-    # GH#67976 the null-slice fast path must not adopt a buffer the caller owns
+    # GH#67990 the null-slice fast path must not adopt a buffer the caller owns
     expected = pd.array(np.array([10, 20, 30]).astype(np_dtype), dtype=dtype)
 
     np_values = np.array([10, 20, 30]).astype(np_dtype)
@@ -1710,7 +1710,7 @@ def test_setitem_null_slice_no_alias(dtype, np_dtype):
 
 
 def test_setitem_null_slice_no_alias_masked():
-    # GH#67976 masked arrays are zero-copy through __arrow_array__
+    # GH#67990 masked arrays are zero-copy through __arrow_array__
     arr = pd.array([None] * 3, dtype="int64[pyarrow]")
     values = pd.array([10, 20, 30], dtype="Int64")
     arr[:] = values
@@ -1733,7 +1733,7 @@ def test_setitem_null_slice_no_alias_masked():
     ids=["array", "chunked", "chunked_multi", "extension_array", "series"],
 )
 def test_setitem_null_slice_no_alias_pyarrow(wrap):
-    # GH#67976 a pyarrow array is immutable, but its buffers can still be
+    # GH#67990 a pyarrow array is immutable, but its buffers can still be
     #  zero-copy over a numpy array the caller owns
     np_values = np.array([10, 20, 30], dtype="int64")
     arr = pd.array([None] * 3, dtype="int64[pyarrow]")
@@ -1748,7 +1748,7 @@ def test_setitem_null_slice_no_alias_pyarrow(wrap):
 
 @pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "binary[pyarrow]"])
 def test_setitem_null_slice_string_stays_zero_copy(dtype):
-    # GH#67976 the aliasing fix must not undo GH#64529/GH#64530: character data
+    # GH#67990 the aliasing fix must not undo GH#64529/GH#64530: character data
     #  is never zero-copy over caller-owned memory, so it is not copied here
     values = pd.array(
         [b"a", b"bb", b"ccc"] if "binary" in dtype else ["a", "bb", "ccc"], dtype=dtype
@@ -1762,7 +1762,7 @@ def test_setitem_null_slice_string_stays_zero_copy(dtype):
 
 
 def test_setitem_null_slice_no_alias_dictionary():
-    # GH#67976 pa.concat_arrays reuses the dictionary child, so the values half
+    # GH#67990 pa.concat_arrays reuses the dictionary child, so the values half
     #  of a dictionary type needs copying too
     dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.int64()))
     np_values = np.array([100, 200], dtype="int64")
@@ -1780,7 +1780,7 @@ def test_setitem_null_slice_no_alias_dictionary():
 
 
 def test_setitem_null_slice_cow():
-    # GH#67976 full-slice assignment must not tie the two frames together
+    # GH#67990 full-slice assignment must not tie the two frames together
     df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="int64[pyarrow]")})
     other = pd.DataFrame({"b": [10, 20, 30]})
     df.loc[:, "a"] = other["b"]

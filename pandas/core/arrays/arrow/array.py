@@ -366,7 +366,7 @@ def _copy_pyarrow_buffers(
     over memory that something else still owns and may write to -- most often a
     numpy array, via ``pa.array(np_arr)``. Callers that are about to adopt an
     array as their own backing store need the buffers, not just the object, to
-    be theirs (GH#67976).
+    be theirs (GH#67990).
 
     ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
     so dictionary types are rebuilt from copies of both halves instead.
@@ -2956,7 +2956,7 @@ class ArrowExtensionArray(
                 and value.type == self._pa_array.type
                 and len(value) == len(self)
             ):
-                # GH#67976 this adopts ``value`` as our backing array, so for
+                # GH#67990 this adopts ``value`` as our backing array, so for
                 #  any type whose buffers the caller may still own and mutate we
                 #  have to take our own copy first.
                 if _boxing_may_borrow_memory(value.type):
