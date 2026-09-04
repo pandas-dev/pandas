@@ -4530,6 +4530,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 nan_rep=nan_rep,
+                ordered=self.info.get(name, {}).get("ordered"),
             )
             _indexables.append(index_col)
 
@@ -4576,6 +4577,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 dtype=dtype,
+                ordered=self.info.get(c, {}).get("ordered"),
             )
             obj.is_mi_level = is_mi_level
             obj.nan_rep = nan_rep
