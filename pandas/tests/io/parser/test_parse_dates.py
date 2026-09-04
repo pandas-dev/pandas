@@ -89,7 +89,10 @@ def test_nat_parse(all_parsers, temp_file):
     df.iloc[3:6, :] = np.nan
 
     path = temp_file
-    df.to_csv(path)
+    # engine="python": this is about read_csv's NaT parsing, not to_csv's
+    # write engine, and the pyarrow write engine's datetime rendering
+    # would change the resolution read.csv infers for column "B"
+    df.to_csv(path, engine="python")
 
     result = parser.read_csv(path, index_col=0, parse_dates=["B"])
     tm.assert_frame_equal(result, df)

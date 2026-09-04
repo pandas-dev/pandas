@@ -160,7 +160,10 @@ class TestDataFrameToCSV:
         cols = [cs[2], cs[0]]
 
         path = str(temp_file)
-        df.to_csv(path, columns=cols, chunksize=chunksize)
+        # engine="python": round-trip dtype stability for whole-number
+        # floats isn't guaranteed with the pyarrow engine, which omits the
+        # trailing ".0" that read_csv's type inference relies on
+        df.to_csv(path, columns=cols, chunksize=chunksize, engine="python")
         rs_c = pd.read_csv(path, index_col=0)
 
         tm.assert_frame_equal(df[cols], rs_c, check_names=False)
@@ -843,7 +846,10 @@ class TestDataFrameToCSV:
         aa["D"] = aa.A + 3.0
 
         path = str(temp_file)
-        aa.to_csv(path, chunksize=chunksize)
+        # engine="python": these are whole-number floats, whose round-trip
+        # dtype isn't guaranteed with the pyarrow engine (see
+        # test_to_csv_cols_reordering)
+        aa.to_csv(path, chunksize=chunksize, engine="python")
         rs = pd.read_csv(path, index_col=0)
         tm.assert_frame_equal(rs, aa)
 
@@ -869,7 +875,10 @@ class TestDataFrameToCSV:
         newdf = pd.DataFrame({"t": df[df.columns[0]]})
 
         path = str(temp_file)
-        newdf.to_csv(path)
+        # engine="python": "t" is a whole-number float column, whose
+        # round-trip dtype isn't guaranteed with the pyarrow engine (see
+        # test_to_csv_cols_reordering)
+        newdf.to_csv(path, engine="python")
 
         recons = pd.read_csv(path, index_col=0)
         # don't check_names as t != 1
@@ -988,13 +997,17 @@ class TestDataFrameToCSV:
 
     def test_to_csv_lineterminators2(self, temp_file):
         # see gh-20353
+        # engine="python": on platforms where os.linesep == "\n" this
+        # lineterminator is indistinguishable from the (pyarrow-compatible)
+        # default, so the pyarrow/auto engines would otherwise be used and
+        # quote the (string-typed) header
         df = pd.DataFrame(
             {"A": [1, 2, 3], "B": [4, 5, 6]}, index=["one", "two", "three"]
         )
 
         path = str(temp_file)
         # case 2: LF as line terminator
-        df.to_csv(path, lineterminator="\n")
+        df.to_csv(path, lineterminator="\n", engine="python")
         expected = b",A,B\none,1,4\ntwo,2,5\nthree,3,6\n"
 
         with open(path, mode="rb") as f:
@@ -1002,12 +1015,13 @@ class TestDataFrameToCSV:
 
     def test_to_csv_lineterminators3(self, temp_file):
         # see gh-20353
+        # engine="python": exercises the exact unquoted default rendering
         df = pd.DataFrame(
             {"A": [1, 2, 3], "B": [4, 5, 6]}, index=["one", "two", "three"]
         )
         path = str(temp_file)
         # case 3: The default line terminator(=os.linesep)(gh-21406)
-        df.to_csv(path)
+        df.to_csv(path, engine="python")
         os_linesep = os.linesep.encode("utf-8")
         expected = (
             b",A,B"
@@ -1324,7 +1338,12 @@ class TestDataFrameToCSV:
 
         expected_rows = ['"a","b","c"', '"1","3","5"', '"2","4","6"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
-        assert df.to_csv(quoting=csv.QUOTE_ALL) == expected
+        # engine="python": this int-only frame with QUOTE_ALL has nothing
+        # else to block pyarrow, and pyarrow's own default lineterminator
+        # ("\n" always) would make this test's use of os.linesep-based
+        # tm.convert_rows_list_to_csv_str wrong on a platform where
+        # os.linesep isn't "\n"
+        assert df.to_csv(quoting=csv.QUOTE_ALL, engine="python") == expected
 
     def test_period_index_date_overflow(self):
         # see gh-15982
@@ -1387,7 +1406,8 @@ class TestDataFrameToCSV:
         file_path = tmp_path / "__test_gz_lineend.csv.gz"
         file_path.touch()
         path = str(file_path)
-        df.to_csv(path, index=False)
+        # engine="python": exercises the exact unquoted default rendering
+        df.to_csv(path, index=False, engine="python")
         with tm.decompress_file(path, compression="gzip") as f:
             result = f.read().decode("utf-8")
 
@@ -1418,7 +1438,8 @@ class TestDataFrameToCSV:
         df = pd.DataFrame({"a": "x", "b": [1, pd.NA]})
         df["b"] = df["b"].astype("Int16")
         df["b"] = df["b"].astype("category")
-        result = df.to_csv()
+        # engine="python": exercises the exact unquoted default rendering
+        result = df.to_csv(engine="python")
         expected_rows = [",a,b", "0,x,1", "1,x,"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected

@@ -3760,7 +3760,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
-        mode: str = ...,
+        mode: str | None = ...,
         encoding: str | None = ...,
         compression: CompressionOptions = ...,
         quoting: int | None = ...,
@@ -3773,6 +3773,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        engine: str = "auto",
     ) -> str: ...
 
     @overload
@@ -3787,7 +3788,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
-        mode: str = ...,
+        mode: str | None = ...,
         encoding: str | None = ...,
         compression: CompressionOptions = ...,
         quoting: int | None = ...,
@@ -3800,6 +3801,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        engine: str = "auto",
     ) -> None: ...
 
     @final
@@ -3814,7 +3816,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool | list[str] = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
-        mode: str = "w",
+        mode: str | None = None,
         encoding: str | None = None,
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
@@ -3827,6 +3829,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions | None = None,
+        engine: str = "auto",
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3864,13 +3867,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : {'w', 'x', 'a'}, default 'w'
+        mode : {'w', 'x', 'a'}, default 'w' (python or pyarrow engine) or 'wb'
+            (pyarrow engine when `path_or_buf` is a file path)
             Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
             the file opening. Typical values include:
 
             - 'w', truncate the file first.
             - 'x', exclusive creation, failing if the file already exists.
             - 'a', append to the end of file if it exists.
+
+            .. note::
+                The pyarrow engine can only write to binary buffers. When
+                writing to a file path with ``mode`` left unspecified, the
+                mode is chosen automatically based on which engine ends up
+                being used (see ``engine`` below).
 
         encoding : str, optional
             A string representing the encoding to use in the output file,
@@ -3937,6 +3947,71 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             <https://pandas.pydata.org/docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`_.
 
+        engine : {'auto', 'pyarrow', 'python'}, default 'auto'
+            The engine to use to write the CSV data.
+
+            - 'python' always uses pandas' built-in, pure Python writer.
+            - 'pyarrow' uses :func:`pyarrow.csv.write_csv`, which is
+              generally faster than the python engine, but requires the
+              pyarrow library to be installed, does not support every
+              option supported by the python engine, and renders some
+              values differently (see the notes below). A ``ValueError``
+              is raised if the current data or options are not supported
+              by the pyarrow engine.
+            - 'auto' uses the pyarrow engine when it is installed and the
+              data and options passed are fully supported by it, and
+              silently falls back to the python engine otherwise. This
+              never changes the *values* represented (round-tripping
+              through :func:`~pandas.read_csv` gives back the same data
+              either way), but, whenever pyarrow ends up being used, the
+              exact text written differs from the python engine as
+              described below.
+
+            The pyarrow engine cannot be used, and 'auto' will use the
+            python engine instead, when:
+
+            * any of ``na_rep``, ``float_format``, ``date_format``,
+              ``decimal``, ``lineterminator``, ``encoding``, ``errors``,
+              ``escapechar``, or ``doublequote`` is set to a non-default
+              value (``encoding`` may still be a spelling of ``"utf-8"``,
+              since that is what the pyarrow engine always writes), or
+              ``quotechar`` is set to something other than ``'"'``.
+            * the columns being written have a :class:`MultiIndex`.
+            * any row being written would be entirely missing values,
+              since the pyarrow engine has no way to mark a missing value
+              other than leaving the field blank, which
+              :func:`~pandas.read_csv` would otherwise silently treat as a
+              blank line and skip.
+            * a column holds only whole-number float values (e.g. ``1.0``,
+              ignoring missing values), since the pyarrow engine omits the
+              trailing ``.0`` (writing ``1``), which can change the dtype
+              :func:`~pandas.read_csv` infers for that column on
+              round-trip.
+            * the data cannot be represented by `pyarrow`, e.g.
+              :class:`~pandas.Period`, :class:`~pandas.Interval`,
+              ``complex`` dtype, or :class:`~pandas.arrays.SparseArray`
+              columns, or an ``object`` column pyarrow cannot infer a
+              single type for.
+
+            Additionally, whenever the pyarrow engine is used (via
+            ``engine='pyarrow'``, or via ``engine='auto'`` when none of
+            the above apply), string, categorical, and ``object``-dtype
+            values (including the header row) are always quoted, unlike
+            the python engine, which only quotes a value when the
+            delimiter, quote character, or a newline appears in it.
+            ``bool`` and nullable ``boolean`` columns are written as
+            ``true``/``false`` instead of ``True``/``False``,
+            ``timedelta64`` columns are written as integer nanoseconds
+            instead of e.g. ``"1 days 00:00:00"``, and timezone-aware
+            ``datetime64`` columns use a different offset format and are
+            limited to microsecond precision. With ``engine='auto'``,
+            columns with any of these three dtypes are written with the
+            python engine instead. With ``engine='pyarrow'``, a
+            ``UserWarning`` is raised and the pyarrow engine is used
+            anyway.
+
+            .. versionadded:: 3.1.0
+
         Returns
         -------
         None or str
@@ -3960,7 +4035,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Create 'out.zip' containing 'out.csv'
 
-        >>> df.to_csv(index=False)
+        >>> df.to_csv(index=False, engine="python")
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
         >>> compression_opts = dict(
         ...     method="zip", archive_name="out.csv"
@@ -4002,6 +4077,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
+            engine=engine,
             lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
