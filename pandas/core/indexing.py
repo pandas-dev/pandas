@@ -2686,9 +2686,15 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
             elif _is_2d_value(value) and not (
+                # Mismatched-length tuples aimed at a *single* column are
+                #  cell values to store as-is, not rows of a 2D value
+                #  (GH#37629). With more than one target column the same
+                #  value is just a shape mismatch, so keep dispatching it to
+                #  _setitem_with_indexer_2d_value, which rejects it. GH#65264
                 isinstance(value, list)
+                and len(ilocs) == 1
                 and isinstance(value[0], tuple)
-                and len(value[0]) != len(ilocs)
+                and len(value[0]) != 1
             ):
                 self._setitem_with_indexer_2d_value(indexer, value)
 

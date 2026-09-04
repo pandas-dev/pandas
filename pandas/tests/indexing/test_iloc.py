@@ -13,6 +13,7 @@ import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
+    ArrowDtype,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -887,15 +888,48 @@ class TestiLocBaseIndependent:
             else:
                 df.iloc[:, [0]] = value
 
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_mismatched_tuples_single_column(self, indexer):
+        # GH#37629 mismatched-length tuples aimed at a single column are cell
+        # values, and the column key may be a list and not just a scalar label
+        df = DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [(1, 2), (3, 4)]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = DataFrame({"a": Series([(1, 2), (3, 4)], dtype=object), "b": [0, 0]})
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_mismatched_tuples_arrow_list_column(self, indexer):
+        # GH#65264 the per-cell hatch keys on the target being a single
+        # column, not on it being object dtype: a pyarrow list column takes
+        # tuple rows as list values, so narrowing the gate to object would
+        # start raising here
+        pa = pytest.importorskip("pyarrow")
+        dtype = ArrowDtype(pa.list_(pa.int64()))
+        df = DataFrame({"a": array([[9], [9]], dtype=dtype), "b": [0, 0]})
+        value = [(1, 2), (3, 4)]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = DataFrame({"a": array([[1, 2], [3, 4]], dtype=dtype), "b": [0, 0]})
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize(
         "box",
-        [np.array, Series, Index, array],
-        ids=["ndarray", "Series", "Index", "pd.array"],
+        [np.array, Series, Index, array, tuple],
+        ids=["ndarray", "Series", "Index", "pd.array", "tuple"],
     )
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_list_of_len1_arrays_single_column(self, indexer, box):
         # GH#64230 len-1 rows into a single column is the shape that *does*
-        # match, the counterpart to the mismatch above
+        # match, the counterpart to the mismatch above. Tuples are included
+        # because they behave like every other box here, not per cell (GH#65264)
         df = DataFrame({"a": np.zeros(2), "b": [0, 0]})
         value = [box([1]), box([2])]
         if indexer == "loc":

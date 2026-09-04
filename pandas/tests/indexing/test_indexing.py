@@ -1203,6 +1203,49 @@ def test_loc_setitem_2d_list_on_object_frame(value):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        [(10, 20, 30), (40, 50, 60)],
+        [[10, 20, 30], [40, 50, 60]],
+        np.array([[10, 20, 30], [40, 50, 60]]),
+    ],
+    ids=["tuples", "lists", "ndarray"],
+)
+def test_setitem_2d_value_wrong_shape_multi_column(value, indexer_li):
+    # GH#65264 - a 2D value whose rows don't match the number of target
+    #  columns must raise regardless of how the rows are spelled; the
+    #  list-of-tuples spelling used to be silently written column-major
+    df = DataFrame({"a": ["x", "y", "z"], "b": [1, 2, 3], "c": [4.0, 5.0, 6.0]})
+    key = ["b", "c"] if indexer_li is tm.loc else [1, 2]
+
+    msg = "Must have equal len keys and value when setting with an ndarray"
+    with pytest.raises(ValueError, match=msg):
+        indexer_li(df)[:, key] = value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        [(1, 2, 3), (4, 5, 6), (7, 8, 9)],
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        np.arange(1, 10).reshape(3, 3),
+    ],
+    ids=["tuples", "lists", "ndarray"],
+)
+def test_setitem_2d_value_wrong_shape_all_false_mask(value, indexer_li):
+    # GH#65264 - the shape mismatch has to be caught even when the row mask
+    #  selects nothing. A value as long as the frame reaches the zero-length
+    #  carve-out, where the list-of-tuples spelling used to be silently
+    #  discarded rather than rejected
+    df = DataFrame({"a": ["x", "y", "z"], "b": [1, 2, 3], "c": [4.0, 5.0, 6.0]})
+    key = ["b", "c"] if indexer_li is tm.loc else [1, 2]
+
+    msg = "Must have equal len keys and value when setting with an ndarray"
+    with pytest.raises(ValueError, match=msg):
+        indexer_li(df)[np.zeros(3, dtype=bool), key] = value
+
+
 def test_object_dtype_series_set_series_element():
     # GH 48933
     s1 = Series(dtype="O", index=["a", "b"])
