@@ -1616,7 +1616,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             result = getattr(arr, name)(**kwargs)
 
         if keepdims:
-            return type(self)([result], dtype=self.dtype)
+            dtype = self.dtype
+            if dtype.subtype.kind in "biufc":
+                # The reduction is not always closed over self.dtype, e.g. the
+                # mean of an integer column, the sum of a narrow one, or the
+                # NaN that min_count inserts; casting the result back to
+                # self.dtype would silently truncate it.
+                subtype = np.result_type(dtype.subtype, result)
+                if subtype != dtype.subtype:
+                    fill_value = self.fill_value
+                    if notna(fill_value):
+                        # keep the fill value so that reducing a frame of
+                        # sparse columns does not mix fill values
+                        fill_value = subtype.type(fill_value).item()
+                    dtype = SparseDtype(subtype, fill_value)
+            return type(self)([result], dtype=dtype)
         else:
             return result
 

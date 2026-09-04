@@ -169,8 +169,6 @@ cdef extern from "pandas/datetime/pd_datetime.h":
 
 
 cdef:
-    float64_t INF = <float64_t>np.inf
-    float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 DEFAULT_BUFFER_HEURISTIC = 2 ** 20
@@ -306,7 +304,8 @@ cdef extern from "pandas/parser/tokenizer.h":
     int try_parse_plain_double(const char *start, const char *end, char decimal,
                                double *out) nogil
 
-    int infinity_sign(const char *item, int64_t length) nogil
+    int parse_special_float(const char *item, int64_t length,
+                            double *out) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
@@ -769,7 +768,8 @@ cdef class TextReader:
             parser_set_skipfirstnrows(self.parser, self.skiprows)
         elif not callable(self.skiprows):
             for i in self.skiprows:
-                parser_add_skiprow(self.parser, i)
+                if parser_add_skiprow(self.parser, i) != 0:
+                    raise MemoryError()
         else:
             self.parser.skipfunc = <PyObject *>self.skiprows
 
@@ -2010,38 +2010,41 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         khiter_t k
 
     table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
+    try:
+        lines = line_end - line_start
+        result = np.empty(lines, dtype=np.object_)
+        coliter_setup(&it, parser, col, line_start)
 
-    for i in range(lines):
-        word = coliter_next_with_idx(&it, &token_idx)
-        word_len = _token_len(parser, token_idx)
+        for i in range(lines):
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_len = _token_len(parser, token_idx)
 
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
-                # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
+            if na_filter:
+                if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
+                    # in the hash table
+                    na_count += 1
+                    result[i] = NA
+                    continue
 
-        # no deletions from this table, so ret == 0 means already present.
-        # The key carries its length, so two fields that differ only past an
-        # embedded NUL no longer intern to the same object.
-        k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+            # no deletions from this table, so ret == 0 means already present.
+            # The key carries its length, so two fields that differ only past an
+            # embedded NUL no longer intern to the same object.
+            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
 
-        # in the hash table
-        if ret == 0:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            # in the hash table
+            if ret == 0:
+                # this increments the refcount, but need to test
+                pyval = <object>table.vals[k]
+            else:
+                # can raise for invalid UTF-8 under encoding_errors="strict"
+                # (GH#67931)
+                pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
-            table.vals[k] = <PyObject *>pyval
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
 
     return result, na_count
 
@@ -2401,24 +2404,29 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
         khiter_t k
 
     table = kh_init_strbox()
-    for i in range(lines):
-        if offsets[i] == -1:
-            result[i] = NA
-            continue
-        word = buf + offsets[i]
-        word_len = strlen(word)
+    try:
+        for i in range(lines):
+            if offsets[i] == -1:
+                result[i] = NA
+                continue
+            word = buf + offsets[i]
+            word_len = strlen(word)
 
-        k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
-        if k != table.n_buckets:
-            pyval = <object>table.vals[k]
-        else:
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
-            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
-            table.vals[k] = <PyObject *>pyval
+            k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
+            if k != table.n_buckets:
+                pyval = <object>table.vals[k]
+            else:
+                # defensive: the arena only ever holds ISO-parsed ASCII or
+                # empty fields, so this cannot actually raise here.  The
+                # finally keeps the table's lifetime the same as in
+                # `_string_box_utf8`, where the decode is reachable.
+                pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+                k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
     return result
 
 
@@ -3054,41 +3062,43 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
     # factorize parsed values, creating a hash table
     # bytes -> category code
-    with nogil:
-        table = kh_init_str()
-        coliter_setup(&it, parser, col, line_start)
+    table = kh_init_str()
+    try:
+        with nogil:
+            coliter_setup(&it, parser, col, line_start)
 
-        for i in range(lines):
-            word = coliter_next_with_idx(&it, &token_idx)
-            word_len = _token_len(parser, token_idx)
+            for i in range(lines):
+                word = coliter_next_with_idx(&it, &token_idx)
+                word_len = _token_len(parser, token_idx)
 
-            if na_filter:
-                if kh_get_str_starts_item(na_hashset, word,
-                                          <size_t>word_len):
-                    # is in NA values
-                    na_count += 1
-                    codes[i] = NA
-                    continue
+                if na_filter:
+                    if kh_get_str_starts_item(na_hashset, word,
+                                              <size_t>word_len):
+                        # is in NA values
+                        na_count += 1
+                        codes[i] = NA
+                        continue
 
-            key = kh_strview(word, <size_t>word_len)
-            k = kh_get_str(table, key)
-            # not in the hash table
-            if k == table.n_buckets:
-                k = kh_put_str(table, key, &ret)
-                table.vals[k] = current_category
-                current_category += 1
+                key = kh_strview(word, <size_t>word_len)
+                k = kh_get_str(table, key)
+                # not in the hash table
+                if k == table.n_buckets:
+                    k = kh_put_str(table, key, &ret)
+                    table.vals[k] = current_category
+                    current_category += 1
 
-            codes[i] = table.vals[k]
+                codes[i] = table.vals[k]
 
-    # parse and box categories to python strings
-    n_cats = table.n_occupied
-    result = np.empty(n_cats, dtype=np.object_)
-    for k in range(table.n_buckets):
-        if kh_exist_str(table, k):
-            result[table.vals[k]] = PyUnicode_DecodeUTF8(
-                table.keys[k].ptr, table.keys[k].len, encoding_errors)
-
-    kh_destroy_str(table)
+        # parse and box categories to python strings
+        n_cats = table.n_occupied
+        result = np.empty(n_cats, dtype=np.object_)
+        for k in range(table.n_buckets):
+            if kh_exist_str(table, k):
+                # can raise; see _string_box_utf8 (GH#67931)
+                result[table.vals[k]] = PyUnicode_DecodeUTF8(
+                    table.keys[k].ptr, table.keys[k].len, encoding_errors)
+    finally:
+        kh_destroy_str(table)
 
     # The table dedupes on raw bytes, but a lossy encoding_errors can decode two
     # distinct keys to the same label (b"q\xff" and b"q\xfe" both -> "q�").
@@ -3217,6 +3227,7 @@ cdef int _probe_double(parser_t *parser, int64_t col,
         c_int64_t token_idx = 0
         int64_t word_len
         char *p_end
+        double probe_value
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
@@ -3230,7 +3241,7 @@ cdef int _probe_double(parser_t *parser, int64_t col,
                                 parser.sci, parser.thousands,
                                 1, &error, NULL, word_end)
         if error != 0 or p_end == word or p_end != word_end:
-            if infinity_sign(word, word_len) != 0:
+            if parse_special_float(word, word_len, &probe_value) == 0:
                 return 0
             return 1
         return 0
@@ -3321,7 +3332,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            float64_t NA, float64_t *data,
                            int *na_count, uint8_t *na_mask) nogil:
     cdef:
-        int error = 0, inf_sign
+        int error = 0
         Py_ssize_t idx, _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -3360,12 +3371,7 @@ cdef int _try_double_nogil(parser_t *parser,
                                                1, &error, NULL, word_end)
                     if error != 0 or p_end == word or p_end != word_end:
                         error = 0
-                        inf_sign = infinity_sign(word, word_len)
-                        if inf_sign > 0:
-                            data[0] = INF
-                        elif inf_sign < 0:
-                            data[0] = NEGINF
-                        else:
+                        if parse_special_float(word, word_len, data) != 0:
                             return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_fhashset, data[0])
@@ -3386,12 +3392,7 @@ cdef int _try_double_nogil(parser_t *parser,
                                            1, &error, NULL, word_end)
                 if error != 0 or p_end == word or p_end != word_end:
                     error = 0
-                    inf_sign = infinity_sign(word, word_end - word)
-                    if inf_sign > 0:
-                        data[0] = INF
-                    elif inf_sign < 0:
-                        data[0] = NEGINF
-                    else:
+                    if parse_special_float(word, word_end - word, data) != 0:
                         return 1
             data += 1
 

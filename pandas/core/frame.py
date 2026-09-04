@@ -4992,7 +4992,7 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict: dict[str, Any] | None = ...,
         resolvers: list[Mapping] | None = ...,
         level: int = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
     ) -> DataFrame | None: ...
 
     def query(
@@ -5005,7 +5005,7 @@ class DataFrame(NDFrame, OpsMixin):
         global_dict: dict[str, Any] | None = None,
         resolvers: list[Mapping] | None = None,
         level: int = 0,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Query the columns of a DataFrame with a boolean expression.
@@ -5060,6 +5060,13 @@ class DataFrame(NDFrame, OpsMixin):
             scope. Most users will **not** need to change this parameter.
         inplace : bool
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
 
         Returns
         -------
@@ -5168,6 +5175,19 @@ class DataFrame(NDFrame, OpsMixin):
         0  1  10   10
         1  2   8    9
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.query is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if not isinstance(expr, str):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
@@ -5203,7 +5223,9 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def eval(self, expr: str, *, inplace: Literal[True], **kwargs) -> None: ...
 
-    def eval(self, expr: str, *, inplace: bool = False, **kwargs) -> Any | None:
+    def eval(
+        self, expr: str, *, inplace: bool | lib.NoDefault = lib.no_default, **kwargs
+    ) -> Any | None:
         """
         Evaluate a string describing operations on DataFrame columns.
 
@@ -5241,6 +5263,14 @@ class DataFrame(NDFrame, OpsMixin):
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         **kwargs
             See the documentation for :func:`eval` for complete details
             on the keyword arguments accepted by
@@ -5344,6 +5374,19 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.computation.eval import eval as _eval
 
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.eval is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         kwargs["level"] = kwargs.pop("level", 0) + 1
         index_resolvers = self._get_index_resolvers()
@@ -5353,7 +5396,14 @@ class DataFrame(NDFrame, OpsMixin):
             kwargs["target"] = self
         kwargs["resolvers"] = tuple(kwargs.get("resolvers", ())) + resolvers
 
-        return _eval(expr, inplace=inplace, **kwargs)
+        with warnings.catch_warnings():
+            # avoid a duplicate warning from the inner eval() call
+            warnings.filterwarnings(
+                "ignore",
+                message="The inplace keyword in eval is deprecated",
+                category=Pandas4Warning,
+            )
+            return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None) -> DataFrame:
         """
@@ -5549,9 +5599,15 @@ class DataFrame(NDFrame, OpsMixin):
                 np_dtype: np.dtype,
             ) -> Callable[[DtypeObj], bool]:
                 # A datetime64/timedelta64 dtype with a specific unit matches
-                # only columns with exactly that resolution (GH#40234)
+                # only columns with exactly that resolution (GH#40234).
+                # np_dtype is already in native byteorder; normalizing the
+                # column's too keeps the match byteorder-agnostic, as it is
+                # for every other string spec.
                 def func(dtype_obj: DtypeObj) -> bool:
-                    return isinstance(dtype_obj, np.dtype) and dtype_obj == np_dtype
+                    return (
+                        isinstance(dtype_obj, np.dtype)
+                        and dtype_obj.newbyteorder("=") == np_dtype
+                    )
 
                 return func
 
@@ -5591,18 +5647,19 @@ class DataFrame(NDFrame, OpsMixin):
                             "use 'str' or 'object' instead"
                         )
                     if lib.is_np_dtype(dtype, "mM"):
-                        unit = np.datetime_data(dtype)[0]
+                        unit, count = np.datetime_data(dtype)
                         if unit == "generic":
                             # unitless np.dtype("datetime64") is not a specific
                             # dtype, so match the family, as with np.datetime64
                             resolved.add(dtype.type)
                             funcs.append(matches_type(dtype.type))
                             continue
-                        if unit not in ("s", "ms", "us", "ns"):
+                        if count != 1 or unit not in ("s", "ms", "us", "ns"):
                             # no column can ever have this dtype
                             raise ValueError(
-                                f"{dtype.name!r} is too specific of a "
-                                f"frequency, try passing "
+                                f"{dtype.name!r} is not a supported "
+                                "datetime64/timedelta64 resolution; pass "
+                                "'s', 'ms', 'us', 'ns', or "
                                 f"{dtype.type.__name__!r}"
                             )
                     elif isinstance(dtype, CategoricalDtype) and (
@@ -5738,24 +5795,30 @@ class DataFrame(NDFrame, OpsMixin):
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
                                 continue
                             if lib.is_np_dtype(pdtype, "mM"):
-                                unit = np.datetime_data(pdtype)[0]
-                                if unit == "generic":
-                                    # a unitless datetime64/timedelta64 matches
-                                    # every resolution
-                                    dtype_type = pdtype.type
-                                elif is_supported_dtype(pdtype):
+                                unit, count = np.datetime_data(pdtype)
+                                # a unitless datetime64/timedelta64 falls
+                                # through to a family match on pdtype.type
+                                if unit != "generic":
+                                    # byteorder is not part of what a string
+                                    # spec selects: ">i8" selects every int64
+                                    # column through the pdtype.type path below,
+                                    # so canonicalize the spec here and let
+                                    # matches_np_dtype normalize the column
+                                    pdtype = pdtype.newbyteorder("=")
+                                    if count != 1 or not is_supported_dtype(pdtype):
+                                        # a multiple of a unit (e.g. "10s") is
+                                        # not a resolution any column can have
+                                        raise ValueError(
+                                            f"{pdtype.name!r} is not a supported "
+                                            "datetime64/timedelta64 resolution; "
+                                            "pass 's', 'ms', 'us', 'ns', or "
+                                            f"{pdtype.type.__name__!r}"
+                                        )
                                     # a specific unit (s, ms, us, ns) matches
                                     # only that exact resolution (GH#40234)
                                     resolved.add(pdtype)
                                     funcs.append(matches_np_dtype(pdtype))
                                     continue
-                                else:
-                                    raise ValueError(
-                                        f"{pdtype.name!r} is not a supported "
-                                        "datetime64/timedelta64 resolution; pass "
-                                        "'s', 'ms', 'us', 'ns', or "
-                                        f"{pdtype.type.__name__!r}"
-                                    )
                             # Instances are handled at the top of the loop, so
                             # only strings/numpy types reach here.
                             dtype_type = pdtype.type
@@ -6031,8 +6094,24 @@ class DataFrame(NDFrame, OpsMixin):
         """
         data = self.copy(deep=False)
 
-        for k, v in kwargs.items():
-            data[k] = com.apply_if_callable(v, data)
+        for name, value in kwargs.items():
+            key: Hashable = name
+            if isinstance(data.columns, MultiIndex) and name not in data.columns:
+                # GH#17024 keyword arguments cannot be tuples, so the generic
+                #  "use a full-length tuple key" advice is useless here.  Warn
+                #  with an actionable hint and pad the key ourselves so that
+                #  __setitem__ does not warn again.
+                key = (name,) + ("",) * (data.columns.nlevels - 1)
+                maybe_warn_multiindex_expansion(
+                    data.columns,
+                    name,
+                    target="column on a DataFrame",
+                    hint=(
+                        "DataFrame.assign cannot take a tuple key; use "
+                        f"df[{key}] = ... instead."
+                    ),
+                )
+            data[key] = com.apply_if_callable(value, data)
         return data
 
     def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
@@ -6854,6 +6933,202 @@ class DataFrame(NDFrame, OpsMixin):
             errors=errors,
         )
 
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: Literal[False] = ...,
+    ) -> DataFrame: ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: Literal[True],
+    ) -> None: ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: bool | lib.NoDefault = ...,
+    ) -> DataFrame | None: ...
+
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
+        index=lib.no_default,
+        columns=lib.no_default,
+        axis: Axis = 0,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame | None:
+        """
+        Set the name of the axis for the index or columns.
+
+        This method is useful for labeling the axes in a MultiIndex or for
+        providing descriptive names to axes.
+
+        Parameters
+        ----------
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``
+            and/or ``columns``.
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        columns : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to rename.
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
+        Returns
+        -------
+        DataFrame, or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
+
+        Notes
+        -----
+        ``DataFrame.rename_axis`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        The first calling convention will only modify the names of
+        the index and/or the names of the Index object that is the columns.
+        In this case, the parameter ``copy`` is ignored.
+
+        The second calling convention will modify the names of the
+        corresponding index if mapper is a list or a scalar.
+        However, if mapper is dict-like or a function, it will use the
+        deprecated behavior of modifying the axis *labels*.
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        Examples
+        --------
+        **DataFrame**
+
+        >>> df = pd.DataFrame(
+        ...     {"num_legs": [4, 4, 2], "num_arms": [0, 0, 2]}, ["dog", "cat", "monkey"]
+        ... )
+        >>> df
+                num_legs  num_arms
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("animal")
+        >>> df
+                num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("limbs", axis="columns")
+        >>> df
+        limbs   num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+
+        **MultiIndex**
+
+        >>> df.index = pd.MultiIndex.from_product(
+        ...     [["mammal"], ["dog", "cat", "monkey"]], names=["type", "name"]
+        ... )
+        >>> df
+        limbs          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
+
+        >>> df.rename_axis(index={"type": "class"})
+        limbs          num_legs  num_arms
+        class  name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
+
+        >>> df.rename_axis(columns=str.upper)
+        LIMBS          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
+        """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in DataFrame.rename_axis is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
+        return super().rename_axis(
+            mapper=mapper,
+            index=index,
+            columns=columns,
+            axis=axis,
+            copy=copy,
+            inplace=inplace,
+        )
+
     def pop(self, item: Hashable) -> Series:
         """
         Return item and drop it from DataFrame. Raise KeyError if not found.
@@ -7462,7 +7737,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel = ...,
         *,
         drop: bool = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool = ...,
@@ -7474,7 +7749,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel | None = None,
         *,
         drop: bool = False,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool = False,
@@ -7497,6 +7772,14 @@ class DataFrame(NDFrame, OpsMixin):
             the index to the default integer index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -7638,6 +7921,19 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
@@ -8039,7 +8335,7 @@ class DataFrame(NDFrame, OpsMixin):
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
         subset: IndexLabel | AnyArrayLike | None = None,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = False,
     ) -> DataFrame | None:
         """
@@ -8055,7 +8351,7 @@ class DataFrame(NDFrame, OpsMixin):
             removed.
 
             * 0, or 'index' : Drop rows which contain missing values.
-            * 1, or 'columns' : Drop columns which contain missing value.
+            * 1, or 'columns' : Drop columns which contain missing values.
 
             Only a single axis is allowed.
 
@@ -8073,6 +8369,14 @@ class DataFrame(NDFrame, OpsMixin):
             these would be a list of columns to include.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
@@ -8149,6 +8453,19 @@ class DataFrame(NDFrame, OpsMixin):
 
         if how is lib.no_default:
             how = "any"
+
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.dropna is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if isinstance(axis, (tuple, list)):
@@ -8228,7 +8545,7 @@ class DataFrame(NDFrame, OpsMixin):
         subset: Hashable | Iterable[Hashable] | None = ...,
         *,
         keep: DropKeep = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = ...,
     ) -> DataFrame | None: ...
 
@@ -8237,7 +8554,7 @@ class DataFrame(NDFrame, OpsMixin):
         subset: Hashable | Iterable[Hashable] | None = None,
         *,
         keep: DropKeep = "first",
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = False,
     ) -> DataFrame | None:
         """
@@ -8260,6 +8577,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         inplace : bool, default ``False``
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
 
@@ -8332,6 +8657,19 @@ class DataFrame(NDFrame, OpsMixin):
         Yum Yum   cup     4.0
         Indomie   cup     3.5
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.drop_duplicates is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         if self.empty:
             return self.copy(deep=False)
 
@@ -8522,7 +8860,7 @@ class DataFrame(NDFrame, OpsMixin):
         *,
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         kind: SortKind = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
@@ -8551,6 +8889,14 @@ class DataFrame(NDFrame, OpsMixin):
              the by.
         inplace : bool, default False
              If True, perform operation in-place.
+
+             .. deprecated:: 3.1.0
+
+                 This keyword is deprecated and will be removed in pandas 4.0.
+                 See `PDEP-8 In-place methods in pandas
+                 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                 for more details.
+
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
              information. The sort order is deterministic for a given input.
@@ -8715,6 +9061,19 @@ class DataFrame(NDFrame, OpsMixin):
         5  128hr  10mins     60
         1  128hr  40mins     20
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.sort_values is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
         ascending = validate_ascending(ascending)
@@ -8832,7 +9191,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
         sort_remaining: bool = ...,
@@ -8846,7 +9205,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
@@ -8871,6 +9230,14 @@ class DataFrame(NDFrame, OpsMixin):
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. The sort order is deterministic for a given input.
@@ -8939,6 +9306,19 @@ class DataFrame(NDFrame, OpsMixin):
         C  3
         d  4
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.sort_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().sort_index(
             axis=axis,
             level=level,
@@ -15062,10 +15442,12 @@ class DataFrame(NDFrame, OpsMixin):
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
+        lsuffix: str | lib.NoDefault = lib.no_default,
+        rsuffix: str | lib.NoDefault = lib.no_default,
         sort: bool = False,
         validate: JoinValidate | None = None,
+        *,
+        suffixes: Suffixes | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
         Join columns of another DataFrame.
@@ -15105,8 +15487,14 @@ class DataFrame(NDFrame, OpsMixin):
               index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
+
+            .. deprecated:: 3.1.0
+                Use ``suffixes`` instead.
         rsuffix : str, default ''
             Suffix to use from right frame's overlapping columns.
+
+            .. deprecated:: 3.1.0
+                Use ``suffixes`` instead.
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
@@ -15119,6 +15507,14 @@ class DataFrame(NDFrame, OpsMixin):
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
 
+        suffixes : tuple of (str, str), default ("", "")
+            A length-2 sequence where each element is optionally a string
+            indicating the suffix to add to overlapping column names in
+            the caller and ``other`` respectively. Pass a value of ``None``
+            instead of a string to indicate that the column name from
+            the caller or ``other`` should be left as-is, with no suffix.
+            At least one of the values must not be None.
+
         Returns
         -------
         DataFrame
@@ -15130,7 +15526,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        Parameters `on`, `lsuffix`, and `rsuffix` are not supported when
+        Parameters `on` and `suffixes` are not supported when
         passing a list of `DataFrame` objects.
 
         Examples
@@ -15161,7 +15557,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Join DataFrames using their indexes.
 
-        >>> df.join(other, lsuffix="_caller", rsuffix="_other")
+        >>> df.join(other, suffixes=("_caller", "_other"))
           key_caller   A key_other    B
         0         K0  A0        K0   B0
         1         K1  A1        K1   B1
@@ -15228,6 +15624,27 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
 
+        if lsuffix is not lib.no_default or rsuffix is not lib.no_default:
+            if suffixes is not lib.no_default:
+                raise ValueError(
+                    "Cannot specify both 'suffixes' and 'lsuffix'/'rsuffix'."
+                )
+            warnings.warn(
+                "The 'lsuffix' and 'rsuffix' keywords in DataFrame.join are "
+                "deprecated and will be removed in a future version. "
+                "Use the 'suffixes' keyword instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            resolved_suffixes: Suffixes = (
+                lsuffix if lsuffix is not lib.no_default else "",
+                rsuffix if rsuffix is not lib.no_default else "",
+            )
+        elif suffixes is not lib.no_default:
+            resolved_suffixes = suffixes
+        else:
+            resolved_suffixes = ("", "")
+
         if isinstance(other, Series):
             if other.name is None:
                 raise ValueError("Other Series must have a name")
@@ -15240,7 +15657,7 @@ class DataFrame(NDFrame, OpsMixin):
                     other,
                     how=how,
                     on=on,
-                    suffixes=(lsuffix, rsuffix),
+                    suffixes=resolved_suffixes,
                     sort=sort,
                     validate=validate,
                 )
@@ -15251,7 +15668,7 @@ class DataFrame(NDFrame, OpsMixin):
                 how=how,
                 left_index=on is None,
                 right_index=True,
-                suffixes=(lsuffix, rsuffix),
+                suffixes=resolved_suffixes,
                 sort=sort,
                 validate=validate,
             )
@@ -15261,7 +15678,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "Joining multiple DataFrames only supported for joining on index"
                 )
 
-            if rsuffix or lsuffix:
+            if any(resolved_suffixes):
                 raise ValueError(
                     "Suffixes not supported when joining multiple DataFrames"
                 )
@@ -16361,9 +16778,10 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
+            values = df.values
             return maybe_unbox_numpy_scalar(
-                func(df.values),
-                dtype=None if name in ["any", "all"] else dtype,
+                func(values),
+                object_with_dtype=None if name in ["any", "all"] else values,
             )
         elif axis == 1:
             if len(df.index) == 0:
@@ -17718,7 +18136,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or scalaer
+        Series or scalar
             Unbiased variance over requested axis.
 
         See Also
