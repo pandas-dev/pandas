@@ -6486,21 +6486,23 @@ class Selection:
             inferred = lib.infer_dtype(where, skipna=False)
             if inferred in ("integer", "boolean"):
                 where = np.asarray(where)
+                # start/stop are None on the read_coordinates paths, which is how
+                #  an out-of-range coordinate used to reach PyTables unchecked
+                start, stop = self.start, self.stop
+                if start is None:
+                    start = 0
+                if stop is None:
+                    stop = self.table.nrows
                 if where.dtype == np.bool_:
-                    start, stop = self.start, self.stop
-                    if start is None:
-                        start = 0
-                    if stop is None:
-                        stop = self.table.nrows
                     self.coordinates = np.arange(start, stop)[where]
                 elif issubclass(where.dtype.type, np.integer):
-                    if (self.start is not None and (where < self.start).any()) or (
-                        self.stop is not None and (where >= self.stop).any()
-                    ):
+                    invalid = where[(where < start) | (where >= stop)]
+                    if len(invalid):
                         raise ValueError(
                             "where must have index locations >= start and < stop, "
-                            f"but got locations in [{where.min()}, {where.max()}] "
-                            f"with start={self.start} and stop={self.stop}"
+                            f"but got {invalid[:5].tolist()}"
+                            f"{' ...' if len(invalid) > 5 else ''} "
+                            f"with start={start} and stop={stop}"
                         )
                     self.coordinates = where
 
