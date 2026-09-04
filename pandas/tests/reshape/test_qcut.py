@@ -47,7 +47,7 @@ def test_qcut_specify_quantiles():
 def test_qcut_invalid_q(q):
     msg = "`q` should be a positive integer"
     with pytest.raises(ValueError, match=msg):
-        qcut([1, 2, 3, 4], q)
+        pd.qcut([1, 2, 3, 4], q)
 
 
 def test_qcut_all_bins_same():
