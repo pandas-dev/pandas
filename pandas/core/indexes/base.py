@@ -329,8 +329,7 @@ class Index(IndexOpsMixin, PandasObject):
     ----------
     data : array-like (1-dimensional) or iterable (1-dimensional)
         A 1-dimensional array-like structure containing the data for the index. This could be a
-        Python list, a NumPy array, or a pandas Series. If a dict is provided, the keys will be
-        used as the index values.
+        Python list, a NumPy array, or a pandas Series. 
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
@@ -346,6 +345,10 @@ class Index(IndexOpsMixin, PandasObject):
         Name to be stored in the index.
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible.
+
+    Notes
+    -----
+    If a dict is provided as `data`, the keys will be used as the index values.
 
     See Also
     --------

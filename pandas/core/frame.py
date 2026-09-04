@@ -312,6 +312,13 @@ class DataFrame(NDFrame, OpsMixin):
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
+    Notes
+    -----
+    For the `index` and `columns` parameters, if a dict is provided, the keys will be
+    used as the index values or column labels respectively. For the `data` parameter,
+    if a dict is provided, the keys become the column names and the values become the
+    column data.
+
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
