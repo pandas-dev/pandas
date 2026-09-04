@@ -19,7 +19,6 @@ from pandas import (
     Series,
     concat,
     date_range,
-    option_context,
     period_range,
 )
 
@@ -605,20 +604,15 @@ class SeriesSetitem:
 
 
 class ChainIndexing:
-    params = [None, "warn"]
-    param_names = ["mode"]
-
-    def setup(self, mode):
+    def setup(self):
         self.N = 1000000
         self.df = DataFrame({"A": np.arange(self.N), "B": "foo"})
 
-    def time_chained_indexing(self, mode):
+    def time_chained_indexing(self):
         df = self.df
         N = self.N
-        with warnings.catch_warnings(record=True):
-            with option_context("mode.chained_assignment", mode):
-                df2 = df[df.A > N // 2]
-                df2["C"] = 1.0
+        df2 = df[df.A > N // 2]
+        df2["C"] = 1.0
 
 
 class Block:

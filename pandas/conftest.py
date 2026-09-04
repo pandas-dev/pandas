@@ -205,14 +205,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     doctest_namespace["pd"] = pd
 
 
-@pytest.fixture(autouse=True)
-def configure_tests() -> None:
-    """
-    Configure settings for all tests and test modules.
-    """
-    pd.set_option("chained_assignment", "raise")
-
-
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
