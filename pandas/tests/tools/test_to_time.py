@@ -1,10 +1,12 @@
 from datetime import time
+import locale
 
 import numpy as np
 import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas._config.localization import set_locale
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.tools.times import to_time
@@ -31,15 +33,17 @@ class TestToTime:
     )
     def test_parsers_time(self, time_string):
         # GH#11818
-        assert to_time(time_string) == time(14, 15)
+        with set_locale("C", locale.LC_TIME):
+            assert to_time(time_string) == time(14, 15)
 
     @td.skip_if_not_english_lc_time
     def test_parsers_time_space_before_meridiem(self):
         # GH#18793 the space before AM/PM used to make these unparsable
-        arg = ["3:25:00 AM", "3:25:00 PM", "12:30:00 AM", "12:30:00 PM"]
-        expected = [time(3, 25), time(15, 25), time(0, 30), time(12, 30)]
-        assert to_time(arg) == expected
-        assert to_time(arg, infer_time_format=True) == expected
+        with set_locale("C", locale.LC_TIME):
+            arg = ["3:25:00 AM", "3:25:00 PM", "12:30:00 AM", "12:30:00 PM"]
+            expected = [time(3, 25), time(15, 25), time(0, 30), time(12, 30)]
+            assert to_time(arg) == expected
+            assert to_time(arg, infer_time_format=True) == expected
 
     def test_odd_format(self):
         new_string = "14.15"
