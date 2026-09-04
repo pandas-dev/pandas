@@ -4,13 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Interval,
-    Series,
-    isnull,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -56,7 +50,7 @@ class TestDataFrameLogicalOperators:
     def test_logical_ops_empty_frame(self):
         # GH#5808
         # empty frames, non-mixed dtype
-        df = DataFrame(index=[1])
+        df = pd.DataFrame(index=[1])
 
         result = df & df
         tm.assert_frame_equal(result, df)
@@ -64,19 +58,19 @@ class TestDataFrameLogicalOperators:
         result = df | df
         tm.assert_frame_equal(result, df)
 
-        df2 = DataFrame(index=[1, 2])
+        df2 = pd.DataFrame(index=[1, 2])
         result = df & df2
         tm.assert_frame_equal(result, df2)
 
-        dfa = DataFrame(index=[1], columns=["A"])
+        dfa = pd.DataFrame(index=[1], columns=["A"])
 
         result = dfa & dfa
-        expected = DataFrame(False, index=[1], columns=["A"])
+        expected = pd.DataFrame(False, index=[1], columns=["A"])
         tm.assert_frame_equal(result, expected)
 
     def test_logical_ops_bool_frame(self):
         # GH#5808
-        df1a_bool = DataFrame(True, index=[1], columns=["A"])
+        df1a_bool = pd.DataFrame(True, index=[1], columns=["A"])
 
         result = df1a_bool & df1a_bool
         tm.assert_frame_equal(result, df1a_bool)
@@ -86,8 +80,8 @@ class TestDataFrameLogicalOperators:
 
     def test_logical_ops_int_frame(self):
         # GH#5808
-        df1a_int = DataFrame(1, index=[1], columns=["A"])
-        df1a_bool = DataFrame(True, index=[1], columns=["A"])
+        df1a_int = pd.DataFrame(1, index=[1], columns=["A"])
+        df1a_bool = pd.DataFrame(True, index=[1], columns=["A"])
 
         result = df1a_int | df1a_bool
         tm.assert_frame_equal(result, df1a_bool)
@@ -99,14 +93,14 @@ class TestDataFrameLogicalOperators:
     def test_logical_ops_invalid(self, using_infer_string):
         # GH#5808
 
-        df1 = DataFrame(1.0, index=[1], columns=["A"])
-        df2 = DataFrame(True, index=[1], columns=["A"])
+        df1 = pd.DataFrame(1.0, index=[1], columns=["A"])
+        df2 = pd.DataFrame(True, index=[1], columns=["A"])
         msg = re.escape("unsupported operand type(s) for |: 'float' and 'bool'")
         with pytest.raises(TypeError, match=msg):
             df1 | df2
 
-        df1 = DataFrame("foo", index=[1], columns=["A"])
-        df2 = DataFrame(True, index=[1], columns=["A"])
+        df1 = pd.DataFrame("foo", index=[1], columns=["A"])
+        df2 = pd.DataFrame(True, index=[1], columns=["A"])
         if using_infer_string and df1["A"].dtype.storage == "pyarrow":
             msg = "operation 'or_' not supported for dtype 'str'"
         else:
@@ -117,7 +111,7 @@ class TestDataFrameLogicalOperators:
     def test_logical_operators(self):
         def _check_bin_op(op):
             result = op(df1, df2)
-            expected = DataFrame(
+            expected = pd.DataFrame(
                 op(df1.values, df2.values), index=df1.index, columns=df1.columns
             )
             assert result.values.dtype == np.bool_
@@ -125,7 +119,9 @@ class TestDataFrameLogicalOperators:
 
         def _check_unary_op(op):
             result = op(df1)
-            expected = DataFrame(op(df1.values), index=df1.index, columns=df1.columns)
+            expected = pd.DataFrame(
+                op(df1.values), index=df1.index, columns=df1.columns
+            )
             assert result.values.dtype == np.bool_
             tm.assert_frame_equal(result, expected)
 
@@ -145,8 +141,8 @@ class TestDataFrameLogicalOperators:
             "e": {"a": False, "b": False, "c": False, "d": False, "e": True},
         }
 
-        df1 = DataFrame(df1)
-        df2 = DataFrame(df2)
+        df1 = pd.DataFrame(df1)
+        df2 = pd.DataFrame(df2)
 
         _check_bin_op(operator.and_)
         _check_bin_op(operator.or_)
@@ -155,49 +151,49 @@ class TestDataFrameLogicalOperators:
         _check_unary_op(operator.inv)  # TODO: belongs elsewhere
 
     def test_logical_with_nas(self):
-        d = DataFrame({"a": [np.nan, False], "b": [True, True]})
+        d = pd.DataFrame({"a": [np.nan, False], "b": [True, True]})
 
         # GH4947
         # bool comparisons should return bool
         result = d["a"] | d["b"]
-        expected = Series([False, True])
+        expected = pd.Series([False, True])
         tm.assert_series_equal(result, expected)
 
         # GH4604, automatic casting here
         result = d["a"].fillna(False) | d["b"]
-        expected = Series([True, True])
+        expected = pd.Series([True, True])
         tm.assert_series_equal(result, expected)
         result = d["a"].fillna(False) | d["b"]
-        expected = Series([True, True])
+        expected = pd.Series([True, True])
         tm.assert_series_equal(result, expected)
 
     def test_logical_ops_categorical_columns(self):
         # GH#38367
-        intervals = [Interval(1, 2), Interval(3, 4)]
-        data = DataFrame(
+        intervals = [pd.Interval(1, 2), pd.Interval(3, 4)]
+        data = pd.DataFrame(
             [[1, np.nan], [2, np.nan]],
-            columns=CategoricalIndex(
-                intervals, categories=[*intervals, Interval(5, 6)]
+            columns=pd.CategoricalIndex(
+                intervals, categories=[*intervals, pd.Interval(5, 6)]
             ),
         )
-        mask = DataFrame(
+        mask = pd.DataFrame(
             [[False, False], [False, False]], columns=data.columns, dtype=bool
         )
-        result = mask | isnull(data)
-        expected = DataFrame(
+        result = mask | pd.isnull(data)
+        expected = pd.DataFrame(
             [[False, True], [False, True]],
-            columns=CategoricalIndex(
-                intervals, categories=[*intervals, Interval(5, 6)]
+            columns=pd.CategoricalIndex(
+                intervals, categories=[*intervals, pd.Interval(5, 6)]
             ),
         )
         tm.assert_frame_equal(result, expected)
 
     def test_int_dtype_different_index_not_bool(self):
         # GH 52500
-        df1 = DataFrame([1, 2, 3], index=[10, 11, 23], columns=["a"])
-        df2 = DataFrame([10, 20, 30], index=[11, 10, 23], columns=["a"])
+        df1 = pd.DataFrame([1, 2, 3], index=[10, 11, 23], columns=["a"])
+        df2 = pd.DataFrame([10, 20, 30], index=[11, 10, 23], columns=["a"])
         result = np.bitwise_xor(df1, df2)
-        expected = DataFrame([21, 8, 29], index=[10, 11, 23], columns=["a"])
+        expected = pd.DataFrame([21, 8, 29], index=[10, 11, 23], columns=["a"])
         tm.assert_frame_equal(result, expected)
 
         result = df1 ^ df2
@@ -205,7 +201,7 @@ class TestDataFrameLogicalOperators:
 
     def test_different_dtypes_different_index_raises(self):
         # GH 52538
-        df1 = DataFrame([1, 2], index=["a", "b"])
-        df2 = DataFrame([3, 4], index=["b", "c"])
+        df1 = pd.DataFrame([1, 2], index=["a", "b"])
+        df2 = pd.DataFrame([3, 4], index=["b", "c"])
         with pytest.raises(TypeError, match="unsupported operand type"):
             df1 & df2
