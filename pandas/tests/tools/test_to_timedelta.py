@@ -440,6 +440,34 @@ class TestTimedeltas:
         tm.assert_index_equal(result, expected)
         assert result[0] == pd.Timedelta(2, unit="D")
 
+    def test_to_timedelta_day_offset_overflow(self):
+        # GH#64306 the scalar Day branch raised a bare OverflowError, which is
+        #  not a ValueError and so escaped the errors="coerce" handler
+        oob = to_offset("D") * 10**17
+        assert pd.to_timedelta(oob, errors="coerce") is pd.NaT
+        with pytest.raises(OutOfBoundsTimedelta):
+            pd.Timedelta(oob)
+
+    def test_to_timedelta_coerce_does_not_bump_reso(self):
+        # GH#65170 an element that overflows and is coerced to NaT must not
+        #  dictate the array's resolution; doing so pushed the valid coarse
+        #  element out of bounds and silently coerced it away too
+        valid = np.timedelta64(10**12, "s")
+        result = pd.to_timedelta([10**19, valid], errors="coerce")
+        expected = pd.to_timedelta([np.nan, valid], errors="coerce")
+        tm.assert_index_equal(result, expected)
+        assert result.dtype == "m8[s]"
+
+    def test_to_timedelta_coerce_oob_on_reparse(self):
+        # GH#65170 a mismatched resolution triggers a second parsing pass; the
+        #  numeric casts leak a bare OverflowError at a coarser-than-ns
+        #  resolution, which errors="coerce" could not catch
+        elements = [np.timedelta64(10**12, "s"), np.timedelta64(5, "ms")]
+        result = pd.to_timedelta([10**19, *elements], errors="coerce")
+        expected = pd.to_timedelta([np.nan, *elements], errors="coerce")
+        tm.assert_index_equal(result, expected)
+        assert result.dtype == "m8[ms]"
+
     def test_float_to_timedelta_raise_oob_ns(self):
         value = np.float64(2**63)
         arr = np.array([value], dtype=np.float64)

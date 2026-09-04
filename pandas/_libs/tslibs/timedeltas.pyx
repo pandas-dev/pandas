@@ -1,4 +1,5 @@
 import collections
+from fractions import Fraction
 import re
 import warnings
 
@@ -371,7 +372,8 @@ def array_to_timedelta64(
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
-        NPY_DATETIMEUNIT item_reso, int_reso
+        NPY_DATETIMEUNIT item_reso, int_reso, saved_creso
+        bint saved_creso_ever_changed
         ResoState state = ResoState(creso)
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
@@ -401,6 +403,14 @@ def array_to_timedelta64(
 
     for _ in range(n):
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+        # GH#65170 the branches below bump the array's resolution before
+        #  converting, so an element that then fails to convert and is coerced
+        #  to NaT would still dictate the resolution -- which can push an
+        #  unrelated, perfectly valid coarse element out of bounds and coerce it
+        #  away too. Snapshot so the coerce handler can roll the bump back.
+        saved_creso = state.creso
+        saved_creso_ever_changed = state.creso_ever_changed
 
         try:
             if checknull_with_nat_and_na(item):
@@ -557,9 +567,27 @@ def array_to_timedelta64(
             else:
                 raise TypeError(f"Invalid type for timedelta scalar: {type(item)}")
 
+        except OverflowError as err:
+            # GH#65170 the numeric casts leak a bare OverflowError when the
+            #  target resolution is coarser than ns, which errors="coerce"
+            #  could not catch; surface it as OutOfBoundsTimedelta (a
+            #  ValueError) like every other overflow in this function.
+            if errors != "coerce":
+                raise OutOfBoundsTimedelta(item) from err
+            ival = NPY_NAT
+            state.creso = saved_creso
+            state.creso_ever_changed = saved_creso_ever_changed
+            if infer_reso:
+                creso = state.creso
+
         except ValueError as err:
             if errors == "coerce":
                 ival = NPY_NAT
+                # GH#65170 undo any resolution bump this element contributed
+                state.creso = saved_creso
+                state.creso_ever_changed = saved_creso_ever_changed
+                if infer_reso:
+                    creso = state.creso
             elif "unit abbreviation w/o a number" in str(err):
                 # re-raise with more pertinent message
                 msg = f"Could not convert '{item}' to NumPy timedelta"
@@ -1401,6 +1429,32 @@ cdef _to_py_int_float(v):
     elif is_float_object(v):
         return float(v)
     raise TypeError(f"Invalid type {type(v)}. Must be int or float.")
+
+
+cdef _round_half_to_zero(value):
+    # Round an exact Fraction to the nearest integer, breaking ties toward
+    #  zero. Ints pass through untouched.
+    #  Nearest (rather than truncating) because a duration that is a whole
+    #  number of nanoseconds is usually not exactly representable as a double
+    #  -- Fraction(0.3) is a hair under 3/10, so truncating lands 1ns short.
+    #  The tie rule is NOT an intentional decision about how to round an exact
+    #  half-nanosecond -- Timedelta(nanoseconds=1.5) -> 1, (nanoseconds=-1.5)
+    #  -> -1, reachable whenever the double lands on exactly k + 0.5 ns. That
+    #  is only what truncating the old float product happened to give, kept so
+    #  this helper does not change behavior it has no reason to change.
+    #  Nothing depends on it; round these the other way if a reason appears.
+    cdef:
+        object numerator, denominator, quotient, remainder
+
+    if is_integer_object(value):
+        return value
+
+    numerator = value.numerator
+    denominator = value.denominator
+    quotient, remainder = divmod(abs(numerator), denominator)
+    if 2 * remainder > denominator:
+        quotient = quotient + 1
+    return -quotient if numerator < 0 else quotient
 
 
 def _timedelta_unpickle(value, reso):
@@ -2572,58 +2626,130 @@ class Timedelta(_Timedelta):
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
 
+            # GH#66823 a NaN kwarg means a missing duration, exactly as the
+            #  positional spelling Timedelta(np.nan, unit="D") does; without
+            #  this the int() below leaks a bare "cannot convert float NaN to
+            #  integer" ValueError.
+            for kwarg_value in kwargs.values():
+                if kwarg_value != kwarg_value:
+                    # validate unit first, so that an unsupported one still
+                    #  raises exactly as it does for a non-NaN kwarg
+                    disallow_ambiguous_unit(unit)
+                    return NaT
+
             # GH43764, convert any input to nanoseconds first and then
             # create the timedelta. This ensures that any potential
             # nanosecond contributions from kwargs parsed as floats
             # are taken into consideration.
-            ns = kwargs.get("nanoseconds", 0)
-            us = kwargs.get("microseconds", 0)
-            ms = kwargs.get("milliseconds", 0)
             try:
-                seconds = int((
+                # GH#65168 scale every kwarg exactly. In float64 the products
+                #  below lose far more than the resolution they are later
+                #  truncated to -- the error grows with the magnitude, so
+                #  Timedelta(days=1e11) disagreed with days=10**11, and
+                #  days=106751991167300, seconds=1.5 came out 831 seconds off.
+                #  An integral float scales exactly as an int; anything else
+                #  needs a rational. `kwargs` itself is left as the caller
+                #  spelled it, for the error messages.
+                parts = {}
+                exact = True
+                for key, kwarg_value in kwargs.items():
+                    if is_integer_object(kwarg_value):
+                        parts[key] = kwarg_value
+                    elif kwarg_value.is_integer():
+                        parts[key] = int(kwarg_value)
+                    else:
+                        # GH#65168 an all-integer duration has no spare digits,
+                        #  so truncating it to a coarser resolution would lose
+                        #  data; a non-integral float is approximate already,
+                        #  so a coarser resolution is a fair way to express it.
+                        parts[key] = Fraction(kwarg_value)
+                        exact = False
+
+                ns = parts.get("nanoseconds", 0)
+                us = parts.get("microseconds", 0)
+                ms = parts.get("milliseconds", 0)
+
+                # See _round_half_to_zero: nearest-with-ties-toward-zero, so
+                #  that exact rationals do not land a nanosecond short while
+                #  ties keep the answer the old float path gave.
+                seconds = _round_half_to_zero((
                     (
-                        (kwargs.get("days", 0) + kwargs.get("weeks", 0) * 7) * 24
-                        + kwargs.get("hours", 0)
+                        (parts.get("days", 0) + parts.get("weeks", 0) * 7) * 24
+                        + parts.get("hours", 0)
                     ) * 3600
-                    + kwargs.get("minutes", 0) * 60
-                    + kwargs.get("seconds", 0)
+                    + parts.get("minutes", 0) * 60
+                    + parts.get("seconds", 0)
                     ) * 1_000_000_000
                 )
 
                 total_ns = (
-                    int(ns)
-                    + int(us * 1_000)
-                    + int(ms * 1_000_000)
+                    _round_half_to_zero(ns)
+                    + _round_half_to_zero(us * 1_000)
+                    + _round_half_to_zero(ms * 1_000_000)
                     + seconds
                 )
-            except OverflowError as err:
-                # GH#66823 int() of an infinite float raises a bare OverflowError
+            except (OverflowError, ValueError) as err:
+                # GH#66823 int() of an infinite float raises a bare
+                #  OverflowError, and of a NaN produced by cancelling
+                #  infinities (days=inf, seconds=-inf) a bare ValueError.
                 raise OutOfBoundsTimedelta(
                     f"Cannot construct Timedelta from {kwargs}"
                 ) from err
 
             try:
+                if total_ns == NPY_NAT:
+                    # GH#65168 numpy reinterprets int64 min as NaT rather than
+                    #  as a duration, so np.timedelta64 would hand back a
+                    #  missing value instead of overflowing. Route it through
+                    #  the fallback, which either finds a coarser resolution
+                    #  that represents it or raises.
+                    raise OverflowError
                 value = np.timedelta64(total_ns, "ns")
             except OverflowError:
-                # GH#46587 - fall back to coarser resolutions
-                if total_ns % 1_000 != 0:
-                    reso_value, reso_abbrev = total_ns, "ns"
-                elif total_ns % 1_000_000 != 0:
-                    reso_value, reso_abbrev = total_ns // 1_000, "us"
-                elif total_ns % 1_000_000_000 != 0:
-                    reso_value, reso_abbrev = total_ns // 1_000_000, "ms"
-                else:
-                    reso_value, reso_abbrev = total_ns // 1_000_000_000, "s"
+                # GH#46587 - fall back to coarser resolutions. Start from the
+                #  value's natural resolution: the finest one that represents
+                #  total_ns exactly.
+                scales = ((1, "ns"), (1_000, "us"),
+                          (1_000_000, "ms"), (1_000_000_000, "s"))
+                start = 0
+                for scale, _ in scales[1:]:
+                    if total_ns % scale != 0:
+                        break
+                    start += 1
 
-                try:
-                    value = np.timedelta64(reso_value, reso_abbrev)
-                except OverflowError as err:
+                # GH#65168 the natural resolution may not fit in int64 either --
+                #  an inexact float kwarg carries a rounding tail, which pins the
+                #  natural resolution at "ns" and overflowed a second time even
+                #  though a coarser resolution holds the duration the caller
+                #  asked for. Keep coarsening until it fits; with exact input
+                #  those digits are data, so accept only the natural resolution.
+                candidates = scales[start:] if not exact else scales[start:start + 1]
+
+                reso_value, reso_abbrev = None, None
+                for scale, abbrev in candidates:
+                    # truncate toward zero so that negative values scale
+                    #  symmetrically with positive ones
+                    if total_ns < 0:
+                        scaled = -((-total_ns) // scale)
+                    else:
+                        scaled = total_ns // scale
+                    # numpy reinterprets int64 min as NaT, so treat it as out of
+                    #  bounds rather than silently returning a missing value.
+                    if -(2**63) < scaled <= 2**63 - 1:
+                        reso_value, reso_abbrev = scaled, abbrev
+                        break
+
+                if reso_value is None:
                     # GH#55503
                     msg = (
-                        f"seconds={seconds}, milliseconds={ms}, "
-                        f"microseconds={us}, nanoseconds={ns}"
+                        f"seconds={seconds}, "
+                        f"milliseconds={kwargs.get('milliseconds', 0)}, "
+                        f"microseconds={kwargs.get('microseconds', 0)}, "
+                        f"nanoseconds={kwargs.get('nanoseconds', 0)}"
                     )
-                    raise OutOfBoundsTimedelta(msg) from err
+                    raise OutOfBoundsTimedelta(msg)
+
+                value = np.timedelta64(reso_value, reso_abbrev)
             else:
                 if (
                     "nanoseconds" not in kwargs
@@ -2714,7 +2840,14 @@ class Timedelta(_Timedelta):
 
         elif isinstance(value, Day):
             # GH#64240
-            new_value = value.n * 86400
+            try:
+                new_value = value.n * 86400
+            except OverflowError as err:
+                # GH#64306 match the list-like branch and the other Tick types,
+                #  which raise OutOfBoundsTimedelta (a ValueError subclass) so
+                #  that to_timedelta(..., errors="coerce") returns NaT rather
+                #  than propagating a bare OverflowError.
+                raise OutOfBoundsTimedelta(value) from err
             return cls._from_value_and_reso(new_value, NPY_DATETIMEUNIT.NPY_FR_s)
 
         elif is_tick_object(value):

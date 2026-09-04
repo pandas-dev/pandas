@@ -1,4 +1,5 @@
 from datetime import timedelta
+from fractions import Fraction
 from itertools import product
 import re
 
@@ -273,6 +274,82 @@ def test_construct_from_kwargs_inf(kwarg, val):
     #  the positional path, which gives OutOfBoundsTimedelta
     with pytest.raises(OutOfBoundsTimedelta, match="Cannot construct Timedelta"):
         pd.Timedelta(**{kwarg: val})
+
+
+@pytest.mark.parametrize(
+    "kwarg",
+    [
+        "weeks",
+        "days",
+        "hours",
+        "minutes",
+        "seconds",
+        "milliseconds",
+        "microseconds",
+        "nanoseconds",
+    ],
+)
+def test_construct_from_kwargs_nan(kwarg):
+    # GH#66823 a NaN kwarg is a missing duration, matching the positional
+    #  spelling Timedelta(np.nan, unit=...); it used to leak a bare ValueError
+    assert pd.Timedelta(**{kwarg: np.nan}) is pd.NaT
+
+
+def test_construct_from_kwargs_cancelling_inf():
+    # GH#66823 inf and -inf cancel to a NaN, which leaked a bare ValueError
+    with pytest.raises(OutOfBoundsTimedelta, match="Cannot construct Timedelta"):
+        pd.Timedelta(days=np.inf, seconds=-np.inf)
+
+
+def test_construct_from_kwargs_non_nano_float():
+    # GH#65168 a non-integral float kwarg carries a rounding tail that pinned
+    #  the coarser-resolution fallback at "ns", so it overflowed a second time
+    #  and raised for durations representable at a coarser resolution. Every
+    #  spelling of the same duration must agree on value and resolution.
+    result = pd.Timedelta(days=365000, seconds=1.5)
+    assert result == pd.Timedelta(days=365000, milliseconds=1500)
+    assert result == pd.Timedelta(days=365000, microseconds=1500000)
+    assert result.unit == "ms"
+
+
+@pytest.mark.parametrize("days", [106751991167300, 106751992, 365000])
+def test_construct_from_kwargs_float_is_exact(days):
+    # GH#65168 the float kwargs were scaled to nanoseconds in float64, so at
+    #  large magnitudes the rounding error dwarfed the resolution the value was
+    #  then truncated to; the result must stay within one unit of its own
+    #  resolution of the exact duration rather than drifting by minutes
+    result = pd.Timedelta(days=days, seconds=1.5)
+    exact_ns = Fraction(days) * 86400 * 10**9 + Fraction(3, 2) * 10**9
+    unit_ns = {"s": 10**9, "ms": 10**6, "us": 10**3, "ns": 1}[result.unit]
+    assert abs(Fraction(result._value) * unit_ns - exact_ns) < unit_ns
+
+
+def test_construct_from_kwargs_non_nano_integral_float():
+    # GH#65168 an integral float kwarg must give the same result as the int
+    #  spelling; scaling to ns in float64 lost precision above 2**53
+    result = pd.Timedelta(days=1e11)
+    expected = pd.Timedelta(days=10**11)
+    assert result == expected
+    assert result.unit == expected.unit
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"seconds": -(2**63)},
+        {"milliseconds": -(2**63)},
+        {"microseconds": -(2**63)},
+        # lands on int64 min in nanoseconds, i.e. exactly the NaT sentinel, so
+        #  np.timedelta64 hands back a missing value without ever overflowing
+        {"nanoseconds": -(2**63)},
+        {"seconds": -9223372036, "nanoseconds": -854775808},
+    ],
+)
+def test_construct_from_kwargs_int64_min(kwargs):
+    # GH#65168 numpy reinterprets int64 min as NaT, so these returned a missing
+    #  value for an out-of-bounds duration instead of raising
+    with pytest.raises(OutOfBoundsTimedelta, match="seconds="):
+        pd.Timedelta(**kwargs)
 
 
 def test_construct_from_kwargs_non_nano():

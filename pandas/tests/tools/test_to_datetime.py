@@ -2777,8 +2777,11 @@ class TestToDatetimeDataFrame:
 
         with tm.assert_produces_warning(None):
             result = pd.to_datetime(df, errors="coerce")
+        # GH#65170 the coerced-away inf must not dictate the resolution; "us"
+        #  is what the same frame gives with the inf row removed, with a NaN
+        #  hour in its place, and with an integer hour column
         expected = pd.Series(
-            [pd.Timestamp("2000-01-01"), pd.NaT], dtype="datetime64[ns]"
+            [pd.Timestamp("2000-01-01"), pd.NaT], dtype="datetime64[us]"
         )
         tm.assert_series_equal(result, expected)
 
