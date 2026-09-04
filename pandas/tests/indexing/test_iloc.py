@@ -1974,7 +1974,7 @@ class TestILocSeries:
 )
 @pytest.mark.parametrize("col_key", [[1], slice(1, 2), np.array([False, True, False])])
 def test_iloc_setitem_single_column_key_1d_value(row_key, col_key):
-    # GH#67986 a length-1 column key makes the selection (N, 1), which a
+    # GH#68021 a length-1 column key makes the selection (N, 1), which a
     #  length-N 1-D value could not be broadcast into on a single-block frame
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
@@ -1986,7 +1986,7 @@ def test_iloc_setitem_single_column_key_1d_value(row_key, col_key):
 
 
 def test_iloc_setitem_single_column_key_1d_value_datetimelike():
-    # GH#67986 the 2D DatetimeArray block hit the same broadcast failure, but
+    # GH#68021 the 2D DatetimeArray block hit the same broadcast failure, but
     #  surfaced it as OutOfBoundsDatetime from the upcast fallback
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc")).astype("M8[ns]")
 
@@ -1998,7 +1998,7 @@ def test_iloc_setitem_single_column_key_1d_value_datetimelike():
 
 
 def test_iloc_setitem_single_column_key_list_of_tuples():
-    # GH#67986 a list of tuples that do not match the number of selected columns
+    # GH#68021 a list of tuples that do not match the number of selected columns
     #  is per-cell values, and reached the same broadcast failure
     df = pd.DataFrame({col: np.array([1, 2, 3, 4], dtype=object) for col in "abc"})
 
@@ -2012,7 +2012,7 @@ def test_iloc_setitem_single_column_key_list_of_tuples():
 
 
 def test_iloc_setitem_single_column_key_tuples_matching_width_still_2d():
-    # GH#67986 length-1 tuples do match the one selected column, so they are a
+    # GH#68021 length-1 tuples do match the one selected column, so they are a
     #  2-D value and still flatten; the per-cell path must not swallow them
     df = pd.DataFrame({col: np.array([1, 2, 3, 4], dtype=object) for col in "abc"})
 
@@ -2026,7 +2026,7 @@ def test_iloc_setitem_single_column_key_tuples_matching_width_still_2d():
 
 
 def test_iloc_setitem_single_column_key_length_mismatch_still_raises():
-    # GH#67986 the per-column path must not swallow a genuine length mismatch.
+    # GH#68021 the per-column path must not swallow a genuine length mismatch.
     #  The message is numpy's rather than pandas' because a single-block frame
     #  takes the non-split path; that divergence is deliberate, see GH#65241 and
     #  test_loc_setitem_int_row_length_mismatch_message.
@@ -2037,7 +2037,7 @@ def test_iloc_setitem_single_column_key_length_mismatch_still_raises():
 
 
 def test_iloc_setitem_single_column_key_2d_value_unchanged():
-    # GH#67986 an (N, 1) value already matched the selection and must keep
+    # GH#68021 an (N, 1) value already matched the selection and must keep
     #  taking the whole-block path
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
@@ -2049,7 +2049,7 @@ def test_iloc_setitem_single_column_key_2d_value_unchanged():
 
 
 def test_iloc_setitem_single_column_key_length_one_value_broadcasts():
-    # GH#67986 a length-1 value broadcasts to every selected row; the length
+    # GH#68021 a length-1 value broadcasts to every selected row; the length
     #  check must not turn that into a per-row assignment
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
@@ -2061,7 +2061,7 @@ def test_iloc_setitem_single_column_key_length_one_value_broadcasts():
 
 
 def test_iloc_setitem_scalar_row_multiple_columns_unchanged():
-    # GH#67986 a scalar row key with several columns stays row-wise
+    # GH#68021 a scalar row key with several columns stays row-wise
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
     df.iloc[0, [0, 1]] = [5.0, 6.0]
@@ -2073,7 +2073,7 @@ def test_iloc_setitem_scalar_row_multiple_columns_unchanged():
 
 
 def test_iloc_setitem_scalar_row_single_column_unchanged():
-    # GH#67986 a scalar row key selects one cell, not a column to fill; this is
+    # GH#68021 a scalar row key selects one cell, not a column to fill; this is
     #  the case that reaches the guard's is_scalar(indexer[0]) clause, since
     #  length_of_indexer(0) == 1 == len(value) would otherwise match
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
@@ -2097,7 +2097,7 @@ def test_iloc_setitem_scalar_row_single_column_unchanged():
 def test_iloc_setitem_single_column_key_row_key_length_of_indexer_cannot_measure(
     row_key,
 ):
-    # GH#67986 length_of_indexer does not know these row keys and raises
+    # GH#68021 length_of_indexer does not know these row keys and raises
     #  AssertionError for them, so they have to keep taking the whole-block
     #  path instead of the per-column one
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
@@ -2110,7 +2110,7 @@ def test_iloc_setitem_single_column_key_row_key_length_of_indexer_cannot_measure
 
 
 def test_iloc_setitem_boolean_column_key_selecting_one_column():
-    # GH#67986 _ensure_iterable_column_indexer leaves a list of bools alone, so
+    # GH#68021 _ensure_iterable_column_indexer leaves a list of bools alone, so
     #  the per-column path would have taken True for a position
     df = pd.DataFrame(np.zeros((5, 1)), columns=["a"])
 
@@ -2123,7 +2123,7 @@ def test_iloc_setitem_boolean_column_key_selecting_one_column():
 
 @pytest.mark.parametrize("row_key", [[], np.array([False, False, False, False])])
 def test_iloc_setitem_single_column_key_empty_selection_is_noop(row_key):
-    # GH#67986 an empty selection with an empty value is a no-op, as it already
+    # GH#68021 an empty selection with an empty value is a no-op, as it already
     #  was on the mixed-dtype split path
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
@@ -2134,7 +2134,7 @@ def test_iloc_setitem_single_column_key_empty_selection_is_noop(row_key):
 
 @pytest.mark.parametrize("row_key", [np.array(0), np.array([[0], [1]])])
 def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key):
-    # GH#67986 length_of_indexer cannot measure these, so they keep taking the
+    # GH#68021 length_of_indexer cannot measure these, so they keep taking the
     #  whole-block path and its clearer message
     df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
@@ -2143,7 +2143,7 @@ def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key
 
 
 def test_iloc_setitem_out_of_bounds_boolean_column_key_raises():
-    # GH#67986 a too-long boolean column key whose True lands past the last
+    # GH#68021 a too-long boolean column key whose True lands past the last
     #  column used to be silently discarded here.  Note this pins the
     #  out-of-bounds position, not the key's length: a too-long key whose True
     #  is in bounds is still accepted, as it already was on the split path.
@@ -2154,7 +2154,7 @@ def test_iloc_setitem_out_of_bounds_boolean_column_key_raises():
 
 
 def test_iloc_setitem_null_slice_column_key_single_column_frame():
-    # GH#67986 on a one-column frame a null slice also selects exactly one
+    # GH#68021 on a one-column frame a null slice also selects exactly one
     #  column, so it hits the same (N, 1) selection
     df = pd.DataFrame({"a": [0.0, 1.0, 2.0, 3.0]})
 
@@ -2164,7 +2164,7 @@ def test_iloc_setitem_null_slice_column_key_single_column_frame():
 
 
 def test_iloc_setitem_boolean_index_row_key():
-    # GH#67986 on a single-block frame this raised the same
+    # GH#68021 on a single-block frame this raised the same
     #  "setting an array element with a sequence" as every other row key; it
     #  reaches length_of_indexer, and so the Index.sum() crash, only via the
     #  new per-column route
@@ -2178,7 +2178,7 @@ def test_iloc_setitem_boolean_index_row_key():
 
 
 def test_iloc_setitem_boolean_index_row_key_mixed_dtype():
-    # GH#67986 this is where the Index.sum() crash was already reachable: the
+    # GH#68021 this is where the Index.sum() crash was already reachable: the
     #  split path measures the row key, so it raised AttributeError on main
     df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
 
@@ -2190,7 +2190,7 @@ def test_iloc_setitem_boolean_index_row_key_mixed_dtype():
 
 
 def test_iloc_setitem_series_boolean_index_row_key():
-    # GH#67986 an object-dtype Series reaches length_of_indexer from
+    # GH#68021 an object-dtype Series reaches length_of_indexer from
     #  Block.setitem's num_set, a different call site than the DataFrame paths
     ser = pd.Series([1, 2, 3, 4], dtype=object)
 

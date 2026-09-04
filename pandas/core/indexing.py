@@ -2954,7 +2954,7 @@ class _iLocIndexer(_LocationIndexer):
                 # length_of_indexer below measures only these, and only in
                 #  one dimension; every other row key (masked/Categorical/tuple,
                 #  0-d or 2-D ndarray) has to keep taking the whole-block path,
-                #  which reports its own, clearer errors.  GH#67986
+                #  which reports its own, clearer errors.  GH#68021
                 and isinstance(
                     indexer[0], (slice, range, list, np.ndarray, ABCSeries, ABCIndex)
                 )
@@ -2969,7 +2969,7 @@ class _iLocIndexer(_LocationIndexer):
                     if is_integer(loc):
                         nrows = length_of_indexer(indexer[0], self.obj.index)
                         if nrows == len(value):
-                            # GH#67986 the cross-product selection is (N, 1) but
+                            # GH#68021 the cross-product selection is (N, 1) but
                             #  the value is 1-D of length N, which numpy cannot
                             #  broadcast into it.  Set the single column row-wise,
                             #  as the split path does.

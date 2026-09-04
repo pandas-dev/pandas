@@ -311,7 +311,7 @@ def length_of_indexer(indexer, target=None) -> int:
 
         if indexer.dtype == bool:
             # GH#25774
-            # np.asarray because Index has no .sum; GH#67986
+            # np.asarray because Index has no .sum; GH#68021
             return int(np.asarray(indexer).sum())
         return len(indexer)
     elif isinstance(indexer, range):
