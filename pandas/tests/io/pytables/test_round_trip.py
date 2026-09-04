@@ -151,18 +151,75 @@ def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
     not using_string_dtype(),
     reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
 )
-def test_string_index_all_na_roundtrips(temp_h5_path):
-    # GH#9604 — the missing values in an all-missing string Index survive the
-    # round-trip. The index dtype degrades to object because an all-NaN array
-    # cannot infer a string dtype on read; that is a pre-existing inference
-    # limitation, orthogonal to GH#9604 (before the fix the values themselves
-    # were lost, coming back as the literal string "nan").
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_string_index_all_na_roundtrips(temp_h5_path, fmt):
+    # GH#9604 — an all-missing string Index round-trips with both its values
+    # and its dtype. Inference cannot recover str from an all-NaN array, so
+    # the read path pins the dtype instead of letting it degrade to object.
     ser = pd.Series(range(2), index=pd.Index([np.nan, np.nan], dtype=str))
 
+    ser.to_hdf(temp_h5_path, key="s", mode="w", format=fmt)
+    tm.assert_series_equal(pd.read_hdf(temp_h5_path, "s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_all_na_multiindex_level_roundtrips(temp_h5_path):
+    # GH#9604 — same for an all-missing string level of a MultiIndex.
+    mi = pd.MultiIndex.from_arrays(
+        [pd.Index([np.nan, np.nan], dtype=str), [1, 2]], names=["a", "b"]
+    )
+    ser = pd.Series(range(2), index=mi)
+
     ser.to_hdf(temp_h5_path, key="s", mode="w")
-    result = pd.read_hdf(temp_h5_path, "s")
-    tm.assert_series_equal(result, ser, check_index_type=False)
-    assert result.index.isna().all()
+    tm.assert_series_equal(pd.read_hdf(temp_h5_path, "s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_dtype_does_not_depend_on_slice(temp_h5_path):
+    # GH#9604 — reading only the missing row of a partially-missing string
+    # Index used to give an object-dtype index while the full read gave str,
+    # so the index dtype depended on which rows were selected.
+    ser = pd.Series(range(3), index=pd.Index(["aaa", np.nan, "bbb"], dtype=str))
+    ser.to_hdf(temp_h5_path, key="s", mode="w", format="table")
+
+    expected_dtype = ser.index.dtype
+
+    result = pd.read_hdf(temp_h5_path, "s", start=1, stop=2)
+    tm.assert_series_equal(result, ser.iloc[1:2])
+    assert result.index.dtype == expected_dtype
+
+    with pd.HDFStore(temp_h5_path, mode="r") as store:
+        chunks = list(store.select("s", chunksize=1))
+    assert [chunk.index.dtype for chunk in chunks] == [expected_dtype] * 3
+
+
+def test_string_index_empty_selection_keeps_dtype(temp_h5_path):
+    # GH#9604 — a selection that matches no rows has no string left to infer
+    # from, so the index came back as object even for an index that never held
+    # a missing value.
+    df = pd.DataFrame({"v": [1, 2, 3]}, index=pd.Index(["a", "b", "c"], dtype=str))
+    df.to_hdf(temp_h5_path, key="t", mode="w", format="table", data_columns=True)
+
+    expected_dtype = df.index.dtype
+    assert pd.read_hdf(temp_h5_path, "t").index.dtype == expected_dtype
+
+    assert pd.read_hdf(temp_h5_path, "t", start=0, stop=0).index.dtype == expected_dtype
+    with pd.HDFStore(temp_h5_path, mode="r") as store:
+        assert store.select("t", where="v > 99").index.dtype == expected_dtype
+
+
+def test_empty_string_index_roundtrips(temp_h5_path):
+    # GH#9604 — same for a string Index that is empty to begin with.
+    ser = pd.Series([], index=pd.Index([], dtype=str), dtype="int64")
+
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+    tm.assert_series_equal(pd.read_hdf(temp_h5_path, "s"), ser)
 
 
 @pytest.mark.skipif(

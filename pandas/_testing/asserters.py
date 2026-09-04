@@ -193,6 +193,24 @@ def assert_dict_equal(left: dict, right: dict, compare_keys: bool = True) -> Non
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
+def _resolve_check_freq(
+    index: Index, check_freq: bool | lib.NoDefault
+) -> bool | lib.NoDefault:
+    """
+    Resolve an unspecified check_freq for a Series/DataFrame axis.
+
+    The hard freq check has long applied only to a flat DatetimeIndex or
+    TimedeltaIndex, so preserve that. Freqs nested inside a MultiIndex level or
+    inside Categorical categories were not checked before, so those go through
+    the deprecation warning in assert_index_equal. GH#51920, GH#66761
+    """
+    if check_freq is lib.no_default and isinstance(
+        index, (DatetimeIndex, TimedeltaIndex)
+    ):
+        return True
+    return check_freq
+
+
 @set_module("pandas.testing")
 def assert_index_equal(
     left: Index,
@@ -352,6 +370,13 @@ def assert_index_equal(
     if isinstance(left, MultiIndex):
         right = cast("MultiIndex", right)
 
+        # A freq mismatch in the levels is retried below on get_level_values,
+        #  which usually drops freq, so the levels comparison must not be what
+        #  emits the check_freq deprecation warning: it would warn in cases the
+        #  eventual check_freq=True default accepts. Resolve the sentinel to a
+        #  hard check here and let the retry decide. GH#66761
+        levels_check_freq = True if check_freq is lib.no_default else check_freq
+
         for level in range(left.nlevels):
             lobj = f"{obj} level [{level}]"
             try:
@@ -363,7 +388,7 @@ def assert_index_equal(
                     check_names=check_names,
                     check_exact=check_exact,
                     check_categorical=check_categorical,
-                    check_freq=check_freq,
+                    check_freq=levels_check_freq,
                     rtol=rtol,
                     atol=atol,
                     obj=lobj,
@@ -1003,7 +1028,7 @@ def assert_series_equal(
     check_datetimelike_compat: bool = False,
     check_categorical: bool = True,
     check_category_order: bool = True,
-    check_freq: bool = True,
+    check_freq: bool | lib.NoDefault = lib.no_default,
     check_flags: bool = True,
     rtol: float | lib.NoDefault = lib.no_default,
     atol: float | lib.NoDefault = lib.no_default,
@@ -1067,7 +1092,14 @@ def assert_series_equal(
         Whether to compare category order of internal Categoricals.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-        This check is skipped if ``check_index=False`` or ``check_like=True``.
+        The index check is skipped if ``check_index=False`` or ``check_like=True``.
+
+        .. deprecated:: 3.1.0
+            The ``freq`` attribute of a :class:`DatetimeIndex`/
+            :class:`TimedeltaIndex` MultiIndex level or Categorical categories is
+            not yet checked by default; a mismatch currently only warns and will
+            raise in a future version. Pass ``check_freq`` explicitly to silence
+            the warning.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
@@ -1154,7 +1186,7 @@ def assert_series_equal(
             check_exact=check_exact_index,
             check_categorical=check_categorical,
             check_order=not check_like,
-            check_freq=check_freq,
+            check_freq=_resolve_check_freq(left.index, check_freq),
             rtol=rtol,
             atol=atol,
             obj=f"{obj}.index",
@@ -1292,6 +1324,7 @@ def assert_series_equal(
                 right._values,
                 obj=f"{obj} category",
                 check_category_order=check_category_order,
+                check_freq=check_freq,
             )
 
 
@@ -1386,13 +1419,15 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex
-        index or columns. These checks are skipped if ``check_like=True``.
+        index or columns. The index and columns checks are skipped if
+        ``check_like=True``.
 
         .. deprecated:: 3.1.0
             The ``freq`` attribute of :class:`DatetimeIndex`/:class:`TimedeltaIndex`
-            columns is not yet checked by default; a mismatch currently only warns
-            and will raise in a future version. Pass ``check_freq`` explicitly to
-            silence the warning.
+            columns, MultiIndex levels, and Categorical categories is not yet
+            checked by default; a mismatch currently only warns and will raise in
+            a future version. Pass ``check_freq`` explicitly to silence the
+            warning.
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
@@ -1440,13 +1475,14 @@ def assert_frame_equal(
     _rtol = rtol if rtol is not lib.no_default else 1.0e-5
     _atol = atol if atol is not lib.no_default else 1.0e-8
     _check_exact = check_exact if check_exact is not lib.no_default else False
-    # The index freq has long been checked by default, so preserve that hard
-    # check; the columns freq check is new and goes through the deprecation
-    # warning in assert_index_equal (passing check_freq unresolved). GH#51920
-    _check_freq = True if check_freq is lib.no_default else check_freq
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
+
+    # The flat-index freq has long been checked by default, so preserve that
+    # hard check; the columns freq check is new and goes through the deprecation
+    # warning in assert_index_equal (passing check_freq unresolved). GH#51920
+    _check_freq = _resolve_check_freq(left.index, check_freq)
 
     if check_frame_type:
         assert isinstance(left, type(right))
@@ -1502,7 +1538,11 @@ def assert_frame_equal(
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(
-                lblocks[dtype], rblocks[dtype], check_dtype=check_dtype, obj=obj
+                lblocks[dtype],
+                rblocks[dtype],
+                check_dtype=check_dtype,
+                check_freq=check_freq,
+                obj=obj,
             )
 
     # compare by columns
@@ -1532,7 +1572,10 @@ def assert_frame_equal(
                     check_names=check_names,
                     check_datetimelike_compat=check_datetimelike_compat,
                     check_categorical=check_categorical,
-                    check_freq=_check_freq,
+                    # check_index=False above, so this governs only the
+                    #  categorical categories, whose freq goes through the
+                    #  deprecation rather than the index's hard check
+                    check_freq=check_freq,
                     obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
                     rtol=rtol,
                     atol=atol,
@@ -1558,7 +1601,8 @@ def assert_equal(left: Any, right: Any, **kwargs: Any) -> None:
         # retain the long-standing hard freq check for datetimelike Index;
         #  the check_freq deprecation in assert_index_equal only warns by
         #  default. GH#51920
-        kwargs.setdefault("check_freq", True)
+        if isinstance(left, (DatetimeIndex, TimedeltaIndex)):
+            kwargs.setdefault("check_freq", True)
         assert_index_equal(left, right, **kwargs)
     elif isinstance(left, Series):
         assert_series_equal(left, right, **kwargs)
