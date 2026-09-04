@@ -1266,10 +1266,9 @@ def test_comparison_between_arraylike_preserve_na(left, right):
     expected_2 = np.array([pd.NA, pd.NA, pd.NA], dtype="object")
 
     if left is np.array and right is np.array:
-        pytest.skip(
-            "TypeError is raised when both sides are NumPy arrays and either "
-            "side contains pandas NA."
-        )
+        # TypeError is raised when both sides are NumPy arrays and
+        # either side contains NA
+        return None
 
     result_1 = np.asarray(left(data_1) == right(data_2))
     tm.assert_numpy_array_equal(result_1, expected_1)
