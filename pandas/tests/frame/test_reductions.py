@@ -253,8 +253,9 @@ class TestDataFrameAnalytics:
         ):
             getattr(float_string_frame, opname)(axis=axis)
         else:
-            if opname in ["var", "std", "sem", "skew", "kurt"]:
-                msg = "could not convert string to float: 'bar'"
+            if opname in ["mean", "median", "var", "std", "sem", "skew", "kurt"]:
+                # GH#66302 every statistic rejects the string column the same way
+                msg = "Could not convert 'bar' to numeric"
             elif opname == "product":
                 if axis == 1:
                     msg = "can't multiply sequence by non-int of type 'float'"
@@ -262,26 +263,9 @@ class TestDataFrameAnalytics:
                     msg = "can't multiply sequence by non-int of type 'str'"
             elif opname == "sum":
                 msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
-            elif opname == "mean":
-                if axis == 0:
-                    # different message on different builds
-                    msg = "|".join(
-                        [
-                            r"Could not convert \['.*'\] to numeric",
-                            "Could not convert string '(bar){30}' to numeric",
-                        ]
-                    )
-                else:
-                    msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
             elif opname in ["min", "max"]:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
-            elif opname == "median":
-                msg = re.compile(
-                    r"Cannot convert \[.*\] to numeric|does not support|Cannot perform",
-                    flags=re.S,
-                )
-            if not isinstance(msg, re.Pattern):
-                msg = msg + "|does not support|Cannot perform reduction"
+            msg = "|".join([msg, "does not support", "Cannot perform reduction"])
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -521,7 +505,12 @@ class TestDataFrameAnalytics:
         with pytest.raises(
             TypeError,
             match="|".join(
-                ["unsupported operand type", "does not support", "Cannot perform"]
+                [
+                    "unsupported operand type",
+                    "does not support",
+                    "Cannot perform",
+                    "Could not convert",
+                ]
             ),
         ):
             df.mean()
@@ -546,7 +535,7 @@ class TestDataFrameAnalytics:
             result = nanops.nanvar(arr, axis=0)
             assert not (result < 0).any()
 
-    @pytest.mark.parametrize("meth", ["sem", "var", "std"])
+    @pytest.mark.parametrize("meth", ["sem", "var", "std", "mean", "median", "skew"])
     def test_numeric_only_flag(self, meth):
         # GH 9201
         df1 = pd.DataFrame(
@@ -575,11 +564,11 @@ class TestDataFrameAnalytics:
         expected = getattr(df2[["bar", "baz"]], meth)(axis=1)
         tm.assert_series_equal(expected, result)
 
-        # df1 has all numbers, df2 has a letter inside
-        msg = r"unsupported operand type\(s\) for -: 'float' and 'str'"
+        # GH#66302 a numeric string is no more acceptable than any other string
+        msg = "Could not convert '100' to numeric"
         with pytest.raises(TypeError, match=msg):
             getattr(df1, meth)(axis=1, numeric_only=False)
-        msg = "could not convert string to float: 'a'"
+        msg = "Could not convert 'a' to numeric"
         with pytest.raises(TypeError, match=msg):
             getattr(df2, meth)(axis=1, numeric_only=False)
 
@@ -1010,7 +999,7 @@ class TestDataFrameAnalytics:
             float_string_frame.mean(axis=0)
 
         # xs sum mixed type, just want to know it works...
-        with pytest.raises(TypeError, match="unsupported operand type"):
+        with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=1)
 
         # take mean of boolean column
@@ -1066,15 +1055,13 @@ class TestDataFrameAnalytics:
         expected = pd.DataFrame(arr).mean().astype("Float64")
         tm.assert_series_equal(result, expected)
 
-    def test_stats_mixed_type(self, float_string_frame):
-        with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.std(axis=1)
-        with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.var(axis=1)
-        with pytest.raises(TypeError, match="unsupported operand type"):
-            float_string_frame.mean(axis=1)
-        with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.skew(axis=1)
+    @pytest.mark.parametrize(
+        "meth", ["std", "var", "mean", "median", "sem", "skew", "kurt"]
+    )
+    def test_stats_mixed_type(self, float_string_frame, meth):
+        msg = "Could not convert 'bar' to numeric"
+        with pytest.raises(TypeError, match=msg):
+            getattr(float_string_frame, meth)(axis=1)
 
     def test_sum_bools(self):
         df = pd.DataFrame(index=range(1), columns=range(10))
@@ -2923,19 +2910,9 @@ def test_fails_on_non_numeric(kernel):
             "not supported between instances of",
             "unsupported operand type",
             "argument must be a string or a real number",
+            "Could not convert <class 'object'> to numeric",
         ]
     )
-    if kernel == "median":
-        # slightly different message on different builds
-        msg1 = (
-            r"Cannot convert \[\[<class 'object'> <class 'object'> "
-            r"<class 'object'>\]\] to numeric"
-        )
-        msg2 = (
-            r"Cannot convert \[<class 'object'> <class 'object'> "
-            r"<class 'object'>\] to numeric"
-        )
-        msg = "|".join([msg1, msg2])
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)
 

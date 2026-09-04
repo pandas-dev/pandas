@@ -40,6 +40,7 @@ from dateutil.tz import tzoffset
 
 from pandas._config import get_option
 
+from pandas._libs.portable cimport getdigit_ascii
 from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
@@ -63,9 +64,6 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
 
-
-cdef extern from "pandas/portable.h":
-    int getdigit_ascii(char c, int default) nogil
 
 cdef extern from "pandas/parser/tokenizer.h":
     double precise_xstrtod(const char *p, char **q, char decimal, char sci,

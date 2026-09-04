@@ -7770,7 +7770,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel = ...,
         *,
         drop: bool = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool = ...,
@@ -7782,7 +7782,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel | None = None,
         *,
         drop: bool = False,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool = False,
@@ -7805,6 +7805,14 @@ class DataFrame(NDFrame, OpsMixin):
             the index to the default integer index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -7946,6 +7954,19 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:

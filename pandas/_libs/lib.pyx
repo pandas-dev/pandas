@@ -2249,6 +2249,81 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def first_non_numeric(ndarray values):
+    """
+    Return the first element of an object-dtype array that numpy would convert
+    to a number even though it is not one, or None if there is no such element.
+
+    ``np.ndarray.astype(np.float64)`` happily turns ``"1"`` into ``1.0`` and
+    ``np.datetime64("2020-01-01")`` into ``18262.0``. Neither is ever what a
+    numeric reduction was asked for, so nanops rejects these up front rather
+    than silently computing a statistic of the wrong thing.
+
+    A ``datetime64``/``timedelta64`` NaT is missing-ness rather than a
+    datetime, so it is reported separately: reductions mask it out the way
+    they mask ``None`` and ``pd.NaT``, but numpy casts it to its ``int64``
+    sentinel rather than to NaN, so the caller has to fill it in first.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+
+    Returns
+    -------
+    non_numeric : object or None
+        The offending element, for use in the error message.
+    has_nat : bool
+        Whether the values hold a ``datetime64``/``timedelta64`` NaT.
+
+    Examples
+    --------
+    >>> arr = np.array([1.0, "2", 3.0], dtype=object)
+    >>> first_non_numeric(arr)
+    ('2', False)
+    >>> first_non_numeric(np.array([1.0, 2.0], dtype=object))
+    (None, False)
+    >>> first_non_numeric(np.array([1.0, np.datetime64("NaT", "ns")], dtype=object))
+    (None, True)
+    """
+    cdef:
+        Py_ssize_t _i, n = cnp.PyArray_SIZE(values)
+        flatiter it = PyArray_IterNew(values)
+        object val
+        type val_type, prev_type = None
+        bint has_nat = False
+
+    for _i in range(n):
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
+
+        val_type = type(val)
+        if val_type is prev_type:
+            continue
+
+        if (
+            cnp.is_datetime64_object(val)
+            and cnp.get_datetime64_value(val) == NPY_NAT
+        ) or (
+            cnp.is_timedelta64_object(val)
+            and cnp.get_timedelta64_value(val) == NPY_NAT
+        ):
+            has_nat = True
+            continue
+
+        if (
+            cnp.is_datetime64_object(val)
+            or cnp.is_timedelta64_object(val)
+            or isinstance(val, (str, bytes))
+        ):
+            return val, has_nat
+
+        prev_type = val_type
+
+    return None, has_nat
+
+
 @cython.internal
 cdef class BytesValidator(Validator):
     cdef bint is_value_typed(self, object value) except -1:
