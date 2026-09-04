@@ -21,6 +21,5 @@ class TestStrAccessor:
 
     def test_str_accessor_updates_on_inplace(self):
         ser = pd.Series(list("abc"))
-        return_value = ser.drop([0], inplace=True)
-        assert return_value is None
-        assert len(ser.str.lower()) == 2
+        ser.replace({"a": "A"}, inplace=True)
+        assert ser.str.islower().sum() == 2

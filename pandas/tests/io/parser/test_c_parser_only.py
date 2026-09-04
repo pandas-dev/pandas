@@ -20,6 +20,7 @@ import pytest
 from pandas._libs import parsers as libparsers
 from pandas.compat import WASM
 from pandas.errors import (
+    DtypeWarning,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -1492,3 +1493,143 @@ def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
     for _ in range(2):
         with pytest.raises(StopIteration):
             next(reader)
+
+
+# small enough that DEFAULT_BUFFER_HEURISTIC // table_width leaves one line per
+# buffer, so the rows below land in separate low_memory chunks
+_MIXED_DTYPE_HEURISTIC = 2**3
+
+
+def _mixed_dtype_data(n_leading_names: int = 3) -> str:
+    """
+    Build a csv whose middle chunk makes the second of three fields mixed-dtype.
+
+    Naming fewer than the three fields per row leaves an unnamed leading field,
+    which the reader takes as an implicit index, shifting which name that field
+    carries.
+    """
+    names = ["a", "b", "c"][:n_leading_names]
+    rows = [f"{i},{i},{i}" for i in range(_MIXED_DTYPE_HEURISTIC - 1)]
+    return ",".join(names) + "\n" + "\n".join([*rows, "7,x,7", "8,y,8", *rows]) + "\n"
+
+
+@pytest.mark.parametrize("usecols", [["b"], ["b", "c"], [1], [1, 2]])
+def test_mixed_dtype_warning_with_usecols(c_parser_only, monkeypatch, usecols):
+    # GH#67375: read_low_memory keys its chunks by field position in the source
+    # row, so usecols leaves gaps in those keys.  The mixed-dtype warning used
+    # them to index the column names directly, which raised IndexError for any
+    # selected column that was not still at its original position.
+    parser = c_parser_only
+    data = _mixed_dtype_data()
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        if parser.low_memory:
+            result = parser.read_csv_check_warnings(
+                DtypeWarning,
+                r"Columns \(1: b\) have mixed types\. "
+                "Specify dtype option on import or set low_memory=False.",
+                StringIO(data),
+                usecols=usecols,
+            )
+        else:
+            result = parser.read_csv(StringIO(data), usecols=usecols)
+
+    expected = ["b"] if len(usecols) == 1 else ["b", "c"]
+    assert result.columns.tolist() == expected
+
+
+def test_mixed_dtype_warning_with_index_col(c_parser_only, monkeypatch):
+    # GH#67375: an index column shifts the parsed field positions past the data
+    # columns, so the same positional lookup named the column after the mixed
+    # one instead of naming "b".
+    parser = c_parser_only
+    data = _mixed_dtype_data()
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        if parser.low_memory:
+            result = parser.read_csv_check_warnings(
+                DtypeWarning,
+                r"Columns \(1: b\) have mixed types\. "
+                "Specify dtype option on import or set low_memory=False.",
+                StringIO(data),
+                index_col=0,
+            )
+        else:
+            result = parser.read_csv(StringIO(data), index_col=0)
+
+    assert result.columns.tolist() == ["b", "c"]
+    assert result.index.name == "a"
+
+
+def test_mixed_dtype_warning_with_implicit_index(c_parser_only, monkeypatch):
+    # GH#67375: a header shorter than the rows makes the reader take the first
+    # field as an implicit index.  That field has no name, so the parsed
+    # positions run one ahead of the column names and the warning named "b"
+    # while the mixed column was "a".
+    parser = c_parser_only
+    data = _mixed_dtype_data(n_leading_names=2)
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        if parser.low_memory:
+            result = parser.read_csv_check_warnings(
+                DtypeWarning,
+                r"Columns \(1: a\) have mixed types\. "
+                "Specify dtype option on import or set low_memory=False.",
+                StringIO(data),
+            )
+        else:
+            result = parser.read_csv(StringIO(data))
+
+    assert result.columns.tolist() == ["a", "b"]
+
+
+def test_mixed_dtype_warning_reports_source_positions(c_parser_only, monkeypatch):
+    # GH#67375: the number before each name is the column's position in the
+    # source row -- as GH#58174 asked for and as the pre-GH#58250 message
+    # printed -- not a running count of the mixed columns.  With two mixed
+    # columns at positions 1 and 3 the two readings disagree.
+    parser = c_parser_only
+    rows = [f"{i},{i},{i},{i}" for i in range(_MIXED_DTYPE_HEURISTIC - 1)]
+    data = "a,b,c,d\n" + "\n".join([*rows, "7,x,7,x", "8,y,8,y", *rows]) + "\n"
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        if parser.low_memory:
+            result = parser.read_csv_check_warnings(
+                DtypeWarning,
+                r"Columns \(1: b, 3: d\) have mixed types\. "
+                "Specify dtype option on import or set low_memory=False.",
+                StringIO(data),
+            )
+        else:
+            result = parser.read_csv(StringIO(data))
+
+    assert result.columns.tolist() == ["a", "b", "c", "d"]
+
+
+def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatch):
+    # GH#67375: the implicit index column is parsed like any other field and can
+    # itself be mixed, but it has no name to report.  Naming it by position, as
+    # the message did before GH#58250 added names, beats borrowing the name of
+    # the first data column -- which is not the column that is mixed.
+    parser = c_parser_only
+    rows = [f"{i},{i},{i},{i}" for i in range(_MIXED_DTYPE_HEURISTIC - 1)]
+    data = "a,b,c\n" + "\n".join([*rows, "x,7,7,7", "y,8,8,8", *rows]) + "\n"
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        if parser.low_memory:
+            result = parser.read_csv_check_warnings(
+                DtypeWarning,
+                r"Columns \(0\) have mixed types\. "
+                "Specify dtype option on import or set low_memory=False.",
+                StringIO(data),
+            )
+        else:
+            result = parser.read_csv(StringIO(data))
+
+    assert result.columns.tolist() == ["a", "b", "c"]
+    assert result.index.name is None
