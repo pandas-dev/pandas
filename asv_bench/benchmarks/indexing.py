@@ -603,18 +603,6 @@ class SeriesSetitem:
         self.s[:] = self.arr_obj
 
 
-class ChainIndexing:
-    def setup(self):
-        self.N = 1000000
-        self.df = DataFrame({"A": np.arange(self.N), "B": "foo"})
-
-    def time_chained_indexing(self):
-        df = self.df
-        N = self.N
-        df2 = df[df.A > N // 2]
-        df2["C"] = 1.0
-
-
 class Block:
     def setup(self):
         self.df = DataFrame(
