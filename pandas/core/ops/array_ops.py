@@ -363,7 +363,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             if (
                 isinstance(rvalues, np.ndarray)
                 and rvalues.dtype == object
-                and is_pdna(rvalues).any()
+                and is_pdna(rvalues.ravel()).any()
             ):
                 res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
             else:
