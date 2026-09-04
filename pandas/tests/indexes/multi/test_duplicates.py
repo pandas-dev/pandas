@@ -9,26 +9,20 @@ from pandas._libs import (
     index as libindex,
 )
 
-from pandas import (
-    NA,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 @pytest.fixture
 def idx_dup():
     # compare tests/indexes/multi/conftest.py
-    major_axis = Index(["foo", "bar", "baz", "qux"])
-    minor_axis = Index(["one", "two"])
+    major_axis = pd.Index(["foo", "bar", "baz", "qux"])
+    minor_axis = pd.Index(["one", "two"])
 
     major_codes = np.array([0, 0, 1, 0, 1, 1])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
     index_names = ["first", "second"]
-    mi = MultiIndex(
+    mi = pd.MultiIndex(
         levels=[major_axis, minor_axis],
         codes=[major_codes, minor_codes],
         names=index_names,
@@ -39,43 +33,43 @@ def idx_dup():
 
 @pytest.mark.parametrize("names", [None, ["first", "second"]])
 def test_unique(names):
-    mi = MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]], names=names)
+    mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]], names=names)
 
     res = mi.unique()
-    exp = MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]], names=mi.names)
+    exp = pd.MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]], names=mi.names)
     tm.assert_index_equal(res, exp)
 
-    mi = MultiIndex.from_arrays([list("aaaa"), list("abab")], names=names)
+    mi = pd.MultiIndex.from_arrays([list("aaaa"), list("abab")], names=names)
     res = mi.unique()
-    exp = MultiIndex.from_arrays([list("aa"), list("ab")], names=mi.names)
+    exp = pd.MultiIndex.from_arrays([list("aa"), list("ab")], names=mi.names)
     tm.assert_index_equal(res, exp)
 
-    mi = MultiIndex.from_arrays([list("aaaa"), list("aaaa")], names=names)
+    mi = pd.MultiIndex.from_arrays([list("aaaa"), list("aaaa")], names=names)
     res = mi.unique()
-    exp = MultiIndex.from_arrays([["a"], ["a"]], names=mi.names)
+    exp = pd.MultiIndex.from_arrays([["a"], ["a"]], names=mi.names)
     tm.assert_index_equal(res, exp)
 
     # GH #20568 - empty MI
-    mi = MultiIndex.from_arrays([[], []], names=names)
+    mi = pd.MultiIndex.from_arrays([[], []], names=names)
     res = mi.unique()
     tm.assert_index_equal(mi, res)
 
 
 def test_unique_datetimelike():
-    idx1 = DatetimeIndex(
+    idx1 = pd.DatetimeIndex(
         ["2015-01-01", "2015-01-01", "2015-01-01", "2015-01-01", "NaT", "NaT"]
     )
-    idx2 = DatetimeIndex(
+    idx2 = pd.DatetimeIndex(
         ["2015-01-01", "2015-01-01", "2015-01-02", "2015-01-02", "NaT", "2015-01-01"],
         tz="Asia/Tokyo",
     )
-    result = MultiIndex.from_arrays([idx1, idx2]).unique()
+    result = pd.MultiIndex.from_arrays([idx1, idx2]).unique()
 
-    eidx1 = DatetimeIndex(["2015-01-01", "2015-01-01", "NaT", "NaT"])
-    eidx2 = DatetimeIndex(
+    eidx1 = pd.DatetimeIndex(["2015-01-01", "2015-01-01", "NaT", "NaT"])
+    eidx2 = pd.DatetimeIndex(
         ["2015-01-01", "2015-01-02", "NaT", "2015-01-01"], tz="Asia/Tokyo"
     )
-    exp = MultiIndex.from_arrays([eidx1, eidx2])
+    exp = pd.MultiIndex.from_arrays([eidx1, eidx2])
     tm.assert_index_equal(result, exp)
 
 
@@ -87,13 +81,15 @@ def test_unique_level(idx, level):
     tm.assert_index_equal(result, expected)
 
     # With already unique level
-    mi = MultiIndex.from_arrays([[1, 3, 2, 4], [1, 3, 2, 5]], names=["first", "second"])
+    mi = pd.MultiIndex.from_arrays(
+        [[1, 3, 2, 4], [1, 3, 2, 5]], names=["first", "second"]
+    )
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
     tm.assert_index_equal(result, expected)
 
     # With empty MI
-    mi = MultiIndex.from_arrays([[], []], names=["first", "second"])
+    mi = pd.MultiIndex.from_arrays([[], []], names=["first", "second"])
     result = mi.unique(level=level)
     expected = mi.get_level_values(level)
     tm.assert_index_equal(result, expected)
@@ -104,10 +100,10 @@ def test_duplicate_multiindex_codes():
     # Make sure that a MultiIndex with duplicate levels throws a ValueError
     msg = r"Level values must be unique. Duplicate values on level 0: \[[A', ]+\]"
     with pytest.raises(ValueError, match=msg):
-        mi = MultiIndex([["A"] * 10, range(10)], [[0] * 10, range(10)])
+        mi = pd.MultiIndex([["A"] * 10, range(10)], [[0] * 10, range(10)])
 
     # And that using set_levels with duplicate levels fails
-    mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
+    mi = pd.MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     msg = r"Level values must be unique. Duplicate values on level 0: \[[AB', ]+\]"
     with pytest.raises(ValueError, match=msg):
         mi.set_levels([["A", "B", "A", "A", "B"], [2, 1, 3, -2, 5]])
@@ -116,19 +112,19 @@ def test_duplicate_multiindex_codes():
 def test_duplicate_level_message_reports_only_duplicates():
     # GH 19432 - the message names the colliding values instead of dumping the
     # whole level, and shows both members so 1 vs 1.0 reads as a collision
-    levels = [Index([1, 1.0], dtype=object), range(3)]
+    levels = [pd.Index([1, 1.0], dtype=object), range(3)]
     msg = re.escape(
         "Level values must be unique. Duplicate values on level 0: [1, 1.0]"
     )
     with pytest.raises(ValueError, match=msg):
-        MultiIndex(levels=levels, codes=[[0, 1], [1, 1]])
+        pd.MultiIndex(levels=levels, codes=[[0, 1], [1, 1]])
 
 
 def test_duplicate_level_message_truncates_long_levels():
     # GH 19432 - a large level must not produce a megabyte-long message
     level = list(range(200)) + [0] * 20
     with pytest.raises(ValueError, match="Level values must be unique") as err:
-        MultiIndex(levels=[level, range(3)], codes=[[0, 1], [1, 1]])
+        pd.MultiIndex(levels=[level, range(3)], codes=[[0, 1], [1, 1]])
     msg = str(err.value)
     assert len(msg) < 200
     assert "... (21 total)" in msg
@@ -137,11 +133,11 @@ def test_duplicate_level_message_truncates_long_levels():
 @pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
 def test_duplicate_level_names(names):
     # GH18872, GH19029
-    mi = MultiIndex.from_product([[0, 1]] * 3, names=names)
+    mi = pd.MultiIndex.from_product([[0, 1]] * 3, names=names)
     assert mi.names == names
 
     # With .rename()
-    mi = MultiIndex.from_product([[0, 1]] * 3)
+    mi = pd.MultiIndex.from_product([[0, 1]] * 3)
     mi = mi.rename(names)
     assert mi.names == names
 
@@ -153,7 +149,7 @@ def test_duplicate_level_names(names):
 
 def test_duplicate_meta_data():
     # GH 10115
-    mi = MultiIndex(
+    mi = pd.MultiIndex(
         levels=[[0, 1], [0, 1, 2]], codes=[[0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]]
     )
 
@@ -174,21 +170,21 @@ def test_has_duplicates(idx, idx_dup):
     assert idx_dup.is_unique is False
     assert idx_dup.has_duplicates is True
 
-    mi = MultiIndex(
+    mi = pd.MultiIndex(
         levels=[[0, 1], [0, 1, 2]], codes=[[0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]]
     )
     assert mi.is_unique is False
     assert mi.has_duplicates is True
 
     # single instance of NaN
-    mi_nan = MultiIndex(
+    mi_nan = pd.MultiIndex(
         levels=[["a", "b"], [0, 1]], codes=[[-1, 0, 0, 1, 1], [-1, 0, 1, 0, 1]]
     )
     assert mi_nan.is_unique is True
     assert mi_nan.has_duplicates is False
 
     # multiple instances of NaN
-    mi_nan_dup = MultiIndex(
+    mi_nan_dup = pd.MultiIndex(
         levels=[["a", "b"], [0, 1]], codes=[[-1, -1, 0, 0, 1, 1], [-1, -1, 0, 1, 0, 1]]
     )
     assert mi_nan_dup.is_unique is False
@@ -218,7 +214,7 @@ def test_has_duplicates_from_tuples():
         ("x", "out", "z", 12, "y", "in", "z", 144),
     ]
 
-    mi = MultiIndex.from_tuples(t)
+    mi = pd.MultiIndex.from_tuples(t)
     assert not mi.has_duplicates
 
 
@@ -244,7 +240,7 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
     levels = [level] * nlevels + [[0, 1]]
 
     # no dups
-    mi = MultiIndex(levels=levels, codes=codes)
+    mi = pd.MultiIndex(levels=levels, codes=codes)
     assert not mi.has_duplicates
 
     # with a dup
@@ -254,10 +250,10 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
             return np.insert(a, 1000, a[0])
 
         codes = list(map(f, codes))
-        mi = MultiIndex(levels=levels, codes=codes)
+        mi = pd.MultiIndex(levels=levels, codes=codes)
     else:
         values = mi.values.tolist()
-        mi = MultiIndex.from_tuples([*values, values[0]])
+        mi = pd.MultiIndex.from_tuples([*values, values[0]])
 
     assert mi.has_duplicates
 
@@ -285,7 +281,7 @@ def test_duplicated_hashtable_impl(keep, monkeypatch):
     codes = [rng.choice(n, k * n) for _ in levels]
     with monkeypatch.context() as m:
         m.setattr(libindex, "_SIZE_CUTOFF", 50)
-        mi = MultiIndex(levels=levels, codes=codes)
+        mi = pd.MultiIndex(levels=levels, codes=codes)
 
         result = mi.duplicated(keep=keep)
         expected = hashtable.duplicated(mi.values, keep=keep)
@@ -295,7 +291,7 @@ def test_duplicated_hashtable_impl(keep, monkeypatch):
 @pytest.mark.parametrize("val", [101, 102])
 def test_duplicated_with_nan(val):
     # GH5873
-    mi = MultiIndex.from_arrays([[101, val], [3.5, np.nan]])
+    mi = pd.MultiIndex.from_arrays([[101, val], [3.5, np.nan]])
     assert not mi.has_duplicates
 
     tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
@@ -307,7 +303,7 @@ def test_duplicated_with_nan_multi_shape(n, m):
     # GH5873
     # all possible unique combinations, including nan
     codes = product(range(-1, n), range(-1, m))
-    mi = MultiIndex(
+    mi = pd.MultiIndex(
         levels=[list("abcde")[:n], list("WXYZ")[:m]],
         codes=np.random.default_rng(2).permutation(list(codes)).T,
     )
@@ -319,37 +315,37 @@ def test_duplicated_with_nan_multi_shape(n, m):
 
 def test_duplicated_drop_duplicates():
     # GH#4060
-    idx = MultiIndex.from_arrays(([1, 2, 3, 1, 2, 3], [1, 1, 1, 1, 2, 2]))
+    idx = pd.MultiIndex.from_arrays(([1, 2, 3, 1, 2, 3], [1, 1, 1, 1, 2, 2]))
 
     expected = np.array([False, False, False, True, False, False], dtype=bool)
     duplicated = idx.duplicated()
     tm.assert_numpy_array_equal(duplicated, expected)
     assert duplicated.dtype == bool
-    expected = MultiIndex.from_arrays(([1, 2, 3, 2, 3], [1, 1, 1, 2, 2]))
+    expected = pd.MultiIndex.from_arrays(([1, 2, 3, 2, 3], [1, 1, 1, 2, 2]))
     tm.assert_index_equal(idx.drop_duplicates(), expected)
 
     expected = np.array([True, False, False, False, False, False])
     duplicated = idx.duplicated(keep="last")
     tm.assert_numpy_array_equal(duplicated, expected)
     assert duplicated.dtype == bool
-    expected = MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
+    expected = pd.MultiIndex.from_arrays(([2, 3, 1, 2, 3], [1, 1, 1, 2, 2]))
     tm.assert_index_equal(idx.drop_duplicates(keep="last"), expected)
 
     expected = np.array([True, False, False, True, False, False])
     duplicated = idx.duplicated(keep=False)
     tm.assert_numpy_array_equal(duplicated, expected)
     assert duplicated.dtype == bool
-    expected = MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
+    expected = pd.MultiIndex.from_arrays(([2, 3, 2, 3], [1, 1, 2, 2]))
     tm.assert_index_equal(idx.drop_duplicates(keep=False), expected)
 
 
 def test_duplicated_series_complex_numbers(complex_dtype):
     # GH 17927
-    expected = Series(
+    expected = pd.Series(
         [False, False, False, True, False, False, False, True, False, True],
         dtype=bool,
     )
-    result = Series(
+    result = pd.Series(
         [
             np.nan + np.nan * 1j,
             0,
@@ -369,12 +365,12 @@ def test_duplicated_series_complex_numbers(complex_dtype):
 
 def test_midx_unique_ea_dtype():
     # GH#48335
-    vals_a = Series([1, 2, NA, NA], dtype="Int64")
+    vals_a = pd.Series([1, 2, pd.NA, pd.NA], dtype="Int64")
     vals_b = np.array([1, 2, 3, 3])
-    midx = MultiIndex.from_arrays([vals_a, vals_b], names=["a", "b"])
+    midx = pd.MultiIndex.from_arrays([vals_a, vals_b], names=["a", "b"])
     result = midx.unique()
 
-    exp_vals_a = Series([1, 2, NA], dtype="Int64")
+    exp_vals_a = pd.Series([1, 2, pd.NA], dtype="Int64")
     exp_vals_b = np.array([1, 2, 3])
-    expected = MultiIndex.from_arrays([exp_vals_a, exp_vals_b], names=["a", "b"])
+    expected = pd.MultiIndex.from_arrays([exp_vals_a, exp_vals_b], names=["a", "b"])
     tm.assert_index_equal(result, expected)

@@ -641,12 +641,14 @@ def assert_categorical_equal(
             exact=exact,
             check_freq=check_freq,
         )
-        assert_index_equal(
-            left.categories.take(left.codes),
-            right.categories.take(right.codes),
+        # GH#62008 Compare the values as objects.  Taking the categories with
+        #  the raw codes would treat the -1 code used for NA as a positional
+        #  indexer for the last category, and filling instead would cast
+        #  integer categories to float64.
+        assert_numpy_array_equal(
+            left.astype(object),
+            right.astype(object),
             obj=f"{obj}.values",
-            exact=exact,
-            check_freq=check_freq,
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)
