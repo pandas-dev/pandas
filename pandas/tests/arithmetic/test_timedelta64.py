@@ -24,6 +24,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import NumpyExtensionArray
 from pandas.tests.arithmetic.common import (
+    NoInitialMaxArray,
     assert_invalid_addsub_type,
     assert_invalid_comparison,
     get_upcast_box,
@@ -1726,6 +1727,22 @@ class TestTimedeltaArraylikeMulDivOps:
 
         tm.assert_equal(tdi * 2, expected)
         tm.assert_equal(tdi * 2.0, expected)
+
+    @pytest.mark.parametrize("dtype", ["i8", "f8"])
+    def test_td64arr_mul_ndarray_subclass(self, index_or_series, dtype):
+        # GH#43178: the float overflow guard reduces with
+        #  np.max(..., initial=0.0), which an ndarray subclass' own max() need
+        #  not accept
+        tdi = pd.TimedeltaIndex([pd.Timedelta(1, "ns"), pd.Timedelta(2, "ns")])
+        tdi = tm.box_expected(tdi, index_or_series)
+        raw = np.array([2, 3], dtype=dtype)
+        other = raw.view(NoInitialMaxArray)
+
+        expected = pd.TimedeltaIndex([pd.Timedelta(2, "ns"), pd.Timedelta(6, "ns")])
+        expected = tm.box_expected(expected, index_or_series)
+
+        tm.assert_equal(tdi * other, expected)
+        tm.assert_equal(tdi * other, tdi * raw)
 
     def test_td64arr_div_float_overflow(self, box_with_array):
         # GH#43178: float division whose quotient exceeds int64 bounds must

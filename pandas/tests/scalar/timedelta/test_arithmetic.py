@@ -21,6 +21,7 @@ from pandas.errors import (
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
+from pandas.tests.arithmetic.common import NoInitialMaxArray
 
 
 class TestTimedeltaAdditionSubtraction:
@@ -1699,3 +1700,71 @@ def test_td_integral_float_op_is_exact(op):
     td = pd.Timedelta(2**53 + 1, "ns")
     assert op(td, 1.0)._value == 2**53 + 1
     assert op(td, 1.0) == op(td, 1)
+
+
+@pytest.mark.parametrize("kind", ["m", "M"])
+def test_td_add_sub_ndarray_subclass(kind):
+    # GH#66552 the overflow guard views the operand as i8 and rebuilds a plain
+    #  ndarray, so an ndarray subclass came back stripped of its type
+    td = pd.Timedelta(5, "ns")
+    values = np.array([10, 20], dtype=f"{kind}8[ns]")
+    other = values.view(NoInitialMaxArray)
+    m8 = td.to_timedelta64()
+
+    cases = [
+        (td + other, m8 + values),
+        (other + td, values + m8),
+        (other - td, values - m8),
+    ]
+    if kind == "m":
+        cases.append((td - other, m8 - values))
+
+    for result, expected in cases:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
+
+
+@pytest.mark.parametrize("dtype", ["i8", "f8"])
+def test_td_mul_ndarray_subclass(dtype):
+    # GH#66552 the float overflow guard reduces with np.max(..., initial=0.0),
+    #  which an ndarray subclass' own max() need not accept
+    td = pd.Timedelta(4, "ns")
+    values = np.array([2, 3], dtype=dtype)
+    other = values.view(NoInitialMaxArray)
+
+    expected = values * td.to_timedelta64()
+    for result in [td * other, other * td]:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
+
+
+def test_td_div_ndarray_subclass():
+    # GH#66552 the overflow guard reduces with np.max(..., initial=, where=),
+    #  which an ndarray subclass' own max() need not accept
+    td = pd.Timedelta(4, "ns")
+    values = np.array([2.0, 4.0])
+    other = values.view(NoInitialMaxArray)
+    m8 = td.to_timedelta64()
+
+    for result, expected in [(td / other, m8 / values), (td // other, m8 // values)]:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
+
+
+@pytest.mark.parametrize("kind", ["m", "M"])
+def test_td_add_sub_ndarray_unit_multiplier(kind):
+    # GH#66552 a dtype such as m8[10s] carries a multiplier that our
+    #  resolutions cannot express; it used to be silently read as m8[s]
+    td = pd.Timedelta(1, "s")
+    other = np.array([1, 2], dtype=f"{kind}8[10s]")
+
+    expected = np.array([11, 21], dtype=f"{kind}8[s]")
+    tm.assert_numpy_array_equal(td + other, expected)
+    tm.assert_numpy_array_equal(other + td, expected)
+
+    expected = np.array([9, 19], dtype=f"{kind}8[s]")
+    tm.assert_numpy_array_equal(other - td, expected)
+
+    if kind == "m":
+        expected = np.array([-9, -19], dtype="m8[s]")
+        tm.assert_numpy_array_equal(td - other, expected)

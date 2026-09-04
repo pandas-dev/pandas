@@ -110,6 +110,7 @@ cdef int string_to_dts(
 ) except? -1
 
 cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype)
+cdef int64_t get_unit_count_from_dtype(cnp.dtype dtype)
 
 cpdef cnp.ndarray astype_overflowsafe(
     cnp.ndarray values,  # ndarray[datetime64[anyunit]]
