@@ -1,3 +1,4 @@
+from decimal import Decimal
 from functools import partial
 
 import numpy as np
@@ -924,61 +925,146 @@ def test_bn_not_ok_dtype(fixture, request, disable_bottleneck):
     assert not nanops._bn_ok_dtype(obj.dtype, "test")
 
 
-class TestEnsureNumeric:
-    def test_numeric_values(self):
-        # Test integer
-        assert nanops._ensure_numeric(1) == 1
+@pytest.mark.parametrize("scalar", [complex, np.complex64, np.complex128])
+@pytest.mark.parametrize("func", ["nanmean", "nanmedian", "nanvar", "nanstd"])
+def test_object_complex_matches_native(func, scalar):
+    # an object array of complex reduces exactly as the complex128 array it
+    #  represents, whichever flavour of complex scalar it holds
+    vals = [scalar(1 + 2j), scalar(3 - 1j), scalar(-2j)]
+    objarr = np.empty(3, dtype=object)
+    objarr[:] = vals
+    expected = getattr(nanops, func)(np.array(vals, dtype=np.complex128))
+    assert getattr(nanops, func)(objarr) == expected
 
-        # Test float
-        assert nanops._ensure_numeric(1.1) == 1.1
 
-        # Test complex
-        assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
+@pytest.mark.parametrize(
+    "nat", [pd.NaT, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+)
+@pytest.mark.parametrize("func", ["nanmean", "nanmedian", "nanvar", "nanstd", "nansem"])
+def test_object_nat_is_na(func, nat):
+    # GH#34671 a NaT is missing-ness rather than a datetime, so it is masked
+    #  out like any other NA whichever flavour of NaT it is
+    objarr = np.empty(3, dtype=object)
+    objarr[:] = [1.0, nat, 3.0]
+    expected = getattr(nanops, func)(np.array([1.0, np.nan, 3.0]))
+    assert getattr(nanops, func)(objarr) == expected
 
-    def test_ndarray(self):
-        # Test numeric ndarray
-        values = np.array([1, 2, 3])
-        assert np.allclose(nanops._ensure_numeric(values), values)
 
-        # Test object ndarray
-        o_values = values.astype(object)
-        assert np.allclose(nanops._ensure_numeric(o_values), values)
+def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
+    # the imaginary part was silently discarded on builds without bottleneck
+    values = np.array([1 + 2j, 3 + 4j, 5j, 1j])
+    assert nanops.nanmedian(values) == 0.5 + 3.5j
 
-        # Test convertible string ndarray
-        s_values = np.array(["1", "2", "3"], dtype=object)
-        msg = r"Could not convert \['1' '2' '3'\] to numeric"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric(s_values)
 
-        # Test non-convertible string ndarray
-        s_values = np.array(["foo", "bar", "baz"], dtype=object)
-        msg = r"Could not convert .* to numeric"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric(s_values)
+def test_ensure_numeric_passthrough():
+    # non-object dtypes are handed back untouched
+    values = np.array([1, 2, 3])
+    assert nanops._ensure_numeric(values) is values
 
-    def test_convertable_values(self):
-        with pytest.raises(TypeError, match="Could not convert string '1' to numeric"):
-            nanops._ensure_numeric("1")
-        with pytest.raises(
-            TypeError, match="Could not convert string '1.1' to numeric"
-        ):
-            nanops._ensure_numeric("1.1")
-        with pytest.raises(
-            TypeError, match=r"Could not convert string '1\+1j' to numeric"
-        ):
-            nanops._ensure_numeric("1+1j")
 
-    def test_non_convertable_values(self):
-        msg = "Could not convert string 'foo' to numeric"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric("foo")
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([1, 2, 3], np.array([1.0, 2.0, 3.0])),
+        ([1.0, None, 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, pd.NA, 3.0], np.array([1.0, np.nan, 3.0])),
+        # a NaT is missing-ness, not a datetime, whichever flavour it is
+        ([1.0, pd.NaT, 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, np.datetime64("NaT", "ns"), 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, np.timedelta64("NaT", "ns"), 3.0], np.array([1.0, np.nan, 3.0])),
+        ([Decimal(1), Decimal(2)], np.array([1.0, 2.0])),
+        ([True, False], np.array([1.0, 0.0])),
+        ([1 + 2j, 3.0], np.array([1 + 2j, 3 + 0j])),
+        # numpy complex scalars have __float__, unlike Python complex, so a
+        #  float64 attempt would silently discard the imaginary part
+        ([np.complex64(1 - 1j), 3.0], np.array([1 - 1j, 3 + 0j])),
+        ([np.complex128(1 - 1j), 3.0], np.array([1 - 1j, 3 + 0j])),
+    ],
+)
+def test_ensure_numeric_object(values, expected):
+    result = nanops._ensure_numeric(np.array(values, dtype=object))
+    tm.assert_numpy_array_equal(result, expected)
 
-        # with the wrong type, python raises TypeError for us
-        msg = "argument must be a string or a number"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric({})
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric([])
+
+@pytest.mark.parametrize(
+    "values, match",
+    [
+        (["1", "2", "3"], "'1'"),
+        ([1.0, "2", 3.0], "'2'"),
+        (["foo", "bar"], "'foo'"),
+        ([b"1", b"2"], "b'1'"),
+        ([np.datetime64("2020-01-01"), np.datetime64("2020-01-02")], "datetime64"),
+        ([np.timedelta64(1, "D")], "timedelta64"),
+        # a leading NaT does not let the datetime64 behind it through
+        ([1.0, np.datetime64("NaT", "ns"), np.datetime64("2020-01-01")], "datetime64"),
+        ([1.0, np.timedelta64("NaT", "ns"), np.timedelta64(1, "D")], "timedelta64"),
+        ([pd.Timestamp("2020-01-01")], "Timestamp"),
+        # the NA is not the culprit; the message names the element that is
+        ([1 + 2j, pd.NA, pd.Timestamp("2020-01-01")], "Timestamp"),
+        ([[1, 2], [3, 4]], r"\[1, 2\]"),
+        ([{}, {}], r"\{\}"),
+    ],
+)
+def test_ensure_numeric_raises(values, match):
+    # GH#44008, GH#36703 nothing that is not a number is converted implicitly
+    arr = np.empty(len(values), dtype=object)
+    arr[:] = values
+    with pytest.raises(TypeError, match=f"Could not convert .*{match}"):
+        nanops._ensure_numeric(arr)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        # numpy's own object->complex128 cast maps None to nan+nanj, not nan+0j
+        ([1 + 2j, None], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        ([1 + 2j, np.nan], np.array([1 + 2j, complex(np.nan, 0)])),
+        # NaT/pd.NA numpy refuses outright, so they get the same NaN as None
+        ([1 + 2j, pd.NaT], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        ([1 + 2j, pd.NA], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        # each NA maps the same way whichever other NAs share the array
+        (
+            [1 + 2j, None, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, pd.NA, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, pd.NaT, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, np.datetime64("NaT", "ns")],
+            np.array([1 + 2j, complex(np.nan, np.nan)]),
+        ),
+        (
+            [1 + 2j, np.timedelta64("NaT", "ns"), np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        # a Decimal NaN is one numpy can cast itself, so it keeps nan+0j even
+        #  when it shares the array with an NA that numpy refuses
+        ([1 + 2j, Decimal("NaN")], np.array([1 + 2j, complex(np.nan, 0)])),
+        (
+            [1 + 2j, pd.NA, Decimal("NaN")],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+    ],
+)
+def test_ensure_numeric_complex_na(values, expected):
+    # the NaN standing in for NA keeps its imaginary part
+    arr = np.empty(len(values), dtype=object)
+    arr[:] = values
+    tm.assert_numpy_array_equal(nanops._ensure_numeric(arr), expected)
+
+
+@pytest.mark.parametrize("dtype", ["U1", "S1", np.dtypes.StringDType()])
+def test_ensure_numeric_str_dtype(dtype):
+    # numeric-looking strings are rejected whichever string dtype holds them
+    values = np.array(["1", "2"], dtype=dtype)
+    with pytest.raises(TypeError, match="Could not convert .* values to numeric"):
+        nanops._ensure_numeric(values)
 
 
 class TestNanvarFixedValues:
