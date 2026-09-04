@@ -247,10 +247,9 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
             "Encountered %tC format. Leaving in Stata Internal Format.",
             stacklevel=find_stack_level(),
         )
-        # Hand back the file's own numbers: this branch converts nothing, and
-        #  casting them to int64 on the way out saturated anything past the
-        #  int64 bounds, so the "internal format" value promised by the
-        #  warning was not the one in the file (GH#68034).
+        # Converts nothing, so hand back the file's own numbers; this must stay
+        #  above the int64 cast below, which saturates out-of-bounds values
+        #  (GH#68034).
         conv_dates = Series(dates, dtype=object)
         na_locs = isna(dates)
         if na_locs.any():
