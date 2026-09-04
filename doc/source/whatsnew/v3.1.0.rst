@@ -237,6 +237,7 @@ Other API changes
 Build
 ^^^^^
 - C++20 is required to build from source (:issue:`66735`)
+- The ``pandas._libs.window`` extensions now pass ``--shared=pandas._libs._cyutility`` to Cython, sharing the utility code instead of embedding a copy in each extension and reducing wheel size (:issue:`67995`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.deprecations:
