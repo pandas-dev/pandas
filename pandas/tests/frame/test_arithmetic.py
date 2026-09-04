@@ -2398,41 +2398,41 @@ def test_sum_mixed_empty(any_string_dtype):
     [
         (
             3,
-            DataFrame([[False, False, True], [False, False, False]]),
-            DataFrame([[False, False, pd.NA], [pd.NA, True, False]]),
+            pd.DataFrame([[False, False, True], [False, False, False]]),
+            pd.DataFrame([[False, False, pd.NA], [pd.NA, True, False]]),
         ),
         (
-            DataFrame([[1, 2, 3], [3, 2, 1]]),
-            DataFrame([[True, True, True], [False, False, False]]),
-            DataFrame([[True, True, pd.NA], [pd.NA, False, False]]),
+            pd.DataFrame([[1, 2, 3], [3, 2, 1]]),
+            pd.DataFrame([[True, True, True], [False, False, False]]),
+            pd.DataFrame([[True, True, pd.NA], [pd.NA, False, False]]),
         ),
         (
-            DataFrame([[None, False, True], [np.nan, pd.NaT, pd.NA]]),
-            DataFrame([[False, False, False], [False, False, pd.NA]]).astype(
+            pd.DataFrame([[None, False, True], [np.nan, pd.NaT, pd.NA]]),
+            pd.DataFrame([[False, False, False], [False, False, pd.NA]]).astype(
                 {0: bool, 1: object}
             ),
-            DataFrame([[False, False, pd.NA], [pd.NA, False, pd.NA]]),
+            pd.DataFrame([[False, False, pd.NA], [pd.NA, False, pd.NA]]),
         ),
     ],
 )
 def test_dataframe_comparison_preserve_na(other, expected_1, expected_2):
     # GH#63328
-    df = DataFrame([[1, 2, 3], [4, 5, 6]])
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
     res = df == other
     tm.assert_frame_equal(res, expected_1)
 
-    df2 = DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
+    df2 = pd.DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
     res2 = df2 == other
     tm.assert_frame_equal(res2, expected_2)
 
 
 @pytest.mark.parametrize(
     "arraylike",
-    [Series, Index, pd.array, np.array],
+    [pd.Series, pd.Index, pd.array, np.array],
 )
 def test_dataframe_comparison_with_arraylike_preserve_na(arraylike):
     # GH#63328
-    df = DataFrame([[0, 1, 2], [pd.NA, pd.NA, pd.NA]])
+    df = pd.DataFrame([[0, 1, 2], [pd.NA, pd.NA, pd.NA]])
     expected = np.array([[pd.NA, True, False], [pd.NA, pd.NA, pd.NA]])
     result = np.asarray(df.eq(arraylike([pd.NA, 1, 1]), axis=1))
     tm.assert_numpy_array_equal(result, expected)

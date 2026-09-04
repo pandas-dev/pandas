@@ -1231,12 +1231,12 @@ def test_arraylike_comparison_preserve_na():
     y = [False] * (len(x) - 1) + [pd.NA]
     right = 3
 
-    left = Series(x)
-    expected = Series(y, dtype="object")
+    left = pd.Series(x)
+    expected = pd.Series(y, dtype="object")
     result = left == right
     tm.assert_series_equal(result, expected)
 
-    left = Index(x)
+    left = pd.Index(x)
     expected = np.array(y, dtype="object")
     result = left == right
     tm.assert_numpy_array_equal(result, expected)
@@ -1249,11 +1249,11 @@ def test_arraylike_comparison_preserve_na():
 
 @pytest.mark.parametrize(
     "left",
-    [Series, Index, pd.array, np.array],
+    [pd.Series, pd.Index, pd.array, np.array],
 )
 @pytest.mark.parametrize(
     "right",
-    [Series, Index, pd.array, np.array],
+    [pd.Series, pd.Index, pd.array, np.array],
 )
 def test_comparison_between_arraylike_preserve_na(left, right):
     # GH#63328
