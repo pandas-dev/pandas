@@ -5,10 +5,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-)
 import pandas._testing as tm
 
 
@@ -21,11 +17,11 @@ def test_insert(idx):
     # key not contained in all levels
     new_index = idx.insert(0, ("abc", "three"))
 
-    exp0 = Index([*list(idx.levels[0]), "abc"], name="first")
+    exp0 = pd.Index([*list(idx.levels[0]), "abc"], name="first")
     tm.assert_index_equal(new_index.levels[0], exp0)
     assert new_index.names == ["first", "second"]
 
-    exp1 = Index([*list(idx.levels[1]), "three"], name="second")
+    exp1 = pd.Index([*list(idx.levels[1]), "three"], name="second")
     tm.assert_index_equal(new_index.levels[1], exp1)
     assert new_index[0] == ("abc", "three")
 
@@ -78,12 +74,12 @@ def test_insert2():
         + [("test", 17), ("test", 18)]
     )
 
-    left = pd.Series(np.linspace(0, 10, 11), MultiIndex.from_tuples(idx[:-2]))
+    left = pd.Series(np.linspace(0, 10, 11), pd.MultiIndex.from_tuples(idx[:-2]))
 
     left.loc[("test", 17)] = 11
     left.loc[("test", 18)] = 12
 
-    right = pd.Series(np.linspace(0, 12, 13), MultiIndex.from_tuples(idx))
+    right = pd.Series(np.linspace(0, 12, 13), pd.MultiIndex.from_tuples(idx))
 
     tm.assert_series_equal(left, right)
 
@@ -102,12 +98,12 @@ def test_append(idx):
 
 
 def test_append_index():
-    idx1 = Index([1.1, 1.2, 1.3])
+    idx1 = pd.Index([1.1, 1.2, 1.3])
     idx2 = pd.date_range("2011-01-01", freq="D", periods=3, tz="Asia/Tokyo")
-    idx3 = Index(["A", "B", "C"])
+    idx3 = pd.Index(["A", "B", "C"])
 
-    midx_lv2 = MultiIndex.from_arrays([idx1, idx2])
-    midx_lv3 = MultiIndex.from_arrays([idx1, idx2, idx3])
+    midx_lv2 = pd.MultiIndex.from_arrays([idx1, idx2])
+    midx_lv3 = pd.MultiIndex.from_arrays([idx1, idx2, idx3])
 
     result = idx1.append(midx_lv2)
 
@@ -118,22 +114,22 @@ def test_append_index():
         (1.2, datetime(2011, 1, 2, tzinfo=tz)),
         (1.3, datetime(2011, 1, 3, tzinfo=tz)),
     ]
-    expected = Index([1.1, 1.2, 1.3, *expected_tuples])
+    expected = pd.Index([1.1, 1.2, 1.3, *expected_tuples])
     tm.assert_index_equal(result, expected)
 
     result = midx_lv2.append(idx1)
-    expected = Index([*expected_tuples, 1.1, 1.2, 1.3])
+    expected = pd.Index([*expected_tuples, 1.1, 1.2, 1.3])
     tm.assert_index_equal(result, expected)
 
     result = midx_lv2.append(midx_lv2)
-    expected = MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
+    expected = pd.MultiIndex.from_arrays([idx1.append(idx1), idx2.append(idx2)])
     tm.assert_index_equal(result, expected, check_freq=False)
 
     result = midx_lv2.append(midx_lv3)
     tm.assert_index_equal(result, expected, check_freq=False)
 
     result = midx_lv3.append(midx_lv2)
-    expected = Index._simple_new(
+    expected = pd.Index._simple_new(
         np.array(
             [
                 (1.1, datetime(2011, 1, 1, tzinfo=tz), "A"),
@@ -151,19 +147,19 @@ def test_append_index():
 @pytest.mark.parametrize("name, exp", [("b", "b"), ("c", None)])
 def test_append_names_match(name, exp):
     # GH#48288
-    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
-    midx2 = MultiIndex.from_arrays([[3], [5]], names=["a", name])
+    midx = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = pd.MultiIndex.from_arrays([[3], [5]], names=["a", name])
     result = midx.append(midx2)
-    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=["a", exp])
+    expected = pd.MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=["a", exp])
     tm.assert_index_equal(result, expected)
 
 
 def test_append_names_dont_match():
     # GH#48288
-    midx = MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
-    midx2 = MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
+    midx = pd.MultiIndex.from_arrays([[1, 2], [3, 4]], names=["a", "b"])
+    midx2 = pd.MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
     result = midx.append(midx2)
-    expected = MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
+    expected = pd.MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
     tm.assert_index_equal(result, expected)
 
 
@@ -171,10 +167,10 @@ def test_append_overlapping_interval_levels():
     # GH 54934
     ivl1 = pd.IntervalIndex.from_breaks([0.0, 1.0, 2.0])
     ivl2 = pd.IntervalIndex.from_breaks([0.5, 1.5, 2.5])
-    mi1 = MultiIndex.from_product([ivl1, ivl1])
-    mi2 = MultiIndex.from_product([ivl2, ivl2])
+    mi1 = pd.MultiIndex.from_product([ivl1, ivl1])
+    mi2 = pd.MultiIndex.from_product([ivl2, ivl2])
     result = mi1.append(mi2)
-    expected = MultiIndex.from_tuples(
+    expected = pd.MultiIndex.from_tuples(
         [
             (pd.Interval(0.0, 1.0), pd.Interval(0.0, 1.0)),
             (pd.Interval(0.0, 1.0), pd.Interval(1.0, 2.0)),
@@ -194,8 +190,8 @@ def test_repeat():
     numbers = [1, 2, 3]
     names = np.array(["foo", "bar"])
 
-    m = MultiIndex.from_product([numbers, names], names=names)
-    expected = MultiIndex.from_product([numbers, names.repeat(reps)], names=names)
+    m = pd.MultiIndex.from_product([numbers, names], names=names)
+    expected = pd.MultiIndex.from_product([numbers, names.repeat(reps)], names=names)
     tm.assert_index_equal(m.repeat(reps), expected)
 
 

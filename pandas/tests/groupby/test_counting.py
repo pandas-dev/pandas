@@ -4,157 +4,148 @@ from string import ascii_lowercase
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestCounting:
     def test_cumcount(self):
-        df = DataFrame([["a"], ["a"], ["a"], ["b"], ["a"]], columns=["A"])
+        df = pd.DataFrame([["a"], ["a"], ["a"], ["b"], ["a"]], columns=["A"])
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series([0, 1, 2, 0, 3])
+        expected = pd.Series([0, 1, 2, 0, 3])
 
         tm.assert_series_equal(expected, g.cumcount())
         tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_empty(self):
-        ge = DataFrame().groupby(level=0)
-        se = Series(dtype=object).groupby(level=0)
+        ge = pd.DataFrame().groupby(level=0)
+        se = pd.Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
-        e = Series(dtype="int64")
+        e = pd.Series(dtype="int64")
 
         tm.assert_series_equal(e, ge.cumcount())
         tm.assert_series_equal(e, se.cumcount())
 
     def test_cumcount_dupe_index(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [["a"], ["a"], ["a"], ["b"], ["a"]], columns=["A"], index=[0] * 5
         )
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
+        expected = pd.Series([0, 1, 2, 0, 3], index=[0] * 5)
 
         tm.assert_series_equal(expected, g.cumcount())
         tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_mi(self):
-        mi = MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
-        df = DataFrame([["a"], ["a"], ["a"], ["b"], ["a"]], columns=["A"], index=mi)
+        mi = pd.MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
+        df = pd.DataFrame([["a"], ["a"], ["a"], ["b"], ["a"]], columns=["A"], index=mi)
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series([0, 1, 2, 0, 3], index=mi)
+        expected = pd.Series([0, 1, 2, 0, 3], index=mi)
 
         tm.assert_series_equal(expected, g.cumcount())
         tm.assert_series_equal(expected, sg.cumcount())
 
     def test_cumcount_groupby_not_col(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             [["a"], ["a"], ["a"], ["b"], ["a"]], columns=["A"], index=[0] * 5
         )
         g = df.groupby([0, 0, 0, 1, 0])
         sg = g.A
 
-        expected = Series([0, 1, 2, 0, 3], index=[0] * 5)
+        expected = pd.Series([0, 1, 2, 0, 3], index=[0] * 5)
 
         tm.assert_series_equal(expected, g.cumcount())
         tm.assert_series_equal(expected, sg.cumcount())
 
     def test_ngroup(self):
-        df = DataFrame({"A": list("aaaba")})
+        df = pd.DataFrame({"A": list("aaaba")})
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series([0, 0, 0, 1, 0])
+        expected = pd.Series([0, 0, 0, 1, 0])
 
         tm.assert_series_equal(expected, g.ngroup())
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_distinct(self):
-        df = DataFrame({"A": list("abcde")})
+        df = pd.DataFrame({"A": list("abcde")})
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series(range(5), dtype="int64")
+        expected = pd.Series(range(5), dtype="int64")
 
         tm.assert_series_equal(expected, g.ngroup())
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_one_group(self):
-        df = DataFrame({"A": [0] * 5})
+        df = pd.DataFrame({"A": [0] * 5})
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series([0] * 5)
+        expected = pd.Series([0] * 5)
 
         tm.assert_series_equal(expected, g.ngroup())
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_empty(self):
-        ge = DataFrame().groupby(level=0)
-        se = Series(dtype=object).groupby(level=0)
+        ge = pd.DataFrame().groupby(level=0)
+        se = pd.Series(dtype=object).groupby(level=0)
 
         # edge case, as this is usually considered float
-        e = Series(dtype="int64")
+        e = pd.Series(dtype="int64")
 
         tm.assert_series_equal(e, ge.ngroup())
         tm.assert_series_equal(e, se.ngroup())
 
     def test_ngroup_series_matches_frame(self):
-        df = DataFrame({"A": list("aaaba")})
-        s = Series(list("aaaba"))
+        df = pd.DataFrame({"A": list("aaaba")})
+        s = pd.Series(list("aaaba"))
 
         tm.assert_series_equal(df.groupby(s).ngroup(), s.groupby(s).ngroup())
 
     def test_ngroup_dupe_index(self):
-        df = DataFrame({"A": list("aaaba")}, index=[0] * 5)
+        df = pd.DataFrame({"A": list("aaaba")}, index=[0] * 5)
         g = df.groupby("A")
         sg = g.A
 
-        expected = Series([0, 0, 0, 1, 0], index=[0] * 5)
+        expected = pd.Series([0, 0, 0, 1, 0], index=[0] * 5)
 
         tm.assert_series_equal(expected, g.ngroup())
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_mi(self):
-        mi = MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
-        df = DataFrame({"A": list("aaaba")}, index=mi)
+        mi = pd.MultiIndex.from_tuples([[0, 1], [1, 2], [2, 2], [2, 2], [1, 0]])
+        df = pd.DataFrame({"A": list("aaaba")}, index=mi)
         g = df.groupby("A")
         sg = g.A
-        expected = Series([0, 0, 0, 1, 0], index=mi)
+        expected = pd.Series([0, 0, 0, 1, 0], index=mi)
 
         tm.assert_series_equal(expected, g.ngroup())
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_groupby_not_col(self):
-        df = DataFrame({"A": list("aaaba")}, index=[0] * 5)
+        df = pd.DataFrame({"A": list("aaaba")}, index=[0] * 5)
         g = df.groupby([0, 0, 0, 1, 0])
         sg = g.A
 
-        expected = Series([0, 0, 0, 1, 0], index=[0] * 5)
+        expected = pd.Series([0, 0, 0, 1, 0], index=[0] * 5)
 
         tm.assert_series_equal(expected, g.ngroup())
         tm.assert_series_equal(expected, sg.ngroup())
 
     def test_ngroup_descending(self):
-        df = DataFrame(["a", "a", "b", "a", "b"], columns=["A"])
+        df = pd.DataFrame(["a", "a", "b", "a", "b"], columns=["A"])
         g = df.groupby(["A"])
 
-        ascending = Series([0, 0, 1, 0, 1])
-        descending = Series([1, 1, 0, 1, 0])
+        ascending = pd.Series([0, 0, 1, 0, 1])
+        descending = pd.Series([1, 1, 0, 1, 0])
 
         tm.assert_series_equal(descending, (g.ngroups - 1) - ascending)
         tm.assert_series_equal(ascending, g.ngroup(ascending=True))
@@ -162,15 +153,15 @@ class TestCounting:
 
     def test_ngroup_matches_cumcount(self):
         # verify one manually-worked out case works
-        df = DataFrame(
+        df = pd.DataFrame(
             [["a", "x"], ["a", "y"], ["b", "x"], ["a", "x"], ["b", "y"]],
             columns=["A", "X"],
         )
         g = df.groupby(["A", "X"])
         g_ngroup = g.ngroup()
         g_cumcount = g.cumcount()
-        expected_ngroup = Series([0, 1, 2, 0, 3])
-        expected_cumcount = Series([0, 0, 0, 1, 0])
+        expected_ngroup = pd.Series([0, 1, 2, 0, 3])
+        expected_cumcount = pd.Series([0, 0, 0, 1, 0])
 
         tm.assert_series_equal(g_ngroup, expected_ngroup)
         tm.assert_series_equal(g_cumcount, expected_cumcount)
@@ -178,18 +169,18 @@ class TestCounting:
     def test_ngroup_cumcount_pair(self):
         # brute force comparison for all small series
         for p in product(range(3), repeat=4):
-            df = DataFrame({"a": p})
+            df = pd.DataFrame({"a": p})
             g = df.groupby(["a"])
 
             order = sorted(set(p))
             ngroupd = [order.index(val) for val in p]
             cumcounted = [p[:i].count(val) for i, val in enumerate(p)]
 
-            tm.assert_series_equal(g.ngroup(), Series(ngroupd))
-            tm.assert_series_equal(g.cumcount(), Series(cumcounted))
+            tm.assert_series_equal(g.ngroup(), pd.Series(ngroupd))
+            tm.assert_series_equal(g.cumcount(), pd.Series(cumcounted))
 
     def test_ngroup_respects_groupby_order(self, sort):
-        df = DataFrame({"a": np.random.default_rng(2).choice(list("abcdef"), 100)})
+        df = pd.DataFrame({"a": np.random.default_rng(2).choice(list("abcdef"), 100)})
         g = df.groupby("a", sort=sort)
         df["group_id"] = -1
         df["group_index"] = -1
@@ -199,55 +190,55 @@ class TestCounting:
             for j, ind in enumerate(group.index):
                 df.loc[ind, "group_index"] = j
 
-        tm.assert_series_equal(Series(df["group_id"].values), g.ngroup())
-        tm.assert_series_equal(Series(df["group_index"].values), g.cumcount())
+        tm.assert_series_equal(pd.Series(df["group_id"].values), g.ngroup())
+        tm.assert_series_equal(pd.Series(df["group_index"].values), g.cumcount())
 
     @pytest.mark.parametrize(
         "datetimelike",
         [
-            [Timestamp(f"2016-05-{i:02d} 20:09:25+00:00") for i in range(1, 4)],
-            [Timestamp(f"2016-05-{i:02d} 20:09:25") for i in range(1, 4)],
-            [Timestamp(f"2016-05-{i:02d} 20:09:25", tz="UTC") for i in range(1, 4)],
-            [Timedelta(x, unit="h") for x in range(1, 4)],
-            [Period(freq="2W", year=2017, month=x) for x in range(1, 4)],
+            [pd.Timestamp(f"2016-05-{i:02d} 20:09:25+00:00") for i in range(1, 4)],
+            [pd.Timestamp(f"2016-05-{i:02d} 20:09:25") for i in range(1, 4)],
+            [pd.Timestamp(f"2016-05-{i:02d} 20:09:25", tz="UTC") for i in range(1, 4)],
+            [pd.Timedelta(x, unit="h") for x in range(1, 4)],
+            [pd.Period(freq="2W", year=2017, month=x) for x in range(1, 4)],
         ],
     )
     def test_count_with_datetimelike(self, datetimelike):
         # test for #13393, where DataframeGroupBy.count() fails
         # when counting a datetimelike column.
 
-        df = DataFrame({"x": ["a", "a", "b"], "y": datetimelike})
+        df = pd.DataFrame({"x": ["a", "a", "b"], "y": datetimelike})
         res = df.groupby("x").count()
-        expected = DataFrame({"y": [2, 1]}, index=["a", "b"])
+        expected = pd.DataFrame({"y": [2, 1]}, index=["a", "b"])
         expected.index.name = "x"
         tm.assert_frame_equal(expected, res)
 
     def test_count_with_only_nans_in_first_group(self):
         # GH21956
-        df = DataFrame({"A": [np.nan, np.nan], "B": ["a", "b"], "C": [1, 2]})
+        df = pd.DataFrame({"A": [np.nan, np.nan], "B": ["a", "b"], "C": [1, 2]})
         result = df.groupby(["A", "B"]).C.count()
-        mi = MultiIndex(levels=[[], ["a", "b"]], codes=[[], []], names=["A", "B"])
-        expected = Series([], index=mi, dtype=np.int64, name="C")
+        mi = pd.MultiIndex(levels=[[], ["a", "b"]], codes=[[], []], names=["A", "B"])
+        expected = pd.Series([], index=mi, dtype=np.int64, name="C")
         tm.assert_series_equal(result, expected, check_index_type=False)
 
     def test_count_groupby_column_with_nan_in_groupby_column(self):
         # https://github.com/pandas-dev/pandas/issues/32841
-        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.nan, 3, 0]})
+        df = pd.DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.nan, 3, 0]})
         res = df.groupby(["B"]).count()
-        expected = DataFrame(
-            index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
+        expected = pd.DataFrame(
+            index=pd.Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
         )
         tm.assert_frame_equal(expected, res)
 
     def test_groupby_count_dateparseerror(self):
-        dr = date_range(start="1/1/2012", freq="5min", periods=10)
+        dr = pd.date_range(start="1/1/2012", freq="5min", periods=10)
 
         # BAD Example, datetimes first
-        ser = Series(np.arange(10), index=[dr, np.arange(10)])
+        ser = pd.Series(np.arange(10), index=[dr, np.arange(10)])
         grouped = ser.groupby(lambda x: x[1] % 2 == 0)
         result = grouped.count()
 
-        ser = Series(np.arange(10), index=[np.arange(10), dr])
+        ser = pd.Series(np.arange(10), index=[np.arange(10), dr])
         grouped = ser.groupby(lambda x: x[0] % 2 == 0)
         expected = grouped.count()
 
@@ -255,19 +246,19 @@ class TestCounting:
 
 
 def test_groupby_timedelta_cython_count():
-    df = DataFrame(
+    df = pd.DataFrame(
         {"g": list("ab" * 2), "delta": np.arange(4).astype("timedelta64[ns]")}
     )
-    expected = Series([2, 2], index=Index(["a", "b"], name="g"), name="delta")
+    expected = pd.Series([2, 2], index=pd.Index(["a", "b"], name="g"), name="delta")
     result = df.groupby("g").delta.count()
     tm.assert_series_equal(expected, result)
 
 
 def test_count():
     n = 1 << 15
-    dr = date_range("2015-08-30", periods=n // 10, freq="min")
+    dr = pd.date_range("2015-08-30", periods=n // 10, freq="min")
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "1st": np.random.default_rng(2).choice(list(ascii_lowercase), n),
             "2nd": np.random.default_rng(2).integers(0, 5, n),
@@ -289,14 +280,14 @@ def test_count():
 
     for key in ["1st", "2nd", ["1st", "2nd"]]:
         left = df.groupby(key).count()
-        right = df.groupby(key).apply(DataFrame.count)
+        right = df.groupby(key).apply(pd.DataFrame.count)
         tm.assert_frame_equal(left, right)
 
 
 def test_count_non_nulls():
     # GH#5610
     # count counts non-nulls
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 2, "foo"], [1, np.nan, "bar"], [3, np.nan, np.nan]],
         columns=["A", "B", "C"],
     )
@@ -304,7 +295,7 @@ def test_count_non_nulls():
     count_as = df.groupby("A").count()
     count_not_as = df.groupby("A", as_index=False).count()
 
-    expected = DataFrame([[1, 2], [0, 0]], columns=["B", "C"], index=[1, 3])
+    expected = pd.DataFrame([[1, 2], [0, 0]], columns=["B", "C"], index=[1, 3])
     expected.index.name = "A"
     tm.assert_frame_equal(count_not_as, expected.reset_index())
     tm.assert_frame_equal(count_as, expected)
@@ -314,16 +305,16 @@ def test_count_non_nulls():
 
 
 def test_count_object():
-    df = DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    df = pd.DataFrame({"a": ["a"] * 3 + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = Series([3, 3], index=Index([2, 3], name="c"), name="a")
+    expected = pd.Series([3, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
 def test_count_object_nan():
-    df = DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
+    df = pd.DataFrame({"a": ["a", np.nan, np.nan] + ["b"] * 3, "c": [2] * 3 + [3] * 3})
     result = df.groupby("c").a.count()
-    expected = Series([1, 3], index=Index([2, 3], name="c"), name="a")
+    expected = pd.Series([1, 3], index=pd.Index([2, 3], name="c"), name="a")
     tm.assert_series_equal(result, expected)
 
 
@@ -338,7 +329,7 @@ def test_count_cross_type(typ):
         )
     ).astype("float64")
 
-    df = DataFrame(vals, columns=["a", "b", "c", "d"])
+    df = pd.DataFrame(vals, columns=["a", "b", "c", "d"])
     df[df == 2] = np.nan
     expected = df.groupby(["c", "d"]).count()
 
@@ -349,7 +340,7 @@ def test_count_cross_type(typ):
 
 
 def test_lower_int_prec_count():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": np.array([0, 1, 2, 100], np.int8),
             "b": np.array([1, 2, 3, 6], np.uint32),
@@ -358,8 +349,8 @@ def test_lower_int_prec_count():
         }
     )
     result = df.groupby("grp").count()
-    expected = DataFrame(
-        {"a": [2, 2], "b": [2, 2], "c": [2, 2]}, index=Index(list("ab"), name="grp")
+    expected = pd.DataFrame(
+        {"a": [2, 2], "b": [2, 2], "c": [2, 2]}, index=pd.Index(list("ab"), name="grp")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -377,18 +368,18 @@ def test_count_uses_size_on_exception():
             # gets called in Cython to check that raising calls the method
             raise RaisingObjectException(self.msg)
 
-    df = DataFrame({"a": [RaisingObject() for _ in range(4)], "grp": list("ab" * 2)})
+    df = pd.DataFrame({"a": [RaisingObject() for _ in range(4)], "grp": list("ab" * 2)})
     result = df.groupby("grp").count()
-    expected = DataFrame({"a": [2, 2]}, index=Index(list("ab"), name="grp"))
+    expected = pd.DataFrame({"a": [2, 2]}, index=pd.Index(list("ab"), name="grp"))
     tm.assert_frame_equal(result, expected)
 
 
 def test_count_arrow_string_array(any_string_dtype):
     # GH#54751
     pytest.importorskip("pyarrow")
-    df = DataFrame(
-        {"a": [1, 2, 3], "b": Series(["a", "b", "a"], dtype=any_string_dtype)}
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": pd.Series(["a", "b", "a"], dtype=any_string_dtype)}
     )
     result = df.groupby("a").count()
-    expected = DataFrame({"b": 1}, index=Index([1, 2, 3], name="a"))
+    expected = pd.DataFrame({"b": 1}, index=pd.Index([1, 2, 3], name="a"))
     tm.assert_frame_equal(result, expected)

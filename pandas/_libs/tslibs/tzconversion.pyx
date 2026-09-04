@@ -53,7 +53,6 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
-    is_zoneinfo,
 )
 
 
@@ -81,7 +80,7 @@ cdef class Localizer:
     def __cinit__(self, tzinfo tz, NPY_DATETIMEUNIT creso):
         self.tz = tz
         self._creso = creso
-        self.use_utc = self.use_tzlocal = self.use_fixed = False
+        self.use_utc = self.use_tzinfo_api = self.use_fixed = False
         self.use_dst = self.use_pytz = self.use_zoneinfo = False
         self.has_tz_rule = False
         self.ntrans = -1  # placeholder
@@ -94,7 +93,7 @@ cdef class Localizer:
             self.use_utc = True
 
         elif is_tzlocal(tz):
-            self.use_tzlocal = True
+            self.use_tzinfo_api = True
 
         else:
             trans, deltas, typ, has_tz_rule = get_dst_info(tz)
@@ -155,13 +154,9 @@ cdef class Localizer:
 
         if self.use_utc:
             return utc_val
-        elif self.use_tzlocal:
-            delta = _tz_localize_using_tzinfo_api(
-                utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
-            )
         elif self.use_fixed:
             delta = self.delta
-        elif (
+        elif self.use_tzinfo_api or (
             self.use_zoneinfo
             and self.has_tz_rule
             and utc_val > self.last_trans
@@ -342,7 +337,9 @@ timedelta-like}
     elif PyDelta_Check(nonexistent):
         from .timedeltas import delta_to_nanoseconds
         shift_delta = delta_to_nanoseconds(nonexistent, reso=creso)
-    elif nonexistent not in ("raise", None):
+    # `is not None` rather than `in (..., None)`: comparing an object against
+    # Py_None trips GCC -Warray-bounds in Cython's inline compare helper (GH#66939)
+    elif nonexistent is not None and nonexistent != "raise":
         msg = ("nonexistent must be one of {'NaT', 'raise', 'shift_forward', "
                "'shift_backward'} or a timedelta object")
         raise ValueError(msg)
@@ -355,7 +352,7 @@ timedelta-like}
     #  NaT sentinel is out of bounds too, but _shift_to_utc cannot reject it there:
     #  the Timestamp(..., tz=) constructor shares that helper and relies on catching
     #  the sentinel downstream to keep its own error message.
-    if info.use_tzlocal and not is_zoneinfo(tz):
+    if info.use_tzinfo_api:
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:

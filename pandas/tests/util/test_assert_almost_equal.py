@@ -1,14 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -167,6 +160,53 @@ def test_assert_almost_equal_integers_negative_tolerance(kwargs):
     # GH#66400 the integer path must not swallow the math.isclose validation
     with pytest.raises(ValueError, match="tolerances must be non-negative"):
         tm.assert_almost_equal(1, 2, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        (2**60 + 1, float(2**60)),
+        (np.int64(2**60 + 1), np.float64(2**60)),
+        (np.uint64(2**63 + 1), np.float64(2**63)),
+        (
+            np.array([2**60 + 1], dtype="int64"),
+            np.array([float(2**60)], dtype="float64"),
+        ),
+        (
+            np.array([2**53 + 1], dtype="int64"),
+            np.array([float(2**53)], dtype="float64"),
+        ),
+        (
+            np.array([-(2**53) - 1], dtype="int64"),
+            np.array([float(-(2**53))], dtype="float64"),
+        ),
+    ],
+)
+def test_assert_almost_equal_large_mixed_integer_float_atol(a, b):
+    # GH#66699 float64 cannot represent the one-integer difference.
+    _assert_not_almost_equal_both(a, b, check_dtype=False, rtol=0, atol=0.5)
+    _assert_almost_equal_both(a, b, check_dtype=False, rtol=0, atol=1)
+
+
+def test_assert_almost_equal_large_mixed_integer_float_rtol():
+    a = 2**60 + 1
+    b = float(2**60)
+
+    _assert_not_almost_equal_both(a, b, check_dtype=False, rtol=0.5 / 2**60, atol=0)
+    _assert_almost_equal_both(a, b, check_dtype=False, rtol=1 / 2**60, atol=0)
+
+
+def test_assert_almost_equal_large_mixed_integer_float_message():
+    integer = 2**60 + 1
+    floating = float(2**60)
+
+    with pytest.raises(AssertionError) as exc_info:
+        tm.assert_almost_equal(integer, floating, rtol=0, atol=0.5)
+
+    assert str(exc_info.value) == (
+        "expected 1152921504606846976.00000 but got 1152921504606846977.00000, "
+        "with rtol=0, atol=0.5"
+    )
 
 
 @pytest.mark.parametrize(
@@ -332,7 +372,14 @@ def test_assert_almost_equal_inf(a, b):
     _assert_almost_equal_both(a, b)
 
 
-objs = [NA, np.nan, NaT, None, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+objs = [
+    pd.NA,
+    np.nan,
+    pd.NaT,
+    None,
+    np.datetime64("NaT", "ns"),
+    np.timedelta64("NaT", "ns"),
+]
 
 
 @pytest.mark.parametrize("left", objs)
@@ -347,13 +394,13 @@ def test_mismatched_na_assert_almost_equal(left, right):
         _assert_almost_equal_both(left, right, check_dtype=False)
         tm.assert_numpy_array_equal(left_arr, right_arr)
         tm.assert_index_equal(
-            Index(left_arr, dtype=object), Index(right_arr, dtype=object)
+            pd.Index(left_arr, dtype=object), pd.Index(right_arr, dtype=object)
         )
         tm.assert_series_equal(
-            Series(left_arr, dtype=object), Series(right_arr, dtype=object)
+            pd.Series(left_arr, dtype=object), pd.Series(right_arr, dtype=object)
         )
         tm.assert_frame_equal(
-            DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
+            pd.DataFrame(left_arr, dtype=object), pd.DataFrame(right_arr, dtype=object)
         )
 
     else:
@@ -367,11 +414,12 @@ def test_mismatched_na_assert_almost_equal(left, right):
         #  assert_index_equal uses Index.equal which uses array_equivalent.
         with pytest.raises(AssertionError, match="Series are different"):
             tm.assert_series_equal(
-                Series(left_arr, dtype=object), Series(right_arr, dtype=object)
+                pd.Series(left_arr, dtype=object), pd.Series(right_arr, dtype=object)
             )
         with pytest.raises(AssertionError, match="DataFrame.iloc.* are different"):
             tm.assert_frame_equal(
-                DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
+                pd.DataFrame(left_arr, dtype=object),
+                pd.DataFrame(right_arr, dtype=object),
             )
 
 
@@ -382,10 +430,10 @@ def test_assert_not_almost_equal_inf():
 @pytest.mark.parametrize(
     "a,b",
     [
-        (Index([1.0, 1.1]), Index([1.0, 1.100001])),
-        (Series([1.0, 1.1]), Series([1.0, 1.100001])),
+        (pd.Index([1.0, 1.1]), pd.Index([1.0, 1.100001])),
+        (pd.Series([1.0, 1.1]), pd.Series([1.0, 1.100001])),
         (np.array([1.1, 2.000001]), np.array([1.1, 2.0])),
-        (DataFrame({"a": [1.0, 1.1]}), DataFrame({"a": [1.0, 1.100001]})),
+        (pd.DataFrame({"a": [1.0, 1.1]}), pd.DataFrame({"a": [1.0, 1.100001]})),
     ],
 )
 def test_assert_almost_equal_pandas(a, b):
@@ -393,8 +441,8 @@ def test_assert_almost_equal_pandas(a, b):
 
 
 def test_assert_almost_equal_object():
-    a = [Timestamp("2011-01-01"), Timestamp("2011-01-01")]
-    b = [Timestamp("2011-01-01"), Timestamp("2011-01-01")]
+    a = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")]
+    b = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")]
     _assert_almost_equal_both(a, b)
 
 
@@ -489,8 +537,8 @@ numpy array values are different \\(33\\.33333 %\\)
 
 
 def test_assert_almost_equal_timestamp():
-    a = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-01")])
-    b = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-02")])
+    a = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")])
+    b = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")])
 
     msg = """numpy array are different
 
@@ -606,7 +654,33 @@ NESTED_CASES = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize("a,b", NESTED_CASES)
 def test_assert_almost_equal_array_nested(a, b):
     _assert_almost_equal_both(a, b)
+
+
+def test_assert_almost_equal_zero_dim_duck_array():
+    # GH#45240 a scalar that defines __iter__/__len__ delegating to a scalar
+    #  payload (as pint's Quantity does) is compared as a scalar
+    class Quantity:
+        # mimics pint's Quantity: __iter__/__len__ delegate to the magnitude,
+        #  and ndim reports 0 when that magnitude is a scalar
+        ndim = 0
+
+        def __init__(self, magnitude):
+            self.magnitude = magnitude
+
+        def __iter__(self):
+            return iter(self.magnitude)
+
+        def __len__(self):
+            return len(self.magnitude)
+
+        def __eq__(self, other):
+            return self.magnitude == other.magnitude
+
+    left = np.array([Quantity(1), Quantity(2)], dtype=object)
+    right = np.array([Quantity(1), Quantity(3)], dtype=object)
+
+    _assert_almost_equal_both(left, left.copy())
+    _assert_not_almost_equal_both(left, right)

@@ -445,7 +445,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
             #  overriding instead of returning object below.
             return IntervalDtype(np.float64, closed=dtype.closed)
         return _dtype_obj
-    elif dtype.kind == "b":
+    elif dtype.kind in "bS":
         return _dtype_obj
     elif dtype.kind in "iu":
         return np.dtype(np.float64)
@@ -1447,7 +1447,7 @@ def construct_1d_arraylike_from_scalar(
     return subarr
 
 
-def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> Any:
+def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> Any:
     """
     Maybe convert a NumPy scalar to its Python equivalent.
 
@@ -1461,14 +1461,16 @@ def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> An
     ----------
     value : Any
         The value to unbox.
-    dtype : DtypeObj or None, default None
-        The dtype of the data ``value`` came from. Pass this whenever
-        ``value`` is an element of the data or is derived from its elements:
-        object dtype stores arbitrary user objects, so a NumPy scalar coming
-        from object-dtype data is a stored value rather than a boxing
-        artifact, and is returned unchanged. Omit for values whose
+    object_with_dtype : object with a ``dtype`` attribute, optional
+        The data (e.g. a Series or array) that ``value`` came from. Pass this
+        whenever ``value`` is an element of the data or is derived from its
+        elements: object dtype stores arbitrary user objects, so a NumPy
+        scalar coming from object-dtype data is a stored value rather than a
+        boxing artifact, and is returned unchanged. Omit for values whose
         type does not follow the data's dtype, e.g. positions, counts, and
-        the results of any/all.
+        the results of any/all. The ``.dtype`` attribute is only accessed if
+        unboxing is actually going to happen, so passing the object rather
+        than its dtype avoids that cost on hot paths.
 
     Returns
     -------
@@ -1476,7 +1478,9 @@ def maybe_unbox_numpy_scalar(value: Any, *, dtype: DtypeObj | None = None) -> An
         The equivalent Python scalar, or ``value`` unchanged.
     """
     result = value
-    if dtype != object and using_python_scalars() and isinstance(value, np.generic):
+    if using_python_scalars() and isinstance(value, np.generic):
+        if object_with_dtype is not None and object_with_dtype.dtype == object:
+            return result
         if isinstance(result, np.longdouble):
             result = float(result)
         elif isinstance(result, np.complex256):

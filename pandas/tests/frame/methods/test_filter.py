@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
 
 
@@ -32,20 +31,20 @@ class TestDataFrameFilter:
         assert "AA" in filtered
 
         # like with ints in column names
-        df = DataFrame(0.0, index=[0, 1, 2], columns=[0, 1, "_A", "_B"])
+        df = pd.DataFrame(0.0, index=[0, 1, 2], columns=[0, 1, "_A", "_B"])
         filtered = df.filter(like="_")
         assert len(filtered.columns) == 2
 
         # regex with ints in column names
         # from PR #10384
-        df = DataFrame(0.0, index=[0, 1, 2], columns=["A1", 1, "B", 2, "C"])
-        expected = DataFrame(
+        df = pd.DataFrame(0.0, index=[0, 1, 2], columns=["A1", 1, "B", 2, "C"])
+        expected = pd.DataFrame(
             0.0, index=[0, 1, 2], columns=pd.Index([1, 2], dtype=object)
         )
         filtered = df.filter(regex="^[0-9]+$")
         tm.assert_frame_equal(filtered, expected)
 
-        expected = DataFrame(0.0, index=[0, 1, 2], columns=[0, "0", 1, "1"])
+        expected = pd.DataFrame(0.0, index=[0, 1, 2], columns=[0, "0", 1, "1"])
         # shouldn't remove anything
         filtered = expected.filter(regex="^[0-9]+$")
         tm.assert_frame_equal(filtered, expected)
@@ -89,7 +88,7 @@ class TestDataFrameFilter:
         assert "AA" in filtered
 
         # doesn't have to be at beginning
-        df = DataFrame(
+        df = pd.DataFrame(
             {"aBBa": [1, 2], "BBaBB": [1, 2], "aCCa": [1, 2], "aCCaBB": [1, 2]}
         )
 
@@ -106,8 +105,8 @@ class TestDataFrameFilter:
     )
     def test_filter_unicode(self, name, expected_data):
         # GH13101
-        df = DataFrame({"a": [1, 2], "あ": [3, 4]})
-        expected = DataFrame(expected_data)
+        df = pd.DataFrame({"a": [1, 2], "あ": [3, 4]})
+        expected = pd.DataFrame(expected_data)
 
         tm.assert_frame_equal(df.filter(like=name), expected)
         tm.assert_frame_equal(df.filter(regex=name), expected)
@@ -115,14 +114,14 @@ class TestDataFrameFilter:
     def test_filter_bytestring(self):
         # GH13101
         name = "a"
-        df = DataFrame({b"a": [1, 2], b"b": [3, 4]})
-        expected = DataFrame({b"a": [1, 2]})
+        df = pd.DataFrame({b"a": [1, 2], b"b": [3, 4]})
+        expected = pd.DataFrame({b"a": [1, 2]})
 
         tm.assert_frame_equal(df.filter(like=name), expected)
         tm.assert_frame_equal(df.filter(regex=name), expected)
 
     def test_filter_corner(self):
-        empty = DataFrame()
+        empty = pd.DataFrame()
 
         result = empty.filter([])
         tm.assert_frame_equal(result, empty)
@@ -133,21 +132,23 @@ class TestDataFrameFilter:
     def test_filter_regex_non_string(self):
         # GH#5798 trying to filter on non-string columns should drop,
         #  not raise
-        df = DataFrame(np.random.default_rng(2).random((3, 2)), columns=["STRING", 123])
+        df = pd.DataFrame(
+            np.random.default_rng(2).random((3, 2)), columns=["STRING", 123]
+        )
         result = df.filter(regex="STRING")
         expected = df[["STRING"]]
         tm.assert_frame_equal(result, expected)
 
     def test_filter_keep_order(self):
         # GH#54980
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         result = df.filter(items=["B", "A"])
         expected = df[["B", "A"]]
         tm.assert_frame_equal(result, expected)
 
     def test_filter_different_dtype(self):
         # GH#54980
-        df = DataFrame({1: [1, 2, 3], 2: [4, 5, 6]})
+        df = pd.DataFrame({1: [1, 2, 3], 2: [4, 5, 6]})
         result = df.filter(items=["B", "A"])
         expected = df[[]]
         tm.assert_frame_equal(result, expected)

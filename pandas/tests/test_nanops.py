@@ -1,3 +1,4 @@
+from decimal import Decimal
 from functools import partial
 
 import numpy as np
@@ -8,10 +9,6 @@ import pandas.util._test_decorators as td
 from pandas.core.dtypes.common import is_integer_dtype
 
 import pandas as pd
-from pandas import (
-    Series,
-    isna,
-)
 import pandas._testing as tm
 from pandas.core import nanops
 
@@ -329,7 +326,7 @@ class TestnanopsDataFrame:
     ):
         for axis in [*list(range(targarval.ndim)), None]:
             targartempval = targarval if skipna else testarval
-            if skipna and empty_targfunc and isna(targartempval).all():
+            if skipna and empty_targfunc and pd.isna(targartempval).all():
                 targ = empty_targfunc(targartempval, axis=axis, **kwargs)
             else:
                 targ = targfunc(targartempval, axis=axis, **kwargs)
@@ -496,7 +493,6 @@ class TestnanopsDataFrame:
             nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanmedian(self, skipna):
         self.check_funs(
             nanops.nanmedian,
@@ -547,7 +543,6 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanmin, np.min), (nanops.nanmax, np.max)]
     )
@@ -557,7 +552,7 @@ class TestnanopsDataFrame:
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
         nans = np.min(value, axis)
-        nullnan = isna(nans)
+        nullnan = pd.isna(nans)
         if res.ndim:
             res[nullnan] = -1
         elif (hasattr(nullnan, "all") and nullnan.all()) or (
@@ -566,12 +561,10 @@ class TestnanopsDataFrame:
             res = -1
         return res
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmax(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmax)
         self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
 
-    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmin(self, skipna):
         func = partial(self._argminmax_wrap, func=np.argmin)
         self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
@@ -762,7 +755,7 @@ class TestnanopsDataFrame:
     def test_nancorr_pearson_pairwise_complete_matches_corrcoef(self):
         a = np.array([1.0, np.nan, 4.0, 8.0, 16.0])
         b = np.array([2.0, 3.0, 5.0, 9.0, np.nan])
-        valid = ~isna(a) & ~isna(b)
+        valid = ~pd.isna(a) & ~pd.isna(b)
 
         result = nanops.nancorr(a, b, method="pearson")
         expected = np.corrcoef(a[valid], b[valid])[0, 1]
@@ -809,7 +802,7 @@ class TestnanopsDataFrame:
     def test_nancorr_pearson_not_well_defined(self, a, b):
         result = nanops.nancorr(a, b, method="pearson")
 
-        assert isna(result)
+        assert pd.isna(result)
 
     def test_nancorr_kendall(self):
         sp_stats = pytest.importorskip("scipy.stats")
@@ -932,61 +925,146 @@ def test_bn_not_ok_dtype(fixture, request, disable_bottleneck):
     assert not nanops._bn_ok_dtype(obj.dtype, "test")
 
 
-class TestEnsureNumeric:
-    def test_numeric_values(self):
-        # Test integer
-        assert nanops._ensure_numeric(1) == 1
+@pytest.mark.parametrize("scalar", [complex, np.complex64, np.complex128])
+@pytest.mark.parametrize("func", ["nanmean", "nanmedian", "nanvar", "nanstd"])
+def test_object_complex_matches_native(func, scalar):
+    # an object array of complex reduces exactly as the complex128 array it
+    #  represents, whichever flavour of complex scalar it holds
+    vals = [scalar(1 + 2j), scalar(3 - 1j), scalar(-2j)]
+    objarr = np.empty(3, dtype=object)
+    objarr[:] = vals
+    expected = getattr(nanops, func)(np.array(vals, dtype=np.complex128))
+    assert getattr(nanops, func)(objarr) == expected
 
-        # Test float
-        assert nanops._ensure_numeric(1.1) == 1.1
 
-        # Test complex
-        assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
+@pytest.mark.parametrize(
+    "nat", [pd.NaT, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+)
+@pytest.mark.parametrize("func", ["nanmean", "nanmedian", "nanvar", "nanstd", "nansem"])
+def test_object_nat_is_na(func, nat):
+    # GH#34671 a NaT is missing-ness rather than a datetime, so it is masked
+    #  out like any other NA whichever flavour of NaT it is
+    objarr = np.empty(3, dtype=object)
+    objarr[:] = [1.0, nat, 3.0]
+    expected = getattr(nanops, func)(np.array([1.0, np.nan, 3.0]))
+    assert getattr(nanops, func)(objarr) == expected
 
-    def test_ndarray(self):
-        # Test numeric ndarray
-        values = np.array([1, 2, 3])
-        assert np.allclose(nanops._ensure_numeric(values), values)
 
-        # Test object ndarray
-        o_values = values.astype(object)
-        assert np.allclose(nanops._ensure_numeric(o_values), values)
+def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
+    # the imaginary part was silently discarded on builds without bottleneck
+    values = np.array([1 + 2j, 3 + 4j, 5j, 1j])
+    assert nanops.nanmedian(values) == 0.5 + 3.5j
 
-        # Test convertible string ndarray
-        s_values = np.array(["1", "2", "3"], dtype=object)
-        msg = r"Could not convert \['1' '2' '3'\] to numeric"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric(s_values)
 
-        # Test non-convertible string ndarray
-        s_values = np.array(["foo", "bar", "baz"], dtype=object)
-        msg = r"Could not convert .* to numeric"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric(s_values)
+def test_ensure_numeric_passthrough():
+    # non-object dtypes are handed back untouched
+    values = np.array([1, 2, 3])
+    assert nanops._ensure_numeric(values) is values
 
-    def test_convertable_values(self):
-        with pytest.raises(TypeError, match="Could not convert string '1' to numeric"):
-            nanops._ensure_numeric("1")
-        with pytest.raises(
-            TypeError, match="Could not convert string '1.1' to numeric"
-        ):
-            nanops._ensure_numeric("1.1")
-        with pytest.raises(
-            TypeError, match=r"Could not convert string '1\+1j' to numeric"
-        ):
-            nanops._ensure_numeric("1+1j")
 
-    def test_non_convertable_values(self):
-        msg = "Could not convert string 'foo' to numeric"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric("foo")
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([1, 2, 3], np.array([1.0, 2.0, 3.0])),
+        ([1.0, None, 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, pd.NA, 3.0], np.array([1.0, np.nan, 3.0])),
+        # a NaT is missing-ness, not a datetime, whichever flavour it is
+        ([1.0, pd.NaT, 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, np.datetime64("NaT", "ns"), 3.0], np.array([1.0, np.nan, 3.0])),
+        ([1.0, np.timedelta64("NaT", "ns"), 3.0], np.array([1.0, np.nan, 3.0])),
+        ([Decimal(1), Decimal(2)], np.array([1.0, 2.0])),
+        ([True, False], np.array([1.0, 0.0])),
+        ([1 + 2j, 3.0], np.array([1 + 2j, 3 + 0j])),
+        # numpy complex scalars have __float__, unlike Python complex, so a
+        #  float64 attempt would silently discard the imaginary part
+        ([np.complex64(1 - 1j), 3.0], np.array([1 - 1j, 3 + 0j])),
+        ([np.complex128(1 - 1j), 3.0], np.array([1 - 1j, 3 + 0j])),
+    ],
+)
+def test_ensure_numeric_object(values, expected):
+    result = nanops._ensure_numeric(np.array(values, dtype=object))
+    tm.assert_numpy_array_equal(result, expected)
 
-        # with the wrong type, python raises TypeError for us
-        msg = "argument must be a string or a number"
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric({})
-        with pytest.raises(TypeError, match=msg):
-            nanops._ensure_numeric([])
+
+@pytest.mark.parametrize(
+    "values, match",
+    [
+        (["1", "2", "3"], "'1'"),
+        ([1.0, "2", 3.0], "'2'"),
+        (["foo", "bar"], "'foo'"),
+        ([b"1", b"2"], "b'1'"),
+        ([np.datetime64("2020-01-01"), np.datetime64("2020-01-02")], "datetime64"),
+        ([np.timedelta64(1, "D")], "timedelta64"),
+        # a leading NaT does not let the datetime64 behind it through
+        ([1.0, np.datetime64("NaT", "ns"), np.datetime64("2020-01-01")], "datetime64"),
+        ([1.0, np.timedelta64("NaT", "ns"), np.timedelta64(1, "D")], "timedelta64"),
+        ([pd.Timestamp("2020-01-01")], "Timestamp"),
+        # the NA is not the culprit; the message names the element that is
+        ([1 + 2j, pd.NA, pd.Timestamp("2020-01-01")], "Timestamp"),
+        ([[1, 2], [3, 4]], r"\[1, 2\]"),
+        ([{}, {}], r"\{\}"),
+    ],
+)
+def test_ensure_numeric_raises(values, match):
+    # GH#44008, GH#36703 nothing that is not a number is converted implicitly
+    arr = np.empty(len(values), dtype=object)
+    arr[:] = values
+    with pytest.raises(TypeError, match=f"Could not convert .*{match}"):
+        nanops._ensure_numeric(arr)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        # numpy's own object->complex128 cast maps None to nan+nanj, not nan+0j
+        ([1 + 2j, None], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        ([1 + 2j, np.nan], np.array([1 + 2j, complex(np.nan, 0)])),
+        # NaT/pd.NA numpy refuses outright, so they get the same NaN as None
+        ([1 + 2j, pd.NaT], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        ([1 + 2j, pd.NA], np.array([1 + 2j, complex(np.nan, np.nan)])),
+        # each NA maps the same way whichever other NAs share the array
+        (
+            [1 + 2j, None, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, pd.NA, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, pd.NaT, np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        (
+            [1 + 2j, np.datetime64("NaT", "ns")],
+            np.array([1 + 2j, complex(np.nan, np.nan)]),
+        ),
+        (
+            [1 + 2j, np.timedelta64("NaT", "ns"), np.nan],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+        # a Decimal NaN is one numpy can cast itself, so it keeps nan+0j even
+        #  when it shares the array with an NA that numpy refuses
+        ([1 + 2j, Decimal("NaN")], np.array([1 + 2j, complex(np.nan, 0)])),
+        (
+            [1 + 2j, pd.NA, Decimal("NaN")],
+            np.array([1 + 2j, complex(np.nan, np.nan), complex(np.nan, 0)]),
+        ),
+    ],
+)
+def test_ensure_numeric_complex_na(values, expected):
+    # the NaN standing in for NA keeps its imaginary part
+    arr = np.empty(len(values), dtype=object)
+    arr[:] = values
+    tm.assert_numpy_array_equal(nanops._ensure_numeric(arr), expected)
+
+
+@pytest.mark.parametrize("dtype", ["U1", "S1", np.dtypes.StringDType()])
+def test_ensure_numeric_str_dtype(dtype):
+    # numeric-looking strings are rejected whichever string dtype holds them
+    values = np.array(["1", "2"], dtype=dtype)
+    with pytest.raises(TypeError, match="Could not convert .* values to numeric"):
+        nanops._ensure_numeric(values)
 
 
 class TestNanvarFixedValues:
@@ -1111,7 +1189,7 @@ class TestNanvarFixedValues:
     def test_nanstd_roundoff(self, ddof):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
-        data = Series(766897346 * np.ones(10))
+        data = pd.Series(766897346 * np.ones(10))
         result = data.std(ddof=ddof)
         assert result == 0.0
 
@@ -1320,14 +1398,14 @@ def test_use_bottleneck():
 )
 def test_numpy_ops(numpy_op, expected):
     # GH8383
-    result = numpy_op(Series([1, 2, 3, 4]))
+    result = numpy_op(pd.Series([1, 2, 3, 4]))
     assert result == expected
 
 
 def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     # GH22764
     operation = getattr(nanops, nanops_univariate_methods)
-    ser = Series([1, 2, np.nan, 3, np.nan, 4])
+    ser = pd.Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
     median_result = operation(ser._values, mask=mask._values)
@@ -1350,12 +1428,7 @@ def test_nanops_independent_of_mask_param(nanops_univariate_methods):
     ],
 )
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_nanops_reductions_dont_skip_nan_with_mask(
-    nanops_operation, skipna, axis, request
-):
-    if not skipna and axis in {0, 1} and nanops_operation == "nansem":
-        mark = pytest.mark.xfail(reason="nansem returns a scalar nan")
-        request.applymarker(mark)
+def test_nanops_reductions_dont_skip_nan_with_mask(nanops_operation, skipna, axis):
     if axis is None:
         expected = np.nan
     else:
@@ -1381,6 +1454,19 @@ def test_nanops_reductions_dont_skip_nan_with_mask(
     operation = getattr(nanops, nanops_operation)
     result = operation(values, mask=mask, skipna=skipna, axis=axis)
     tm.assert_equal(result, expected)
+
+
+def test_nansem_partial_mask_no_skipna_is_per_slice():
+    # GH#65373 masked entries propagate NaN only into the slices containing them
+    values = np.arange(25, dtype=np.float64).reshape(5, 5)
+    mask = np.zeros((5, 5), dtype=bool)
+    mask[0, 0] = True
+
+    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
+    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=0)
+    tm.assert_numpy_array_equal(np.isnan(result), np.isnan(expected))
+    assert np.isnan(result[0])
+    assert not np.isnan(result[1:]).any()
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
@@ -1420,7 +1506,7 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
 
 def test_nanmean_float16_overflow(disable_bottleneck):
     # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
-    ser = Series([60000.0, 60000.0], dtype=np.float16)
+    ser = pd.Series([60000.0, 60000.0], dtype=np.float16)
     result = ser.mean()
     assert result == 60000.0
 
@@ -1434,7 +1520,7 @@ def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # In the previous implementation mean can overflow for int dtypes, it
     # is now consistent with numpy
 
-    ser = Series(val, index=range(500), dtype=np.int64)
+    ser = pd.Series(val, index=range(500), dtype=np.int64)
     result = ser.mean()
     assert result == val
     if using_python_scalars:
@@ -1461,7 +1547,7 @@ def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars)
     if dtype is None:
         pytest.skip("np.float128 not available")
 
-    ser = Series(range(10), dtype=dtype)
+    ser = pd.Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
     if using_python_scalars:
         if is_integer_dtype(dtype) and method in ["min", "max"]:
@@ -1573,3 +1659,86 @@ def test_mask_memory_layout_mismatch(
     result = func(arr, axis=axis, mask=mask)
 
     tm.assert_almost_equal(result, expected)
+
+
+class TestNanopsEmptyInput:
+    # GH#18976 - each nanops function should handle empty inputs on its own.
+
+    FUNCS_NAN_FOR_EMPTY = [
+        nanops.nanmean,
+        nanops.nanmedian,
+        nanops.nanvar,
+        nanops.nanstd,
+        nanops.nansem,
+        nanops.nanmin,
+        nanops.nanmax,
+        nanops.nanskew,
+        nanops.nankurt,
+    ]
+    EMPTY_DTYPES = ["f8", "M8[ns]", "m8[ns]"]
+
+    @pytest.fixture(params=[True, False], name="bottleneck_context")
+    def _bottleneck_context(self, request, monkeypatch):
+        """Test with and without Bottleneck to catch regressions."""
+        with monkeypatch.context() as m:
+            m.setattr(nanops, "_USE_BOTTLENECK", request.param)
+            yield
+
+    @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
+    @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
+    def test_empty_1d_returns_na(self, func, dtype, bottleneck_context):
+        arr = np.array([], dtype=dtype)
+        if dtype in ["M8[ns]", "m8[ns]"] and func.__name__ in [
+            "nanvar",
+            "nansem",
+            "nanskew",
+            "nankurt",
+        ]:
+            op_name = func.__name__.replace("nan", "")
+            msg = f"reduction operation '{op_name}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg):
+                func(arr)
+            return
+
+        result = func(arr)
+        assert pd.isna(result)
+
+    @pytest.mark.parametrize("func", FUNCS_NAN_FOR_EMPTY)
+    @pytest.mark.parametrize("dtype", EMPTY_DTYPES)
+    @pytest.mark.parametrize("axis", [0, 1, None])
+    def test_empty_2d_returns_na(self, func, dtype, axis, bottleneck_context):
+        shape = (0, 3) if axis == 0 else ((3, 0) if axis == 1 else (0, 3))
+        arr = np.empty(shape, dtype=dtype)
+
+        if dtype in ["M8[ns]", "m8[ns]"] and func.__name__ in [
+            "nanvar",
+            "nansem",
+            "nanskew",
+            "nankurt",
+        ]:
+            op_name = func.__name__.replace("nan", "")
+            msg = f"reduction operation '{op_name}' not allowed for this dtype"
+            with pytest.raises(TypeError, match=msg):
+                func(arr, axis=axis)
+            return
+
+        result = func(arr, axis=axis)
+
+        if axis is not None:
+            assert result.shape == (3,)
+            assert pd.isna(result).all()
+        else:
+            assert pd.isna(result)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_nanstd_empty_datetime64_returns_timedelta(unit):
+    # GH#18976 std of datetimes is a timedelta, empty input included
+    dtype = f"M8[{unit}]"
+    result = nanops.nanstd(np.array([], dtype=dtype))
+    assert result.dtype == np.dtype(f"m8[{unit}]")
+    assert pd.isna(result)
+
+    result = nanops.nanstd(np.empty((0, 3), dtype=dtype), axis=0)
+    assert result.dtype == np.dtype(f"m8[{unit}]")
+    assert pd.isna(result).all()
