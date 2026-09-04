@@ -13,11 +13,13 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import CategoricalDtype
 import pandas._testing as tm
 from pandas.core.frame import (
     DataFrame,
@@ -37,6 +39,7 @@ from pandas.io.stata import (
     _datetime_to_stata_elapsed_vec,
     _new_format_versions,
     _old_format_versions,
+    _stata_elapsed_date_to_datetime_vec,
     _version_error,
     read_stata,
 )
@@ -1233,7 +1236,7 @@ class TestStata:
 
         # Check identity of codes
         for col in expected:
-            if isinstance(expected[col].dtype, CategoricalDtype):
+            if isinstance(expected[col].dtype, pd.CategoricalDtype):
                 tm.assert_series_equal(expected[col].cat.codes, parsed[col].cat.codes)
                 tm.assert_index_equal(
                     expected[col].cat.categories, parsed[col].cat.categories
@@ -1263,7 +1266,7 @@ class TestStata:
 
         parsed_unordered = read_stata(file, order_categoricals=False)
         for col in parsed:
-            if not isinstance(parsed[col].dtype, CategoricalDtype):
+            if not isinstance(parsed[col].dtype, pd.CategoricalDtype):
                 continue
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
@@ -1326,7 +1329,7 @@ class TestStata:
         """
         for col in from_frame:
             ser = from_frame[col]
-            if isinstance(ser.dtype, CategoricalDtype):
+            if isinstance(ser.dtype, pd.CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
                     categories = pd.Index._with_infer(
@@ -1993,7 +1996,9 @@ the string values returned are correct."""
         # will block pytests skip mechanism from triggering (failing the test)
         # if the path is not present
         path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
-        with tm.assert_produces_warning(UnicodeWarning, filter_level="once") as w:
+        with tm.assert_produces_warning(
+            UnicodeWarning, filter_level="once", match=msg
+        ) as w:
             encoded = read_stata(path)
             # with filter_level="always", produces 151 warnings which can be slow
             assert len(w) == 1
@@ -2723,3 +2728,74 @@ def test_read_stata_far_future_dates(datapath):
     assert result.shape == (10, 1)
     assert result["tiempo_gen"].dtype == np.dtype("M8[s]")
     assert result["tiempo_gen"].min().year == 58330
+
+
+@pytest.mark.parametrize(
+    "fmt, value, expected, dtype",
+    [
+        ("%tc", 1e9, "1960-01-12 13:46:40", "M8[ms]"),
+        ("%td", 1e5, "2233-10-16", "M8[s]"),
+        ("%tw", 1e4, "2152-04-22", "M8[s]"),
+        ("%tm", 1e4, "2793-05-01", "M8[s]"),
+        ("%tq", 5e3, "3210-01-01", "M8[s]"),
+        ("%th", 5e3, "4460-01-01", "M8[s]"),
+        ("%ty", 9000.0, "9000-01-01", "M8[s]"),
+    ],
+)
+def test_stata_elapsed_date_far_future(fmt, value, expected, dtype):
+    # GH#36096 pins that reworking these branches moved no in-range value; the
+    #  bug itself is covered by test_stata_elapsed_date_out_of_bounds_raises
+    result = _stata_elapsed_date_to_datetime_vec(Series([value, np.nan]), fmt)
+    tm.assert_series_equal(result, Series([expected, None], dtype=dtype))
+
+
+@pytest.mark.filterwarnings("error::RuntimeWarning")
+@pytest.mark.parametrize(
+    "fmt, value",
+    [
+        ("%tc", 1e19),
+        ("%td", 1e18),
+        # a large negative %td used to decode to NaT, not raise
+        ("%td", -1e19),
+        ("%tw", 1e14),
+        ("%tm", 1e13),
+        ("%tq", 1e13),
+        ("%th", 1e13),
+        ("%ty", 2.93e11),
+        # ordinals sitting exactly on the int64 cast bounds: too big to cast,
+        #  or landing on int64 min, which doubles as the NaT sentinel
+        ("%tc", 2.0**63),
+        ("%td", 2.0**63),
+        ("%tm", -(2.0**63)),
+        ("%tq", -(2.0**63) / 3),
+        ("%th", -(2.0**63) / 6),
+    ],
+)
+def test_stata_elapsed_date_out_of_bounds_raises(fmt, value):
+    # GH#36096 an ordinal too far from the epoch used to wrap or saturate in
+    #  numpy's unchecked datetime64 casts and decode to a silently wrong date
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
+        _stata_elapsed_date_to_datetime_vec(Series([value]), fmt)
+
+
+@pytest.mark.parametrize(
+    "fmt, dtype, value, expected",
+    [
+        ("%tm", "int8", -100, "1951-09-01"),
+        ("%tm", "int16", -32700, "-765-01-01"),
+        ("%tm", "int32", -100, "1951-09-01"),
+        ("%tm", "float32", -100, "1951-09-01"),
+        ("%tm", "float64", -100, "1951-09-01"),
+        ("%tq", "int8", -100, "1935-01-01"),
+        ("%th", "int8", -120, "1900-01-01"),
+        # %ty on a byte column used to raise OverflowError outright
+        ("%ty", "int8", 100, "0100-01-01"),
+        ("%ty", "int16", -32700, "-32700-01-01"),
+    ],
+)
+def test_stata_elapsed_date_narrow_storage(fmt, dtype, value, expected):
+    # GH#36096 shifting to the Stata epoch overflowed the narrow numeric types
+    #  a date column can be stored in, decoding to an unrelated date. Each type
+    #  needs a value near its own bound to reach it.
+    result = _stata_elapsed_date_to_datetime_vec(Series([value], dtype=dtype), fmt)
+    tm.assert_series_equal(result, Series(np.array([expected], dtype="M8[s]")))

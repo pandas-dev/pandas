@@ -18,7 +18,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 from pandas.tests.extension import base
@@ -39,7 +38,7 @@ def make_data(fill_value, n: int):
 
 @pytest.fixture
 def dtype():
-    return SparseDtype()
+    return pd.SparseDtype()
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -100,6 +99,12 @@ class TestSparseArray(base.ExtensionTests):
     def _honors_copy_keyword(self, data) -> bool:
         return False
 
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        if op_name in ["mean", "median", "var", "std", "sem", "skew", "kurt"]:
+            # not closed over the subtype, so the result widens to float64
+            return pd.SparseDtype("float64", arr.fill_value)
+        return arr.dtype
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         if op_name in [
             "prod",
@@ -134,7 +139,7 @@ class TestSparseArray(base.ExtensionTests):
         super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     def _check_unsupported(self, data):
-        if data.dtype == SparseDtype(int, 0):
+        if data.dtype == pd.SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
 
     def test_concat_mixed_dtypes(self, data):
@@ -206,14 +211,14 @@ class TestSparseArray(base.ExtensionTests):
 
     def test_isna(self, data_missing):
         sarr = SparseArray(data_missing)
-        expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
+        expected_dtype = pd.SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([True, False], dtype=expected_dtype)
         result = sarr.isna()
         tm.assert_sp_array_equal(result, expected)
 
         # test isna for arr without na
         sarr = sarr.fillna(0)
-        expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
+        expected_dtype = pd.SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
@@ -234,7 +239,7 @@ class TestSparseArray(base.ExtensionTests):
         result = pd.DataFrame({"A": data_missing, "B": [1, 2]}).fillna(fill_value)
 
         if pd.isna(data_missing.fill_value):
-            dtype = SparseDtype(data_missing.dtype, fill_value)
+            dtype = pd.SparseDtype(data_missing.dtype, fill_value)
         else:
             dtype = data_missing.dtype
 
@@ -294,7 +299,7 @@ class TestSparseArray(base.ExtensionTests):
         cond = np.array([True, True, False, False])
         result = ser.where(cond)
 
-        new_dtype = SparseDtype("float", 0.0)
+        new_dtype = pd.SparseDtype("float", 0.0)
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
@@ -307,7 +312,10 @@ class TestSparseArray(base.ExtensionTests):
         tm.assert_series_equal(result, expected)
 
     def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
-        with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
+        msg = "searchsorted requires high memory usage"
+        with tm.assert_produces_warning(
+            performance_warning, check_stacklevel=False, match=msg
+        ):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_sort_inplace(self, data_for_sorting):
@@ -418,7 +426,7 @@ class TestSparseArray(base.ExtensionTests):
         result = op(data_for_compare, other)
         if isinstance(other, pd.Series):
             assert isinstance(result, pd.Series)
-            assert isinstance(result.dtype, SparseDtype)
+            assert isinstance(result.dtype, pd.SparseDtype)
         else:
             assert isinstance(result, SparseArray)
         assert result.dtype.subtype == np.bool_

@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 from pandas.tests.plotting.common import (
     _check_plot_works,
     _check_ticks_props,
@@ -13,7 +13,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 class TestCommon:
     def test__check_ticks_props(self):
         # GH 34768
-        df = DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
+        df = pd.DataFrame({"b": [0, 1, 0], "a": [1, 2, 3]})
         ax = _check_plot_works(df.plot, rot=30)
         ax.yaxis.set_tick_params(rotation=30)
         msg = "expected 0.00000 but got "
@@ -57,4 +57,4 @@ class TestCommon:
         axes["B"].scatter(x, y)
 
         fig.colorbar(cs0, ax=[axes["A"], axes["B"]], location="right")
-        DataFrame(x).plot(ax=axes["C"])
+        pd.DataFrame(x).plot(ax=axes["C"])

@@ -4,18 +4,14 @@ import sys
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 @pytest.mark.parametrize("subset", ["a", ["a"], ["a", "B"]])
 def test_duplicated_with_misspelled_column_name(subset):
     # GH 19730
-    df = DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
+    df = pd.DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
     msg = re.escape("Index(['a'], dtype=")
 
     with pytest.raises(KeyError, match=msg):
@@ -26,7 +22,7 @@ def test_duplicated_implemented_no_recursion():
     # gh-21524
     # Ensure duplicated isn't implemented using recursion that
     # can fail on wide frames
-    df = DataFrame(np.random.default_rng(2).integers(0, 1000, (10, 1000)))
+    df = pd.DataFrame(np.random.default_rng(2).integers(0, 1000, (10, 1000)))
     rec_limit = sys.getrecursionlimit()
     try:
         sys.setrecursionlimit(100)
@@ -37,20 +33,20 @@ def test_duplicated_implemented_no_recursion():
     # Then duplicates produce the bool Series as a result and don't fail during
     # calculation. Actual values doesn't matter here, though usually it's all
     # False in this case
-    assert isinstance(result, Series)
+    assert isinstance(result, pd.Series)
     assert result.dtype == np.bool_
 
 
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, True, False, True])),
-        ("last", Series([True, True, False, False, False])),
-        (False, Series([True, True, True, False, True])),
+        ("first", pd.Series([False, False, True, False, True])),
+        ("last", pd.Series([True, True, False, False, False])),
+        (False, pd.Series([True, True, True, False, True])),
     ],
 )
 def test_duplicated_keep(keep, expected):
-    df = DataFrame({"A": [0, 1, 1, 2, 0], "B": ["a", "b", "b", "c", "a"]})
+    df = pd.DataFrame({"A": [0, 1, 1, 2, 0], "B": ["a", "b", "b", "c", "a"]})
 
     result = df.duplicated(keep=keep)
     tm.assert_series_equal(result, expected)
@@ -60,13 +56,13 @@ def test_duplicated_keep(keep, expected):
 @pytest.mark.parametrize(
     "keep, expected",
     [
-        ("first", Series([False, False, True, False, True])),
-        ("last", Series([True, True, False, False, False])),
-        (False, Series([True, True, True, False, True])),
+        ("first", pd.Series([False, False, True, False, True])),
+        ("last", pd.Series([True, True, False, False, False])),
+        (False, pd.Series([True, True, True, False, True])),
     ],
 )
 def test_duplicated_nan_none(keep, expected):
-    df = DataFrame({"C": [np.nan, 3, 3, None, np.nan], "x": 1}, dtype=object)
+    df = pd.DataFrame({"C": [np.nan, 3, 3, None, np.nan], "x": 1}, dtype=object)
 
     result = df.duplicated(keep=keep)
     tm.assert_series_equal(result, expected)
@@ -74,7 +70,7 @@ def test_duplicated_nan_none(keep, expected):
 
 @pytest.mark.parametrize("subset", [None, ["A", "B"], "A"])
 def test_duplicated_subset(subset, keep):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [0, 1, 1, 2, 0],
             "B": ["a", "b", "b", "c", "a"],
@@ -97,7 +93,7 @@ def test_duplicated_subset(subset, keep):
 def test_duplicated_on_empty_frame():
     # GH 25184
 
-    df = DataFrame(columns=["a", "b"])
+    df = pd.DataFrame(columns=["a", "b"])
     dupes = df.duplicated("a")
 
     result = df[dupes]
@@ -107,9 +103,9 @@ def test_duplicated_on_empty_frame():
 
 def test_duplicated_on_empty_frame_with_index():
     # GH#61191
-    df = DataFrame(index=[0, 1])
+    df = pd.DataFrame(index=[0, 1])
     result = df.duplicated()
-    expected = Series(False, dtype=bool, index=df.index)
+    expected = pd.Series(False, dtype=bool, index=df.index)
     tm.assert_series_equal(result, expected)
 
     # Boolean indexing with the result should work
@@ -119,12 +115,12 @@ def test_duplicated_on_empty_frame_with_index():
 
 
 def test_frame_datetime64_duplicated():
-    dates = date_range("2010-07-01", end="2010-08-05")
+    dates = pd.date_range("2010-07-01", end="2010-08-05")
 
-    tst = DataFrame({"symbol": "AAA", "date": dates})
+    tst = pd.DataFrame({"symbol": "AAA", "date": dates})
     result = tst.duplicated(["date", "symbol"])
     assert (-result).all()
 
-    tst = DataFrame({"date": dates})
+    tst = pd.DataFrame({"date": dates})
     result = tst.date.duplicated()
     assert (-result).all()

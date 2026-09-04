@@ -17,11 +17,6 @@ from pandas.errors import Pandas4Warning
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    Timestamp,
-)
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -43,11 +38,11 @@ def test_categorical_dtype(all_parsers, dtype):
 1,a,3.4
 1,a,3.4
 2,b,4.5"""
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical([1, 1, 2]),
-            "b": Categorical(["a", "a", "b"]),
-            "c": Categorical([3.4, 3.4, 4.5]),
+            "a": pd.Categorical([1, 1, 2]),
+            "b": pd.Categorical(["a", "a", "b"]),
+            "c": pd.Categorical([3.4, 3.4, 4.5]),
         }
     )
     actual = parser.read_csv(StringIO(data), dtype=dtype)
@@ -62,8 +57,8 @@ def test_categorical_dtype_single(all_parsers, dtype, request):
 1,a,3.4
 1,a,3.4
 2,b,4.5"""
-    expected = DataFrame(
-        {"a": [1, 1, 2], "b": Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
+    expected = pd.DataFrame(
+        {"a": [1, 1, 2], "b": pd.Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
     )
     if parser.engine == "pyarrow" and any(isinstance(key, int) for key in dtype):
         mark = pytest.mark.xfail(
@@ -82,11 +77,11 @@ def test_categorical_dtype_unsorted(all_parsers):
 1,b,3.4
 1,b,3.4
 2,a,4.5"""
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical([1, 1, 2]),
-            "b": Categorical(["b", "b", "a"]),
-            "c": Categorical([3.4, 3.4, 4.5]),
+            "a": pd.Categorical([1, 1, 2]),
+            "b": pd.Categorical(["b", "b", "a"]),
+            "c": pd.Categorical([3.4, 3.4, 4.5]),
         }
     )
     actual = parser.read_csv(StringIO(data), dtype="category")
@@ -100,11 +95,11 @@ def test_categorical_dtype_missing(all_parsers):
 1,b,3.4
 1,nan,3.4
 2,a,4.5"""
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical([1, 1, 2]),
-            "b": Categorical(["b", np.nan, "a"]),
-            "c": Categorical([3.4, 3.4, 4.5]),
+            "a": pd.Categorical([1, 1, 2]),
+            "b": pd.Categorical(["b", np.nan, "a"]),
+            "c": pd.Categorical([3.4, 3.4, 4.5]),
         }
     )
     actual = parser.read_csv(StringIO(data), dtype="category")
@@ -117,10 +112,10 @@ def test_categorical_dtype_numeric_duplicates(all_parsers):
     #  while the merge recodes the rest, exercising both together.
     parser = all_parsers
     data = "a,b\n1,x\n,x\n1.0,x\n2,x\n,x"
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical([1.0, None, 1.0, 2.0, None]),
-            "b": Categorical(["x"] * 5),
+            "a": pd.Categorical([1.0, None, 1.0, 2.0, None]),
+            "b": pd.Categorical(["x"] * 5),
         }
     )
     actual = parser.read_csv(StringIO(data), dtype="category")
@@ -148,7 +143,7 @@ def test_categorical_dtype_infers_boolean(all_parsers, data):
     # GH#56044 boolean-looking columns infer bool categories across all
     #  engines, matching non-categorical parsing
     parser = all_parsers
-    expected = DataFrame({"a": Categorical([True, False, True])})
+    expected = pd.DataFrame({"a": pd.Categorical([True, False, True])})
     actual = parser.read_csv(StringIO(data), dtype="category")
     tm.assert_frame_equal(actual, expected)
 
@@ -158,7 +153,7 @@ def test_categorical_dtype_boolean_duplicates(all_parsers):
     #  merged into a single category
     parser = all_parsers
     data = "a\nTrue\nTRUE\ntrue\nFalse"
-    expected = DataFrame({"a": Categorical([True, True, True, False])})
+    expected = pd.DataFrame({"a": pd.Categorical([True, True, True, False])})
     actual = parser.read_csv(StringIO(data), dtype="category")
     tm.assert_frame_equal(actual, expected)
 
@@ -174,7 +169,7 @@ def test_categorical_dtype_boolean_mixed_case(all_parsers):
         assert plain.dtype == np.dtype("bool")
 
     result = parser.read_csv(StringIO(data), dtype="category")
-    expected = DataFrame({"a": Categorical(plain)})
+    expected = pd.DataFrame({"a": pd.Categorical(plain)})
     tm.assert_frame_equal(result, expected)
 
 
@@ -189,7 +184,7 @@ def test_categorical_dtype_boolean_mixed_case_custom_values(all_parsers):
         assert list(plain) == [False, False]
 
     result = parser.read_csv(StringIO(data), dtype="category", false_values=["tRuE"])
-    expected = DataFrame({"a": Categorical(plain)})
+    expected = pd.DataFrame({"a": pd.Categorical(plain)})
     tm.assert_frame_equal(result, expected)
 
 
@@ -198,7 +193,7 @@ def test_categorical_dtype_boolean_custom_values(all_parsers):
     #  categories
     parser = all_parsers
     data = "a\nyes\nno\nyes"
-    expected = DataFrame({"a": Categorical([True, False, True])})
+    expected = pd.DataFrame({"a": pd.Categorical([True, False, True])})
     actual = parser.read_csv(
         StringIO(data), dtype="category", true_values=["yes"], false_values=["no"]
     )
@@ -211,7 +206,7 @@ def test_categorical_dtype_thousands(all_parsers):
     #  so categories stay strings rather than mis-parsing "1.000" as 1.0
     parser = all_parsers
     data = "a\n1.000\n2.000"
-    expected = DataFrame({"a": Categorical(["1.000", "2.000"])})
+    expected = pd.DataFrame({"a": pd.Categorical(["1.000", "2.000"])})
     actual = parser.read_csv(StringIO(data), dtype="category", thousands=".")
     tm.assert_frame_equal(actual, expected)
 
@@ -222,8 +217,8 @@ def test_categorical_dtype_decimal(all_parsers):
     #  so categories stay strings rather than mis-parsing "1,5"
     parser = all_parsers
     data = "a;b\n1;1,5\n2;2,5"
-    expected = DataFrame(
-        {"a": Categorical(["1", "2"]), "b": Categorical(["1,5", "2,5"])}
+    expected = pd.DataFrame(
+        {"a": pd.Categorical(["1", "2"]), "b": pd.Categorical(["1,5", "2,5"])}
     )
     actual = parser.read_csv(StringIO(data), dtype="category", sep=";", decimal=",")
     tm.assert_frame_equal(actual, expected)
@@ -242,7 +237,7 @@ def test_categorical_dtype_decimal(all_parsers):
 def test_categorical_dtype_large_integers(all_parsers, huge):
     # GH#56044 integers too large for int64/uint64 give object categories
     parser = all_parsers
-    expected = DataFrame({"a": Categorical([huge, 1])})
+    expected = pd.DataFrame({"a": pd.Categorical([huge, 1])})
     actual = parser.read_csv(StringIO(f"a\n{huge}\n1"), dtype="category")
     tm.assert_frame_equal(actual, expected)
 
@@ -260,8 +255,8 @@ def test_categorical_dtype_ordered_inferred_categories(all_parsers, data, catego
     #  categories to be inferred
     parser = all_parsers
     cat_dtype = CategoricalDtype(ordered=True)
-    expected = DataFrame(
-        {"a": Categorical(categories[::-1], categories=categories, ordered=True)}
+    expected = pd.DataFrame(
+        {"a": pd.Categorical(categories[::-1], categories=categories, ordered=True)}
     )
     actual = parser.read_csv(StringIO(data), dtype={"a": cat_dtype})
     tm.assert_frame_equal(actual, expected)
@@ -282,8 +277,8 @@ def test_categorical_dtype_ordered_low_memory(all_parsers, monkeypatch, values):
     heuristic = 2**5
     data = "a\n" + "\n".join(str(val) for val in values)
     cat_dtype = CategoricalDtype(ordered=True)
-    expected = DataFrame(
-        {"a": Categorical(values, categories=sorted(values), ordered=True)}
+    expected = pd.DataFrame(
+        {"a": pd.Categorical(values, categories=sorted(values), ordered=True)}
     )
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
@@ -296,7 +291,9 @@ def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
     parser = all_parsers
     cat_dtype = CategoricalDtype(pd.array([1, 2], dtype="Int64"))
     data = "a\n1\n2\n1"
-    expected = DataFrame({"a": Categorical.from_codes([0, 1, 0], dtype=cat_dtype)})
+    expected = pd.DataFrame(
+        {"a": pd.Categorical.from_codes([0, 1, 0], dtype=cat_dtype)}
+    )
     actual = parser.read_csv(StringIO(data), dtype={"a": cat_dtype})
     tm.assert_frame_equal(actual, expected)
 
@@ -371,8 +368,8 @@ def test_categorical_dtype_infer_string_disabled(all_parsers, ordered):
         result = parser.read_csv(
             StringIO(data), dtype={"a": CategoricalDtype(ordered=ordered)}
         )
-        expected = DataFrame(
-            {"a": Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)}
+        expected = pd.DataFrame(
+            {"a": pd.Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)}
         )
     tm.assert_frame_equal(result, expected)
 
@@ -406,7 +403,7 @@ def test_categorical_dtype_quote_nonnumeric(all_parsers):
     result = parser.read_csv(
         StringIO(data), dtype="category", quoting=csv.QUOTE_NONNUMERIC
     )
-    expected = DataFrame({"a": Categorical([1.0, 2.0])})
+    expected = pd.DataFrame({"a": pd.Categorical([1.0, 2.0])})
     tm.assert_frame_equal(result, expected)
 
 
@@ -418,7 +415,7 @@ def test_categorical_dtype_low_memory_mixed_numeric_chunks(all_parsers, monkeypa
     heuristic = 2**5
     ints = [str(i) for i in range(40)]
     rows = [*ints, "1.5", *ints]
-    expected = DataFrame({"a": Categorical([float(x) for x in rows])})
+    expected = pd.DataFrame({"a": pd.Categorical([float(x) for x in rows])})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
@@ -431,10 +428,10 @@ def test_categorical_dtype_low_memory_all_na_chunk(all_parsers, monkeypatch):
     parser = all_parsers
     heuristic = 2**5
     rows = [",1"] * 40 + ["x,1"] * 40
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical([None] * 40 + ["x"] * 40),
-            "b": Categorical([1] * 80),
+            "a": pd.Categorical([None] * 40 + ["x"] * 40),
+            "b": pd.Categorical([1] * 80),
         }
     )
     with monkeypatch.context() as m:
@@ -469,7 +466,7 @@ def test_categorical_dtype_low_memory_duplicate_chunks(
     #  them across chunks in file order
     parser = all_parsers
     heuristic = 2**5
-    expected = DataFrame({"a": Categorical(values)})
+    expected = pd.DataFrame({"a": pd.Categorical(values)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
@@ -489,7 +486,7 @@ def test_categorical_dtype_low_memory_mixed_type_chunks(all_parsers, monkeypatch
     #  keeps every chunk's categories strings
     parser = all_parsers
     heuristic = 2**5
-    expected = DataFrame({"a": Categorical(rows)})
+    expected = pd.DataFrame({"a": pd.Categorical(rows)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO("a\n" + "\n".join(rows)), dtype="category")
@@ -503,7 +500,7 @@ def test_categorical_dtype_low_memory_sorts_string_categories(all_parsers, monke
     heuristic = 2**5
     rows = [f"s{i:02d}" for i in reversed(range(60))]
     data = "a\n" + "\n".join(rows)
-    expected = DataFrame({"a": Categorical(rows)})
+    expected = pd.DataFrame({"a": pd.Categorical(rows)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO(data), dtype="category")
@@ -516,8 +513,8 @@ def test_categorical_dtype_integer_with_missing(all_parsers):
     #  stay int64 where a non-categorical read gives float64
     parser = all_parsers
     data = "a,b\n1,x\n,x\n2,x"
-    expected = DataFrame(
-        {"a": Categorical([1, None, 2]), "b": Categorical(["x", "x", "x"])}
+    expected = pd.DataFrame(
+        {"a": pd.Categorical([1, None, 2]), "b": pd.Categorical(["x", "x", "x"])}
     )
     result = parser.read_csv(StringIO(data), dtype="category")
     tm.assert_frame_equal(result, expected)
@@ -528,10 +525,10 @@ def test_categorical_dtype_boolean_with_missing(all_parsers):
     # GH#56044 as above for booleans, where a non-categorical read gives object
     parser = all_parsers
     data = "a,b\nTrue,x\n,x\nFalse,x"
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical([True, None, False]),
-            "b": Categorical(["x", "x", "x"]),
+            "a": pd.Categorical([True, None, False]),
+            "b": pd.Categorical(["x", "x", "x"]),
         }
     )
     result = parser.read_csv(StringIO(data), dtype="category")
@@ -546,7 +543,7 @@ def test_categorical_dtype_quote_nonnumeric_large_integers(all_parsers):
     #  cast to float64 directly
     parser = all_parsers
     data = '"a"\n99999999999999999999999999\n1'
-    expected = DataFrame({"a": Categorical([1e26, 1.0])})
+    expected = pd.DataFrame({"a": pd.Categorical([1e26, 1.0])})
     result = parser.read_csv(
         StringIO(data), dtype="category", quoting=csv.QUOTE_NONNUMERIC
     )
@@ -581,7 +578,9 @@ def test_categorical_dtype_empty_string(all_parsers, kwargs, request):
         request.applymarker(mark)
 
     data = "a,b\n,1\n2,3"
-    expected = DataFrame({"a": Categorical(["", "2"]), "b": Categorical([1, 3])})
+    expected = pd.DataFrame(
+        {"a": pd.Categorical(["", "2"]), "b": pd.Categorical([1, 3])}
+    )
     actual = parser.read_csv(StringIO(data), dtype="category", **kwargs)
     tm.assert_frame_equal(actual, expected)
 
@@ -591,10 +590,10 @@ def test_categorical_dtype_all_na(all_parsers):
     # GH#56044 empty inferred categories keep object dtype
     parser = all_parsers
     data = "a,b\n,1\n,2"
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Categorical.from_codes([-1, -1], pd.Index([], dtype=object)),
-            "b": Categorical([1, 2]),
+            "a": pd.Categorical.from_codes([-1, -1], pd.Index([], dtype=object)),
+            "b": pd.Categorical([1, 2]),
         }
     )
     actual = parser.read_csv(StringIO(data), dtype="category")
@@ -610,7 +609,7 @@ def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     data = np.sort([str(i) for i in range(heuristic + 1)])
     csv_data = "a\n" + "\n".join(data)
     int_data = np.array([int(x) for x in data])
-    expected = DataFrame({"a": Categorical(int_data)})
+    expected = pd.DataFrame({"a": pd.Categorical(int_data)})
     with monkeypatch.context() as m:
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         actual = parser.read_csv(StringIO(csv_data), dtype="category")
@@ -625,7 +624,7 @@ def test_categorical_dtype_utf16(all_parsers, datapath):
     sep = "\t"
 
     expected = parser.read_csv(pth, sep=sep, encoding=encoding)
-    expected = expected.apply(Categorical)
+    expected = expected.apply(pd.Categorical)
 
     actual = parser.read_csv(pth, sep=sep, encoding=encoding, dtype="category")
     tm.assert_frame_equal(actual, expected)
@@ -640,8 +639,8 @@ def test_categorical_dtype_chunksize_infer_categories(all_parsers):
 1,b
 2,c"""
     expecteds = [
-        DataFrame({"a": [1, 1], "b": Categorical(["a", "b"])}),
-        DataFrame({"a": [1, 2], "b": Categorical(["b", "c"])}, index=[2, 3]),
+        pd.DataFrame({"a": [1, 1], "b": pd.Categorical(["a", "b"])}),
+        pd.DataFrame({"a": [1, 2], "b": pd.Categorical(["b", "c"])}, index=[2, 3]),
     ]
 
     if parser.engine == "pyarrow":
@@ -667,9 +666,9 @@ def test_categorical_dtype_chunksize_explicit_categories(all_parsers):
 2,c"""
     cats = ["a", "b", "c"]
     expecteds = [
-        DataFrame({"a": [1, 1], "b": Categorical(["a", "b"], categories=cats)}),
-        DataFrame(
-            {"a": [1, 2], "b": Categorical(["b", "c"], categories=cats)},
+        pd.DataFrame({"a": [1, 1], "b": pd.Categorical(["a", "b"], categories=cats)}),
+        pd.DataFrame(
+            {"a": [1, 2], "b": pd.Categorical(["b", "c"], categories=cats)},
             index=[2, 3],
         ),
     ]
@@ -693,7 +692,7 @@ def test_categorical_dtype_latin1(all_parsers, datapath):
     encoding = "latin-1"
 
     expected = parser.read_csv(pth, header=None, encoding=encoding)
-    expected[1] = Categorical(expected[1])
+    expected[1] = pd.Categorical(expected[1])
 
     actual = parser.read_csv(pth, header=None, encoding=encoding, dtype={1: "category"})
     tm.assert_frame_equal(actual, expected)
@@ -711,10 +710,10 @@ def test_categorical_category_dtype(all_parsers, categories, ordered):
 1,b
 1,b
 2,c"""
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": [1, 1, 1, 2],
-            "b": Categorical(
+            "b": pd.Categorical(
                 ["a", "b", "b", "c"], categories=categories, ordered=ordered
             ),
         }
@@ -733,10 +732,10 @@ def test_categorical_category_dtype_unsorted(all_parsers):
 1,b
 2,c"""
     dtype = CategoricalDtype(["c", "b", "a"])
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": [1, 1, 1, 2],
-            "b": Categorical(["a", "b", "b", "c"], categories=["c", "b", "a"]),
+            "b": pd.Categorical(["a", "b", "b", "c"], categories=["c", "b", "a"]),
         }
     )
 
@@ -749,7 +748,7 @@ def test_categorical_coerces_numeric(all_parsers):
     dtype = {"b": CategoricalDtype([1, 2, 3])}
 
     data = "b\n1\n1\n2\n3"
-    expected = DataFrame({"b": Categorical([1, 1, 2, 3])})
+    expected = pd.DataFrame({"b": pd.Categorical([1, 1, 2, 3])})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
@@ -761,7 +760,7 @@ def test_categorical_coerces_datetime(all_parsers):
     dtype = {"b": CategoricalDtype(dti)}
 
     data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
-    expected = DataFrame({"b": Categorical(dtype["b"].categories)})
+    expected = pd.DataFrame({"b": pd.Categorical(dtype["b"].categories)})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
@@ -769,10 +768,10 @@ def test_categorical_coerces_datetime(all_parsers):
 
 def test_categorical_coerces_timestamp(all_parsers):
     parser = all_parsers
-    dtype = {"b": CategoricalDtype([Timestamp("2014")])}
+    dtype = {"b": CategoricalDtype([pd.Timestamp("2014")])}
 
     data = "b\n2014-01-01\n2014-01-01"
-    expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
+    expected = pd.DataFrame({"b": pd.Categorical([pd.Timestamp("2014")] * 2)})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
@@ -783,7 +782,7 @@ def test_categorical_coerces_timedelta(all_parsers):
     dtype = {"b": CategoricalDtype(pd.to_timedelta(["1h", "2h", "3h"]))}
 
     data = "b\n1h\n2h\n3h"
-    expected = DataFrame({"b": Categorical(dtype["b"].categories)})
+    expected = pd.DataFrame({"b": pd.Categorical(dtype["b"].categories)})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
@@ -802,7 +801,7 @@ def test_categorical_dtype_coerces_boolean(all_parsers, data):
     # see gh-20498
     parser = all_parsers
     dtype = {"b": CategoricalDtype([False, True])}
-    expected = DataFrame({"b": Categorical([True, False, None, False])})
+    expected = pd.DataFrame({"b": pd.Categorical([True, False, None, False])})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)
@@ -813,7 +812,9 @@ def test_categorical_unexpected_categories(all_parsers):
     dtype = {"b": CategoricalDtype(["a", "b", "d", "e"])}
 
     data = "b\nd\na\nc\nd"  # Unexpected c
-    expected = DataFrame({"b": Categorical(["d", "a", None, "d"], dtype=dtype["b"])})
+    expected = pd.DataFrame(
+        {"b": pd.Categorical(["d", "a", None, "d"], dtype=dtype["b"])}
+    )
 
     msg = "Constructing a Categorical with a dtype and values containing"
     with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
@@ -829,13 +830,13 @@ def test_categorical_dtype_leading_zeros(all_parsers):
 01,x
 002,y"""
     result = parser.read_csv(StringIO(data), dtype={"a": "category"})
-    expected = DataFrame({"a": Categorical([1, 2]), "b": ["x", "y"]})
+    expected = pd.DataFrame({"a": pd.Categorical([1, 2]), "b": ["x", "y"]})
     tm.assert_frame_equal(result, expected)
     # to keep the raw strings, ask for them
     result = parser.read_csv(StringIO(data), dtype={"a": "str"}).astype(
         {"a": "category"}
     )
-    expected = DataFrame({"a": Categorical(["01", "002"]), "b": ["x", "y"]})
+    expected = pd.DataFrame({"a": pd.Categorical(["01", "002"]), "b": ["x", "y"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -849,8 +850,8 @@ def test_categorical_dtype_explicit_string_categories(all_parsers):
 002
 01"""
     result = parser.read_csv(StringIO(data), dtype={"a": dtype})
-    expected = DataFrame(
-        {"a": Categorical(["01", "002", "01"], categories=["01", "002"])}
+    expected = pd.DataFrame(
+        {"a": pd.Categorical(["01", "002", "01"], categories=["01", "002"])}
     )
     tm.assert_frame_equal(result, expected)
 
@@ -865,5 +866,5 @@ def test_categorical_dtype_explicit_numeric_categories(all_parsers):
 2
 3"""
     result = parser.read_csv(StringIO(data), dtype={"a": dtype})
-    expected = DataFrame({"a": Categorical([1, 2, 3], categories=[1, 2, 3])})
+    expected = pd.DataFrame({"a": pd.Categorical([1, 2, 3], categories=[1, 2, 3])})
     tm.assert_frame_equal(result, expected)

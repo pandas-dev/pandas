@@ -2,7 +2,7 @@ from io import BytesIO
 
 import pytest
 
-from pandas import read_csv
+import pandas as pd
 
 
 @pytest.mark.parametrize("data", [b"foo,bar,baz\n1,2,3\n4,5,6\n", b"just,the,header\n"])
@@ -13,7 +13,7 @@ def test_streaming_s3_objects(data):
     from botocore.response import StreamingBody
 
     body = StreamingBody(BytesIO(data), content_length=len(data))
-    read_csv(body)
+    pd.read_csv(body)
 
 
 @pytest.mark.single_cpu
@@ -24,7 +24,7 @@ def test_read_with_and_without_creds_from_pub_bucket(
     # GH 34626
     pytest.importorskip("s3fs")
     nrows = 5
-    df = read_csv(
+    df = pd.read_csv(
         f"s3://{s3_bucket_public_with_data.name}/tips.csv",
         nrows=nrows,
         header=header,

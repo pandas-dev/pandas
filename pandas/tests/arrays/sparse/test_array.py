@@ -6,10 +6,6 @@ import pytest
 from pandas._libs.sparse import IntIndex
 
 import pandas as pd
-from pandas import (
-    SparseDtype,
-    isna,
-)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -38,7 +34,7 @@ class TestSparseArray:
         # GH #24128
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]), fill_value=8.0)
         res = sparse.shift(1, fill_value=fill_value)
-        if isna(fill_value):
+        if pd.isna(fill_value):
             fill_value = res.dtype.na_value
         exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]), fill_value=8.0)
         tm.assert_sp_array_equal(res, exp)
@@ -183,13 +179,13 @@ class TestSparseArray:
 
         # int dtype shouldn't have missing. No changes.
         s = SparseArray([0, 0, 0, 0])
-        assert s.dtype == SparseDtype(np.int64)
+        assert s.dtype == pd.SparseDtype(np.int64)
         assert s.fill_value == 0
         res = s.fillna(-1)
         tm.assert_sp_array_equal(res, s)
 
         s = SparseArray([0, 0, 0, 0], fill_value=0)
-        assert s.dtype == SparseDtype(np.int64)
+        assert s.dtype == pd.SparseDtype(np.int64)
         assert s.fill_value == 0
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=0)
@@ -198,7 +194,7 @@ class TestSparseArray:
         # fill_value can be nan if there is no missing hole.
         # only fill_value will be changed
         s = SparseArray([0, 0, 0, 0], fill_value=np.nan)
-        assert s.dtype == SparseDtype(np.int64, fill_value=np.nan)
+        assert s.dtype == pd.SparseDtype(np.int64, fill_value=np.nan)
         assert np.isnan(s.fill_value)
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=-1)
@@ -355,7 +351,7 @@ class TestIsna:
         # Common case: non-null fill value, no NAs in sp_values
         arr = SparseArray([0, 1, 0, 2, 0], fill_value=0, kind=kind)
         result = arr.isna()
-        assert result.dtype == SparseDtype(bool, False)
+        assert result.dtype == pd.SparseDtype(bool, False)
         expected_dense = np.array([False, False, False, False, False])
         tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
         assert result.sp_values.size == 0
@@ -436,7 +432,7 @@ def test_setting_fill_value_updates():
     expected = SparseArray._simple_new(
         sparse_array=np.array([np.nan]),
         sparse_index=IntIndex(2, [1]),
-        dtype=SparseDtype(float, np.nan),
+        dtype=pd.SparseDtype(float, np.nan),
     )
     tm.assert_sp_array_equal(arr, expected)
 

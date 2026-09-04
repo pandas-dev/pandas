@@ -629,6 +629,12 @@ filled since the last valid observation
    ser.interpolate()
    ser.interpolate(limit=1)
 
+Note that ``limit`` caps how many consecutive ``NaN`` values are filled within
+each gap; it does not skip gaps that are longer than the limit. A gap with more
+consecutive ``NaN`` values than ``limit`` is filled *partially*, as with the
+three ``NaN`` values between ``5`` and ``13`` above. To leave such gaps
+untouched entirely, mask them out afterwards.
+
 By default, ``NaN`` values are filled in a ``forward`` direction. Use
 ``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
 
