@@ -412,11 +412,15 @@ class TestCategoricalConstructors:
     @pytest.mark.parametrize(
         "values, categories, expected",
         [
-            ([1, 2], Index(pd.array(["1", "2"], dtype="string")), ["1", "2"]),
-            (["1", "2"], Index([1, 2]), [1, 2]),
+            (
+                [1, 2],
+                pd.Index(pd.array(["1", "2"], dtype="string")),
+                ["1", "2"],
+            ),
+            (["1", "2"], pd.Index([1, 2]), [1, 2]),
             (
                 pd.array([1, None], dtype="Int64"),
-                Index(pd.array(["1", "2"], dtype="string")),
+                pd.Index(pd.array(["1", "2"], dtype="string")),
                 ["1", None],
             ),
         ],
@@ -427,17 +431,17 @@ class TestCategoricalConstructors:
         # GH#66688
         dtype = CategoricalDtype(categories)
 
-        result = Series(values).astype(dtype)
-        expected = Series(expected, dtype=dtype)
+        result = pd.Series(values).astype(dtype)
+        expected = pd.Series(expected, dtype=dtype)
 
         tm.assert_series_equal(result, expected)
 
     def test_astype_categorical_dtype_raises_on_invalid_cast(self):
         # GH#66688
-        dtype = CategoricalDtype(Index([1, 2]))
+        dtype = CategoricalDtype(pd.Index([1, 2]))
 
         with pytest.raises(ValueError, match="invalid literal for int"):
-            Series(["a", "b"]).astype(dtype)
+            pd.Series(["a", "b"]).astype(dtype)
 
     def test_constructor_dtype_and_others_raises(self):
         dtype = CategoricalDtype(["a", "b"], ordered=True)
