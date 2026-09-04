@@ -147,6 +147,46 @@ def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
     tm.assert_frame_equal(result, iter_result)
 
 
+@pytest.mark.parametrize("column", ["num", "text", "ts"])
+def test_select_ne_list_of_values(temp_hdfstore, column):
+    # GH#68029 "col != [a, b]" OR-joined the per-value comparisons, and
+    # "(col != a) | (col != b)" is true for every row, so the query silently
+    # degraded to no filter at all. A single-element list was fine.
+    df = pd.DataFrame(
+        {
+            "num": np.arange(40),
+            "text": [f"s{i:02d}" for i in range(40)],
+            "ts": pd.date_range("2020-01-01", periods=40, unit="ns"),
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    selector = list(df[column][10:13])
+    where = f"{column} != selector"
+    expected = df[~df[column].isin(selector)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=where), expected)
+
+    # the coordinate path must agree with a plain read
+    coords = temp_hdfstore.select_as_coordinates("df", where=where)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=coords), expected)
+
+
+def test_select_ne_list_matches_post_read_filter(temp_hdfstore):
+    # GH#68029 a >31-value "!=" list is realized as a post-read filter instead
+    # of a numexpr condition; padding the list with values that are not in the
+    # column must not change which rows come back
+    df = pd.DataFrame({"num": np.arange(40)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    small = [10, 11, 12]
+    big = small + list(range(100, 135))
+    expected = df[~df["num"].isin(small)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {small}"), expected)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {big}"), expected)
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = pd.DataFrame(
