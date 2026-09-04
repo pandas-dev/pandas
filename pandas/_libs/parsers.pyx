@@ -768,7 +768,8 @@ cdef class TextReader:
             parser_set_skipfirstnrows(self.parser, self.skiprows)
         elif not callable(self.skiprows):
             for i in self.skiprows:
-                parser_add_skiprow(self.parser, i)
+                if parser_add_skiprow(self.parser, i) != 0:
+                    raise MemoryError()
         else:
             self.parser.skipfunc = <PyObject *>self.skiprows
 
