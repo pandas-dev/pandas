@@ -23,7 +23,10 @@ from numpy cimport (
 import_array()
 
 
-from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport (
+    C_NA,
+    checknull,
+)
 from pandas._libs.util cimport is_nan
 
 
@@ -44,12 +47,16 @@ def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
 
     Returns
     -------
-    result : ndarray[bool]
+    ndarray[bool] or ndarray[object]
+        If the scalar or any element is NA, the dtype is object.
     """
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[uint8_t, cast=True] result
+        ndarray[uint8_t, cast=True] na_mask
+        ndarray[object, cast=True] result_obj
         bint isnull_val
+        bint seen_na = False
         int flag
         object x
 
@@ -70,12 +77,16 @@ def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
 
     result = np.empty(n, dtype=bool).view(np.uint8)
     isnull_val = checknull(val)
-    is_complex_val = isinstance(val, complex)
+    na_mask = np.zeros(n, dtype=np.uint8)
+    isna_val = val is C_NA
 
     if flag == Py_NE:
         for i in range(n):
             x = values[i]
-            if checknull(x):
+            if isna_val or x is C_NA:
+                na_mask[i] = 1
+                seen_na = True
+            elif checknull(x):
                 result[i] = True
             elif isnull_val:
                 result[i] = True
@@ -87,7 +98,10 @@ def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
     elif flag == Py_EQ:
         for i in range(n):
             x = values[i]
-            if checknull(x):
+            if isna_val or x is C_NA:
+                na_mask[i] = 1
+                seen_na = True
+            elif checknull(x):
                 result[i] = False
             elif isnull_val:
                 result[i] = False
@@ -100,22 +114,20 @@ def scalar_compare(ndarray[object] values, object val, object op) -> ndarray:
     else:
         for i in range(n):
             x = values[i]
-            if isinstance(x, complex) or is_complex_val:
-                symbol = {
-                    "lt": "<", "le": "<=",
-                    "gt": ">", "ge": ">=",
-                    "eq": "==", "ne": "!="
-                }
-                raise TypeError(
-                    f"'{symbol.get(op.__name__)}' not supported between instances of "
-                    f"'{type(x).__name__}' and '{type(val).__name__}'"
-                )
+            if isna_val or x is C_NA:
+                na_mask[i] = 1
+                seen_na = True
             elif checknull(x):
                 result[i] = False
             elif isnull_val:
                 result[i] = False
             else:
                 result[i] = PyObject_RichCompareBool(x, val, flag)
+
+    if seen_na:
+        result_obj = result.view(bool).astype(object)
+        result_obj[na_mask.view(bool)] = C_NA
+        return result_obj
 
     return result.view(bool)
 
@@ -137,11 +149,15 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
 
     Returns
     -------
-    result : ndarray[bool]
+    ndarray[bool] or ndarray[object]
+        If any element is NA, the dtype is object.
     """
     cdef:
         Py_ssize_t i, n = len(left)
         ndarray[uint8_t, cast=True] result
+        ndarray[uint8_t, cast=True] na_mask
+        ndarray[object, cast=True] result_obj
+        bint seen_na = False
         int flag
 
     if n != <Py_ssize_t>len(right):
@@ -163,13 +179,17 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
         raise ValueError("Unrecognized operator")
 
     result = np.empty(n, dtype=bool).view(np.uint8)
+    na_mask = np.zeros(n, dtype=np.uint8)
 
     if flag == Py_NE:
         for i in range(n):
             x = left[i]
             y = right[i]
 
-            if checknull(x) or checknull(y):
+            if x is C_NA or y is C_NA:
+                na_mask[i] = 1
+                seen_na = True
+            elif checknull(x) or checknull(y):
                 result[i] = True
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
@@ -178,20 +198,18 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
             x = left[i]
             y = right[i]
 
-            if (flag != Py_EQ) and (isinstance(x, complex) or isinstance(y, complex)):
-                symbol = {
-                    "lt": "<", "le": "<=",
-                    "gt": ">", "ge": ">=",
-                    "eq": "==", "ne": "!="
-                }
-                raise TypeError(
-                    f"'{symbol.get(op.__name__)}' not supported between instances of "
-                    f"'{type(x).__name__}' and '{type(y).__name__}'"
-                )
+            if x is C_NA or y is C_NA:
+                na_mask[i] = 1
+                seen_na = True
             elif checknull(x) or checknull(y):
                 result[i] = False
             else:
                 result[i] = PyObject_RichCompareBool(x, y, flag)
+
+    if seen_na:
+        result_obj = result.view(bool).astype(object)
+        result_obj[na_mask.view(bool)] = C_NA
+        return result_obj
 
     return result.view(bool)
 
