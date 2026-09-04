@@ -6405,34 +6405,42 @@ def _get_data_and_dtype_name(data: ArrayLike):
 
 def _or_of_ands_columns(condition) -> set[str]:
     """
-    Look for an OR with at least one multi-column AND operand, e.g.
-    ``(A & B) | (C & D)`` or ``(A & B) | C``, in a pruned PyTables condition
-    tree.
+    Look for an OR with at least one AND operand, e.g. ``(A & B) | (C & D)``
+    or ``(A & B) | C``, in a pruned PyTables condition tree. The AND operand
+    need not span two columns -- ``(A > 1 & A < 5) | B`` counts too.
 
     This is the query shape that can trigger an upstream PyTables bug where
     index-accelerated reads silently drop matching rows (GH#50598). Return the
-    set of column names referenced in ``condition`` if such a pattern is found,
-    otherwise an empty set.
+    set of column names referenced by the AND-ed operands of such an OR, or an
+    empty set if the pattern is not present.
+
+    Only the AND-ed operands matter: the bug needs one of *their* columns to be
+    indexed. Indexing a column that appears solely as a bare OR operand (the
+    ``C`` of ``(A & B) | C``) does not trigger it.
     """
     cols: set[str] = set()
-    found = False
 
-    def visit(node) -> None:
-        nonlocal found
+    def collect(node) -> None:
+        """Add every column name referenced under ``node``."""
         if not isinstance(node, JointConditionBinOp):
             # leaf comparison: lhs.value is the column name
             cols.add(node.lhs.value)
             return
-        if node.op == "|" and (
-            (isinstance(node.lhs, JointConditionBinOp) and node.lhs.op == "&")
-            or (isinstance(node.rhs, JointConditionBinOp) and node.rhs.op == "&")
-        ):
-            found = True
+        collect(node.lhs)
+        collect(node.rhs)
+
+    def visit(node) -> None:
+        if not isinstance(node, JointConditionBinOp):
+            return
+        if node.op == "|":
+            for operand in (node.lhs, node.rhs):
+                if isinstance(operand, JointConditionBinOp) and operand.op == "&":
+                    collect(operand)
         visit(node.lhs)
         visit(node.rhs)
 
     visit(condition)
-    return cols if found else set()
+    return cols
 
 
 class Selection:
@@ -6501,10 +6509,7 @@ class Selection:
         an upstream PyTables bug (GH#50598).
         """
         table = getattr(self.table, "table", None)
-        if table is None or table.chunkshape is None:
-            return
-        # the bug only affects tables stored in more than one chunk (row group)
-        if table.chunkshape[0] >= self.table.nrows:
+        if table is None:
             return
         cols = _or_of_ands_columns(self.condition)
         if not any(
@@ -6514,11 +6519,11 @@ class Selection:
         ):
             return
         warnings.warn(
-            "Reading with a nested 'where' that ORs AND-ed conditions over "
-            "indexed columns (e.g. '(A & B) | (C & D)') can return incorrect "
-            "results due to an upstream PyTables bug (GH#50598). To get correct "
-            "results, write the table with 'index=False', or run each OR branch "
-            "as a separate query and concatenate the results.",
+            "Querying with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can silently match the "
+            "wrong rows due to an upstream PyTables bug (GH#50598). To get "
+            "correct results, write the table with 'index=False', or split the "
+            "'where' into one operation per OR branch.",
             UserWarning,
             stacklevel=find_stack_level(),
         )

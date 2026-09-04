@@ -3351,7 +3351,13 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
      if installed (deprecated), and ``calamine`` otherwise.
    - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used
      if installed (deprecated), and ``calamine`` otherwise.
-   - Otherwise ``openpyxl`` will be used.
+   - Otherwise ``openpyxl`` will be used (deprecated default, see below).
+
+   .. deprecated:: 3.1.0
+      For xlsx/xlsm files the default engine will change from ``openpyxl`` to
+      ``calamine`` in a future version. Pass ``engine`` explicitly, or set the
+      ``io.excel.xlsx.reader`` option (xlsm files are format-detected as xlsx),
+      to keep the current behavior.
 
    The ``xlrd`` and ``pyxlsb`` engines emit a deprecation warning and will be
    removed in a future version. Pass ``engine="calamine"`` to opt in to the
@@ -3383,7 +3389,7 @@ using internally.
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls", sheet_name="Sheet1")
+   pd.read_excel("path_to_file.xlsx", sheet_name="Sheet1")
 
 
 .. _io.excel.excelfile_class:
@@ -3398,14 +3404,14 @@ read into memory only once.
 
 .. code-block:: python
 
-   xlsx = pd.ExcelFile("path_to_file.xls")
+   xlsx = pd.ExcelFile("path_to_file.xlsx")
    df = pd.read_excel(xlsx, "Sheet1")
 
 The ``ExcelFile`` class can also be used as a context manager.
 
 .. code-block:: python
 
-   with pd.ExcelFile("path_to_file.xls") as xls:
+   with pd.ExcelFile("path_to_file.xlsx") as xls:
        df1 = pd.read_excel(xls, "Sheet1")
        df2 = pd.read_excel(xls, "Sheet2")
 
@@ -3419,7 +3425,7 @@ different parameters:
 
     data = {}
     # For when Sheet1's format differs from Sheet2
-    with pd.ExcelFile("path_to_file.xls") as xls:
+    with pd.ExcelFile("path_to_file.xlsx") as xls:
         data["Sheet1"] = pd.read_excel(xls, "Sheet1", index_col=None, na_values=["NA"])
         data["Sheet2"] = pd.read_excel(xls, "Sheet2", index_col=1)
 
@@ -3430,13 +3436,13 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
 
     # using the ExcelFile class
     data = {}
-    with pd.ExcelFile("path_to_file.xls") as xls:
+    with pd.ExcelFile("path_to_file.xlsx") as xls:
         data["Sheet1"] = pd.read_excel(xls, "Sheet1", index_col=None, na_values=["NA"])
         data["Sheet2"] = pd.read_excel(xls, "Sheet2", index_col=None, na_values=["NA"])
 
     # equivalent using the read_excel function
     data = pd.read_excel(
-        "path_to_file.xls", ["Sheet1", "Sheet2"], index_col=None, na_values=["NA"]
+        "path_to_file.xlsx", ["Sheet1", "Sheet2"], index_col=None, na_values=["NA"]
     )
 
 .. _io.excel.specifying_sheets:
@@ -3459,35 +3465,35 @@ Specifying sheets
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls", "Sheet1", index_col=None, na_values=["NA"])
+   pd.read_excel("path_to_file.xlsx", "Sheet1", index_col=None, na_values=["NA"])
 
 Using the sheet index:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls", 0, index_col=None, na_values=["NA"])
+   pd.read_excel("path_to_file.xlsx", 0, index_col=None, na_values=["NA"])
 
 Using all default values:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls")
+   pd.read_excel("path_to_file.xlsx")
 
 Using None to get all sheets:
 
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   pd.read_excel("path_to_file.xls", sheet_name=None)
+   pd.read_excel("path_to_file.xlsx", sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   pd.read_excel("path_to_file.xls", sheet_name=["Sheet1", 3])
+   pd.read_excel("path_to_file.xlsx", sheet_name=["Sheet1", 3])
 
 ``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
@@ -3575,14 +3581,14 @@ You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", usecols="A,C:E")
+   pd.read_excel("path_to_file.xlsx", "Sheet1", usecols="A,C:E")
 
 If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", usecols=[0, 2, 3])
+   pd.read_excel("path_to_file.xlsx", "Sheet1", usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
@@ -3592,7 +3598,7 @@ document header row(s). Those strings define which columns will be parsed:
 
 .. code-block:: python
 
-    pd.read_excel("path_to_file.xls", "Sheet1", usecols=["foo", "bar"])
+    pd.read_excel("path_to_file.xlsx", "Sheet1", usecols=["foo", "bar"])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
 
@@ -3601,7 +3607,7 @@ the column names, returning names where the callable function evaluates to ``Tru
 
 .. code-block:: python
 
-    pd.read_excel("path_to_file.xls", "Sheet1", usecols=lambda x: x.isalpha())
+    pd.read_excel("path_to_file.xlsx", "Sheet1", usecols=lambda x: x.isalpha())
 
 Parsing dates
 +++++++++++++
@@ -3613,7 +3619,7 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", parse_dates=["date_strings"])
+   pd.read_excel("path_to_file.xlsx", "Sheet1", parse_dates=["date_strings"])
 
 
 Cell converters
@@ -3624,7 +3630,7 @@ option. For instance, to convert a column to boolean:
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", converters={"MyBools": bool})
+   pd.read_excel("path_to_file.xlsx", "Sheet1", converters={"MyBools": bool})
 
 This options handles missing values and treats exceptions in the converters
 as missing data. Transformations are applied cell by cell rather than to the
@@ -3639,7 +3645,7 @@ missing data to recover integer dtype:
        return int(x) if x else -1
 
 
-   pd.read_excel("path_to_file.xls", "Sheet1", converters={"MyInts": cfun})
+   pd.read_excel("path_to_file.xlsx", "Sheet1", converters={"MyInts": cfun})
 
 Dtype specifications
 ++++++++++++++++++++
@@ -3651,7 +3657,7 @@ no type inference, use the type ``str`` or ``object``.
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", dtype={"MyInts": "int64", "MyText": str})
+   pd.read_excel("path_to_file.xlsx", dtype={"MyInts": "int64", "MyText": str})
 
 .. _io.excel_writer:
 
@@ -3720,8 +3726,8 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
    writer = pd.ExcelWriter(bio, engine="xlsxwriter")
    df.to_excel(writer, sheet_name="Sheet1")
 
-   # Save the workbook
-   writer.save()
+   # Save and close the workbook
+   writer.close()
 
    # Seek to the beginning and read to copy the workbook to a variable in memory
    bio.seek(0)
@@ -3745,20 +3751,23 @@ pandas chooses an Excel writer via two methods:
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
-By default, pandas uses the `XlsxWriter`_  for ``.xlsx``, `openpyxl`_
-for ``.xlsm``. If you have multiple
+By default, pandas uses the `XlsxWriter`_ for ``.xlsx``, `openpyxl`_
+for ``.xlsm`` and `odfpy`_ for ``.ods``. If you have multiple
 engines installed, you can set the default engine through :ref:`setting the
-config option <options>` ``io.excel.xlsx.writer``. pandas will fall back on
-`openpyxl`_ for ``.xlsx`` files if `Xlsxwriter`_ is not available.
+config options <options>` ``io.excel.xlsx.writer``,
+``io.excel.xlsm.writer`` and ``io.excel.ods.writer``. pandas will fall back
+on `openpyxl`_ for ``.xlsx`` files if `XlsxWriter`_ is not available.
 
 .. _XlsxWriter: https://xlsxwriter.readthedocs.io
 .. _openpyxl: https://openpyxl.readthedocs.io/
+.. _odfpy: https://pypi.org/project/odfpy/
 
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-* ``openpyxl``: version 2.4 or higher is required
+* ``openpyxl``
 * ``xlsxwriter``
+* ``odf``
 
 .. code-block:: python
 
