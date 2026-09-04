@@ -1373,8 +1373,11 @@ def nansem(
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
 
-    if not skipna and mask is not None and mask.any():
-        return np.nan
+    if not skipna and mask is not None:
+        # For masked arrays, the values underneath `mask` are fill values
+        # rather than NaN, so NaN would not otherwise propagate. GH#65373
+        values = values.copy()
+        np.putmask(values, mask, np.nan)
 
     dtype_count = np.dtype(np.float64)
     if values.dtype.kind == "f":

@@ -169,8 +169,6 @@ cdef extern from "pandas/datetime/pd_datetime.h":
 
 
 cdef:
-    float64_t INF = <float64_t>np.inf
-    float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 DEFAULT_BUFFER_HEURISTIC = 2 ** 20
@@ -306,7 +304,8 @@ cdef extern from "pandas/parser/tokenizer.h":
     int try_parse_plain_double(const char *start, const char *end, char decimal,
                                double *out) nogil
 
-    int infinity_sign(const char *item, int64_t length) nogil
+    int parse_special_float(const char *item, int64_t length,
+                            double *out) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
@@ -769,7 +768,8 @@ cdef class TextReader:
             parser_set_skipfirstnrows(self.parser, self.skiprows)
         elif not callable(self.skiprows):
             for i in self.skiprows:
-                parser_add_skiprow(self.parser, i)
+                if parser_add_skiprow(self.parser, i) != 0:
+                    raise MemoryError()
         else:
             self.parser.skipfunc = <PyObject *>self.skiprows
 
@@ -3217,6 +3217,7 @@ cdef int _probe_double(parser_t *parser, int64_t col,
         c_int64_t token_idx = 0
         int64_t word_len
         char *p_end
+        double probe_value
 
     coliter_setup(&it, parser, col, line_start)
     for _ in range(lines):
@@ -3230,7 +3231,7 @@ cdef int _probe_double(parser_t *parser, int64_t col,
                                 parser.sci, parser.thousands,
                                 1, &error, NULL, word_end)
         if error != 0 or p_end == word or p_end != word_end:
-            if infinity_sign(word, word_len) != 0:
+            if parse_special_float(word, word_len, &probe_value) == 0:
                 return 0
             return 1
         return 0
@@ -3321,7 +3322,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            float64_t NA, float64_t *data,
                            int *na_count, uint8_t *na_mask) nogil:
     cdef:
-        int error = 0, inf_sign
+        int error = 0
         Py_ssize_t idx, _, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -3360,12 +3361,7 @@ cdef int _try_double_nogil(parser_t *parser,
                                                1, &error, NULL, word_end)
                     if error != 0 or p_end == word or p_end != word_end:
                         error = 0
-                        inf_sign = infinity_sign(word, word_len)
-                        if inf_sign > 0:
-                            data[0] = INF
-                        elif inf_sign < 0:
-                            data[0] = NEGINF
-                        else:
+                        if parse_special_float(word, word_len, data) != 0:
                             return 1
                 if use_na_flist:
                     k64 = kh_get_float64(na_fhashset, data[0])
@@ -3386,12 +3382,7 @@ cdef int _try_double_nogil(parser_t *parser,
                                            1, &error, NULL, word_end)
                 if error != 0 or p_end == word or p_end != word_end:
                     error = 0
-                    inf_sign = infinity_sign(word, word_end - word)
-                    if inf_sign > 0:
-                        data[0] = INF
-                    elif inf_sign < 0:
-                        data[0] = NEGINF
-                    else:
+                    if parse_special_float(word, word_end - word, data) != 0:
                         return 1
             data += 1
 

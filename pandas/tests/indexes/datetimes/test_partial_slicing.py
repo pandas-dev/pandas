@@ -7,26 +7,16 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestSlicing:
     def test_string_index_series_name_converted(self):
         # GH#1644
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            index=date_range("1/1/2000", periods=10),
+            index=pd.date_range("1/1/2000", periods=10),
         )
 
         result = df.loc["1/3/2000"]
@@ -38,17 +28,17 @@ class TestSlicing:
     def test_stringified_slice_with_tz(self):
         # GH#2658
         start = "2013-01-07"
-        idx = date_range(start=start, freq="1D", periods=10, tz="US/Eastern")
-        df = DataFrame(np.arange(10), index=idx)
+        idx = pd.date_range(start=start, freq="1D", periods=10, tz="US/Eastern")
+        df = pd.DataFrame(np.arange(10), index=idx)
         df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
 
     def test_return_type_doesnt_depend_on_monotonicity(self):
         # GH#24892 we get Series back regardless of whether our DTI is monotonic
-        dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
-        ser = Series(range(3), index=dti)
+        dti = pd.date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
+        ser = pd.Series(range(3), index=dti)
 
         # non-monotonic index
-        ser2 = Series(range(3), index=[dti[1], dti[0], dti[2]])
+        ser2 = pd.Series(range(3), index=[dti[1], dti[0], dti[2]])
 
         # key with resolution strictly lower than "min"
         key = "2015-5-14 00"
@@ -80,8 +70,8 @@ class TestSlicing:
     def test_partial_date_slice_decreasing_returns_slice(self, start, freq, key):
         # monotonic decreasing should use searchsorted fast path
         #  and return a slice, not an ndarray
-        dti = date_range(start=start, periods=500, freq=freq)
-        ser = Series(np.arange(len(dti)), index=dti)
+        dti = pd.date_range(start=start, periods=500, freq=freq)
+        ser = pd.Series(np.arange(len(dti)), index=dti)
 
         expected = ser.loc[key].iloc[::-1]
 
@@ -95,8 +85,8 @@ class TestSlicing:
         assert isinstance(indexer, slice)
 
     def test_partial_date_slice_decreasing_out_of_range(self):
-        dti = date_range(start="2005-01-01", periods=500, freq="D")
-        ser_desc = Series(np.arange(len(dti)), index=dti[::-1])
+        dti = pd.date_range(start="2005-01-01", periods=500, freq="D")
+        ser_desc = pd.Series(np.arange(len(dti)), index=dti[::-1])
 
         with pytest.raises(KeyError, match=r"^'2004-01-01'$"):
             ser_desc["2004-01-01"]
@@ -106,11 +96,11 @@ class TestSlicing:
 
     def test_return_type_doesnt_depend_on_monotonicity_higher_reso(self):
         # GH#24892 we get Series back regardless of whether our DTI is monotonic
-        dti = date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
-        ser = Series(range(3), index=dti)
+        dti = pd.date_range(start="2015-5-13 23:59:00", freq="min", periods=3)
+        ser = pd.Series(range(3), index=dti)
 
         # non-monotonic index
-        ser2 = Series(range(3), index=[dti[1], dti[0], dti[2]])
+        ser2 = pd.Series(range(3), index=[dti[1], dti[0], dti[2]])
 
         # key with resolution strictly *higher) than "min"
         key = "2015-5-14 00:00:00"
@@ -132,7 +122,7 @@ class TestSlicing:
         # Testing accessing the first element in a monotonic descending
         # partial string indexing.
 
-        df = DataFrame(list(range(5)))
+        df = pd.DataFrame(list(range(5)))
         date_list = [
             "2018-01-02",
             "2017-02-10",
@@ -140,18 +130,18 @@ class TestSlicing:
             "2015-03-15",
             "2014-03-16",
         ]
-        date_index = DatetimeIndex(date_list)
+        date_index = pd.DatetimeIndex(date_list)
         df["date"] = date_index
-        expected = DataFrame({0: list(range(5)), "date": date_index})
+        expected = pd.DataFrame({0: list(range(5)), "date": date_index})
         tm.assert_frame_equal(df, expected)
 
         # We get a slice because df.index's resolution is hourly and we
         #  are slicing with a daily-resolution string.  If both were daily,
         #  we would get a single item back
-        dti = date_range("20170101 01:00:00", periods=3)
-        df = DataFrame({"A": [1, 2, 3]}, index=dti[::-1])
+        dti = pd.date_range("20170101 01:00:00", periods=3)
+        df = pd.DataFrame({"A": [1, 2, 3]}, index=dti[::-1])
 
-        expected = DataFrame({"A": 1}, index=dti[-1:][::-1])
+        expected = pd.DataFrame({"A": 1}, index=dti[-1:][::-1])
         result = df.loc["2017-01-03"]
         tm.assert_frame_equal(result, expected)
 
@@ -160,14 +150,14 @@ class TestSlicing:
         tm.assert_frame_equal(result2, expected2)
 
     def test_slice_year(self):
-        dti = date_range(freq="B", start=datetime(2005, 1, 1), periods=500)
+        dti = pd.date_range(freq="B", start=datetime(2005, 1, 1), periods=500)
 
-        s = Series(np.arange(len(dti)), index=dti)
+        s = pd.Series(np.arange(len(dti)), index=dti)
         result = s["2005"]
         expected = s[s.index.year == 2005]
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
+        df = pd.DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         result = df.loc["2005"]
         expected = df[df.index.year == 2005]
         tm.assert_frame_equal(result, expected)
@@ -185,9 +175,9 @@ class TestSlicing:
     )
     def test_slice_end_of_period_resolution(self, partial_dtime):
         # GH#31064
-        dti = date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
+        dti = pd.date_range("2019-12-31 23:59:55.999999999", periods=10, freq="s")
 
-        ser = Series(range(10), index=dti)
+        ser = pd.Series(range(10), index=dti)
         # GH#50907
         warn = Pandas4Warning if "Q" in partial_dtime else None
         msg = "quarterly string is deprecated" if warn else ""
@@ -198,33 +188,33 @@ class TestSlicing:
 
     def test_slice_quarter(self):
         # GH#50907
-        dti = date_range(freq="D", start=datetime(2000, 6, 1), periods=500)
+        dti = pd.date_range(freq="D", start=datetime(2000, 6, 1), periods=500)
 
-        s = Series(np.arange(len(dti)), index=dti)
+        s = pd.Series(np.arange(len(dti)), index=dti)
         with tm.assert_produces_warning(
             Pandas4Warning, match="quarterly string is deprecated"
         ):
             assert len(s["2001Q1"]) == 90
 
-        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
+        df = pd.DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         with tm.assert_produces_warning(
             Pandas4Warning, match="quarterly string is deprecated"
         ):
             assert len(df.loc["1Q01"]) == 90
 
     def test_slice_month(self):
-        dti = date_range(freq="D", start=datetime(2005, 1, 1), periods=500)
-        s = Series(np.arange(len(dti)), index=dti)
+        dti = pd.date_range(freq="D", start=datetime(2005, 1, 1), periods=500)
+        s = pd.Series(np.arange(len(dti)), index=dti)
         assert len(s["2005-11"]) == 30
 
-        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
+        df = pd.DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         assert len(df.loc["2005-11"]) == 30
 
         tm.assert_series_equal(s["2005-11"], s["11-2005"])
 
     def test_partial_slice(self):
-        rng = date_range(freq="D", start=datetime(2005, 1, 1), periods=500)
-        s = Series(np.arange(len(rng)), index=rng)
+        rng = pd.date_range(freq="D", start=datetime(2005, 1, 1), periods=500)
+        s = pd.Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-05":"2006-02"]
         expected = s["20050501":"20060228"]
@@ -245,8 +235,8 @@ class TestSlicing:
             s["2004-12-31"]
 
     def test_partial_slice_daily(self):
-        rng = date_range(freq="h", start=datetime(2005, 1, 31), periods=500)
-        s = Series(np.arange(len(rng)), index=rng)
+        rng = pd.date_range(freq="h", start=datetime(2005, 1, 31), periods=500)
+        s = pd.Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-1-31"]
         tm.assert_series_equal(result, s.iloc[:24])
@@ -255,8 +245,10 @@ class TestSlicing:
             s["2004-12-31 00"]
 
     def test_partial_slice_hourly(self):
-        rng = date_range(freq="min", start=datetime(2005, 1, 1, 20, 0, 0), periods=500)
-        s = Series(np.arange(len(rng)), index=rng)
+        rng = pd.date_range(
+            freq="min", start=datetime(2005, 1, 1, 20, 0, 0), periods=500
+        )
+        s = pd.Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-1-1"]
         tm.assert_series_equal(result, s.iloc[: 60 * 4])
@@ -269,8 +261,10 @@ class TestSlicing:
             s["2004-12-31 00:15"]
 
     def test_partial_slice_minutely(self):
-        rng = date_range(freq="s", start=datetime(2005, 1, 1, 23, 59, 0), periods=500)
-        s = Series(np.arange(len(rng)), index=rng)
+        rng = pd.date_range(
+            freq="s", start=datetime(2005, 1, 1, 23, 59, 0), periods=500
+        )
+        s = pd.Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-1-1 23:59"]
         tm.assert_series_equal(result, s.iloc[:60])
@@ -278,17 +272,17 @@ class TestSlicing:
         result = s["2005-1-1"]
         tm.assert_series_equal(result, s.iloc[:60])
 
-        assert s[Timestamp("2005-1-1 23:59:00")] == s.iloc[0]
+        assert s[pd.Timestamp("2005-1-1 23:59:00")] == s.iloc[0]
         with pytest.raises(KeyError, match=r"^'2004-12-31 00:00:00'$"):
             s["2004-12-31 00:00:00"]
 
     def test_partial_slice_second_precision(self):
-        rng = date_range(
+        rng = pd.date_range(
             start=datetime(2005, 1, 1, 0, 0, 59, microsecond=999990),
             periods=20,
             freq="us",
         )
-        s = Series(np.arange(20), rng)
+        s = pd.Series(np.arange(20), rng)
 
         tm.assert_series_equal(s["2005-1-1 00:00"], s.iloc[:10])
         tm.assert_series_equal(s["2005-1-1 00:00:59"], s.iloc[:10])
@@ -296,7 +290,7 @@ class TestSlicing:
         tm.assert_series_equal(s["2005-1-1 00:01"], s.iloc[10:])
         tm.assert_series_equal(s["2005-1-1 00:01:00"], s.iloc[10:])
 
-        assert s[Timestamp("2005-1-1 00:00:59.999990")] == s.iloc[0]
+        assert s[pd.Timestamp("2005-1-1 00:00:59.999990")] == s.iloc[0]
         with pytest.raises(KeyError, match="2005-1-1 00:00:00"):
             s["2005-1-1 00:00:00"]
 
@@ -319,11 +313,11 @@ class TestSlicing:
         resolutions = ["year", "month", "day", "hour", "minute", "second"]
         for rnum, resolution in enumerate(resolutions[2:], 2):
             # we check only 'day', 'hour', 'minute' and 'second'
-            unit = Timedelta("1 " + resolution)
+            unit = pd.Timedelta("1 " + resolution)
             middate = datetime(2012, 1, 1, 0, 0, 0)
-            index = DatetimeIndex([middate - unit, middate, middate + unit])
+            index = pd.DatetimeIndex([middate - unit, middate, middate + unit])
             values = [1, 2, 3]
-            df = DataFrame({"a": values}, index, dtype=np.int64)
+            df = pd.DataFrame({"a": values}, index, dtype=np.int64)
             assert df.index.resolution == resolution
 
             # Timestamp with the same resolution as index
@@ -370,7 +364,7 @@ class TestSlicing:
             # Not compatible with existing key
             # Should raise KeyError
             for fmt, res in list(zip(formats, resolutions, strict=True))[rnum + 1 :]:
-                ts = index[1] + Timedelta("1 " + res)
+                ts = index[1] + pd.Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
                 msg = rf"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
@@ -381,24 +375,24 @@ class TestSlicing:
     def test_partial_slicing_with_multiindex(self):
         # GH 4758
         # partial string indexing with a multi-index buggy
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "ACCOUNT": ["ACCT1", "ACCT1", "ACCT1", "ACCT2"],
                 "TICKER": ["ABC", "MNP", "XYZ", "XYZ"],
                 "val": [1, 2, 3, 4],
             },
-            index=date_range("2013-06-19 09:30:00", periods=4, freq="5min"),
+            index=pd.date_range("2013-06-19 09:30:00", periods=4, freq="5min"),
         )
         df_multi = df.set_index(["ACCOUNT", "TICKER"], append=True)
 
-        expected = DataFrame(
-            [[1]], index=Index(["ABC"], name="TICKER"), columns=["val"]
+        expected = pd.DataFrame(
+            [[1]], index=pd.Index(["ABC"], name="TICKER"), columns=["val"]
         )
         result = df_multi.loc[("2013-06-19 09:30:00", "ACCT1")]
         tm.assert_frame_equal(result, expected)
 
         expected = df_multi.loc[
-            (Timestamp("2013-06-19 09:30:00", tz=None), "ACCT1", "ABC")
+            (pd.Timestamp("2013-06-19 09:30:00", tz=None), "ACCT1", "ABC")
         ]
         result = df_multi.loc[("2013-06-19 09:30:00", "ACCT1", "ABC")]
         tm.assert_series_equal(result, expected)
@@ -411,32 +405,32 @@ class TestSlicing:
     def test_partial_slicing_with_multiindex_series(self):
         # GH 4294
         # partial slice on a series mi
-        ser = Series(
+        ser = pd.Series(
             range(250),
-            index=MultiIndex.from_product(
-                [date_range("2000-1-1", periods=50), range(5)]
+            index=pd.MultiIndex.from_product(
+                [pd.date_range("2000-1-1", periods=50), range(5)]
             ),
         )
 
         s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]
-        result = s2[Timestamp("2000-1-4")]
+        result = s2[pd.Timestamp("2000-1-4")]
         tm.assert_series_equal(result, expected)
 
-        result = ser[Timestamp("2000-1-4")]
+        result = ser[pd.Timestamp("2000-1-4")]
         expected = ser["2000-1-4"]
         tm.assert_series_equal(result, expected)
 
-        df2 = DataFrame(ser)
+        df2 = pd.DataFrame(ser)
         expected = df2.xs("2000-1-4")
-        result = df2.loc[Timestamp("2000-1-4")]
+        result = df2.loc[pd.Timestamp("2000-1-4")]
         tm.assert_frame_equal(result, expected)
 
     def test_xs_matches_loc_after_sort_multiindex(self):
         # GH 19451
         # after sort_index, .xs should
         # return the same result as .loc
-        df = DataFrame(
+        df = pd.DataFrame(
             [
                 ["2017-01-01", "000001", "a", 4, 5],
                 ["2017-01-02", "000001", "b", 4, 5],
@@ -448,7 +442,7 @@ class TestSlicing:
             columns=["date", "code", "c", "d", "e"],
         )
         df = (
-            df.assign(date=to_datetime(df.date))
+            df.assign(date=pd.to_datetime(df.date))
             .set_index(["date", "code"])
             .sort_index()
         )
@@ -458,10 +452,10 @@ class TestSlicing:
 
     def test_partial_slice_requires_monotonicity(self):
         # Disallowed since 2.0 (GH 37819)
-        ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
+        ser = pd.Series(np.arange(10), pd.date_range("2014-01-01", periods=10))
 
         nonmonotonic = ser.iloc[[3, 5, 4]]
-        timestamp = Timestamp("2014-01-10")
+        timestamp = pd.Timestamp("2014-01-10")
         with pytest.raises(
             KeyError, match="Value based partial slicing on non-monotonic"
         ):
@@ -482,9 +476,9 @@ class TestSlicing:
 
     def test_loc_datetime_length_one(self):
         # GH16071
-        df = DataFrame(
+        df = pd.DataFrame(
             columns=["1"],
-            index=date_range("2016-10-01T00:00:00", "2016-10-01T23:59:59"),
+            index=pd.date_range("2016-10-01T00:00:00", "2016-10-01T23:59:59"),
         )
         result = df.loc[datetime(2016, 10, 1) :]
         tm.assert_frame_equal(result, df)
@@ -496,26 +490,26 @@ class TestSlicing:
         "start",
         [
             "2018-12-02 21:50:00+00:00",
-            Timestamp("2018-12-02 21:50:00+00:00"),
-            Timestamp("2018-12-02 21:50:00+00:00").to_pydatetime(),
+            pd.Timestamp("2018-12-02 21:50:00+00:00"),
+            pd.Timestamp("2018-12-02 21:50:00+00:00").to_pydatetime(),
         ],
     )
     @pytest.mark.parametrize(
         "end",
         [
             "2018-12-02 21:52:00+00:00",
-            Timestamp("2018-12-02 21:52:00+00:00"),
-            Timestamp("2018-12-02 21:52:00+00:00").to_pydatetime(),
+            pd.Timestamp("2018-12-02 21:52:00+00:00"),
+            pd.Timestamp("2018-12-02 21:52:00+00:00").to_pydatetime(),
         ],
     )
     def test_getitem_with_datestring_with_UTC_offset(self, start, end):
         # GH 24076
-        idx = date_range(
+        idx = pd.date_range(
             start="2018-12-02 14:50:00-07:00",
             end="2018-12-02 14:50:00-07:00",
             freq="1min",
         )
-        df = DataFrame(1, index=idx, columns=["A"])
+        df = pd.DataFrame(1, index=idx, columns=["A"])
         result = df[start:end]
         expected = df.iloc[0:3, :]
         tm.assert_frame_equal(result, expected)
@@ -532,11 +526,11 @@ class TestSlicing:
 
     def test_slice_reduce_to_series(self):
         # GH 27516
-        df = DataFrame(
-            {"A": range(24)}, index=date_range("2000", periods=24, freq="ME")
+        df = pd.DataFrame(
+            {"A": range(24)}, index=pd.date_range("2000", periods=24, freq="ME")
         )
-        expected = Series(
-            range(12), index=date_range("2000", periods=12, freq="ME"), name="A"
+        expected = pd.Series(
+            range(12), index=pd.date_range("2000", periods=12, freq="ME"), name="A"
         )
         result = df.loc["2000", "A"]
         tm.assert_series_equal(result, expected)
@@ -545,8 +539,8 @@ class TestSlicing:
 def test_string_slice_vs_datetime_slice_consistency():
     # GH#13929 - slicing with string endpoints at sub-second frequency
     # should produce the same result as slicing with datetime endpoints
-    index = date_range("2013-01-01 00:00:00", periods=80, freq="50ms")
-    data = DataFrame({"val": range(len(index))}, index=index)
+    index = pd.date_range("2013-01-01 00:00:00", periods=80, freq="50ms")
+    data = pd.DataFrame({"val": range(len(index))}, index=index)
 
     str_slice = data.loc["2013-01-01 00:00:01.000":"2013-01-01 00:00:02.000"]
     dt_slice = data.loc["2013-01-01 00:00:01.000" : datetime(2013, 1, 1, 0, 0, 2)]
@@ -557,8 +551,8 @@ def test_string_slice_vs_datetime_slice_consistency():
 def test_datetimeindex_quarterly_slice_still_warns():
     # GH#50907 slice_locs suppresses the warning for its own internal parse of
     # the bounds; the user-facing warning from get_slice_bound must survive
-    dti = date_range("2001-01-01", periods=500, freq="D")
-    ser = Series(np.arange(len(dti)), index=dti)
+    dti = pd.date_range("2001-01-01", periods=500, freq="D")
+    ser = pd.Series(np.arange(len(dti)), index=dti)
 
     # one warning per bound; without the suppression the internal parse of each
     # bound would double that

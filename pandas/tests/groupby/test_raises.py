@@ -10,12 +10,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Grouper,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
@@ -25,13 +20,16 @@ from pandas.tests.groupby import get_groupby_method_args
         "a",
         ["a"],
         ["a", "b"],
-        Grouper(key="a"),
+        pd.Grouper(key="a"),
         lambda x: x % 2,
         [0, 0, 0, 1, 2, 2, 2, 3, 3],
         np.array([0, 0, 0, 1, 2, 2, 2, 3, 3]),
         dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3], strict=True)),
-        Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
-        [Series([1, 1, 1, 1, 1, 2, 2, 2, 2]), Series([3, 3, 4, 4, 4, 4, 4, 3, 3])],
+        pd.Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
+        [
+            pd.Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
+            pd.Series([3, 3, 4, 4, 4, 4, 4, 3, 3]),
+        ],
     ]
 )
 def by(request):
@@ -45,7 +43,7 @@ def groupby_series(request):
 
 @pytest.fixture
 def df_with_string_col():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
@@ -58,7 +56,7 @@ def df_with_string_col():
 
 @pytest.fixture
 def df_with_datetime_col():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
@@ -71,12 +69,12 @@ def df_with_datetime_col():
 
 @pytest.fixture
 def df_with_cat_col():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
             "c": range(9),
-            "d": Categorical(
+            "d": pd.Categorical(
                 ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
                 categories=["a", "b", "c", "d"],
                 ordered=True,
@@ -391,7 +389,7 @@ def test_groupby_raises_datetime_np(
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "kurt", "var"])
 def test_groupby_raises_timedelta(func):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
             "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
@@ -573,7 +571,7 @@ def test_groupby_raises_category_on_category(
 ):
     # GH#50749
     df = df_with_cat_col
-    df["a"] = Categorical(
+    df["a"] = pd.Categorical(
         ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
         categories=["a", "b", "c", "d"],
         ordered=True,

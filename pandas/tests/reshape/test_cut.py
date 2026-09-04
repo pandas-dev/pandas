@@ -2,24 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    Series,
-    TimedeltaIndex,
-    Timestamp,
-    cut,
-    date_range,
-    interval_range,
-    isna,
-    qcut,
-    timedelta_range,
-    to_datetime,
-)
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 import pandas.core.reshape.tile as tmod
@@ -27,7 +9,7 @@ import pandas.core.reshape.tile as tmod
 
 def test_simple():
     data = np.ones(5, dtype="int64")
-    result = cut(data, 4, labels=False)
+    result = pd.cut(data, 4, labels=False)
 
     expected = np.array([1, 1, 1, 1, 1])
     tm.assert_numpy_array_equal(result, expected, check_dtype=False)
@@ -36,11 +18,11 @@ def test_simple():
 @pytest.mark.parametrize("func", [list, np.array])
 def test_bins(func):
     data = func([0.2, 1.4, 2.5, 6.2, 9.7, 2.1])
-    result, bins = cut(data, 3, retbins=True)
+    result, bins = pd.cut(data, 3, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3))
+    intervals = pd.IntervalIndex.from_breaks(bins.round(3))
     intervals = intervals.take([0, 0, 0, 1, 2, 0])
-    expected = Categorical(intervals, ordered=True)
+    expected = pd.Categorical(intervals, ordered=True)
 
     tm.assert_categorical_equal(result, expected)
     tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667, 6.53333333, 9.7]))
@@ -48,10 +30,10 @@ def test_bins(func):
 
 def test_right():
     data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
-    result, bins = cut(data, 4, right=True, retbins=True)
+    result, bins = pd.cut(data, 4, right=True, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3))
-    expected = Categorical(intervals, ordered=True)
+    intervals = pd.IntervalIndex.from_breaks(bins.round(3))
+    expected = pd.Categorical(intervals, ordered=True)
     expected = expected.take([0, 0, 0, 2, 3, 0, 0])
 
     tm.assert_categorical_equal(result, expected)
@@ -60,37 +42,37 @@ def test_right():
 
 def test_no_right():
     data = np.array([0.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
-    result, bins = cut(data, 4, right=False, retbins=True)
+    result, bins = pd.cut(data, 4, right=False, retbins=True)
 
-    intervals = IntervalIndex.from_breaks(bins.round(3), closed="left")
+    intervals = pd.IntervalIndex.from_breaks(bins.round(3), closed="left")
     intervals = intervals.take([0, 0, 0, 2, 3, 0, 1])
-    expected = Categorical(intervals, ordered=True)
+    expected = pd.Categorical(intervals, ordered=True)
 
     tm.assert_categorical_equal(result, expected)
     tm.assert_almost_equal(bins, np.array([0.2, 2.575, 4.95, 7.325, 9.7095]))
 
 
 def test_bins_from_interval_index():
-    c = cut(range(5), 3)
+    c = pd.cut(range(5), 3)
     expected = c
-    result = cut(range(5), bins=expected.categories)
+    result = pd.cut(range(5), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)
 
-    expected = Categorical.from_codes(
+    expected = pd.Categorical.from_codes(
         np.append(c.codes, -1), categories=c.categories, ordered=True
     )
-    result = cut(range(6), bins=expected.categories)
+    result = pd.cut(range(6), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)
 
 
 def test_bins_from_interval_index_doc_example():
     # Make sure we preserve the bins.
     ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
-    c = cut(ages, bins=[0, 18, 35, 70])
-    expected = IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)])
+    c = pd.cut(ages, bins=[0, 18, 35, 70])
+    expected = pd.IntervalIndex.from_tuples([(0, 18), (18, 35), (35, 70)])
     tm.assert_index_equal(c.categories, expected)
 
-    result = cut([25, 20, 50], bins=c.categories)
+    result = pd.cut([25, 20, 50], bins=c.categories)
     tm.assert_index_equal(result.categories, expected)
     tm.assert_numpy_array_equal(result.codes, np.array([1, 1, 2], dtype="int8"))
 
@@ -98,10 +80,10 @@ def test_bins_from_interval_index_doc_example():
 def test_bins_not_overlapping_from_interval_index():
     # see gh-23980
     msg = "Overlapping IntervalIndex is not accepted"
-    ii = IntervalIndex.from_tuples([(0, 10), (2, 12), (4, 14)])
+    ii = pd.IntervalIndex.from_tuples([(0, 10), (2, 12), (4, 14)])
 
     with pytest.raises(ValueError, match=msg):
-        cut([5, 6], bins=ii)
+        pd.cut([5, 6], bins=ii)
 
 
 def test_bins_not_monotonic():
@@ -109,19 +91,19 @@ def test_bins_not_monotonic():
     data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
 
     with pytest.raises(ValueError, match=msg):
-        cut(data, [0.1, 1.5, 1, 10])
+        pd.cut(data, [0.1, 1.5, 1, 10])
 
 
 @pytest.mark.parametrize(
     "x, bins, expected",
     [
         (
-            date_range("2017-12-31", periods=3),
-            [Timestamp.min, Timestamp("2018-01-01"), Timestamp.max],
-            IntervalIndex.from_tuples(
+            pd.date_range("2017-12-31", periods=3),
+            [pd.Timestamp.min, pd.Timestamp("2018-01-01"), pd.Timestamp.max],
+            pd.IntervalIndex.from_tuples(
                 [
-                    (Timestamp.min, Timestamp("2018-01-01")),
-                    (Timestamp("2018-01-01"), Timestamp.max),
+                    (pd.Timestamp.min, pd.Timestamp("2018-01-01")),
+                    (pd.Timestamp("2018-01-01"), pd.Timestamp.max),
                 ]
             ),
         ),
@@ -130,7 +112,7 @@ def test_bins_not_monotonic():
             np.array(
                 [np.iinfo(np.int64).min, 0, np.iinfo(np.int64).max], dtype="int64"
             ),
-            IntervalIndex.from_tuples(
+            pd.IntervalIndex.from_tuples(
                 [(np.iinfo(np.int64).min, 0), (0, np.iinfo(np.int64).max)]
             ),
         ),
@@ -147,7 +129,7 @@ def test_bins_not_monotonic():
                     np.timedelta64(np.iinfo(np.int64).max, "ns"),
                 ]
             ),
-            IntervalIndex.from_tuples(
+            pd.IntervalIndex.from_tuples(
                 [
                     (
                         np.timedelta64(-np.iinfo(np.int64).max, "ns"),
@@ -164,7 +146,7 @@ def test_bins_not_monotonic():
 )
 def test_bins_monotonic_not_overflowing(x, bins, expected):
     # GH 26045
-    result = cut(x, bins)
+    result = pd.cut(x, bins)
     tm.assert_index_equal(result.categories, expected)
 
 
@@ -173,7 +155,7 @@ def test_wrong_num_labels():
     data = [0.2, 1.4, 2.5, 6.2, 9.7, 2.1]
 
     with pytest.raises(ValueError, match=msg):
-        cut(data, [0, 1, 10], labels=["foo", "bar", "baz"])
+        pd.cut(data, [0, 1, 10], labels=["foo", "bar", "baz"])
 
 
 @pytest.mark.parametrize(
@@ -185,11 +167,11 @@ def test_wrong_num_labels():
 )
 def test_cut_corner(x, bins, msg):
     with pytest.raises(ValueError, match=msg):
-        cut(x, bins)
+        pd.cut(x, bins)
 
 
-@pytest.mark.parametrize("arg", [2, np.eye(2), DataFrame(np.eye(2))])
-@pytest.mark.parametrize("cut_func", [cut, qcut])
+@pytest.mark.parametrize("arg", [2, np.eye(2), pd.DataFrame(np.eye(2))])
+@pytest.mark.parametrize("cut_func", [pd.cut, pd.qcut])
 def test_cut_not_1d_arg(arg, cut_func):
     msg = "Input array must be 1 dimensional"
     with pytest.raises(ValueError, match=msg):
@@ -208,17 +190,17 @@ def test_int_bins_with_inf(data):
     # GH 24314
     msg = "cannot specify integer `bins` when input data contains infinity"
     with pytest.raises(ValueError, match=msg):
-        cut(data, bins=3)
+        pd.cut(data, bins=3)
 
 
 def test_cut_out_of_range_more():
     # see gh-1511
     name = "x"
 
-    ser = Series([0, -1, 0, 1, -3], name=name)
-    ind = cut(ser, [0, 1], labels=False)
+    ser = pd.Series([0, -1, 0, 1, -3], name=name)
+    ind = pd.cut(ser, [0, 1], labels=False)
 
-    exp = Series([np.nan, np.nan, np.nan, 0, np.nan], name=name)
+    exp = pd.Series([np.nan, np.nan, np.nan, 0, np.nan], name=name)
     tm.assert_series_equal(ind, exp)
 
 
@@ -232,24 +214,24 @@ def test_cut_out_of_range_more():
 def test_labels(right, breaks, closed):
     arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
-    result, bins = cut(arr, 4, retbins=True, right=right)
-    ex_levels = IntervalIndex.from_breaks(breaks, closed=closed)
+    result, bins = pd.cut(arr, 4, retbins=True, right=right)
+    ex_levels = pd.IntervalIndex.from_breaks(breaks, closed=closed)
     tm.assert_index_equal(result.categories, ex_levels)
 
 
 def test_cut_pass_series_name_to_factor():
     name = "foo"
-    ser = Series(np.random.default_rng(2).standard_normal(100), name=name)
+    ser = pd.Series(np.random.default_rng(2).standard_normal(100), name=name)
 
-    factor = cut(ser, 4)
+    factor = pd.cut(ser, 4)
     assert factor.name == name
 
 
 def test_label_precision():
     arr = np.arange(0, 0.73, 0.01)
-    result = cut(arr, 4, precision=2)
+    result = pd.cut(arr, 4, precision=2)
 
-    ex_levels = IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72])
+    ex_levels = pd.IntervalIndex.from_breaks([-0.00072, 0.18, 0.36, 0.54, 0.72])
     tm.assert_index_equal(result.categories, ex_levels)
 
 
@@ -258,10 +240,10 @@ def test_na_handling(labels):
     arr = np.arange(0, 0.75, 0.01)
     arr[::3] = np.nan
 
-    result = cut(arr, 4, labels=labels)
+    result = pd.cut(arr, 4, labels=labels)
     result = np.asarray(result)
 
-    expected = np.where(isna(arr), np.nan, result)
+    expected = np.where(pd.isna(arr), np.nan, result)
     tm.assert_almost_equal(result, expected)
 
 
@@ -272,33 +254,33 @@ def test_cut_series_with_nan_integer_bins(use_bottleneck):
     # was not in use, because nanmin/nanmax was computed on the Series itself.
     with pd.option_context("use_bottleneck", use_bottleneck):
         data = [1.1, 2.2, 3.3, np.nan]
-        result = cut(Series(data), 2)
-        expected = Series(cut(data, 2))
+        result = pd.cut(pd.Series(data), 2)
+        expected = pd.Series(pd.cut(data, 2))
         tm.assert_series_equal(result, expected)
 
 
 def test_inf_handling():
     data = np.arange(6)
-    data_ser = Series(data, dtype="int64")
+    data_ser = pd.Series(data, dtype="int64")
 
     bins = [-np.inf, 2, 4, np.inf]
-    result = cut(data, bins)
-    result_ser = cut(data_ser, bins)
+    result = pd.cut(data, bins)
+    result_ser = pd.cut(data_ser, bins)
 
-    ex_uniques = IntervalIndex.from_breaks(bins)
+    ex_uniques = pd.IntervalIndex.from_breaks(bins)
     tm.assert_index_equal(result.categories, ex_uniques)
 
-    assert result[5] == Interval(4, np.inf)
-    assert result[0] == Interval(-np.inf, 2)
-    assert result_ser[5] == Interval(4, np.inf)
-    assert result_ser[0] == Interval(-np.inf, 2)
+    assert result[5] == pd.Interval(4, np.inf)
+    assert result[0] == pd.Interval(-np.inf, 2)
+    assert result_ser[5] == pd.Interval(4, np.inf)
+    assert result_ser[0] == pd.Interval(-np.inf, 2)
 
 
 def test_cut_out_of_bounds():
     arr = np.random.default_rng(2).standard_normal(100)
-    result = cut(arr, [-1, 0, 1])
+    result = pd.cut(arr, [-1, 0, 1])
 
-    mask = isna(result)
+    mask = pd.isna(result)
     ex_mask = (arr < -1) | (arr > 1)
     tm.assert_numpy_array_equal(mask, ex_mask)
 
@@ -308,15 +290,15 @@ def test_cut_out_of_bounds():
     [
         (
             lambda labels: labels,
-            lambda labels: Categorical(
+            lambda labels: pd.Categorical(
                 ["Medium"] + 4 * ["Small"] + ["Medium", "Large"],
                 categories=labels,
                 ordered=True,
             ),
         ),
         (
-            lambda labels: Categorical.from_codes([0, 1, 2], labels),
-            lambda labels: Categorical.from_codes([1] + 4 * [0] + [1, 2], labels),
+            lambda labels: pd.Categorical.from_codes([0, 1, 2], labels),
+            lambda labels: pd.Categorical.from_codes([1] + 4 * [0] + [1, 2], labels),
         ),
     ],
 )
@@ -325,7 +307,7 @@ def test_cut_pass_labels(get_labels, get_expected):
     arr = [50, 5, 10, 15, 20, 30, 70]
     labels = ["Small", "Medium", "Large"]
 
-    result = cut(arr, bins, labels=get_labels(labels))
+    result = pd.cut(arr, bins, labels=get_labels(labels))
     tm.assert_categorical_equal(result, get_expected(labels))
 
 
@@ -334,15 +316,15 @@ def test_cut_pass_labels_compat():
     arr = [50, 5, 10, 15, 20, 30, 70]
     labels = ["Good", "Medium", "Bad"]
 
-    result = cut(arr, 3, labels=labels)
-    exp = cut(arr, 3, labels=Categorical(labels, categories=labels, ordered=True))
+    result = pd.cut(arr, 3, labels=labels)
+    exp = pd.cut(arr, 3, labels=pd.Categorical(labels, categories=labels, ordered=True))
     tm.assert_categorical_equal(result, exp)
 
 
 @pytest.mark.parametrize("x", [np.arange(11.0), np.arange(11.0) / 1e10])
 def test_round_frac_just_works(x):
     # It works.
-    cut(x, 2)
+    pd.cut(x, 2)
 
 
 @pytest.mark.parametrize(
@@ -361,14 +343,14 @@ def test_round_frac(val, precision, expected):
 
 
 def test_cut_return_intervals():
-    ser = Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
-    result = cut(ser, 3)
+    ser = pd.Series([0, 1, 2, 3, 4, 5, 6, 7, 8])
+    result = pd.cut(ser, 3)
 
     exp_bins = np.linspace(0, 8, num=4).round(3)
     exp_bins[0] -= 0.008
 
-    expected = Series(
-        IntervalIndex.from_breaks(exp_bins, closed="right").take(
+    expected = pd.Series(
+        pd.IntervalIndex.from_breaks(exp_bins, closed="right").take(
             [0, 0, 0, 1, 1, 1, 2, 2, 2]
         )
     ).astype(CategoricalDtype(ordered=True))
@@ -377,11 +359,11 @@ def test_cut_return_intervals():
 
 def test_series_ret_bins():
     # see gh-8589
-    ser = Series(np.arange(4))
-    result, bins = cut(ser, 2, retbins=True)
+    ser = pd.Series(np.arange(4))
+    result, bins = pd.cut(ser, 2, retbins=True)
 
-    expected = Series(
-        IntervalIndex.from_breaks([-0.003, 1.5, 3], closed="right").repeat(2)
+    expected = pd.Series(
+        pd.IntervalIndex.from_breaks([-0.003, 1.5, 3], closed="right").repeat(2)
     ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
@@ -398,14 +380,14 @@ def test_series_ret_bins():
 def test_cut_duplicates_bin(kwargs, msg):
     # see gh-20947
     bins = [0, 2, 4, 6, 10, 10]
-    values = Series(np.array([1, 3, 5, 7, 9]), index=["a", "b", "c", "d", "e"])
+    values = pd.Series(np.array([1, 3, 5, 7, 9]), index=["a", "b", "c", "d", "e"])
 
     if msg is not None:
         with pytest.raises(ValueError, match=msg):
-            cut(values, bins, **kwargs)
+            pd.cut(values, bins, **kwargs)
     else:
-        result = cut(values, bins, **kwargs)
-        expected = cut(values, pd.unique(np.asarray(bins)))
+        result = pd.cut(values, bins, **kwargs)
+        expected = pd.cut(values, pd.unique(np.asarray(bins)))
         tm.assert_series_equal(result, expected)
 
 
@@ -413,10 +395,10 @@ def test_cut_duplicates_bin(kwargs, msg):
 @pytest.mark.parametrize("length", [1, 2])
 def test_single_bin(data, length):
     # see gh-14652, gh-15428
-    ser = Series([data] * length)
-    result = cut(ser, 1, labels=False)
+    ser = pd.Series([data] * length)
+    result = pd.cut(ser, 1, labels=False)
 
-    expected = Series([0] * length, dtype=np.intp)
+    expected = pd.Series([0] * length, dtype=np.intp)
     tm.assert_series_equal(result, expected)
 
 
@@ -430,7 +412,7 @@ def test_single_bin(data, length):
 )
 def test_single_bin_edge_adjustment(values, threshold):
     # gh-58517 - edge adjustment mutation when all values are same
-    result, bins = cut(values, 3, retbins=True)
+    result, bins = pd.cut(values, 3, retbins=True)
 
     bin_range = bins[-1] - bins[0]
     assert bin_range < threshold
@@ -449,34 +431,34 @@ def test_cut_read_only(array_1_writeable, array_2_writeable):
 
     hundred_elements = np.arange(100)
     tm.assert_categorical_equal(
-        cut(hundred_elements, array_1), cut(hundred_elements, array_2)
+        pd.cut(hundred_elements, array_1), pd.cut(hundred_elements, array_2)
     )
 
 
 @pytest.mark.parametrize(
     "conv",
     [
-        lambda v: Timestamp(v),
-        lambda v: to_datetime(v),
+        lambda v: pd.Timestamp(v),
+        lambda v: pd.to_datetime(v),
         lambda v: np.datetime64(v),
-        lambda v: Timestamp(v).to_pydatetime(),
+        lambda v: pd.Timestamp(v).to_pydatetime(),
     ],
 )
 def test_datetime_bin(conv):
     data = [np.datetime64("2012-12-13"), np.datetime64("2012-12-15")]
     bin_data = ["2012-12-12", "2012-12-14", "2012-12-16"]
 
-    expected = Series(
-        IntervalIndex(
+    expected = pd.Series(
+        pd.IntervalIndex(
             [
-                Interval(Timestamp(bin_data[0]), Timestamp(bin_data[1])),
-                Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
+                pd.Interval(pd.Timestamp(bin_data[0]), pd.Timestamp(bin_data[1])),
+                pd.Interval(pd.Timestamp(bin_data[1]), pd.Timestamp(bin_data[2])),
             ]
         )
     )
 
     bins = [conv(v) for v in bin_data]
-    result = Series(cut(data, bins=bins))
+    result = pd.Series(pd.cut(data, bins=bins))
 
     if type(bins[0]) is np.datetime64:
         # The bins have microsecond dtype -> so does result
@@ -486,24 +468,26 @@ def test_datetime_bin(conv):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("box", [Series, Index, np.array, list])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, np.array, list])
 def test_datetime_cut(unit, box):
     # see gh-14714
     #
     # Testing time data when it comes in various collection types.
-    data = to_datetime(["2013-01-01", "2013-01-02", "2013-01-03"]).astype(f"M8[{unit}]")
+    data = pd.to_datetime(["2013-01-01", "2013-01-02", "2013-01-03"]).astype(
+        f"M8[{unit}]"
+    )
     data = box(data)
-    result, _ = cut(data, 3, retbins=True)
+    result, _ = pd.cut(data, 3, retbins=True)
 
     if unit == "s":
         # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
         # for why we round to 8 seconds instead of 7
-        left = DatetimeIndex(
+        left = pd.DatetimeIndex(
             ["2012-12-31 23:57:08", "2013-01-01 16:00:00", "2013-01-02 08:00:00"],
             dtype=f"M8[{unit}]",
         )
     else:
-        left = DatetimeIndex(
+        left = pd.DatetimeIndex(
             [
                 "2012-12-31 23:57:07.200000",
                 "2013-01-01 16:00:00",
@@ -511,32 +495,32 @@ def test_datetime_cut(unit, box):
             ],
             dtype=f"M8[{unit}]",
         )
-    right = DatetimeIndex(
+    right = pd.DatetimeIndex(
         ["2013-01-01 16:00:00", "2013-01-02 08:00:00", "2013-01-03 00:00:00"],
         dtype=f"M8[{unit}]",
     )
 
-    exp_intervals = IntervalIndex.from_arrays(left, right)
-    expected = Series(exp_intervals).astype(CategoricalDtype(ordered=True))
-    tm.assert_series_equal(Series(result), expected)
+    exp_intervals = pd.IntervalIndex.from_arrays(left, right)
+    expected = pd.Series(exp_intervals).astype(CategoricalDtype(ordered=True))
+    tm.assert_series_equal(pd.Series(result), expected)
 
 
-@pytest.mark.parametrize("box", [list, np.array, Index, Series])
+@pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
 def test_datetime_tz_cut_mismatched_tzawareness(box):
     # GH#54964
     bins = box(
         [
-            Timestamp("2013-01-01 04:57:07.200000"),
-            Timestamp("2013-01-01 21:00:00"),
-            Timestamp("2013-01-02 13:00:00"),
-            Timestamp("2013-01-03 05:00:00"),
+            pd.Timestamp("2013-01-01 04:57:07.200000"),
+            pd.Timestamp("2013-01-01 21:00:00"),
+            pd.Timestamp("2013-01-02 13:00:00"),
+            pd.Timestamp("2013-01-03 05:00:00"),
         ]
     )
-    ser = Series(date_range("20130101", periods=3, tz="US/Eastern"))
+    ser = pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern"))
 
     msg = "Cannot use timezone-naive bins with timezone-aware values"
     with pytest.raises(ValueError, match=msg):
-        cut(ser, bins)
+        pd.cut(ser, bins)
 
 
 @pytest.mark.parametrize(
@@ -544,43 +528,45 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
     [
         3,
         [
-            Timestamp("2013-01-01 04:57:07.200000", tz="UTC").tz_convert("US/Eastern"),
-            Timestamp("2013-01-01 21:00:00", tz="UTC").tz_convert("US/Eastern"),
-            Timestamp("2013-01-02 13:00:00", tz="UTC").tz_convert("US/Eastern"),
-            Timestamp("2013-01-03 05:00:00", tz="UTC").tz_convert("US/Eastern"),
+            pd.Timestamp("2013-01-01 04:57:07.200000", tz="UTC").tz_convert(
+                "US/Eastern"
+            ),
+            pd.Timestamp("2013-01-01 21:00:00", tz="UTC").tz_convert("US/Eastern"),
+            pd.Timestamp("2013-01-02 13:00:00", tz="UTC").tz_convert("US/Eastern"),
+            pd.Timestamp("2013-01-03 05:00:00", tz="UTC").tz_convert("US/Eastern"),
         ],
     ],
 )
-@pytest.mark.parametrize("box", [list, np.array, Index, Series])
+@pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
+    ser = pd.Series(pd.date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     if not isinstance(bins, int):
         bins = box(bins)
 
-    result = cut(ser, bins)
-    ii = IntervalIndex(
+    result = pd.cut(ser, bins)
+    ii = pd.IntervalIndex(
         [
-            Interval(
-                Timestamp("2012-12-31 23:57:07.200000", tz=tz),
-                Timestamp("2013-01-01 16:00:00", tz=tz),
+            pd.Interval(
+                pd.Timestamp("2012-12-31 23:57:07.200000", tz=tz),
+                pd.Timestamp("2013-01-01 16:00:00", tz=tz),
             ),
-            Interval(
-                Timestamp("2013-01-01 16:00:00", tz=tz),
-                Timestamp("2013-01-02 08:00:00", tz=tz),
+            pd.Interval(
+                pd.Timestamp("2013-01-01 16:00:00", tz=tz),
+                pd.Timestamp("2013-01-02 08:00:00", tz=tz),
             ),
-            Interval(
-                Timestamp("2013-01-02 08:00:00", tz=tz),
-                Timestamp("2013-01-03 00:00:00", tz=tz),
+            pd.Interval(
+                pd.Timestamp("2013-01-02 08:00:00", tz=tz),
+                pd.Timestamp("2013-01-03 00:00:00", tz=tz),
             ),
         ]
     )
     if isinstance(bins, int):
         # the dtype is inferred from ser, which has nanosecond unit
         ii = ii.astype("interval[datetime64[ns, US/Eastern]]")
-    expected = Series(ii).astype(CategoricalDtype(ordered=True))
+    expected = pd.Series(ii).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -588,12 +574,12 @@ def test_datetime_nan_error():
     msg = "bins must be of datetime64 dtype"
 
     with pytest.raises(ValueError, match=msg):
-        cut(date_range("20130101", periods=3), bins=[0, 2, 4])
+        pd.cut(pd.date_range("20130101", periods=3), bins=[0, 2, 4])
 
 
 def test_datetime_nan_mask():
-    result = cut(
-        date_range("20130102", periods=5), bins=date_range("20130101", periods=2)
+    result = pd.cut(
+        pd.date_range("20130102", periods=5), bins=pd.date_range("20130101", periods=2)
     )
 
     mask = result.categories.isna()
@@ -606,10 +592,10 @@ def test_datetime_nan_mask():
 @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
 def test_datetime_cut_roundtrip(tz, unit):
     # see gh-19891
-    ser = Series(date_range("20180101", periods=3, tz=tz, unit=unit))
-    result, result_bins = cut(ser, 2, retbins=True)
+    ser = pd.Series(pd.date_range("20180101", periods=3, tz=tz, unit=unit))
+    result, result_bins = pd.cut(ser, 2, retbins=True)
 
-    expected = cut(ser, result_bins)
+    expected = pd.cut(ser, result_bins)
     tm.assert_series_equal(result, expected)
 
     if unit == "s":
@@ -618,12 +604,12 @@ def test_datetime_cut_roundtrip(tz, unit):
         #  instead of raising?
         # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
         # for why we round to 8 seconds instead of 7
-        expected_bins = DatetimeIndex(
+        expected_bins = pd.DatetimeIndex(
             ["2017-12-31 23:57:08", "2018-01-02 00:00:00", "2018-01-03 00:00:00"],
             dtype=f"M8[{unit}]",
         )
     else:
-        expected_bins = DatetimeIndex(
+        expected_bins = pd.DatetimeIndex(
             [
                 "2017-12-31 23:57:07.200000",
                 "2018-01-02 00:00:00",
@@ -637,13 +623,13 @@ def test_datetime_cut_roundtrip(tz, unit):
 
 def test_timedelta_cut_roundtrip():
     # see gh-19891
-    ser = Series(timedelta_range("1day", periods=3))
-    result, result_bins = cut(ser, 2, retbins=True)
+    ser = pd.Series(pd.timedelta_range("1day", periods=3))
+    result, result_bins = pd.cut(ser, 2, retbins=True)
 
-    expected = cut(ser, result_bins)
+    expected = pd.cut(ser, result_bins)
     tm.assert_series_equal(result, expected)
 
-    expected_bins = TimedeltaIndex(
+    expected_bins = pd.TimedeltaIndex(
         ["0 days 23:57:07.200000", "2 days 00:00:00", "3 days 00:00:00"]
     )
     tm.assert_index_equal(result_bins, expected_bins)
@@ -653,7 +639,7 @@ def test_timedelta_cut_roundtrip():
 @pytest.mark.parametrize(
     "box, compare",
     [
-        (Series, tm.assert_series_equal),
+        (pd.Series, tm.assert_series_equal),
         (np.array, tm.assert_categorical_equal),
         (list, tm.assert_equal),
     ],
@@ -662,8 +648,8 @@ def test_cut_bool_coercion_to_int(bins, box, compare):
     # issue 20303
     data_expected = box([0, 1, 1, 0, 1] * 10)
     data_result = box([False, True, True, False, True] * 10)
-    expected = cut(data_expected, bins, duplicates="drop")
-    result = cut(data_result, bins, duplicates="drop")
+    expected = pd.cut(data_expected, bins, duplicates="drop")
+    result = pd.cut(data_result, bins, duplicates="drop")
     compare(result, expected)
 
 
@@ -673,7 +659,7 @@ def test_cut_incorrect_labels(labels):
     values = range(5)
     msg = "Bin labels must either be False, None or passed in as a list-like argument"
     with pytest.raises(ValueError, match=msg):
-        cut(values, 4, labels=labels)
+        pd.cut(values, 4, labels=labels)
 
 
 @pytest.mark.parametrize("bins", [3, [0, 5, 15]])
@@ -684,10 +670,10 @@ def test_cut_nullable_integer(bins, right, include_lowest):
     a[::2] = np.nan
     b = a.astype(object)
     b[::2] = pd.NA
-    result = cut(
+    result = pd.cut(
         pd.array(b, dtype="Int64"), bins, right=right, include_lowest=include_lowest
     )
-    expected = cut(a, bins, right=right, include_lowest=include_lowest)
+    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)
     tm.assert_categorical_equal(result, expected)
 
 
@@ -700,8 +686,8 @@ def test_cut_nullable_integer(bins, right, include_lowest):
 )
 def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labels):
     # GH 33141
-    result = cut(data, bins=bins, labels=labels, ordered=False)
-    expected = Categorical.from_codes(
+    result = pd.cut(data, bins=bins, labels=labels, ordered=False)
+    expected = pd.Categorical.from_codes(
         expected_codes, categories=expected_labels, ordered=False
     )
     tm.assert_categorical_equal(result, expected)
@@ -716,8 +702,8 @@ def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labe
 )
 def test_cut_unordered_labels(data, bins, labels, expected_codes, expected_labels):
     # GH 33141
-    result = cut(data, bins=bins, labels=labels, ordered=False)
-    expected = Categorical.from_codes(
+    result = pd.cut(data, bins=bins, labels=labels, ordered=False)
+    expected = pd.Categorical.from_codes(
         expected_codes, categories=expected_labels, ordered=False
     )
     tm.assert_categorical_equal(result, expected)
@@ -727,65 +713,65 @@ def test_cut_unordered_with_missing_labels_raises_error():
     # GH 33141
     msg = "'labels' must be provided if 'ordered = False'"
     with pytest.raises(ValueError, match=msg):
-        cut([0.5, 3], bins=[0, 1, 2], ordered=False)
+        pd.cut([0.5, 3], bins=[0, 1, 2], ordered=False)
 
 
 def test_cut_unordered_with_series_labels():
     # https://github.com/pandas-dev/pandas/issues/36603
-    ser = Series([1, 2, 3, 4, 5])
-    bins = Series([0, 2, 4, 6])
-    labels = Series(["a", "b", "c"])
-    result = cut(ser, bins=bins, labels=labels, ordered=False)
-    expected = Series(["a", "a", "b", "b", "c"], dtype="category")
+    ser = pd.Series([1, 2, 3, 4, 5])
+    bins = pd.Series([0, 2, 4, 6])
+    labels = pd.Series(["a", "b", "c"])
+    result = pd.cut(ser, bins=bins, labels=labels, ordered=False)
+    expected = pd.Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
 
 
 def test_cut_no_warnings():
-    df = DataFrame({"value": np.random.default_rng(2).integers(0, 100, 20)})
+    df = pd.DataFrame({"value": np.random.default_rng(2).integers(0, 100, 20)})
     labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
     with tm.assert_produces_warning(False):
-        df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)
+        df["group"] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
 
 
 def test_cut_with_duplicated_index_lowest_included():
     # GH 42185
-    expected = Series(
-        [Interval(-0.001, 2, closed="right")] * 3
-        + [Interval(2, 4, closed="right"), Interval(-0.001, 2, closed="right")],
+    expected = pd.Series(
+        [pd.Interval(-0.001, 2, closed="right")] * 3
+        + [pd.Interval(2, 4, closed="right"), pd.Interval(-0.001, 2, closed="right")],
         index=[0, 1, 2, 3, 0],
         dtype="category",
     ).cat.as_ordered()
 
-    ser = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
-    result = cut(ser, bins=[0, 2, 4], include_lowest=True)
+    ser = pd.Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
+    result = pd.cut(ser, bins=[0, 2, 4], include_lowest=True)
     tm.assert_series_equal(result, expected)
 
 
 def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
-    ser = Series(range(100))
-    ser1 = cut(ser, 10).value_counts().head(5)
-    ser2 = cut(ser, 10).value_counts().tail(5)
-    result = DataFrame({"1": ser1, "2": ser2})
+    ser = pd.Series(range(100))
+    ser1 = pd.cut(ser, 10).value_counts().head(5)
+    ser2 = pd.cut(ser, 10).value_counts().tail(5)
+    result = pd.DataFrame({"1": ser1, "2": ser2})
 
     index = pd.CategoricalIndex(
         [
-            Interval(-0.099, 9.9, closed="right"),
-            Interval(9.9, 19.8, closed="right"),
-            Interval(19.8, 29.7, closed="right"),
-            Interval(29.7, 39.6, closed="right"),
-            Interval(39.6, 49.5, closed="right"),
-            Interval(49.5, 59.4, closed="right"),
-            Interval(59.4, 69.3, closed="right"),
-            Interval(69.3, 79.2, closed="right"),
-            Interval(79.2, 89.1, closed="right"),
-            Interval(89.1, 99, closed="right"),
+            pd.Interval(-0.099, 9.9, closed="right"),
+            pd.Interval(9.9, 19.8, closed="right"),
+            pd.Interval(19.8, 29.7, closed="right"),
+            pd.Interval(29.7, 39.6, closed="right"),
+            pd.Interval(39.6, 49.5, closed="right"),
+            pd.Interval(49.5, 59.4, closed="right"),
+            pd.Interval(59.4, 69.3, closed="right"),
+            pd.Interval(69.3, 79.2, closed="right"),
+            pd.Interval(79.2, 89.1, closed="right"),
+            pd.Interval(89.1, 99, closed="right"),
         ],
         ordered=True,
     )
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=index
     )
 
@@ -794,33 +780,35 @@ def test_cut_with_nonexact_categorical_indices():
 
 def test_cut_with_timestamp_tuple_labels():
     # GH 40661
-    labels = [(Timestamp(10),), (Timestamp(20),), (Timestamp(30),)]
-    result = cut([2, 4, 6], bins=[1, 3, 5, 7], labels=labels)
+    labels = [(pd.Timestamp(10),), (pd.Timestamp(20),), (pd.Timestamp(30),)]
+    result = pd.cut([2, 4, 6], bins=[1, 3, 5, 7], labels=labels)
 
-    expected = Categorical.from_codes([0, 1, 2], labels, ordered=True)
+    expected = pd.Categorical.from_codes([0, 1, 2], labels, ordered=True)
     tm.assert_categorical_equal(result, expected)
 
 
 def test_cut_bins_datetime_intervalindex():
     # https://github.com/pandas-dev/pandas/issues/46218
-    bins = interval_range(Timestamp("2022-02-25"), Timestamp("2022-02-27"), freq="1D")
+    bins = pd.interval_range(
+        pd.Timestamp("2022-02-25"), pd.Timestamp("2022-02-27"), freq="1D"
+    )
     # passing Series instead of list is important to trigger bug
-    result = cut(Series([Timestamp("2022-02-26")]), bins=bins)
-    expected = Categorical.from_codes([0], bins, ordered=True)
+    result = pd.cut(pd.Series([pd.Timestamp("2022-02-26")]), bins=bins)
+    expected = pd.Categorical.from_codes([0], bins, ordered=True)
     tm.assert_categorical_equal(result.array, expected)
 
 
 def test_cut_with_nullable_int64():
     # GH 30787
-    series = Series([0, 1, 2, 3, 4, pd.NA, 6, 7], dtype="Int64")
+    series = pd.Series([0, 1, 2, 3, 4, pd.NA, 6, 7], dtype="Int64")
     bins = [0, 2, 4, 6, 8]
-    intervals = IntervalIndex.from_breaks(bins)
+    intervals = pd.IntervalIndex.from_breaks(bins)
 
-    expected = Series(
-        Categorical.from_codes([-1, 0, 0, 1, 1, -1, 2, 3], intervals, ordered=True)
+    expected = pd.Series(
+        pd.Categorical.from_codes([-1, 0, 0, 1, 1, -1, 2, 3], intervals, ordered=True)
     )
 
-    result = cut(series, bins=bins)
+    result = pd.cut(series, bins=bins)
 
     tm.assert_series_equal(result, expected)
 
@@ -829,9 +817,9 @@ def test_cut_with_nullable_int64():
 def test_cut_intervalindex_closed(closed):
     # GH#47614 - pd.cut with IntervalIndex bins and all closed values
     # Use non-contiguous intervals to avoid overlap with closed="both"
-    bins = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
+    bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)], closed=closed)
     data = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5]
-    result = cut(data, bins=bins)
+    result = pd.cut(data, bins=bins)
 
     # Verify against get_indexer
     expected_codes = bins.get_indexer(data)
@@ -840,9 +828,9 @@ def test_cut_intervalindex_closed(closed):
 
 def test_cut_intervalindex_with_gaps():
     # GH#47614 - pd.cut with non-contiguous IntervalIndex bins
-    bins = IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
     data = [0.5, 1.5, 2.5, 3.5, 4.5, np.nan]
-    result = cut(data, bins=bins)
+    result = pd.cut(data, bins=bins)
 
     expected_codes = np.array([0, -1, 1, -1, 2, -1], dtype=result.codes.dtype)
     tm.assert_numpy_array_equal(result.codes, expected_codes)
@@ -853,13 +841,15 @@ def test_cut_intervalindex_with_gaps():
 def test_cut_timedelta_intervalindex_mismatched_unit(data_unit, bins_unit):
     # GH#56764 when the resolution of the data differed from that of the
     # IntervalIndex bins, every value landed in the first bin
-    breaks = timedelta_range("0 days", periods=4, freq="7D").as_unit(bins_unit)
-    bins = IntervalIndex.from_breaks(breaks, closed="left")
-    ser = Series(timedelta_range("0 days", periods=3, freq="10D").as_unit(data_unit))
+    breaks = pd.timedelta_range("0 days", periods=4, freq="7D").as_unit(bins_unit)
+    bins = pd.IntervalIndex.from_breaks(breaks, closed="left")
+    ser = pd.Series(
+        pd.timedelta_range("0 days", periods=3, freq="10D").as_unit(data_unit)
+    )
 
-    result = cut(ser, bins=bins)
+    result = pd.cut(ser, bins=bins)
 
-    expected = Series(Categorical.from_codes([0, 1, 2], bins, ordered=True))
+    expected = pd.Series(pd.Categorical.from_codes([0, 1, 2], bins, ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -867,24 +857,28 @@ def test_cut_timedelta_intervalindex_mismatched_unit(data_unit, bins_unit):
 @pytest.mark.parametrize("data_unit", ["s", "ms", "us", "ns"])
 def test_cut_datetime_intervalindex_mismatched_unit(data_unit, bins_unit):
     # GH#56764
-    breaks = date_range("2013-01-01", periods=4, freq="7D").as_unit(bins_unit)
-    bins = IntervalIndex.from_breaks(breaks, closed="left")
-    ser = Series(date_range("2013-01-01", periods=3, freq="10D").as_unit(data_unit))
+    breaks = pd.date_range("2013-01-01", periods=4, freq="7D").as_unit(bins_unit)
+    bins = pd.IntervalIndex.from_breaks(breaks, closed="left")
+    ser = pd.Series(
+        pd.date_range("2013-01-01", periods=3, freq="10D").as_unit(data_unit)
+    )
 
-    result = cut(ser, bins=bins)
+    result = pd.cut(ser, bins=bins)
 
-    expected = Series(Categorical.from_codes([0, 1, 2], bins, ordered=True))
+    expected = pd.Series(pd.Categorical.from_codes([0, 1, 2], bins, ordered=True))
     tm.assert_series_equal(result, expected)
 
 
 def test_cut_datetime_array_no_attributeerror():
     # GH 55431
-    ser = Series(to_datetime(["2023-10-06 12:00:00+0000", "2023-10-07 12:00:00+0000"]))
+    ser = pd.Series(
+        pd.to_datetime(["2023-10-06 12:00:00+0000", "2023-10-07 12:00:00+0000"])
+    )
 
-    result = cut(ser.array, bins=2)
+    result = pd.cut(ser.array, bins=2)
 
     categories = result.categories
-    expected = Categorical.from_codes([0, 1], categories=categories, ordered=True)
+    expected = pd.Categorical.from_codes([0, 1], categories=categories, ordered=True)
 
     tm.assert_categorical_equal(
         result, expected, check_dtype=True, check_category_order=True
@@ -895,11 +889,11 @@ def test_cut_int64_intervalindex_more_bins_than_leaf_size():
     # GH#44075 building the IntervalTree engine for >100 integer bins used to
     #  raise on 32-bit platforms (int64 indices could not be safely cast to
     #  intp inside PyArray_Take).
-    bins = IntervalIndex.from_breaks(
+    bins = pd.IntervalIndex.from_breaks(
         range(0, 102, 1), closed="left", dtype="interval[int64]"
     )
     data = [1.2, np.nan, 10.2]
-    result = cut(data, bins)
+    result = pd.cut(data, bins)
 
     expected_codes = np.array([1, -1, 10], dtype=result.codes.dtype)
     tm.assert_numpy_array_equal(result.codes, expected_codes)
@@ -908,19 +902,21 @@ def test_cut_int64_intervalindex_more_bins_than_leaf_size():
 def test_cut_datetime_series_with_intervalindex_bins():
     # GH#48083 cut on a datetime Series with IntervalIndex bins must assign the
     # matching intervals instead of returning all-NaN
-    ser = Series(to_datetime(["2000-01-01", "2000-01-02", "2000-01-02", "2000-01-03"]))
-    bins = interval_range(ser[0], ser[3])
-    result = cut(ser, bins)
+    ser = pd.Series(
+        pd.to_datetime(["2000-01-01", "2000-01-02", "2000-01-02", "2000-01-03"])
+    )
+    bins = pd.interval_range(ser[0], ser[3])
+    result = pd.cut(ser, bins)
     # 2000-01-01 is the left edge of the first right-closed interval, so it is
     # unassigned (-1); the rest fall in their intervals
     expected_codes = np.array([-1, 0, 0, 1], dtype=result.cat.codes.dtype)
     tm.assert_numpy_array_equal(result.cat.codes.to_numpy(), expected_codes)
 
     # same IntervalIndex bins with an ndarray input (also all-NaN pre-fix)
-    result_arr = cut(ser.to_numpy(), bins)
+    result_arr = pd.cut(ser.to_numpy(), bins)
     tm.assert_numpy_array_equal(result_arr.codes, expected_codes)
 
     # DatetimeIndex bins with a list input -- pre-fix this raised TypeError
     # ("'<' not supported between int and Timestamp"), a different failure mode
-    result_list = cut(list(ser), date_range(ser[0], ser[3]))
+    result_list = pd.cut(list(ser), pd.date_range(ser[0], ser[3]))
     tm.assert_numpy_array_equal(result_list.codes, expected_codes)

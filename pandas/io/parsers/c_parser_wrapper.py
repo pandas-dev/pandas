@@ -252,6 +252,29 @@ class CParserWrapper(ParserBase):
         # A future extension could detect ISO-shaped formats here.
         return None
 
+    def _low_memory_column_labels(
+        self, chunks: list[dict[int, ArrayLike]]
+    ) -> dict[int, Hashable]:
+        """
+        Map the field positions ``read_low_memory`` keys its chunks by to labels.
+
+        The positions are those of the source row, so they skip whatever
+        ``usecols`` dropped and start past a leading implicit index column.
+        ``orig_names`` holds exactly the named columns that remain, in the same
+        order, which is how ``read`` renames these keys further down.  A leading
+        implicit index column has no name of its own and maps to ``None``.
+        """
+        assert self.orig_names is not None
+        positions = sorted(chunks[0])
+        named = dict(
+            zip(
+                positions[self._reader.leading_cols :],
+                self.orig_names,
+                strict=False,
+            )
+        )
+        return {position: named.get(position) for position in positions}
+
     def read(
         self,
         nrows: int | None = None,
@@ -270,7 +293,9 @@ class CParserWrapper(ParserBase):
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
                 # destructive to chunks
-                data = _concatenate_chunks(chunks, self.names)
+                data = _concatenate_chunks(
+                    chunks, self._low_memory_column_labels(chunks)
+                )
             else:
                 data = self._reader.read(nrows)
                 if self.wrap_deferred:
@@ -421,7 +446,7 @@ def _wrap_deferred_pa(values):
 
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
-    column_names: Sequence[Hashable],
+    column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
 ) -> dict:
     """
@@ -429,6 +454,11 @@ def _concatenate_chunks(
 
     The tricky part is handling Categoricals, where different chunks
     may have different inferred categories.
+
+    ``column_names`` names the keys of ``chunks`` for the mixed-dtype warning,
+    so it has to be indexable by whatever those keys are: the low_memory reader
+    keys its chunks by field position and passes a mapping keyed the same way,
+    while the parallel reader keys its own by name.
 
     ``warn_mixed=False`` suppresses the mixed-dtype warning; the parallel
     reader gathers byte-range chunks (not low_memory row chunks), so a
@@ -464,11 +494,14 @@ def _concatenate_chunks(
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(column_names[name])
+                warning_columns.append((name, column_names[name]))
 
     if warning_columns and warn_mixed:
         warning_names = ", ".join(
-            [f"{index}: {name}" for index, name in enumerate(warning_columns)]
+            [
+                f"{position}: {label}" if label is not None else f"{position}"
+                for position, label in warning_columns
+            ]
         )
         warning_message = " ".join(
             [
