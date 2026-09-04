@@ -117,9 +117,6 @@ def fill_binop(left, right, fill_value):
 
 
 def comp_method_OBJECT_ARRAY(op, x, y):
-    if not is_object_dtype(x.dtype):
-        x = x.astype(np.object_)
-
     if isinstance(y, list):
         # e.g. test_tuple_categories
         y = construct_1d_object_array_from_listlike(y)
@@ -364,18 +361,21 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif (
-        lvalues.dtype == object
-        or isinstance(rvalues, str)
-        or (
-            isinstance(rvalues, np.ndarray)
-            and getattr(rvalues, "dtype", None) == object
-        )
-    ):
+    elif lvalues.dtype == object or isinstance(rvalues, str):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
-        res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+        try:
+            res_values = _na_arithmetic_op(lvalues, rvalues, op, is_cmp=True)
+        except TypeError:
+            if (
+                isinstance(rvalues, np.ndarray)
+                and rvalues.dtype == object
+                and is_pdna(rvalues).any()
+            ):
+                res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
+            else:
+                raise
 
     return res_values
 
