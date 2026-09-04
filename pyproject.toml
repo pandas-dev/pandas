@@ -414,6 +414,14 @@ exclude = [
 # "numpy.array_equal".msg = "Do not use numpy.array_equal" # Used in pandas/core
 "unittest.mock".msg = "use pytest builtin monkeypatch fixture instead"
 "os.remove".msg = "Do not use os.remove"
+# Time-dependent test data broke CI at a DST transition (GH#44341).
+"datetime.datetime.now".msg = "Use a fixed datetime, not the current time (GH#44341)"
+"datetime.datetime.today".msg = "Use a fixed datetime, not the current time (GH#44341)"
+"datetime.datetime.utcnow".msg = "Use a fixed datetime, not the current time (GH#44341)"
+"pandas.Timestamp.now".msg = "Use a fixed datetime, not the current time (GH#44341)"
+"pandas.Timestamp.today".msg = "Use a fixed datetime, not the current time (GH#44341)"
+"pandas.Timestamp.utcnow".msg = "Use a fixed datetime, not the current time (GH#44341)"
+"pandas.Period.now".msg = "Use a fixed datetime, not the current time (GH#44341)"
 
 
 

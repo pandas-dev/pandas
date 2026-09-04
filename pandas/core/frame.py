@@ -5599,9 +5599,15 @@ class DataFrame(NDFrame, OpsMixin):
                 np_dtype: np.dtype,
             ) -> Callable[[DtypeObj], bool]:
                 # A datetime64/timedelta64 dtype with a specific unit matches
-                # only columns with exactly that resolution (GH#40234)
+                # only columns with exactly that resolution (GH#40234).
+                # np_dtype is already in native byteorder; normalizing the
+                # column's too keeps the match byteorder-agnostic, as it is
+                # for every other string spec.
                 def func(dtype_obj: DtypeObj) -> bool:
-                    return isinstance(dtype_obj, np.dtype) and dtype_obj == np_dtype
+                    return (
+                        isinstance(dtype_obj, np.dtype)
+                        and dtype_obj.newbyteorder("=") == np_dtype
+                    )
 
                 return func
 
@@ -5641,18 +5647,19 @@ class DataFrame(NDFrame, OpsMixin):
                             "use 'str' or 'object' instead"
                         )
                     if lib.is_np_dtype(dtype, "mM"):
-                        unit = np.datetime_data(dtype)[0]
+                        unit, count = np.datetime_data(dtype)
                         if unit == "generic":
                             # unitless np.dtype("datetime64") is not a specific
                             # dtype, so match the family, as with np.datetime64
                             resolved.add(dtype.type)
                             funcs.append(matches_type(dtype.type))
                             continue
-                        if unit not in ("s", "ms", "us", "ns"):
+                        if count != 1 or unit not in ("s", "ms", "us", "ns"):
                             # no column can ever have this dtype
                             raise ValueError(
-                                f"{dtype.name!r} is too specific of a "
-                                f"frequency, try passing "
+                                f"{dtype.name!r} is not a supported "
+                                "datetime64/timedelta64 resolution; pass "
+                                "'s', 'ms', 'us', 'ns', or "
                                 f"{dtype.type.__name__!r}"
                             )
                     elif isinstance(dtype, CategoricalDtype) and (
@@ -5788,24 +5795,30 @@ class DataFrame(NDFrame, OpsMixin):
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
                                 continue
                             if lib.is_np_dtype(pdtype, "mM"):
-                                unit = np.datetime_data(pdtype)[0]
-                                if unit == "generic":
-                                    # a unitless datetime64/timedelta64 matches
-                                    # every resolution
-                                    dtype_type = pdtype.type
-                                elif is_supported_dtype(pdtype):
+                                unit, count = np.datetime_data(pdtype)
+                                # a unitless datetime64/timedelta64 falls
+                                # through to a family match on pdtype.type
+                                if unit != "generic":
+                                    # byteorder is not part of what a string
+                                    # spec selects: ">i8" selects every int64
+                                    # column through the pdtype.type path below,
+                                    # so canonicalize the spec here and let
+                                    # matches_np_dtype normalize the column
+                                    pdtype = pdtype.newbyteorder("=")
+                                    if count != 1 or not is_supported_dtype(pdtype):
+                                        # a multiple of a unit (e.g. "10s") is
+                                        # not a resolution any column can have
+                                        raise ValueError(
+                                            f"{pdtype.name!r} is not a supported "
+                                            "datetime64/timedelta64 resolution; "
+                                            "pass 's', 'ms', 'us', 'ns', or "
+                                            f"{pdtype.type.__name__!r}"
+                                        )
                                     # a specific unit (s, ms, us, ns) matches
                                     # only that exact resolution (GH#40234)
                                     resolved.add(pdtype)
                                     funcs.append(matches_np_dtype(pdtype))
                                     continue
-                                else:
-                                    raise ValueError(
-                                        f"{pdtype.name!r} is not a supported "
-                                        "datetime64/timedelta64 resolution; pass "
-                                        "'s', 'ms', 'us', 'ns', or "
-                                        f"{pdtype.type.__name__!r}"
-                                    )
                             # Instances are handled at the top of the loop, so
                             # only strings/numpy types reach here.
                             dtype_type = pdtype.type
@@ -6081,8 +6094,24 @@ class DataFrame(NDFrame, OpsMixin):
         """
         data = self.copy(deep=False)
 
-        for k, v in kwargs.items():
-            data[k] = com.apply_if_callable(v, data)
+        for name, value in kwargs.items():
+            key: Hashable = name
+            if isinstance(data.columns, MultiIndex) and name not in data.columns:
+                # GH#17024 keyword arguments cannot be tuples, so the generic
+                #  "use a full-length tuple key" advice is useless here.  Warn
+                #  with an actionable hint and pad the key ourselves so that
+                #  __setitem__ does not warn again.
+                key = (name,) + ("",) * (data.columns.nlevels - 1)
+                maybe_warn_multiindex_expansion(
+                    data.columns,
+                    name,
+                    target="column on a DataFrame",
+                    hint=(
+                        "DataFrame.assign cannot take a tuple key; use "
+                        f"df[{key}] = ... instead."
+                    ),
+                )
+            data[key] = com.apply_if_callable(value, data)
         return data
 
     def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
@@ -6902,6 +6931,202 @@ class DataFrame(NDFrame, OpsMixin):
             inplace=inplace,
             level=level,
             errors=errors,
+        )
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: Literal[False] = ...,
+    ) -> DataFrame: ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: Literal[True],
+    ) -> None: ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        columns=...,
+        axis: Axis = ...,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: bool | lib.NoDefault = ...,
+    ) -> DataFrame | None: ...
+
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = lib.no_default,
+        *,
+        index=lib.no_default,
+        columns=lib.no_default,
+        axis: Axis = 0,
+        copy: bool | lib.NoDefault = lib.no_default,
+        inplace: bool | lib.NoDefault = lib.no_default,
+    ) -> DataFrame | None:
+        """
+        Set the name of the axis for the index or columns.
+
+        This method is useful for labeling the axes in a MultiIndex or for
+        providing descriptive names to axes.
+
+        Parameters
+        ----------
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``
+            and/or ``columns``.
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        columns : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to rename.
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
+        Returns
+        -------
+        DataFrame, or None
+            The same type as the caller or None if ``inplace=True``.
+
+        See Also
+        --------
+        Series.rename : Alter Series index labels or name.
+        DataFrame.rename : Alter DataFrame index labels or name.
+        Index.rename : Set new names on index.
+
+        Notes
+        -----
+        ``DataFrame.rename_axis`` supports two calling conventions
+
+        * ``(index=index_mapper, columns=columns_mapper, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
+
+        The first calling convention will only modify the names of
+        the index and/or the names of the Index object that is the columns.
+        In this case, the parameter ``copy`` is ignored.
+
+        The second calling convention will modify the names of the
+        corresponding index if mapper is a list or a scalar.
+        However, if mapper is dict-like or a function, it will use the
+        deprecated behavior of modifying the axis *labels*.
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        Examples
+        --------
+        **DataFrame**
+
+        >>> df = pd.DataFrame(
+        ...     {"num_legs": [4, 4, 2], "num_arms": [0, 0, 2]}, ["dog", "cat", "monkey"]
+        ... )
+        >>> df
+                num_legs  num_arms
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("animal")
+        >>> df
+                num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+        >>> df = df.rename_axis("limbs", axis="columns")
+        >>> df
+        limbs   num_legs  num_arms
+        animal
+        dog            4         0
+        cat            4         0
+        monkey         2         2
+
+        **MultiIndex**
+
+        >>> df.index = pd.MultiIndex.from_product(
+        ...     [["mammal"], ["dog", "cat", "monkey"]], names=["type", "name"]
+        ... )
+        >>> df
+        limbs          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
+
+        >>> df.rename_axis(index={"type": "class"})
+        limbs          num_legs  num_arms
+        class  name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
+
+        >>> df.rename_axis(columns=str.upper)
+        LIMBS          num_legs  num_arms
+        type   name
+        mammal dog            4         0
+               cat            4         0
+               monkey         2         2
+        """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in DataFrame.rename_axis is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
+        return super().rename_axis(
+            mapper=mapper,
+            index=index,
+            columns=columns,
+            axis=axis,
+            copy=copy,
+            inplace=inplace,
         )
 
     def pop(self, item: Hashable) -> Series:

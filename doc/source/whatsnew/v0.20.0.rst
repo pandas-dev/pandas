@@ -57,52 +57,90 @@ is :ref:`here <basics.aggregate>` (:issue:`1623`).
 
 Here is a sample
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-                     index=pd.date_range('1/1/2000', periods=10))
-   df.iloc[3:7] = np.nan
-   df
+   >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+   ...                  index=pd.date_range('1/1/2000', periods=10))
+   >>> df.iloc[3:7] = np.nan
+   >>> df
+                      A         B         C
+   2000-01-01  0.469112 -0.282863 -1.509059
+   2000-01-02 -1.135632  1.212112 -0.173215
+   2000-01-03  0.119209 -1.044236 -0.861849
+   2000-01-04       NaN       NaN       NaN
+   2000-01-05       NaN       NaN       NaN
+   2000-01-06       NaN       NaN       NaN
+   2000-01-07       NaN       NaN       NaN
+   2000-01-08  0.113648 -1.478427  0.524988
+   2000-01-09  0.404705  0.577046 -1.715002
+   2000-01-10 -1.039268 -0.370647 -1.157892
 
 One can operate using string function names, callables, lists, or dictionaries of these.
 
 Using a single function is equivalent to ``.apply``.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.agg('sum')
+   >>> df.agg('sum')
+   A   -1.068226
+   B   -1.387015
+   C   -4.892029
+   dtype: float64
 
 Multiple aggregations with a list of functions.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.agg(['sum', 'min'])
+   >>> df.agg(['sum', 'min'])
+               A         B         C
+   sum -1.068226 -1.387015 -4.892029
+   min -1.135632 -1.478427 -1.715002
 
 Using a dict provides the ability to apply specific aggregations per column.
 You will get a matrix-like output of all of the aggregators. The output has one column
 per unique function. Those functions applied to a particular column will be ``NaN``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.agg({'A': ['sum', 'min'], 'B': ['min', 'max']})
+   >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+               A         B
+   max       NaN  1.212112
+   min -1.135632 -1.478427
+   sum -1.068226       NaN
 
 The API also supports a ``.transform()`` function for broadcasting results.
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: pycon
 
-   df.transform(['abs', lambda x: x - x.min()])
+   >>> df.transform(['abs', lambda x: x - x.min()])
+                      A                   B                   C
+                    abs  <lambda>       abs  <lambda>       abs  <lambda>
+   2000-01-01  0.469112  1.604745  0.282863  1.195563  1.509059  0.205944
+   2000-01-02  1.135632  0.000000  1.212112  2.690539  0.173215  1.541787
+   2000-01-03  0.119209  1.254841  1.044236  0.434191  0.861849  0.853153
+   2000-01-04       NaN       NaN       NaN       NaN       NaN       NaN
+   2000-01-05       NaN       NaN       NaN       NaN       NaN       NaN
+   2000-01-06       NaN       NaN       NaN       NaN       NaN       NaN
+   2000-01-07       NaN       NaN       NaN       NaN       NaN       NaN
+   2000-01-08  0.113648  1.249281  1.478427  0.000000  0.524988  2.239990
+   2000-01-09  0.404705  1.540338  0.577046  2.055473  1.715002  0.000000
+   2000-01-10  1.039268  0.096364  0.370647  1.107780  1.157892  0.557110
 
 When presented with mixed dtypes that cannot be aggregated, ``.agg()`` will only take the valid
 aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': [1, 2, 3],
-                      'B': [1., 2., 3.],
-                      'C': ['foo', 'bar', 'baz'],
-                      'D': pd.date_range('20130101', periods=3)})
-   df.dtypes
+   >>> df = pd.DataFrame({'A': [1, 2, 3],
+   ...                    'B': [1., 2., 3.],
+   ...                    'C': ['foo', 'bar', 'baz'],
+   ...                    'D': pd.date_range('20130101', periods=3)})
+   >>> df.dtypes
+   A             int64
+   B           float64
+   C            object
+   D    datetime64[ns]
+   dtype: object
 
 .. code-block:: python
 
@@ -120,16 +158,17 @@ Keyword argument ``dtype`` for data IO
 The ``'python'`` engine for :func:`read_csv`, as well as the :func:`read_fwf` function for parsing
 fixed-width text files and :func:`read_excel` for parsing Excel files, now accept the ``dtype`` keyword argument for specifying the types of specific columns (:issue:`14295`). See the :ref:`io docs <io.dtypes>` for more information.
 
-.. ipython:: python
-   :suppress:
+.. code-block:: pycon
 
-   from io import StringIO
-
-.. ipython:: python
-
-   data = "a  b\n1  2\n3  4"
-   pd.read_fwf(StringIO(data)).dtypes
-   pd.read_fwf(StringIO(data), dtype={'a': 'float64', 'b': 'object'}).dtypes
+   >>> data = "a  b\n1  2\n3  4"
+   >>> pd.read_fwf(StringIO(data)).dtypes
+   a    int64
+   b    int64
+   dtype: object
+   >>> pd.read_fwf(StringIO(data), dtype={'a':'float64', 'b':'object'}).dtypes
+   a    float64
+   b     object
+   dtype: object
 
 .. _whatsnew_0120.enhancements.datetime_origin:
 
@@ -141,16 +180,18 @@ from where to compute the resulting timestamps when parsing numerical values wit
 
 For example, with 1960-01-01 as the starting date:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
+   >>> pd.to_datetime([1, 2, 3], unit='D', origin=pd.Timestamp('1960-01-01'))
+   DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'], dtype='datetime64[ns]', freq=None)
 
 The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``, which is
 commonly called 'unix epoch' or POSIX time. This was the previous default, so this is a backward compatible change.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.to_datetime([1, 2, 3], unit='D')
+   >>> pd.to_datetime([1, 2, 3], unit='D')
+   DatetimeIndex(['1970-01-02', '1970-01-03', '1970-01-04'], dtype='datetime64[ns]', freq=None)
 
 
 .. _whatsnew_0200.enhancements.groupby_access:
@@ -160,19 +201,37 @@ GroupBy enhancements
 
 Strings passed to ``DataFrame.groupby()`` as the ``by`` parameter may now reference either column names or index level names. Previously, only column names could be referenced. This allows to easily group by a column and index level at the same time. (:issue:`5677`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
-             ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
+   >>> arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
+   ...           ['one', 'two', 'one', 'two', 'one', 'two', 'one', 'two']]
 
-   index = pd.MultiIndex.from_arrays(arrays, names=['first', 'second'])
+   >>> index = pd.MultiIndex.from_arrays(arrays, names=['first', 'second'])
 
-   df = pd.DataFrame({'A': [1, 1, 1, 1, 2, 2, 3, 3],
-                      'B': np.arange(8)},
-                     index=index)
-   df
+   >>> df = pd.DataFrame({'A': [1, 1, 1, 1, 2, 2, 3, 3],
+   ...                    'B': np.arange(8)},
+   ...                   index=index)
+   >>> df
+                 A  B
+   first second
+   bar   one     1  0
+         two     1  1
+   baz   one     1  2
+         two     1  3
+   foo   one     2  4
+         two     2  5
+   qux   one     3  6
+         two     3  7
 
-   df.groupby(['second', 'A']).sum()
+   >>> df.groupby(['second', 'A']).sum()
+             B
+   second A
+   one    1  2
+          2  4
+          3  6
+   two    1  4
+          2  5
+          3  7
 
 
 .. _whatsnew_0200.enhancements.compressed_urls:
@@ -187,17 +246,20 @@ Previously, only ``gzip`` compression was supported. By default, compression of
 URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   url = ('https://github.com/{repo}/raw/{branch}/{path}'
-          .format(repo='pandas-dev/pandas',
-                  branch='main',
-                  path='pandas/tests/io/parser/data/salaries.csv.bz2'))
+   >>> url = ('https://github.com/{repo}/raw/{branch}/{path}'
+   ...        .format(repo='pandas-dev/pandas',
+   ...                branch='main',
+   ...                path='pandas/tests/io/parser/data/salaries.csv.bz2'))
    # default, infer compression
-   df = pd.read_csv(url, sep='\t', compression='infer')
+   >>> df = pd.read_csv(url, sep='\t', compression='infer')
    # explicitly specify compression
-   df = pd.read_csv(url, sep='\t', compression='bz2')
-   df.head(2)
+   >>> df = pd.read_csv(url, sep='\t', compression='bz2')
+   >>> df.head(2)
+          S  X  E  M
+   0  13876  1  1  1
+   1  11608  1  3  0
 
 .. _whatsnew_0200.enhancements.pickle_compression:
 
@@ -209,38 +271,49 @@ can now read from and write to compressed pickle files. Compression methods
 can be an explicit parameter or be inferred from the file extension.
 See :ref:`the docs here. <io.pickle.compression>`
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': np.random.randn(1000),
-                      'B': 'foo',
-                      'C': pd.date_range('20130101', periods=1000, freq='s')})
+   >>> df = pd.DataFrame({
+   ...     'A': np.random.randn(1000),
+   ...     'B': 'foo',
+   ...     'C': pd.date_range('20130101', periods=1000, freq='s')})
 
 Using an explicit compression type
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.to_pickle("data.pkl.compress", compression="gzip")
-   rt = pd.read_pickle("data.pkl.compress", compression="gzip")
-   rt.head()
+   >>> df.to_pickle("data.pkl.compress", compression="gzip")
+   >>> rt = pd.read_pickle("data.pkl.compress", compression="gzip")
+   >>> rt.head()
+             A    B                   C
+   0 -1.344312  foo 2013-01-01 00:00:00
+   1  0.844885  foo 2013-01-01 00:00:01
+   2  1.075770  foo 2013-01-01 00:00:02
+   3 -0.109050  foo 2013-01-01 00:00:03
+   4  1.643563  foo 2013-01-01 00:00:04
 
 The default is to infer the compression type from the extension (``compression='infer'``):
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.to_pickle("data.pkl.gz")
-   rt = pd.read_pickle("data.pkl.gz")
-   rt.head()
-   df["A"].to_pickle("s1.pkl.bz2")
-   rt = pd.read_pickle("s1.pkl.bz2")
-   rt.head()
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove("data.pkl.compress")
-   os.remove("data.pkl.gz")
-   os.remove("s1.pkl.bz2")
+   >>> df.to_pickle("data.pkl.gz")
+   >>> rt = pd.read_pickle("data.pkl.gz")
+   >>> rt.head()
+             A    B                   C
+   0 -1.344312  foo 2013-01-01 00:00:00
+   1  0.844885  foo 2013-01-01 00:00:01
+   2  1.075770  foo 2013-01-01 00:00:02
+   3 -0.109050  foo 2013-01-01 00:00:03
+   4  1.643563  foo 2013-01-01 00:00:04
+   >>> df["A"].to_pickle("s1.pkl.bz2")
+   >>> rt = pd.read_pickle("s1.pkl.bz2")
+   >>> rt.head()
+   0   -1.344312
+   1    0.844885
+   2    1.075770
+   3   -0.109050
+   4    1.643563
+   Name: A, dtype: float64
 
 .. _whatsnew_0200.enhancements.uint64_support:
 
@@ -273,17 +346,35 @@ GroupBy on categoricals
 
 In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueError`` when grouping on a categorical series with some categories not appearing in the data. (:issue:`13179`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   chromosomes = np.r_[np.arange(1, 23).astype(str), ['X', 'Y']]
-   df = pd.DataFrame({
-       'A': np.random.randint(100),
-       'B': np.random.randint(100),
-       'C': np.random.randint(100),
-       'chromosomes': pd.Categorical(np.random.choice(chromosomes, 100),
-                                     categories=chromosomes,
-                                     ordered=True)})
-   df
+   >>> chromosomes = np.r_[np.arange(1, 23).astype(str), ['X', 'Y']]
+   >>> df = pd.DataFrame({
+   ...     'A': np.random.randint(100),
+   ...     'B': np.random.randint(100),
+   ...     'C': np.random.randint(100),
+   ...     'chromosomes': pd.Categorical(np.random.choice(chromosomes, 100),
+   ...                                   categories=chromosomes,
+   ...                                   ordered=True)})
+   >>> df
+        A   B   C chromosomes
+   0   87  22  81           4
+   1   87  22  81          13
+   2   87  22  81          22
+   3   87  22  81           2
+   4   87  22  81           6
+   5   87  22  81          18
+   6   87  22  81           5
+   ..  ..  ..  ..         ...
+   93  87  22  81           9
+   94  87  22  81           8
+   95  87  22  81           8
+   96  87  22  81          11
+   97  87  22  81           X
+   98  87  22  81           1
+   99  87  22  81          19
+
+   [100 rows x 4 columns]
 
 **Previous behavior**:
 
@@ -295,9 +386,28 @@ In previous versions, ``.groupby(..., sort=False)`` would fail with a ``ValueErr
 
 **New behavior**:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df[df.chromosomes != '1'].groupby('chromosomes', observed=False, sort=False).sum()
+   >>> df[df.chromosomes != '1'].groupby('chromosomes', sort=False).sum()
+                    A      B      C
+   chromosomes
+   2            348.0   88.0  324.0
+   3            348.0   88.0  324.0
+   4            348.0   88.0  324.0
+   5            261.0   66.0  243.0
+   6            174.0   44.0  162.0
+   7            609.0  154.0  567.0
+   8            348.0   88.0  324.0
+   ...            ...    ...    ...
+   19           174.0   44.0  162.0
+   20           261.0   66.0  243.0
+   22           348.0   88.0  324.0
+   X            348.0   88.0  324.0
+   Y            435.0  110.0  405.0
+   1              NaN    NaN    NaN
+   21             NaN    NaN    NaN
+
+   [24 rows x 3 columns]
 
 .. _whatsnew_0200.enhancements.table_schema:
 
@@ -379,27 +489,32 @@ Experimental support has been added to export ``DataFrame.style`` formats to Exc
 
 For example, after running the following, ``styled.xlsx`` renders as below:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.random.seed(24)
-   df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
-   df = pd.concat([df, pd.DataFrame(np.random.RandomState(24).randn(10, 4),
-                                    columns=list('BCDE'))],
-                  axis=1)
-   df.iloc[0, 2] = np.nan
-   df
-   styled = (df.style
-             .map(lambda val: 'color:red;' if val < 0 else 'color:black;')
-             .highlight_max())
-   styled.to_excel('styled.xlsx', engine='openpyxl')
+   >>> np.random.seed(24)
+   >>> df = pd.DataFrame({'A': np.linspace(1, 10, 10)})
+   >>> df = pd.concat([df, pd.DataFrame(np.random.RandomState(24).randn(10, 4),
+   ...                                  columns=list('BCDE'))],
+   ...                axis=1)
+   >>> df.iloc[0, 2] = np.nan
+   >>> df
+         A         B         C         D         E
+   0   1.0  1.329212       NaN -0.316280 -0.990810
+   1   2.0 -1.070816 -1.438713  0.564417  0.295722
+   2   3.0 -1.626404  0.219565  0.678805  1.889273
+   3   4.0  0.961538  0.104011 -0.481165  0.850229
+   4   5.0  1.453425  1.057737  0.165562  0.515018
+   5   6.0 -1.336936  0.562861  1.392855 -0.063328
+   6   7.0  0.121668  1.207603 -0.002040  1.627796
+   7   8.0  0.354493  1.037528 -0.385684  0.519818
+   8   9.0  1.686583 -1.325963  1.428984 -2.089354
+   9  10.0 -0.129820  0.631523 -0.586538  0.290720
+   >>> styled = df.style.\
+   ...     applymap(lambda val: 'color: %s' % 'red' if val < 0 else 'black').\
+   ...     highlight_max()
+   >>> styled.to_excel('styled.xlsx', engine='openpyxl')
 
 .. image:: ../_static/style-excel.png
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('styled.xlsx')
 
 See the :ref:`Style documentation </user_guide/style.ipynb#Export-to-Excel>` for more detail.
 
@@ -435,39 +550,59 @@ The returned categories were strings, representing Intervals
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   c = pd.cut(range(4), bins=2)
-   c
-   c.categories
+   >>> c = pd.cut(range(4), bins=2)
+   >>> c
+   [(-0.003, 1.5], (-0.003, 1.5], (1.5, 3.0], (1.5, 3.0]]
+   Categories (2, interval[float64]): [(-0.003, 1.5] < (1.5, 3.0]]
+   >>> c.categories
+   IntervalIndex([(-0.003, 1.5], (1.5, 3.0]]
+                 closed='right',
+                 dtype='interval[float64]')
 
 Furthermore, this allows one to bin *other* data with these same bins, with ``NaN`` representing a missing
 value similar to other dtypes.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.cut([0, 3, 5, 1], bins=c.categories)
+   >>> pd.cut([0, 3, 5, 1], bins=c.categories)
+   [(-0.003, 1.5], (1.5, 3.0], NaN, (-0.003, 1.5]]
+   Categories (2, interval[float64]): [(-0.003, 1.5] < (1.5, 3.0]]
 
 An ``IntervalIndex`` can also be used in ``Series`` and ``DataFrame`` as the index.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': range(4),
-                      'B': pd.cut([0, 3, 1, 1], bins=c.categories)
-                      }).set_index('B')
-   df
+   >>> df = pd.DataFrame({'A': range(4),
+   ...                    'B': pd.cut([0, 3, 1, 1], bins=c.categories)}
+   ...                  ).set_index('B')
+   >>> df
+                  A
+   B
+   (-0.003, 1.5]  0
+   (1.5, 3.0]     1
+   (-0.003, 1.5]  2
+   (-0.003, 1.5]  3
 
 Selecting via a specific interval:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.loc[pd.Interval(1.5, 3.0)]
+   >>> df.loc[pd.Interval(1.5, 3.0)]
+   A    1
+   Name: (1.5, 3.0], dtype: int64
 
 Selecting via a scalar value that is contained *in* the intervals.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.loc[0]
+   >>> df.loc[0]
+                  A
+   B
+   (-0.003, 1.5]  0
+   (-0.003, 1.5]  2
+   (-0.003, 1.5]  3
 
 .. _whatsnew_0200.enhancements.other:
 
@@ -587,12 +722,15 @@ Map on Index types now return other Index types
 
 ``map`` on an ``Index`` now returns an ``Index``, not a numpy array (:issue:`12766`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx = pd.Index([1, 2])
-   idx
-   mi = pd.MultiIndex.from_tuples([(1, 2), (2, 4)])
-   mi
+   >>> idx = Index([1, 2])
+   >>> idx
+   Int64Index([1, 2], dtype='int64')
+   >>> mi = MultiIndex.from_tuples([(1, 2), (2, 4)])
+   >>> mi
+   MultiIndex(levels=[[1, 2], [2, 4]],
+              labels=[[0, 1], [0, 1]])
 
 Previous behavior:
 
@@ -612,14 +750,20 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   idx.map(lambda x: x * 2)
-   idx.map(lambda x: (x, x * 2))
+   >>> idx.map(lambda x: x * 2)
+   Int64Index([2, 4], dtype='int64')
+   >>> idx.map(lambda x: (x, x * 2))
+   MultiIndex(levels=[[1, 2], [2, 4]],
+              labels=[[0, 1], [0, 1]])
 
-   mi.map(lambda x: x)
+   >>> mi.map(lambda x: x)
+   MultiIndex(levels=[[1, 2], [2, 4]],
+              labels=[[0, 1], [0, 1]])
 
-   mi.map(lambda x: x[0])
+   >>> mi.map(lambda x: x[0])
+   Int64Index([1, 2], dtype='int64')
 
 
 ``map`` on a ``Series`` with ``datetime64`` values may return ``int64`` dtypes rather than ``int32``
@@ -727,19 +871,25 @@ data-types would yield different return types. These are now made consistent. (:
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
      # Series, returns an array of Timestamp tz-aware
-     pd.Series([pd.Timestamp(r'20160101', tz=r'US/Eastern'),
-                pd.Timestamp(r'20160101', tz=r'US/Eastern')]).unique()
-     pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
-               pd.Timestamp('20160101', tz='US/Eastern')]))
+     >>> pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+     ...           pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+     array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+           dtype=object)
+     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
+     ...                      pd.Timestamp('20160101', tz='US/Eastern')]))
+     array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+           dtype=object)
 
      # Index, returns a DatetimeIndex
-     pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-               pd.Timestamp('20160101', tz='US/Eastern')]).unique()
-     pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
-                         pd.Timestamp('20160101', tz='US/Eastern')]))
+     >>> pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+     ...           pd.Timestamp('20160101', tz='US/Eastern')]).unique()
+     DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
+     >>> pd.unique(pd.Index([pd.Timestamp('20160101', tz='US/Eastern'),
+     ...                     pd.Timestamp('20160101', tz='US/Eastern')]))
+     DatetimeIndex(['2016-01-01 00:00:00-05:00'], dtype='datetime64[ns, US/Eastern]', freq=None)
 
 - Categoricals
 
@@ -757,11 +907,15 @@ data-types would yield different return types. These are now made consistent. (:
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
      # returns a Categorical
-     pd.Series(list('baabc'), dtype='category').unique()
-     pd.unique(pd.Series(list('baabc'), dtype='category'))
+     >>> pd.Series(list('baabc'), dtype='category').unique()
+     [b, a, c]
+     Categories (3, object): [b, a, c]
+     >>> pd.unique(pd.Series(list('baabc'), dtype='category'))
+     [b, a, c]
+     Categories (3, object): [b, a, c]
 
 .. _whatsnew_0200.api_breaking.s3:
 
@@ -779,11 +933,12 @@ Partial string indexing changes
 
 :ref:`DatetimeIndex Partial String Indexing <timeseries.partialindexing>` now works as an exact match, provided that string resolution coincides with index resolution, including a case when both are seconds (:issue:`14826`). See :ref:`Slice vs. Exact Match <timeseries.slice_vs_exact_match>` for details.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'a': [1, 2, 3]}, pd.DatetimeIndex(['2011-12-31 23:59:59',
-                                                         '2012-01-01 00:00:00',
-                                                         '2012-01-01 00:00:01']))
+   >>> df = DataFrame({'a': [1, 2, 3]}, DatetimeIndex(['2011-12-31 23:59:59',
+   ...                                                 '2012-01-01 00:00:00',
+   ...                                                 '2012-01-01 00:00:01']))
+
 Previous behavior:
 
 .. code-block:: ipython
@@ -817,13 +972,17 @@ Concat of different float dtypes will not automatically upcast
 Previously, ``concat`` of multiple objects with different ``float`` dtypes would automatically upcast results to a dtype of ``float64``.
 Now the smallest acceptable dtype will be used (:issue:`13247`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df1 = pd.DataFrame(np.array([1.0], dtype=np.float32, ndmin=2))
-   df1.dtypes
+   >>> df1 = pd.DataFrame(np.array([1.0], dtype=np.float32, ndmin=2))
+   >>> df1.dtypes
+   0    float32
+   dtype: object
 
-   df2 = pd.DataFrame(np.array([np.nan], dtype=np.float32, ndmin=2))
-   df2.dtypes
+   >>> df2 = pd.DataFrame(np.array([np.nan], dtype=np.float32, ndmin=2))
+   >>> df2.dtypes
+   0    float32
+   dtype: object
 
 Previous behavior:
 
@@ -836,9 +995,11 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   pd.concat([df1, df2]).dtypes
+   >>> pd.concat([df1, df2]).dtypes
+   0    float32
+   dtype: object
 
 .. _whatsnew_0200.api_breaking.gbq:
 
@@ -924,9 +1085,16 @@ This is *unchanged* from prior versions, but shown for illustration purposes:
 
 Sorting works as expected
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.sort_index()
+   >>> df.sort_index()
+        value
+   A 0      3
+     1      4
+     2      5
+   B 0      0
+     1      1
+     2      2
 
 .. code-block:: python
 
@@ -939,12 +1107,18 @@ Sorting works as expected
 However, this example, which has a non-monotonic 2nd level,
 doesn't behave as desired.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'value': [1, 2, 3, 4]},
-                     index=pd.MultiIndex([['a', 'b'], ['bb', 'aa']],
-                                         [[0, 0, 1, 1], [0, 1, 0, 1]]))
-   df
+   >>> df = pd.DataFrame(
+   ...         {'value': [1, 2, 3, 4]},
+   ...          index=pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+   ...                              labels=[[0, 0, 1, 1], [0, 1, 0, 1]]))
+   >>> df
+         value
+   a bb      1
+     aa      2
+   b bb      3
+     aa      4
 
 Previous behavior:
 
@@ -1030,13 +1204,23 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
+   >>> df = pd.DataFrame({'A': [1, 1, 2, 2], 'B': [1, 2, 3, 4]})
 
-   df.groupby('A').describe()
+   >>> df.groupby('A').describe()
+         B
+     count mean       std  min   25%  50%   75%  max
+   A
+   1   2.0  1.5  0.707107  1.0  1.25  1.5  1.75  2.0
+   2   2.0  3.5  0.707107  3.0  3.25  3.5  3.75  4.0
 
-   df.groupby('A').agg(["mean", "std", "min", "max"])
+   >>> df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+        B
+     mean       std amin amax
+   A
+   1  1.5  0.707107    1    2
+   2  3.5  0.707107    3    4
 
 .. _whatsnew_0200.api_breaking.rolling_pairwise:
 
@@ -1049,14 +1233,21 @@ see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`. These are equivale
 but a MultiIndexed ``DataFrame`` enjoys more support in pandas.
 See the section on :ref:`Windowed Binary Operations <window.cov_corr>` for more information. (:issue:`15677`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   np.random.seed(1234)
-   df = pd.DataFrame(np.random.rand(100, 2),
-                     columns=pd.Index(['A', 'B'], name='bar'),
-                     index=pd.date_range('20160101',
-                                         periods=100, freq='D', name='foo'))
-   df.tail()
+   >>> np.random.seed(1234)
+   >>> df = pd.DataFrame(np.random.rand(100, 2),
+   ...                   columns=pd.Index(['A', 'B'], name='bar'),
+   ...                   index=pd.date_range('20160101',
+   ...                                       periods=100, freq='D', name='foo'))
+   >>> df.tail()
+   bar                A         B
+   foo
+   2016-04-05  0.640880  0.126205
+   2016-04-06  0.171465  0.737086
+   2016-04-07  0.127029  0.369650
+   2016-04-08  0.604334  0.103104
+   2016-04-09  0.802374  0.945553
 
 Previous behavior:
 
@@ -1072,16 +1263,27 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   res = df.rolling(12).corr()
-   res.tail()
+   >>> res = df.rolling(12).corr()
+   >>> res.tail()
+   bar                    A         B
+   foo        bar
+   2016-04-07 B   -0.132090  1.000000
+   2016-04-08 A    1.000000 -0.145775
+              B   -0.145775  1.000000
+   2016-04-09 A    1.000000  0.119645
+              B    0.119645  1.000000
 
 Retrieving a correlation matrix for a cross-section
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.rolling(12).corr().loc['2016-04-07']
+   >>> df.rolling(12).corr().loc['2016-04-07']
+   bar                   A        B
+   foo        bar
+   2016-04-07 A    1.00000 -0.13209
+              B   -0.13209  1.00000
 
 .. _whatsnew_0200.api_breaking.hdfstore_where:
 
@@ -1092,11 +1294,13 @@ In previous versions most types could be compared to string column in a ``HDFSto
 usually resulting in an invalid comparison, returning an empty result frame. These comparisons will now raise a
 ``TypeError`` (:issue:`15492`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
-   df.to_hdf('store.h5', key='key', format='table', data_columns=True)
-   df.dtypes
+   >>> df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
+   >>> df.to_hdf('store.h5', 'key', format='table', data_columns=True)
+   >>> df.dtypes
+   unparsed_date    object
+   dtype: object
 
 Previous behavior:
 
@@ -1118,12 +1322,6 @@ New behavior:
    TypeError: Cannot compare 2014-01-01 00:00:00 of
    type <class 'pandas.tslib.Timestamp'> to string column
 
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('store.h5')
-
 .. _whatsnew_0200.api_breaking.index_order:
 
 Index.intersection and inner join now preserve the order of the left Index
@@ -1135,12 +1333,14 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
 - ``Index.intersection``
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     left = pd.Index([2, 1, 0])
-     left
-     right = pd.Index([1, 2, 3])
-     right
+     >>> left = pd.Index([2, 1, 0])
+     >>> left
+     Int64Index([2, 1, 0], dtype='int64')
+     >>> right = pd.Index([1, 2, 3])
+     >>> right
+     Int64Index([1, 2, 3], dtype='int64')
 
   Previous behavior:
 
@@ -1151,18 +1351,27 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     left.intersection(right)
+     >>> left.intersection(right)
+     Int64Index([2, 1], dtype='int64')
 
 - ``DataFrame.join`` and ``pd.merge``
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
-     left
-     right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
-     right
+     >>> left = pd.DataFrame({'a': [20, 10, 0]}, index=[2, 1, 0])
+     >>> left
+         a
+     2  20
+     1  10
+     0   0
+     >>> right = pd.DataFrame({'b': [100, 200, 300]}, index=[1, 2, 3])
+     >>> right
+          b
+     1  100
+     2  200
+     3  300
 
   Previous behavior:
 
@@ -1176,9 +1385,12 @@ joins, :meth:`DataFrame.join` and :func:`merge`, and the ``.align`` method.
 
   New behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     left.join(right, how='inner')
+     >>> left.join(right, how='inner')
+         a    b
+     2  20  200
+     1  10  100
 
 .. _whatsnew_0200.api_breaking.pivot_table:
 
@@ -1188,12 +1400,16 @@ Pivot table always returns a DataFrame
 The documentation for :meth:`pivot_table` states that a ``DataFrame`` is *always* returned. Here a bug
 is fixed that allowed this to return a ``Series`` under certain circumstance. (:issue:`4386`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'col1': [3, 4, 5],
-                      'col2': ['C', 'D', 'E'],
-                      'col3': [1, 3, 9]})
-   df
+   >>> df = DataFrame({'col1': [3, 4, 5],
+   ...                 'col2': ['C', 'D', 'E'],
+   ...                 'col3': [1, 3, 9]})
+   >>> df
+      col1 col2  col3
+   0     3    C     1
+   1     4    D     3
+   2     5    E     9
 
 Previous behavior:
 
@@ -1209,9 +1425,14 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.pivot_table('col1', index=['col3', 'col2'], aggfunc="sum")
+   >>> df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
+              col1
+   col3 col2
+   1    C        3
+   3    D        4
+   9    E        5
 
 .. _whatsnew_0200.api:
 
@@ -1377,13 +1598,17 @@ The recommended methods of indexing are:
 Using ``.ix`` will now show a ``DeprecationWarning`` with a link to some examples of how to convert code `here <https://pandas.pydata.org/pandas-docs/version/1.0/user_guide/indexing.html#ix-indexer-is-deprecated>`__.
 
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': [1, 2, 3],
-                      'B': [4, 5, 6]},
-                     index=list('abc'))
+   >>> df = pd.DataFrame({'A': [1, 2, 3],
+   ...                    'B': [4, 5, 6]},
+   ...                   index=list('abc'))
 
-   df
+   >>> df
+      A  B
+   a  1  4
+   b  2  5
+   c  3  6
 
 Previous behavior, where you wish to get the 0th and the 2nd elements from the index in the 'A' column.
 
@@ -1397,15 +1622,21 @@ Previous behavior, where you wish to get the 0th and the 2nd elements from the i
 
 Using ``.loc``. Here we will select the appropriate indexes from the index, then use *label* indexing.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.loc[df.index[[0, 2]], 'A']
+   >>> df.loc[df.index[[0, 2]], 'A']
+   a    1
+   c    3
+   Name: A, dtype: int64
 
 Using ``.iloc``. Here we will get the location of the 'A' column, then use *positional* indexing to select things.
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.iloc[[0, 2], df.columns.get_loc('A')]
+   >>> df.iloc[[0, 2], df.columns.get_loc('A')]
+   a    1
+   c    3
+   Name: A, dtype: int64
 
 
 .. _whatsnew_0200.api_breaking.deprecate_panel:
@@ -1496,20 +1727,30 @@ between ``Series`` and ``DataFrame``. We are deprecating this 'renaming' functio
 
 This is an illustrative example:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
-                      'B': range(5),
-                      'C': range(5)})
-   df
+   >>> df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+   ...                    'B': range(5),
+   ...                    'C': range(5)})
+   >>> df
+      A  B  C
+   0  1  0  0
+   1  1  1  1
+   2  1  2  2
+   3  2  3  3
+   4  2  4  4
 
 Here is a typical useful syntax for computing different aggregations for different columns. This
 is a natural, and useful syntax. We aggregate from the dict-to-list by taking the specified
 columns and applying the list of functions. This returns a ``MultiIndex`` for the columns (this is *not* deprecated).
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby('A').agg({'B': 'sum', 'C': 'min'})
+   >>> df.groupby('A').agg({'B': 'sum', 'C': 'min'})
+      B  C
+   A
+   1  3  0
+   2  7  3
 
 Here's an example of the first deprecation, passing a dict to a grouped ``Series``. This
 is a combination aggregation & renaming:
@@ -1528,9 +1769,13 @@ is a combination aggregation & renaming:
 
 You can accomplish the same operation, more idiomatically by:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   df.groupby('A').B.agg(['count']).rename(columns={'count': 'foo'})
+   >>> df.groupby('A').B.agg(['count']).rename(columns={'count': 'foo'})
+      foo
+   A
+   1    3
+   2    2
 
 
 Here's an example of the second deprecation, passing a dict-of-dict to a grouped ``DataFrame``:
@@ -1553,12 +1798,16 @@ Here's an example of the second deprecation, passing a dict-of-dict to a grouped
 
 You can accomplish nearly the same by:
 
-.. ipython:: python
+.. code-block:: pycon
 
-   (df.groupby('A')
-      .agg({'B': 'sum', 'C': 'min'})
-      .rename(columns={'B': 'foo', 'C': 'bar'})
-    )
+   >>> (df.groupby('A')
+   ...    .agg({'B': 'sum', 'C': 'min'})
+   ...    .rename(columns={'B': 'foo', 'C': 'bar'})
+   ... )
+      foo  bar
+   A
+   1    3    0
+   2    7    3
 
 
 

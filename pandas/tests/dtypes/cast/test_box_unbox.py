@@ -11,13 +11,7 @@ from pandas.core.dtypes.cast import (
     maybe_unbox_numpy_scalar,
 )
 
-from pandas import (
-    Interval,
-    Period,
-    Timedelta,
-    Timestamp,
-    option_context,
-)
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -33,12 +27,12 @@ from pandas import (
         (np.float64(1.4), float),
         (np.bool_(False), bool),
         (datetime(2005, 2, 25), datetime),
-        (np.datetime64("2005-02-25"), Timestamp),
-        (Timestamp("2005-02-25"), Timestamp),
-        (np.timedelta64(1, "D"), Timedelta),
-        (Timedelta(1, "D"), Timedelta),
-        (Interval(0, 1), Interval),
-        (Period("4Q2005"), Period),
+        (np.datetime64("2005-02-25"), pd.Timestamp),
+        (pd.Timestamp("2005-02-25"), pd.Timestamp),
+        (np.timedelta64(1, "D"), pd.Timedelta),
+        (pd.Timedelta(1, "D"), pd.Timedelta),
+        (pd.Interval(0, 1), pd.Interval),
+        (pd.Period("4Q2005"), pd.Period),
     ],
 )
 def test_maybe_box_native(obj, expected_dtype):
@@ -73,10 +67,10 @@ def test_maybe_unbox_numpy_scalar(typecode, using_python_scalars):
         expected = int
     elif typecode == "M":
         scalar = datetime(2025, 1, 1)
-        expected = Timestamp
+        expected = pd.Timestamp
     elif typecode == "m":
         scalar = timedelta(seconds=3)
-        expected = Timedelta
+        expected = pd.Timedelta
     else:
         raise ValueError(f"typecode {typecode} not recognized")
     value = np.array([scalar], dtype=typecode)[0]
@@ -90,7 +84,7 @@ def test_maybe_unbox_numpy_scalar(typecode, using_python_scalars):
 def test_maybe_unbox_numpy_scalar_timestamp(unit, using_python_scalars):
     # https://github.com/pandas-dev/pandas/pull/63016
     value = np.datetime64(1, unit)
-    expected = Timestamp(1, unit=unit) if using_python_scalars else value
+    expected = pd.Timestamp(1, unit=unit) if using_python_scalars else value
     result = maybe_unbox_numpy_scalar(value)
     assert result == expected
     assert type(result) == type(expected)
@@ -99,7 +93,7 @@ def test_maybe_unbox_numpy_scalar_timestamp(unit, using_python_scalars):
 def test_maybe_unbox_numpy_scalar_datetime(unit, using_python_scalars):
     # https://github.com/pandas-dev/pandas/pull/63016
     value = np.timedelta64(1, unit)
-    expected = Timedelta(1, unit=unit) if using_python_scalars else value
+    expected = pd.Timedelta(1, unit=unit) if using_python_scalars else value
     result = maybe_unbox_numpy_scalar(value)
     assert result == expected
     assert type(result) == type(expected)
@@ -108,7 +102,7 @@ def test_maybe_unbox_numpy_scalar_datetime(unit, using_python_scalars):
 def test_maybe_unbox_numpy_scalar_object_dtype():
     # GH#64266
     value = np.float32(1.5)
-    with option_context("future.python_scalars", True):
+    with pd.option_context("future.python_scalars", True):
         result = maybe_unbox_numpy_scalar(
             value, object_with_dtype=np.array([], dtype=object)
         )

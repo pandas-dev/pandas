@@ -573,6 +573,9 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
 
   if (self->skipset == NULL) {
     self->skipset = (void *)kh_init_int64();
+    if (self->skipset == NULL) {
+      return -1;
+    }
   }
 
   set = (kh_int64_t *)self->skipset;
@@ -2209,6 +2212,13 @@ fallback:
   // Accumulate mantissa digits as an integer to avoid per-digit FP rounding.
   // max_digits=17 decimal digits fit safely in uint64_t (max ~9.9e17 < 2^64).
   uint64_t mantissa = 0;
+  // Skip leading zeros so they don't consume the max_digits.
+  bool saw_digit = false;
+  while (*p == '0') {
+    saw_digit = true;
+    p++;
+    p += (tsep != '\0' && *p == tsep);
+  }
 
   // Process string of digits.
   while (isdigit_ascii(*p)) {
@@ -2243,7 +2253,11 @@ fallback:
     exponent -= num_decimals;
   }
 
-  if (num_digits == 0) {
+  // saw_digit covers an all-zero mantissa ("0", "000", "0."), which is a valid
+  // zero rather than an unparsable string. Testing it here instead of seeding
+  // num_digits leaves the full max_digits budget for the fractional part, so
+  // "0.5" and ".5" get the same precision.
+  if (num_digits == 0 && !saw_digit) {
     *error = ERANGE;
     return 0.0;
   }

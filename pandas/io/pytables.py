@@ -2775,6 +2775,12 @@ class IndexCol:
         kwargs = {}
         kwargs["name"] = self.index_name
 
+        if val_kind == "string" and using_string_dtype():
+            # GH#9604: an all-missing string Index -- or an all-missing
+            #  slice/chunk of one -- cannot be inferred back to str, which
+            #  would make the index dtype depend on which rows were read.
+            kwargs["dtype"] = "str"
+
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
@@ -2812,11 +2818,8 @@ class IndexCol:
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
-                new_pd_index = factory(
-                    values,
-                    dtype=StringDtype(storage="python", na_value=np.nan),
-                    **kwargs,
-                )
+                kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
+                new_pd_index = factory(values, **kwargs)
             else:
                 raise
         except ValueError:
@@ -3822,6 +3825,13 @@ class GenericFixed(Fixed):
         # GH#9604: per-index string NaN sentinel (absent for old files)
         nan_rep = getattr(node._v_attrs, "nan_rep", None)
 
+        if kind == "string" and using_string_dtype():
+            # GH#9604: once the sentinel is substituted back to NaN, dtype
+            #  inference can only recover str if some non-missing string
+            #  survives, so an all-missing index would silently degrade to
+            #  object. Pin the dtype the values were written with instead.
+            kwargs["dtype"] = "str"
+
         if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
@@ -3849,6 +3859,7 @@ class GenericFixed(Fixed):
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
+                    kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
                     index = factory(
                         _unconvert_index(
                             data,
@@ -3857,7 +3868,6 @@ class GenericFixed(Fixed):
                             errors=self.errors,
                             nan_rep=nan_rep,
                         ),
-                        dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
                     )
                 else:
@@ -6405,34 +6415,42 @@ def _get_data_and_dtype_name(data: ArrayLike):
 
 def _or_of_ands_columns(condition) -> set[str]:
     """
-    Look for an OR with at least one multi-column AND operand, e.g.
-    ``(A & B) | (C & D)`` or ``(A & B) | C``, in a pruned PyTables condition
-    tree.
+    Look for an OR with at least one AND operand, e.g. ``(A & B) | (C & D)``
+    or ``(A & B) | C``, in a pruned PyTables condition tree. The AND operand
+    need not span two columns -- ``(A > 1 & A < 5) | B`` counts too.
 
     This is the query shape that can trigger an upstream PyTables bug where
     index-accelerated reads silently drop matching rows (GH#50598). Return the
-    set of column names referenced in ``condition`` if such a pattern is found,
-    otherwise an empty set.
+    set of column names referenced by the AND-ed operands of such an OR, or an
+    empty set if the pattern is not present.
+
+    Only the AND-ed operands matter: the bug needs one of *their* columns to be
+    indexed. Indexing a column that appears solely as a bare OR operand (the
+    ``C`` of ``(A & B) | C``) does not trigger it.
     """
     cols: set[str] = set()
-    found = False
 
-    def visit(node) -> None:
-        nonlocal found
+    def collect(node) -> None:
+        """Add every column name referenced under ``node``."""
         if not isinstance(node, JointConditionBinOp):
             # leaf comparison: lhs.value is the column name
             cols.add(node.lhs.value)
             return
-        if node.op == "|" and (
-            (isinstance(node.lhs, JointConditionBinOp) and node.lhs.op == "&")
-            or (isinstance(node.rhs, JointConditionBinOp) and node.rhs.op == "&")
-        ):
-            found = True
+        collect(node.lhs)
+        collect(node.rhs)
+
+    def visit(node) -> None:
+        if not isinstance(node, JointConditionBinOp):
+            return
+        if node.op == "|":
+            for operand in (node.lhs, node.rhs):
+                if isinstance(operand, JointConditionBinOp) and operand.op == "&":
+                    collect(operand)
         visit(node.lhs)
         visit(node.rhs)
 
     visit(condition)
-    return cols if found else set()
+    return cols
 
 
 class Selection:
@@ -6501,10 +6519,7 @@ class Selection:
         an upstream PyTables bug (GH#50598).
         """
         table = getattr(self.table, "table", None)
-        if table is None or table.chunkshape is None:
-            return
-        # the bug only affects tables stored in more than one chunk (row group)
-        if table.chunkshape[0] >= self.table.nrows:
+        if table is None:
             return
         cols = _or_of_ands_columns(self.condition)
         if not any(
@@ -6514,11 +6529,11 @@ class Selection:
         ):
             return
         warnings.warn(
-            "Reading with a nested 'where' that ORs AND-ed conditions over "
-            "indexed columns (e.g. '(A & B) | (C & D)') can return incorrect "
-            "results due to an upstream PyTables bug (GH#50598). To get correct "
-            "results, write the table with 'index=False', or run each OR branch "
-            "as a separate query and concatenate the results.",
+            "Querying with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can silently match the "
+            "wrong rows due to an upstream PyTables bug (GH#50598). To get "
+            "correct results, write the table with 'index=False', or split the "
+            "'where' into one operation per OR branch.",
             UserWarning,
             stacklevel=find_stack_level(),
         )
