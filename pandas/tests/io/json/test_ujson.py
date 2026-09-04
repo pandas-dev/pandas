@@ -1350,3 +1350,25 @@ def test_to_json_indent_deeply_nested_does_not_overflow_buffer():
     result = frame.to_json(indent=2)
 
     assert json.loads(result)["c"]["0"] == nested
+
+
+def test_to_json_datetime64_scalar_frees_dtype():
+    # GH#67930
+    # Object_beginTypeContext took a reference on the scalar's dtype via
+    # PyArray_DescrFromScalar and never gave it back. The builtin descrs are
+    # immortal so most scalar types hid this, but a datetime64 descr carries
+    # unit metadata and so is a freshly allocated, mortal object every call.
+    # The encoder is called directly so that a leak of ~160 bytes per call
+    # stands out against the allocations the loop itself makes.
+    payload = [np.datetime64("2020-01-01T00:00:00", "s")]
+
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot()
+    for _ in range(20_000):
+        ujson.ujson_dumps(payload, iso_dates=True)
+    after = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+    # a leak here would be ~3.2 MiB over this loop
+    assert grew < 1_000_000
