@@ -4,24 +4,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    date_range,
-    option_context,
-)
 import pandas._testing as tm
 
 
 class TestResetIndex:
     def test_reset_index_dti_round_trip(self):
-        dti = date_range(
+        dti = pd.date_range(
             start="1/1/2001", end="6/1/2001", freq="D", unit="ns"
         )._with_freq(None)
-        d1 = DataFrame({"v": np.random.default_rng(2).random(len(dti))}, index=dti)
+        d1 = pd.DataFrame({"v": np.random.default_rng(2).random(len(dti))}, index=dti)
         d2 = d1.reset_index()
         assert d2.dtypes.iloc[0] == np.dtype("M8[ns]")
         d3 = d2.set_index("index")
@@ -29,17 +20,17 @@ class TestResetIndex:
 
         # GH#2329
         stamp = datetime(2012, 11, 22)
-        df = DataFrame([[stamp, 12.1]], columns=["Date", "Value"])
+        df = pd.DataFrame([[stamp, 12.1]], columns=["Date", "Value"])
         df = df.set_index("Date")
 
         assert df.index[0] == stamp
         assert df.reset_index()["Date"].iloc[0] == stamp
 
     def test_reset_index(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )[:5]
         ser = df.stack()
         ser.index.names = ["hash", "category"]
@@ -59,25 +50,25 @@ class TestResetIndex:
         tm.assert_series_equal(s, s2)
 
         # level
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
-        s = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        s = pd.Series(np.random.default_rng(2).standard_normal(6), index=index)
         rs = s.reset_index(level=1)
         assert len(rs.columns) == 2
 
         rs = s.reset_index(level=[0, 2], drop=True)
-        tm.assert_index_equal(rs.index, Index(index.get_level_values(1)))
-        assert isinstance(rs, Series)
+        tm.assert_index_equal(rs.index, pd.Index(index.get_level_values(1)))
+        assert isinstance(rs, pd.Series)
 
     def test_reset_index_name(self):
-        s = Series([1, 2, 3], index=Index(range(3), name="x"))
+        s = pd.Series([1, 2, 3], index=pd.Index(range(3), name="x"))
         assert s.reset_index().index.name is None
         assert s.reset_index(drop=True).index.name is None
 
     def test_reset_index_level(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
 
         for levels in ["A", "B"], [0, 1]:
             # With MultiIndex
@@ -114,17 +105,17 @@ class TestResetIndex:
                 s.reset_index(level=[0, 1, 2])
 
         # Check that .reset_index([],drop=True) doesn't fail
-        result = Series(range(4)).reset_index([], drop=True)
-        expected = Series(range(4))
+        result = pd.Series(range(4)).reset_index([], drop=True)
+        expected = pd.Series(range(4))
         tm.assert_series_equal(result, expected)
 
     def test_reset_index_range(self):
         # GH 12071
-        s = Series(range(2), name="A", dtype="int64")
+        s = pd.Series(range(2), name="A", dtype="int64")
         series_result = s.reset_index()
-        assert isinstance(series_result.index, RangeIndex)
-        series_expected = DataFrame(
-            [[0, 0], [1, 1]], columns=["index", "A"], index=RangeIndex(stop=2)
+        assert isinstance(series_result.index, pd.RangeIndex)
+        series_expected = pd.DataFrame(
+            [[0, 0], [1, 1]], columns=["index", "A"], index=pd.RangeIndex(stop=2)
         )
         tm.assert_frame_equal(series_result, series_expected)
 
@@ -132,14 +123,14 @@ class TestResetIndex:
         #  GH 20925
 
         # KeyError raised for series index when passed level name is missing
-        s = Series(range(4))
+        s = pd.Series(range(4))
         with pytest.raises(KeyError, match="does not match index name"):
             s.reset_index("wrong", drop=True)
         with pytest.raises(KeyError, match="does not match index name"):
             s.reset_index("wrong")
 
         # KeyError raised for series when level to be dropped is missing
-        s = Series(range(4), index=MultiIndex.from_product([[1, 2]] * 2))
+        s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
         with pytest.raises(KeyError, match="not found"):
             s.reset_index("wrong", drop=True)
 
@@ -149,32 +140,32 @@ class TestResetIndex:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         tuples = zip(*arrays, strict=True)
-        index = MultiIndex.from_tuples(tuples)
+        index = pd.MultiIndex.from_tuples(tuples)
         data = np.random.default_rng(2).standard_normal(8)
-        ser = Series(data, index=index)
+        ser = pd.Series(data, index=index)
         ser.iloc[3] = np.nan
 
         deleveled = ser.reset_index()
-        assert isinstance(deleveled, DataFrame)
+        assert isinstance(deleveled, pd.DataFrame)
         assert len(deleveled.columns) == len(ser.index.levels) + 1
         assert deleveled.index.name == ser.index.name
 
         deleveled = ser.reset_index(drop=True)
-        assert isinstance(deleveled, Series)
+        assert isinstance(deleveled, pd.Series)
         assert deleveled.index.name == ser.index.name
 
     def test_reset_index_inplace_and_drop_ignore_name(self):
         # GH#44575
-        ser = Series(range(2), name="old")
+        ser = pd.Series(range(2), name="old")
         ser.reset_index(name="new", drop=True, inplace=True)
-        expected = Series(range(2), name="old")
+        expected = pd.Series(range(2), name="old")
         tm.assert_series_equal(ser, expected)
 
     def test_reset_index_drop_infer_string(self):
         # GH#56160
         pytest.importorskip("pyarrow")
-        ser = Series(["a", "b", "c"], dtype=object)
-        with option_context("future.infer_string", True):
+        ser = pd.Series(["a", "b", "c"], dtype=object)
+        with pd.option_context("future.infer_string", True):
             result = ser.reset_index(drop=True)
         tm.assert_series_equal(result, ser)
 
@@ -193,10 +184,10 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(
     array, dtype, using_infer_string
 ):
     # GH 19602 - Preserve dtype on empty Series with MultiIndex
-    idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
-    result = Series(dtype=object, index=idx)[:0].reset_index().dtypes
+    idx = pd.MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
+    result = pd.Series(dtype=object, index=idx)[:0].reset_index().dtypes
     exp = "str" if using_infer_string else object
-    expected = Series(
+    expected = pd.Series(
         {
             "level_0": np.int64,
             "level_1": np.float64,
@@ -217,10 +208,10 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(
 @pytest.mark.parametrize("allow_duplicates", [False, True])
 def test_column_name_duplicates(names, expected_names, allow_duplicates):
     # GH#44755 reset_index with duplicate column labels
-    s = Series([1], index=MultiIndex.from_arrays([[1], [1]], names=names))
+    s = pd.Series([1], index=pd.MultiIndex.from_arrays([[1], [1]], names=names))
     if allow_duplicates:
         result = s.reset_index(allow_duplicates=True)
-        expected = DataFrame([[1, 1, 1]], columns=[*expected_names, 0])
+        expected = pd.DataFrame([[1, 1, 1]], columns=[*expected_names, 0])
         tm.assert_frame_equal(result, expected)
     else:
         with pytest.raises(ValueError, match="cannot insert"):

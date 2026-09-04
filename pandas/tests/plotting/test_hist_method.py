@@ -5,13 +5,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_ax_scales,
@@ -34,9 +28,9 @@ from pandas.plotting._matplotlib.hist import _grouped_hist
 
 @pytest.fixture
 def ts():
-    return Series(
+    return pd.Series(
         np.arange(30, dtype=np.float64),
-        index=date_range("2020-01-01", periods=30, freq="B"),
+        index=pd.date_range("2020-01-01", periods=30, freq="B"),
         name="ts",
     )
 
@@ -49,7 +43,8 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("kwargs", [{}, {"bins": 5}])
     def test_hist_legacy_kwargs_warning(self, ts, kwargs):
         # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(ts.hist, by=ts.index.month, **kwargs)
 
     @pytest.mark.parametrize("by", [None, np.array(list("aabbaabbaa"))])
@@ -57,13 +52,13 @@ class TestSeriesPlots:
         # GH#64613 .hist() read Series.values, so it raised the lossy-.values
         #  deprecation from inside pandas and binned in UTC rather than in the
         #  data's own timezone
-        ser = Series(date_range("2020-01-01", periods=10, tz="US/Pacific"))
+        ser = pd.Series(pd.date_range("2020-01-01", periods=10, tz="US/Pacific"))
 
         with tm.assert_produces_warning(None):
             result = ser.hist(by=by)
 
         axes = np.ravel(result)
-        expected = ser.groupby(by).min() if by is not None else Series([ser.min()])
+        expected = ser.groupby(by).min() if by is not None else pd.Series([ser.min()])
         for ax, first in zip(axes, expected, strict=True):
             assert ax.patches[0].get_x() == mpl.dates.date2num(first)
 
@@ -94,7 +89,7 @@ class TestSeriesPlots:
             ts.hist(by=ts.index, figure=fig)
 
     def test_hist_bins_legacy(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
@@ -126,7 +121,8 @@ class TestSeriesPlots:
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
         # though we don't explicitly pass one, see GH #13188
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
         _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)
 
@@ -137,8 +133,8 @@ class TestSeriesPlots:
         _check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     def test_hist_no_overlap(self):
-        x = Series(np.random.default_rng(2).standard_normal(2))
-        y = Series(np.random.default_rng(2).standard_normal(2))
+        x = pd.Series(np.random.default_rng(2).standard_normal(2))
+        y = pd.Series(np.random.default_rng(2).standard_normal(2))
         plt.subplot(121)
         x.hist()
         plt.subplot(122)
@@ -171,7 +167,7 @@ class TestSeriesPlots:
     )
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
-        ser = Series(np.random.default_rng(2).integers(1, 10))
+        ser = pd.Series(np.random.default_rng(2).integers(1, 10))
         ax = ser.hist(histtype=histtype)
         _check_patches_all_filled(ax, filled=expected)
 
@@ -181,7 +177,9 @@ class TestSeriesPlots:
     def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
         # GH 6279 - Series histogram can have a legend
         index = 5 * ["1"] + 5 * ["2"]
-        s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="a")
+        s = pd.Series(
+            np.random.default_rng(2).standard_normal(10), index=index, name="a"
+        )
         s.index.name = "b"
 
         # Use default_axes=True when plotting method generate subplots itself
@@ -193,7 +191,9 @@ class TestSeriesPlots:
     def test_hist_with_legend_raises(self, by):
         # GH 6279 - Series histogram with legend and label raises
         index = 5 * ["1"] + 5 * ["2"]
-        s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="a")
+        s = pd.Series(
+            np.random.default_rng(2).standard_normal(10), index=index, name="a"
+        )
         s.index.name = "b"
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
@@ -259,7 +259,9 @@ class TestDataFramePlots:
         # GH#64613 .hist() read Series.values, so it raised the lossy-.values
         #  deprecation from inside pandas and binned in UTC rather than in the
         #  data's own timezone
-        df = DataFrame({"a": date_range("2020-01-01", periods=10, tz="US/Pacific")})
+        df = pd.DataFrame(
+            {"a": pd.date_range("2020-01-01", periods=10, tz="US/Pacific")}
+        )
 
         with tm.assert_produces_warning(None):
             axes = df.hist()
@@ -269,14 +271,15 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(hist_df.hist)
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout(self):
         # make sure layout is handled
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
-        df[2] = to_datetime(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df[2] = pd.to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
@@ -284,7 +287,8 @@ class TestDataFramePlots:
                 dtype=np.int64,
             )
         )
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.hist, grid=False)
         _check_axes_shape(axes, axes_num=3, layout=(2, 2))
         assert not axes[1, 1].get_visible()
@@ -293,14 +297,14 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout2(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
         _check_plot_works(df.hist, default_axes=True)
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout3(self):
         # make sure layout is handled
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
-        df[5] = to_datetime(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
+        df[5] = pd.to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
@@ -308,7 +312,8 @@ class TestDataFramePlots:
                 dtype=np.int64,
             )
         )
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.hist, layout=(4, 2))
         _check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
@@ -317,8 +322,8 @@ class TestDataFramePlots:
         "kwargs", [{"sharex": True, "sharey": True}, {"figsize": (8, 10)}, {"bins": 5}]
     )
     def test_hist_df_legacy_layout_kwargs(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
-        df[5] = to_datetime(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
+        df[5] = pd.to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
@@ -329,7 +334,8 @@ class TestDataFramePlots:
         # make sure sharex, sharey is handled
         # handle figsize arg
         # check bins argument
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             _check_plot_works(df.hist, **kwargs)
 
     @pytest.mark.slow
@@ -343,7 +349,7 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy_rectangles(self):
-        ser = Series(range(10))
+        ser = pd.Series(range(10))
         ax = ser.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, mpl.patches.Rectangle)]
@@ -351,30 +357,30 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy_scale(self):
-        ser = Series(range(10))
+        ser = pd.Series(range(10))
         ax = ser.hist(log=True)
         # scale of y must be 'log'
         _check_ax_scales(ax, yaxis="log")
 
     @pytest.mark.slow
     def test_hist_df_legacy_external_error(self):
-        ser = Series(range(10))
+        ser = pd.Series(range(10))
         # propagate attr exception from matplotlib.Axes.hist
         with tm.external_error_raised(AttributeError):
             ser.hist(foo="bar")
 
     def test_hist_non_numerical_or_datetime_raises(self):
         # gh-10444, GH32590
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).random(10),
                 "b": np.random.default_rng(2).integers(0, 10, 10),
-                "c": to_datetime(
+                "c": pd.to_datetime(
                     np.random.default_rng(2).integers(
                         1582800000000000000, 1583500000000000000, 10, dtype=np.int64
                     )
                 ),
-                "d": to_datetime(
+                "d": pd.to_datetime(
                     np.random.default_rng(2).integers(
                         1582800000000000000, 1583500000000000000, 10, dtype=np.int64
                     ),
@@ -403,8 +409,8 @@ class TestDataFramePlots:
         ),
     )
     def test_hist_layout(self, layout_test):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
-        df[2] = to_datetime(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df[2] = pd.to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
@@ -417,8 +423,8 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=3, layout=expected)
 
     def test_hist_layout_error(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
-        df[2] = to_datetime(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df[2] = pd.to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
@@ -441,8 +447,8 @@ class TestDataFramePlots:
 
     # GH 9351
     def test_tight_layout(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
-        df[2] = to_datetime(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df[2] = pd.to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
@@ -456,7 +462,7 @@ class TestDataFramePlots:
 
     def test_hist_subplot_xrot(self):
         # GH 30288
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "length": [1.5, 0.5, 1.2, 0.9, 3],
                 "animal": ["pig", "rabbit", "pig", "pig", "rabbit"],
@@ -483,7 +489,7 @@ class TestDataFramePlots:
     def test_hist_column_order_unchanged(self, column, expected):
         # GH29235
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "width": [0.7, 0.2, 0.15, 0.2, 1.1],
                 "length": [1.5, 0.5, 1.2, 0.9, 3],
@@ -513,7 +519,7 @@ class TestDataFramePlots:
     )
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(1, 10, size=(10, 2)), columns=["a", "b"]
         )
         ax = df.hist(histtype=histtype)
@@ -529,8 +535,8 @@ class TestDataFramePlots:
         if by is not None:
             expected_labels = [expected_labels] * 2
 
-        index = Index(5 * ["1"] + 5 * ["2"], name="c")
-        df = DataFrame(
+        index = pd.Index(5 * ["1"] + 5 * ["2"], name="c")
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)),
             index=index,
             columns=["a", "b"],
@@ -555,8 +561,8 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("column", [None, "b"])
     def test_hist_with_legend_raises(self, by, column):
         # GH 6279 - DataFrame histogram with legend and label raises
-        index = Index(5 * ["1"] + 5 * ["2"], name="c")
-        df = DataFrame(
+        index = pd.Index(5 * ["1"] + 5 * ["2"], name="c")
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)),
             index=index,
             columns=["a", "b"],
@@ -566,14 +572,14 @@ class TestDataFramePlots:
             df.hist(legend=True, by=by, column=column, label="d")
 
     def test_hist_df_kwargs(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         _, ax = mpl.pyplot.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10
 
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=["A", "B", "C", "D"],
         )
@@ -584,7 +590,7 @@ class TestDataFramePlots:
 
     def test_hist_df_with_nonnumerics_no_bins(self):
         # GH 9853
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=["A", "B", "C", "D"],
         )
@@ -595,7 +601,7 @@ class TestDataFramePlots:
 
     def test_hist_secondary_legend(self):
         # GH 9610
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
 
@@ -611,7 +617,7 @@ class TestDataFramePlots:
 
     def test_hist_secondary_secondary(self):
         # GH 9610
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
         # secondary -> secondary
@@ -626,7 +632,7 @@ class TestDataFramePlots:
 
     def test_hist_secondary_primary(self):
         # GH 9610
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
         # secondary -> primary
@@ -642,12 +648,14 @@ class TestDataFramePlots:
 
     def test_hist_with_nans_and_weights(self):
         # GH 48884
-        df = DataFrame(
+        df = pd.DataFrame(
             [[np.nan, 0.2, 0.3], [0.4, np.nan, np.nan], [0.7, 0.8, 0.9]],
             columns=list("abc"),
         )
         weights = np.array([0.25, 0.3, 0.45])
-        no_nan_df = DataFrame([[0.4, 0.2, 0.3], [0.7, 0.8, 0.9]], columns=list("abc"))
+        no_nan_df = pd.DataFrame(
+            [[0.4, 0.2, 0.3], [0.7, 0.8, 0.9]], columns=list("abc")
+        )
         no_nan_weights = np.array([[0.3, 0.25, 0.25], [0.45, 0.45, 0.45]])
 
         _, ax0 = mpl.pyplot.subplots()
@@ -673,8 +681,8 @@ class TestDataFramePlots:
 class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy(self):
         rs = np.random.default_rng(10)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -690,8 +698,8 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_axes_shape_no_col(self):
         rs = np.random.default_rng(10)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -706,8 +714,8 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_single_key(self):
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -724,8 +732,8 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_grouped_hist_kwargs(self):
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -760,8 +768,8 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_grouped_hist(self):
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -777,8 +785,8 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_external_err(self):
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -794,8 +802,8 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_figsize_err(self):
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
-        df["B"] = to_datetime(
+        df = pd.DataFrame(rs.standard_normal((10, 1)), columns=["A"])
+        df["B"] = pd.to_datetime(
             rs.integers(
                 812419200000000000,
                 819331200000000000,
@@ -811,10 +819,12 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy2(self):
         n = 10
-        weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
-        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
+        weight = pd.Series(np.random.default_rng(2).normal(166, 20, size=n))
+        height = pd.Series(np.random.default_rng(2).normal(60, 10, size=n))
         gender_int = np.random.default_rng(2).choice([0, 1], size=n)
-        df_int = DataFrame({"height": height, "weight": weight, "gender": gender_int})
+        df_int = pd.DataFrame(
+            {"height": height, "weight": weight, "gender": gender_int}
+        )
         gb = df_int.groupby("gender")
         axes = gb.hist()
         assert len(axes) == 2
@@ -852,7 +862,8 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.slow
     def test_grouped_hist_layout_warning(self, hist_df):
         df = hist_df
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(
                 df.hist, column="height", by=df.gender, layout=(2, 1)
             )
@@ -873,7 +884,8 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_layout_by_warning(self, hist_df, kwargs):
         df = hist_df
         # GH 6769
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+        msg = "the figure containing the passed axes is being cleared"
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False, match=msg):
             axes = _check_plot_works(df.hist, by="classroom", **kwargs)
         _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
@@ -966,7 +978,7 @@ class TestDataFrameGroupByPlots:
     )
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(1, 10, size=(10, 2)), columns=["a", "b"]
         )
         ax = df.hist(by="a", histtype=histtype)

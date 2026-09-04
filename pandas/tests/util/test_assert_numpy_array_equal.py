@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timestamp
 import pandas._testing as tm
 
 
@@ -142,8 +141,8 @@ numpy array values are different \\(33\\.33333 %\\)
 
 
 def test_numpy_array_equal_object():
-    a = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-01")])
-    b = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-02")])
+    a = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")])
+    b = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")])
 
     msg = """numpy array are different
 
