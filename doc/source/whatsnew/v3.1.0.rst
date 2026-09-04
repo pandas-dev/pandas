@@ -419,6 +419,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.str.partition` with ``expand=True`` for :class:`ArrowDtype` and :class:`StringDtype` with storage ``"pyarrow"``, which partitioned each element in Python instead of using PyArrow's ``split_pattern`` kernel (:issue:`63602`)
 - Performance improvement in :meth:`Series.str.zfill` for :class:`StringDtype` with storage ``"pyarrow"``, which fell back to an object-dtype implementation instead of using PyArrow's ``utf8_zfill`` kernel (:issue:`66339`)
 - Performance improvement in :meth:`Series.to_json` and :meth:`DataFrame.to_json` with ``date_format="iso"`` for a timezone-aware datetime :class:`Series` and for a timezone-aware :class:`DatetimeIndex` (:issue:`66007`)
+- Performance improvement in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` equivalents when bottleneck is disabled  (:issue:`64884`)
 - Performance improvement in :meth:`Timedelta.total_seconds` (:issue:`65388`)
 - Performance improvement in :meth:`arrays.SparseArray.isna` by avoiding a dense-then-resparsify round-trip (:issue:`41023`)
 - Performance improvement in datetime/timedelta unit conversion (e.g. ``datetime64[s]`` to ``datetime64[ns]``) (:issue:`35025`)
