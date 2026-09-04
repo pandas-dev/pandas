@@ -2264,7 +2264,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1   1.0
         2   3.0
         """
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        # This method can consume the un-normalized {column: aggfunc} form, but only
+        #  when the columns are unique: dict aggregation fans a single key out to
+        #  every matching column, while named aggregation must produce exactly one
+        #  output per keyword.
+        #  `func is None` is a precondition for relabeling at all, and short-circuits
+        #  materializing _obj_with_exclusions on the far more common plain-agg path.
+        allow_skip_normalization = (
+            func is None and self._obj_with_exclusions.columns.is_unique
+        )
+        relabeling, func, columns, order = reconstruct_func(
+            func, allow_skip_normalization, **kwargs
+        )
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):
