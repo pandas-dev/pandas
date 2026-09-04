@@ -641,12 +641,14 @@ def assert_categorical_equal(
             exact=exact,
             check_freq=check_freq,
         )
-        assert_index_equal(
-            left.categories.take(left.codes),
-            right.categories.take(right.codes),
+        # GH#62008 Compare the values as objects.  Taking the categories with
+        #  the raw codes would treat the -1 code used for NA as a positional
+        #  indexer for the last category, and filling instead would cast
+        #  integer categories to float64.
+        assert_numpy_array_equal(
+            left.astype(object),
+            right.astype(object),
             obj=f"{obj}.values",
-            exact=exact,
-            check_freq=check_freq,
         )
 
     assert_attr_equal("ordered", left, right, obj=obj)
@@ -655,7 +657,6 @@ def assert_categorical_equal(
 def assert_interval_array_equal(
     left: IntervalArray,
     right: IntervalArray,
-    exact: bool | Literal["equiv"] = "equiv",
     obj: str = "IntervalArray",
 ) -> None:
     """
@@ -665,10 +666,6 @@ def assert_interval_array_equal(
     ----------
     left, right : IntervalArray
         The IntervalArrays to compare.
-    exact : bool or {'equiv'}, default 'equiv'
-        Whether to check the Index class, dtype and inferred_type
-        are identical. If 'equiv', then RangeIndex can be substituted for
-        Index with an int64 dtype as well.
     obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message

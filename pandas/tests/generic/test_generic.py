@@ -8,12 +8,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_scalar
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 # ----------------------------------------------------------------------
@@ -58,7 +53,7 @@ class TestGeneric:
         [
             str.lower,
             {x: x.lower() for x in list("ABCD")},
-            Series({x: x.lower() for x in list("ABCD")}),
+            pd.Series({x: x.lower() for x in list("ABCD")}),
         ],
     )
     def test_rename(self, frame_or_series, func):
@@ -90,7 +85,7 @@ class TestGeneric:
         # non-inclusion
         result = o._get_bool_data()
         expected = construct(frame_or_series, n, value="empty", **kwargs)
-        if isinstance(o, DataFrame):
+        if isinstance(o, pd.DataFrame):
             # preserve columns dtype
             expected.columns = o.columns[:0]
         tm.assert_equal(result, expected)
@@ -102,7 +97,7 @@ class TestGeneric:
         tm.assert_equal(result, o)
 
     def test_get_bool_data_empty_preserve_index(self):
-        expected = Series([], dtype="bool")
+        expected = pd.Series([], dtype="bool")
         result = expected._get_bool_data()
         tm.assert_series_equal(result, expected, check_index_type=True)
 
@@ -319,8 +314,8 @@ class TestNDFrame:
     @pytest.mark.parametrize(
         "ser",
         [
-            Series(range(10), dtype=np.float64),
-            Series([str(i) for i in range(10)], dtype=object),
+            pd.Series(range(10), dtype=np.float64),
+            pd.Series([str(i) for i in range(10)], dtype=object),
         ],
     )
     def test_squeeze_series_noop(self, ser):
@@ -329,31 +324,31 @@ class TestNDFrame:
 
     def test_squeeze_frame_noop(self):
         # noop
-        df = DataFrame(np.eye(2))
+        df = pd.DataFrame(np.eye(2))
         tm.assert_frame_equal(df.squeeze(), df)
 
     def test_squeeze_frame_reindex(self):
         # squeezing
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=10, freq="B"),
         ).reindex(columns=["A"])
         tm.assert_series_equal(df.squeeze(), df["A"])
 
     def test_squeeze_0_len_dim(self):
         # don't fail with 0 length dimensions GH11229 & GH8999
-        empty_series = Series([], name="five", dtype=np.float64)
-        empty_frame = DataFrame([empty_series])
+        empty_series = pd.Series([], name="five", dtype=np.float64)
+        empty_frame = pd.DataFrame([empty_series])
         tm.assert_series_equal(empty_series, empty_series.squeeze())
         tm.assert_series_equal(empty_series, empty_frame.squeeze())
 
     def test_squeeze_axis(self):
         # axis argument
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((1, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=1, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=1, freq="B"),
         ).iloc[:, :1]
         assert df.shape == (1, 1)
         tm.assert_series_equal(df.squeeze(axis=0), df.iloc[0])
@@ -369,29 +364,29 @@ class TestNDFrame:
             df.squeeze(axis="x")
 
     def test_squeeze_axis_len_3(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=3, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=3, freq="B"),
         )
         tm.assert_frame_equal(df.squeeze(axis=0), df)
 
     def test_numpy_squeeze(self):
-        s = Series(range(2), dtype=np.float64)
+        s = pd.Series(range(2), dtype=np.float64)
         tm.assert_series_equal(np.squeeze(s), s)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=10, freq="B"),
         ).reindex(columns=["A"])
         tm.assert_series_equal(np.squeeze(df), df["A"])
 
     @pytest.mark.parametrize(
         "ser",
         [
-            Series(range(10), dtype=np.float64),
-            Series([str(i) for i in range(10)], dtype=object),
+            pd.Series(range(10), dtype=np.float64),
+            pd.Series([str(i) for i in range(10)], dtype=object),
         ],
     )
     def test_transpose_series(self, ser):
@@ -399,22 +394,22 @@ class TestNDFrame:
         tm.assert_series_equal(ser.transpose(), ser)
 
     def test_transpose_frame(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=10, freq="B"),
         )
         tm.assert_frame_equal(df.transpose().transpose(), df)
 
     def test_numpy_transpose(self, frame_or_series):
-        obj = DataFrame(
+        obj = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=10, freq="B"),
         )
         obj = tm.get_obj(obj, frame_or_series)
 
-        if frame_or_series is Series:
+        if frame_or_series is pd.Series:
             # 1D -> np.transpose is no-op
             tm.assert_series_equal(np.transpose(obj), obj)
 
@@ -428,14 +423,14 @@ class TestNDFrame:
     @pytest.mark.parametrize(
         "ser",
         [
-            Series(range(10), dtype=np.float64),
-            Series([str(i) for i in range(10)], dtype=object),
+            pd.Series(range(10), dtype=np.float64),
+            pd.Series([str(i) for i in range(10)], dtype=object),
         ],
     )
     def test_take_series(self, ser):
         indices = [1, 5, -2, 6, 3, -1]
         out = ser.take(indices)
-        expected = Series(
+        expected = pd.Series(
             data=ser.values.take(indices),
             index=ser.index.take(indices),
             dtype=ser.dtype,
@@ -444,13 +439,13 @@ class TestNDFrame:
 
     def test_take_frame(self):
         indices = [1, 5, -2, 6, 3, -1]
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.date_range("2000-01-01", periods=10, freq="B"),
         )
         out = df.take(indices)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             data=df.values.take(indices, axis=0),
             index=df.index.take(indices),
             columns=df.columns,
@@ -460,7 +455,7 @@ class TestNDFrame:
     def test_take_invalid_kwargs(self, frame_or_series):
         indices = [-3, 2, 0, 1]
 
-        obj = DataFrame(range(5))
+        obj = pd.DataFrame(range(5))
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -485,8 +480,8 @@ class TestNDFrame:
             assert obj._get_block_manager_axis(v) == box._get_block_manager_axis(v)
 
     def test_flags_identity(self, frame_or_series):
-        obj = Series([1, 2])
-        if frame_or_series is DataFrame:
+        obj = pd.Series([1, 2])
+        if frame_or_series is pd.DataFrame:
             obj = obj.to_frame()
 
         assert obj.flags is obj.flags

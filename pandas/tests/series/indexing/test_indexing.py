@@ -8,27 +8,12 @@ import pytest
 
 from pandas.errors import IndexingError
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-    IndexSlice,
-    MultiIndex,
-    NaT,
-    Series,
-    Timedelta,
-    Timestamp,
-    concat,
-    date_range,
-    isna,
-    period_range,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_basic_indexing():
-    s = Series(
+    s = pd.Series(
         np.random.default_rng(2).standard_normal(5), index=["a", "b", "a", "a", "b"]
     )
 
@@ -47,20 +32,20 @@ def test_basic_indexing():
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
     # GH51053
     dtype = any_numeric_dtype
-    idx = Index([1, 0, 1], dtype=dtype)
-    ser = Series(range(3), index=idx)
+    idx = pd.Index([1, 0, 1], dtype=dtype)
+    ser = pd.Series(range(3), index=idx)
     result = ser[1]
-    expected = Series([0, 2], index=Index([1, 1], dtype=dtype))
+    expected = pd.Series([0, 2], index=pd.Index([1, 1], dtype=dtype))
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
 def test_setitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
     # GH51053
     dtype = any_numeric_dtype
-    idx = Index([1, 0, 1], dtype=dtype)
-    ser = Series(range(3), index=idx)
+    idx = pd.Index([1, 0, 1], dtype=dtype)
+    ser = pd.Series(range(3), index=idx)
     ser[1] = 10
-    expected = Series([10, 1, 10], index=idx)
+    expected = pd.Series([10, 1, 10], index=idx)
     tm.assert_series_equal(ser, expected, check_exact=True)
 
 
@@ -79,10 +64,10 @@ def test_basic_getitem_with_labels(datetime_series):
 def test_basic_getitem_dt64tz_values():
     # GH12089
     # with tz for values
-    ser = Series(
-        date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
+    ser = pd.Series(
+        pd.date_range("2011-01-01", periods=3, tz="US/Eastern"), index=["a", "b", "c"]
     )
-    expected = Timestamp("2011-01-01", tz="US/Eastern")
+    expected = pd.Timestamp("2011-01-01", tz="US/Eastern")
     result = ser.loc["a"]
     assert result == expected
     result = ser.iloc[0]
@@ -92,7 +77,7 @@ def test_basic_getitem_dt64tz_values():
 
 
 def test_getitem_setitem_ellipsis():
-    s = Series(np.random.default_rng(2).standard_normal(10))
+    s = pd.Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
@@ -104,19 +89,19 @@ def test_getitem_setitem_ellipsis():
         [
             {1: 12, 2: [1, 2, 2, 3]},
             {1: 313},
-            Series({1: 12}, dtype=object),
+            pd.Series({1: 12}, dtype=object),
         ],
         [
             {1: [1, 2, 3], 2: [1, 2, 2, 3]},
             {1: [1, 2, 3]},
-            Series({1: [1, 2, 3]}),
+            pd.Series({1: [1, 2, 3]}),
         ],
     ],
 )
 def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
-    result_1 = Series(result_1)
-    duplicate_item = Series(duplicate_item)
+    result_1 = pd.Series(result_1)
+    duplicate_item = pd.Series(duplicate_item)
     result = result_1._append_internal(duplicate_item)
     expected = expected_1._append_internal(duplicate_item)
     tm.assert_series_equal(result[1], expected)
@@ -125,7 +110,7 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
 
 def test_getitem_setitem_integers():
     # caused bug without test
-    s = Series([1, 2, 3], ["a", "b", "c"])
+    s = pd.Series([1, 2, 3], ["a", "b", "c"])
 
     assert s.iloc[0] == s["a"]
     s.iloc[0] = 5
@@ -133,34 +118,34 @@ def test_getitem_setitem_integers():
 
 
 def test_series_box_timestamp():
-    rng = date_range("20090415", "20090519", freq="B")
-    ser = Series(rng)
-    assert isinstance(ser[0], Timestamp)
-    assert isinstance(ser.at[1], Timestamp)
-    assert isinstance(ser.iat[2], Timestamp)
-    assert isinstance(ser.loc[3], Timestamp)
-    assert isinstance(ser.iloc[4], Timestamp)
+    rng = pd.date_range("20090415", "20090519", freq="B")
+    ser = pd.Series(rng)
+    assert isinstance(ser[0], pd.Timestamp)
+    assert isinstance(ser.at[1], pd.Timestamp)
+    assert isinstance(ser.iat[2], pd.Timestamp)
+    assert isinstance(ser.loc[3], pd.Timestamp)
+    assert isinstance(ser.iloc[4], pd.Timestamp)
 
-    ser = Series(rng, index=rng)
-    assert isinstance(ser[rng[0]], Timestamp)
-    assert isinstance(ser.at[rng[1]], Timestamp)
-    assert isinstance(ser.iat[2], Timestamp)
-    assert isinstance(ser.loc[rng[3]], Timestamp)
-    assert isinstance(ser.iloc[4], Timestamp)
+    ser = pd.Series(rng, index=rng)
+    assert isinstance(ser[rng[0]], pd.Timestamp)
+    assert isinstance(ser.at[rng[1]], pd.Timestamp)
+    assert isinstance(ser.iat[2], pd.Timestamp)
+    assert isinstance(ser.loc[rng[3]], pd.Timestamp)
+    assert isinstance(ser.iloc[4], pd.Timestamp)
 
 
 def test_series_box_timedelta():
-    rng = timedelta_range("1 day 1 s", periods=5, freq="h")
-    ser = Series(rng)
-    assert isinstance(ser[0], Timedelta)
-    assert isinstance(ser.at[1], Timedelta)
-    assert isinstance(ser.iat[2], Timedelta)
-    assert isinstance(ser.loc[3], Timedelta)
-    assert isinstance(ser.iloc[4], Timedelta)
+    rng = pd.timedelta_range("1 day 1 s", periods=5, freq="h")
+    ser = pd.Series(rng)
+    assert isinstance(ser[0], pd.Timedelta)
+    assert isinstance(ser.at[1], pd.Timedelta)
+    assert isinstance(ser.iat[2], pd.Timedelta)
+    assert isinstance(ser.loc[3], pd.Timedelta)
+    assert isinstance(ser.iloc[4], pd.Timedelta)
 
 
 def test_getitem_ambiguous_keyerror(indexer_sl):
-    ser = Series(range(10), index=list(range(0, 20, 2)))
+    ser = pd.Series(range(10), index=list(range(0, 20, 2)))
     with pytest.raises(KeyError, match=r"^1$"):
         indexer_sl(ser)[1]
 
@@ -168,18 +153,18 @@ def test_getitem_ambiguous_keyerror(indexer_sl):
 def test_getitem_dups_with_missing(indexer_sl):
     # breaks reindex, so need to use .loc internally
     # GH 4246
-    ser = Series([1, 2, 3, 4], ["foo", "bar", "foo", "bah"])
+    ser = pd.Series([1, 2, 3, 4], ["foo", "bar", "foo", "bah"])
     with pytest.raises(KeyError, match=re.escape("['bam'] not in index")):
         indexer_sl(ser)[["foo", "bar", "bah", "bam"]]
 
 
 def test_setitem_ambiguous_keyerror(indexer_sl):
-    s = Series(range(10), index=list(range(0, 20, 2)))
+    s = pd.Series(range(10), index=list(range(0, 20, 2)))
 
     # equivalent of an append
     s2 = s.copy()
     indexer_sl(s2)[1] = 5
-    expected = concat([s, Series([5], index=[1])])
+    expected = pd.concat([s, pd.Series([5], index=[1])])
     tm.assert_series_equal(s2, expected)
 
 
@@ -251,28 +236,30 @@ def test_slice(string_series, object_series):
 
 def test_timedelta_assignment():
     # GH 8209
-    s = Series([], dtype=object)
+    s = pd.Series([], dtype=object)
     s.loc["B"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), dtype="timedelta64[us]", index=["B"])
+    expected = pd.Series(pd.Timedelta("1 days"), dtype="timedelta64[us]", index=["B"])
     tm.assert_series_equal(s, expected)
 
     s = s.reindex(s.index.insert(0, "A"))
-    expected = Series(
-        [np.nan, Timedelta("1 days")], dtype="timedelta64[us]", index=["A", "B"]
+    expected = pd.Series(
+        [np.nan, pd.Timedelta("1 days")], dtype="timedelta64[us]", index=["A", "B"]
     )
     tm.assert_series_equal(s, expected)
 
     s.loc["A"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), dtype="timedelta64[us]", index=["A", "B"])
+    expected = pd.Series(
+        pd.Timedelta("1 days"), dtype="timedelta64[us]", index=["A", "B"]
+    )
     tm.assert_series_equal(s, expected)
 
 
 def test_underlying_data_conversion():
     # GH 4080
-    df = DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
+    df = pd.DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
     return_value = df.set_index(["a", "b", "c"], inplace=True)
     assert return_value is None
-    s = Series([1], index=[(2, 2, 2)])
+    s = pd.Series([1], index=[(2, 2, 2)])
     df["val"] = 0
     df_original = df.copy()
     df
@@ -291,7 +278,7 @@ def test_preserve_refs(datetime_series):
 
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
     index = lexsorted_two_level_string_multiindex
-    ser = Series(
+    ser = pd.Series(
         np.random.default_rng(2).standard_normal(len(index)), index=index, name="sth"
     )
 
@@ -305,17 +292,17 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
 @pytest.mark.parametrize(
     "index",
     [
-        date_range("2014-01-01", periods=20, freq="MS"),
-        period_range("2014-01", periods=20, freq="M"),
-        timedelta_range("0", periods=20, freq="h"),
+        pd.date_range("2014-01-01", periods=20, freq="MS"),
+        pd.period_range("2014-01", periods=20, freq="M"),
+        pd.timedelta_range("0", periods=20, freq="h"),
     ],
 )
 def test_slice_with_negative_step(index):
     keystr1 = str(index[9])
     keystr2 = str(index[13])
 
-    ser = Series(np.arange(20), index)
-    SLC = IndexSlice
+    ser = pd.Series(np.arange(20), index)
+    SLC = pd.IndexSlice
 
     for key in [keystr1, index[9]]:
         tm.assert_indexing_slices_equivalent(ser, SLC[key::-1], SLC[9::-1])
@@ -328,7 +315,7 @@ def test_slice_with_negative_step(index):
 
 def test_tuple_index():
     # GH 35534 - Selecting values when a Series has an Index of tuples
-    s = Series([1, 2], index=[("a",), ("b",)])
+    s = pd.Series([1, 2], index=[("a",), ("b",)])
     assert s[("a",)] == 1
     assert s[("b",)] == 2
     s[("b",)] = 3
@@ -338,7 +325,7 @@ def test_tuple_index():
 def test_frozenset_index():
     # GH35747 - Selecting values when a Series has an Index of frozenset
     idx0, idx1 = frozenset("a"), frozenset("b")
-    s = Series([1, 2], index=[idx0, idx1])
+    s = pd.Series([1, 2], index=[idx0, idx1])
     assert s[idx0] == 1
     assert s[idx1] == 2
     s[idx1] = 3
@@ -347,49 +334,49 @@ def test_frozenset_index():
 
 def test_loc_setitem_all_false_indexer():
     # GH#45778
-    ser = Series([1, 2], index=["a", "b"])
+    ser = pd.Series([1, 2], index=["a", "b"])
     expected = ser.copy()
-    rhs = Series([6, 7], index=["a", "b"])
+    rhs = pd.Series([6, 7], index=["a", "b"])
     ser.loc[ser > 100] = rhs
     tm.assert_series_equal(ser, expected)
 
 
 def test_loc_boolean_indexer_non_matching_index():
     # GH#46551
-    ser = Series([1])
-    result = ser.loc[Series([NA, False], dtype="boolean")]
-    expected = Series([], dtype="int64")
+    ser = pd.Series([1])
+    result = ser.loc[pd.Series([pd.NA, False], dtype="boolean")]
+    expected = pd.Series([], dtype="int64")
     tm.assert_series_equal(result, expected)
 
 
 def test_loc_boolean_indexer_miss_matching_index():
     # GH#46551
-    ser = Series([1])
-    indexer = Series([NA, False], dtype="boolean", index=[1, 2])
+    ser = pd.Series([1])
+    indexer = pd.Series([pd.NA, False], dtype="boolean", index=[1, 2])
     with pytest.raises(IndexingError, match="Unalignable"):
         ser.loc[indexer]
 
 
 def test_loc_setitem_nested_data_enlargement():
     # GH#48614
-    df = DataFrame({"a": [1]})
-    ser = Series({"label": df})
+    df = pd.DataFrame({"a": [1]})
+    ser = pd.Series({"label": df})
     ser.loc["new_label"] = df
-    expected = Series({"label": df, "new_label": df})
+    expected = pd.Series({"label": df, "new_label": df})
     tm.assert_series_equal(ser, expected)
 
 
 def test_loc_ea_numeric_index_oob_slice_end():
     # GH#50161
-    ser = Series(1, index=Index([0, 1, 2], dtype="Int64"))
+    ser = pd.Series(1, index=pd.Index([0, 1, 2], dtype="Int64"))
     result = ser.loc[2:3]
-    expected = Series(1, index=Index([2], dtype="Int64"))
+    expected = pd.Series(1, index=pd.Index([2], dtype="Int64"))
     tm.assert_series_equal(result, expected)
 
 
 def test_getitem_bool_int_key():
     # GH#48653
-    ser = Series({True: 1, False: 0})
+    ser = pd.Series({True: 1, False: 0})
     with pytest.raises(KeyError, match="0"):
         ser.loc[0]
 
@@ -398,7 +385,7 @@ def test_getitem_bool_int_key():
 @pytest.mark.parametrize("indexer", [[], [False, False], slice(0, -1), np.array([])])
 def test_setitem_empty_indexer(indexer, val):
     # GH#45981
-    df = DataFrame({"a": [1, 2], **val})
+    df = pd.DataFrame({"a": [1, 2], **val})
     expected = df.copy()
     df.loc[indexer] = 1.5
     tm.assert_frame_equal(df, expected)
@@ -406,7 +393,7 @@ def test_setitem_empty_indexer(indexer, val):
 
 def test_loc_non_monotonic_index_with_a_missing_label():
     msg = "Cannot get left slice bound for non-monotonic index with a missing label 4"
-    ser = Series([3, 6, 7, 6], index=[3, 8, 7, 6])
+    ser = pd.Series([3, 6, 7, 6], index=[3, 8, 7, 6])
     with pytest.raises(KeyError, match=msg):
         ser.loc[4:7]
 
@@ -415,28 +402,28 @@ class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
         # GH#42825 enforced in 2.0
-        ser = Series([1, 2])
+        ser = pd.Series([1, 2])
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
     def test_getitem_dict_and_set_deprecated_multiindex(self, key):
         # GH#42825 enforced in 2.0
-        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        ser = pd.Series([1, 2], index=pd.MultiIndex.from_tuples([(1, 2), (3, 4)]))
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_setitem_dict_and_set_disallowed(self, key):
         # GH#42825 enforced in 2.0
-        ser = Series([1, 2])
+        ser = pd.Series([1, 2])
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
     def test_setitem_dict_and_set_disallowed_multiindex(self, key):
         # GH#42825 enforced in 2.0
-        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        ser = pd.Series([1, 2], index=pd.MultiIndex.from_tuples([(1, 2), (3, 4)]))
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
 
@@ -480,7 +467,7 @@ class TestSetitemValidation:
         "True",
         "1",
         "1.0",
-        NaT,
+        pd.NaT,
         np.datetime64("NaT", "ns"),
         np.timedelta64("NaT", "ns"),
     ]
@@ -491,14 +478,14 @@ class TestSetitemValidation:
     )
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_bool(self, invalid, indexer):
-        ser = Series([True, False, False], dtype="bool")
+        ser = pd.Series([True, False, False], dtype="bool")
         self._check_setitem_invalid(ser, invalid, indexer)
 
     @pytest.mark.parametrize("invalid", [*_invalid_scalars, True, 1.5, np.float64(1.5)])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
-        ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
-        if isna(invalid) and invalid is not NaT and not np.isnat(invalid):
+        ser = pd.Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        if pd.isna(invalid) and invalid is not pd.NaT and not np.isnat(invalid):
             self._check_setitem_valid(ser, invalid, indexer)
         else:
             self._check_setitem_invalid(ser, invalid, indexer)
@@ -506,5 +493,5 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("invalid", [*_invalid_scalars, True])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
-        ser = Series([1, 2, None], dtype=float_numpy_dtype)
+        ser = pd.Series([1, 2, None], dtype=float_numpy_dtype)
         self._check_setitem_invalid(ser, invalid, indexer)

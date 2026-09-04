@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NaT,
-    SparseDtype,
-    Timestamp,
-    isna,
-)
+import pandas as pd
 from pandas.core.arrays.sparse import SparseArray
 
 
@@ -127,7 +122,7 @@ class TestReductions:
         # GH#65478 sum honors skipna for SparseArray-backed reductions
         arr = SparseArray([1.0, np.nan, 3.0], fill_value=np.nan)
         assert arr.sum(skipna=True) == 4.0
-        assert isna(arr.sum(skipna=False))
+        assert pd.isna(arr.sum(skipna=False))
 
         # a non-null fill value is not a missing value, so skipna=False
         # still returns the full sum
@@ -154,7 +149,7 @@ class TestReductions:
         res = spar_bool.sum(min_count=1)
         assert res == 5
         res = spar_bool.sum(min_count=11)
-        assert isna(res)
+        assert pd.isna(res)
 
     def test_numpy_sum(self):
         data = np.arange(10).astype(float)
@@ -189,18 +184,18 @@ class TestReductions:
         assert out == 40.0 / 9
 
         out = SparseArray(data).mean(skipna=False)
-        assert isna(out)
+        assert pd.isna(out)
 
         arr = SparseArray([1.0, np.nan, 3.0], fill_value=np.nan)
         out = arr.mean(skipna=True)
         assert out == 2.0
 
         out = arr.mean(skipna=False)
-        assert isna(out)
+        assert pd.isna(out)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_mean_raises_for_unsupported_object_dtype_with_na(self, skipna):
-        arr = SparseArray(["a", np.nan], dtype=SparseDtype(object))
+        arr = SparseArray(["a", np.nan], dtype=pd.SparseDtype(object))
 
         msg = "unsupported operand type"
         with pytest.raises(TypeError, match=msg):
@@ -260,7 +255,7 @@ class TestMinMax:
     )
     def test_fill_value(self, fill_value, max_expected, min_expected):
         arr = SparseArray(
-            np.array([fill_value, 0, 1]), dtype=SparseDtype("int", fill_value)
+            np.array([fill_value, 0, 1]), dtype=pd.SparseDtype("int", fill_value)
         )
         max_result = arr.max()
         assert max_result == max_expected
@@ -277,11 +272,11 @@ class TestMinMax:
 
         result = getattr(arr, method)(skipna=False)
 
-        assert isna(result)
+        assert pd.isna(result)
 
     def test_only_fill_value(self):
         fv = 100
-        arr = SparseArray(np.array([fv, fv, fv]), dtype=SparseDtype("int", fv))
+        arr = SparseArray(np.array([fv, fv, fv]), dtype=pd.SparseDtype("int", fv))
         assert len(arr._valid_sp_values) == 0
 
         assert arr.max() == fv
@@ -294,18 +289,18 @@ class TestMinMax:
     @pytest.mark.parametrize(
         "dtype,expected",
         [
-            (SparseDtype(np.float64, np.nan), np.nan),
-            (SparseDtype(np.float64, 5.0), np.nan),
-            (SparseDtype("datetime64[ns]", NaT), NaT),
-            (SparseDtype("datetime64[ns]", Timestamp("2018-05-05")), NaT),
+            (pd.SparseDtype(np.float64, np.nan), np.nan),
+            (pd.SparseDtype(np.float64, 5.0), np.nan),
+            (pd.SparseDtype("datetime64[ns]", pd.NaT), pd.NaT),
+            (pd.SparseDtype("datetime64[ns]", pd.Timestamp("2018-05-05")), pd.NaT),
         ],
     )
     def test_na_value_if_no_valid_values(self, func, data, dtype, expected):
         arr = SparseArray(data, dtype=dtype)
         result = getattr(arr, func)()
-        if expected is NaT:
+        if expected is pd.NaT:
             # TODO: pin down whether we wrap datetime64("NaT")
-            assert result is NaT or np.isnat(result)
+            assert result is pd.NaT or np.isnat(result)
         else:
             assert np.isnan(result)
 

@@ -51,11 +51,9 @@ static int floatify(PyObject *str, double *result, int *maybe_int) {
 
   if (!status) {
     /* handle inf/-inf infinity/-infinity */
-    const int sign = infinity_sign(data, length);
-    if (sign == 0) {
+    if (parse_special_float(data, length, result) != 0) {
       goto parsingerror;
     }
-    *result = sign > 0 ? HUGE_VAL : -HUGE_VAL;
     *maybe_int = 0;
   }
 

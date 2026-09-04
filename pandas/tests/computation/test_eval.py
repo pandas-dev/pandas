@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from functools import reduce
 from itertools import product
-import operator
 
 import numpy as np
 import pytest
@@ -14,6 +12,7 @@ from pandas.compat import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
+    Pandas4Warning,
     PerformanceWarning,
     UndefinedVariableError,
 )
@@ -27,14 +26,6 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.computation import (
     expr,
@@ -109,13 +100,13 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
 def lhs(request):
     rng = np.random.default_rng(2)
     if request.param == 0:
-        return DataFrame(rng.standard_normal((10, 5)))
+        return pd.DataFrame(rng.standard_normal((10, 5)))
     elif request.param == 1:
-        return Series(rng.standard_normal(5))
+        return pd.Series(rng.standard_normal(5))
     elif request.param == 2:
-        return Series([1, 2, np.nan, np.nan, 5])
+        return pd.Series([1, 2, np.nan, np.nan, 5])
     elif request.param == 3:
-        nan_df1 = DataFrame(rng.standard_normal((10, 5)))
+        nan_df1 = pd.DataFrame(rng.standard_normal((10, 5)))
         nan_df1[nan_df1 > 0.5] = np.nan
         return nan_df1
     elif request.param == 4:
@@ -131,12 +122,12 @@ midhs = lhs
 @pytest.fixture
 def idx_func_dict():
     return {
-        "i": lambda n: Index(np.arange(n), dtype=np.int64),
-        "f": lambda n: Index(np.arange(n), dtype=np.float64),
-        "s": lambda n: Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
-        "dt": lambda n: date_range("2020-01-01", periods=n),
-        "td": lambda n: timedelta_range("1 day", periods=n),
-        "p": lambda n: period_range("2020-01-01", periods=n, freq="D"),
+        "i": lambda n: pd.Index(np.arange(n), dtype=np.int64),
+        "f": lambda n: pd.Index(np.arange(n), dtype=np.float64),
+        "s": lambda n: pd.Index([f"{i}_{chr(i)}" for i in range(97, 97 + n)]),
+        "dt": lambda n: pd.date_range("2020-01-01", periods=n),
+        "td": lambda n: pd.timedelta_range("1 day", periods=n),
+        "p": lambda n: pd.period_range("2020-01-01", periods=n, freq="D"),
     }
 
 
@@ -320,7 +311,7 @@ class TestEval:
             import numexpr as ne
 
             expected = ne.evaluate(r"expected % rhs")
-            if isinstance(result, (DataFrame, Series)):
+            if isinstance(result, (pd.DataFrame, pd.Series)):
                 tm.assert_almost_equal(result.values, expected)
             else:
                 tm.assert_almost_equal(result, expected.item())
@@ -392,7 +383,7 @@ class TestEval:
         # ~ ##
         # frame
         # float always raises
-        lhs = DataFrame(np.random.default_rng(2).standard_normal((5, 2)))
+        lhs = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)))
         if engine == "numexpr":
             msg = "couldn't find matching opcode for 'invert_dd'"
             with pytest.raises(NotImplementedError, match=msg):
@@ -403,7 +394,7 @@ class TestEval:
                 pd.eval(expr, engine=engine, parser=parser)
 
         # int raises on numexpr
-        lhs = DataFrame(np.random.default_rng(2).integers(5, size=(5, 2)))
+        lhs = pd.DataFrame(np.random.default_rng(2).integers(5, size=(5, 2)))
         if engine == "numexpr" and Version(numexpr.__version__) < Version("2.13.0"):
             msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
@@ -414,13 +405,13 @@ class TestEval:
             tm.assert_frame_equal(expect, result)
 
         # bool always works
-        lhs = DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5)
+        lhs = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5)
         expect = ~lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_frame_equal(expect, result)
 
         # object raises
-        lhs = DataFrame(
+        lhs = pd.DataFrame(
             {"b": ["a", 1, 2.0], "c": np.random.default_rng(2).standard_normal(3) > 0.5}
         )
         if engine == "numexpr":
@@ -437,7 +428,7 @@ class TestEval:
 
         # series
         # float raises
-        lhs = Series(np.random.default_rng(2).standard_normal(5))
+        lhs = pd.Series(np.random.default_rng(2).standard_normal(5))
         if engine == "numexpr":
             msg = "couldn't find matching opcode for 'invert_dd'"
             with pytest.raises(NotImplementedError, match=msg):
@@ -448,7 +439,7 @@ class TestEval:
                 pd.eval(expr, engine=engine, parser=parser)
 
         # int raises on numexpr
-        lhs = Series(np.random.default_rng(2).integers(5, size=5))
+        lhs = pd.Series(np.random.default_rng(2).integers(5, size=5))
         if engine == "numexpr" and Version(numexpr.__version__) < Version("2.13.0"):
             msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
@@ -459,7 +450,7 @@ class TestEval:
             tm.assert_series_equal(expect, result)
 
         # bool
-        lhs = Series(np.random.default_rng(2).standard_normal(5) > 0.5)
+        lhs = pd.Series(np.random.default_rng(2).standard_normal(5) > 0.5)
         expect = ~lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_series_equal(expect, result)
@@ -469,7 +460,7 @@ class TestEval:
         # bool
 
         # object
-        lhs = Series(["a", 1, 2.0])
+        lhs = pd.Series(["a", 1, 2.0])
         if engine == "numexpr":
             with pytest.raises(ValueError, match="unknown type object"):
                 pd.eval(expr, engine=engine, parser=parser)
@@ -482,19 +473,19 @@ class TestEval:
         expr = "-lhs"
 
         # float
-        lhs = DataFrame(np.random.default_rng(2).standard_normal((5, 2)))
+        lhs = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)))
         expect = -lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_frame_equal(expect, result)
 
         # int
-        lhs = DataFrame(np.random.default_rng(2).integers(5, size=(5, 2)))
+        lhs = pd.DataFrame(np.random.default_rng(2).integers(5, size=(5, 2)))
         expect = -lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_frame_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
-        lhs = DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5)
+        lhs = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5)
         if engine == "numexpr":
             msg = "couldn't find matching opcode for 'neg_bb'"
             with pytest.raises(NotImplementedError, match=msg):
@@ -508,19 +499,19 @@ class TestEval:
         expr = "-lhs"
 
         # float
-        lhs = Series(np.random.default_rng(2).standard_normal(5))
+        lhs = pd.Series(np.random.default_rng(2).standard_normal(5))
         expect = -lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_series_equal(expect, result)
 
         # int
-        lhs = Series(np.random.default_rng(2).integers(5, size=5))
+        lhs = pd.Series(np.random.default_rng(2).integers(5, size=5))
         expect = -lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_series_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
-        lhs = Series(np.random.default_rng(2).standard_normal(5) > 0.5)
+        lhs = pd.Series(np.random.default_rng(2).standard_normal(5) > 0.5)
         if engine == "numexpr":
             msg = "couldn't find matching opcode for 'neg_bb'"
             with pytest.raises(NotImplementedError, match=msg):
@@ -542,7 +533,7 @@ class TestEval:
         ],
     )
     def test_frame_pos(self, lhs, engine, parser):
-        lhs = DataFrame(lhs)
+        lhs = pd.DataFrame(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -561,7 +552,7 @@ class TestEval:
         ],
     )
     def test_series_pos(self, lhs, engine, parser):
-        lhs = Series(lhs)
+        lhs = pd.Series(lhs)
         expr = "+lhs"
         expect = lhs
 
@@ -624,13 +615,13 @@ class TestEval:
     @pytest.mark.parametrize("expr", ["x < -0.1", "-5 > x"])
     def test_float_comparison_bin_op(self, float_numpy_dtype, expr):
         # GH 16363
-        df = DataFrame({"x": np.array([0], dtype=float_numpy_dtype)})
+        df = pd.DataFrame({"x": np.array([0], dtype=float_numpy_dtype)})
         res = df.eval(expr)
         assert res.values == np.array([False])
 
     def test_unary_in_function(self):
         # GH 46471
-        df = DataFrame({"x": [0, 1, np.nan]})
+        df = pd.DataFrame({"x": [0, 1, np.nan]})
 
         result = df.eval("x.fillna(-1)")
         expected = df.x.fillna(-1)
@@ -656,7 +647,7 @@ class TestEval:
     )
     def test_disallow_scalar_bool_ops(self, ex, engine, parser):
         x, a, b = np.random.default_rng(2).standard_normal(3), 1, 2  # noqa: F841
-        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))  # noqa: F841
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((3, 2)))  # noqa: F841
 
         msg = "|".join(
             ["cannot evaluate scalar only bool ops", "'BoolOp' nodes are not"]
@@ -711,7 +702,7 @@ class TestEval:
         expected = np.float64(exp)
         assert result == expected
 
-        df = DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
+        df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
         cutoff = 1000000000.0006
         result = df.query(f"A < {cutoff:.4f}")
         assert result.empty
@@ -728,12 +719,12 @@ class TestEval:
 
     def test_disallow_python_keywords(self):
         # GH 18221
-        df = DataFrame([[0, 0, 0]], columns=["foo", "bar", "class"])
+        df = pd.DataFrame([[0, 0, 0]], columns=["foo", "bar", "class"])
         msg = "Python keyword not valid identifier in numexpr query"
         with pytest.raises(SyntaxError, match=msg):
             df.query("class == 0")
 
-        df = DataFrame()
+        df = pd.DataFrame()
         df.index.name = "lambda"
         with pytest.raises(SyntaxError, match=msg):
             df.query("lambda == 0")
@@ -741,8 +732,9 @@ class TestEval:
     def test_true_false_logic(self):
         # GH 25823
         # This behavior is deprecated in Python 3.12
+        msg = "Bitwise inversion '~' on bool is deprecated"
         with tm.maybe_produces_warning(
-            DeprecationWarning, PY312, check_stacklevel=False
+            DeprecationWarning, PY312, check_stacklevel=False, match=msg
         ):
             assert pd.eval("not True") == -2
             assert pd.eval("not False") == -1
@@ -750,18 +742,18 @@ class TestEval:
 
     def test_and_logic_string_match(self):
         # GH 25823
-        event = Series({"a": "hello"})
+        event = pd.Series({"a": "hello"})
         assert pd.eval(f"{event.str.match('hello').a}")
         assert pd.eval(f"{event.str.match('hello').a and event.str.match('hello').a}")
 
     def test_eval_keep_name(self, engine, parser):
-        df = Series([2, 15, 28], name="a").to_frame()
+        df = pd.Series([2, 15, 28], name="a").to_frame()
         res = df.eval("a + a", engine=engine, parser=parser)
-        expected = Series([4, 30, 56], name="a")
+        expected = pd.Series([4, 30, 56], name="a")
         tm.assert_series_equal(expected, res)
 
     def test_eval_unmatching_names(self, engine, parser):
-        variable_name = Series([42], name="series_name")
+        variable_name = pd.Series([42], name="series_name")
         res = pd.eval("variable_name + 0", engine=engine, parser=parser)
         tm.assert_series_equal(variable_name, res)
 
@@ -780,7 +772,7 @@ class TestTypeCasting:
     ):
         # GH#21374
         dtype = complex_or_float_dtype
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dtype)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)), dtype=dtype)
         left, right = left_right
         s = f"{left} {op} {right}"
         res = pd.eval(s, engine=engine, parser=parser)
@@ -800,21 +792,13 @@ class TestTypeCasting:
 # Basic and complex alignment
 
 
-def should_warn(*args):
-    not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
-    only_one_dt = reduce(
-        operator.xor, (issubclass(x.dtype.type, np.datetime64) for x in args)
-    )
-    return not_mono and only_one_dt
-
-
 class TestAlignment:
     index_types = ["i", "s", "dt"]
     lhs_index_types = [*index_types, "s"]  # 'p'
 
     def test_align_nested_unary_op(self, engine, parser):
         s = "df * ~2"
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         res = pd.eval(s, engine=engine, parser=parser)
         tm.assert_frame_equal(res, df * ~2)
 
@@ -824,22 +808,17 @@ class TestAlignment:
     def test_basic_frame_alignment(
         self, engine, parser, lr_idx_type, rr_idx_type, c_idx_type, idx_func_dict
     ):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 10)),
             index=idx_func_dict[lr_idx_type](10),
             columns=idx_func_dict[c_idx_type](10),
         )
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((20, 10)),
             index=idx_func_dict[rr_idx_type](20),
             columns=idx_func_dict[c_idx_type](10),
         )
-        # only warns if not monotonic and not sortable
-        if should_warn(df.index, df2.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df + df2", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df + df2", engine=engine, parser=parser)
+        res = pd.eval("df + df2", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2)
 
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
@@ -847,7 +826,7 @@ class TestAlignment:
     def test_frame_comparison(
         self, engine, parser, r_idx_type, c_idx_type, idx_func_dict
     ):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 10)),
             index=idx_func_dict[r_idx_type](10),
             columns=idx_func_dict[c_idx_type](10),
@@ -855,7 +834,7 @@ class TestAlignment:
         res = pd.eval("df < 2", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df < 2)
 
-        df3 = DataFrame(
+        df3 = pd.DataFrame(
             np.random.default_rng(2).standard_normal(df.shape),
             index=df.index,
             columns=df.columns,
@@ -871,26 +850,22 @@ class TestAlignment:
     def test_medium_complex_frame_alignment(
         self, engine, parser, r1, c1, r2, c2, idx_func_dict
     ):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 2)),
             index=idx_func_dict[r1](3),
             columns=idx_func_dict[c1](2),
         )
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((4, 2)),
             index=idx_func_dict[r2](4),
             columns=idx_func_dict[c2](2),
         )
-        df3 = DataFrame(
+        df3 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)),
             index=idx_func_dict[r2](5),
             columns=idx_func_dict[c2](2),
         )
-        if should_warn(df.index, df2.index, df3.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
+        res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2 + df3)
 
     @pytest.mark.parametrize("index_name", ["index", "columns"])
@@ -899,19 +874,15 @@ class TestAlignment:
     def test_basic_frame_series_alignment(
         self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 10)),
             index=idx_func_dict[r_idx_type](10),
             columns=idx_func_dict[c_idx_type](10),
         )
         index = getattr(df, index_name)
-        s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
+        s = pd.Series(np.random.default_rng(2).standard_normal(5), index[:5])
 
-        if should_warn(df.index, s.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df + s", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df + s", engine=engine, parser=parser)
+        res = pd.eval("df + s", engine=engine, parser=parser)
 
         if r_idx_type == "dt" or c_idx_type == "dt":
             expected = df.add(s) if engine == "numexpr" else df + s
@@ -927,18 +898,14 @@ class TestAlignment:
     def test_basic_series_frame_alignment(
         self, engine, parser, index_name, r_idx_type, c_idx_type, idx_func_dict
     ):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 7)),
             index=idx_func_dict[r_idx_type](10),
             columns=idx_func_dict[c_idx_type](7),
         )
         index = getattr(df, index_name)
-        s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
-        if should_warn(s.index, df.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("s + df", engine=engine, parser=parser)
-        else:
-            res = pd.eval("s + df", engine=engine, parser=parser)
+        s = pd.Series(np.random.default_rng(2).standard_normal(5), index[:5])
+        res = pd.eval("s + df", engine=engine, parser=parser)
 
         if r_idx_type == "dt" or c_idx_type == "dt":
             expected = df.add(s) if engine == "numexpr" else s + df
@@ -954,24 +921,20 @@ class TestAlignment:
     def test_series_frame_commutativity(
         self, engine, parser, index_name, op, r_idx_type, c_idx_type, idx_func_dict
     ):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 10)),
             index=idx_func_dict[r_idx_type](10),
             columns=idx_func_dict[c_idx_type](10),
         )
         index = getattr(df, index_name)
-        s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
+        s = pd.Series(  # noqa: F841  # referenced by name inside the eval expression
+            np.random.default_rng(2).standard_normal(5), index[:5]
+        )
 
         lhs = f"s {op} df"
         rhs = f"df {op} s"
-        if should_warn(df.index, s.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                a = pd.eval(lhs, engine=engine, parser=parser)
-            with tm.assert_produces_warning(RuntimeWarning):
-                b = pd.eval(rhs, engine=engine, parser=parser)
-        else:
-            a = pd.eval(lhs, engine=engine, parser=parser)
-            b = pd.eval(rhs, engine=engine, parser=parser)
+        a = pd.eval(lhs, engine=engine, parser=parser)
+        b = pd.eval(rhs, engine=engine, parser=parser)
 
         if r_idx_type != "dt" and c_idx_type != "dt":
             if engine == "numexpr":
@@ -987,18 +950,18 @@ class TestAlignment:
         n = 3
         m1 = 5
         m2 = 2 * m1
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((m1, n)),
             index=idx_func_dict[r1](m1),
             columns=idx_func_dict[c1](n),
         )
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             np.random.default_rng(2).standard_normal((m2, n)),
             index=idx_func_dict[r2](m2),
             columns=idx_func_dict[c2](n),
         )
         index = df2.columns
-        ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
+        ser = pd.Series(np.random.default_rng(2).standard_normal(n), index[:n])
 
         if r2 == "dt" or c2 == "dt":
             if engine == "numexpr":
@@ -1016,19 +979,15 @@ class TestAlignment:
         else:
             expected = expected2 + df
 
-        if should_warn(df2.index, ser.index, df.index):
-            with tm.assert_produces_warning(RuntimeWarning):
-                res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
-        else:
-            res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
+        res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
         assert res.shape == expected.shape
         tm.assert_frame_equal(res, expected)
 
     def test_performance_warning_for_poor_alignment(
         self, performance_warning, engine, parser
     ):
-        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))
-        s = Series(np.random.default_rng(2).standard_normal(10000))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))
+        s = pd.Series(np.random.default_rng(2).standard_normal(10000))
         if engine == "numexpr" and performance_warning:
             seen = PerformanceWarning
         else:
@@ -1038,17 +997,17 @@ class TestAlignment:
         with tm.assert_produces_warning(seen, match=msg):
             pd.eval("df + s", engine=engine, parser=parser)
 
-        s = Series(np.random.default_rng(2).standard_normal(1000))
+        s = pd.Series(np.random.default_rng(2).standard_normal(1000))
         with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 10000)))
-        s = Series(np.random.default_rng(2).standard_normal(10000))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 10000)))
+        s = pd.Series(np.random.default_rng(2).standard_normal(10000))
         with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 10)))
-        s = Series(np.random.default_rng(2).standard_normal(10000))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 10)))
+        s = pd.Series(np.random.default_rng(2).standard_normal(10000))
 
         is_python_engine = engine == "python"
 
@@ -1150,7 +1109,7 @@ class TestOperations:
 
     def test_4d_ndarray_fails(self):
         x = np.random.default_rng(2).standard_normal((3, 4, 5, 6))
-        y = Series(np.random.default_rng(2).standard_normal(10))
+        y = pd.Series(np.random.default_rng(2).standard_normal(10))
         msg = "N-dimensional objects, where N > 2, are not supported with eval"
         with pytest.raises(NotImplementedError, match=msg):
             self.eval("x + y", local_dict={"x": x, "y": y})
@@ -1160,23 +1119,23 @@ class TestOperations:
         assert x == 1
 
     def test_single_variable(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))  # noqa: F841
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))  # noqa: F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
     def test_lhs_expression_subscript(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         result = self.eval("(df + 1)[df > 2]", local_dict={"df": df})
         expected = (df + 1)[df > 2]
         tm.assert_frame_equal(result, expected)
 
     def test_attr_expression(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 3)), columns=list("abc")
         )
         expr1 = "df.a < df.b"
@@ -1191,17 +1150,17 @@ class TestOperations:
             tm.assert_series_equal(expec, self.eval(e, local_dict={"df": df}))
 
     def test_assignment_fails(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 3)), columns=list("abc")
         )
-        df2 = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df2 = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         expr1 = "df = df2"
         msg = "cannot assign without a target object"
         with pytest.raises(ValueError, match=msg):
             self.eval(expr1, local_dict={"df": df, "df2": df2})
 
     def test_assignment_column_multiple_raise(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # multiple assignees
@@ -1209,7 +1168,7 @@ class TestOperations:
             df.eval("d c = a + b")
 
     def test_assignment_column_invalid_assign(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # invalid assignees
@@ -1218,7 +1177,7 @@ class TestOperations:
             df.eval("d,c = a + b")
 
     def test_assignment_column_invalid_assign_function_call(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         msg = "cannot assign to function call"
@@ -1226,61 +1185,60 @@ class TestOperations:
             df.eval('Timestamp("20131001") = a + b')
 
     def test_assignment_single_assign_existing(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # single assignment - existing variable
         expected = df.copy()
         expected["a"] = expected["a"] + expected["b"]
-        df.eval("a = a + b", inplace=True)
-        tm.assert_frame_equal(df, expected)
+        result = df.eval("a = a + b")
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_single_assign_new(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # single assignment - new variable
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
-        df.eval("c = a + b", inplace=True)
-        tm.assert_frame_equal(df, expected)
+        result = df.eval("c = a + b")
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_single_assign_local_overlap(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
-        df = df.copy()
-        a = 1  # noqa: F841
-        df.eval("a = 1 + b", inplace=True)
-
         expected = df.copy()
         expected["a"] = 1 + expected["b"]
-        tm.assert_frame_equal(df, expected)
+
+        a = 1  # noqa: F841
+        result = df.eval("a = 1 + b")
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_single_assign_name(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
 
         a = 1  # noqa: F841
         old_a = df.a.copy()
-        df.eval("a = a + b", inplace=True)
-        result = old_a + df.b
-        tm.assert_series_equal(result, df.a, check_names=False)
-        assert result.name is None
+        result = df.eval("a = a + b")
+        expected = old_a + df.b
+        tm.assert_series_equal(result["a"], expected, check_names=False)
 
     def test_assignment_multiple_raises(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # multiple assignment
-        df.eval("c = a + b", inplace=True)
+        df = df.eval("c = a + b")
         msg = "can only assign a single expression"
         with pytest.raises(SyntaxError, match=msg):
             df.eval("c = a = b")
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_assignment_explicit(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # explicit targets
@@ -1291,19 +1249,18 @@ class TestOperations:
 
     def test_column_in(self, engine):
         # GH 11235
-        df = DataFrame({"a": [11], "b": [-32]})
+        df = pd.DataFrame({"a": [11], "b": [-32]})
         result = df.eval("a in [11, -32]", engine=engine)
-        expected = Series([True], name="a")
+        expected = pd.Series([True], name="a")
         tm.assert_series_equal(result, expected)
 
     def test_assignment_not_inplace(self):
         # see gh-9297
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
 
-        actual = df.eval("c = a + b", inplace=False)
-        assert actual is not None
+        actual = df.eval("c = a + b")
 
         expected = df.copy()
         expected["c"] = expected["a"] + expected["b"]
@@ -1312,30 +1269,26 @@ class TestOperations:
 
     def test_multi_line_expression(self):
         # GH 11149
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         expected["c"] = expected["a"] + expected["b"]
         expected["d"] = expected["c"] + expected["b"]
-        answer = df.eval(
+        result = df.eval(
             """
         c = a + b
         d = c + b""",
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
         expected["a"] = expected["a"] - 1
         expected["e"] = expected["a"] + 2
-        answer = df.eval(
+        result = result.eval(
             """
         a = a - 1
         e = a + 2""",
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
         # multi-line not valid if not all assignments
         msg = "Multi-line expressions are only valid if all expressions contain"
@@ -1344,55 +1297,27 @@ class TestOperations:
                 """
             a = b + 2
             b - 2""",
-                inplace=False,
             )
-
-    def test_multi_line_expression_not_inplace(self):
-        # GH 11149
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-        expected = df.copy()
-
-        expected["c"] = expected["a"] + expected["b"]
-        expected["d"] = expected["c"] + expected["b"]
-        df = df.eval(
-            """
-        c = a + b
-        d = c + b""",
-            inplace=False,
-        )
-        tm.assert_frame_equal(expected, df)
-
-        expected["a"] = expected["a"] - 1
-        expected["e"] = expected["a"] + 2
-        df = df.eval(
-            """
-        a = a - 1
-        e = a + 2""",
-            inplace=False,
-        )
-        tm.assert_frame_equal(expected, df)
 
     def test_multi_line_expression_local_variable(self):
         # GH 15342
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
 
         local_var = 7
         expected["c"] = expected["a"] * local_var
         expected["d"] = expected["c"] + local_var
-        answer = df.eval(
+        result = df.eval(
             """
         c = a * @local_var
         d = c + @local_var
         """,
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
     def test_multi_line_expression_callable_local_variable(self):
         # 26426
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         def local_func(a, b):
             return b
@@ -1400,19 +1325,17 @@ class TestOperations:
         expected = df.copy()
         expected["c"] = expected["a"] * local_func(1, 7)
         expected["d"] = expected["c"] + local_func(1, 7)
-        answer = df.eval(
+        result = df.eval(
             """
         c = a * @local_func(1, 7)
         d = c + @local_func(1, 7)
         """,
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
     def test_multi_line_expression_callable_local_variable_with_kwargs(self):
         # 26426
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
         def local_func(a, b):
             return b
@@ -1420,28 +1343,28 @@ class TestOperations:
         expected = df.copy()
         expected["c"] = expected["a"] * local_func(b=7, a=1)
         expected["d"] = expected["c"] + local_func(b=7, a=1)
-        answer = df.eval(
+        result = df.eval(
             """
         c = a * @local_func(b=7, a=1)
         d = c + @local_func(b=7, a=1)
         """,
-            inplace=True,
         )
-        tm.assert_frame_equal(expected, df)
-        assert answer is None
+        tm.assert_frame_equal(result, expected)
 
     def test_assignment_in_query(self):
         # GH 8664
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         df_orig = df.copy()
         msg = "cannot assign without a target object"
         with pytest.raises(ValueError, match=msg):
             df.query("a = 1")
         tm.assert_frame_equal(df, df_orig)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.query")
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_query_inplace(self):
         # see gh-11149
-        df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
         expected = df.copy()
         expected = expected[expected["a"] == 2]
         df.query("a == 2", inplace=True)
@@ -1454,6 +1377,7 @@ class TestOperations:
         tm.assert_dict_equal(df, expected)
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2], np.array([]), (1, 3)])
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
@@ -1471,22 +1395,23 @@ class TestOperations:
         expression = "a = 1 + 2"
 
         with pytest.raises(ValueError, match=msg):
-            self.eval(expression, target=invalid_target, inplace=False)
+            self.eval(expression, target=invalid_target)
 
     @pytest.mark.parametrize("target", [1, "cat", [1, 2], np.array([]), (1, 3), {1: 2}])
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in eval")
     def test_inplace_no_assignment(self, target):
         expression = "1 + 2"
 
-        assert self.eval(expression, target=target, inplace=False) == 3
+        assert self.eval(expression, target=target) == 3
 
         msg = "Cannot operate inplace if there is no assignment"
         with pytest.raises(ValueError, match=msg):
             self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((2, 2)),
-            columns=period_range("2020-01-01", freq="D", periods=2),
+            columns=pd.period_range("2020-01-01", freq="D", periods=2),
         )
         e = df < 2
         r = self.eval("df < 2", local_dict={"df": df})
@@ -1496,26 +1421,26 @@ class TestOperations:
         tm.assert_frame_equal(x, e)
 
     def test_basic_period_index_subscript_expression(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((2, 2)),
-            columns=period_range("2020-01-01", freq="D", periods=2),
+            columns=pd.period_range("2020-01-01", freq="D", periods=2),
         )
         r = self.eval("df[df < 2 + 3]", local_dict={"df": df})
         e = df[df < 2 + 3]
         tm.assert_frame_equal(r, e)
 
     def test_nested_period_index_subscript_expression(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((2, 2)),
-            columns=period_range("2020-01-01", freq="D", periods=2),
+            columns=pd.period_range("2020-01-01", freq="D", periods=2),
         )
         r = self.eval("df[df[df < 2] < 2] + df * 2", local_dict={"df": df})
         e = df[df[df < 2] < 2] + df * 2
         tm.assert_frame_equal(r, e)
 
     def test_date_boolean(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
-        df["dates1"] = date_range("1/1/2012", periods=5)
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df["dates1"] = pd.date_range("1/1/2012", periods=5)
         res = self.eval(
             "df.dates1 < 20130101",
             local_dict={"df": df},
@@ -1588,7 +1513,7 @@ class TestOperations:
         ],
     )
     def test_fails_and_or_not(self, expr, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         if parser == "python":
             msg = "'BoolOp' nodes are not implemented"
             if "not" in expr:
@@ -1612,7 +1537,7 @@ class TestOperations:
 
     @pytest.mark.parametrize("char", ["|", "&"])
     def test_fails_ampersand_pipe(self, char, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))  # noqa: F841
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 3)))  # noqa: F841
         ex = f"(df + 2)[df > 1] > 0 {char} (df > 0)"
         if parser == "python":
             msg = "cannot evaluate scalar only bool ops"
@@ -1631,7 +1556,7 @@ class TestMath:
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("fn", _unary_math_ops)
     def test_unary_functions(self, fn, engine, parser):
-        df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
+        df = pd.DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
         a = df.a
 
         expr = f"{fn}(a)"
@@ -1655,7 +1580,7 @@ class TestMath:
 
     @pytest.mark.parametrize("fn", _binary_math_ops)
     def test_binary_functions(self, fn, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
@@ -1671,33 +1596,30 @@ class TestMath:
         tm.assert_almost_equal(got, expect)
 
     def test_df_use_case(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
             }
         )
-        df.eval(
+        result = df.eval(
             "e = arctan2(sin(a), b)",
             engine=engine,
             parser=parser,
-            inplace=True,
         )
-        got = df.e
-        expect = np.arctan2(np.sin(df.a), df.b).rename("e")
-        tm.assert_series_equal(got, expect)
+        expected = np.arctan2(np.sin(df.a), df.b).rename("e")
+        tm.assert_series_equal(result["e"], expected)
 
     def test_df_arithmetic_subexpression(self, engine, parser):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
             }
         )
-        df.eval("e = sin(a + b)", engine=engine, parser=parser, inplace=True)
-        got = df.e
-        expect = np.sin(df.a + df.b).rename("e")
-        tm.assert_series_equal(got, expect)
+        result = df.eval("e = sin(a + b)", engine=engine, parser=parser)
+        expected = np.sin(df.a + df.b).rename("e")
+        tm.assert_series_equal(result["e"], expected)
 
     @pytest.mark.parametrize(
         "dtype, expect_dtype",
@@ -1715,26 +1637,25 @@ class TestMath:
 
         # Did not test complex64 because DataFrame is converting it to
         # complex128. Due to https://github.com/pandas-dev/pandas/issues/10952
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": np.random.default_rng(2).standard_normal(10).astype(dtype)}
         )
         assert df.a.dtype == dtype
-        df.eval("b = sin(a)", engine=engine, parser=parser, inplace=True)
-        got = df.b
-        expect = np.sin(df.a).rename("b")
-        assert expect.dtype == got.dtype
-        assert expect_dtype == got.dtype
-        tm.assert_series_equal(got, expect)
+        result = df.eval("b = sin(a)", engine=engine, parser=parser)["b"]
+        expected = np.sin(df.a).rename("b")
+        assert expected.dtype == result.dtype
+        assert expect_dtype == result.dtype
+        tm.assert_series_equal(result, expected)
 
     def test_undefined_func(self, engine, parser):
-        df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
+        df = pd.DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
         msg = '"mysin" is not a supported function'
 
         with pytest.raises(ValueError, match=msg):
             df.eval("mysin(a)", engine=engine, parser=parser)
 
     def test_keyword_arg(self, engine, parser):
-        df = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
+        df = pd.DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
         msg = 'Function "sin" does not support keyword arguments'
 
         with pytest.raises(TypeError, match=msg):
@@ -1809,11 +1730,11 @@ def test_numexpr_option_respected(use_numexpr, expected):
 def test_numexpr_option_incompatible_op():
     # GH 32556
     with pd.option_context("compute.use_numexpr", False):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [True, False, True, False, None, None], "B": [1, 2, 3, 4, 5, 6]}
         )
         result = df.query("A.isnull()")
-        expected = DataFrame({"A": [None, None], "B": [5, 6]}, index=range(4, 6))
+        expected = pd.DataFrame({"A": [None, None], "B": [5, 6]}, index=range(4, 6))
         tm.assert_frame_equal(result, expected)
 
 
@@ -1891,7 +1812,7 @@ def test_empty_string_raises(engine, parser):
         pd.eval("", engine=engine, parser=parser)
 
 
-@pytest.mark.parametrize("box", [Series, DataFrame])
+@pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
 def test_pandas_object_raises(box, engine, parser):
     # GH#16289 passing a Series/DataFrame parsed its (possibly truncated) repr
     obj = box(["1 == 1", "2 == 1"] * 1000)
@@ -1937,9 +1858,9 @@ def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     ],
 )
 def test_equals_various(other):
-    df = DataFrame({"A": ["a", "b", "c"]}, dtype=object)
+    df = pd.DataFrame({"A": ["a", "b", "c"]}, dtype=object)
     result = df.eval(f"A == {other}")
-    expected = Series([False, False, False], name="A")
+    expected = pd.Series([False, False, False], name="A")
     tm.assert_series_equal(result, expected)
 
 
@@ -1953,7 +1874,7 @@ def test_inf(engine, parser):
 @pytest.mark.parametrize("column", ["Temp(°C)", "Capacitance(μF)"])
 def test_query_token(engine, column):
     # See: https://github.com/pandas-dev/pandas/pull/42826
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((5, 2)), columns=[column, "b"]
     )
     expected = df[df[column] > 5]
@@ -1963,7 +1884,7 @@ def test_query_token(engine, column):
 
 
 def test_negate_lt_eq_le(engine, parser):
-    df = DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
+    df = pd.DataFrame([[0, 10], [1, 20]], columns=["cat", "count"])
     expected = df[~(df.cat > 0)]
 
     result = df.query("~(cat > 0)", engine=engine, parser=parser)
@@ -1992,7 +1913,7 @@ def test_eval_no_support_column_name(request, engine, parser, column):
             )
         )
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).integers(0, 100, size=(10, 2)),
         columns=[column, "col1"],
     )
@@ -2002,21 +1923,25 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
 def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
     # Ensure we don't only update the DataFrame inplace, but also the actual
     # column values, such that references to this column also get updated
-    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
     result_view = df[:]
     ser = df["A"]
     df.eval("A = B + C", inplace=True)
-    expected = DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
+    expected = pd.DataFrame({"A": [11, 13, 15], "B": [4, 5, 6], "C": [7, 8, 9]})
     tm.assert_frame_equal(df, expected)
-    expected = Series([1, 2, 3], name="A")
+    expected = pd.Series([1, 2, 3], name="A")
     tm.assert_series_equal(ser, expected)
     tm.assert_series_equal(result_view["A"], expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The inplace keyword in eval:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
 def test_validate_bool_args(value):
     msg = 'For argument "inplace" expected type bool, received type'
@@ -2034,8 +1959,8 @@ def test_eval_float_div_numexpr():
 
 def test_method_calls_on_binop():
     # GH 61175
-    x = Series([1, 2, 3, 5])
-    y = Series([2, 3, 4])
+    x = pd.Series([1, 2, 3, 5])
+    y = pd.Series([2, 3, 4])
 
     # Method call on binary operation result
     result = pd.eval("(x + y).dropna()")
@@ -2051,3 +1976,80 @@ def test_method_calls_on_binop():
     result = pd.eval("(x + y).dropna().reset_index(drop=True)")
     expected = (x + y).dropna().reset_index(drop=True)
     tm.assert_series_equal(result, expected)
+
+
+def test_eval_inplace_depr():
+    msg = "The inplace keyword in DataFrame.eval is deprecated"
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    expected = df.copy()
+    expected["b"] = expected["a"] + 1
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.eval("b = a + 1")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.eval("b = a + 1", inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.eval("b = a + 1", inplace=True)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_query_inplace_depr():
+    msg = "The inplace keyword in DataFrame.query is deprecated"
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    expected = df[df["a"] > 1]
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.query("a > 1")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.query("a > 1", inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.query("a > 1", inplace=True)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_eval_top_level_inplace_depr():
+    msg = "The inplace keyword in eval is deprecated"
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df_orig = df.copy()
+    expected = df.copy()
+    expected["b"] = expected["a"] + 1
+
+    # does not use keyword, no warning, target not mutated
+    with tm.assert_produces_warning(False):
+        result = pd.eval("b = df.a + 1", target=df)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning, target not mutated
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.eval("b = df.a + 1", target=df, inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning, target mutated
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.eval("b = df.a + 1", target=df, inplace=True)
+    tm.assert_frame_equal(df, expected)
