@@ -174,6 +174,7 @@ class TestResetIndex:
         xp = xp.set_index(["B"], append=True)
         tm.assert_frame_equal(rs, xp)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.reset_index")
     def test_reset_index_name(self):
         df = pd.DataFrame(
             [[1, 2, 3, 4], [5, 6, 7, 8]],
