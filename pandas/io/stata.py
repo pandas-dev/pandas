@@ -242,6 +242,21 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         res = _stata_ordinals_to_datetime64(ordinals, fmt, "Y")
         return Series(res, index=dates.index)
 
+    if fmt.startswith(("%tC", "tC")):
+        warnings.warn(
+            "Encountered %tC format. Leaving in Stata Internal Format.",
+            stacklevel=find_stack_level(),
+        )
+        # Hand back the file's own numbers: this branch converts nothing, and
+        #  casting them to int64 on the way out saturated anything past the
+        #  int64 bounds, so the "internal format" value promised by the
+        #  warning was not the one in the file (GH#68032).
+        conv_dates = Series(dates, dtype=object)
+        na_locs = isna(dates)
+        if na_locs.any():
+            conv_dates[na_locs] = NaT
+        return conv_dates
+
     bad_locs = np.isnan(dates)
     has_bad_values = False
     if bad_locs.any():
@@ -249,18 +264,9 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         dates._values[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
-    if fmt.startswith(("%tC", "tC")):
-        warnings.warn(
-            "Encountered %tC format. Leaving in Stata Internal Format.",
-            stacklevel=find_stack_level(),
-        )
-        conv_dates = Series(dates, dtype=object)
-        if has_bad_values:
-            conv_dates[bad_locs] = NaT
-        return conv_dates
     # does not count leap days - 7 days is a week.
     # 52nd week may have more than 7 days
-    elif fmt.startswith(("%tw", "tw")):
+    if fmt.startswith(("%tw", "tw")):
         year = stata_epoch.year + dates // 52
         days = (dates % 52) * 7
         res = _stata_ordinals_to_datetime64(year - 1970, fmt, "Y")
