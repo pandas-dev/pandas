@@ -16,6 +16,7 @@ from typing import (
     cast,
     overload,
 )
+from uuid import UUID
 import warnings
 
 import numpy as np
@@ -33,6 +34,7 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under18p0,
     pa_version_under21p0,
     pa_version_under25p0,
 )
@@ -136,6 +138,10 @@ if HAS_PYARROW:
         "xor": pc.bit_wise_xor,
         "rxor": lambda x, y: pc.bit_wise_xor(y, x),
     }
+
+    def is_uuid_type(pa_type: pa.DataType | None) -> bool:
+        # pa.uuid() was introduced in pyarrow 18.0
+        return not pa_version_under18p0 and isinstance(pa_type, pa.UuidType)
 
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
@@ -695,6 +701,9 @@ class ArrowExtensionArray(
                 elif value.unit != pa_type.unit:
                     value = value.as_unit(pa_type.unit)
                 value = value._value
+            elif isinstance(value, UUID) and is_uuid_type(pa_type):
+                # GH#63511 pyarrow < 24 only accepts the storage bytes
+                value = value.bytes
 
             pa_scalar = pa.scalar(value, type=pa_type)
 
@@ -788,6 +797,10 @@ class ArrowExtensionArray(
                 value_i8[dta_mask] = 0  # GH#61776 avoid __sub__ overflow
                 pa_array = pa.array(dta._ndarray, type=pa_type, mask=dta_mask)
                 return pa_array
+
+            if is_uuid_type(pa_type):
+                # GH#63511 pyarrow < 24 only accepts the storage bytes
+                value = [v.bytes if isinstance(v, UUID) else v for v in value]
 
             mask = None
             if is_nan_na():
@@ -1122,8 +1135,14 @@ class ArrowExtensionArray(
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
                 else:
+                    lhs = self._pa_array
+                    if is_uuid_type(ltype) and is_uuid_type(rtype):
+                        # GH#63511 pyarrow has no comparison kernels for pa.uuid(),
+                        #  but its fixed_size_binary storage compares identically
+                        lhs = lhs.cast(ltype.storage_type)
+                        boxed = boxed.cast(rtype.storage_type)
                     try:
-                        result = pc_func(self._pa_array, boxed)
+                        result = pc_func(lhs, boxed)
                     except pa.ArrowNotImplementedError:
                         result = ops.invalid_comparison(self, other, op)
                         result = pa.array(result, type=pa.bool_())
@@ -2205,9 +2224,15 @@ class ArrowExtensionArray(
             result = data._maybe_convert_datelike_array().to_numpy(
                 dtype=dtype, na_value=na_value
             )
-        elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
-            # convert to list of python datetime.time objects before
-            # wrapping in ndarray
+        elif (
+            pa.types.is_time(pa_type)
+            or pa.types.is_date(pa_type)
+            or is_uuid_type(pa_type)
+        ):
+            # pa.Array.to_numpy doesn't give the python objects we want here, e.g.
+            #  datetime.time or, for extension types, uuid.UUID instead of the
+            #  storage bytes (which is by design, see apache/arrow#50325), so
+            #  convert to a list of those first
             result = np.array(list(data), dtype=dtype)
             if data._hasna:
                 result[data.isna()] = na_value

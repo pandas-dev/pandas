@@ -29,6 +29,7 @@ import pickle
 import re
 import sys
 import unicodedata
+import uuid
 
 import numpy as np
 import pytest
@@ -38,6 +39,7 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY312,
     is_platform_windows,
+    pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
     pa_version_under21p0,
@@ -5308,3 +5310,127 @@ def test_reduction_axis_out_of_bounds(method, axis):
     msg = "`axis` must be fewer than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
+
+
+# GH#63511 pa.uuid() is an Arrow extension type: no NumPy equivalent, no kernels
+uuid_mark = pytest.mark.skipif(
+    pa_version_under18p0, reason="pa.uuid() was introduced in pyarrow v18.0"
+)
+UUIDS = [
+    uuid.UUID("550e8400-e29b-41d4-a716-446655440000"),
+    uuid.UUID("550e8400-e29b-41d4-a716-446655440001"),
+]
+
+
+@pytest.fixture(scope="module")
+def uuid_array() -> pd.arrays.ArrowExtensionArray:
+    return pa.array([UUIDS[0].bytes, UUIDS[1].bytes, None], type=pa.uuid())
+
+
+@pytest.fixture
+def uuid_series(uuid_array: pd.arrays.ArrowExtensionArray) -> pd.Series:
+    return pd.Series(uuid_array)
+
+
+@uuid_mark
+def test_uuid_dtype_type():
+    # GH#63511 the storage type is fixed_size_binary(16), the scalars are not
+    assert ArrowDtype(pa.uuid()).type is uuid.UUID
+
+
+@uuid_mark
+@pytest.mark.parametrize("chunked", [False, True], ids=["non-chunked", "chunked"])
+def test_uuid_construction_keeps_arrow_dtype(
+    uuid_array: pd.arrays.ArrowExtensionArray, chunked: bool
+):
+    # GH#63511 without a NumPy equivalent, construction used to fall back to object
+    data = pa.chunked_array([uuid_array[:1], uuid_array[1:]]) if chunked else uuid_array
+    expected = pd.Series([*UUIDS, None], dtype=ArrowDtype(pa.uuid()))
+
+    tm.assert_series_equal(pd.Series(data), expected)
+    tm.assert_series_equal(pd.DataFrame({"id": data})["id"], expected.rename("id"))
+
+
+@uuid_mark
+def test_uuid_construction_honors_dtype(uuid_array: pd.arrays.ArrowExtensionArray):
+    # GH#63511 an explicit dtype still wins over the Arrow type
+    result = pd.Series(uuid_array, dtype=object)
+    expected = pd.Series([UUIDS[0].bytes, UUIDS[1].bytes, None], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+def test_construction_from_arrow_array_without_extension_type():
+    # GH#63511 pyarrow types that do have a NumPy equivalent keep converting to it
+    tm.assert_series_equal(pd.Series(pa.array([1, 2, 3])), pd.Series([1, 2, 3]))
+
+
+@pytest.mark.skipif(
+    pa_version_under19p0, reason="pa.bool8()/pa.json_() need pyarrow v19.0"
+)
+def test_construction_from_other_arrow_extension_types():
+    # GH#63511 only pa.uuid() is special-cased: Arrow extension types that do have
+    #  an equivalent default pandas dtype keep converting to it (GH#56994)
+    bool8 = pa.array([1, 0], type=pa.int8()).view(pa.bool8())
+    assert pd.Series(bool8).dtype == np.dtype(bool)
+    assert pd.Series(pa.array(["{}"], type=pa.json_())).dtype == "str"
+
+
+@uuid_mark
+def test_uuid_isna(uuid_series: pd.Series):
+    result = uuid_series.isna()
+    expected = pd.Series([False, False, True])
+    tm.assert_series_equal(result, expected)
+
+
+@uuid_mark
+def test_uuid_getitem_scalar(uuid_series: pd.Series):
+    # GH#63511 elements come back as uuid.UUID, missing ones as the NA value
+    assert uuid_series.iloc[0] == UUIDS[0]
+    assert uuid_series.iloc[2] is pd.NA
+
+
+@uuid_mark
+def test_uuid_to_numpy(uuid_series: pd.Series):
+    # GH#63511 pa.Array.to_numpy() would hand out the storage bytes
+    result = uuid_series.to_numpy()
+    expected = np.array([UUIDS[0], UUIDS[1], pd.NA], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@uuid_mark
+def test_uuid_comparison_scalar(uuid_series: pd.Series):
+    # GH#63511 pyarrow has no comparison kernel for pa.uuid()
+    expected = pd.Series([True, False, None], dtype="bool[pyarrow]")
+    tm.assert_series_equal(uuid_series == UUIDS[0], expected)
+    tm.assert_series_equal(uuid_series != UUIDS[0], ~expected)
+
+
+@uuid_mark
+def test_uuid_comparison_array(uuid_series: pd.Series):
+    expected = pd.Series([True, True, None], dtype="bool[pyarrow]")
+    tm.assert_series_equal(uuid_series == uuid_series, expected)
+    tm.assert_series_equal(uuid_series != uuid_series, ~expected)
+
+
+@uuid_mark
+def test_uuid_comparison_non_uuid(uuid_series: pd.Series):
+    # GH#63511 comparing against a non-UUID is unequal, not an error
+    # (NA propagates, like for every other ArrowDtype)
+    expected = pd.Series([False, False, None], dtype="bool[pyarrow]")
+    tm.assert_series_equal(uuid_series == "not-a-uuid", expected)
+
+
+@uuid_mark
+def test_uuid_contains(uuid_series: pd.Series):
+    # GH#63511 ``in`` looks at the index of a Series but at the values of an array
+    assert UUIDS[0] not in uuid_series
+    assert UUIDS[0] in uuid_series.array
+    assert uuid.UUID(int=0) not in uuid_series.array
+    assert None not in uuid_series.array
+
+
+@uuid_mark
+def test_uuid_not_contained_in_binary_array():
+    # GH#63511 a uuid.UUID is not the bytes it wraps
+    arr = pd.array([UUIDS[0].bytes], dtype=ArrowDtype(pa.binary(16)))
+    assert UUIDS[0] not in arr

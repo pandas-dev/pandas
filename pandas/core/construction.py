@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    TypeGuard,
     cast,
     overload,
 )
@@ -23,6 +24,7 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
 )
+from pandas.compat import HAS_PYARROW
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -58,6 +60,8 @@ import pandas.core.common as com
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    import pyarrow as pa
 
     from pandas._typing import (
         AnyArrayLike,
@@ -686,6 +690,13 @@ def sanitize_array(
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
 
+    elif dtype is None and _is_arrow_uuid_array(data):
+        # GH#63511 pa.uuid() has no pandas/NumPy equivalent, so the __array__
+        #  conversion below would give an object array of the storage bytes
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
+        subarr = ArrowExtensionArray(data)
+
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
         if not copy:
@@ -728,6 +739,19 @@ def sanitize_array(
         subarr = _sanitize_str_dtypes(subarr, data, dtype, copy)
 
     return subarr
+
+
+def _is_arrow_uuid_array(data) -> TypeGuard[pa.Array | pa.ChunkedArray]:
+    """
+    Whether data is a pyarrow array with the ``pyarrow.uuid()`` type.
+    """
+    if not HAS_PYARROW:
+        return False
+    import pyarrow as pa
+
+    from pandas.core.arrays.arrow.array import is_uuid_type
+
+    return isinstance(data, (pa.Array, pa.ChunkedArray)) and is_uuid_type(data.type)
 
 
 def range_to_ndarray(rng: range) -> np.ndarray:

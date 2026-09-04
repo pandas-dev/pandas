@@ -18,6 +18,7 @@ from typing import (
     Self,
     cast,
 )
+from uuid import UUID
 import warnings
 import zoneinfo
 
@@ -50,6 +51,7 @@ from pandas._libs.tslibs.offsets import BDay
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under18p0,
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
@@ -2294,6 +2296,9 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
+        elif not pa_version_under18p0 and isinstance(pa_type, pa.UuidType):
+            # GH#63511 storage type is fixed_size_binary(16), scalars are not
+            return UUID
         elif isinstance(pa_type, pa.BaseExtensionType):
             return type(self)(pa_type.storage_type).type
         raise NotImplementedError(pa_type)
