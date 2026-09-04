@@ -669,6 +669,8 @@ Indexing
 - Bug in :meth:`DataFrame.mask` with ``inplace=True`` where incorrect values were produced when ``other`` was a :class:`Series` with :class:`ExtensionArray` values (:issue:`64635`)
 - Bug in :meth:`DataFrame.rename` and :meth:`Series.rename` not preserving nullable extension dtype (e.g. ``Int64``, ``Float64``) when relabeling index or column labels (:issue:`65315`)
 - Bug in :meth:`DataFrame.where` and :meth:`DataFrame.mask` raising ``TypeError`` when ``cond`` is a :class:`Series` and ``axis=1`` (:issue:`58190`)
+- Bug in :meth:`DataFrame.where` and :meth:`DataFrame.mask` with a datetimelike dtype (e.g. ``datetime64[ns, tz]``, ``period[D]``) silently filling every masked position with the first entry of a list-like ``other`` (:issue:`63842`)
+- Bug in :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`Series.where` and :meth:`Series.mask` with an extension dtype (e.g. ``str``, ``Int64``, :class:`ArrowDtype`) casting to ``object`` or raising ``TypeError`` when ``other`` was a list-like of length 1 or of the same length as the object (:issue:`63842`)
 - Bug in :meth:`DataFrame.xs` where ``drop_level=False`` was ignored for fully specified :class:`MultiIndex` keys when ``level`` was not explicitly provided (:issue:`6507`)
 - Bug in :meth:`Index.get_indexer_non_unique` raising ``ZeroDivisionError`` instead of returning an all-missing result when called on an empty index with a non-empty target (:issue:`54746`)
 - Bug in :meth:`Index.get_level_values` mishandling boolean, NA-like (``np.nan``, ``pd.NA``, ``pd.NaT``) and integer index names (:issue:`62169`)
