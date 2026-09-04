@@ -81,7 +81,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexes.api import default_index
+from pandas.core.indexes.api import (
+    default_index,
+    ensure_index_from_sequences,
+)
 from pandas.core.indexes.base import maybe_sequence_to_range
 from pandas.core.sorting import (
     get_group_index,
@@ -1260,7 +1263,12 @@ class _MergeOperation:
                 names_to_restore.append(name)
 
         if names_to_restore:
-            result.set_index(names_to_restore, inplace=True)
+            index = ensure_index_from_sequences(
+                [result[col] for col in names_to_restore], names_to_restore
+            )
+            for col in names_to_restore:
+                del result[col]
+            result.index = index
 
     @final
     def _maybe_add_join_keys(
@@ -1395,7 +1403,7 @@ class _MergeOperation:
                             for level_name in result.index.names
                         ]
 
-                        result.set_index(idx_list, inplace=True)
+                        result = result.set_index(idx_list)
                     else:
                         result.index = Index(key_col, name=name)
                 else:

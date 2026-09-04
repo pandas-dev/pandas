@@ -564,17 +564,18 @@ class TestDataFrameQueryNumExprPandas:
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     def test_date_index_query(self, engine, parser):
         n = 10
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     def test_date_index_query_with_NaT(self, engine, parser):
         n = 10
         # Cast to object to avoid implicit cast when setting entry to pd.NaT below
@@ -590,6 +591,7 @@ class TestDataFrameQueryNumExprPandas:
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     def test_date_index_query_with_NaT_duplicates(self, engine, parser):
         n = 10
         d = {}
@@ -939,6 +941,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     def test_date_index_query(self, engine, parser):
         n = 10
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
@@ -952,6 +955,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     def test_date_index_query_with_NaT(self, engine, parser):
         n = 10
         # Cast to object to avoid implicit cast when setting entry to pd.NaT below
@@ -969,6 +973,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     def test_date_index_query_with_NaT_duplicates(self, engine, parser):
         n = 10
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))

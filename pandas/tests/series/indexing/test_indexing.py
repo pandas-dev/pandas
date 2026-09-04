@@ -253,7 +253,7 @@ def test_timedelta_assignment():
     )
     tm.assert_series_equal(s, expected)
 
-
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
 def test_underlying_data_conversion():
     # GH 4080
     df = pd.DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
