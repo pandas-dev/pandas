@@ -2592,8 +2592,10 @@ class TestLocSetitemWithExpansion:
     @pytest.mark.parametrize(
         "dtype, item",
         [
-            # used to raise: pyarrow lets an OverflowError out of the cast
-            ("str", 2**70),
+            # used to raise: pyarrow lets an OverflowError out of the cast.
+            #  Spelled out instead of "str" so the case does not evaporate
+            #  into object dtype when future.infer_string is disabled
+            (pd.StringDtype(na_value=np.nan), 2**70),
             # used to raise: BaseMaskedArray._from_sequence rejects NaT
             ("Int64", pd.NaT),
             # used to store the Period's ordinal and the Interval's endpoints
@@ -2607,7 +2609,7 @@ class TestLocSetitemWithExpansion:
         # GH#65431 pre-casting the new row to the column's dtype is only an
         #  optimization; when it raises, or lands anywhere but the column's own
         #  dtype, the column has to widen to object and keep what was passed
-        if "pyarrow" in dtype:
+        if "pyarrow" in str(dtype):
             pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": pd.Series([1, 2], dtype=dtype)})
         original = list(df["a"])
