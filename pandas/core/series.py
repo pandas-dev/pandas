@@ -6009,7 +6009,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=...,
         axis: Axis = ...,
         copy: bool | lib.NoDefault = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
     ) -> Self | None: ...
 
     def rename_axis(
@@ -6019,7 +6019,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=lib.no_default,
         axis: Axis = 0,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Set the name of the axis for the index.
@@ -6058,6 +6058,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
 
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         Returns
         -------
         Series, or None
@@ -6085,6 +6092,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    monkey
         dtype: str
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.rename_axis is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().rename_axis(
             mapper=mapper,
             index=index,
