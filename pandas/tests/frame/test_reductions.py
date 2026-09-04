@@ -282,7 +282,7 @@ class TestDataFrameAnalytics:
                 msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
             elif opname in ["min", "max"]:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
-            msg = msg + "|does not support|Cannot perform reduction"
+            msg = "|".join([msg, "does not support", "Cannot perform reduction"])
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
