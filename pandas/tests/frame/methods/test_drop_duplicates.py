@@ -6,18 +6,14 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    NaT,
-    concat,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 @pytest.mark.parametrize("subset", ["a", ["a"], ["a", "B"]])
 def test_drop_duplicates_with_misspelled_column_name(subset):
     # GH 19730
-    df = DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
+    df = pd.DataFrame({"A": [0, 0, 1], "B": [0, 0, 1], "C": [0, 0, 1]})
     msg = re.escape("Index(['a'], dtype=")
 
     with pytest.raises(KeyError, match=msg):
@@ -25,7 +21,7 @@ def test_drop_duplicates_with_misspelled_column_name(subset):
 
 
 def test_drop_duplicates():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "AAA": ["foo", "bar", "foo", "bar", "foo", "bar", "bar", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -95,26 +91,26 @@ def test_drop_duplicates():
     tm.assert_frame_equal(result, expected)
 
     # GH 11376
-    df = DataFrame({"x": [7, 6, 3, 3, 4, 8, 0], "y": [0, 6, 5, 5, 9, 1, 2]})
+    df = pd.DataFrame({"x": [7, 6, 3, 3, 4, 8, 0], "y": [0, 6, 5, 5, 9, 1, 2]})
     expected = df.loc[df.index != 3]
     tm.assert_frame_equal(df.drop_duplicates(), expected)
 
-    df = DataFrame([[1, 0], [0, 2]])
+    df = pd.DataFrame([[1, 0], [0, 2]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
-    df = DataFrame([[-2, 0], [0, -4]])
+    df = pd.DataFrame([[-2, 0], [0, -4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
     x = np.iinfo(np.int64).max / 3 * 2
-    df = DataFrame([[-x, x], [0, x + 4]])
+    df = pd.DataFrame([[-x, x], [0, x + 4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
-    df = DataFrame([[-x, x], [x, x + 4]])
+    df = pd.DataFrame([[-x, x], [x, x + 4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
     # GH 11864
-    df = DataFrame([i] * 9 for i in range(16))
-    df = concat([df, DataFrame([[1] + [0] * 8])], ignore_index=True)
+    df = pd.DataFrame([i] * 9 for i in range(16))
+    df = pd.concat([df, pd.DataFrame([[1] + [0] * 8])], ignore_index=True)
 
     for keep in ["first", "last", False]:
         assert df.duplicated(keep=keep).sum() == 0
@@ -122,7 +118,7 @@ def test_drop_duplicates():
 
 def test_drop_duplicates_with_duplicate_column_names():
     # GH17836
-    df = DataFrame([[1, 2, 5], [3, 4, 6], [3, 4, 7]], columns=["a", "a", "b"])
+    df = pd.DataFrame([[1, 2, 5], [3, 4, 6], [3, 4, 7]], columns=["a", "a", "b"])
 
     result0 = df.drop_duplicates()
     tm.assert_frame_equal(result0, df)
@@ -133,7 +129,7 @@ def test_drop_duplicates_with_duplicate_column_names():
 
 
 def test_drop_duplicates_for_take_all():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "AAA": ["foo", "bar", "baz", "bar", "foo", "bar", "qux", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -169,7 +165,7 @@ def test_drop_duplicates_for_take_all():
 
 
 def test_drop_duplicates_tuple():
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             ("AA", "AB"): ["foo", "bar", "foo", "bar", "foo", "bar", "bar", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -201,11 +197,11 @@ def test_drop_duplicates_tuple():
 @pytest.mark.parametrize(
     "df",
     [
-        DataFrame(),
-        DataFrame(columns=[]),
-        DataFrame(columns=["A", "B", "C"]),
-        DataFrame(index=[]),
-        DataFrame(index=["A", "B", "C"]),
+        pd.DataFrame(),
+        pd.DataFrame(columns=[]),
+        pd.DataFrame(columns=["A", "B", "C"]),
+        pd.DataFrame(index=[]),
+        pd.DataFrame(index=["A", "B", "C"]),
     ],
 )
 def test_drop_duplicates_empty(df):
@@ -220,7 +216,7 @@ def test_drop_duplicates_empty(df):
 
 def test_drop_duplicates_NA():
     # none
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [None, None, "foo", "bar", "foo", "bar", "bar", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -256,7 +252,7 @@ def test_drop_duplicates_NA():
     tm.assert_frame_equal(result, expected)
 
     # nan
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "bar", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -294,7 +290,7 @@ def test_drop_duplicates_NA():
 
 def test_drop_duplicates_NA_for_take_all():
     # none
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [None, None, "foo", "bar", "foo", "baz", "bar", "qux"],
             "C": [1.0, np.nan, np.nan, np.nan, 1.0, 2.0, 3, 1.0],
@@ -332,7 +328,7 @@ def test_drop_duplicates_NA_for_take_all():
 
 @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop_duplicates")
 def test_drop_duplicates_inplace():
-    orig = DataFrame(
+    orig = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "bar", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -431,8 +427,8 @@ def test_drop_duplicates_ignore_index(
     inplace, origin_dict, output_dict, ignore_index, output_index
 ):
     # GH 30114
-    df = DataFrame(origin_dict)
-    expected = DataFrame(output_dict, index=output_index)
+    df = pd.DataFrame(origin_dict)
+    expected = pd.DataFrame(output_dict, index=output_index)
 
     if inplace:
         result_df = df.copy()
@@ -441,19 +437,19 @@ def test_drop_duplicates_ignore_index(
         result_df = df.drop_duplicates(ignore_index=ignore_index, inplace=inplace)
 
     tm.assert_frame_equal(result_df, expected)
-    tm.assert_frame_equal(df, DataFrame(origin_dict))
+    tm.assert_frame_equal(df, pd.DataFrame(origin_dict))
 
 
 def test_drop_duplicates_null_in_object_column(nulls_fixture):
     # https://github.com/pandas-dev/pandas/issues/32992
-    df = DataFrame([[1, nulls_fixture], [2, "a"]], dtype=object)
+    df = pd.DataFrame([[1, nulls_fixture], [2, "a"]], dtype=object)
     result = df.drop_duplicates()
     tm.assert_frame_equal(result, df)
 
 
 def test_drop_duplicates_series_vs_dataframe(keep):
     # GH#14192
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [1, 1, 1, "one", "one"],
             "b": [2, 2, np.nan, np.nan, np.nan],
@@ -463,8 +459,8 @@ def test_drop_duplicates_series_vs_dataframe(keep):
                 datetime(2015, 1, 1),
                 datetime(2015, 1, 1),
                 datetime(2015, 2, 1),
-                NaT,
-                NaT,
+                pd.NaT,
+                pd.NaT,
             ],
         }
     )
@@ -477,7 +473,7 @@ def test_drop_duplicates_series_vs_dataframe(keep):
 @pytest.mark.parametrize("arg", [[1], 1, "True", [], 0])
 def test_drop_duplicates_non_boolean_ignore_index(arg):
     # GH#38274
-    df = DataFrame({"a": [1, 2, 1, 3]})
+    df = pd.DataFrame({"a": [1, 2, 1, 3]})
     msg = '^For argument "ignore_index" expected type bool, received type .*.$'
     with pytest.raises(ValueError, match=msg):
         df.drop_duplicates(ignore_index=arg)
@@ -485,7 +481,7 @@ def test_drop_duplicates_non_boolean_ignore_index(arg):
 
 def test_drop_duplicates_set():
     # GH#59237
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "AAA": ["foo", "bar", "foo", "bar", "foo", "bar", "bar", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
@@ -523,10 +519,10 @@ def test_drop_duplicates_set():
 
 def test_drop_duplicates_with_empty_missing():
     # https://github.com/pandas-dev/pandas/issues/62611 - specific bug with pyarrow
-    df = DataFrame(data={"A": ["a", "b", "", "a", None, "b"]})
+    df = pd.DataFrame(data={"A": ["a", "b", "", "a", None, "b"]})
     df["B"] = "b"
     result = df.drop_duplicates()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         data={"A": ["a", "b", "", None], "B": ["b", "b", "b", "b"]}, index=[0, 1, 2, 4]
     )
     tm.assert_frame_equal(result, expected)
@@ -535,9 +531,9 @@ def test_drop_duplicates_with_empty_missing():
 def test_drop_duplicates_inplace_depr():
     msg = "The inplace keyword in DataFrame.drop_duplicates is deprecated"
 
-    df = DataFrame({"A": [1, 2, 2, 3]})
+    df = pd.DataFrame({"A": [1, 2, 2, 3]})
     df_orig = df.copy()
-    expected = DataFrame({"A": [1, 2, 3]}, index=[0, 1, 3])
+    expected = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 3])
 
     # does not use keyword, no warning
     with tm.assert_produces_warning(False):

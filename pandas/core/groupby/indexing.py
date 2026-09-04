@@ -5,10 +5,13 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -376,4 +379,10 @@ class GroupByNthSelector:
         return self.groupby_object._nth(n, dropna)
 
     def __getitem__(self, n: PositionalIndexer | tuple) -> DataFrame | Series:
+        warnings.warn(
+            "GroupBy.nth[...] is deprecated and will be removed in a future "
+            "version of pandas. Use GroupBy.nth(...) instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         return self.groupby_object._nth(n)

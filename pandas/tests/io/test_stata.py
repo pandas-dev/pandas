@@ -17,7 +17,6 @@ from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import CategoricalDtype
 import pandas._testing as tm
 from pandas.core.frame import (
     DataFrame,
@@ -1233,7 +1232,7 @@ class TestStata:
 
         # Check identity of codes
         for col in expected:
-            if isinstance(expected[col].dtype, CategoricalDtype):
+            if isinstance(expected[col].dtype, pd.CategoricalDtype):
                 tm.assert_series_equal(expected[col].cat.codes, parsed[col].cat.codes)
                 tm.assert_index_equal(
                     expected[col].cat.categories, parsed[col].cat.categories
@@ -1263,7 +1262,7 @@ class TestStata:
 
         parsed_unordered = read_stata(file, order_categoricals=False)
         for col in parsed:
-            if not isinstance(parsed[col].dtype, CategoricalDtype):
+            if not isinstance(parsed[col].dtype, pd.CategoricalDtype):
                 continue
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
@@ -1326,7 +1325,7 @@ class TestStata:
         """
         for col in from_frame:
             ser = from_frame[col]
-            if isinstance(ser.dtype, CategoricalDtype):
+            if isinstance(ser.dtype, pd.CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
                     categories = pd.Index._with_infer(
@@ -1993,7 +1992,9 @@ the string values returned are correct."""
         # will block pytests skip mechanism from triggering (failing the test)
         # if the path is not present
         path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
-        with tm.assert_produces_warning(UnicodeWarning, filter_level="once") as w:
+        with tm.assert_produces_warning(
+            UnicodeWarning, filter_level="once", match=msg
+        ) as w:
             encoded = read_stata(path)
             # with filter_level="always", produces 151 warnings which can be slow
             assert len(w) == 1

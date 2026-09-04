@@ -1,10 +1,6 @@
 import numpy as np
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-)
 import pandas._testing as tm
 
 
@@ -14,7 +10,7 @@ def test_pipe():
 
     random_state = np.random.default_rng(2)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": random_state.standard_normal(8),
@@ -35,7 +31,7 @@ def test_pipe():
     # NDFrame.pipe methods
     result = df.groupby("A").pipe(f).pipe(square)
 
-    index = Index(["bar", "foo"], name="A")
+    index = pd.Index(["bar", "foo"], name="A")
     expected = pd.Series([3.749306591013693, 6.717707873081384], name="B", index=index)
 
     tm.assert_series_equal(expected, result)
@@ -45,7 +41,7 @@ def test_pipe_args():
     # Test passing args to the pipe method of DataFrameGroupBy.
     # Issue #17871
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "group": ["A", "A", "B", "B", "C"],
             "x": [1.0, 2.0, 3.0, 2.0, 5.0],
@@ -66,7 +62,7 @@ def test_pipe_args():
     result = df.groupby("group").pipe(f, 0).pipe(g, 10).pipe(h, 100)
 
     # Assert the results here
-    index = Index(["A", "B"], name="group")
+    index = pd.Index(["A", "B"], name="group")
     expected = pd.Series([-79.5160891089, -78.4839108911], index=index)
 
     tm.assert_series_equal(result, expected)
@@ -75,6 +71,6 @@ def test_pipe_args():
     ser = pd.Series([1, 1, 2, 2, 3, 3])
     result = ser.groupby(ser).pipe(lambda grp: grp.sum() * grp.count())
 
-    expected = pd.Series([4, 8, 12], index=Index([1, 2, 3], dtype=np.int64))
+    expected = pd.Series([4, 8, 12], index=pd.Index([1, 2, 3], dtype=np.int64))
 
     tm.assert_series_equal(result, expected)

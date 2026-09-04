@@ -1,7 +1,6 @@
 import pytest
 
 import pandas as pd
-from pandas import Categorical
 import pandas._testing as tm
 
 
@@ -20,7 +19,7 @@ def test_replace_categorical_series(to_replace, value, expected):
     # GH 31720
     ser = pd.Series([1, 2, 3], dtype="category")
     result = ser.replace(to_replace, value)
-    expected = pd.Series(Categorical(expected, categories=[1, 2, 3]))
+    expected = pd.Series(pd.Categorical(expected, categories=[1, 2, 3]))
     tm.assert_series_equal(result, expected)
 
 
@@ -53,9 +52,9 @@ def test_replace_maintain_ordering():
 
 def test_replace_categorical_ea_dtype():
     # GH49404
-    cat = Categorical(pd.array(["a", "b", "c"], dtype="string"))
+    cat = pd.Categorical(pd.array(["a", "b", "c"], dtype="string"))
     result = pd.Series(cat).replace(["a", "b"], ["c", "c"])._values
-    expected = Categorical(
+    expected = pd.Categorical(
         pd.array(["c"] * 3, dtype="string"),
         categories=pd.array(["a", "b", "c"], dtype="string"),
     )
@@ -64,7 +63,7 @@ def test_replace_categorical_ea_dtype():
 
 def test_replace_categorical_ea_dtype_different_cats_raises():
     # GH49404
-    cat = Categorical(pd.array(["a", "b"], dtype="string"))
+    cat = pd.Categorical(pd.array(["a", "b"], dtype="string"))
     with pytest.raises(
         TypeError, match="Cannot setitem on a Categorical with a new category"
     ):

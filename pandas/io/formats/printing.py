@@ -311,7 +311,7 @@ def enable_data_resource_formatter(enable: bool) -> None:
         # still not in IPython
         return
 
-    formatters = ip.display_formatter.formatters  # type: ignore[union-attr]
+    formatters = ip.display_formatter.formatters
     mimetype = "application/vnd.dataresource+json"
 
     if enable:
