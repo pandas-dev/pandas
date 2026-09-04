@@ -356,7 +356,7 @@ def test_frame_sum_bool_column_not_cast_back():
     # GH#55123 summing a bool column gave True instead of the count
     df = pd.DataFrame({"a": SparseArray([True, False, False], fill_value=False)})
     result = df.sum()
-    expected = pd.Series([1], index=["a"], dtype=pd.SparseDtype("int64", 0))
+    expected = pd.Series([1], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
     tm.assert_series_equal(result, expected)
 
 
@@ -364,7 +364,7 @@ def test_frame_sum_narrow_int_column_does_not_overflow():
     # GH#55123 casting the sum back to a narrow subtype wrapped around
     df = pd.DataFrame({"a": SparseArray(np.array([100, 100, 100], dtype="int8"))})
     result = df.sum()
-    expected = pd.Series([300], index=["a"], dtype=pd.SparseDtype("int64", 0))
+    expected = pd.Series([300], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
     tm.assert_series_equal(result, expected)
 
 
