@@ -745,6 +745,41 @@ class TestTableOrientReader:
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
+    @pytest.mark.parametrize("columns", [[1, 2], [np.pi, 2.5], [True, False]])
+    def test_read_json_table_orient_non_string_columns(self, columns):
+        # GH 46392
+        expected = DataFrame([[1, 2], [3, 4]], columns=columns)
+
+        result = pd.read_json(
+            StringIO(expected.to_json(orient="table")), orient="table"
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_json_table_orient_scalar_primary_key(self):
+        data = """{
+            "schema": {
+                "fields": [
+                    {"name": "index", "type": "integer"},
+                    {"name": "e", "type": "integer"}
+                ],
+                "primaryKey": "index"
+            },
+            "data": [{"index": 0, "e": 1}]
+        }"""
+        expected = DataFrame({"e": [1]})
+
+        result = pd.read_json(StringIO(data), orient="table")
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_json_table_orient_stringified_column_collision(self):
+        df = DataFrame([[1, 2]], columns=[1, "1"])
+
+        msg = "field names must be unique after conversion to string"
+        with pytest.raises(ValueError, match=msg):
+            df.to_json(orient="table")
+
     @pytest.mark.parametrize(
         "index_nm",
         [

@@ -35,7 +35,10 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -377,12 +380,36 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
-    col_order = [field["name"] for field in table["schema"]["fields"]]
-    df = DataFrame(table["data"], columns=col_order)[col_order]
+    fields = table["schema"]["fields"]
+    schema_col_order = [field["name"] for field in fields]
+    col_order = schema_col_order.copy()
+
+    if table["data"]:
+        data_col_order = list(table["data"][0])
+        for i, column in enumerate(col_order):
+            # Object keys keep the full float representation, while numeric
+            # schema field names are limited by to_json's double_precision.
+            if (
+                isinstance(column, float)
+                and str(column) not in data_col_order
+                and i < len(data_col_order)
+            ):
+                try:
+                    col_order[i] = float(data_col_order[i])
+                except ValueError:
+                    pass
+
+    stringified_col_order = [str(column) for column in col_order]
+    if len(stringified_col_order) != len(set(stringified_col_order)):
+        raise ValueError(
+            "Table schema field names must be unique after conversion to string"
+        )
+    df = DataFrame(table["data"], columns=stringified_col_order)
+    df.columns = col_order
 
     dtypes = {
-        field["name"]: convert_json_field_to_pandas_type(field)
-        for field in table["schema"]["fields"]
+        column: convert_json_field_to_pandas_type(field)
+        for column, field in zip(col_order, fields, strict=True)
     }
 
     # No ISO constructor for Timedelta as of yet, so need to raise
@@ -394,8 +421,16 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
 
+    data_columns = col_order
     if "primaryKey" in table["schema"]:
-        df = df.set_index(table["schema"]["primaryKey"])
+        primary_key = table["schema"]["primaryKey"]
+        if not isinstance(primary_key, list):
+            primary_key = [primary_key]
+        primary_key = [
+            col_order[schema_col_order.index(column)] for column in primary_key
+        ]
+        df = df.set_index(primary_key)
+        data_columns = [column for column in col_order if column not in primary_key]
         if len(df.index.names) == 1:
             if df.index.name == "index":
                 df.index.name = None
@@ -404,4 +439,5 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
                 None if x.startswith("level_") else x for x in df.index.names
             ]
 
+    df.columns = Index(data_columns)
     return df
