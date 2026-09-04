@@ -1,5 +1,4 @@
 import collections
-from fractions import Fraction
 import re
 import warnings
 
@@ -1434,15 +1433,12 @@ cdef _to_py_int_float(v):
 cdef _round_half_to_zero(value):
     # Round an exact Fraction to the nearest integer, breaking ties toward
     #  zero. Ints pass through untouched.
-    #  Nearest (rather than truncating) because a duration that is a whole
-    #  number of nanoseconds is usually not exactly representable as a double
-    #  -- Fraction(0.3) is a hair under 3/10, so truncating lands 1ns short.
-    #  The tie rule is NOT an intentional decision about how to round an exact
-    #  half-nanosecond -- Timedelta(nanoseconds=1.5) -> 1, (nanoseconds=-1.5)
-    #  -> -1, reachable whenever the double lands on exactly k + 0.5 ns. That
-    #  is only what truncating the old float product happened to give, kept so
-    #  this helper does not change behavior it has no reason to change.
-    #  Nothing depends on it; round these the other way if a reason appears.
+    #  Nearest rather than truncating: a whole number of nanoseconds is
+    #  usually not exactly representable as a double -- Fraction(0.3) is a hair
+    #  under 3/10, so truncating days=0.3 lands 1ns short. It also matches
+    #  cast_from_unit, which rounds for every unit but "ns".
+    #  The tie rule is what the old float product happened to give; nothing
+    #  depends on it.
     cdef:
         object numerator, denominator, quotient, remainder
 
@@ -1455,6 +1451,30 @@ cdef _round_half_to_zero(value):
     if 2 * remainder > denominator:
         quotient = quotient + 1
     return -quotient if numerator < 0 else quotient
+
+
+cdef _kwargs_to_ns(parts):
+    # Scale duration keywords to nanoseconds. `parts` values are ints or exact
+    #  Fractions.
+    cdef:
+        object seconds, total_ns
+
+    seconds = _round_half_to_zero((
+        (
+            (parts.get("days", 0) + parts.get("weeks", 0) * 7) * 24
+            + parts.get("hours", 0)
+        ) * 3600
+        + parts.get("minutes", 0) * 60
+        + parts.get("seconds", 0)
+        ) * 1_000_000_000
+    )
+    total_ns = (
+        _round_half_to_zero(parts.get("nanoseconds", 0))
+        + _round_half_to_zero(parts.get("microseconds", 0) * 1_000)
+        + _round_half_to_zero(parts.get("milliseconds", 0) * 1_000_000)
+        + seconds
+    )
+    return total_ns, seconds
 
 
 def _timedelta_unpickle(value, reso):
@@ -2651,47 +2671,24 @@ class Timedelta(_Timedelta):
                 #  needs a rational. `kwargs` itself is left as the caller
                 #  spelled it, for the error messages.
                 parts = {}
-                exact = True
                 for key, kwarg_value in kwargs.items():
                     if is_integer_object(kwarg_value):
                         parts[key] = kwarg_value
                     elif kwarg_value.is_integer():
                         parts[key] = int(kwarg_value)
                     else:
-                        # GH#65168 an all-integer duration has no spare digits,
-                        #  so truncating it to a coarser resolution would lose
-                        #  data; a non-integral float is approximate already,
-                        #  so a coarser resolution is a fair way to express it.
+                        # local import: this branch is rare, and a
+                        #  module-level one would put `fractions` on every
+                        #  `import pandas`
+                        from fractions import Fraction
+
                         parts[key] = Fraction(kwarg_value)
-                        exact = False
 
-                ns = parts.get("nanoseconds", 0)
-                us = parts.get("microseconds", 0)
-                ms = parts.get("milliseconds", 0)
-
-                # See _round_half_to_zero: nearest-with-ties-toward-zero, so
-                #  that exact rationals do not land a nanosecond short while
-                #  ties keep the answer the old float path gave.
-                seconds = _round_half_to_zero((
-                    (
-                        (parts.get("days", 0) + parts.get("weeks", 0) * 7) * 24
-                        + parts.get("hours", 0)
-                    ) * 3600
-                    + parts.get("minutes", 0) * 60
-                    + parts.get("seconds", 0)
-                    ) * 1_000_000_000
-                )
-
-                total_ns = (
-                    _round_half_to_zero(ns)
-                    + _round_half_to_zero(us * 1_000)
-                    + _round_half_to_zero(ms * 1_000_000)
-                    + seconds
-                )
-            except (OverflowError, ValueError) as err:
-                # GH#66823 int() of an infinite float raises a bare
-                #  OverflowError, and of a NaN produced by cancelling
-                #  infinities (days=inf, seconds=-inf) a bare ValueError.
+                total_ns, seconds = _kwargs_to_ns(parts)
+            except OverflowError as err:
+                # GH#66823 Fraction() of an infinite float raises a bare
+                #  OverflowError. NaN cannot reach here -- the loop above
+                #  returns NaT for any NaN kwarg.
                 raise OutOfBoundsTimedelta(
                     f"Cannot construct Timedelta from {kwargs}"
                 ) from err
@@ -2721,9 +2718,19 @@ class Timedelta(_Timedelta):
                 #  an inexact float kwarg carries a rounding tail, which pins the
                 #  natural resolution at "ns" and overflowed a second time even
                 #  though a coarser resolution holds the duration the caller
-                #  asked for. Keep coarsening until it fits; with exact input
-                #  those digits are data, so accept only the natural resolution.
-                candidates = scales[start:] if not exact else scales[start:start + 1]
+                #  asked for. A non-integral float is approximate already, so
+                #  coarsening is a fair way to express it; an integer kwarg has
+                #  no spare digits, so take the licence from those alone.
+                exact_ns = _kwargs_to_ns(
+                    {key: part for key, part in parts.items()
+                     if is_integer_object(part)}
+                )[0]
+                stop = start + 1
+                for scale, _ in scales[stop:]:
+                    if exact_ns % scale != 0:
+                        break
+                    stop += 1
+                candidates = scales[start:stop]
 
                 reso_value, reso_abbrev = None, None
                 for scale, abbrev in candidates:

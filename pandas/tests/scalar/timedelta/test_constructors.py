@@ -352,6 +352,48 @@ def test_construct_from_kwargs_int64_min(kwargs):
         pd.Timedelta(**kwargs)
 
 
+@pytest.mark.parametrize(
+    "kwarg, unit",
+    [
+        ("weeks", "W"),
+        ("days", "D"),
+        ("hours", "h"),
+        ("minutes", "m"),
+        ("seconds", "s"),
+        ("milliseconds", "ms"),
+        ("microseconds", "us"),
+    ],
+)
+@pytest.mark.parametrize("value", [0.3, 0.6, 2.3, 1.23456789])
+def test_construct_from_kwargs_float_matches_positional(kwarg, unit, value):
+    # GH#67988 a non-integral float kwarg was scaled in float64 and truncated,
+    #  so it landed a nanosecond short of the same duration spelled positionally
+    result = pd.Timedelta(**{kwarg: value})
+    assert result == pd.Timedelta(value, unit=unit)
+
+
+def test_construct_from_kwargs_float_rounds_to_nearest_ns():
+    # GH#67988 truncating the float product lost the last nanosecond, so
+    #  Timedelta(days=0.3) was 07:11:59.999999999 rather than 07:12:00
+    assert pd.Timedelta(days=0.3) == pd.Timedelta("0 days 07:12:00")
+    assert pd.Timedelta(microseconds=1.23456789)._value == 1235
+
+    # nanoseconds= is the one keyword whose positional spelling truncates
+    assert pd.Timedelta(nanoseconds=0.6)._value == 1
+    assert pd.Timedelta(0.6, unit="ns")._value == 0
+
+
+def test_construct_from_kwargs_inexact_does_not_truncate_exact():
+    # GH#67988 the licence to coarsen comes from the inexact kwargs, but must
+    #  not drop digits an integer kwarg named exactly: adding seconds=1.5 must
+    #  not turn the raise into a silent truncation
+    with pytest.raises(OutOfBoundsTimedelta, match="nanoseconds="):
+        pd.Timedelta(nanoseconds=10**19 + 1)
+
+    with pytest.raises(OutOfBoundsTimedelta, match="nanoseconds="):
+        pd.Timedelta(nanoseconds=10**19 + 1, seconds=1.5)
+
+
 def test_construct_from_kwargs_non_nano():
     # GH#46587 - kwargs that overflow nanosecond resolution should
     # fall back to coarser resolutions instead of raising
