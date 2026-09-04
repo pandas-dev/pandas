@@ -3783,7 +3783,9 @@ class GenericFixed(Fixed):
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
-            lev = self.read_index_node(node, start=start, stop=stop)
+            # A level holds the unique values, not one entry per row, so it must
+            # be read in full; only the codes are sliced by start/stop.
+            lev = self.read_index_node(node)
             levels.append(lev)
             names.append(lev.name)
 

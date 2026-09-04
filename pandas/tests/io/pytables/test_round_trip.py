@@ -222,6 +222,30 @@ def test_empty_string_index_roundtrips(temp_h5_path):
     tm.assert_series_equal(pd.read_hdf(temp_h5_path, "s"), ser)
 
 
+@pytest.mark.parametrize(
+    "vals",
+    [
+        # slice lands on the wrong labels -> silently wrong index
+        ["c", "d", "a", "b", "e", "f"],
+        # slice leaves codes pointing past the truncated level -> ValueError
+        ["a", "b", "c", "d", "e", "f"],
+    ],
+)
+def test_fixed_multiindex_start_stop_matches_iloc(temp_h5_path, vals):
+    # GH#68035 — a MultiIndex level holds the unique values, not one entry per
+    # row, so start/stop must slice only the codes.
+    mi = pd.MultiIndex.from_arrays([vals, vals], names=["x", "y"])
+    ser = pd.Series(range(len(vals)), index=mi)
+    ser.to_hdf(temp_h5_path, key="s", mode="w")
+
+    result = pd.read_hdf(temp_h5_path, "s", start=2, stop=4)
+    tm.assert_series_equal(result, ser.iloc[2:4])
+
+    df = ser.to_frame("v")
+    df.to_hdf(temp_h5_path, key="t", mode="w")
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, "t", start=2, stop=4), df.iloc[2:4])
+
+
 @pytest.mark.skipif(
     not using_string_dtype(),
     reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
