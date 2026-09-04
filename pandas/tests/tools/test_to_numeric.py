@@ -737,6 +737,28 @@ def test_to_numeric_from_nullable_string_coerce(nullable_string_dtype):
 
 
 @pytest.mark.parametrize(
+    "values, expected",
+    [
+        (["1", "NaN"], [1, None]),
+        (["1", None, "x"], [1, None, None]),
+        (["x", None, "5"], [None, None, 5]),
+        (["1", "2"], [1, 2]),
+    ],
+)
+def test_to_numeric_arrow_string_coerce(values, expected):
+    # GH#67949 coerce has to give a real null, not a float nan, and a value that
+    # was already null has to stay null alongside one that failed to parse.
+    # note this needs ArrowDtype, not StringDtype. dtype="string[pyarrow]" gives
+    # StringDtype, which already behaved correctly, so a test built that way passes
+    # with or without the fix
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(values, dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce")
+    assert result.isna().tolist() == [v is None for v in expected]
+    assert result.dropna().tolist() == [v for v in expected if v is not None]
+
+
+@pytest.mark.parametrize(
     "data, input_dtype, downcast, expected_dtype",
     (
         ([1, 1], "Int64", "integer", "Int8"),
