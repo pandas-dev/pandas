@@ -557,6 +557,18 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
     assert res == "B"
 
 
+def test_infer_freq_large_dates():
+    # https://github.com/pandas-dev/pandas/pull/65845
+    # large dates which would be out of bounds for micro (year > 294_241)
+    # (this needs to use a freq that checks the month such as QE to cover the code path)
+    dti = pd.date_range(
+        pd.Timestamp(np.datetime64(10**13, "s")).normalize(), periods=10, freq="QE"
+    )._with_freq(None)
+
+    res = frequencies.infer_freq(dti)
+    assert res == "QE-DEC"
+
+
 @td.skip_if_no("pyarrow")
 def test_infer_freq_pyarrow():
     # GH#58403
