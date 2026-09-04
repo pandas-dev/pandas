@@ -1469,6 +1469,35 @@ def test_unstack_sort_false_unsorted_with_gaps():
     tm.assert_frame_equal(result, expected)
 
 
+def test_unstack_sort_false_unused_level_in_columns():
+    # GH#66673 removed_level_full was indexed using codes computed against
+    # the level already trimmed of unused entries, so whenever the unstacked
+    # level had an entry unused entirely, the resulting DataFrame column
+    # labels (but not the underlying values) came out wrong. Series.unstack,
+    # which never touches removed_level_full, was unaffected.
+    mi = pd.MultiIndex(
+        levels=[["a", "b"], ["x", "y", "z"]],
+        codes=[[0, 0, 1, 1], [2, 0, 2, 0]],
+        names=["r", "c"],
+    )
+    df = pd.DataFrame({"v": [1.0, 2.0, 3.0, 4.0]}, index=mi)
+
+    result = df.unstack(sort=False)
+    expected = pd.DataFrame(
+        [[1.0, 2.0], [3.0, 4.0]],
+        index=pd.Index(["a", "b"], name="r"),
+        columns=pd.MultiIndex.from_tuples([("v", "z"), ("v", "x")], names=[None, "c"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    expected_series = pd.DataFrame(
+        [[1.0, 2.0], [3.0, 4.0]],
+        index=pd.Index(["a", "b"], name="r"),
+        columns=pd.Index(["z", "x"], name="c"),
+    )
+    tm.assert_frame_equal(df["v"].unstack(sort=False), expected_series)
+
+
 @pytest.mark.parametrize("frame", [False, True])
 @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
 def test_unstack_sort_false_multiple_remaining_levels(frame, dtype):
