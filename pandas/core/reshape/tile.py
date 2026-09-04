@@ -381,8 +381,10 @@ def qcut(
             q * quantiles != np.arange(q + 1),
             np.nextafter(quantiles, 1),
         )
-    else:
+    elif is_list_like(q):
         quantiles = q
+    else:
+        raise ValueError("`q` should be a positive integer.")
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 
