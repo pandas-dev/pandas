@@ -570,7 +570,7 @@ class TestDataFrameQueryNumExprPandas:
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
-        return_value = df.set_index("dates1", inplace=True, drop=True)
+        df = df.set_index("dates1")
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
