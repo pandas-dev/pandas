@@ -1708,7 +1708,10 @@ class Parser:
                     data = converted
                     break
             else:
-                if converted is not None and not _is_default_filled(converted):
+                if converted is not None and (
+                    not _is_default_filled(converted)
+                    or _parses_strict_iso8601(new_data)
+                ):
                     # all units failed to cast to ns (eg with mixed string / int)
                     # but to_datetime still returned a result -> use this this
                     # result (with the last unit) and re-emit any warning
@@ -1728,14 +1731,30 @@ def _is_default_filled(converted: Series) -> bool:
     year 1 timestamps. Strings carrying only a time of day are filled from
     *today* instead and so are not caught here.
 
-    The caller exempts ``format="ISO8601"``, which rejects ``"Jan"`` outright,
-    so a year-1 result from it came from the data. The mixed string/int branch
-    has no such strict parse available and so gets no exemption.
+    A year-1 result is genuine when the strings parse under a strict ISO8601
+    format, which rejects ``"Jan"`` outright; callers check that separately,
+    either by having attempted ``format="ISO8601"`` themselves or via
+    ``_parses_strict_iso8601``.
     """
     if converted.dtype.kind != "M":
         # defensive; the parses attempted above all give datetime64
         return False
     return bool((converted.dt.year == 1).any())
+
+
+def _parses_strict_iso8601(data: Series) -> bool:
+    """
+    Whether every entry of ``data`` parses under a strict ISO8601 format.
+
+    Used to tell a genuine out-of-nanosecond-bounds date apart from a
+    default-filled parse on the object-dtype path, which -- unlike the
+    string-dtype path -- does not attempt ``format="ISO8601"`` itself.
+    """
+    try:
+        to_datetime(data, errors="raise", format="ISO8601")
+    except Exception:
+        return False
+    return True
 
 
 def _reemit_parse_warnings(
