@@ -15388,9 +15388,8 @@ class DataFrame(NDFrame, OpsMixin):
             # roundtrip in _post_expansion_casting, and (for EA dtypes that
             # carry array-level state not encoded in the dtype, e.g. geopandas
             # CRS) preserves that state through concat. GH#65094.
-            # The loop matches the two frames positionally, which is only
-            # equivalent to the label-based alignment concat does because the
-            # columns compare equal.
+            # The loop matches the frames positionally, so it needs equal
+            # columns to agree with concat's label-based alignment.
             orig_dtypes = self._mgr.get_dtypes()
             row_dtypes = row_df._mgr.get_dtypes()
             object_dtype = np.dtype(object)
@@ -15410,36 +15409,30 @@ class DataFrame(NDFrame, OpsMixin):
                 row_vals = row_df._mgr.iget_values(i)
                 try:
                     with warnings.catch_warnings():
-                        # the pre-cast is speculative, so a warning about it
-                        #  is noise whether or not we go on to adopt it
+                        # the pre-cast is speculative, so warning about it
+                        #  is noise whether or not we adopt it
                         warnings.simplefilter("ignore")
                         casted = infer_and_maybe_downcast(
                             arr, row_vals, warn_if_cast=False
                         )
                     casted_dtype = casted.dtype
                     if isinstance(casted_dtype, NumpyEADtype):
-                        # infer_and_maybe_downcast re-wraps a numpy result to
-                        #  match the NumpyExtensionArray it was handed, and a
-                        #  NumpyEADtype never compares equal to the plain
-                        #  np.dtype the manager reports for the column.
+                        # infer_and_maybe_downcast re-wraps its result to match
+                        #  the NumpyExtensionArray it was handed; NumpyEADtype
+                        #  never == the np.dtype the manager reports.
                         casted_dtype = casted_dtype.numpy_dtype
-                    # GH#65431 adopt the pre-cast only where it is a pure
-                    #  optimization: it has to land back on the column's dtype
-                    #  (otherwise it saves nothing) and leave every value equal.
-                    #  A narrowing cast -- float64 0.1 into a float32 column --
-                    #  keeps the dtype, so _post_expansion_casting would not
-                    #  fire and the truncated value would be kept silently.
+                    # GH#65431 adopt only where the pre-cast is a pure
+                    #  optimization: same dtype (else it saves nothing) and every
+                    #  value preserved, see
+                    #  test_append_internal_pre_cast_declines_narrowing.
                     adopt = casted_dtype == orig_dtype and _values_unchanged(
                         row_vals, casted
                     )
                 except Exception:
-                    # Deliberately broad, and deliberately covering the checks
-                    #  as well as the cast: _cast_pointwise_result makes no
-                    #  promise about what it raises for a value the dtype
-                    #  cannot hold (pyarrow OverflowError/ArrowInvalid, masked
-                    #  arrays TypeError, a third-party EA anything at all), and
-                    #  an optimization must never be the reason an append that
-                    #  would otherwise work raises.
+                    # Deliberately broad, and around the checks too:
+                    #  _cast_pointwise_result makes no promise about what it
+                    #  raises for a value the dtype cannot hold, and an
+                    #  optimization must not make a working append raise.
                     adopt = False
                 if adopt:
                     row_df.isetitem(i, casted)
@@ -20086,14 +20079,12 @@ def _values_unchanged(before: ArrayLike, after: ArrayLike) -> bool:
     """
     Whether every value in `before` still compares equal in `after`.
 
-    The standard is equality, not identity of type -- 3.0 matching 3 is the
-    point, since recognizing that is what lets an int column stay an int
-    column.  A position that is NA on both sides matches whichever NA flavor
-    each side uses, np.nan becoming pd.NA in a masked array losing nothing.
+    Equality, not identity of type -- 3.0 matching 3 is the point, since that
+    is what lets an int column stay an int column.  A position that is NA on
+    both sides matches whichever NA flavor each side uses.
     """
     # np.asarray would read an array of sequence-valued scalars as 2-D, so box
-    #  each side one element at a time.  The list() calls are for the typing:
-    #  the helper only iterates and takes len(), but is annotated Collection.
+    #  each side one element at a time.  list() is only for the typing.
     left = construct_1d_object_array_from_listlike(list(before))
     right = construct_1d_object_array_from_listlike(list(after))
     both_na = isna(left) & isna(right)

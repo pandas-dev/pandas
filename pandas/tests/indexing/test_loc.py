@@ -2593,22 +2593,20 @@ class TestLocSetitemWithExpansion:
         "dtype, item",
         [
             # used to raise: pyarrow lets an OverflowError out of the cast.
-            #  Spelled out instead of "str" so the case does not evaporate
-            #  into object dtype when future.infer_string is disabled
+            #  Spelled out rather than "str" so the case survives with
+            #  future.infer_string disabled
             (pd.StringDtype(na_value=np.nan), 2**70),
             # used to raise: BaseMaskedArray._from_sequence rejects NaT
             ("Int64", pd.NaT),
-            # used to store the Period's ordinal and the Interval's endpoints
-            #  as a struct: the cast lands on an arrow period/interval type,
-            #  which concat then coerced back into the int64 column
+            # used to land on an arrow period/interval type, which concat
+            #  then coerced back into the int64 column
             ("int64[pyarrow]", pd.Period("2021-01-01", freq="D")),
             ("int64[pyarrow]", pd.Interval(5, 6)),
         ],
     )
     def test_loc_setitem_with_expansion_lossy_pre_cast(self, dtype, item):
-        # GH#65431 pre-casting the new row to the column's dtype is only an
-        #  optimization; when it raises, or lands anywhere but the column's own
-        #  dtype, the column has to widen to object and keep what was passed
+        # GH#65431 the pre-cast is only an optimization; when it raises or
+        #  lands on another dtype, the column widens to object
         if "pyarrow" in str(dtype):
             pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": pd.Series([1, 2], dtype=dtype)})
@@ -2622,8 +2620,7 @@ class TestLocSetitemWithExpansion:
 
     def test_loc_setitem_with_expansion_sparse_na(self):
         # GH#65431 pre-casting NaN gives Sparse[float64, nan], not the column's
-        #  Sparse[int64, 0]; adopting it used to let concat reconcile the two
-        #  fill values by turning the appended NaN into 0
+        #  Sparse[int64, 0]; adopting it used to turn the appended NaN into 0
         df = pd.DataFrame({"a": pd.arrays.SparseArray([0, 1, 2], fill_value=0)})
 
         with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):

@@ -348,9 +348,8 @@ class TestAppend:
 
 
 def test_append_internal_reordered_row_matches_by_label():
-    # GH#65431 the dtype pre-cast matches the two frames positionally, so it
-    #  only runs when the columns are equal; a row in a different order has to
-    #  be left for concat to align by label
+    # GH#65431 the pre-cast matches positionally, so a reordered row has to be
+    #  left for concat to align by label
     df = pd.DataFrame(
         {"a": pd.array([1, 2], dtype="Int64"), "b": pd.array([1, 2], dtype="int64")}
     )
@@ -369,8 +368,8 @@ def test_append_internal_reordered_row_matches_by_label():
 
 
 def test_append_internal_pre_cast_retains_numpy_dtype():
-    # GH#65431 a value the column's numpy dtype can hold losslessly is pre-cast
-    #  so that concat keeps int64 instead of widening the column to float64
+    # GH#65431 a losslessly-holdable value is pre-cast, so concat keeps int64
+    #  instead of widening the column to float64
     df = pd.DataFrame({"a": [1, 2]})
     ser = pd.Series([3.0], index=["a"], name=2)
 
