@@ -3854,8 +3854,10 @@ for reading binary Excel files mostly match what can be done for
 
 .. note::
 
-   The ``pyxlsb`` engine is also available for reading ``.xlsb`` files but is
-   deprecated; prefer ``engine="calamine"``.
+   The ``pyxlsb`` engine is still used for ``.xlsb`` files by default whenever it
+   is installed, but it is deprecated and does not recognize datetime types in
+   files, returning the raw Excel serial numbers instead. Prefer
+   ``engine="calamine"``.
 
 .. note::
 
