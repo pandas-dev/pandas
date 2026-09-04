@@ -179,6 +179,182 @@ class TestDataFrameEval:
 
         tm.assert_frame_equal(res, expect)
 
+    def test_query_duplicate_column_name_referenced(self, engine, parser):
+        # GH#65588 the eval fix made a duplicated label resolve to a DataFrame;
+        # query cannot use that as a row mask, so it raises instead of masking.
+        df = pd.DataFrame({"A": range(3), "B": range(10, 13), "C": range(3)}).rename(
+            columns={"B": "A"}
+        )
+
+        msg = "The column label 'A' is not unique"
+        with pytest.raises(ValueError, match=msg):
+            df.query("A == 1", engine=engine, parser=parser)
+
+        # every column duplicated -> the mask would align, so nothing but this
+        # check stops query from silently returning a NaN-masked frame
+        df2 = pd.DataFrame({"A": range(3), "B": range(10, 13)}).rename(
+            columns={"B": "A"}
+        )
+        with pytest.raises(ValueError, match=msg):
+            df2.query("A == 1", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_backtick(self, engine, parser):
+        # GH#65588 the message names the original label, not the mangled one
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame([[1, 2, 3]], columns=["a b", "a b", "c"])
+
+        with pytest.raises(ValueError, match="The column label 'a b' is not unique"):
+            df.query("`a b` == 1", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_resolvers_win(self, engine, parser):
+        # GH#65588 an explicit resolver disambiguates the label, so no raise
+        df = pd.DataFrame({"A": range(3), "B": range(10, 13), "C": range(3)}).rename(
+            columns={"B": "A"}
+        )
+
+        result = df.query(
+            "A == 1",
+            engine=engine,
+            parser=parser,
+            resolvers=[{"A": pd.Series([False, True, False])}],
+        )
+
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+    def test_query_duplicate_column_name_local_not_shadowed(self, engine, parser):
+        # GH#65588 the duplicate-label guard must not capture an @local whose
+        # name matches a duplicated column: Scope.swapkey rewrites the local by
+        # writing into the first resolver that *contains* the name
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["AA", "AA", "B"])
+        AA = 4  # noqa: F841
+
+        result = df.query("B > @AA", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+    def test_query_duplicate_column_name_na_label(self, engine, parser):
+        # GH#65588 NaN labels are duplicates too, even though value_counts
+        # drops them
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=[np.nan, np.nan, "B"])
+
+        with pytest.raises(ValueError, match="The column label nan is not unique"):
+            df.query("nan == 1", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_hash_equal_labels(self, engine, parser):
+        # GH#65588 1 and True are one label as far as __getitem__ is concerned,
+        # so referencing either one is ambiguous
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, True, "x"])
+        assert df[True].shape[1] == 2
+
+        with pytest.raises(ValueError, match="The column label True is not unique"):
+            df.query("`True` == 2", engine=engine, parser=parser)
+        with pytest.raises(ValueError, match="The column label 1 is not unique"):
+            df.query("`1` == 1", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_cleaned_name_collision(self, engine, parser):
+        # GH#65588 clean_column_name is not injective, so the guard has to ask
+        # which label the cleaned name actually resolves to (the last one wins)
+        # rather than whether any label sharing it is duplicated
+        skip_if_no_pandas_parser(parser)
+
+        # `1` resolves to the unique str column, so this is not ambiguous
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, 1, "1"])
+        result = df.query("`1` == 3", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[0]])
+
+        # reversed, `1` resolves to the duplicated int label instead
+        df2 = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, "1", 1])
+        with pytest.raises(ValueError, match="The column label 1 is not unique"):
+            df2.query("`1` == 3", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_compound(self, engine, parser):
+        # GH#65588 a compound expression fails inside align_terms before it ever
+        # produces a result, and used to leak "cannot reindex on an axis with
+        # duplicate labels" from there
+        df = pd.DataFrame(np.arange(6).reshape(2, 3), columns=["a", "a", "c"])
+
+        msg = "The column label 'a' is not unique"
+        with pytest.raises(ValueError, match=msg) as excinfo:
+            df.query("a > c", engine=engine, parser=parser)
+        # the alignment path has no result yet, so it must not advise reducing one
+        assert "reduce each reference" in str(excinfo.value)
+        with pytest.raises(ValueError, match=msg):
+            df.query("(a == 1) & (c == 2)", engine=engine, parser=parser)
+
+        # and the remedy it names actually works
+        result = df.query("a.max(axis=1) > c", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[:0])
+
+    def test_query_duplicate_column_name_alignment_cause_kept(self, engine, parser):
+        # GH#65588 a duplicated *index* raises the same alignment error, and the
+        # label here was reduced and is blameless, so the real cause must lead
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame(np.arange(6).reshape(2, 3), columns=["a", "a", "c"])
+        ser = pd.Series([1, 2], index=[0, 0])  # noqa: F841
+
+        msg = "|".join(["cannot reindex on an axis", "identically-labeled"])
+        with pytest.raises(ValueError, match=msg) as excinfo:
+            df.query("a.max(axis=1) > @ser", engine=engine, parser=parser)
+
+        # our text may follow as a hint, but must never lead
+        assert not str(excinfo.value).startswith("The column label")
+
+    def test_query_duplicate_column_name_unrelated_error(self, engine, parser):
+        # GH#65588 merely mentioning a duplicated label does not make it to
+        # blame for a failure raised elsewhere in the expression
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame({"x": [1, 2], "y": [3, 4], "c": ["p", "q"]})
+        df.columns = ["a", "a", "c"]
+
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            df.query(
+                "a.max(axis=1) > 1 and c.astype('int64') > 0",
+                engine=engine,
+                parser=parser,
+            )
+
+    def test_query_duplicate_column_name_multiple(self, engine, parser):
+        # GH#65588 every duplicated label the expression referenced is named
+        df = pd.DataFrame(np.arange(8).reshape(2, 4), columns=["a", "a", "b", "b"])
+
+        with pytest.raises(ValueError, match="labels 'a', 'b' are not unique"):
+            df.query("(a == 1) & (b == 2)", engine=engine, parser=parser)
+
+        # the non-flex comparison raises a different message per engine; both
+        # still carry the hint
+        with pytest.raises(ValueError, match="'a', 'b' are not unique"):
+            df.query("a > b", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_reduced_to_mask(self, engine, parser):
+        # GH#65588 a duplicated label is only a problem when the expression
+        # leaves the result 2-D; reducing it back to a row mask is valid and
+        # worked before this guard existed
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        df.columns = ["a", "a", "c"]
+
+        result = df.query("(a == 1).any(axis=1)", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[0]])
+
+        result = df.query("a.max(axis=1) > 4", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[1, 2]])
+
+    def test_query_duplicate_column_name_whole_frame_mask(self, engine, parser):
+        # GH#65588 a 2-D mask that does not come from a duplicated label is
+        # still a valid query, whether or not it references a unique label
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame(np.arange(-3, 3).reshape(2, 3), columns=["a", "a", "b"])
+
+        result = df.query("@df > 0", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df[df > 0])
+
+        # referencing the unique label exercises the recorder's negative branch
+        expected = df[df > df["b"].min()]
+        assert expected.notna().any().any()  # not vacuously all-NaN
+        result = df.query("@df > b.min()", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, expected)
+
     def test_query_duplicate_index_label(self, engine, parser):
         # GH#51815 aligning the terms against a frame whose index has duplicate
         # labels raised "cannot reindex on an axis with duplicate labels"
