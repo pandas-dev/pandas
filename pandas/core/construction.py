@@ -690,9 +690,9 @@ def sanitize_array(
             # we will try to copy by-definition here
             subarr = _try_cast(data, dtype, copy)
 
-    elif dtype is None and _has_arrow_extension_type(data):
-        # GH#63511 e.g. pa.uuid(), the only pyarrow types without a more specific
-        #  pandas representation that the __array__ conversion below would find
+    elif dtype is None and _is_arrow_uuid_array(data):
+        # GH#63511 pa.uuid() has no pandas/NumPy equivalent, so the __array__
+        #  conversion below would give an object array of the storage bytes
         from pandas.core.arrays.arrow import ArrowExtensionArray
 
         subarr = ArrowExtensionArray(data)
@@ -741,17 +741,17 @@ def sanitize_array(
     return subarr
 
 
-def _has_arrow_extension_type(data) -> TypeGuard[pa.Array | pa.ChunkedArray]:
+def _is_arrow_uuid_array(data) -> TypeGuard[pa.Array | pa.ChunkedArray]:
     """
-    Whether data is a pyarrow array whose type is an Arrow extension type.
+    Whether data is a pyarrow array with the ``pyarrow.uuid()`` type.
     """
     if not HAS_PYARROW:
         return False
     import pyarrow as pa
 
-    return isinstance(data, (pa.Array, pa.ChunkedArray)) and isinstance(
-        data.type, pa.BaseExtensionType
-    )
+    from pandas.core.arrays.arrow.array import is_uuid_type
+
+    return isinstance(data, (pa.Array, pa.ChunkedArray)) and is_uuid_type(data.type)
 
 
 def range_to_ndarray(rng: range) -> np.ndarray:

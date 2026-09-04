@@ -5364,6 +5364,17 @@ def test_construction_from_arrow_array_without_extension_type():
     tm.assert_series_equal(pd.Series(pa.array([1, 2, 3])), pd.Series([1, 2, 3]))
 
 
+@pytest.mark.skipif(
+    pa_version_under19p0, reason="pa.bool8()/pa.json_() need pyarrow v19.0"
+)
+def test_construction_from_other_arrow_extension_types():
+    # GH#63511 only pa.uuid() is special-cased: Arrow extension types that do have
+    #  an equivalent default pandas dtype keep converting to it (GH#56994)
+    bool8 = pa.array([1, 0], type=pa.int8()).view(pa.bool8())
+    assert pd.Series(bool8).dtype == np.dtype(bool)
+    assert pd.Series(pa.array(["{}"], type=pa.json_())).dtype == "str"
+
+
 @uuid_mark
 def test_uuid_isna(uuid_series: pd.Series):
     result = uuid_series.isna()
@@ -5404,7 +5415,8 @@ def test_uuid_comparison_array(uuid_series: pd.Series):
 @uuid_mark
 def test_uuid_comparison_non_uuid(uuid_series: pd.Series):
     # GH#63511 comparing against a non-UUID is unequal, not an error
-    expected = pd.Series([False, False, False], dtype="bool[pyarrow]")
+    # (NA propagates, like for every other ArrowDtype)
+    expected = pd.Series([False, False, None], dtype="bool[pyarrow]")
     tm.assert_series_equal(uuid_series == "not-a-uuid", expected)
 
 
