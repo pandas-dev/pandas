@@ -1523,7 +1523,11 @@ class IndexOpsMixin(OpsMixin):
                 # GH#57517
                 uniques = self[:0]
             else:
-                uniques = self._constructor(uniques)
+                # GH#62337 rebuilding from the tuples re-infers every level, which
+                # drops extension dtypes and the names. take the rows back out of
+                # self instead, the codes already say which ones they are
+                first = np.unique(codes, return_index=True)[1]
+                uniques = self.take(first)
         else:
             from pandas import Index
 
