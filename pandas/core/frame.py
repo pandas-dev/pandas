@@ -5599,9 +5599,15 @@ class DataFrame(NDFrame, OpsMixin):
                 np_dtype: np.dtype,
             ) -> Callable[[DtypeObj], bool]:
                 # A datetime64/timedelta64 dtype with a specific unit matches
-                # only columns with exactly that resolution (GH#40234)
+                # only columns with exactly that resolution (GH#40234).
+                # np_dtype is already in native byteorder; normalizing the
+                # column's too keeps the match byteorder-agnostic, as it is
+                # for every other string spec.
                 def func(dtype_obj: DtypeObj) -> bool:
-                    return isinstance(dtype_obj, np.dtype) and dtype_obj == np_dtype
+                    return (
+                        isinstance(dtype_obj, np.dtype)
+                        and dtype_obj.newbyteorder("=") == np_dtype
+                    )
 
                 return func
 
@@ -5641,18 +5647,19 @@ class DataFrame(NDFrame, OpsMixin):
                             "use 'str' or 'object' instead"
                         )
                     if lib.is_np_dtype(dtype, "mM"):
-                        unit = np.datetime_data(dtype)[0]
+                        unit, count = np.datetime_data(dtype)
                         if unit == "generic":
                             # unitless np.dtype("datetime64") is not a specific
                             # dtype, so match the family, as with np.datetime64
                             resolved.add(dtype.type)
                             funcs.append(matches_type(dtype.type))
                             continue
-                        if unit not in ("s", "ms", "us", "ns"):
+                        if count != 1 or unit not in ("s", "ms", "us", "ns"):
                             # no column can ever have this dtype
                             raise ValueError(
-                                f"{dtype.name!r} is too specific of a "
-                                f"frequency, try passing "
+                                f"{dtype.name!r} is not a supported "
+                                "datetime64/timedelta64 resolution; pass "
+                                "'s', 'ms', 'us', 'ns', or "
                                 f"{dtype.type.__name__!r}"
                             )
                     elif isinstance(dtype, CategoricalDtype) and (
@@ -5788,24 +5795,30 @@ class DataFrame(NDFrame, OpsMixin):
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
                                 continue
                             if lib.is_np_dtype(pdtype, "mM"):
-                                unit = np.datetime_data(pdtype)[0]
-                                if unit == "generic":
-                                    # a unitless datetime64/timedelta64 matches
-                                    # every resolution
-                                    dtype_type = pdtype.type
-                                elif is_supported_dtype(pdtype):
+                                unit, count = np.datetime_data(pdtype)
+                                # a unitless datetime64/timedelta64 falls
+                                # through to a family match on pdtype.type
+                                if unit != "generic":
+                                    # byteorder is not part of what a string
+                                    # spec selects: ">i8" selects every int64
+                                    # column through the pdtype.type path below,
+                                    # so canonicalize the spec here and let
+                                    # matches_np_dtype normalize the column
+                                    pdtype = pdtype.newbyteorder("=")
+                                    if count != 1 or not is_supported_dtype(pdtype):
+                                        # a multiple of a unit (e.g. "10s") is
+                                        # not a resolution any column can have
+                                        raise ValueError(
+                                            f"{pdtype.name!r} is not a supported "
+                                            "datetime64/timedelta64 resolution; "
+                                            "pass 's', 'ms', 'us', 'ns', or "
+                                            f"{pdtype.type.__name__!r}"
+                                        )
                                     # a specific unit (s, ms, us, ns) matches
                                     # only that exact resolution (GH#40234)
                                     resolved.add(pdtype)
                                     funcs.append(matches_np_dtype(pdtype))
                                     continue
-                                else:
-                                    raise ValueError(
-                                        f"{pdtype.name!r} is not a supported "
-                                        "datetime64/timedelta64 resolution; pass "
-                                        "'s', 'ms', 'us', 'ns', or "
-                                        f"{pdtype.type.__name__!r}"
-                                    )
                             # Instances are handled at the top of the loop, so
                             # only strings/numpy types reach here.
                             dtype_type = pdtype.type
@@ -7724,7 +7737,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel = ...,
         *,
         drop: bool = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool = ...,
@@ -7736,7 +7749,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel | None = None,
         *,
         drop: bool = False,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool = False,
@@ -7759,6 +7772,14 @@ class DataFrame(NDFrame, OpsMixin):
             the index to the default integer index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -7900,6 +7921,19 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:

@@ -665,8 +665,95 @@ def test_select_dtypes_datetime64_instance_unit():
     tm.assert_frame_equal(result, df)
 
     # a unit that no column can have still raises
-    with pytest.raises(ValueError, match="is too specific"):
+    with pytest.raises(ValueError, match="is not a supported"):
         df.select_dtypes(include=np.dtype("datetime64[D]"))
+
+
+@pytest.mark.parametrize("kind", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("byteorder", ["<", ">"])
+def test_select_dtypes_dt64_td64_string_byteorder(kind, unit, byteorder):
+    # GH#40234 byteorder is not part of what a string spec selects, matching
+    # how ">i8" selects every int64 column, so a byteswapped string selects
+    # that resolution rather than silently selecting nothing
+    if kind == "datetime64":
+        base = pd.date_range("2020-01-01", periods=3)
+    else:
+        base = pd.timedelta_range("1 day", periods=3)
+    df = pd.DataFrame({other: base.as_unit(other) for other in ["s", "ms", "us", "ns"]})
+
+    result = df.select_dtypes(include=[f"{byteorder}{kind}[{unit}]"])
+    tm.assert_frame_equal(result, df[[unit]])
+
+    result = df.select_dtypes(exclude=[f"{byteorder}{kind}[{unit}]"])
+    tm.assert_frame_equal(result, df.drop(columns=[unit]))
+
+
+@pytest.mark.parametrize("kind", ["datetime64", "timedelta64"])
+def test_select_dtypes_dt64_td64_string_byteorder_unitless(kind):
+    # GH#40234 a byteswapped but unitless string still matches every resolution
+    if kind == "datetime64":
+        base = pd.date_range("2020-01-01", periods=3)
+    else:
+        base = pd.timedelta_range("1 day", periods=3)
+    df = pd.DataFrame({other: base.as_unit(other) for other in ["s", "ms", "us", "ns"]})
+
+    result = df.select_dtypes(include=[f">{kind}"])
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_dtypes_td64_non_native_column():
+    # GH#40234 a td64 column can be stored in non-native byteorder (dt64 is
+    # normalized on construction, td64 is not), so a string spec must match it
+    # by resolution regardless of byteorder, while an instance spec stays exact
+    df = pd.DataFrame(
+        {
+            "be": pd.Series(np.array([1, 2], dtype=">m8[s]")),
+            "le": pd.Series(np.array([1, 2], dtype="<m8[s]")),
+            "ms": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
+        }
+    )
+    assert df["be"].dtype.byteorder == ">"
+
+    # a string spec is byteorder-agnostic on both sides
+    for spec in ("timedelta64[s]", ">timedelta64[s]", "<timedelta64[s]"):
+        result = df.select_dtypes(include=[spec])
+        tm.assert_frame_equal(result, df[["be", "le"]])
+
+    result = df.select_dtypes(exclude=["timedelta64[s]"])
+    tm.assert_frame_equal(result, df[["ms"]])
+
+    # an instance spec keeps exact-dtype semantics, so it distinguishes them
+    result = df.select_dtypes(include=[np.dtype(">m8[s]")])
+    tm.assert_frame_equal(result, df[["be"]])
+
+    result = df.select_dtypes(include=[np.dtype("<m8[s]")])
+    tm.assert_frame_equal(result, df[["le"]])
+
+
+def test_select_dtypes_dt64_byteorder_unsupported_unit_raises():
+    # GH#40234 normalizing the spec's byteorder must not let an unsupported
+    # unit slip past the support check
+    df = pd.DataFrame({"a": pd.date_range("2020-01-01", periods=3)})
+    with pytest.raises(ValueError, match="'datetime64\\[D\\]' is not a supported"):
+        df.select_dtypes(include=[">datetime64[D]"])
+
+
+@pytest.mark.parametrize("spec", ["datetime64[10s]", "timedelta64[2ns]"])
+def test_select_dtypes_dt64_td64_unit_multiple_raises(spec):
+    # GH#40234 a multiple of a supported unit (e.g. "10s") is not a resolution
+    # any column can have, so it raises rather than selecting nothing
+    df = pd.DataFrame(
+        {
+            "a": pd.date_range("2020-01-01", periods=3),
+            "b": pd.timedelta_range("1 day", periods=3),
+        }
+    )
+    msg = "is not a supported datetime64/timedelta64 resolution"
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(include=[spec])
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(include=[np.dtype(spec)])
 
 
 def test_select_dtypes_categorical_instance_exact():

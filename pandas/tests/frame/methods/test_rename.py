@@ -482,6 +482,9 @@ class TestRename:
         )
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename is")
+    @pytest.mark.filterwarnings(
+        "ignore:The inplace keyword in (Series|DataFrame).rename is"
+    )
     def test_rename_non_unique_index_series(self):
         # GH#58621
         df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
