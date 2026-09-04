@@ -1,9 +1,6 @@
 import pytest
 
-from pandas import (
-    Interval,
-    interval_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import IntervalArray
 
@@ -17,14 +14,14 @@ from pandas.arrays import IntervalArray
     ],
 )
 def test_interval_array_equal(kwargs):
-    arr = interval_range(**kwargs).values
+    arr = pd.interval_range(**kwargs).values
     tm.assert_interval_array_equal(arr, arr)
 
 
 def test_interval_array_equal_closed_mismatch():
     kwargs = {"start": 0, "periods": 5}
-    arr1 = interval_range(closed="left", **kwargs).values
-    arr2 = interval_range(closed="right", **kwargs).values
+    arr1 = pd.interval_range(closed="left", **kwargs).values
+    arr2 = pd.interval_range(closed="right", **kwargs).values
 
     msg = """\
 IntervalArray are different
@@ -39,8 +36,8 @@ Attribute "closed" are different
 
 def test_interval_array_equal_periods_mismatch():
     kwargs = {"start": 0}
-    arr1 = interval_range(periods=5, **kwargs).values
-    arr2 = interval_range(periods=6, **kwargs).values
+    arr1 = pd.interval_range(periods=5, **kwargs).values
+    arr2 = pd.interval_range(periods=6, **kwargs).values
 
     msg = """\
 IntervalArray.left are different
@@ -55,8 +52,8 @@ IntervalArray.left shapes are different
 
 def test_interval_array_equal_end_mismatch():
     kwargs = {"start": 0, "periods": 5}
-    arr1 = interval_range(end=10, **kwargs).values
-    arr2 = interval_range(end=20, **kwargs).values
+    arr1 = pd.interval_range(end=10, **kwargs).values
+    arr2 = pd.interval_range(end=20, **kwargs).values
 
     msg = """\
 IntervalArray.left are different
@@ -71,8 +68,8 @@ IntervalArray.left values are different \\(80.0 %\\)
 
 def test_interval_array_equal_start_mismatch():
     kwargs = {"periods": 4}
-    arr1 = interval_range(start=0, **kwargs).values
-    arr2 = interval_range(start=1, **kwargs).values
+    arr1 = pd.interval_range(start=0, **kwargs).values
+    arr2 = pd.interval_range(start=1, **kwargs).values
 
     msg = """\
 IntervalArray.left are different
@@ -86,8 +83,8 @@ IntervalArray.left values are different \\(100.0 %\\)
 
 
 def test_interval_array_equal_end_mismatch_only():
-    arr1 = IntervalArray([Interval(0, 1), Interval(0, 5)])
-    arr2 = IntervalArray([Interval(0, 1), Interval(0, 6)])
+    arr1 = IntervalArray([pd.Interval(0, 1), pd.Interval(0, 5)])
+    arr2 = IntervalArray([pd.Interval(0, 1), pd.Interval(0, 6)])
 
     msg = """\
 IntervalArray.right are different

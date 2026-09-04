@@ -2,7 +2,8 @@ import operator
 
 import pytest
 
-from pandas import Series
+import pandas as pd
+import pandas._testing as tm
 
 
 @pytest.fixture
@@ -148,7 +149,7 @@ def box_in_series(request):
     params=[
         lambda x: 1,
         lambda x: [1] * len(x),
-        lambda x: Series([1] * len(x)),
+        lambda x: pd.Series([1] * len(x)),
         lambda x: x,
     ],
     ids=["scalar", "list", "series", "object"],
@@ -212,3 +213,63 @@ def invalid_scalar(data):
     If the array can hold any item (i.e. object dtype), then use pytest.skip.
     """
     return object.__new__(object)
+
+
+# The fixtures below are also defined in pandas/conftest.py.  They are repeated
+# here so a third-party ExtensionArray author who copies this file gets them.
+# Both copies parametrize over the same lists in pandas._testing, so the two
+# cannot drift apart.
+
+
+@pytest.fixture(params=tm.all_reductions)
+def all_reductions(request):
+    """
+    Fixture for all (boolean + numeric) reduction names.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.numeric_reductions)
+def all_numeric_reductions(request):
+    """
+    Fixture for numeric reduction names.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.boolean_reductions)
+def all_boolean_reductions(request):
+    """
+    Fixture for boolean reduction names.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.numeric_accumulations)
+def all_numeric_accumulations(request):
+    """
+    Fixture for numeric accumulation names
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.arithmetic_dunder_methods)
+def all_arithmetic_operators(request):
+    """
+    Fixture for dunder names for common arithmetic operations.
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.comparison_ops)
+def comparison_op(request):
+    """
+    Fixture for operator module comparison functions.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def using_nan_is_na(request):
+    with pd.option_context("future.distinguish_nan_and_na", not request.param):
+        yield request.param

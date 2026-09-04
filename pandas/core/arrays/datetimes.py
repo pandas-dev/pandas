@@ -801,13 +801,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             and isinstance(offset, RelativeDeltaOffset)
             and not offset._use_relativedelta
         ):
-            res_values = self._ndarray + offset._pd_timedelta
-            # GH#64806 offset._pd_timedelta may have finer resolution than
-            # self, promoting res_values to a finer unit; derive the dtype
-            # from the promoted values rather than assuming self.dtype's unit.
-            res_unit = cast("TimeUnit", np.datetime_data(res_values.dtype)[0])
-            res_dtype = tz_to_dtype(self.tz, res_unit)
-            result = type(self)._simple_new(res_values, dtype=res_dtype)
+            # GH#64806 _add_timedeltalike_scalar casts to the finer of the two
+            # resolutions, so the result keeps offset._pd_timedelta's unit when
+            # that is finer than self's.
+            result = self._add_timedeltalike_scalar(offset._pd_timedelta)
             if offset.normalize:
                 result = result.normalize()
             return result
@@ -818,9 +815,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             values = self
 
         try:
-            res_values = offset._apply_array(values._ndarray)
+            res_values = offset._add_datetime_ndarray(values._ndarray)
             if res_values.dtype.kind == "i":
-                res_values = res_values.view(values.dtype)
+                # values is tz-naive here, so its dtype is the ndarray's
+                res_values = res_values.view(values._ndarray.dtype)
         except NotImplementedError:
             if config["mode"]["performance_warnings"]:
                 warnings.warn(
@@ -1032,10 +1030,9 @@ default 'raise'
 
         >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
         >>> tz_aware
-        DatetimeIndex(['2018-03-01 09:00:00-05:00',
-                       '2018-03-02 09:00:00-05:00',
+        DatetimeIndex(['2018-03-01 09:00:00-05:00', '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[us, US/Eastern]', freq=None)
+                      dtype='datetime64[us, US/Eastern]', freq='D')
 
         With ``tz=None`` we can remove the time zone information while
         preserving the wall time (no conversion to UTC):
@@ -1043,7 +1040,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[us]', freq=None)
+                      dtype='datetime64[us]', freq='D')
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -1218,9 +1215,9 @@ default 'raise'
 
         Parameters
         ----------
-        freq : str or Period, optional
-            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
-            or a Period object. Will be inferred by default.
+        freq : str, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`.
+            Will be inferred by default.
 
         Returns
         -------
@@ -1646,8 +1643,8 @@ default 'raise'
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
-        iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="UInt32"
+        iso_calendar_df = DataFrame(sarray, columns=["year", "week", "day"]).astype(
+            {"year": "Int32", "week": "UInt32", "day": "UInt32"}
         )
         if self._hasna:
             iso_calendar_df.iloc[self._isnan] = None
@@ -2689,7 +2686,6 @@ def _sequence_to_dt64(
                 data,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
-                allow_object=False,
                 out_unit=out_unit,
             )
             copy = False
@@ -2797,7 +2793,6 @@ def objects_to_datetime64(
     yearfirst,
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
-    allow_object: bool = False,
     out_unit: str | None = None,
 ) -> tuple[np.ndarray, tzinfo | None]:
     """
@@ -2811,9 +2806,6 @@ def objects_to_datetime64(
     utc : bool, default False
         Whether to convert/localize timestamps to UTC.
     errors : {'raise', 'coerce'}
-    allow_object : bool
-        Whether to return an object-dtype ndarray instead of raising if the
-        data contains more than one timezone.
     out_unit : str or None, default None
         None indicates we should do resolution inference.
 
@@ -2822,7 +2814,6 @@ def objects_to_datetime64(
     result : ndarray
         np.datetime64[out_unit] if returned values represent wall times or UTC
         timestamps.
-        object if mixed timezones
     inferred_tz : tzinfo or None
         If not None, then the datetime64 values in `result` denote UTC timestamps.
 
@@ -2851,18 +2842,8 @@ def objects_to_datetime64(
         return result, tz_parsed
     elif result.dtype.kind == "M":
         return result, tz_parsed
-    elif result.dtype == object:
-        # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
-        #  array is allowed.  When called via `pd.DatetimeIndex`, we can
-        #  only accept datetime64 dtype, so raise TypeError if object-dtype
-        #  is returned, as that indicates the values can be recognized as
-        #  datetimes but they have conflicting timezones/awareness
-        if allow_object:
-            return result, tz_parsed
-        raise TypeError("DatetimeIndex has mixed timezones")
     else:  # pragma: no cover
-        # GH#23675 this TypeError should never be hit, whereas the TypeError
-        #  in the object-dtype branch above is reachable.
+        # this TypeError should never be hit
         raise TypeError(result)
 
 
@@ -3183,9 +3164,7 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    start = Timestamp(start)  # type: ignore[arg-type]
+    start = Timestamp(start)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if start is not NaT:  # type: ignore[comparison-overlap]
@@ -3193,9 +3172,7 @@ def _generate_range(
     else:
         start = None
 
-    # Argument 1 to "Timestamp" has incompatible type "Optional[Timestamp]";
-    # expected "Union[integer[Any], float, str, date, datetime64]"
-    end = Timestamp(end)  # type: ignore[arg-type]
+    end = Timestamp(end)
     # error: Non-overlapping identity check (left operand type: "Timestamp",
     # right operand type: "NaTType")
     if end is not NaT:  # type: ignore[comparison-overlap]
@@ -3231,7 +3208,8 @@ def _generate_range(
         if (
             start_tod
             # Check if the offset preserves start's time-of-day
-            and (offset._apply(start) - offset._apply(start).normalize()) == start_tod
+            and (offset._add_datetime(start) - offset._add_datetime(start).normalize())
+            == start_tod
         ):
             if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
                 end = end.normalize() + start_tod
@@ -3273,7 +3251,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._add_datetime(cur)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -3288,7 +3266,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._add_datetime(cur)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")

@@ -65,12 +65,12 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
-  the separator, but the Python parsing engine can, meaning the latter will be
-  used and automatically detect the separator by Python's builtin sniffer tool,
-  :class:`python:csv.Sniffer`. In addition, separators longer than 1 character and
-  different from ``'\s+'`` will be interpreted as regular expressions and
-  will also force the use of the Python parsing engine. Note that regex
+  Delimiter to use. ``sep=None`` detects the separator from the first valid row
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
+  is supported only by the Python parsing engine, which will be used
+  automatically. In addition, separators longer than 1 character
+  and different from ``'\s+'`` will be interpreted as regular expressions and
+  will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
@@ -172,12 +172,15 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
-  is currently more feature-complete. Multithreading is currently only supported by
-  the pyarrow engine. Some features of the "pyarrow" engine
-  are unsupported or may not work correctly.
+  is currently more feature-complete. The pyarrow engine is multithreaded, and the C
+  engine reads :ref:`sufficiently large files <io.csv.parallel>` in parallel. Some
+  features of the "pyarrow" engine are unsupported or may not work correctly.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
-  integers or column labels.
+  integers or column labels. The function is applied to the raw text read from the
+  file, before any missing-value detection: an empty field is passed as an empty
+  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
+  column that has a converter.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -1419,7 +1422,9 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``.
+class of the csv module. For this, you have to specify ``sep=None``. Passing
+``engine='python'`` as well avoids the ``ParserWarning`` raised by the
+fallback.
 
 .. ipython:: python
 
@@ -1482,45 +1487,41 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 Specifying the parser engine
 ''''''''''''''''''''''''''''
 
-pandas currently supports three engines, the C engine, the python engine, and a
-pyarrow engine (requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
-on larger workloads and is equivalent in speed to the C engine on most other workloads.
-The python engine tends to be slower than the pyarrow and C engines on most workloads. However,
-the pyarrow engine is much less robust than the C engine, which lacks a few features compared to the
-Python engine.
+pandas supports three parser engines, selected with the ``engine`` keyword:
+the C engine (``engine='c'``, the default), the python engine
+(``engine='python'``), and the pyarrow engine (``engine='pyarrow'``, which
+requires the ``pyarrow`` package). In general, the pyarrow engine is fastest
+on larger workloads and is equivalent in speed to the C engine on most other
+workloads; the python engine is the slowest, but it is the only one that
+supports regex separators and ``skipfooter``. The table below compares the
+three engines:
 
-Where possible, pandas uses the C parser (specified as ``engine='c'``), but it may fall
-back to Python if C-unsupported options are specified.
+.. csv-table::
+   :header: "", "``'c'``", "``'python'``", "``'pyarrow'``"
+   :widths: 40, 18, 18, 18
 
-Currently, options unsupported by the C and pyarrow engines include:
+   "Default engine","yes","",""
+   "Relative speed","fast","slowest","fastest on large workloads"
+   "Multithreaded",":ref:`for large files <io.csv.parallel>`","no","yes"
+   "Regex or multi-character ``sep``","no","yes","no"
+   "``sep=None`` (auto-detect the separator)","no","yes","no"
+   "``skipfooter``","no","yes","no"
+   "``low_memory``","yes","no","no"
+   "``lineterminator``","yes","no","no"
+   "``memory_map``","yes","yes","no"
+   "``iterator`` / ``chunksize`` / ``nrows``","yes","yes","no"
+   "``comment``, ``thousands``, ``skipinitialspace``","yes","yes","no"
+   "``dayfirst``","yes","yes","no"
+   "``converters``","yes","yes","no"
+   "``quoting``, ``dialect``","yes","yes","no"
+   "``na_filter``","yes","yes","no"
 
-* ``sep`` other than a single character (e.g. regex separators)
-* ``skipfooter``
-
-Specifying any of the above options will produce a ``ParserWarning`` unless the
-python engine is selected explicitly using ``engine='python'``.
-
-Options that are unsupported by the pyarrow engine which are not covered by the list above include:
-
-* ``float_precision``
-* ``chunksize``
-* ``comment``
-* ``nrows``
-* ``thousands``
-* ``memory_map``
-* ``dialect``
-* ``on_bad_lines``
-* ``quoting``
-* ``lineterminator``
-* ``converters``
-* ``decimal``
-* ``iterator``
-* ``dayfirst``
-* ``verbose``
-* ``skipinitialspace``
-* ``low_memory``
-
-Specifying these options with ``engine='pyarrow'`` will raise a ``ValueError``.
+Where possible, pandas uses the C parser (specified as ``engine='c'``), but
+it may fall back to Python if C-unsupported options are specified: passing an
+option only the python engine supports produces a ``ParserWarning`` unless
+the python engine is selected explicitly with ``engine='python'``. Selecting
+the C engine explicitly instead raises a ``ValueError``, as does passing an
+option unsupported by the pyarrow engine together with ``engine='pyarrow'``.
 
 .. _io.csv.parallel:
 
@@ -1535,7 +1536,9 @@ considerably. This happens automatically when all of the following hold:
 
 * ``filepath_or_buffer`` is a local, uncompressed file path
 * the C engine is used (the default)
-* the file is at least 50 MB
+* the file's data rows total at least 5 MB, excluding any header preamble
+* more than one thread is in use -- see ``mode.max_threads`` below, which
+  defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
   ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
   ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
@@ -1544,11 +1547,12 @@ considerably. This happens automatically when all of the following hold:
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
-The number of threads is controlled with the ``mode.max_threads`` option,
-which defaults to the number of CPU cores, capped at ``4``. On Windows the
-default is ``1`` (serial), as parallel reading currently does not improve
-performance there. Set the option to ``1`` to disable parallel reading, e.g.
-when pandas runs inside an application that already parallelizes work:
+The number of threads is controlled with the ``mode.max_threads`` option, which
+defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+available to the process -- CPU affinity, and the cgroup CPU quota when the
+process runs in its own cgroup namespace, as it does under Docker and
+Kubernetes. Set the option to ``1`` to disable parallel reading, e.g. when
+pandas runs inside an application that already parallelizes work:
 
 .. code-block:: python
 
@@ -2831,10 +2835,16 @@ Read an XML string:
 
 Read a URL with no options:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
-   df
+   In [362]: df = pd.read_xml("https://www.w3schools.com/xml/books.xml")
+
+   In [363]: df
+   Out[363]:
+      category             title               author  year  price
+   0   cooking  Everyday Italian  Giada De Laurentiis  2005  30.00
+   1  children      Harry Potter         J K. Rowling  2005  29.99
+   2       web      Learning XML          Erik T. Ray  2003  39.95
 
 Read in the content of the "books.xml" file and pass it to ``read_xml``
 as a string:
@@ -3145,6 +3155,14 @@ of reading in Wikipedia's very large (12 GB+) latest article data dump.
 
     [3578765 rows x 3 columns]
 
+.. note::
+
+   ``iterparse`` cannot be combined with ``stylesheet``. XSLT transformation
+   requires the entire tree in memory, which is exactly what ``iterparse``
+   avoids, so a ``stylesheet`` passed alongside ``iterparse`` is ignored
+   without warning. To transform a document with XSLT, use ``xpath`` parsing
+   instead.
+
 .. _io.xml:
 
 Writing XML
@@ -3333,7 +3351,13 @@ See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
      if installed (deprecated), and ``calamine`` otherwise.
    - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used
      if installed (deprecated), and ``calamine`` otherwise.
-   - Otherwise ``openpyxl`` will be used.
+   - Otherwise ``openpyxl`` will be used (deprecated default, see below).
+
+   .. deprecated:: 3.1.0
+      For xlsx/xlsm files the default engine will change from ``openpyxl`` to
+      ``calamine`` in a future version. Pass ``engine`` explicitly, or set the
+      ``io.excel.xlsx.reader`` option (xlsm files are format-detected as xlsx),
+      to keep the current behavior.
 
    The ``xlrd`` and ``pyxlsb`` engines emit a deprecation warning and will be
    removed in a future version. Pass ``engine="calamine"`` to opt in to the
@@ -3365,7 +3389,7 @@ using internally.
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls", sheet_name="Sheet1")
+   pd.read_excel("path_to_file.xlsx", sheet_name="Sheet1")
 
 
 .. _io.excel.excelfile_class:
@@ -3380,14 +3404,14 @@ read into memory only once.
 
 .. code-block:: python
 
-   xlsx = pd.ExcelFile("path_to_file.xls")
+   xlsx = pd.ExcelFile("path_to_file.xlsx")
    df = pd.read_excel(xlsx, "Sheet1")
 
 The ``ExcelFile`` class can also be used as a context manager.
 
 .. code-block:: python
 
-   with pd.ExcelFile("path_to_file.xls") as xls:
+   with pd.ExcelFile("path_to_file.xlsx") as xls:
        df1 = pd.read_excel(xls, "Sheet1")
        df2 = pd.read_excel(xls, "Sheet2")
 
@@ -3401,7 +3425,7 @@ different parameters:
 
     data = {}
     # For when Sheet1's format differs from Sheet2
-    with pd.ExcelFile("path_to_file.xls") as xls:
+    with pd.ExcelFile("path_to_file.xlsx") as xls:
         data["Sheet1"] = pd.read_excel(xls, "Sheet1", index_col=None, na_values=["NA"])
         data["Sheet2"] = pd.read_excel(xls, "Sheet2", index_col=1)
 
@@ -3412,13 +3436,13 @@ of sheet names can simply be passed to ``read_excel`` with no loss in performanc
 
     # using the ExcelFile class
     data = {}
-    with pd.ExcelFile("path_to_file.xls") as xls:
+    with pd.ExcelFile("path_to_file.xlsx") as xls:
         data["Sheet1"] = pd.read_excel(xls, "Sheet1", index_col=None, na_values=["NA"])
         data["Sheet2"] = pd.read_excel(xls, "Sheet2", index_col=None, na_values=["NA"])
 
     # equivalent using the read_excel function
     data = pd.read_excel(
-        "path_to_file.xls", ["Sheet1", "Sheet2"], index_col=None, na_values=["NA"]
+        "path_to_file.xlsx", ["Sheet1", "Sheet2"], index_col=None, na_values=["NA"]
     )
 
 .. _io.excel.specifying_sheets:
@@ -3441,35 +3465,35 @@ Specifying sheets
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls", "Sheet1", index_col=None, na_values=["NA"])
+   pd.read_excel("path_to_file.xlsx", "Sheet1", index_col=None, na_values=["NA"])
 
 Using the sheet index:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls", 0, index_col=None, na_values=["NA"])
+   pd.read_excel("path_to_file.xlsx", 0, index_col=None, na_values=["NA"])
 
 Using all default values:
 
 .. code-block:: python
 
    # Returns a DataFrame
-   pd.read_excel("path_to_file.xls")
+   pd.read_excel("path_to_file.xlsx")
 
 Using None to get all sheets:
 
 .. code-block:: python
 
    # Returns a dictionary of DataFrames
-   pd.read_excel("path_to_file.xls", sheet_name=None)
+   pd.read_excel("path_to_file.xlsx", sheet_name=None)
 
 Using a list to get multiple sheets:
 
 .. code-block:: python
 
    # Returns the 1st and 4th sheet, as a dictionary of DataFrames.
-   pd.read_excel("path_to_file.xls", sheet_name=["Sheet1", 3])
+   pd.read_excel("path_to_file.xlsx", sheet_name=["Sheet1", 3])
 
 ``read_excel`` can read more than one sheet, by setting ``sheet_name`` to either
 a list of sheet names, a list of sheet positions, or ``None`` to read all sheets.
@@ -3524,6 +3548,23 @@ should be passed to ``index_col`` and ``header``:
 
    os.remove("path_to_file.xlsx")
 
+.. note::
+
+   When a ``DataFrame`` with ``MultiIndex`` columns is written by
+   :meth:`~DataFrame.to_excel`, a row containing the index name(s) — blank
+   when the index is unnamed — is always inserted between the header rows and
+   the data. This makes the format unambiguous, and
+   ``read_excel`` assumes this layout when ``header`` is a list of two or more
+   rows and ``index_col`` is given: if the cells outside the ``index_col``
+   in the row following the last header row are all empty, that row is
+   interpreted as the index name(s) rather than as data. A spreadsheet not
+   written by pandas that lacks this separator row will therefore lose its
+   first data row to the index name(s) if that row has values only in the
+   index column(s); there is no way for the parser to distinguish the two
+   layouts. If your file does not contain the separator row, read it without
+   ``index_col`` and call :meth:`~DataFrame.set_index` on the resulting
+   column(s) instead.
+
 Missing values in columns specified in ``index_col`` will be forward filled to
 allow roundtripping with ``to_excel`` for ``merged_cells=True``. To avoid forward
 filling the missing values use ``set_index`` after reading the data instead of
@@ -3540,14 +3581,14 @@ You can specify a comma-delimited set of Excel columns and ranges as a string:
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", usecols="A,C:E")
+   pd.read_excel("path_to_file.xlsx", "Sheet1", usecols="A,C:E")
 
 If ``usecols`` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", usecols=[0, 2, 3])
+   pd.read_excel("path_to_file.xlsx", "Sheet1", usecols=[0, 2, 3])
 
 Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
 
@@ -3557,7 +3598,7 @@ document header row(s). Those strings define which columns will be parsed:
 
 .. code-block:: python
 
-    pd.read_excel("path_to_file.xls", "Sheet1", usecols=["foo", "bar"])
+    pd.read_excel("path_to_file.xlsx", "Sheet1", usecols=["foo", "bar"])
 
 Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as ``['joe', 'baz']``.
 
@@ -3566,7 +3607,7 @@ the column names, returning names where the callable function evaluates to ``Tru
 
 .. code-block:: python
 
-    pd.read_excel("path_to_file.xls", "Sheet1", usecols=lambda x: x.isalpha())
+    pd.read_excel("path_to_file.xlsx", "Sheet1", usecols=lambda x: x.isalpha())
 
 Parsing dates
 +++++++++++++
@@ -3578,7 +3619,7 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", parse_dates=["date_strings"])
+   pd.read_excel("path_to_file.xlsx", "Sheet1", parse_dates=["date_strings"])
 
 
 Cell converters
@@ -3589,7 +3630,7 @@ option. For instance, to convert a column to boolean:
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", "Sheet1", converters={"MyBools": bool})
+   pd.read_excel("path_to_file.xlsx", "Sheet1", converters={"MyBools": bool})
 
 This options handles missing values and treats exceptions in the converters
 as missing data. Transformations are applied cell by cell rather than to the
@@ -3604,7 +3645,7 @@ missing data to recover integer dtype:
        return int(x) if x else -1
 
 
-   pd.read_excel("path_to_file.xls", "Sheet1", converters={"MyInts": cfun})
+   pd.read_excel("path_to_file.xlsx", "Sheet1", converters={"MyInts": cfun})
 
 Dtype specifications
 ++++++++++++++++++++
@@ -3616,7 +3657,7 @@ no type inference, use the type ``str`` or ``object``.
 
 .. code-block:: python
 
-   pd.read_excel("path_to_file.xls", dtype={"MyInts": "int64", "MyText": str})
+   pd.read_excel("path_to_file.xlsx", dtype={"MyInts": "int64", "MyText": str})
 
 .. _io.excel_writer:
 
@@ -3685,8 +3726,8 @@ pandas supports writing Excel files to buffer-like objects such as ``StringIO`` 
    writer = pd.ExcelWriter(bio, engine="xlsxwriter")
    df.to_excel(writer, sheet_name="Sheet1")
 
-   # Save the workbook
-   writer.save()
+   # Save and close the workbook
+   writer.close()
 
    # Seek to the beginning and read to copy the workbook to a variable in memory
    bio.seek(0)
@@ -3710,21 +3751,23 @@ pandas chooses an Excel writer via two methods:
 1. the ``engine`` keyword argument
 2. the filename extension (via the default specified in config options)
 
-By default, pandas uses the `XlsxWriter`_  for ``.xlsx``, `openpyxl`_
-for ``.xlsm``. If you have multiple
+By default, pandas uses the `XlsxWriter`_ for ``.xlsx``, `openpyxl`_
+for ``.xlsm`` and `odfpy`_ for ``.ods``. If you have multiple
 engines installed, you can set the default engine through :ref:`setting the
-config options <options>` ``io.excel.xlsx.writer`` and
-``io.excel.xls.writer``. pandas will fall back on `openpyxl`_ for ``.xlsx``
-files if `Xlsxwriter`_ is not available.
+config options <options>` ``io.excel.xlsx.writer``,
+``io.excel.xlsm.writer`` and ``io.excel.ods.writer``. pandas will fall back
+on `openpyxl`_ for ``.xlsx`` files if `XlsxWriter`_ is not available.
 
 .. _XlsxWriter: https://xlsxwriter.readthedocs.io
 .. _openpyxl: https://openpyxl.readthedocs.io/
+.. _odfpy: https://pypi.org/project/odfpy/
 
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-* ``openpyxl``: version 2.4 or higher is required
+* ``openpyxl``
 * ``xlsxwriter``
+* ``odf``
 
 .. code-block:: python
 
@@ -3811,8 +3854,10 @@ for reading binary Excel files mostly match what can be done for
 
 .. note::
 
-   The ``pyxlsb`` engine is also available for reading ``.xlsb`` files but is
-   deprecated; prefer ``engine="calamine"``.
+   The ``pyxlsb`` engine is still used for ``.xlsb`` files by default whenever it
+   is installed, but it is deprecated and does not recognize datetime types in
+   files, returning the raw Excel serial numbers instead. Prefer
+   ``engine="calamine"``.
 
 .. note::
 
@@ -6057,6 +6102,24 @@ Specifying this will return an iterator through chunks of the query result:
 
     for chunk in pd.read_sql_query("SELECT * FROM data_chunks", engine, chunksize=5):
         print(chunk)
+
+.. _io.sql.chunksize:
+
+.. note::
+
+   ``chunksize`` controls only how many rows pandas converts into a
+   ``DataFrame`` at a time; by itself it usually does not reduce peak memory
+   usage. Most database drivers fetch the complete result set into client
+   memory before the first chunk is produced. Actually streaming the result
+   requires a server-side cursor, which with SQLAlchemy is requested with the
+   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
+   pymysql drivers; drivers without server-side cursor support ignore it):
+
+   .. code-block:: python
+
+      with engine.connect().execution_options(stream_results=True) as conn:
+          for chunk in pd.read_sql_query("SELECT * FROM data_chunks", conn, chunksize=5):
+              print(chunk)
 
 
 Engine connection examples

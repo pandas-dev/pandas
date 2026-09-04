@@ -12,7 +12,6 @@ from typing import (
     Literal,
     Self,
     TypeAlias,
-    Union,
     cast,
     final,
     overload,
@@ -21,10 +20,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import (
-    using_infer_freq_offset,
-    using_string_dtype,
-)
+from pandas._config import using_string_dtype
 from pandas._config.config import _global_config as config
 
 from pandas._libs import (
@@ -49,7 +45,6 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
-    to_offset,
 )
 from pandas._libs.tslibs.fields import (
     RoundTo,
@@ -382,7 +377,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # Use cast as we know we will get back a DatetimeLikeArray or DTScalar,
         # but skip evaluating the Union at runtime for performance
         # (see https://github.com/pandas-dev/pandas/pull/44624)
-        result = cast("Union[Self, DTScalarOrNaT]", super().__getitem__(key))
+        result = cast("Self | DTScalarOrNaT", super().__getitem__(key))
         if lib.is_scalar(result):
             return result
         else:
@@ -920,24 +915,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx.inferred_freq  # doctest: +SKIP
         '10D'
         """
-        result = self._inferred_freq_str
-        if result is not None:
-            opt = using_infer_freq_offset()
-            if opt is True:
-                return to_offset(result)
-            if opt is None:
-                warnings.warn(
-                    "A future version of pandas will return a BaseOffset "
-                    "object instead of a string from inferred_freq. "
-                    "Use pd.set_option("
-                    "'future.infer_freq_returns_offset', True) "
-                    "to get the future behavior, or set to False to keep the "
-                    "old behavior and silence this warning. To preserve the "
-                    "string representation, use ``inferred_freq.freqstr``.",
-                    Pandas4Warning,
-                    stacklevel=find_stack_level(),
-                )
-        return result
+        return frequencies.maybe_convert_inferred_freq(
+            self._inferred_freq_str, "inferred_freq"
+        )
 
     # monotonicity/uniqueness properties are called via frequencies.infer_freq,
     #  see GH#23789
@@ -1045,7 +1025,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _get_i8_values_and_mask(
         self, other
-    ) -> tuple[int | npt.NDArray[np.int64], None | npt.NDArray[np.bool_]]:
+    ) -> tuple[int | npt.NDArray[np.int64], npt.NDArray[np.bool_] | None]:
         """
         Get the int64 values and b_mask to pass to add_overflowsafe.
         """
@@ -1266,8 +1246,19 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self._check_compatible_with(other)
 
         other_i8, o_mask = self._get_i8_values_and_mask(other)
-        new_i8_data = add_overflowsafe(self.asi8, np.asarray(-other_i8, dtype="i8"))
-        new_data = np.array([self.freq.base * x for x in new_i8_data])
+        # GH#66552 the difference is a count of periods, not an ordinal, so
+        #  INT64_MIN is a legitimate answer here and not the NaT sentinel.
+        new_i8_data = add_overflowsafe(
+            self.asi8, np.asarray(-other_i8, dtype="i8"), sentinel_ok=True
+        )
+        # multiply by python ints: numpy's scalar multiply spuriously reports
+        #  overflow for a np.int64 count of INT64_MIN on Windows
+        counts = new_i8_data.ravel().tolist()
+        # dtype=object is necessary for the length-zero case, where numpy
+        #  would otherwise infer float64 (GH#40624)
+        new_data = np.array(
+            [self.freq.base * count for count in counts], dtype=object
+        ).reshape(new_i8_data.shape)
 
         if o_mask is None:
             # i.e. Period scalar
@@ -1657,7 +1648,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 # GH#34479
                 raise TypeError(
                     f"'{how}' with PeriodDtype is no longer supported. "
-                    f"Use (obj != pd.Period(0, freq)).{how}() instead."
+                    f"Use (obj != pd.Period(ordinal=0, freq=freq)).{how}() instead."
                 )
         # timedeltas we can add but not multiply
         elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
@@ -1847,7 +1838,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     @final
     @classmethod
-    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs) -> None:
+    def _validate_frequency(cls, index, freq: BaseOffset) -> None:
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
@@ -1863,6 +1854,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if index.size == 0 or inferred == freq.freqstr:
             return None
 
+        if getattr(index.dtype, "tz", None) is not None and not isinstance(freq, Tick):
+            # GH#55499 non-tick offsets do wall-time arithmetic, so validate
+            #  against wall times; avoids raising on ambiguous times.
+            index = index.tz_localize(None)
+
         try:
             on_freq = cls._generate_range(
                 start=index[0],
@@ -1870,7 +1866,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 periods=len(index),
                 freq=freq,
                 unit=index.unit,
-                **kwargs,
             )
             if not lib.array_equivalent_bytes(index.asi8, on_freq.asi8):
                 raise ValueError

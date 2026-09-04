@@ -107,6 +107,7 @@ class BaseReduceTests:
                     "can't multiply sequence by non-int",
                     "setting an array element with a sequence",
                     "Cannot convert .* to numeric",
+                    "Could not convert .* to numeric",
                 ]
             )
 
@@ -131,6 +132,7 @@ class BaseReduceTests:
         self.check_reduce_frame(ser, op_name, skipna)
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_array(self, request, data, all_reductions, skipna: bool):
         # https://github.com/pandas-dev/pandas/pull/63512
         op_name = all_reductions

@@ -21,6 +21,9 @@ from pandas.core.dtypes.concat import (
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
+from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.common import (
@@ -61,6 +64,11 @@ if TYPE_CHECKING:
 class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
+    _exhausted: bool
+    # When False, read() leaves deferred string columns as raw pending
+    # handles for the caller to materialize (one chunked ExtensionArray per
+    # column, e.g. post-gather in a parallel read).
+    wrap_deferred: bool = True
 
     def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
@@ -68,6 +76,7 @@ class CParserWrapper(ParserBase):
         kwds = kwds.copy()
 
         self.low_memory = kwds.pop("low_memory", False)
+        self._exhausted = False
 
         # #2442
         kwds["allow_leading_cols"] = self.index_col is not False
@@ -93,6 +102,9 @@ class CParserWrapper(ParserBase):
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
         self._reader = parsers.TextReader(src, **kwds)
+        # Let the pyarrow string fast path return raw pending-column handles;
+        # read() wraps them into one ExtensionArray per column at the end.
+        self._reader.defer_pa_wrap = True
 
         self.unnamed_cols = self._reader.unnamed_cols
 
@@ -240,6 +252,29 @@ class CParserWrapper(ParserBase):
         # A future extension could detect ISO-shaped formats here.
         return None
 
+    def _low_memory_column_labels(
+        self, chunks: list[dict[int, ArrayLike]]
+    ) -> dict[int, Hashable]:
+        """
+        Map the field positions ``read_low_memory`` keys its chunks by to labels.
+
+        The positions are those of the source row, so they skip whatever
+        ``usecols`` dropped and start past a leading implicit index column.
+        ``orig_names`` holds exactly the named columns that remain, in the same
+        order, which is how ``read`` renames these keys further down.  A leading
+        implicit index column has no name of its own and maps to ``None``.
+        """
+        assert self.orig_names is not None
+        positions = sorted(chunks[0])
+        named = dict(
+            zip(
+                positions[self._reader.leading_cols :],
+                self.orig_names,
+                strict=False,
+            )
+        )
+        return {position: named.get(position) for position in positions}
+
     def read(
         self,
         nrows: int | None = None,
@@ -250,13 +285,23 @@ class CParserWrapper(ParserBase):
     ]:
         index: Index | MultiIndex | None
         column_names: Sequence[Hashable] | MultiIndex
+        if self._exhausted:
+            # Exhausting the reader closed it, so calling into the C reader
+            # again would raise instead of signalling the end of the data.
+            raise StopIteration
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
                 # destructive to chunks
-                data = _concatenate_chunks(chunks, self.names)
+                data = _concatenate_chunks(
+                    chunks, self._low_memory_column_labels(chunks)
+                )
             else:
                 data = self._reader.read(nrows)
+                if self.wrap_deferred:
+                    data = {
+                        key: _wrap_deferred_pa(values) for key, values in data.items()
+                    }
         except StopIteration:
             if self._first_chunk:
                 self._first_chunk = False
@@ -285,6 +330,7 @@ class CParserWrapper(ParserBase):
                 return index, columns, col_dict
 
             else:
+                self._exhausted = True
                 self.close()
                 raise
 
@@ -373,9 +419,34 @@ def _filter_usecols(usecols, names: SequenceT) -> SequenceT | list[Hashable]:
     return names
 
 
+def _pa_arrays_to_ea(arrs) -> ArrayLike:
+    """
+    Build one ExtensionArray from the pending string columns returned by
+    the deferred TextReader string fast path (``defer_pa_wrap``).
+
+    The fast path emits ``large_string`` for the default string dtype and
+    ``string`` for ``dtype_backend="pyarrow"``, so the arrow type determines
+    the target ExtensionArray.
+    """
+    import pyarrow as pa
+
+    chunked = pa.chunked_array([pending.materialize() for pending in arrs])
+    if pa.types.is_large_string(chunked.type):
+        return ArrowStringArray(chunked, dtype=StringDtype(na_value=np.nan))
+    return ArrowExtensionArray(chunked)
+
+
+def _wrap_deferred_pa(values):
+    """Wrap a pending string column from the deferred fast path; pass through
+    everything else."""
+    if isinstance(values, parsers._PendingStringColumn):
+        return _pa_arrays_to_ea([values])
+    return values
+
+
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
-    column_names: Sequence[Hashable],
+    column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
 ) -> dict:
     """
@@ -383,6 +454,11 @@ def _concatenate_chunks(
 
     The tricky part is handling Categoricals, where different chunks
     may have different inferred categories.
+
+    ``column_names`` names the keys of ``chunks`` for the mixed-dtype warning,
+    so it has to be indexable by whatever those keys are: the low_memory reader
+    keys its chunks by field position and passes a mapping keyed the same way,
+    while the parallel reader keys its own by name.
 
     ``warn_mixed=False`` suppresses the mixed-dtype warning; the parallel
     reader gathers byte-range chunks (not low_memory row chunks), so a
@@ -394,6 +470,20 @@ def _concatenate_chunks(
     result: dict = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
+
+        # The homogeneous case (every chunk a pending string column from the
+        # deferred fast path) combines zero-copy into a single chunked
+        # ExtensionArray; mixed cases (e.g. earlier chunks inferred numeric)
+        # wrap each pending column and fall through to the regular concat
+        # below.
+        if isinstance(arrs[0], parsers._PendingStringColumn):
+            if all(isinstance(arr, parsers._PendingStringColumn) for arr in arrs):
+                result[name] = _pa_arrays_to_ea(arrs)
+                continue
+            arrs = [_wrap_deferred_pa(arr) for arr in arrs]
+        elif any(isinstance(arr, parsers._PendingStringColumn) for arr in arrs):
+            arrs = [_wrap_deferred_pa(arr) for arr in arrs]
+
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
         non_cat_dtypes = {x for x in dtypes if not isinstance(x, CategoricalDtype)}
@@ -404,11 +494,14 @@ def _concatenate_chunks(
         else:
             result[name] = concat_compat(arrs)
             if len(non_cat_dtypes) > 1 and result[name].dtype == np.dtype(object):
-                warning_columns.append(column_names[name])
+                warning_columns.append((name, column_names[name]))
 
     if warning_columns and warn_mixed:
         warning_names = ", ".join(
-            [f"{index}: {name}" for index, name in enumerate(warning_columns)]
+            [
+                f"{position}: {label}" if label is not None else f"{position}"
+                for position, label in warning_columns
+            ]
         )
         warning_message = " ".join(
             [

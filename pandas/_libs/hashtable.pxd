@@ -22,6 +22,7 @@ from pandas._libs.khash cimport (
     kh_int64_t,
     kh_pymap_t,
     kh_str_t,
+    kh_strview_t,
     kh_uint8_t,
     kh_uint16_t,
     kh_uint32_t,

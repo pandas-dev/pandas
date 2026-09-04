@@ -29,7 +29,6 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
-    Union,
     cast,
     final,
     overload,
@@ -2731,7 +2730,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self._grouper.size()
-        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        dtype_backend: Literal["pyarrow", "numpy_nullable"] | None = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
                 if isinstance(self.obj.array, ArrowStringArray):
@@ -2752,13 +2751,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self._obj_1d_constructor(result)
 
         if dtype_backend is not None:
-            result = result.convert_dtypes(
-                infer_objects=False,
-                convert_string=False,
-                convert_boolean=False,
-                convert_floating=False,
-                dtype_backend=dtype_backend,
-            )
+            result = result.convert_dtypes(dtype_backend=dtype_backend)
 
         if not self.as_index:
             result = result.rename("size").reset_index()
@@ -2871,6 +2864,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def sum_compat(obj: NDFrameT):
+                # GH#18588: see min_compat below
+                return obj.sum(skipna=skipna)
+
             # If we are grouping on categoricals we want unobserved categories to
             # return zero, rather than the default of NaN which the reindexing in
             # _agg_general() returns. GH #31422
@@ -2879,7 +2877,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     numeric_only=numeric_only,
                     min_count=min_count,
                     alias="sum",
-                    npfunc=np.sum,
+                    npfunc=sum_compat,
                     skipna=skipna,
                 )
 
@@ -2960,12 +2958,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1   16   10
         2   30   72
         """
+
+        def prod_compat(obj: NDFrameT):
+            # GH#18588: see min_compat below
+            return obj.prod(skipna=skipna)
+
         return self._agg_general(
             numeric_only=numeric_only,
             min_count=min_count,
             skipna=skipna,
             alias="prod",
-            npfunc=np.prod,
+            npfunc=prod_compat,
         )
 
     @final
@@ -3077,12 +3080,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def min_compat(obj: NDFrameT):
+                # GH#18588: object/string dtypes have no cython group_min_max
+                # and reduce through this alt instead, so it has to apply
+                # skipna itself; np.min would always skip.
+                return obj.min(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="min",
-                npfunc=np.min,
+                npfunc=min_compat,
             )
 
     @final
@@ -3194,12 +3204,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
+
+            def max_compat(obj: NDFrameT):
+                # GH#18588: see min_compat above
+                return obj.max(skipna=skipna)
+
             return self._agg_general(
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
                 alias="max",
-                npfunc=np.max,
+                npfunc=max_compat,
             )
 
     @final
@@ -4277,8 +4292,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
-        Can be either a call or an index. dropna is not available with index notation.
-        Index notation accepts a comma separated list of integers and slices.
+        .. deprecated:: 3.1.0
+
+            Index notation (``g.nth[n]``) is deprecated in favor of calling
+            ``g.nth(n)`` and will be removed in a future version of pandas.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -4320,20 +4337,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  2 3.0
         4  2 5.0
         >>> g.nth(slice(None, -1))
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-
-        Index notation may also be used
-
-        >>> g.nth[0, 1]
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-        4  2 5.0
-        >>> g.nth[:-1]
            A   B
         0  1 NaN
         1  1 2.0
@@ -4472,7 +4475,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-            pass_qs: None | np.ndarray = None
+            pass_qs: np.ndarray | None = None
         else:
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
@@ -5293,7 +5296,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )
-            shifted_dataframes.append(cast("Union[Series, DataFrame]", shifted))
+            shifted_dataframes.append(cast("Series | DataFrame", shifted))
 
         return (
             shifted_dataframes[0]
@@ -5838,14 +5841,6 @@ def get_groupby(
     Parameters
     ----------
     obj : pandas object
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : str
-        Most users should ignore this
 
     Returns
     -------

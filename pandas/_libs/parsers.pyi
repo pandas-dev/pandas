@@ -5,13 +5,17 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-from typing import Literal
+from typing import (
+    Any,
+    Literal,
+)
 
 import numpy as np
 
 from pandas._typing import (
     ArrayLike,
     Dtype,
+    DtypeObj,
     ReadCsvBuffer,
     UsecolsArgType,
     npt,
@@ -25,12 +29,20 @@ def sanitize_objects(
     na_values: set[Hashable],
 ) -> int: ...
 
+class _PendingStringColumn:
+    @property
+    def dtype(self) -> DtypeObj: ...
+    def __len__(self) -> int: ...
+    def materialize(self) -> Any: ...  # -> pyarrow.Array
+
 class TextReader:
     unnamed_cols: set[str]
     table_width: int  # int64_t
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
+    defer_pa_wrap: bool
     trim_after_read: bool
+    warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(
         self,
         source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],
@@ -84,5 +96,8 @@ class TextReader:
 na_values: dict[type | np.dtype, float | int]
 
 def _maybe_upcast(
-    arr: np.ndarray, use_dtype_backend: bool = ..., dtype_backend: str = ...
+    arr: np.ndarray,
+    use_dtype_backend: bool = ...,
+    dtype_backend: str = ...,
+    na_mask: np.ndarray | None = ...,
 ) -> np.ndarray: ...

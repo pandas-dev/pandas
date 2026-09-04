@@ -106,6 +106,22 @@ rdc_compression: Final = b"SASYZCR2"
 
 compression_literals: Final = [rle_compression, rdc_compression]
 
+# How the Cython parser hands string cells back to sas7bdat.py. Defined here
+# rather than in either module so that the two cannot drift apart.
+#
+# Write a Python bytes (or NaN) per cell into string_chunk; the caller decodes.
+# Used when the result is not a pyarrow-backed str column.
+string_mode_object: Final = 0
+# Source bytes are already utf-8: copy them verbatim into the column's value
+# buffer. Validated once per chunk after the fact.
+string_mode_utf8: Final = 1
+# Source is a single-byte encoding: translate to utf-8 through a 256-entry
+# lookup table.
+string_mode_table: Final = 2
+# str_table_len entry marking a byte that the source encoding does not define.
+undefined_byte: Final = 0xFF
+
+
 # Incomplete list of encodings, using SAS nomenclature:
 # https://support.sas.com/documentation/onlinedoc/dfdmstudio/2.6/dmpdmsug/Content/dfU_Encodings_SAS.html
 # corresponding to the Python documentation of standard encodings

@@ -2,7 +2,7 @@
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 from pandas.tests.plotting.common import _check_visible
 
 pytest.importorskip("matplotlib")
@@ -32,7 +32,7 @@ class TestDataFramePlotsGroupby:
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharey can now be switched check whether the right
         # pair of axes is turned on or off
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
                 "b": [0.56, 0.84, 0.29, 0.56, 0.85],
@@ -60,7 +60,7 @@ class TestDataFramePlotsGroupby:
         # sharex can now be switched check whether the right
         # pair of axes is turned on or off
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": [-1.43, -0.15, -3.70, -1.43, -0.14],
                 "b": [0.56, 0.84, 0.29, 0.56, 0.85],

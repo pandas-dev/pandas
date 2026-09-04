@@ -13,6 +13,7 @@ from libc.stdint cimport (
 from libc.stdlib cimport (
     calloc,
     free,
+    realloc,
 )
 from libc.string cimport (
     memcpy,
@@ -90,6 +91,41 @@ cdef Buffer buf_new(size_t length) except *:
 cdef buf_free(Buffer buf):
     if buf.data != NULL:
         free(buf.data)
+
+
+cdef struct StrColumn:
+    # Growable utf-8 value buffer backing one string column.
+    #
+    # Grown by doubling rather than preallocated to the declared column width
+    # times nrows: SAS pads character fields out to a fixed width, so the
+    # worst case badly overstates how many bytes the data actually needs.
+    uint8_t *data
+    int64_t size
+    int64_t capacity
+
+
+cdef bint strcol_reserve(StrColumn *col, int64_t extra) except 0:
+    """Ensure `col` has room for `extra` more bytes, growing by doubling."""
+    cdef:
+        int64_t needed = col.size + extra
+        int64_t capacity = col.capacity
+        uint8_t *data
+
+    # A zero capacity means data is still NULL, so allocate even when nothing is
+    # needed: an empty first cell would otherwise leave callers memcpy-ing into
+    # NULL, which is undefined behavior even for a length of zero.
+    if needed <= capacity and capacity > 0:
+        return True
+    if capacity == 0:
+        capacity = 4096
+    while capacity < needed:
+        capacity *= 2
+    data = <uint8_t *>realloc(col.data, capacity)
+    if data is NULL:
+        raise MemoryError(f"Failed to allocate {capacity} bytes")
+    col.data = data
+    col.capacity = capacity
+    return True
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
@@ -268,6 +304,12 @@ cdef:
     int page_mix_type = const.page_mix_type
     int page_data_type = const.page_data_type
     int subheader_pointers_offset = const.subheader_pointers_offset
+
+    # See sas_constants.py for what each string mode means. string_mode_table
+    # needs no alias here: it is whatever the other two are not.
+    int string_mode_object = const.string_mode_object
+    int string_mode_utf8 = const.string_mode_utf8
+    uint8_t undefined_byte = const.undefined_byte
 
     # Copy of subheader_signature_to_index that allows for much faster lookups.
     # Lookups are done in lookup_subheader_index_32/64. The C structures are
@@ -482,14 +524,40 @@ cdef class Parser:
         int64_t[:] column_types
         uint8_t[:, :] byte_chunk
         object[:, :] string_chunk
+        # Output for the pyarrow string fast path (string_mode_utf8/_table):
+        # str_cols[js] accumulates column js's utf-8 bytes, str_offsets[js, r+1]
+        # records the end of row r within it, and str_valid[js, r] is 0 for a
+        # null cell. Unused when str_mode is string_mode_object.
+        int str_mode
+        StrColumn *str_cols
+        int n_str_cols
+        int64_t[:, ::1] str_offsets
+        uint8_t[:, ::1] str_valid
+        # str_table[b * str_table_width : ...] holds the utf-8 for source byte
+        # b, str_table_len[b] its length (undefined_byte if b is not a valid
+        # character in str_encoding). Only set for string_mode_table. const
+        # because these are shared, read-only arrays cached across readers.
+        const uint8_t[::1] str_table
+        const uint8_t[::1] str_table_len
+        int str_table_width
+        bint str_ascii_identity
+        object str_encoding
         # (offset, length) of each compressed data subheader on the current
         # page, filled in by collect_page_subheaders and indexed by
         # current_row_on_page_index in readline().
         int64_t[::1] data_subheader_offsets
         int64_t[::1] data_subheader_lengths
         uint8_t *cached_page
-        int cached_page_len
+        Py_ssize_t cached_page_len
         int current_row_on_page_index
+        # How many rows a mix page hands out before the parser moves on. Held
+        # here rather than read off the reader per row so that a metadata page
+        # reached partway through a chunk cannot move the boundary for the rest
+        # of it -- sas7bdat.py rejects the file once the chunk is done. An int,
+        # like the row index above that it is compared against: a wider one
+        # would take a count no page can hold, never reach it, and hand out the
+        # rest of the page as rows.
+        int mix_page_row_count
         int current_page_block_count
         int n_data_subheaders
         int current_page_subheaders_count
@@ -497,7 +565,7 @@ cdef class Parser:
         int current_row_in_file_index
         bint blank_missing
         int header_length
-        int row_length
+        Py_ssize_t row_length
         int bit_offset
         int subheader_pointer_length
         int current_page_type
@@ -510,6 +578,8 @@ cdef class Parser:
     def __cinit__(self, object parser):
         self.decompress = NULL
         self.decompressed_buf = Buffer(NULL, 0)
+        self.str_cols = NULL
+        self.n_str_cols = 0
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
@@ -526,9 +596,26 @@ cdef class Parser:
         self.offsets = parser.column_data_offsets()
         self.byte_chunk = parser._byte_chunk
         self.string_chunk = parser._string_chunk
+        # sas7bdat.py always supplies these, using empty arrays for whichever
+        # of the two string outputs is inactive, so the memoryview assignments
+        # below never see None.
+        self.str_mode = parser._str_mode
+        self.str_offsets = parser._str_offsets
+        self.str_valid = parser._str_valid
+        self.str_table = parser._str_table
+        self.str_table_len = parser._str_table_len
+        self.str_table_width = parser._str_table_width
+        self.str_ascii_identity = parser._str_ascii_identity
+        self.str_encoding = parser._str_encoding
+        if self.str_mode != string_mode_object:
+            self.n_str_cols = self.str_offsets.shape[0]
+            self.str_cols = <StrColumn *>calloc(self.n_str_cols, sizeof(StrColumn))
+            if self.str_cols is NULL:
+                raise MemoryError("Failed to allocate string column buffers")
         self.data_subheader_offsets = parser._data_subheader_offsets
         self.data_subheader_lengths = parser._data_subheader_lengths
         self.row_length = parser.row_length
+        self.mix_page_row_count = min(parser.row_count, parser._mix_page_row_count)
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
         self.is_little_endian = parser.byte_order == "<"
@@ -566,7 +653,34 @@ cdef class Parser:
         self.current_row_on_page_index = parser._current_row_on_page_index
 
     def __dealloc__(self):
+        cdef Py_ssize_t js
         buf_free(self.decompressed_buf)
+        if self.str_cols is not NULL:
+            for js in range(self.n_str_cols):
+                free(self.str_cols[js].data)
+            free(self.str_cols)
+
+    def string_values(self):
+        """
+        Return one exact-size uint8 array of utf-8 bytes per string column.
+
+        Copies out of the growable parse buffers so the returned arrays do not
+        pin their (up to 2x) spare capacity for the lifetime of the result.
+        """
+        cdef:
+            Py_ssize_t js
+            StrColumn *col
+            uint8_t[::1] out
+
+        result = []
+        for js in range(self.n_str_cols):
+            col = &self.str_cols[js]
+            values = np.empty(col.size, dtype=np.uint8)
+            if col.size > 0:
+                out = values
+                memcpy(&out[0], col.data, col.size)
+            result.append(values)
+        return result
 
     def read(self, int nrows):
         cdef:
@@ -647,8 +761,9 @@ cdef class Parser:
     cdef bint readline(self) except? True:
 
         cdef:
-            int offset, length, bit_offset, align_correction
-            int subheader_pointer_length, mn
+            Py_ssize_t offset, length
+            int bit_offset, align_correction
+            int subheader_pointer_length
             bint done, flag
 
         bit_offset = self.bit_offset
@@ -670,10 +785,10 @@ cdef class Parser:
                     if done:
                         return True
                     continue
-                offset = <int>self.data_subheader_offsets[
+                offset = <Py_ssize_t>self.data_subheader_offsets[
                     self.current_row_on_page_index
                 ]
-                length = <int>self.data_subheader_lengths[
+                length = <Py_ssize_t>self.data_subheader_lengths[
                     self.current_row_on_page_index
                 ]
                 self.process_byte_array_with_data(offset, length)
@@ -690,8 +805,7 @@ cdef class Parser:
                 offset += self.current_page_subheaders_count * subheader_pointer_length
                 offset += self.current_row_on_page_index * self.row_length
                 self.process_byte_array_with_data(offset, self.row_length)
-                mn = min(self.parser.row_count, self.parser._mix_page_row_count)
-                if self.current_row_on_page_index == mn:
+                if self.current_row_on_page_index == self.mix_page_row_count:
                     done = self.read_next_page()
                     if done:
                         return True
@@ -714,18 +828,29 @@ cdef class Parser:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef void process_byte_array_with_data(self, int offset, int length) except *:
+    cdef void process_byte_array_with_data(
+        self, Py_ssize_t offset, Py_ssize_t length
+    ) except *:
 
         cdef:
             Py_ssize_t j
             int s, k, m, jb, js, current_row, rpos
+            int bi, blen, table_width
             int64_t lngt, start, ct
+            uint8_t bval
+            bint ascii_identity, mode_object, mode_utf8
             Buffer source
+            StrColumn *col
             int64_t[:] column_types
             int64_t[:] lengths
             int64_t[:] offsets
             uint8_t[:, :] byte_chunk
             object[:, :] string_chunk
+            StrColumn *str_cols
+            int64_t[:, ::1] str_offsets
+            uint8_t[:, ::1] str_valid
+            const uint8_t[::1] str_table
+            const uint8_t[::1] str_table_len
             bint compressed
 
         assert offset + length <= self.cached_page_len, "Out of bounds read"
@@ -747,6 +872,17 @@ cdef class Parser:
         offsets = self.offsets
         byte_chunk = self.byte_chunk
         string_chunk = self.string_chunk
+        # Resolved once per row so that the per-cell branches below test a
+        # local rather than reloading the module-level mode constants.
+        mode_object = self.str_mode == string_mode_object
+        mode_utf8 = self.str_mode == string_mode_utf8
+        str_cols = self.str_cols
+        str_offsets = self.str_offsets
+        str_valid = self.str_valid
+        str_table = self.str_table
+        str_table_len = self.str_table_len
+        table_width = self.str_table_width
+        ascii_identity = self.str_ascii_identity
         s = 8 * self.current_row_in_chunk_index
         js = 0
         jb = 0
@@ -777,10 +913,57 @@ cdef class Parser:
                 # .rstrip(b"\x00 ") but without Python call overhead.
                 while lngt > 0 and buf_get(source, start + lngt - 1) in b"\x00 ":
                     lngt -= 1
-                if lngt == 0 and self.blank_missing:
-                    string_chunk[js, current_row] = np_nan
+                if mode_object:
+                    if lngt == 0 and self.blank_missing:
+                        string_chunk[js, current_row] = np_nan
+                    else:
+                        string_chunk[js, current_row] = buf_as_bytes(
+                            source, start, lngt
+                        )
                 else:
-                    string_chunk[js, current_row] = buf_as_bytes(source, start, lngt)
+                    col = &str_cols[js]
+                    if lngt > 0 or not self.blank_missing:
+                        # Spell out the bound the raw-pointer reads below rely
+                        # on; the rstrip loop's buf_get established it.
+                        assert start + lngt <= <int64_t>source.length, \
+                            "Out of bounds read"
+                        # Cells start null (str_valid is zero-initialized), so
+                        # only non-null ones need marking.
+                        str_valid[js, current_row] = 1
+                        strcol_reserve(col, lngt * table_width)
+                        if mode_utf8:
+                            memcpy(col.data + col.size, &source.data[start], lngt)
+                            col.size += lngt
+                        else:
+                            k = 0
+                            if ascii_identity:
+                                # Bytes below 0x80 are their own utf-8 in this
+                                # encoding, so an all-ascii cell (the common
+                                # case) costs one memcpy instead of a byte loop.
+                                while k < lngt and source.data[start + k] < 0x80:
+                                    k += 1
+                                memcpy(col.data + col.size, &source.data[start], k)
+                                col.size += k
+                            while k < lngt:
+                                bval = source.data[start + k]
+                                blen = str_table_len[bval]
+                                if blen == undefined_byte:
+                                    # Re-decode the cell so the error matches
+                                    # the UnicodeDecodeError that the per-cell
+                                    # strict decode used to raise.
+                                    buf_as_bytes(source, start, lngt).decode(
+                                        self.str_encoding
+                                    )
+                                    raise AssertionError(
+                                        "decoding an undefined byte should have raised"
+                                    )
+                                for bi in range(blen):
+                                    col.data[col.size + bi] = (
+                                        str_table[bval * table_width + bi]
+                                    )
+                                col.size += blen
+                                k += 1
+                    str_offsets[js, current_row + 1] = col.size
                 js += 1
 
         self.current_row_on_page_index += 1

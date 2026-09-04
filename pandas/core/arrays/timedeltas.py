@@ -73,7 +73,9 @@ from pandas.core import (
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
+from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
@@ -89,6 +91,23 @@ if TYPE_CHECKING:
     )
 
     from pandas import DataFrame
+
+
+def _exact_if_integral(other):
+    """
+    Return the exact int equivalent of an integral float, otherwise `other`.
+
+    GH#66551 float64 carries only a 53-bit mantissa, so applying a float operand
+    in floating point rounds results that int64 represents exactly.  An integral
+    float has an exact int equivalent, so the int path can be used instead.
+    inf and nan are not integral and so stay in float64.
+
+    Zero is left alone: it needs no exactness fix, and routing it to the int
+    path would turn division by 0.0 from NaT into a raise.
+    """
+    if lib.is_float(other) and other != 0 and other.is_integer():
+        return int(other)
+    return other
 
 
 def _field_accessor(name: str, alias: str, docstring: str):
@@ -503,13 +522,15 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
                     "integers instead"
                 )
+            other = _exact_if_integral(other)
             if lib.is_integer(other):
                 # GH#43178: detect int64 overflow rather than silently wrapping
                 #  in the i8 cast below (e.g. a multiplier outside int64 bounds).
                 # TODO(numpy>=2.5): numpy detects this natively (numpy GH-31378)
                 #  but raises OverflowError; once the numpy floor is >= 2.5, drop
                 #  mul_overflowsafe and re-wrap numpy's error as
-                #  OutOfBoundsTimedelta. The float path isn't covered and stays.
+                #  OutOfBoundsTimedelta. The non-integral float path isn't
+                #  covered and stays.
                 other = int(other)
                 if other > lib.i8max or other < -lib.i8max - 1:
                     raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
@@ -645,6 +666,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                     f"Cannot divide {type(other).__name__} by {type(self).__name__}"
                 )
 
+            other = _exact_if_integral(other)
             if lib.is_float(other):
                 # GH#43178: raise instead of silently saturating on overflow
                 self._check_float_div_overflow(other)
@@ -1236,6 +1258,21 @@ def sequence_to_td64ns(
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
+    data = extract_array(data, extract_numpy=True)
+
+    int_mask = None
+    if isinstance(data, IntegerArray):
+        # GH#66988 use the underlying int/uint ndarray + mask directly instead
+        #  of going through to_numpy() to convert to int64 (could overflow)
+        #  or float64 (could loose precision large large int64/uint64 data)
+        int_mask = data._mask if data._hasna else None
+        data = data._data
+        if int_mask is not None:
+            # set to 0 to avoid OOB on masked values (setting iNaT only works for int64)
+            # will get converted to NaT later
+            data = data.copy()
+            data[int_mask] = 0
+
     data, copy = dtl.ensure_arraylike_for_datetimelike(
         data, copy, cls_name="TimedeltaArray"
     )
@@ -1253,8 +1290,16 @@ def sequence_to_td64ns(
         except OutOfBoundsTimedelta:
             if errors == "raise":
                 raise
-            data = _objects_to_td64ns(data.astype(object), unit=unit, errors=errors)
+            data = data.astype(object)
+            if int_mask is not None:
+                data[int_mask] = None
+            data = _objects_to_td64ns(data, unit=unit, errors=errors)
             copy_made = True
+        else:
+            if int_mask is not None:
+                data[int_mask] = iNaT
+                # copy was already made before calling ensure_arraylike_for_datetimelike
+                copy_made = True
         copy = copy and not copy_made
 
     elif is_float_dtype(data.dtype):
@@ -1289,11 +1334,17 @@ def sequence_to_td64ns(
 
         data = data.astype(np.float64, copy=False)
         try:
-            data = cast_from_unit_vectorized(data, unit or "ns")
+            converted = cast_from_unit_vectorized(data, unit or "ns")
         except OutOfBoundsDatetime as err:
-            raise OutOfBoundsTimedelta(*err.args) from err
-        data[mask] = iNaT
-        data = data.view("m8[ns]")
+            if errors == "raise":
+                raise OutOfBoundsTimedelta(*err.args) from err
+            # GH#66823 fall back to the element-wise path, which honors
+            #  errors="coerce", like the integer branch above does.
+            data = np.where(mask, np.nan, data)
+            data = _objects_to_td64ns(data.astype(object), unit=unit, errors=errors)
+        else:
+            converted[mask] = iNaT
+            data = converted.view("m8[ns]")
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):

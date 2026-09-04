@@ -966,22 +966,28 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
+        ndarray[object] newarr
+
+    if (
+        hasattr(arr, "dtype")
+        and arr.dtype.kind in "mM"
+        # TODO: we should add a custom ArrowExtensionArray.astype implementation
+        # that handles astype(str) specifically, avoiding ending up here and
+        # then we can remove the below check for `_pa_array` (for ArrowEA)
+        and not hasattr(arr, "_pa_array")
+    ):
+        # dtype check to exclude DataFrame
+        # GH#41409 TODO: not a great place for this
+        out = np.asarray(arr.astype(str), dtype=object)
+        if convert_na_value and skipna:
+            if hasattr(arr, "isna"):
+                nans = arr.isna()
+            else:
+                nans = np.isnat(arr)
+            out[nans] = na_value
+        return out
 
     if hasattr(arr, "to_numpy"):
-
-        if (
-            hasattr(arr, "dtype")
-            and arr.dtype.kind in "mM"
-            # TODO: we should add a custom ArrowExtensionArray.astype implementation
-            # that handles astype(str) specifically, avoiding ending up here and
-            # then we can remove the below check for `_pa_array` (for ArrowEA)
-            and not hasattr(arr, "_pa_array")
-        ):
-            # dtype check to exclude DataFrame
-            # GH#41409 TODO: not a great place for this
-            out = arr.astype(str).astype(object)
-            out[arr.isna()] = na_value
-            return out
         arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
         # GH#61155: Guarantee a 1-d result when array is a list of lists
@@ -1029,8 +1035,12 @@ cpdef ndarray[object] ensure_string_array(
 
         return result
 
+    newarr = np.asarray(arr, dtype=object)
+    if not newarr.flags.aligned:
+        newarr = newarr.copy()
+
     for i in range(n):
-        val = arr[i]
+        val = newarr[i]
 
         if isinstance(val, str):
             continue
@@ -2239,6 +2249,81 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
     return validator.validate(values)
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def first_non_numeric(ndarray values):
+    """
+    Return the first element of an object-dtype array that numpy would convert
+    to a number even though it is not one, or None if there is no such element.
+
+    ``np.ndarray.astype(np.float64)`` happily turns ``"1"`` into ``1.0`` and
+    ``np.datetime64("2020-01-01")`` into ``18262.0``. Neither is ever what a
+    numeric reduction was asked for, so nanops rejects these up front rather
+    than silently computing a statistic of the wrong thing.
+
+    A ``datetime64``/``timedelta64`` NaT is missing-ness rather than a
+    datetime, so it is reported separately: reductions mask it out the way
+    they mask ``None`` and ``pd.NaT``, but numpy casts it to its ``int64``
+    sentinel rather than to NaN, so the caller has to fill it in first.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+
+    Returns
+    -------
+    non_numeric : object or None
+        The offending element, for use in the error message.
+    has_nat : bool
+        Whether the values hold a ``datetime64``/``timedelta64`` NaT.
+
+    Examples
+    --------
+    >>> arr = np.array([1.0, "2", 3.0], dtype=object)
+    >>> first_non_numeric(arr)
+    ('2', False)
+    >>> first_non_numeric(np.array([1.0, 2.0], dtype=object))
+    (None, False)
+    >>> first_non_numeric(np.array([1.0, np.datetime64("NaT", "ns")], dtype=object))
+    (None, True)
+    """
+    cdef:
+        Py_ssize_t _i, n = cnp.PyArray_SIZE(values)
+        flatiter it = PyArray_IterNew(values)
+        object val
+        type val_type, prev_type = None
+        bint has_nat = False
+
+    for _i in range(n):
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+        PyArray_ITER_NEXT(it)
+
+        val_type = type(val)
+        if val_type is prev_type:
+            continue
+
+        if (
+            cnp.is_datetime64_object(val)
+            and cnp.get_datetime64_value(val) == NPY_NAT
+        ) or (
+            cnp.is_timedelta64_object(val)
+            and cnp.get_timedelta64_value(val) == NPY_NAT
+        ):
+            has_nat = True
+            continue
+
+        if (
+            cnp.is_datetime64_object(val)
+            or cnp.is_timedelta64_object(val)
+            or isinstance(val, (str, bytes))
+        ):
+            return val, has_nat
+
+        prev_type = val_type
+
+    return None, has_nat
+
+
 @cython.internal
 cdef class BytesValidator(Validator):
     cdef bint is_value_typed(self, object value) except -1:
@@ -2526,6 +2611,20 @@ cpdef bint is_interval_array(ndarray values):
     return True
 
 
+cdef tuple _empty_int_buffers(ndarray values):
+    """
+    Allocate the buffers `maybe_convert_numeric` fills in once it sees an integer.
+
+    Held off until then so that a column with no integers in it does not pay for
+    them; see the note in `maybe_convert_numeric` (GH#35051).
+    """
+    return (
+        cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0),
+        cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT64, 0),
+        cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_OBJECT, 0),
+    )
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def maybe_convert_numeric(
@@ -2586,6 +2685,10 @@ def maybe_convert_numeric(
             pass
 
     # Otherwise, iterate and do full inference.
+    # `floats` is filled in by every branch below, so the other result buffers
+    # are only allocated once a value of the corresponding kind shows up.  A
+    # column of floats is the common case, and allocating the rest up front
+    # costs ~5x the memory of the array actually returned (GH#35051).
     cdef:
         int maybe_int
         Py_ssize_t i, n = values.size
@@ -2593,22 +2696,17 @@ def maybe_convert_numeric(
         ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_FLOAT64, 0
         )
-        ndarray[complex128_t, ndim=1] complexes = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_COMPLEX128, 0
-        )
-        ndarray[int64_t, ndim=1] ints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_INT64, 0
-        )
-        ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_UINT64, 0
-        )
-        ndarray[object, ndim=1] pyints = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_OBJECT, 0
-        )
-        ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
-            1, values.shape, cnp.NPY_UINT8, 0
-        )
+        ndarray[complex128_t, ndim=1] complexes = None
+        ndarray[int64_t, ndim=1] ints = None
+        ndarray[uint64_t, ndim=1] uints = None
+        ndarray[object, ndim=1] pyints = None
+        ndarray[uint8_t, ndim=1] bools = None
         ndarray[uint8_t, ndim=1] mask = np.zeros(n, dtype="u1")
+        # tracked separately: testing the buffers against None on each
+        # iteration measurably slows the loop down
+        bint have_complexes = False
+        bint have_ints = False
+        bint have_bools = False
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
 
@@ -2628,7 +2726,9 @@ def maybe_convert_numeric(
                 if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
-            floats[i] = complexes[i] = NaN
+            floats[i] = NaN
+            if have_complexes:
+                complexes[i] = NaN
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
@@ -2641,12 +2741,19 @@ def maybe_convert_numeric(
                     seen.float_ = True
             else:
                 seen.float_ = True
-            floats[i] = complexes[i] = fval
+            floats[i] = fval
+            if have_complexes:
+                complexes[i] = fval
         elif util.is_integer_object(val):
-            floats[i] = complexes[i] = val
+            floats[i] = val
+            if have_complexes:
+                complexes[i] = val
 
             val = int(val)
             seen.saw_int(val)
+            if not have_ints:
+                ints, uints, pyints = _empty_int_buffers(values)
+                have_ints = True
             pyints[i] = val
 
             if val >= 0:
@@ -2667,7 +2774,15 @@ def maybe_convert_numeric(
                     seen.overflow_ = True
 
         elif util.is_bool_object(val):
+            if not have_ints:
+                ints, uints, pyints = _empty_int_buffers(values)
+                have_ints = True
+            if not have_bools:
+                bools = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_UINT8, 0)
+                have_bools = True
             floats[i] = uints[i] = ints[i] = bools[i] = val
+            if have_complexes:
+                complexes[i] = val
             seen.bool_ = True
         elif val is None or val is C_NA:
             if allow_null_in_int:
@@ -2677,19 +2792,33 @@ def maybe_convert_numeric(
                 if convert_to_masked_nullable:
                     mask[i] = 1
                 seen.saw_null()
-            floats[i] = complexes[i] = NaN
+            floats[i] = NaN
+            if have_complexes:
+                complexes[i] = NaN
         elif hasattr(val, "__len__") and len(val) == 0:
             if convert_empty or seen.coerce_numeric:
                 seen.saw_null()
-                floats[i] = complexes[i] = NaN
+                floats[i] = NaN
+                if have_complexes:
+                    complexes[i] = NaN
                 mask[i] = 1
             else:
                 raise ValueError("Empty string encountered")
         elif util.is_complex_object(val):
+            if not have_complexes:
+                complexes = cnp.PyArray_EMPTY(
+                    1, values.shape, cnp.NPY_COMPLEX128, 0
+                )
+                # Every preceding branch stored its value in `floats`, so the
+                # already-seen entries carry over unchanged.
+                complexes[:i] = floats[:i]
+                have_complexes = True
             complexes[i] = val
             seen.complex_ = True
         elif is_decimal(val):
-            floats[i] = complexes[i] = val
+            floats[i] = val
+            if have_complexes:
+                complexes[i] = val
             seen.float_ = True
         else:
             try:
@@ -2697,7 +2826,9 @@ def maybe_convert_numeric(
 
                 if fval in na_values:
                     seen.saw_null()
-                    floats[i] = complexes[i] = NaN
+                    floats[i] = NaN
+                    if have_complexes:
+                        complexes[i] = NaN
                     mask[i] = 1
                 else:
                     if fval != fval:
@@ -2705,9 +2836,14 @@ def maybe_convert_numeric(
                         mask[i] = 1
 
                     floats[i] = fval
+                    if have_complexes:
+                        complexes[i] = fval
 
                 if maybe_int:
                     as_int = int(val)
+                    if not have_ints:
+                        ints, uints, pyints = _empty_int_buffers(values)
+                        have_ints = True
                     pyints[i] = as_int
 
                     if as_int in na_values:
@@ -2780,6 +2916,8 @@ def maybe_convert_numeric(
         return (bools.view(np.bool_), None)
     elif seen.uint_:
         return (uints, None)
+    if not have_ints:
+        ints = cnp.PyArray_EMPTY(1, values.shape, cnp.NPY_INT64, 0)
     return (ints, None)
 
 
@@ -2897,16 +3035,38 @@ def maybe_convert_objects(ndarray[object] objects,
                 break
         elif util.is_integer_object(val):
             seen.int_ = True
-            floats[i] = <float64_t>val
-            complexes[i] = <double complex>val
-            if not seen.null_ or convert_to_nullable_dtype:
-                seen.saw_int(val)
-
-                if ((seen.uint_ and seen.sint_) or
-                        val > oUINT64_MAX or val < oINT64_MIN):
+            # GH#66519 flag signedness inline rather than via seen.saw_int, so
+            #  that the out-of-range bail-outs reuse its range comparisons. The
+            #  bail-outs must also precede the casts below, which raise
+            #  OverflowError once |val| exceeds the float64 range.
+            if val < 0:
+                if val < oINT64_MIN:
                     seen.object_ = True
                     break
+                seen.sint_ = True
+            elif val > oINT64_MAX:
+                if val > oUINT64_MAX:
+                    seen.object_ = True
+                    break
+                seen.uint_ = True
+            elif isinstance(val, cnp.signedinteger):
+                seen.sint_ = True
+            elif isinstance(val, cnp.unsignedinteger):
+                seen.uint_ = True
 
+            floats[i] = <float64_t>val
+            complexes[i] = <double complex>val
+
+            if seen.uint_ and seen.sint_:
+                # GH#66519 either the values straddle INT64_MAX, so no integer
+                #  dtype holds both, or numpy scalars of both signednesses were
+                #  mixed, which GH#47294 already resolves to object. Checked
+                #  outside the null gate below so a None before either value
+                #  cannot hide the conflict.
+                seen.object_ = True
+                break
+
+            if not seen.null_ or convert_to_nullable_dtype:
                 if seen.uint_:
                     uints[i] = val
                 elif seen.sint_:

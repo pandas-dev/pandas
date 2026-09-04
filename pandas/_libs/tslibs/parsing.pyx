@@ -36,13 +36,11 @@ cnp.import_array()
 from decimal import InvalidOperation
 
 from dateutil.parser import DEFAULTPARSER
-from dateutil.tz import (
-    tzoffset,
-    tzutc as _dateutil_tzutc,
-)
+from dateutil.tz import tzoffset
 
 from pandas._config import get_option
 
+from pandas._libs.portable cimport getdigit_ascii
 from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
@@ -66,9 +64,6 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
 
-
-cdef extern from "pandas/portable.h":
-    int getdigit_ascii(char c, int default) nogil
 
 cdef extern from "pandas/parser/tokenizer.h":
     double precise_xstrtod(const char *p, char **q, char decimal, char sci,
@@ -276,6 +271,7 @@ cdef datetime parse_datetime_string(
     bint yearfirst,
     NPY_DATETIMEUNIT* out_bestunit,
     int64_t* nanos,
+    bint* out_is_quarter=NULL,
 ):
     """
     Parse datetime string, only returns datetime.
@@ -314,6 +310,8 @@ cdef datetime parse_datetime_string(
         dt = _parse_dateabbr_string(
             date_string, _DEFAULT_DATETIME, None, out_bestunit, &is_quarter
         )
+        if out_is_quarter != NULL:
+            out_is_quarter[0] = is_quarter
         return dt
     except DateParseError:
         raise
@@ -335,7 +333,8 @@ cdef datetime parse_datetime_string(
 
 
 def parse_datetime_string_with_reso(
-    str date_string, str freq=None, dayfirst=None, yearfirst=None
+    str date_string, str freq=None, dayfirst=None, yearfirst=None,
+    bint warn_quarter=True,
 ):
     # NB: This will break with np.str_ (GH#45580) even though
     #  isinstance(npstrobj, str) evaluates to True, so caller must ensure
@@ -354,6 +353,8 @@ def parse_datetime_string_with_reso(
         If None uses default from print_config
     yearfirst : bool, default None
         If None uses default from print_config
+    warn_quarter : bool, default True
+        Whether to warn when parsing a quarterly string.
 
     Returns
     -------
@@ -431,6 +432,9 @@ def parse_datetime_string_with_reso(
     else:
         if is_quarter:
             reso = "quarter"
+            if warn_quarter:
+                # GH#50907
+                warn_quarter_deprecated(date_string, freq)
         else:
             reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
@@ -644,6 +648,35 @@ cpdef quarter_to_myear(int year, int quarter, str freq):
     return year, month
 
 
+cdef void warn_quarter_deprecated(str date_string, str freq):
+    """
+    Warn that parsing `date_string` as a quarterly string is deprecated.
+
+    `freq` picks the quarter anchor (see quarter_to_myear), so an anchor other
+    than December has to be spelled out in the suggested replacement, which
+    would otherwise resolve to a different timestamp.
+    """
+    cdef:
+        str rule_month, period_call
+
+    from pandas.errors import Pandas4Warning
+
+    rule_month = get_rule_month(freq) if freq is not None else "DEC"
+    if rule_month == "DEC":
+        period_call = f"pd.Period('{date_string}')"
+    else:
+        period_call = f"pd.Period('{date_string}', freq='Q-{rule_month}')"
+
+    warnings.warn(
+        f"Parsing '{date_string}' as a quarterly string is deprecated "
+        f"and will be removed in a future version. Use "
+        f"{period_call}.to_timestamp(), or a PeriodIndex for indexing, "
+        f"instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+
+
 cdef datetime dateutil_parse(
     str timestr,
     datetime default,
@@ -706,17 +739,11 @@ cdef datetime dateutil_parse(
             "not supported"
         )
     if not ignoretz:
-        if res.tzname and res.tzname in time.tzname:
-            # GH#50791
-            if res.tzname != "UTC":
-                raise ValueError(
-                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
-                    "is no longer supported. Pass the 'tz' "
-                    "keyword or call tz_localize after construction instead",
-                )
+        if res.tzoffset == 0:
+            # GH#66827 dateutil resolves "UTC", "GMT", "Z" and "z" to a zero
+            #  offset regardless of the system timezone, so these are not
+            #  system-dependent even when they match time.tzname.
             ret = ret.replace(tzinfo=timezone.utc)
-        elif res.tzoffset == 0:
-            ret = ret.replace(tzinfo=_dateutil_tzutc())
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 
@@ -732,6 +759,13 @@ cdef datetime dateutil_parse(
                     f'Parsed string "{timestr}" gives an invalid tzoffset, '
                     "which must be between -timedelta(hours=24) and timedelta(hours=24)"
                 )
+        elif res.tzname and res.tzname in time.tzname:
+            # GH#50791
+            raise ValueError(
+                f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                "is no longer supported. Pass the 'tz' "
+                "keyword or call tz_localize after construction instead",
+            )
         elif res.tzname is not None:
             # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
             # GH#18702, # GH 50235 enforced in 3.0

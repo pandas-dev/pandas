@@ -16,10 +16,6 @@ import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 pa = pytest.importorskip("pyarrow")
 
@@ -157,7 +153,9 @@ class TestFeather:
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        self.check_round_trip(df, temp_file, write_kwargs={"version": 1})
+        self.check_round_trip(
+            df, temp_file, write_kwargs={"compression": "uncompressed"}
+        )
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -258,7 +256,7 @@ class TestFeather:
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
         # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
-        # suppress until we migrate the implementation (GH#66169)
+        # suppress until we migrate the implementation (GH#66177)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
