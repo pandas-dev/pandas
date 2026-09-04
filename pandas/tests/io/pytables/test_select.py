@@ -149,7 +149,7 @@ def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
 
 @pytest.mark.parametrize("column", ["num", "text", "ts"])
 def test_select_ne_list_of_values(temp_hdfstore, column):
-    # GH#68029 "col != [a, b]" OR-joined the per-value comparisons, and
+    # GH#68030 "col != [a, b]" OR-joined the per-value comparisons, and
     # "(col != a) | (col != b)" is true for every row, so the query silently
     # degraded to no filter at all. A single-element list was fine.
     df = pd.DataFrame(
@@ -173,7 +173,7 @@ def test_select_ne_list_of_values(temp_hdfstore, column):
 
 
 def test_select_ne_list_matches_post_read_filter(temp_hdfstore):
-    # GH#68029 a >31-value "!=" list is realized as a post-read filter instead
+    # GH#68030 a >31-value "!=" list is realized as a post-read filter instead
     # of a numexpr condition; padding the list with values that are not in the
     # column must not change which rows come back
     df = pd.DataFrame({"num": np.arange(40)})
