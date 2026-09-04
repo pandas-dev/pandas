@@ -2382,7 +2382,7 @@ def test_resample_custom_business_day(unit):
     from pandas.tseries.offsets import CustomBusinessDay
 
     cbd = CustomBusinessDay(holidays=["2022-11-24"])
-    df = DataFrame(
+    df = pd.DataFrame(
         {"x": [1, 2, 3, 4, 5]},
         index=DatetimeIndex(
             ["2022-11-22", "2022-11-23", "2022-11-25", "2022-11-28", "2022-11-29"]
@@ -2394,5 +2394,5 @@ def test_resample_custom_business_day(unit):
         ["2022-11-22", "2022-11-23", "2022-11-25", "2022-11-28", "2022-11-29"],
         freq=cbd,
     ).as_unit(unit)
-    expected = DataFrame({"x": [1, 2, 3, 4, 5]}, index=exp_idx)
+    expected = pd.DataFrame({"x": [1, 2, 3, 4, 5]}, index=exp_idx)
     tm.assert_frame_equal(result, expected)
