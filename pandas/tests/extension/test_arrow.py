@@ -1746,18 +1746,29 @@ def test_setitem_null_slice_no_alias_pyarrow(wrap):
     assert arr._pa_array.num_chunks == getattr(value, "num_chunks", 1)
 
 
-@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "binary[pyarrow]"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "str",
+        "string[pyarrow]",
+        "binary[pyarrow]",
+        ArrowDtype(pa.large_string()),
+        ArrowDtype(pa.large_binary()),
+    ],
+)
 def test_setitem_null_slice_string_stays_zero_copy(dtype):
-    # GH#67990 the aliasing fix must not undo GH#64529/GH#64530: character data
-    #  is never zero-copy over caller-owned memory, so it is not copied here
+    # GH#67990 the aliasing fix must not undo GH#64529/GH#64530: pa.array never
+    #  packs character data into caller-owned memory, so it is not copied here
+    is_binary = "binary" in str(dtype)
     values = pd.array(
-        [b"a", b"bb", b"ccc"] if "binary" in dtype else ["a", "bb", "ccc"], dtype=dtype
+        [b"a", b"bb", b"ccc"] if is_binary else ["a", "bb", "ccc"], dtype=dtype
     )
     arr = pd.array([None] * 3, dtype=dtype)
     arr[:] = values
+    # the character data is the last buffer for every one of these layouts
     assert (
-        arr._pa_array.chunks[0].buffers()[2].address
-        == values._pa_array.chunks[0].buffers()[2].address
+        arr._pa_array.chunks[0].buffers()[-1].address
+        == values._pa_array.chunks[0].buffers()[-1].address
     )
 
 
@@ -1777,6 +1788,26 @@ def test_setitem_null_slice_no_alias_dictionary():
         dtype=dtype,
     )
     tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("kind", ["list", "struct"])
+def test_setitem_null_slice_no_alias_nested(kind):
+    # GH#67990 pa.concat_arrays does copy a nested type's children, which is why
+    #  only dictionary needs the special case above
+    np_values = np.array([1, 2, 3, 4], dtype="int64")
+    child = pa.array(np_values)
+    if kind == "list":
+        value = pa.ListArray.from_arrays(pa.array([0, 2, 4], type=pa.int32()), child)
+        expected_data = [[1, 2], [3, 4]]
+    else:
+        value = pa.StructArray.from_arrays([child], names=["x"])
+        expected_data = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}]
+    dtype = ArrowDtype(value.type)
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    assert arr.tolist() == expected_data
 
 
 def test_setitem_null_slice_cow():

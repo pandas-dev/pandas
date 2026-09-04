@@ -343,11 +343,14 @@ def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
     caller is still free to write to. The character layouts are never zero-copy
     that way -- the characters are always packed into fresh arrow buffers -- so
     for those a defensive copy buys nothing and costs a full copy of the
-    character data, which is the regression GH#64529 was written to fix
-    (GH#64530).
+    character data -- which would undo the full-slice fast path GH#64529 added.
 
     Nested types are treated as borrowing: a caller can build e.g. a struct or
     list array over a numpy child themselves.
+
+    This reasons about what ``pa.array`` produces, so it is not a guarantee
+    about every possible input: a caller who hands us a character array built
+    over their own buffers with ``pa.Array.from_buffers`` keeps sharing them.
     """
     return not (
         _is_varbinary_type(pa_type)

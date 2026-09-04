@@ -587,7 +587,9 @@ class SetitemObjectDtype:
 
 
 class SeriesSetitem:
-    params = ["str"]
+    # "str" is exempt from the null-slice defensive copy, so a fixed-width
+    #  pyarrow dtype is needed to keep that cost on the dashboard (GH#67990)
+    params = ["str", "double[pyarrow]"]
     param_names = ["dtype"]
 
     def setup(self, dtype):
