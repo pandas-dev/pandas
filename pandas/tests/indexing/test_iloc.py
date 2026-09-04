@@ -724,6 +724,53 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, df_orig)
         tm.assert_frame_equal(ref, df_orig)
 
+    def test_iloc_setitem_boolean_mask_non_slice_column_indexer_referenced_block(self):
+        # GH#65446 only a slice column indexer broadcasts against the rows, so a
+        #  mask paired with anything else must not be turned into a cross
+        #  product. The ndarray spelling has raised here since GH#65864; what
+        #  matters is that it does not silently write different cells instead.
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[[True, False, True], range(1, -1, -1)] = 99
+        df._mgr._verify_integrity()
+        expected = pd.DataFrame({"A": [1, 2, 99], "B": [99, 5, 6]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+        df = df_orig.copy()
+        ref = df[["A", "B"]]
+        with pytest.raises(IndexError, match="too many indices"):
+            df.iloc[np.array([True, False, True]), range(1, -1, -1)] = 99
+        tm.assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize(
+        "row_indexer",
+        [
+            [],
+            np.array([], dtype="intp"),
+            pd.Series([], dtype="intp"),
+            np.array([False, False, False]),
+            [False, False, False],
+        ],
+    )
+    def test_iloc_setitem_empty_row_indexer_referenced_block(self, row_indexer):
+        # GH#65446 an empty row indexer selects nothing, but the value still has
+        #  to fit, and a mismatched one was silently accepted
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        with pytest.raises(ValueError, match="setting an array element"):
+            df.iloc[row_indexer, ::-1] = np.array([[1, 2], [3, 4]])
+        tm.assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(ref, df_orig)
+
+        df.iloc[row_indexer, ::-1] = 99
+        df._mgr._verify_integrity()
+        tm.assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):

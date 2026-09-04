@@ -613,44 +613,45 @@ class BaseBlockManager(PandasObject):
                         ):
                             # GH#65446: a slice column indexer broadcasts against
                             # the rows, so take the cross product however the row
-                            # indexer was spelled.
+                            # indexer was spelled -- but only for a 1d integer
+                            # array or a correctly sized mask. Anything else is
+                            # left as spelled so it raises what it always raised.
                             row_arr = np.asarray(row_indexer)
+                            if row_arr.size == 0:
+                                # numpy will not index with the float64 that an
+                                # empty list converts to
+                                row_arr = row_arr.astype(np.intp)
                             if row_arr.ndim == 1 and (
-                                row_arr.dtype.kind in "iub" or row_arr.size == 0
+                                row_arr.dtype.kind in "iu"
+                                or (
+                                    row_arr.dtype == bool
+                                    and len(row_arr) == self.shape[1]
+                                )
                             ):
-                                # Only a 1d integer or boolean array can be
-                                # broadcast here (an empty one has no dtype worth
-                                # insisting on). Anything else is left exactly as
-                                # the caller spelled it, so this path keeps
-                                # whatever behavior it had before.
                                 row_indexer = row_arr
-                        if (
+                        take_cross_product = (
                             isinstance(row_indexer, np.ndarray)
                             and row_indexer.ndim == 1
+                        )
+                        if (
+                            take_cross_product
+                            and col_indexer_was_slice
+                            and row_indexer.dtype == bool
                         ):
-                            if row_indexer.dtype == bool:
-                                # GH#65446: a 2d mask cannot be paired with an
-                                # integer column indexer, so use the equivalent
-                                # positions. numpy validates the mask length as
-                                # part of indexing, so do it here too.
-                                nrows = self.shape[1]
-                                if len(row_indexer) != nrows:
-                                    raise IndexError(
-                                        "boolean index did not match indexed array "
-                                        f"along axis 0; size of axis is {nrows} but "
-                                        "size of corresponding boolean axis is "
-                                        f"{len(row_indexer)}"
-                                    )
+                            # GH#65446: a 2d mask cannot be paired with an integer
+                            # column indexer, so use the equivalent positions. A
+                            # wrong-length mask is left as spelled so that indexing
+                            # raises what it always raised.
+                            if len(row_indexer) == self.shape[1]:
                                 row_indexer = row_indexer.nonzero()[0]
+                            else:
+                                take_cross_product = False
+                        if take_cross_product:
                             # GH#65446: Make the row indexer 2d to take a cross product
                             row_indexer = row_indexer[:, None]
                     elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
                         # numpy cannot handle a 2d indexer in combo with a slice
                         row_indexer = np.squeeze(row_indexer, axis=1)
-                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
-                        # numpy does not like empty indexer combined with slice
-                        # and we are setting nothing anyway
-                        return self
                     indexer[0] = row_indexer
                     self.blocks[0].setitem(tuple(indexer), value)
                     return self
