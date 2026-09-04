@@ -270,6 +270,20 @@ def _set_attr_if_changed(attrs, name: str, value) -> None:
         setattr(attrs, name, value)
 
 
+def _resolve_row_window(
+    start: int | None, stop: int | None, nrows: int
+) -> tuple[int, int]:
+    """
+    Resolve ``start``/``stop`` row bounds against a table holding ``nrows`` rows.
+
+    Slice semantics count a negative bound back from the end of the table *and*
+    clamp both bounds into ``[0, nrows]``, which is what a plain read does; the
+    row-coordinate paths have to agree with it.
+    """
+    start, stop, _ = slice(start, stop).indices(nrows)
+    return start, stop
+
+
 def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
@@ -2518,11 +2532,7 @@ class TableIterator:
         if self.s.is_table:
             if nrows is None:
                 nrows = 0
-            if start is None:
-                start = 0
-            if stop is None:
-                stop = nrows
-            stop = min(nrows, stop)
+            start, stop = _resolve_row_window(start, stop, nrows)
 
         self.nrows = nrows
         self.start = start
@@ -6490,11 +6500,9 @@ class Selection:
                 where = np.asarray(where)
                 # start/stop are None on the read_coordinates paths, which is how
                 #  an out-of-range coordinate used to reach PyTables unchecked
-                start, stop = self.start, self.stop
-                if start is None:
-                    start = 0
-                if stop is None:
-                    stop = self.table.nrows
+                start, stop = _resolve_row_window(
+                    self.start, self.stop, self.table.nrows
+                )
                 if where.dtype == np.bool_:
                     self.coordinates = np.arange(start, stop)[where]
                 elif issubclass(where.dtype.type, np.integer):
@@ -6605,16 +6613,7 @@ class Selection:
         """
         generate the selection
         """
-        start, stop = self.start, self.stop
-        nrows = self.table.nrows
-        if start is None:
-            start = 0
-        elif start < 0:
-            start += nrows
-        if stop is None:
-            stop = nrows
-        elif stop < 0:
-            stop += nrows
+        start, stop = _resolve_row_window(self.start, self.stop, self.table.nrows)
 
         if self.condition is not None:
             coords = self.table.table.get_where_list(
