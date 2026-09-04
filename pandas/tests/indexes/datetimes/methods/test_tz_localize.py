@@ -640,3 +640,23 @@ def test_dti_tz_localize_nonexistent_shift_at_last_transition():
     expected = DatetimeIndex([Timestamp("2011-03-27 01:59:59.999999")]).tz_localize(tz)
     tm.assert_index_equal(result, expected)
     assert result[0].utcoffset() == timedelta(hours=11)
+
+
+@pytest.mark.parametrize("tz", ["America/Sao_Paulo", "dateutil/America/Sao_Paulo"])
+def test_dti_tz_localize_nonexistent_shift_into_last_interval(tz):
+    # GH#66820 the offset after the final transition is open-ended: a shifted
+    #  wall time landing there has no next transition to be checked against.
+    #  Brazil abolished DST in 2019, so neither backend has a rule that would
+    #  divert the lookup to the tzinfo API.
+    ts = Timestamp("2018-11-04 00:30")
+    dti = DatetimeIndex([ts, ts])
+    # the final transition is 2019-02-17 02:00 UTC; land 13 hours past it,
+    #  inside the one-day bracket the lookup searches
+    shift = Timedelta(days=105, hours=11, minutes=30)
+
+    result = dti.tz_localize(tz, nonexistent=shift)
+
+    expected = DatetimeIndex([ts + shift] * 2).tz_localize(tz)
+    tm.assert_index_equal(result, expected)
+    assert result[0] == Timestamp("2019-02-17 12:00", tz=tz)
+    assert result[0].utcoffset() == timedelta(hours=-3)

@@ -534,6 +534,11 @@ cdef Py_ssize_t _delta_idx_for_local(
     compares greater than it by the size of the UTC offset.  Bracket the search
     by a day either side -- no zone offset reaches that -- and take the index
     whose own offset places local_val inside that index's own interval.
+
+    The tail of the table is reachable: the caller routes wall times past
+    info.last_trans to the tzinfo API only for zoneinfo zones with a POSIX
+    rule.  Zones without one (and dateutil/pytz, which never carry a rule) end
+    at their last tabulated transition, and a shift can land past it.
     """
     cdef:
         Py_ssize_t idx, lo, hi, ntrans = info.ntrans
@@ -557,17 +562,16 @@ cdef Py_ssize_t _delta_idx_for_local(
     else:
         hi = bisect_right_i8(tdata, bracket, ntrans) - 1
 
-    # for each candidate idx, check whether the UTC value implied by
-    #  deltas[idx] actually lands inside [tdata[idx], tdata[idx + 1])
+    # deltas[idx] is in effect for the UTC instants [tdata[idx], tdata[idx + 1]),
+    #  with the last interval open-ended.  Reading local_val with deltas[idx]
+    #  gives the instant utc_val; that reading is self-consistent only if
+    #  utc_val falls inside that same interval.
     for idx in range(lo, hi + 1):
         if checked_sub(local_val, deltas[idx], &utc_val):
             continue
         if utc_val < tdata[idx]:
-            # this offset does not take effect until after local_val
             continue
         if idx + 1 < ntrans and utc_val >= tdata[idx + 1]:
-            # the next offset has already taken over by local_val; idx ==
-            #  ntrans - 1 has no next offset, its interval is open-ended
             continue
         return idx
 
@@ -584,8 +588,9 @@ cdef Py_ssize_t _delta_idx_for_local(
         if checked_sub(local_val, deltas[idx], &utc_val):
             continue
         if before >= tdata[idx] and utc_val < tdata[idx]:
-            # local_val is at/after the transition read with the old offset,
-            #  but before it read with the new one
+            # read with the offset from before transition idx, local_val is at
+            #  or after the transition; read with the offset from after it,
+            #  local_val is before it.  Only a wall time in the gap does both.
             return idx if forward else idx - 1
 
     return lo
