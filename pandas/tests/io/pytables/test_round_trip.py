@@ -232,7 +232,7 @@ def test_empty_string_index_roundtrips(temp_h5_path):
     ],
 )
 def test_fixed_multiindex_start_stop_matches_iloc(temp_h5_path, vals):
-    # GH#68035 — a MultiIndex level holds the unique values, not one entry per
+    # GH#68038 — a MultiIndex level holds the unique values, not one entry per
     # row, so start/stop must slice only the codes.
     mi = pd.MultiIndex.from_arrays([vals, vals], names=["x", "y"])
     ser = pd.Series(range(len(vals)), index=mi)
