@@ -2092,7 +2092,7 @@ def test_agg_relabel_with_name_match_and_namedagg():
 def test_agg_relabel_with_name_match_listlike_aggfunc():
     # GH#63743 a list-like aggfunc takes the same path whether or not the output
     #  name matches the column name
-    df = DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
 
     with pytest.raises(TypeError, match="unhashable"):
         df.groupby("A").agg(B=("B", ["sum", "max"]))
@@ -2112,7 +2112,7 @@ def test_agg_relabel_with_name_match_non_reduction(aggfunc):
     # GH#63743 a string aggfunc that is not a reduction gives a frame per group,
     #  so it must still produce one output column per keyword when the output
     #  name matches the column name
-    df = DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
 
     result = df.groupby("A").agg(B=("B", aggfunc))
     expected = df.groupby("A").agg(z=("B", aggfunc))
@@ -2126,7 +2126,7 @@ def test_agg_relabel_with_name_match_non_reduction(aggfunc):
 def test_agg_relabel_with_name_match_duplicate_columns():
     # GH#63743 named aggregation gives one output column per keyword even when
     #  the source label is duplicated and the output name matches it
-    df = DataFrame(
+    df = pd.DataFrame(
         [[0, 1, 2], [0, 3, 4], [1, 5, 6], [1, 7, 8]], columns=["A", "B", "B"]
     )
 
