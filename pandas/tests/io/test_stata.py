@@ -2780,7 +2780,7 @@ def test_stata_elapsed_date_out_of_bounds_raises(fmt, value):
 
 @pytest.mark.parametrize("value", [1.5e12, 1e19, -1e19, 2.0**63])
 def test_stata_elapsed_date_tc_upper_passthrough(value):
-    # GH#68032 %tC is the one format we do not convert; the int64 cast on the
+    # GH#68034 %tC is the one format we do not convert; the int64 cast on the
     #  way to that passthrough saturated any value past the int64 bounds, so
     #  the "Stata Internal Format" number handed back was not the file's
     msg = "Encountered %tC format"

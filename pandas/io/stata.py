@@ -250,7 +250,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         # Hand back the file's own numbers: this branch converts nothing, and
         #  casting them to int64 on the way out saturated anything past the
         #  int64 bounds, so the "internal format" value promised by the
-        #  warning was not the one in the file (GH#68032).
+        #  warning was not the one in the file (GH#68034).
         conv_dates = Series(dates, dtype=object)
         na_locs = isna(dates)
         if na_locs.any():
