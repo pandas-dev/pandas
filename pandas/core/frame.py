@@ -5078,10 +5078,9 @@ class DataFrame(NDFrame, OpsMixin):
         Raises
         ------
         ValueError
-            If ``expr`` refers to a column label that is not unique and either
-            still evaluates to a DataFrame or cannot be aligned against the rest
-            of the expression, since there is then no row mask to select with.
-            Reducing those columns back to one dimension, as in
+            If ``expr`` refers to a column label that is not unique and still
+            evaluates to a DataFrame, since there is then no row mask to select
+            with. Reducing those columns back to one dimension, as in
             ``df.query("a.max(axis=1) > 4")``, is fine.
 
         See Also
@@ -5204,42 +5203,33 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError(msg)
 
         query_resolvers: tuple[Mapping[Any, Any], ...] = tuple(resolvers or ())
-        duplicates: _DuplicateColumnResolver | None = None
+        duplicates: _DuplicateColumnRecorder | None = None
         if self.columns.has_duplicates:
-            duplicates = _DuplicateColumnResolver.from_columns(self.columns)
+            duplicates = _DuplicateColumnRecorder.from_columns(self.columns)
             query_resolvers += (duplicates,)
 
-        try:
-            res = self.eval(
-                expr,
-                level=level + 1,
-                parser=parser,
-                target=None,
-                engine=engine,
-                local_dict=local_dict,
-                global_dict=global_dict,
-                resolvers=query_resolvers,
-            )
-        except ValueError as err:
-            # A compound expression fails to align the 2-D term before it ever
-            # produces a result, so the check below never sees it. A duplicated
-            # *index* raises the same errors, though, and a label that the
-            # expression reduced is blameless, so append the hint rather than
-            # replacing a message that may be the real cause.
-            misaligned = any(
-                text in str(err)
-                for text in ("duplicate labels", "not aligned", "identically-labeled")
-            )
-            if duplicates is not None and duplicates.referenced and misaligned:
-                raise ValueError(f"{err}\n\n{duplicates.hint()}") from err
-            raise
+        res = self.eval(
+            expr,
+            level=level + 1,
+            parser=parser,
+            target=None,
+            engine=engine,
+            local_dict=local_dict,
+            global_dict=global_dict,
+            resolvers=query_resolvers,
+        )
 
         if (
             duplicates is not None
             and duplicates.referenced
             and getattr(res, "ndim", 1) == 2
         ):
-            raise ValueError(duplicates.message())
+            raise ValueError(
+                "expr referenced a duplicated column label, which resolves to "
+                "a DataFrame rather than a Series, so expr did not evaluate to "
+                "a row mask. Rename or drop the duplicate labels, or reduce "
+                "the result to one dimension with e.g. .any(axis=1)."
+            )
 
         try:
             result = self.loc[res]
@@ -20070,75 +20060,47 @@ class DataFrame(NDFrame, OpsMixin):
         return self._mgr.as_array()
 
 
-class _DuplicateColumnResolver(dict):
+class _DuplicateColumnRecorder(dict):
     """
-    Records references to duplicated column labels made by a query expression.
+    Notes whether a query expression referenced a duplicated column label.
 
-    A duplicated label resolves to a :class:`DataFrame` rather than a
+    Such a label resolves to a :class:`DataFrame` rather than a
     :class:`Series` (GH#65588), which is fine for an expression that reduces it
     back to one dimension and useless to :meth:`DataFrame.query` otherwise, so
     this only takes note and ``query`` decides once it can see the result.
 
     Lookups always raise ``KeyError`` so that the column resolvers behind this
-    one still supply the value. The labels live in an attribute rather than in
+    one still supply the value. The names live in an attribute rather than in
     the dict itself because the scope machinery rewrites an ``@local``
     reference by writing it into the first resolver that *contains* that name
     (``Scope.swapkey``), so anything stored here would capture locals sharing a
     name with a duplicated column.
     """
 
-    def __init__(self, labels: dict[Hashable, Hashable]) -> None:
+    def __init__(self, names: set[Hashable]) -> None:
         super().__init__()
-        self.labels = labels
-        self.referenced: list[Hashable] = []
+        self.names = names
+        self.referenced = False
 
     @classmethod
-    def from_columns(cls, columns: Index) -> _DuplicateColumnResolver:
+    def from_columns(cls, columns: Index) -> _DuplicateColumnRecorder:
         # _get_cleaned_column_resolvers keys on the cleaned name and lets the
         # last label win, and clean_column_name is not injective, so work out
         # which label each name resolves to before asking whether that one is
         # duplicated.
-        resolved: dict[Hashable, tuple[Hashable, bool]] = {
-            clean_column_name(label): (label, is_duplicated)
-            for label, is_duplicated in zip(
-                columns, columns.duplicated(keep=False), strict=True
+        resolved = dict(
+            zip(
+                (clean_column_name(label) for label in columns),
+                columns.duplicated(keep=False),
+                strict=True,
             )
-        }
-        return cls(
-            {
-                name: label
-                for name, (label, is_duplicated) in resolved.items()
-                if is_duplicated
-            }
         )
+        return cls({name for name, is_duplicated in resolved.items() if is_duplicated})
 
     def __getitem__(self, key):
-        if key in self.labels:
-            self.referenced.append(self.labels[key])
+        if key in self.names:
+            self.referenced = True
         raise KeyError(key)
-
-    def _subject(self) -> str:
-        labels = list(dict.fromkeys(self.referenced))
-        named = ", ".join(repr(label) for label in labels)
-        if len(labels) == 1:
-            return f"The column label {named} is not unique"
-        return f"The column labels {named} are not unique"
-
-    def message(self) -> str:
-        return (
-            f"{self._subject()}, so the expression could not be reduced to a row "
-            "mask. Rename or drop the duplicate labels, or reduce the result with "
-            "e.g. .any(axis=1)."
-        )
-
-    def hint(self) -> str:
-        # unlike message(), this is raised from a failure that happened before
-        # there was a result, so reducing the result is not available yet
-        return (
-            f"{self._subject()}; if that is the cause, rename or drop the "
-            "duplicate labels, or reduce each reference to one dimension with "
-            "e.g. .max(axis=1)."
-        )
 
 
 def _from_nested_dict(
