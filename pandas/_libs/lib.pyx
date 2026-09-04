@@ -1523,7 +1523,11 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
     # then the generic implementation
     return (
         # equiv: `isinstance(obj, abc.Iterable)`
-        getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
+        getattr(obj, "__iter__", None) is not None
+        # a class only iterates if its metaclass says so. `list.__iter__` exists but
+        # `iter(list)` fails, while an Enum subclass is iterable through EnumType
+        and not (isinstance(obj, type)
+                 and getattr(type(obj), "__iter__", None) is None)
         # we do not count strings/unicode/bytes as list-like
         # exclude Generic types that have __iter__
         and not isinstance(obj, (str, bytes, _GenericAlias, GenericAlias))
