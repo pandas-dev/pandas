@@ -334,6 +334,57 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
+    """
+    Whether boxing a value of this type can hand back memory the caller owns.
+
+    ``pa.array`` is zero-copy over a numpy or masked array for fixed-width
+    layouts, so a boxed value of such a type can be a view on a buffer the
+    caller is still free to write to. The character layouts are never zero-copy
+    that way -- the characters are always packed into fresh arrow buffers -- so
+    for those a defensive copy buys nothing and costs a full copy of the
+    character data, which is the regression GH#64529 was written to fix
+    (GH#64530).
+
+    Nested types are treated as borrowing: a caller can build e.g. a struct or
+    list array over a numpy child themselves.
+    """
+    return not (
+        _is_varbinary_type(pa_type)
+        or pa.types.is_string_view(pa_type)
+        or pa.types.is_binary_view(pa_type)
+    )
+
+
+def _copy_pyarrow_buffers(
+    pa_array: pa.Array | pa.ChunkedArray,
+) -> pa.Array | pa.ChunkedArray:
+    """
+    Return an equal array that owns its buffers.
+
+    A pyarrow array is immutable as a pyarrow object, but it can be zero-copy
+    over memory that something else still owns and may write to -- most often a
+    numpy array, via ``pa.array(np_arr)``. Callers that are about to adopt an
+    array as their own backing store need the buffers, not just the object, to
+    be theirs (GH#67976).
+
+    ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
+    so dictionary types are rebuilt from copies of both halves instead.
+    """
+    if isinstance(pa_array, pa.ChunkedArray):
+        return pa.chunked_array(
+            [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
+            type=pa_array.type,
+        )
+    if pa.types.is_dictionary(pa_array.type):
+        return pa.DictionaryArray.from_arrays(
+            _copy_pyarrow_buffers(pa_array.indices),
+            _copy_pyarrow_buffers(pa_array.dictionary),
+            ordered=pa_array.type.ordered,
+        )
+    return pa.concat_arrays([pa_array])
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -2905,6 +2956,11 @@ class ArrowExtensionArray(
                 and value.type == self._pa_array.type
                 and len(value) == len(self)
             ):
+                # GH#67976 this adopts ``value`` as our backing array, so for
+                #  any type whose buffers the caller may still own and mutate we
+                #  have to take our own copy first.
+                if _boxing_may_borrow_memory(value.type):
+                    value = _copy_pyarrow_buffers(value)
                 data = value
             else:
                 data = self._if_else(True, value, self._pa_array)
