@@ -328,8 +328,8 @@ class Index(IndexOpsMixin, PandasObject):
     Parameters
     ----------
     data : array-like (1-dimensional) or iterable (1-dimensional)
-        A 1-dimensional array-like structure containing the data for the index. This could be a
-        Python list, a NumPy array, or a pandas Series. 
+        A 1-dimensional array-like structure containing the data for the
+        index. This could be a Python list, a NumPy array, or a pandas Series.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Index. If not specified, this will be
         inferred from `data`.

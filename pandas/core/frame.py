@@ -314,6 +314,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     Notes
     -----
+    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
+
     For the `index` and `columns` parameters, if a dict is provided, the keys will be
     used as the index values or column labels respectively. For the `data` parameter,
     if a dict is provided, the keys become the column names and the values become the
@@ -326,10 +328,6 @@ class DataFrame(NDFrame, OpsMixin):
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_table : Read general delimited file into DataFrame.
     read_clipboard : Read text from clipboard into DataFrame.
-
-    Notes
-    -----
-    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
 
     Examples
     --------
