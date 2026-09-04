@@ -190,12 +190,13 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
             converted = Index(values[~na_mask], copy=False).astype(
                 dtype.categories.dtype, copy=False
             )
+            converted_values = converted._values
             if na_mask.any():
                 result = np.asarray(values, dtype=object)
-                result[~na_mask] = converted
+                result[~na_mask] = converted_values
                 values = result
             else:
-                values = converted
+                values = converted_values
         return dtype.construct_array_type()._from_sequence(
             values, dtype=dtype, copy=copy
         )
