@@ -1749,7 +1749,7 @@ def test_setitem_null_slice_no_alias_pyarrow(wrap):
 @pytest.mark.parametrize(
     "dtype",
     [
-        "str",
+        pd.StringDtype("pyarrow", na_value=np.nan),
         "string[pyarrow]",
         "binary[pyarrow]",
         ArrowDtype(pa.large_string()),
