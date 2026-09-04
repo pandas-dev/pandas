@@ -331,15 +331,19 @@ class CSVFormatter:
 
         return None
 
-    def _iter_written_dtypes(self) -> Iterator[DtypeObj]:
-        """Dtypes of every column that will actually be written, incl. the index."""
-        if self.index:
-            index = self.obj.index
-            if isinstance(index, ABCMultiIndex):
-                yield from index.dtypes
-            else:
-                yield index.dtype
-        yield from self.obj.dtypes
+    @staticmethod
+    def _unwrap_dictionary_type(pa: Any, pa_type: Any) -> Any:
+        """A dictionary-encoded (Categorical) field's actual value type."""
+        return pa_type.value_type if pa.types.is_dictionary(pa_type) else pa_type
+
+    def _pyarrow_infer_field_type(self, pa: Any, col: Any) -> Any:
+        """The pyarrow type pyarrow would infer for `col`."""
+        # warnings suppressed: pyarrow's conversion internally uses a
+        # deprecated pandas accessor on tz-aware data
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            arr_type = pa.array(col, from_pandas=True).type
+        return self._unwrap_dictionary_type(pa, arr_type)
 
     @staticmethod
     def _is_tz_aware_dtype(dtype: DtypeObj) -> bool:
@@ -351,36 +355,38 @@ class CSVFormatter:
             return pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
         return False
 
-    def _pyarrow_renders_differently(self) -> bool:
-        """
-        Whether any column/index level being written has a dtype that
-        the pyarrow engine renders in a materially different (though
-        still value-preserving) textual form than the python engine:
-        bool -> "true"/"false" instead of "True"/"False", timedelta64 ->
-        raw integer nanoseconds instead of a human-readable duration, and
-        timezone-aware datetime64 -> a different offset/precision format.
-        """
-        for dtype in self._iter_written_dtypes():
+    def _pyarrow_renders_differently(self, obj: DataFrame) -> bool:
+        """Whether any column in `obj` renders as bool/timedelta64/tz-aware."""
+        pa = import_optional_dependency("pyarrow")
+        for _, col in obj.items():
+            dtype = col.dtype
             if dtype.kind in ("b", "m") or self._is_tz_aware_dtype(dtype):
+                return True
+            if dtype.kind != "O":
+                continue
+            field_type = self._pyarrow_infer_field_type(pa, col)
+            if (
+                pa.types.is_boolean(field_type)
+                or pa.types.is_duration(field_type)
+                or (pa.types.is_timestamp(field_type) and field_type.tz is not None)
+            ):
                 return True
         return False
 
-    @staticmethod
-    def _has_whole_number_float_column(obj: DataFrame) -> bool:
-        """
-        Whether any float-dtype column in `obj` (which already has any
-        index moved into a column by _build_arrow_obj) holds only
-        whole-number values (ignoring missing values). The python engine
-        always writes a trailing ".0" for such values (e.g. "1.0"), which
-        is what lets read_csv infer a float dtype back on round-trip; the
-        pyarrow engine omits it (writing "1"), which can silently change
-        the dtype read_csv infers to an integer type instead.
-        """
+    def _has_whole_number_float_column(self, obj: DataFrame) -> bool:
+        """Whether any floating-typed column in `obj` holds only whole numbers."""
+        pa = import_optional_dependency("pyarrow")
         for _, col in obj.items():
-            if col.dtype.kind != "f":
+            dtype = col.dtype
+            if dtype.kind == "f":
+                pass
+            elif dtype.kind == "O":
+                if not pa.types.is_floating(self._pyarrow_infer_field_type(pa, col)):
+                    continue
+            else:
                 continue
             non_null = col[col.notna()]
-            if len(non_null) and (non_null % 1 == 0).all():
+            if len(non_null) and (non_null.astype("float64") % 1 == 0).all():
                 return True
         return False
 
@@ -442,9 +448,9 @@ class CSVFormatter:
 
         arrow_obj = self._build_arrow_obj()
 
-        if self._pyarrow_renders_differently() or self._has_whole_number_float_column(
+        if self._pyarrow_renders_differently(
             arrow_obj
-        ):
+        ) or self._has_whole_number_float_column(arrow_obj):
             if explicit:
                 warnings.warn(
                     "The pyarrow engine renders bool, timedelta64, and "
@@ -472,12 +478,10 @@ class CSVFormatter:
             return "python"
 
         try:
-            # preserve_index=False: the index (if any) is already moved
-            # into a column by _build_arrow_obj above; letting pyarrow's
-            # own preserve_index heuristic run too would either duplicate
-            # it or -- when self.index is False -- add it back as an
-            # unwanted extra column.
-            table = pa.Table.from_pandas(arrow_obj, preserve_index=False)
+            # index already moved into a column by _build_arrow_obj
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")  # pyarrow warns on tz-aware data
+                table = pa.Table.from_pandas(arrow_obj, preserve_index=False)
         except (pa.lib.ArrowException, TypeError, ValueError):
             if explicit:
                 raise

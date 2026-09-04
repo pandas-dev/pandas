@@ -1566,3 +1566,67 @@ def test_to_csv_datetime_tz_consistent_format(engine):
         ]
     expected = csv_str_for_engine(expected_rows, pyarrow_used)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "df",
+    [
+        pytest.param(pd.DataFrame({"a": [True, None, False]}), id="object-dtype-bool"),
+        pytest.param(
+            pd.DataFrame({"a": pd.Categorical([True, False])}),
+            id="categorical-of-bool",
+        ),
+        pytest.param(
+            pd.DataFrame({"a": pd.Series([pd.Timedelta("1D"), None], dtype=object)}),
+            id="object-dtype-timedelta",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {
+                    "a": pd.Series(
+                        [pd.Timestamp("2020-01-01", tz="UTC"), None], dtype=object
+                    )
+                }
+            ),
+            id="object-dtype-tz-aware-timestamp",
+        ),
+        pytest.param(
+            pd.DataFrame({"s": ["x"], "f": pd.Series([1.0], dtype=object)}),
+            id="object-dtype-whole-number-float",
+        ),
+        pytest.param(
+            pd.DataFrame({"f": pd.Categorical([1.0, 2.0])}),
+            id="categorical-of-whole-number-float",
+        ),
+    ],
+)
+def test_to_csv_renders_differently_detected_through_object_and_categorical(df, engine):
+    # GH#64342 - object/Categorical columns holding these values went
+    # undetected when only the pandas dtype was checked
+    with check_warns_if_pyarrow_renders_differently(engine):
+        result = df.to_csv(engine=engine)
+    if engine != "pyarrow":
+        assert result == df.to_csv(engine="python")
+
+
+@pytest.mark.parametrize(
+    "df",
+    [
+        pytest.param(pd.DataFrame({"a": [True, False]}), id="bool"),
+        pytest.param(
+            pd.DataFrame({"a": pd.to_timedelta(["1D", "2D"])}), id="timedelta64"
+        ),
+        pytest.param(pd.DataFrame({"a": [1.0, 2.0]}), id="whole-number-float"),
+    ],
+)
+def test_to_csv_auto_engine_skips_pyarrow_table_for_natively_typed_fallback(
+    df, monkeypatch
+):
+    # GH#64342 - falling back for a natively-typed column shouldn't need
+    # a pyarrow Table build at all
+    calls = []
+    # pyarrow.Table is immutable, so patch the module's reference to it
+    stub_table = type("StubTable", (), {"from_pandas": staticmethod(calls.append)})
+    monkeypatch.setattr(pytest.importorskip("pyarrow"), "Table", stub_table)
+    df.to_csv(engine="auto")
+    assert calls == []
