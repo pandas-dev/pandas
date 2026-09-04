@@ -2513,6 +2513,50 @@ class TestDataFramePlots:
             if kind == "line":
                 assert len(ax.lines) == len(labels)
 
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    @pytest.mark.parametrize("align", ["center", "edge"])
+    @pytest.mark.parametrize("width, position", [(0.5, 0.5), (0.9, 0.2)])
+    def test_group_subplot_bar_geometry(self, kind, align, width, position):
+        # GH 67727
+        df = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+        axes = df.plot(
+            kind=kind,
+            stacked=False,
+            subplots=[("a",), ("c", "b")],
+            sharex=True,
+            align=align,
+            width=width,
+            position=position,
+            legend=False,
+        )
+
+        assert len(axes) == 2
+        for axis_idx, ax in enumerate(axes):
+            if kind == "bar":
+                actual = {
+                    patch.get_height(): (patch.get_x(), patch.get_width())
+                    for patch in ax.patches
+                }
+            else:
+                actual = {
+                    patch.get_width(): (patch.get_y(), patch.get_height())
+                    for patch in ax.patches
+                }
+            base = -width * position
+            if axis_idx == 0:
+                expected = {1: (base + (width / 2 if align == "edge" else 0), width)}
+            else:
+                group_width = width / 2
+                group_offset = width / 2 if align == "edge" else 0
+                expected = {
+                    2: (base + group_offset + group_width, group_width),
+                    3: (base + group_offset, group_width),
+                }
+
+            for value, (expected_coordinate, expected_size) in expected.items():
+                tm.assert_almost_equal(actual[value][0], expected_coordinate)
+                tm.assert_almost_equal(actual[value][1], expected_size)
+
     def test_group_subplot_series_notimplemented(self):
         ser = pd.Series(range(1))
         msg = "An iterable subplots for a Series"
