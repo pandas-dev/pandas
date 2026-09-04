@@ -7466,7 +7466,6 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool | lib.NoDefault = lib.no_default,
         verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
-
         """
         Set the DataFrame index using existing columns.
 

@@ -375,9 +375,7 @@ def test_dataframe_insert_raises():
         (operator.methodcaller("rename", lambda x: x, inplace=True), False),
     ],
 )
-@pytest.mark.filterwarnings(
-    "ignore:The inplace keyword in (Series|DataFrame)"
-)
+@pytest.mark.filterwarnings("ignore:The inplace keyword in (Series|DataFrame)")
 def test_inplace_raises(method, frame_only):
     df = pd.DataFrame({"A": [0, 0], "B": [1, 2]}).set_flags(
         allows_duplicate_labels=False
