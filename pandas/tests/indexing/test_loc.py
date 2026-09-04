@@ -4098,3 +4098,35 @@ def test_loc_setitem_row_expansion_int_ea_float_value():
         }
     )
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "row_key", [[0, 1, 2], slice(0, 2), np.array([True, True, True, False])]
+)
+@pytest.mark.parametrize("col_key", [["b"], slice("b", "b")])
+def test_loc_setitem_single_column_key_1d_value(row_key, col_key):
+    # GH#68021 a column key selecting exactly one column makes the selection
+    #  (N, 1), which a length-N 1-D value could not be broadcast into on a
+    #  single-block frame.  .loc reaches the same code path as .iloc only after
+    #  label->position conversion and _maybe_mask_setitem_value.
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+
+    df.loc[row_key, col_key] = [1.0, 2.0, 3.0]
+
+    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    expected["b"] = [1.0, 2.0, 3.0, 0.0]
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_single_column_key_1d_value_non_unique_index():
+    # GH#68021 a duplicated label expands the row selection, so two labels can
+    #  select three rows and consume a length-3 value
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"), index=["w", "x", "x", "z"])
+
+    df.loc[["w", "x"], ["b"]] = [1.0, 2.0, 3.0]
+
+    expected = pd.DataFrame(
+        np.zeros((4, 3)), columns=list("abc"), index=["w", "x", "x", "z"]
+    )
+    expected["b"] = [1.0, 2.0, 3.0, 0.0]
+    tm.assert_frame_equal(df, expected)
