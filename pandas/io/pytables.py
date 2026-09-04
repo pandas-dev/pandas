@@ -6509,14 +6509,16 @@ class Selection:
             # create the numexpr & the filter
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
-                if self.condition is not None:
-                    self._warn_if_unreliable_or()
 
     def _warn_if_unreliable_or(self) -> None:
         """
         Warn for nested-OR queries with AND-ed operands over indexed columns
         (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
         an upstream PyTables bug (GH#50598).
+
+        Called from the query methods rather than ``__init__``: one read builds
+        several ``Selection`` objects for the same ``where``, and only the one
+        that runs the condition should warn.
         """
         table = getattr(self.table, "table", None)
         if table is None:
@@ -6572,6 +6574,7 @@ class Selection:
         generate the selection
         """
         if self.condition is not None:
+            self._warn_if_unreliable_or()
             try:
                 return self.table.table.read_where(
                     self.condition.format(), start=self.start, stop=self.stop
@@ -6612,6 +6615,7 @@ class Selection:
             stop += nrows
 
         if self.condition is not None:
+            self._warn_if_unreliable_or()
             coords = self.table.table.get_where_list(
                 self.condition.format(), start=start, stop=stop, sort=True
             )

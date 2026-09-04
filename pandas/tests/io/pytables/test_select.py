@@ -1342,3 +1342,25 @@ def test_remove_nested_or_query_warns(temp_hdfstore):
     # test_select_nested_or_query_wrong_rows_single_chunk
     assert removed == 0
     assert temp_hdfstore.get_storer("df").nrows == len(df)
+
+
+@pytest.mark.parametrize(
+    "read",
+    [
+        lambda store, where: store.select("df", where=where),
+        lambda store, where: list(store.select("df", where=where, chunksize=5)),
+        lambda store, where: store.select_as_coordinates("df", where=where),
+    ],
+    ids=["select", "iterator", "select_as_coordinates"],
+)
+def test_select_nested_or_query_warns_once(temp_hdfstore, read):
+    # GH#50598 one read builds several Selection objects for the same "where",
+    # so the warning has to come from the query rather than from every parse
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    with tm.assert_produces_warning(UserWarning, match="GH#50598") as record:
+        read(temp_hdfstore, "(a > 100 & b > 100) | (a < 5 & b < 5)")
+
+    assert sum("GH#50598" in str(warning.message) for warning in record) == 1
