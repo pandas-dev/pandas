@@ -2394,7 +2394,7 @@ def test_sum_mixed_empty(any_string_dtype):
 
 
 @pytest.mark.parametrize(
-    "other, expect, expected",
+    "other, expected_1, expected_2",
     [
         (
             3,
@@ -2408,20 +2408,22 @@ def test_sum_mixed_empty(any_string_dtype):
         ),
         (
             DataFrame([[None, False, True], [np.nan, pd.NaT, pd.NA]]),
-            DataFrame([[False, False, False], [False, False, pd.NA]]),
+            DataFrame([[False, False, False], [False, False, pd.NA]]).astype(
+                {0: bool, 1: object}
+            ),
             DataFrame([[False, False, pd.NA], [pd.NA, False, pd.NA]]),
         ),
     ],
 )
-def test_dataframe_comparison_preserve_na(other, expect, expected):
+def test_dataframe_comparison_preserve_na(other, expected_1, expected_2):
     # GH#63328
     df = DataFrame([[1, 2, 3], [4, 5, 6]])
     res = df == other
-    tm.assert_frame_equal(res, expect, check_dtype=False)
+    tm.assert_frame_equal(res, expected_1)
 
     df2 = DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
     res2 = df2 == other
-    tm.assert_frame_equal(res2, expected, check_dtype=False)
+    tm.assert_frame_equal(res2, expected_2)
 
 
 @pytest.mark.parametrize(
