@@ -69,6 +69,12 @@ MESSAGE = (
     "tests never run:"
 )
 
+PLATFORM_ONLY_MESSAGE = (
+    "{module!r} gates tests with importorskip/skip_if_no, and {package!r} is "
+    "installed only on {platforms}; these tests are skipped on the other "
+    "platforms:"
+)
+
 
 def environments_running_tests() -> set[str]:
     """
@@ -87,9 +93,19 @@ def environments_running_tests() -> set[str]:
     return environments
 
 
-def declared_packages(pixi: dict, environments: Iterable[str]) -> set[str]:
+def declared_packages(
+    pixi: dict, environments: Iterable[str]
+) -> tuple[set[str], dict[str, set[str]]]:
     """
-    Every package installed in at least one of ``environments``.
+    Return ``(everywhere, platform_only)``.
+
+    ``everywhere`` is the set of packages installed in at least one of
+    ``environments`` regardless of platform (top-level dependencies plus each
+    environment's feature dependencies).
+
+    ``platform_only`` maps a package to the set of platforms on which it is
+    declared under a ``[target.<platform>.dependencies]`` (or
+    ``pypi-dependencies``) table.
     """
     packages = set(pixi.get("dependencies", {}))
     for environment in environments:
@@ -102,7 +118,13 @@ def declared_packages(pixi: dict, environments: Iterable[str]) -> set[str]:
             block = pixi["feature"].get(feature, {})
             packages.update(block.get("dependencies", {}))
             packages.update(block.get("pypi-dependencies", {}))
-    return packages
+
+    platform_only: dict[str, set[str]] = {}
+    for platform, target in pixi.get("target", {}).items():
+        for key in ("dependencies", "pypi-dependencies"):
+            for package in target.get(key, {}):
+                platform_only.setdefault(package, set()).add(platform)
+    return packages, platform_only
 
 
 def gated_modules() -> dict[str, set[str]]:
@@ -122,7 +144,7 @@ def gated_modules() -> dict[str, set[str]]:
 def validate_test_dependencies() -> int:
     with open(PIXI_PATH, "rb") as file_handle:
         pixi = tomllib.load(file_handle)
-    declared = declared_packages(pixi, environments_running_tests())
+    declared, platform_only = declared_packages(pixi, environments_running_tests())
 
     ret = 0
     for module, paths in sorted(gated_modules().items()):
@@ -130,6 +152,20 @@ def validate_test_dependencies() -> int:
             continue
         package = IMPORT_TO_CONDA.get(module, module)
         if package in declared:
+            continue
+        platforms = platform_only.get(package)
+        if platforms:
+            # Runs only on some platforms, so the gate is not silently dead
+            # everywhere; report it but do not fail the hook.
+            print(
+                PLATFORM_ONLY_MESSAGE.format(
+                    module=module,
+                    package=package,
+                    platforms=", ".join(sorted(platforms)),
+                )
+            )
+            for path in sorted(paths):
+                print(f"    {path}")
             continue
         print(MESSAGE.format(module=module, package=package))
         for path in sorted(paths):
