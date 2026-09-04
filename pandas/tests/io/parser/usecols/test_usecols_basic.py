@@ -538,3 +538,14 @@ b,2,y
         {"col1": pd.array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecols", [["c", "a"], ["a", "c"], {"c", "a"}])
+def test_usecols_names_keep_file_order(all_parsers, usecols):
+    # GH#67010 the selected columns come back in file order on every
+    # engine, regardless of the order (or container) given in usecols
+    parser = all_parsers
+    data = "a,b,c\n1,2,3\n4,5,6"
+    result = parser.read_csv(StringIO(data), usecols=usecols)
+    expected = DataFrame({"a": [1, 4], "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)
