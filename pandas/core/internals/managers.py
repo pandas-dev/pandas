@@ -589,6 +589,10 @@ class BaseBlockManager(PandasObject):
                     )
 
                     indexer = list(indexer)
+                    # A slice column indexer means maybe_convert_ix never ran
+                    # np.ix_, so the row indexer was left exactly as the caller
+                    # spelled it (GH#65446)
+                    col_indexer_was_slice = isinstance(indexer[1], slice)
                     # first block equals values we are setting to -> set to all columns
                     if lib.is_integer(indexer[1]):
                         col_indexer = 0
@@ -603,9 +607,41 @@ class BaseBlockManager(PandasObject):
                     row_indexer = indexer[0]
                     if isinstance(col_indexer, np.ndarray):
                         if (
+                            col_indexer_was_slice
+                            and not isinstance(row_indexer, (np.ndarray, slice))
+                            and is_list_like(row_indexer)
+                        ):
+                            # GH#65446: a slice column indexer broadcasts against
+                            # the rows, so take the cross product however the row
+                            # indexer was spelled.
+                            row_arr = np.asarray(row_indexer)
+                            if row_arr.ndim == 1 and (
+                                row_arr.dtype.kind in "iub" or row_arr.size == 0
+                            ):
+                                # Only a 1d integer or boolean array can be
+                                # broadcast here (an empty one has no dtype worth
+                                # insisting on). Anything else is left exactly as
+                                # the caller spelled it, so this path keeps
+                                # whatever behavior it had before.
+                                row_indexer = row_arr
+                        if (
                             isinstance(row_indexer, np.ndarray)
                             and row_indexer.ndim == 1
                         ):
+                            if row_indexer.dtype == bool:
+                                # GH#65446: a 2d mask cannot be paired with an
+                                # integer column indexer, so use the equivalent
+                                # positions. numpy validates the mask length as
+                                # part of indexing, so do it here too.
+                                nrows = self.shape[1]
+                                if len(row_indexer) != nrows:
+                                    raise IndexError(
+                                        "boolean index did not match indexed array "
+                                        f"along axis 0; size of axis is {nrows} but "
+                                        "size of corresponding boolean axis is "
+                                        f"{len(row_indexer)}"
+                                    )
+                                row_indexer = row_indexer.nonzero()[0]
                             # GH#65446: Make the row indexer 2d to take a cross product
                             row_indexer = row_indexer[:, None]
                     elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:

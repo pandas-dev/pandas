@@ -619,6 +619,111 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+    @pytest.mark.parametrize(
+        "row_indexer", [[1, 0], pd.Series([1, 0]), np.array([1, 0])]
+    )
+    def test_iloc_setitem_reversed_slice_column_indexer_referenced_block(
+        self, row_indexer
+    ):
+        # GH#65446 a non-increasing slice column indexer must still set the full
+        #  cross product, however the row indexer is spelled
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[row_indexer, ::-1] = 99
+        df._mgr._verify_integrity()
+        expected = pd.DataFrame({"A": [99, 99], "B": [99, 99]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_reversed_slice_column_indexer_array_value(self):
+        # GH#65446 assigning a 2D array raised instead of setting the cross product
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[[1, 0], ::-1] = np.array([[10, 20], [30, 40]])
+        df._mgr._verify_integrity()
+        expected = pd.DataFrame({"A": [40, 20], "B": [30, 10]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_strided_slice_column_indexer_referenced_block(self):
+        # GH#65446 only part of the targeted cells were written
+        df = pd.DataFrame(
+            {
+                "A": [0, 1, 2, 3],
+                "B": [10, 11, 12, 13],
+                "C": [20, 21, 22, 23],
+                "D": [30, 31, 32, 33],
+            }
+        )
+        df_orig = df.copy()
+        ref = df[["A", "B", "C", "D"]]
+        df.iloc[[1, 0], 3::-2] = 999
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.loc[[0, 1], ["B", "D"]] = 999
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("box", [list, np.array])
+    def test_iloc_setitem_boolean_row_indexer_referenced_block(self, box):
+        # GH#65446 a boolean row mask wrote the wrong cells (list) or raised
+        #  IndexError (ndarray) once the column indexer was reduced to positions.
+        #  Two True entries in a 3-row frame: with only one, the mask broadcasts
+        #  onto the right cells by accident and pins nothing.
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        df.iloc[box([True, False, True]), ::-1] = 99
+        df._mgr._verify_integrity()
+        expected = pd.DataFrame({"A": [99, 2, 99], "B": [99, 5, 99]})
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize(
+        "row_indexer",
+        [
+            # a list-like numpy cannot consume at all
+            {2: None, 0: None}.keys(),
+            # 1d, but not a usable positional indexer
+            [1.0, 0.0],
+            pd.Series([1.0, 0.0]),
+            pd.array([1.0, 0.0], dtype="Float64"),
+            pd.array([1, None], dtype="Int64"),
+            [1, "a"],
+        ],
+    )
+    def test_iloc_setitem_invalid_row_indexer_referenced_block(self, row_indexer):
+        # GH#65446 an invalid row indexer must raise exactly what it raises
+        #  without a reference, rather than TypeError or a different IndexError
+        #  leaking out of the normalization
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        with pytest.raises(IndexError, match="only integers, slices"):
+            df.iloc[row_indexer, ::-1] = 99
+        tm.assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("box", [list, np.array])
+    @pytest.mark.parametrize("mask", [[True, False], [True, False, True, False]])
+    def test_iloc_setitem_wrong_length_boolean_row_indexer_referenced_block(
+        self, box, mask
+    ):
+        # GH#65446 a mask whose length does not match the number of rows must
+        #  raise, not silently write a subset. The frame is deliberately not
+        #  square and the short mask deliberately matches the column count, so a
+        #  length check against the wrong axis would not pass this.
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df_orig = df.copy()
+        ref = df[["A", "B"]]
+        msg = "boolean index did not match indexed array along axis 0"
+        with pytest.raises(IndexError, match=msg):
+            df.iloc[box(mask), ::-1] = 99
+        tm.assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
