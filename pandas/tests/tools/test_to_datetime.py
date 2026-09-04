@@ -10,6 +10,7 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import locale
 import re
 import zoneinfo
 
@@ -17,6 +18,7 @@ from dateutil.parser import parse
 import numpy as np
 import pytest
 
+from pandas._config.localization import set_locale
 from pandas._libs import tslib
 from pandas._libs.tslibs import (
     iNaT,
@@ -355,21 +357,25 @@ class TestTimeConversionFormats:
         ],
     )
     def test_to_datetime_format_time(self, cache, value, format, dt):
-        assert pd.to_datetime(value, format=format, cache=cache) == dt
+        with set_locale("C", locale.LC_TIME):
+            assert pd.to_datetime(value, format=format, cache=cache) == dt
 
     @td.skip_if_not_english_lc_time
     def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
         # 8904
         # exact kw
-        ser = pd.Series(
-            ["19MAY11", "foobar19MAY11", "19MAY11:00:00:00", "19MAY11 00:00:00Z"]
-        )
-        result = pd.to_datetime(ser, format="%d%b%y", exact=False, cache=cache)
-        expected = pd.to_datetime(
-            ser.str.extract(r"(\d+\w+\d+)", expand=False), format="%d%b%y", cache=cache
-        )
-        tm.assert_series_equal(result, expected)
+        with set_locale("C", locale.LC_TIME):
+            ser = pd.Series(
+                ["19MAY11", "foobar19MAY11", "19MAY11:00:00:00", "19MAY11 00:00:00Z"]
+            )
+            result = pd.to_datetime(ser, format="%d%b%y", exact=False, cache=cache)
+            expected = pd.to_datetime(
+                ser.str.extract(r"(\d+\w+\d+)", expand=False),
+                format="%d%b%y",
+                cache=cache,
+            )
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "format, expected",
@@ -3063,10 +3069,11 @@ class TestToDatetimeMisc:
         # this is only locale tested with US/None locales
         # GH 5195
         # with a format and coerce a single item to_datetime fails
-        td = pd.Series(["May 04", "Jun 02", "Dec 11"], index=[1, 2, 3])
-        expected = pd.to_datetime(td, format="%b %y", cache=cache)
-        result = td.apply(pd.to_datetime, format="%b %y", cache=cache)
-        tm.assert_series_equal(result, expected)
+        with set_locale("C", locale.LC_TIME):
+            td = pd.Series(["May 04", "Jun 02", "Dec 11"], index=[1, 2, 3])
+            expected = pd.to_datetime(td, format="%b %y", cache=cache)
+            result = td.apply(pd.to_datetime, format="%b %y", cache=cache)
+            tm.assert_series_equal(result, expected)
 
     def test_to_datetime_timezone_name(self):
         # https://github.com/pandas-dev/pandas/issues/49748
@@ -3080,13 +3087,16 @@ class TestToDatetimeMisc:
         # this is only locale tested with US/None locales
         # GH 5195, GH50251
         # with a format and coerce a single item to_datetime fails
-        td = pd.Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
-        expected = pd.to_datetime(td, format="%b %y", errors=errors, cache=cache)
+        with set_locale("C", locale.LC_TIME):
+            td = pd.Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
+            expected = pd.to_datetime(td, format="%b %y", errors=errors, cache=cache)
 
-        result = td.apply(
-            lambda x: pd.to_datetime(x, format="%b %y", errors="coerce", cache=cache)
-        )
-        tm.assert_series_equal(result, expected)
+            result = td.apply(
+                lambda x: pd.to_datetime(
+                    x, format="%b %y", errors="coerce", cache=cache
+                )
+            )
+            tm.assert_series_equal(result, expected)
 
     def test_to_datetime_empty_stt(self, cache):
         # empty string
