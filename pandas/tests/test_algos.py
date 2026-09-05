@@ -47,13 +47,16 @@ class TestFactorize:
         obj = index_or_series_obj_orderable
         result_codes, result_uniques = obj.factorize(sort=sort)
 
-        constructor = pd.Index
-        if isinstance(obj, pd.MultiIndex):
-            constructor = pd.MultiIndex.from_tuples
         expected_arr = obj.unique()
         if expected_arr.dtype == np.float16:
             expected_arr = expected_arr.astype(np.float32)
-        expected_uniques = constructor(expected_arr)
+        if isinstance(obj, pd.MultiIndex):
+            # GH#62337 unique() already hands back a MultiIndex with the level
+            # dtypes and the names intact, going back through the tuples throws
+            # both of those away
+            expected_uniques = expected_arr
+        else:
+            expected_uniques = pd.Index(expected_arr)
         if (
             isinstance(obj, pd.Index)
             and expected_uniques.dtype == bool
@@ -72,6 +75,20 @@ class TestFactorize:
 
         tm.assert_numpy_array_equal(result_codes, expected_codes)
         tm.assert_index_equal(result_uniques, expected_uniques, exact=True)
+
+    def test_factorize_multiindex_keeps_level_dtypes_and_names(self):
+        # GH#62337
+        ser = pd.Series([1, None, 1], dtype="Int32")
+        mi = pd.MultiIndex.from_frame(ser.to_frame(name="col"))
+
+        codes, uniques = mi.factorize()
+
+        tm.assert_numpy_array_equal(codes, np.array([0, 1, 0], dtype=np.intp))
+        # this used to come back float64 with no name, because the uniques were
+        # rebuilt from the tuples instead of taken out of the index
+        assert uniques.dtypes.tolist() == [ser.dtype]
+        assert uniques.names == ["col"]
+        tm.assert_index_equal(uniques, mi.unique())
 
     def test_series_factorize_use_na_sentinel_false(self):
         # GH#35667
