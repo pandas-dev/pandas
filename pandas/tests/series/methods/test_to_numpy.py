@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -21,6 +22,33 @@ def test_to_numpy_cast_before_setting_na():
     ser = pd.Series([1])
     result = ser.to_numpy(dtype=np.float64, na_value=np.nan)
     expected = np.array([1.0])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_to_numpy_unitless_datetime64_deprecated(tz):
+    # GH#59772
+    ser = pd.Series(pd.NaT)
+    if tz is not None:
+        ser = ser.dt.tz_localize(tz)
+
+    msg = "Using a unit-less 'datetime64' dtype in to_numpy is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.to_numpy("datetime64")
+
+    assert result.dtype == np.dtype("datetime64[s]")
+    assert np.isnat(result).all()
+
+
+def test_to_numpy_unitless_datetime64_non_nat_deprecated():
+    # GH#59772
+    ser = pd.Series([pd.Timestamp("2020-01-01")])
+
+    msg = "Using a unit-less 'datetime64' dtype in to_numpy is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.to_numpy("datetime64")
+
+    expected = np.array(["2020-01-01"], dtype="datetime64[us]")
     tm.assert_numpy_array_equal(result, expected)
 
 
