@@ -1296,8 +1296,14 @@ class IntervalDtype(PandasExtensionDtype):
             pandas_dtype,
         )
 
-        if closed is not None and closed not in {"right", "left", "both", "neither"}:
-            raise ValueError("closed must be one of 'right', 'left', 'both', 'neither'")
+        if closed is not None:
+            if closed not in {"right", "left", "both", "neither"}:
+                raise ValueError(
+                    "closed must be one of 'right', 'left', 'both', 'neither'"
+                )
+            # GH#68077 np.str_ etc: dtype.closed and the IntervalTree engine
+            #  both need an exact str
+            closed = cast("IntervalClosedType", str(closed))
 
         if isinstance(subtype, IntervalDtype):
             if closed is not None and closed != subtype.closed:

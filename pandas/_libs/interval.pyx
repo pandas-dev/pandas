@@ -464,12 +464,20 @@ cdef class Interval(IntervalMixin):
     'left'
     """
 
-    def __init__(self, left, right, str closed="right"):
+    def __init__(self, left, right, closed="right"):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
 
         self._validate_endpoint(left)
         self._validate_endpoint(right)
+
+        if type(closed) is not str:
+            if not isinstance(closed, str):
+                raise TypeError(
+                    f"'closed' must be a str, got {type(closed).__name__} instead."
+                )
+            # GH#68077 store str subclasses e.g. np.str_ as exact str
+            closed = str(closed)
 
         if closed not in VALID_CLOSED:
             raise ValueError(f"invalid option for 'closed': {closed}")

@@ -548,3 +548,10 @@ def test_left_gt_right_message_truncated():
     )
     with pytest.raises(ValueError, match=msg):
         pd.IntervalIndex.from_breaks(breaks)
+
+
+def test_closed_str_subclass():
+    # GH#68077 the IntervalTree engine also requires an exact str
+    idx = pd.IntervalIndex.from_arrays([0, 1], [1, 2], closed=np.str_("right"))
+    tm.assert_index_equal(idx, pd.IntervalIndex.from_arrays([0, 1], [1, 2]))
+    tm.assert_numpy_array_equal(idx.get_indexer([0.5]), np.array([0], dtype=np.intp))

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -45,3 +46,18 @@ class TestIntervalConstructors:
             msg = "left and right must have the same time zone"
         with pytest.raises(error, match=msg):
             pd.Interval(left, right)
+
+
+def test_constructor_closed_str_subclass():
+    # GH#68077 np.str_ is a str subclass, and is stored as an exact str
+    iv = pd.Interval(0, 1, closed=np.str_("left"))
+    assert iv == pd.Interval(0, 1, closed="left")
+    assert type(iv.closed) is str
+
+
+@pytest.mark.parametrize("closed", [None, 1, ["left"]])
+def test_constructor_closed_not_str(closed):
+    # GH#68077
+    msg = f"'closed' must be a str, got {type(closed).__name__} instead."
+    with pytest.raises(TypeError, match=msg):
+        pd.Interval(0, 1, closed=closed)

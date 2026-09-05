@@ -734,6 +734,7 @@ Interval
 ^^^^^^^^
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors allowing unsupported ``object`` dtype on the right endpoint, causing ``dtype.subtype`` to disagree with ``right.dtype`` (:issue:`66518`)
 - Bug in :class:`IntervalArray` and :class:`IntervalIndex` constructors unnecessarily upcasting sub-64-bit numeric dtypes (e.g. ``float32``, ``int32``) to 64-bit (:issue:`45412`)
+- Bug in :class:`Interval`, :class:`IntervalArray`, and :class:`IntervalIndex` not accepting a ``numpy.str_`` ``closed`` (e.g. an element of a numpy string array); the array constructors took one but then raised ``TypeError`` on ``repr``, iteration, and indexing (:issue:`68077`)
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
 - Bug in :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` reporting an overlap with an empty interval such as ``Interval(0, 0, closed="left")``, which contains no points; empty intervals now never overlap (:issue:`26893`)
 

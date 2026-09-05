@@ -282,3 +282,14 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     assert result.dtype.subtype == dtype
     assert result.left.dtype == dtype
     assert result.right.dtype == dtype
+
+
+def test_closed_str_subclass():
+    # GH#68077 a np.str_ closed used to be stored un-normalized, so every
+    #  operation building an Interval scalar raised TypeError
+    arr = IntervalArray.from_breaks([0, 1, 2], closed=np.str_("both"))
+    expected = IntervalArray.from_breaks([0, 1, 2], closed="both")
+
+    assert type(arr.closed) is str
+    tm.assert_interval_array_equal(arr, expected)
+    assert list(arr) == list(expected)
