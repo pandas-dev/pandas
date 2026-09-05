@@ -424,7 +424,10 @@ class ConditionBinOp(BinOp):
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
-                self.condition = f"({' | '.join(vs)})"
+                # De Morgan: "col != [a, b]" means "col != a AND col != b".
+                # OR-joining "!=" comparisons is true for every row.
+                joiner = " & " if self.op == "!=" else " | "
+                self.condition = f"({joiner.join(vs)})"
 
             # use a filter after reading
             else:
