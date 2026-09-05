@@ -1875,6 +1875,22 @@ def test_groupby_categorical_indices_unused_categories():
         tm.assert_numpy_array_equal(result[key], expected[key])
 
 
+def test_groupby_categorical_indices_sort_false_multi_key():
+    # GH#66893
+    cats = ["low", "mid"]
+    df = pd.DataFrame(
+        {
+            "x": [0, 0, 1, 1, 2, 2],
+            "g": pd.Categorical(["mid", "low"] * 3, categories=cats, ordered=True),
+        }
+    )
+    gb = df.groupby(["x", "g"], sort=False, observed=False)
+
+    result = gb.indices
+    for key, value in gb.groups.items():
+        tm.assert_numpy_array_equal(result[key], value.to_numpy())
+
+
 @pytest.mark.parametrize("func", ["first", "last"])
 def test_groupby_last_first_preserve_categoricaldtype(func):
     # GH#33090
