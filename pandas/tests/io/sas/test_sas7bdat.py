@@ -482,6 +482,44 @@ def test_date_too_large_to_cast_raises(datapath, field_offset, what, value):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+@pytest.mark.parametrize("value", [2.0**63 / 86400, -(2.0**63 / 86400)])
+def test_date_too_large_to_scale_to_seconds_raises(datapath, value):
+    # GH#47339 a day count is scaled by 86400 so that its fraction survives, so
+    #  the guard has to sit that much below the int64 bound: -(2**63 / 86400)
+    #  days scales to exactly float(iNaT), which the cast deliberately
+    #  round-trips to NaT -- silently missing data, which is what the guard is
+    #  there to stop. Date-only: the same magnitude as a second count is in range.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, 65816, value)
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds SAS date value"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize(
+    "day_count, expected_date",
+    [
+        (21762 + (13 * 3600 + 45 * 60 + 37) / 86400, "2019-08-01T13:45:37"),
+        (-0.5, "1959-12-31T12:00:00"),
+    ],
+)
+def test_fractional_date_keeps_time_of_day(datapath, day_count, expected_date):
+    # GH#47339 GH#56127 SAS stores a DATE value as a float64 day count and does
+    #  not force it whole, so a computed date-formatted column can carry a
+    #  fraction that the M8[D] cast dropped. That cast truncated toward zero, so
+    #  a date before the 1960 epoch came back a whole day late -- -0.5 read as
+    #  1960-01-01, not just at the wrong time of day. 65816 is the file offset
+    #  of the first row's date cell.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, 65816, day_count)
+    df = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+    expected = pd.Series(
+        np.array([expected_date, "NaT"], dtype="M8[s]"), name="datecol"
+    )
+    tm.assert_series_equal(df["datecol"], expected)
+
+
 def test_null_date(datapath):
     fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")
