@@ -97,6 +97,12 @@ class TestTimestampConstructorUnitKeyword:
     def test_construct_with_unit(self, value, check_kwargs):
         def check(value, unit=None, h=1, s=1, us=0, ns=0):
             stamp = pd.Timestamp(value, unit=unit)
+            if unit is None:
+                assert stamp.unit == "ns"
+            elif isinstance(value, int) or value.is_integer():
+                assert stamp.unit == "us"
+            else:
+                assert stamp.unit == "ns"
             assert stamp.year == 2000
             assert stamp.month == 1
             assert stamp.day == 1

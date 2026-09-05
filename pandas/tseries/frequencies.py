@@ -345,7 +345,8 @@ class _FrequencyInferer:
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
-        return Timestamp(self.i8values[0], unit=self.index.unit)
+        # creating a Timestamp preserving the i8 unit
+        return Timestamp._from_value_and_reso(self.i8values[0], self._creso, None)
 
     def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.day_of_week)

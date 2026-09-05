@@ -48,7 +48,6 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    abbrev_to_npy_unit,
     c_DEPR_UNITS,
     c_Resolution,
     get_supported_reso,
@@ -68,6 +67,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_GENERIC,
     NPY_FR_W,
     NPY_FR_ns,
+    NPY_FR_us,
     add_overflowsafe,
     astype_overflowsafe,
     cmp_dtstructs,
@@ -377,10 +377,7 @@ def array_to_timedelta64(
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
 
-    if unit is None:
-        int_reso = NPY_FR_ns
-    else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(parsed_unit))
+    int_reso = NPY_FR_ns if parsed_unit == "ns" else NPY_FR_us
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -2742,32 +2739,26 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
                 unit = parse_timedelta_unit(unit)
-                if unit != "ns":
-                    # Return with the closest-to-supported unit by going through
-                    #  the timedelta64 path
-                    try:
-                        td = np.timedelta64(value, unit)
-                    except OverflowError as err:
-                        # GH#66247 e.g. Timedelta(10**19, unit="s"); numpy
-                        #  raises a bare OverflowError, so re-raise as
-                        #  OutOfBoundsTimedelta for consistency.
-                        raise OutOfBoundsTimedelta(
-                            f"Cannot cast {value} from '{unit}' without overflow."
-                        ) from err
-                    return cls(td)
-                value = _numeric_to_td64ns(value, unit)
+                out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
 
         elif is_float_object(value):
+            # unit=None is de-facto 'ns'
+            unit = parse_timedelta_unit(unit)
+
             # GH#66247 use is_integer() (not int(value)) so that non-finite
             #  floats fall through to _numeric_to_td64ns, which raises a clear
             #  OutOfBoundsTimedelta rather than a bare OverflowError.
             if value.is_integer():
-                # round float -> treat like an int, try to preserve unit
-                return cls(int(value), unit=unit)
-
-            # unit=None is de-facto 'ns'
-            unit = parse_timedelta_unit(unit)
-            value = _numeric_to_td64ns(value, unit)
+                if value != NPY_NAT:
+                    # round float -> treat like an int
+                    out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
+                    value = _numeric_to_td64ns(int(value), unit, out_reso=out_reso)
+                    return cls._from_value_and_reso(value, reso=out_reso)
+            else:
+                # with fractional parts -> still default to nanoseconds
+                value = _numeric_to_td64ns(value, unit)
 
         else:
             raise ValueError(

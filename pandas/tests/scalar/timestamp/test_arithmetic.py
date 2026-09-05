@@ -112,15 +112,15 @@ class TestTimestampArithmetic:
 
         msg = "Out of bounds .* timestamp: -9223372036854775808"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            ts + Timedelta(-1, unit)
+            ts + Timedelta(-1, unit).as_unit(unit)
 
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            ts - Timedelta(1, unit)
+            ts - Timedelta(1, unit).as_unit(unit)
 
         # the neighbor one step further out already raised
         msg = "Out of bounds .* timestamp: -9223372036854775809"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            ts + Timedelta(-2, unit)
+            ts + Timedelta(-2, unit).as_unit(unit)
 
     def test_delta_preserve_nanos(self):
         val = Timestamp(1337299200000000123)

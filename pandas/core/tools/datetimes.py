@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_supported_dtype,
     iNaT,
     is_supported_dtype,
     periods_per_second,
@@ -37,6 +36,7 @@ from pandas._libs.tslibs.conversion import (
     cast_from_unit_vectorized,
     datetime_from_fields,
 )
+from pandas._libs.tslibs.dtypes import get_default_reso
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -568,18 +568,19 @@ def _to_datetime_with_unit(
                     arg, unit, name, utc, errors, dayfirst, yearfirst
                 )
         arr = arg.astype(f"datetime64[{unit}]", copy=False)
-        dtype = get_supported_dtype(arr.dtype)
-        try:
-            arr = astype_overflowsafe(arr, dtype, copy=False)
-        except OutOfBoundsDatetime:
-            if errors == "raise":
-                raise
-            arg = arg.astype(object)
-            if mask is not None:
-                arg[mask] = None
-            return _to_datetime_with_unit(
-                arg, unit, name, utc, errors, dayfirst, yearfirst
-            )
+        if unit not in ["us", "ns"]:
+            out_unit = get_default_reso(unit)
+            try:
+                arr = astype_overflowsafe(arr, np.dtype(f"M8[{out_unit}]"), copy=False)
+            except OutOfBoundsDatetime:
+                if errors == "raise":
+                    raise
+                arg = arg.astype(object)
+                if mask is not None:
+                    arg[mask] = None
+                return _to_datetime_with_unit(
+                    arg, unit, name, utc, errors, dayfirst, yearfirst
+                )
         if mask is not None:
             arr[mask] = iNaT
         tz_parsed = None

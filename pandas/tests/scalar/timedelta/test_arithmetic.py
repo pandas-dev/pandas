@@ -347,7 +347,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_td64_ndarray_overflow_in_cast(self):
         # GH#66552 the promotion to the finer of the two units used to wrap
-        td = pd.Timedelta(10**12, "s")
+        td = pd.Timedelta(np.timedelta64(10**12, "s"))
         other = np.array([1], dtype="m8[ns]")
 
         msg = "Cannot cast 11574074 days 01:46:40 to unit='ns' without overflow"
@@ -383,7 +383,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_td64_ndarray_byteswapped(self, unit):
         # GH#66552 the values are viewed as i8, which a non-native buffer
         #  would misread
-        td = pd.Timedelta(1, unit)
+        td = pd.Timedelta(1, unit).as_unit(unit)
         other = np.array([1, 2], dtype=np.dtype(f"m8[{unit}]").newbyteorder(">"))
 
         expected = np.array([2, 3], dtype=f"m8[{unit}]")
@@ -416,7 +416,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_dt64_ndarray_out_of_bounds(self, unit):
         # GH#66552 stepping past the top of the range used to wrap
-        td = pd.Timedelta(1, unit)
+        td = pd.Timedelta(1, unit).as_unit(unit)
         attrname = {"s": "second", "ms": "millisecond", "us": "microsecond"}.get(
             unit, "nanosecond"
         )
@@ -484,7 +484,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_dt64_ndarray_byteswapped(self, unit):
         # GH#66552 the values are viewed as i8, which a non-native buffer
         #  would misread
-        td = pd.Timedelta(1, unit)
+        td = pd.Timedelta(1, unit).as_unit(unit)
         other = np.array([1, 2], dtype=np.dtype(f"M8[{unit}]").newbyteorder(">"))
 
         expected = np.array([2, 3], dtype=f"M8[{unit}]")
@@ -501,7 +501,7 @@ class TestTimedeltaAdditionSubtraction:
     def test_td_add_sub_dt64_ndarray_mixed_units(self, freq, unit):
         # GH#66552 matching numpy, the operands are cast to the finer of the
         #  two units; in-bounds results, NaT included, are unchanged
-        td = pd.Timedelta(1, unit)
+        td = pd.Timedelta(1, unit).as_unit(unit)
         other = np.array(["2000-01-01", "NaT"], dtype=f"M8[{freq}]")
         m8 = td.to_timedelta64()
 
@@ -534,7 +534,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_sub_dt64_ndarray_generic_unit(self, unit):
         # GH#66552 numpy reads a generic datetime64 in the other operand's unit
-        td = pd.Timedelta(1, unit)
+        td = pd.Timedelta(1, unit).as_unit(unit)
         other = np.zeros(2, dtype="M8")
 
         expected = np.array([1, 1], dtype=f"M8[{unit}]")
@@ -680,7 +680,7 @@ class TestTimedeltaMultiplicationDivision:
     def test_td_mul_int_ndarray_overflow(self, unit):
         # GH#66552 the product used to be formed in int64 and wrap silently,
         #  where the TimedeltaIndex equivalent raises
-        td = pd.Timedelta(4, unit)
+        td = pd.Timedelta(4, unit).as_unit(unit)
         other = np.array([2**62])
 
         msg = "Overflow in int64 multiplication"
@@ -691,10 +691,10 @@ class TestTimedeltaMultiplicationDivision:
 
         # int64.min is representable but would be misread as NaT
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            pd.Timedelta(1, unit) * np.array([-(2**63)])
+            pd.Timedelta(1, unit).as_unit(unit) * np.array([-(2**63)])
 
         # one step in from the sentinel is fine
-        result = pd.Timedelta(1, unit) * np.array([-(2**63) + 1])
+        result = pd.Timedelta(1, unit).as_unit(unit) * np.array([-(2**63) + 1])
         expected = np.array([-(2**63) + 1], dtype=f"m8[{unit}]")
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1626,7 +1626,7 @@ def test_td_mul_lands_on_nat_sentinel(unit, factor):
 def test_td_div_float_ndarray_overflow(unit, dtype):
     # GH#66552 a quotient outside the int64 range used to saturate on the cast,
     #  where the TimedeltaIndex equivalent raises
-    td = pd.Timedelta(4, unit)
+    td = pd.Timedelta(4, unit).as_unit(unit)
     other = np.array([1e-30], dtype=dtype)
 
     msg = "Overflow in timedelta division"
@@ -1676,11 +1676,11 @@ def test_td_add_sub_lands_on_nat_sentinel(unit):
     )
     msg = f"Out of bounds {attrname} timedelta: {-(2**63)}"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td_min - pd.Timedelta(1, unit)
+        td_min - pd.Timedelta(1, unit).as_unit(unit)
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        td_min + pd.Timedelta(-1, unit)
+        td_min + pd.Timedelta(-1, unit).as_unit(unit)
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
-        pd.Timedelta(-1, unit) + td_min
+        pd.Timedelta(-1, unit).as_unit(unit) + td_min
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         td_min + np.timedelta64(-1, unit)
 
