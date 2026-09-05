@@ -84,4 +84,5 @@ requests
 pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
+jupyterlite-sphinx
 tzdata>=2023.3
