@@ -25,7 +25,6 @@ from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.common import (
-    ensure_float64,
     is_float,
     is_float_dtype,
     is_integer,
@@ -1674,8 +1673,10 @@ def nanskew(
     >>> round(nanops.nanskew(s.values), 6)
     np.float64(1.732051)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
@@ -1733,8 +1734,10 @@ def nankurt(
     >>> round(nanops.nankurt(s.values), 6)
     np.float64(-1.289256)
     """
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    values = ensure_float64(values)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
 
     result: npt.NDArray[np.floating] | np.floating
     if axis is None or (values.ndim == 1 and axis == 0):
