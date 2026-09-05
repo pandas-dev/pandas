@@ -210,17 +210,16 @@ class TestSetIndex:
 
         tm.assert_frame_equal(result, expected)
 
-        # deprecation
-        def test_set_index_inplace_depr(self, inplace):
-            df1 = pd.DataFrame(data=[[1, 2, 3], [2, 4, 6]], columns=["a", "b", "c"])
-            msg = "The inplace keyword in DataFrame.set_index is deprecated"
+    def test_set_index_inplace_depr(self):
+        df1 = pd.DataFrame(data=[[1, 2, 3], [2, 4, 6]], columns=["a", "b", "c"])
+        msg = "The inplace keyword in DataFrame.set_index is deprecated"
 
-            with tm.assert_produces_warning(False):
-                df1.set_index("a")
-            with tm.assert_produces_warning(Pandas4Warning, match=msg):
-                df1.set_index("a", inplace=False)
-            with tm.assert_produces_warning(Pandas4Warning, match=msg):
-                df1.set_index("a", inplace=True)
+        with tm.assert_produces_warning(False):
+            df1.set_index("a")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df1.set_index("a", inplace=False)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df1.set_index("a", inplace=True)
 
     # A has duplicate values, C does not
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])

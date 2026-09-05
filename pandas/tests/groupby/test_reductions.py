@@ -1639,7 +1639,7 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     df_out = pd.DataFrame(exp)
 
     df_out["b"] = df_out.b.astype(out_type)
-    df = df_out.set_index("a")
+    df_out = df_out.set_index("a")
 
     grpd = df.groupby("a")
     t = getattr(grpd, method)(*data["args"])

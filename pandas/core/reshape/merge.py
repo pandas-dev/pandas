@@ -1403,7 +1403,10 @@ class _MergeOperation:
                             for level_name in result.index.names
                         ]
 
-                        result = result.set_index(idx_list)
+                        index = ensure_index_from_sequences(
+                            idx_list, names=[idx.name for idx in idx_list]
+                        )
+                        result.index = index
                     else:
                         result.index = Index(key_col, name=name)
                 else:
