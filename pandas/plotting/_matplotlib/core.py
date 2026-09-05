@@ -2061,22 +2061,22 @@ class BarPlot(MPLPlot):
 
             elif self.subplots:
                 if isinstance(self.subplots, list):
-                    sub_plot = self.subplots[self._col_idx_to_axis_idx(i)]
-                    j = sub_plot.index(i)
-                    w = self.bar_width / len(sub_plot)
+                    subplot_columns = self.subplots[self._col_idx_to_axis_idx(i)]
+                    series_idx = subplot_columns.index(i)
+                    width = self.bar_width / len(subplot_columns)
                 else:
-                    j = 0
-                    w = self.bar_width
+                    series_idx = 0
+                    width = self.bar_width
 
                 if self._align == "edge":
-                    x = self.ax_pos + self.bar_width / 2 + j * w
+                    bar_position = self.ax_pos + self.bar_width / 2 + series_idx * width
                 else:
-                    x = self.ax_pos + (j + 0.5) * w
+                    bar_position = self.ax_pos + (series_idx + 0.5) * width
                 rect = self._plot(
                     ax,
-                    x,
+                    bar_position,
                     y,
-                    w,
+                    width,
                     start=start,
                     label=label,
                     log=self.log,
