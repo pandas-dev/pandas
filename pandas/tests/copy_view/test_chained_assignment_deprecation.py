@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import CHAINED_WARNING_DISABLED
-from pandas.errors import ChainedAssignmentError
+from pandas.errors import (
+    ChainedAssignmentError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -102,3 +105,15 @@ def test_frame_iat_setitem():
 
     with tm.raises_chained_assignment_error():
         df[0:3].iat[0, 0] = 10
+
+
+@pytest.mark.parametrize("value", [None, "warn", "raise"])
+def test_chained_assignment_option_deprecation(value):
+    # GH#67987
+    msg = "The 'mode.chained_assignment' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pd.option_context("mode.chained_assignment", value):
+            pass
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.get_option("mode.chained_assignment")
