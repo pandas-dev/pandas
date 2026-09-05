@@ -803,6 +803,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.union` raising ``InvalidIndexError`` when combining levels containing :class:`datetime.date` and :class:`Timestamp` values representing the same date (:issue:`61807`)
 - Bug in the :class:`DataFrame` constructor where passing a :class:`DataFrame` with a unique integer :class:`MultiIndex` together with a flat integer ``index`` raised ``ValueError: Buffer dtype mismatch`` instead of reindexing to an all-``NaN`` result (:issue:`26460`)
 - :meth:`MultiIndex.isin` now raises an informative ``ValueError`` when the values are not tuples matching the number of levels, instead of raising a cryptic ``TypeError`` or ``AssertionError`` or silently returning incorrect results (:issue:`20252`, :issue:`26622`)
+- Bug in the :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` error message for a nested (list-of-lists) value paired with a scalar ``level``, which repeated the misleading "must be list-like" message; it now names the real constraint as "must be list-like, not a list of lists-like" (:issue:`66287`)
 
 I/O
 ^^^
