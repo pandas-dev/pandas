@@ -712,7 +712,7 @@ def test_column_offset_near_int64_max_raises(datapath, bad_offset):
 
 @pytest.mark.parametrize("declared", [3, 4096])
 def test_column_count_above_column_attributes_raises(datapath, declared):
-    # GH#68053 column_count comes from the column-size subheader, and nothing
+    # GH#68065 column_count comes from the column-size subheader, and nothing
     #  lined it up with the column-attributes subheaders the columns are built
     #  from, so a count above them ran off the end of those lists as a bare
     #  IndexError from the middle of the reader.
@@ -725,7 +725,7 @@ def test_column_count_above_column_attributes_raises(datapath, declared):
 
 
 def test_column_count_above_column_names_raises(datapath):
-    # GH#68053 the names are described separately from the attributes, and it is
+    # GH#68065 the names are described separately from the attributes, and it is
     #  _chunk_to_dataframe that indexes them, so a count that clears the
     #  attributes but not the names got as far as reading the file's rows.
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
