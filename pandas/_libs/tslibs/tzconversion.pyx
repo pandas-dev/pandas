@@ -54,6 +54,7 @@ from pandas._libs.tslibs.timezones cimport (
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    is_zoneinfo,
 )
 
 
@@ -102,6 +103,8 @@ cdef class Localizer:
             #  reconstructed.  Send every value down the tzinfo-API path that
             #  other ZoneInfos already use for dates past their last cached
             #  transition, by putting that last transition below every value.
+            #  Not use_tzinfo_api: that one skips the ambiguous/nonexistent
+            #  handling in tz_localize_to_utc, which a ZoneInfo must honor.
             self.use_dst = True
             self.use_zoneinfo = True
             self.has_tz_rule = True

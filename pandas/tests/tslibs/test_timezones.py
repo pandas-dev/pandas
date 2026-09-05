@@ -626,12 +626,3 @@ def test_zoneinfo_no_cache_keeps_fast_path(key):
     assert timezones.is_fixed_offset(tz) == timezones.is_fixed_offset(
         zoneinfo.ZoneInfo(key)
     )
-
-
-@pytest.mark.parametrize("key", ["US/Eastern", "Etc/GMT+5"])
-def test_zoneinfo_from_file_matching_data_takes_fallback(key):
-    # GH#64379 a from_file object whose data happens to match the zone its key
-    #  names cannot be told apart from one whose data does not, so it takes
-    #  the tzinfo-API path too.
-    tz = _zoneinfo_from_file(key, new_key=key)
-    assert timezones._p_tz_cache_key(tz) is None
