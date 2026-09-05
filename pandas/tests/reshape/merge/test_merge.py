@@ -3458,3 +3458,23 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = pd.DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_nan_column_name_no_duplicates():
+    # GH#65899 - merge with NaN-labeled join key should not produce duplicates
+    left = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+
+    result = merge(left, right, left_on=np.nan, right_on=np.nan)
+    expected = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_nan_column_name_on():
+    # GH#65899 - same via on= parameter
+    left = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+
+    result = merge(left, right, on=np.nan)
+    expected = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
