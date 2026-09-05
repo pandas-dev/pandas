@@ -6,6 +6,8 @@ updates:
       - "/.github/actions/setup-pixi"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     labels:
       - "CI"
       - "Dependencies"
