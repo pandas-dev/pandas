@@ -3313,10 +3313,15 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
-        try:
-            return pc.replace_with_mask(values, mask, replacements)
-        except pa.ArrowNotImplementedError:
-            pass
+        if not pa.types.is_null(values.type):
+            try:
+                return pc.replace_with_mask(values, mask, replacements)
+            except pa.ArrowNotImplementedError:
+                pass
+        # GH#66703 replace_with_mask hard-aborts the process (not a catchable
+        # exception) for null-typed arrays on some pyarrow versions, so for
+        # that type go straight to the numpy fallback below instead of
+        # calling into the pyarrow kernel.
         if isinstance(replacements, pa.Array):
             replacements = np.array(replacements, dtype=object)
         elif isinstance(replacements, pa.Scalar):
