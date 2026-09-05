@@ -744,6 +744,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` replacing the index name with the key's name when indexing with an :class:`Index` (:issue:`17110`)
 - Bug in :meth:`DataFrame.loc` raising ``ValueError`` when setting a row on a :class:`DataFrame` with no columns and the label is not in the index (:issue:`17895`)
 - Bug in :meth:`DataFrame.loc` returning incorrect dtype when the column key is a ``slice`` (:issue:`63071`)
+- Bug in :meth:`Index.get_indexer` and :meth:`Index.drop` treating ``pd.NA`` in a list target as matching a NaN label of a string-dtype index but not in a numpy-array or :class:`Index` target; all target types now match the NaN label consistently (:issue:`65419`)
 - Bug in :meth:`Index.get_indexer` where ``method="pad"``, ``"backfill"``, or ``"nearest"`` returned incorrect results when the target contained ``NaT`` or ``NaN`` instead of ``-1`` (:issue:`32572`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` setitem-with-expansion silently corrupting a value just outside the integer dtype's range (e.g. ``2**63`` for ``int64``) on some platforms instead of keeping the ``float64`` result; ``inf`` was similarly affected, and both leaked a ``RuntimeWarning`` (:issue:`66394`)
 - Bug in :meth:`Series.loc` and :meth:`DataFrame.loc` setitem-with-expansion widening a ``datetime64`` or ``timedelta64`` column to microsecond resolution instead of keeping a coarser unit such as ``s`` or ``ms``, even when the new value fit in it losslessly (:issue:`66402`)

@@ -111,6 +111,26 @@ class TestGetLoc:
             idx.get_loc(pd.NaT)
 
 
+def test_get_indexer_pd_na_matches_nan():
+    # GH#65419
+    idx = pd.Index([np.nan, "b"])
+
+    for target in [
+        [pd.NA],
+        np.array([pd.NA], dtype=object),
+        pd.Index([pd.NA]),
+        pd.Index([pd.NA], dtype="string"),
+    ]:
+        result = idx.get_indexer(target)
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    expected = pd.Index(["b"])
+    for labels in [[pd.NA], np.array([pd.NA], dtype=object), pd.Index([pd.NA])]:
+        result = idx.drop(labels)
+        tm.assert_index_equal(result, expected)
+
+
 def test_get_indexer_monotonic_above_size_cutoff(monkeypatch):
     # GH#14273 get_indexer should avoid building a hash table for large
     # monotonic indices.
