@@ -1009,6 +1009,7 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` with ``sort=False`` placing values under the wrong row labels, or collapsing distinct index combinations into a single row (:issue:`62816`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
 - Bug in :meth:`Series.unstack` with ``sort=False`` always placing a ``NaN`` column first without reordering the corresponding values (:issue:`66672`)
+- Fixed bug in :meth:`DataFrame.pivot_table` with ``margins=True`` and a dictionary ``aggfunc`` raising ``KeyError`` when a column in the data is missing from the dictionary (:issue:`66151`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
 -
