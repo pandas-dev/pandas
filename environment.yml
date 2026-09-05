@@ -122,6 +122,7 @@ dependencies:
   # 2. https://pyodide.org/en/stable/usage/packages-in-pyodide.html
   - jupyterlite-core
   - jupyterlite-pyodide-kernel
+  - jupyterlite-sphinx
 
   - pip:
       - tzdata>=2023.3
