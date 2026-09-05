@@ -7491,13 +7491,24 @@ class DataFrame(NDFrame, OpsMixin):
         verify_integrity: bool | lib.NoDefault = ...,
     ) -> None: ...
 
+    @overload
+    def set_index(
+        self,
+        keys,
+        *,
+        drop: bool = ...,
+        append: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
+        verify_integrity: bool | lib.NoDefault = ...,
+    ) -> DataFrame | None: ...
+
     def set_index(
         self,
         keys,
         *,
         drop: bool = True,
         append: bool = False,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
@@ -7523,6 +7534,14 @@ class DataFrame(NDFrame, OpsMixin):
             When set to False, the current index will be dropped from the DataFrame.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -7620,6 +7639,20 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.set_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         if verify_integrity is not lib.no_default:
             # GH#62919
             warnings.warn(
