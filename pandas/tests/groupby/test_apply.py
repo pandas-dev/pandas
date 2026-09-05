@@ -201,13 +201,18 @@ def test_apply_series_name_is_group_key():
 
 
 def test_apply_no_name_access_no_warning():
-    # GH#41090 - UDFs that do not use the pinned name should not warn, even
-    #  though pandas internally propagates the name attribute
+    # GH#41090 - none of these read the pinned name, but each has pandas read
+    #  it internally to label something it discards (a binop result, an Index
+    #  built off the group) - the reads _maybe_warn_pinned_group_name exempts.
     df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
     with tm.assert_produces_warning(None):
         df.groupby("a").apply(lambda g: g["b"].sum())
+        df.groupby("a").apply(lambda g: g["b"] * 2)
         df.groupby("a")["b"].apply(lambda x: x * 2)
+        df.groupby("a")["b"].apply(lambda x: x.is_monotonic_increasing)
         df.groupby("a")["b"].transform(lambda x: x * 2)
+        df.groupby("a")["b"].transform(lambda x: x - x.mean())
+        df.groupby("a").transform(lambda x: x * 2)
         df.groupby("a").filter(lambda g: len(g) > 1)
 
 

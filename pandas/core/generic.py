@@ -6229,11 +6229,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Two known holes, both of which mean a UDF that consumes the key
         indirectly changes behavior at enforcement without warning first:
 
-        1. Only a direct read warns. Handing the group to pandas code that
-           reads the name internally (``group.to_frame()``,
-           ``group.value_counts()``, ``group + 1``, ...) is exempted by
-           _maybe_warn_pinned_group_name's caller-depth check, which cannot
-           tell those apart from pandas' own bookkeeping reads.
+        1. Only a direct read warns. A read from pandas code the UDF handed
+           the group to (``group.to_frame()``) does change the result at
+           enforcement, but is indistinguishable from an output-neutral one
+           (naming a ``group + 1`` result), which every transform would trip.
         2. Series.__finalize__ propagates _name (via _metadata) but
            deliberately not this flag, so objects derived from the group
            inside the UDF (e.g. ``group.dropna()``) carry the key as their
@@ -6255,11 +6254,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _maybe_warn_pinned_group_name(self) -> None:
-        # GH#41090 - the stack here is always [find_stack_level,
-        #  _maybe_warn_pinned_group_name, name getter / __getattr__,
-        #  accessor], so level > 3 means the accessing frame is
-        #  pandas-internal (e.g. result-name propagation in ops) and the
-        #  deprecation does not apply.
+        # GH#41090 - a read above the UDF's own frame is pandas bookkeeping,
+        #  not user reliance; see test_apply_no_name_access_no_warning.
         level = find_stack_level()
         if level > 3:
             return
@@ -6270,9 +6266,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ".filter()) is deprecated and will not be done in a "
             "future version of pandas. When you need the key "
             "inside the function, iterate over the groupby object "
-            "directly and combine the results, e.g. "
-            "'pd.concat({key: func(group, key) for key, group in gb})' "
-            "(or 'pd.Series(...)' if func returns a scalar).",
+            "directly and combine the results yourself, e.g. "
+            "'pd.concat({key: func(group) for key, group in gb})' when func "
+            "returns a Series or DataFrame, or 'pd.Series({key: func(group) "
+            "for key, group in gb})' when it returns a scalar.",
             Pandas4Warning,
             stacklevel=level,
         )
