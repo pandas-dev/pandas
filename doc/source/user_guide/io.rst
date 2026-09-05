@@ -5108,8 +5108,11 @@ Categorical data
 ++++++++++++++++
 
 You can write data that contains ``category`` dtypes to a ``HDFStore``.
-Queries work the same as if it was an object array. However, the ``category`` dtyped data is
-stored in a more efficient manner.
+Queries work the same as if it was an object array, except that the ordering
+comparisons ``<``, ``<=``, ``>`` and ``>=`` require the column to have been
+written with ``ordered=True`` and compare by category order rather than by
+value. However, the ``category`` dtyped data is stored in a more efficient
+manner.
 
 .. ipython:: python
 
