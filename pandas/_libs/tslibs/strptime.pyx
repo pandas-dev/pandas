@@ -644,9 +644,9 @@ def array_strptime(
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            elif is_raise:
+            else:
+                # is_raise
                 raise
-            return values, None
 
     tz_out = state.check_for_mixed_inputs(tz_out, utc)
 

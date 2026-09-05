@@ -22,6 +22,7 @@ from pandas._libs import (
     NaT,
     algos as libalgos,
     lib,
+    ops as libops,
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
@@ -654,16 +655,152 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return result
 
+    @staticmethod
+    def _maybe_convert_categories(
+        cats: Index,
+        true_values=None,
+        false_values=None,
+        convert_numeric: bool = False,
+        convert_bool: bool = False,
+        float_only: bool = False,
+        bool_case_insensitive: bool = False,
+    ) -> Index | None:
+        """
+        Try converting string categories to numeric or boolean, mirroring
+        the type inference read_csv performs on non-categorical columns.
+
+        Parameters
+        ----------
+        cats : Index
+        true_values : list, optional
+            Strings recognized as True, in addition to the defaults
+            "True", "TRUE", and "true."
+        false_values : list, optional
+            Strings recognized as False, in addition to the defaults
+            "False", "FALSE", and "false."
+        convert_numeric : bool, default False
+            Whether to attempt numeric conversion.
+        convert_bool : bool, default False
+            Whether to attempt boolean conversion.
+        float_only : bool, default False
+            Whether numeric conversion must produce floats, as with
+            ``quoting=csv.QUOTE_NONNUMERIC``.
+        bool_case_insensitive : bool, default False
+            Whether the default True/False spellings match in any case, as
+            they do for the c parser's tokenizer.  `true_values` and
+            `false_values` always match exactly, as they do there too.
+
+        Returns
+        -------
+        Index or None
+            The converted categories, which may contain duplicates (e.g. "1"
+            and "1.0"), or None if no conversion applies.
+        """
+        from pandas import (
+            Index,
+            to_numeric,
+        )
+
+        # "U" covers arrow-backed strings, which arrive with dtype_backend="pyarrow"
+        if len(cats) == 0 or cats.dtype.kind not in "OU":
+            # empty categories stay object dtype, matching the zero-row case
+            return None
+
+        if convert_numeric:
+            try:
+                converted = Index(to_numeric(cats, errors="raise"), copy=False)
+            except (ValueError, TypeError):
+                pass
+            else:
+                # test the values rather than Index.hasnans: arrow-backed
+                #  strings convert to a float NaN value rather than a null,
+                #  which the validity bitmap does not report
+                if not isna(np.asarray(converted)).any():
+                    if float_only and converted.dtype.kind != "f":
+                        # cast before the caller de-duplicates, so that values
+                        #  colliding at float64 precision merge into one category
+                        if converted.dtype.kind == "O":
+                            # ints too large for int64/uint64 arrive as Python
+                            #  ints and overflow a direct cast; parsing the
+                            #  strings gives inf, as the tokenizer does
+                            converted = Index(
+                                np.asarray(cats, dtype="U").astype(np.float64),
+                                copy=False,
+                            )
+                        else:
+                            converted = converted.astype(np.float64)
+                    return converted
+                # to_numeric converts "" to NaN, which cannot be a category
+
+        if convert_bool:
+            values = np.asarray(cats)
+            if bool_case_insensitive:
+                # fold only the default spellings, and only where the user has
+                #  not spelled the value out: the tokenizer consults
+                #  true_values and false_values before its case-insensitive
+                #  comparison, so those win over the default spelling
+                spelled_out = (*(true_values or ()), *(false_values or ()))
+                values = np.array(
+                    [
+                        val.lower()
+                        if isinstance(val, str)
+                        and val.lower() in ("true", "false")
+                        and val not in spelled_out
+                        else val
+                        for val in values
+                    ],
+                    dtype=object,
+                )
+            inferred_bool, _ = libops.maybe_convert_bool(
+                values,
+                true_values=true_values,
+                false_values=false_values,
+            )
+            if inferred_bool.dtype.kind == "b":
+                if isinstance(cats.dtype, ArrowDtype):
+                    # keep the backing that to_numeric preserves for the
+                    #  numeric branch; maybe_convert_bool only speaks numpy
+                    import pyarrow as pa
+
+                    return Index(inferred_bool, dtype=ArrowDtype(pa.bool_()))
+                return Index(inferred_bool, copy=False)
+
+        return None
+
+    @classmethod
+    def _from_converted_categories(
+        cls, converted: Index, codes: np.ndarray, ordered: bool | None = False
+    ) -> Self:
+        """
+        Construct a Categorical from ``_maybe_convert_categories`` output,
+        merging categories that converted to the same value, sorting, and
+        recoding ``codes`` accordingly.
+        """
+        # unique() because distinct strings can convert to the same value,
+        #  e.g. "1"/"1.0" -> 1.0 or "True"/"TRUE" -> True
+        target = converted.unique().sort_values()
+        codes = recode_for_categories(codes, converted, target, copy=False)
+        return cls._simple_new(codes, dtype=CategoricalDtype(target, ordered=ordered))
+
     @classmethod
     def _from_inferred_categories(
-        cls, inferred_categories, inferred_codes, dtype, true_values=None
+        cls,
+        inferred_categories,
+        inferred_codes,
+        dtype,
+        true_values=None,
+        sort_categories: bool = True,
     ) -> Self:
         """
         Construct a Categorical from inferred values.
 
-        For inferred categories (`dtype` is None) the categories are sorted.
-        For explicit `dtype`, the `inferred_categories` are cast to the
-        appropriate type.
+        For inferred categories (`dtype` is None) the categories are sorted
+        unless `sort_categories` is False.  For explicit `dtype`, the
+        `inferred_categories` are cast to the appropriate type.
+
+        Callers that want read_csv's numeric/boolean inference for categories
+        not supplied by `dtype` should call ``_maybe_convert_categories`` and
+        ``_from_converted_categories`` themselves.
 
         Parameters
         ----------
@@ -671,8 +808,13 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         inferred_codes : Index
         dtype : CategoricalDtype or 'category'
         true_values : list, optional
-            If none are provided, the default ones are
+            Strings recognized as True when `dtype` provides boolean
+            categories.  If none are provided, the default ones are
             "True", "TRUE", and "true."
+        sort_categories : bool, default True
+            Whether to sort inferred categories.  The deferred low-memory path
+            passes False so that every chunk keeps observation order, matching
+            what the non-chunked path sees; it sorts once after concatenation.
 
         Returns
         -------
@@ -689,6 +831,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )
+        ordered = dtype.ordered if isinstance(dtype, CategoricalDtype) else False
 
         if known_categories:
             # Convert to a specialized type with `dtype` if specified.
@@ -712,7 +855,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = recode_for_categories(
                 inferred_codes, cats, categories, copy=False, warn=True
             )
-        elif not cats.is_monotonic_increasing:
+        elif sort_categories and not cats.is_monotonic_increasing:
             # Sort categories and recode for unknown categories.
             unsorted = cats.copy()
             categories = cats.sort_values()
@@ -720,9 +863,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             codes = recode_for_categories(
                 inferred_codes, unsorted, categories, copy=False, warn=True
             )
-            dtype = CategoricalDtype(categories, ordered=False)
+            dtype = CategoricalDtype(categories, ordered=ordered)
         else:
-            dtype = CategoricalDtype(cats, ordered=False)
+            dtype = CategoricalDtype(cats, ordered=ordered)
             codes = inferred_codes
 
         return cls._simple_new(codes, dtype=dtype)
