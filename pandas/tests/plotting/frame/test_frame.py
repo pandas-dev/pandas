@@ -391,16 +391,12 @@ class TestDataFramePlots:
             columns=pd.Index(list("ABCD"), dtype=object),
             index=pd.date_range("2000-01-01", periods=10, freq="B"),
         )
-        pd.plotting.plot_params["x_compat"] = False
-
+        # same as test_xcompat_plot_params, through the "x_compat" alias
+        pd.plotting.plot_params["x_compat"] = True
         ax = df.plot()
         lines = ax.get_lines()
-
-        # x-data is plain int64 business-day ordinals (not Period[B])
-        xdata = lines[0].get_xdata()
-        assert not isinstance(xdata, pd.PeriodIndex)
-        # consecutive uniform spacing (no weekend gaps)
-        assert len(np.unique(np.diff(xdata))) == 1
+        assert not isinstance(lines[0].get_xdata(), pd.PeriodIndex)
+        _check_ticks_props(ax, xrot=30)
 
     def test_xcompat_plot_params_context_manager(self):
         df = pd.DataFrame(

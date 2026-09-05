@@ -9,6 +9,16 @@ def autouse_mpl_cleanup(mpl_cleanup):
     pass
 
 
+@pytest.fixture(autouse=True)
+def restore_plot_params():
+    # plot_params is process-global, so a test that sets it changes how every
+    # later test in the same process plots datetime indexes
+    original = dict(pd.plotting.plot_params)
+    yield
+    pd.plotting.plot_params.clear()
+    pd.plotting.plot_params.update(original)
+
+
 @pytest.fixture
 def hist_df():
     n = 50
