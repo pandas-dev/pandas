@@ -375,7 +375,10 @@ class SAS7BDATReader(SASReader):
     def _metadata_signature(self) -> tuple:
         """
         Everything the parser and ``_chunk_to_dataframe`` read out of the file's
-        metadata, in one comparable value.
+        metadata, plus ``columns``, in one comparable value.
+
+        ``columns`` is the odd one out: neither reads it, so appending to it
+        changes no cell -- but it is public and must not grow mid-read.
 
         The column lists are only ever appended to, so their lengths stand in
         for their contents and this stays O(1) rather than O(ncols). The
@@ -391,6 +394,7 @@ class SAS7BDATReader(SASReader):
             self.compression,
             len(self._column_data_offsets),
             len(self.column_names),
+            len(self.columns),
         )
 
     def _validate_column_data_ranges(self) -> None:
@@ -802,14 +806,15 @@ class SAS7BDATReader(SASReader):
         pass
 
     def _process_format_subheader(self, offset: int, length: int) -> None:
-        # A format subheader describes the next column the file declared, so one
-        # past them cannot be applied. Every format subheader reached after the
-        # file is open is such a one -- every column already has its format.
-        n_declared = min(len(self.column_names), len(self._column_types))
-        if len(self.columns) >= n_declared:
+        # A format subheader describes the next column the file described, so
+        # one running past them cannot be applied. A late one that fits appends
+        # instead; _metadata_signature counts self.columns to catch that.
+        n_described = min(len(self.column_names), len(self._column_types))
+        if len(self.columns) >= n_described:
             raise ValueError(
-                f"A format subheader describes a column past the {n_declared} "
-                f"the file declared; the file is corrupt"
+                f"A format subheader describes a column past the {n_described} "
+                "that the file's column-name and column-attribute subheaders "
+                "describe; the file is corrupt"
             )
 
         int_len = self._int_length

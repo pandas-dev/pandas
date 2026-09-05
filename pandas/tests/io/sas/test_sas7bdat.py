@@ -717,6 +717,7 @@ def _dates_null_with_late_metadata_page(
     patches,
     total_rows=6,
     tail_page_type=const.page_data_type,
+    truncate_subheaders=(),
 ):
     """
     dates_null.sas7bdat, with a metadata page inserted after its data rows.
@@ -738,6 +739,16 @@ def _dates_null_with_late_metadata_page(
     # all it hands out.
     struct.pack_into("<q", data, rowsize + 6 * 8, total_rows)
     struct.pack_into("<q", data, rowsize + 15 * 8, 2)
+
+    # Skipped, so the file opens having processed fewer of its own subheaders
+    # than it describes columns. Not by shrinking the page's subheader count:
+    # readline places a mix page's rows after its pointers, so that moves them.
+    page_0_pointers = (
+        header_length + const.page_bit_offset_x64 + const.subheader_pointers_offset
+    )
+    for index in truncate_subheaders:
+        pointer = page_0_pointers + const.subheader_pointer_length_x64 * index
+        data[pointer + 2 * 8] = const.truncated_subheader_id
 
     # page type, block count and subheader count are the first three fields of
     # a page header, and the pointers to its subheaders follow them
@@ -852,18 +863,46 @@ def test_mix_page_row_count_too_large_to_reach_raises(datapath):
         ).read()
 
 
-@pytest.mark.parametrize("sub_offset", [63782, 63718])
-def test_late_metadata_page_format_subheader_raises(datapath, sub_offset):
-    # GH#68066 a format subheader builds a column from the next name the file
-    #  declared, so one on a metadata page after the data pages runs off the end
-    #  of those names -- every column already has its format. dates_null has two
-    #  of them; either one replayed reported as a bare IndexError from inside the
-    #  subheader walk.
-    data = _dates_null_with_late_metadata_page(datapath, sub_offset, 64, [])
+def test_late_metadata_page_format_subheader_raises(datapath):
+    # GH#68066 a format subheader on a metadata page after the data pages runs
+    #  past the columns the file describes, and reported as a bare IndexError
+    #  from inside the subheader walk.
+    data = _dates_null_with_late_metadata_page(datapath, 63782, 64, [])
     with pd.read_sas(
         io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
     ) as reader:
-        with pytest.raises(ValueError, match="the file is corrupt"):
+        with pytest.raises(ValueError, match="describes a column past"):
+            reader.read()
+
+
+def test_surplus_format_subheader_at_open_raises(datapath):
+    # GH#68066 the same guard on the ordinary path: a format subheader in the
+    #  file's own opening metadata. dates_null's pointer 9 is a spare, so aiming
+    #  it at pointer 7's subheader gives three formats for two columns.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    pointers = 65536 + const.page_bit_offset_x64 + const.subheader_pointers_offset
+    spare = pointers + const.subheader_pointer_length_x64 * 9
+    struct.pack_into("<qq", data, spare, 63782, 64)
+    data[spare + 2 * 8] = 0  # clear the truncated marker, so the walk reads it
+    with pytest.raises(ValueError, match="describes a column past"):
+        pd.read_sas(io.BytesIO(bytes(data)), format="sas7bdat", encoding=None)
+
+
+def test_late_metadata_page_format_subheader_within_columns_raises(datapath):
+    # GH#68066 the guard only catches a format subheader past the columns the
+    #  file describes. One that fits appends silently, growing the reader's
+    #  columns mid-read. convert_dates=False is what lets the file open short.
+    data = _dates_null_with_late_metadata_page(
+        datapath, 63782, 64, [], truncate_subheaders=(7, 8)
+    )
+    # convert_dates is not a read_sas keyword, so go through the reader directly
+    reader = SAS7BDATReader(
+        io.BytesIO(data), chunksize=2, encoding=None, convert_dates=False
+    )
+    with contextlib.closing(reader):
+        assert reader.columns == []
+        with pytest.raises(ValueError, match="changes the layout it declared"):
             reader.read()
 
 
