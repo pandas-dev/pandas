@@ -321,6 +321,7 @@ Other API changes
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
 - Removed the ``freq`` and ``freqstr`` attributes from :class:`.DatetimeArray` and :class:`.TimedeltaArray`. Frequency is now stored only on :class:`DatetimeIndex` and :class:`TimedeltaIndex`; access ``Series.dt.freq`` or wrap the array in an Index to retrieve a frequency. The ``check_freq`` keyword on :func:`testing.assert_extension_array_equal` for these array types has also been removed (:issue:`24566`).
 - The ``year`` column of :meth:`DatetimeIndex.isocalendar` and :meth:`Series.dt.isocalendar` is now ``Int32`` instead of ``UInt32``, so that years before year 1 are representable (:issue:`66549`)
+- ``numexpr`` 2.14.1 is no longer used to accelerate arithmetic and comparisons; some builds of that release intermittently and silently returned incorrect results, such as an all-zero column, for operations on large objects. pandas now warns at import time and falls back to NumPy, and :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` raise ``ImportError`` when passed an explicit ``engine="numexpr"``; install ``numexpr`` 2.14.2 or newer to restore the acceleration. HDF5 ``where=`` queries are evaluated by PyTables, which imports ``numexpr`` itself, and are not covered (:issue:`65408`)
 -
 
 .. _whatsnew_310.api_breaking.build:

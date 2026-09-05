@@ -75,12 +75,17 @@ def pin_min_versions_to_environment_yml() -> int:
     return ret
 
 
+def _strip_extra_specifiers(version: str) -> str:
+    # e.g. ">=2.11.0,!=2.14.1" -> only the minimum version is compared here
+    return version.split(",", maxsplit=1)[0]
+
+
 def get_toml_map_from(toml_dic: dict[str, Any]) -> dict[str, str]:
     toml_deps = {}
     toml_dependencies = set(toml_dic["project"]["optional-dependencies"]["all"])
     for dependency in toml_dependencies:
         toml_package, toml_version = dependency.strip().split(">=")
-        toml_deps[toml_package] = toml_version
+        toml_deps[toml_package] = _strip_extra_specifiers(toml_version)
     return toml_deps
 
 
@@ -298,7 +303,9 @@ def get_versions_from_toml() -> dict[str, str]:
 
     for dependency in dependencies:
         package, version = dependency.strip().split(">=")
-        optional_dependencies[install_map.get(package, package).casefold()] = version
+        optional_dependencies[install_map.get(package, package).casefold()] = (
+            _strip_extra_specifiers(version)
+        )
 
     for item in EXCLUDE_DEPS:
         optional_dependencies.pop(item, None)
