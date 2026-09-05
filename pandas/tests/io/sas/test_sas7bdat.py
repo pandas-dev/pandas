@@ -854,7 +854,7 @@ def test_mix_page_row_count_too_large_to_reach_raises(datapath):
 
 @pytest.mark.parametrize("sub_offset", [63782, 63718])
 def test_late_metadata_page_format_subheader_raises(datapath, sub_offset):
-    # GH#68053 a format subheader builds a column from the next name the file
+    # GH#68066 a format subheader builds a column from the next name the file
     #  declared, so one on a metadata page after the data pages runs off the end
     #  of those names -- every column already has its format. dates_null has two
     #  of them; either one replayed reported as a bare IndexError from inside the
