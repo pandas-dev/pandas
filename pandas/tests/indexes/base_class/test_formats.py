@@ -147,8 +147,8 @@ class TestIndexRendering:
         assert "{other}%s" in result
 
     def test_index_repr_bool_nan(self):
-        # GH32146
+        # GH32146, GH64733
         arr = pd.Index([True, False, np.nan], dtype=object)
         exp2 = repr(arr)
-        out2 = "Index([True, False, nan], dtype='object')"
+        out2 = "Index([True, False, NaN], dtype='object')"
         assert out2 == exp2
