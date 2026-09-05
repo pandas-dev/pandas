@@ -264,6 +264,7 @@ if HAS_PYARROW:
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Hashable,
         Sequence,
     )
 
@@ -3831,18 +3832,20 @@ class ArrowExtensionArray(
 
     def _str_extract(self, pat: str | re.Pattern, flags: int = 0, expand: bool = True):
         compiled = self._compile_re_fallback(pat, flags=flags)
-        groups = compiled.groupindex.keys()
-        if len(groups) == 0:
-            raise ValueError(f"{pat=} must contain a symbolic group name.")
+        # as in _get_group_names, unnamed groups are labelled by position
+        names = {num: name for name, num in compiled.groupindex.items()}
+        labels: list[Hashable] = [names.get(1 + i, i) for i in range(compiled.groups)]
 
-        if flags or isinstance(pat, re.Pattern):
+        # GH#67024 pc.extract_regex addresses the struct it returns by field name,
+        #  so a pattern with any unnamed group is evaluated with `re` instead
+        if flags or isinstance(pat, re.Pattern) or len(names) != compiled.groups:
             # pc.extract_regex has no `ignore_case`, so unlike elsewhere not even
             #  IGNORECASE can be honored by the kernel
             matches = self._apply_elementwise(compiled.search)
 
-            def extract_group(name: str):
+            def extract_group(num: int):
                 chunks = [
-                    [None if match is None else match.group(name) for match in chunk]
+                    [None if match is None else match.group(num) for match in chunk]
                     for chunk in matches
                 ]
                 return self._from_pyarrow_array(
@@ -3850,14 +3853,14 @@ class ArrowExtensionArray(
                 )
 
             if not expand:
-                return extract_group(next(iter(groups)))
-            return {col: extract_group(col) for col in groups}
+                return extract_group(1)
+            return {label: extract_group(1 + i) for i, label in enumerate(labels)}
 
         result = pc.extract_regex(self._pa_array, pat)
         if expand:
             return {
-                col: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for col, i in zip(groups, range(result.type.num_fields), strict=True)
+                label: self._from_pyarrow_array(pc.struct_field(result, [i]))
+                for i, label in zip(range(result.type.num_fields), labels, strict=True)
             }
         else:
             return type(self)(pc.struct_field(result, [0]))
