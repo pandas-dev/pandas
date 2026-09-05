@@ -836,6 +836,31 @@ def test_late_metadata_page_reached_mid_chunk_raises(datapath):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+def test_mix_page_row_count_past_page_end_raises(datapath):
+    # GH#47339 the page size alone cannot rule out a count that still overruns:
+    #  a mix page's rows start after its subheader pointers, so dates_null's
+    #  holds 4078 of them rather than the 65536 // 16 the page size allows.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 4090)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 4090)
+    with pytest.raises(ValueError, match="hand out 4090 rows but has room for 4078"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+def test_mix_page_row_count_junk_but_unused_reads(datapath):
+    # GH#47339 only the smaller of row_count and the mix page's own count is
+    #  ever used, so a junk count a short file never reaches has to keep
+    #  reading -- zero_variables.sas7bdat ships 64976 of them for one row.
+    path = datapath("io", "sas", "data", "dates_null.sas7bdat")
+    with open(path, "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2**40)
+    result = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+    expected = pd.read_sas(path, format="sas7bdat", encoding=None)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("row_count", [4097, 2**31])
 def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
     # GH#47339 the mix page's row count is how many rows the parser hands out
@@ -848,7 +873,7 @@ def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
     #  row_count moves too, since the smaller of the two bounds the mix page.
     struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, row_count)
     struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, row_count)
-    with pytest.raises(ValueError, match="does not fit in a 65536-byte page"):
+    with pytest.raises(ValueError, match="more than any 65536-byte page could hold"):
         pd.read_sas(
             io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
         ).read()
@@ -870,8 +895,7 @@ def test_late_metadata_page_repeating_layout_reads(datapath):
 
 
 def _dates_null_with_overrun_data_page(datapath):
-    # a data page claiming far more rows than fit on it, so that the parser
-    # walks off the end of the page
+    # a data page claiming far more rows than fit on it
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
     struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 100000)
@@ -881,6 +905,14 @@ def _dates_null_with_overrun_data_page(datapath):
         "<HHH", data_page, const.page_bit_offset_x64, const.page_data_type, 60000, 0
     )
     return bytes(data) + bytes(data_page)
+
+
+def test_data_page_block_count_past_page_end_raises(datapath):
+    # GH#47339 a data page carries its own row count in the block count field of
+    #  its header, and overstating it overruns the page as a mix page's does.
+    data = _dates_null_with_overrun_data_page(datapath)
+    with pytest.raises(ValueError, match="hand out 60000 rows but has room for"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
 @pytest.mark.parametrize(
@@ -894,7 +926,12 @@ def _dates_null_with_overrun_data_page(datapath):
             "changes the layout it declared",
             2,
         ),
-        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read", 1000),
+        (
+            _dates_null_with_overrun_data_page,
+            ValueError,
+            "hand out 60000 rows but has room for",
+            1000,
+        ),
     ],
     ids=["layout redefined", "page overrun"],
 )

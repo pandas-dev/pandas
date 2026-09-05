@@ -549,14 +549,15 @@ cdef class Parser:
         int64_t[::1] data_subheader_lengths
         uint8_t *cached_page
         Py_ssize_t cached_page_len
+        # Where a mix page's rows start: after its subheader pointers, plus the
+        # format's own `% 8` correction. Per page, so it is computed once in
+        # _parse_page_header rather than per row in readline.
+        Py_ssize_t mix_row_area_offset
         int current_row_on_page_index
         # How many rows a mix page hands out before the parser moves on. Held
         # here rather than read off the reader per row so that a metadata page
         # reached partway through a chunk cannot move the boundary for the rest
-        # of it -- sas7bdat.py rejects the file once the chunk is done. An int,
-        # like the row index above that it is compared against: a wider one
-        # would take a count no page can hold, never reach it, and hand out the
-        # rest of the page as rows.
+        # of it -- sas7bdat.py rejects the file once the chunk is done.
         int mix_page_row_count
         int current_page_block_count
         int n_data_subheaders
@@ -705,7 +706,25 @@ cdef class Parser:
             val = ((val >> 8) | (val << 8)) & 0xFFFF
         return val
 
-    cdef void _parse_page_header(self):
+    cdef void _check_page_row_count(
+        self, Py_ssize_t row_area_offset, Py_ssize_t row_count
+    ) except *:
+        # How many rows a page holds depends on where its row area starts, which
+        #  for a mix page depends on that page's own subheader count, so this is
+        #  per page; sas7bdat.py can only bound the count by the page size. Above
+        #  the real capacity the parser reads off the end of the page, otherwise
+        #  caught only by an internal assertion.
+        cdef Py_ssize_t capacity
+        if self.row_length <= 0:
+            return
+        capacity = (self.cached_page_len - row_area_offset) // self.row_length
+        if row_count > capacity:
+            raise ValueError(
+                f"this page would hand out {row_count} rows but has room for "
+                f"{capacity}; the file is corrupt"
+            )
+
+    cdef void _parse_page_header(self) except *:
         # Read page header fields directly from the cached page buffer in C.
         self.cached_page = <uint8_t *>self.parser._cached_page
         self.cached_page_len = len(self.parser._cached_page)
@@ -720,6 +739,21 @@ cdef class Parser:
         self.current_page_subheaders_count = self.read_uint16(
             c_subheader_count_offset + self.bit_offset
         )
+        if self.current_page_type == page_mix_type:
+            self.mix_row_area_offset = (
+                self.bit_offset
+                + subheader_pointers_offset
+                + self.current_page_subheaders_count * self.subheader_pointer_length
+            )
+            self.mix_row_area_offset += self.mix_row_area_offset % 8
+            self._check_page_row_count(
+                self.mix_row_area_offset, self.mix_page_row_count
+            )
+        elif self.current_page_type == page_data_type:
+            self._check_page_row_count(
+                self.bit_offset + subheader_pointers_offset,
+                self.current_page_block_count,
+            )
 
     cdef bint read_next_page(self) except? True:
         cdef bint done
@@ -762,12 +796,10 @@ cdef class Parser:
 
         cdef:
             Py_ssize_t offset, length
-            int bit_offset, align_correction
-            int subheader_pointer_length
+            int bit_offset
             bint done, flag
 
         bit_offset = self.bit_offset
-        subheader_pointer_length = self.subheader_pointer_length
 
         # If there is no page, go to the end of the header and read a page.
         if self.cached_page == NULL:
@@ -794,15 +826,7 @@ cdef class Parser:
                 self.process_byte_array_with_data(offset, length)
                 return False
             elif self.current_page_type == page_mix_type:
-                align_correction = (
-                    bit_offset
-                    + subheader_pointers_offset
-                    + self.current_page_subheaders_count * subheader_pointer_length
-                )
-                align_correction = align_correction % 8
-                offset = bit_offset + align_correction
-                offset += subheader_pointers_offset
-                offset += self.current_page_subheaders_count * subheader_pointer_length
+                offset = self.mix_row_area_offset
                 offset += self.current_row_on_page_index * self.row_length
                 self.process_byte_array_with_data(offset, self.row_length)
                 if self.current_row_on_page_index == self.mix_page_row_count:
