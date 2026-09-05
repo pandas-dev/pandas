@@ -878,8 +878,7 @@ class TestDataFrameQueryNumExprPandas:
         expected = df[df.a == "@c"]
         tm.assert_frame_equal(result, expected)
 
-    def test_query_undefined_local(self):
-        engine, parser = self.engine, self.parser
+    def test_query_undefined_local(self, engine, parser):
         skip_if_no_pandas_parser(parser)
 
         df = pd.DataFrame(np.random.default_rng(2).random((10, 2)), columns=list("ab"))
