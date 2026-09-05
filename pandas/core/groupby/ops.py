@@ -69,7 +69,6 @@ from pandas.core.sorting import (
     decons_obs_group_ids,
     get_group_index,
     get_group_index_sorter,
-    get_indexer_dict,
 )
 
 if TYPE_CHECKING:
@@ -677,8 +676,17 @@ class BaseGrouper:
             # This shows unused categories in indices GH#38642
             result = self.groupings[0].indices
         else:
-            codes_list = [ping.codes for ping in self.groupings]
-            result = get_indexer_dict(codes_list, self.levels)
+            result_index, ids = self.result_index_and_ids
+            values = result_index._values
+            categories = Categorical.from_codes(
+                ids, categories=range(len(result_index))
+            )
+            result = {
+                # mypy is not aware that group has to be an integer
+                values[group]: axis_ilocs  # type: ignore[call-overload]
+                for group, axis_ilocs in categories._reverse_indexer().items()
+                if len(axis_ilocs)
+            }
         if not self.dropna:
             has_mi = isinstance(self.result_index, MultiIndex)
             if not has_mi and self.result_index.hasnans:
