@@ -532,7 +532,7 @@ class OpenpyxlWriter(ExcelWriter):
                 max_col = col_idx
 
             xcell = Cell(wks, row=1, column=1)
-            xcell.value, fmt = self._value_with_fmt(cell.val)
+            xcell.value, fmt = self._value_with_fmt(cell)
             if fmt:
                 xcell.number_format = fmt
 
@@ -601,7 +601,7 @@ class OpenpyxlWriter(ExcelWriter):
             xcell = wks.cell(
                 row=startrow + cell.row + 1, column=startcol + cell.col + 1
             )
-            xcell.value, fmt = self._value_with_fmt(cell.val)
+            xcell.value, fmt = self._value_with_fmt(cell)
             if fmt:
                 xcell.number_format = fmt
 

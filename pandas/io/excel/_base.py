@@ -86,6 +86,8 @@ if TYPE_CHECKING:
         WriteExcelBuffer,
     )
 
+    from pandas.io.formats.excel import ExcelCell
+
 EXCEL_ROWS_MAX = 1_048_576
 
 
@@ -1387,7 +1389,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         return sheet_name
 
     def _value_with_fmt(
-        self, val
+        self, cell: ExcelCell
     ) -> tuple[
         int | float | bool | str | datetime.datetime | datetime.date, str | None
     ]:
@@ -1396,14 +1398,15 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         Parameters
         ----------
-        val : object
-            Value to be written into cells
+        cell : ExcelCell
+            Spreadsheet cell data containing the value to be written
 
         Returns
         -------
         Tuple with the first element being the converted value and the second
             being an optional format
         """
+        val = cell.val
         fmt = None
 
         if is_integer(val):
@@ -1428,7 +1431,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             # xref https://support.microsoft.com/en-au/office/excel-specifications-and-limits-1672b34d-7043-467e-8e27-269d656771c3
             if len(val) > 32767:
                 warnings.warn(
-                    f"Cell contents too long ({len(val)}), "
+                    f"Cell contents too long ({len(val)}) in row {cell.row}, "
+                    f"column {cell.col}; "
                     "truncated to 32767 characters",
                     UserWarning,
                     stacklevel=find_stack_level(),

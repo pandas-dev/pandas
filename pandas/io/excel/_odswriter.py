@@ -191,7 +191,7 @@ class ODSWriter(ExcelWriter):
         from odf.table import TableCell
 
         attributes = self._make_table_cell_attributes(cell)
-        val, fmt = self._value_with_fmt(cell.val)
+        val, fmt = self._value_with_fmt(cell)
         pvalue = value = val
         if isinstance(val, bool):
             value = str(val).lower()

@@ -260,7 +260,7 @@ class XlsxWriter(ExcelWriter):
             wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:
-            val, fmt = self._value_with_fmt(cell.val)
+            val, fmt = self._value_with_fmt(cell)
 
             stylekey = json.dumps(cell.style)
             if fmt:

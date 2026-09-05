@@ -1516,7 +1516,10 @@ class TestExcelWriter:
     def test_to_excel_raising_warning_when_cell_character_exceed_limit(self):
         # GH#56954
         df = pd.DataFrame({"A": ["a" * 32768]})
-        msg = r"Cell contents too long \(32768\), truncated to 32767 characters"
+        msg = (
+            r"Cell contents too long \(32768\) in row 1, column 1; "
+            "truncated to 32767 characters"
+        )
         with tm.assert_produces_warning(
             UserWarning, match=msg, raise_on_extra_warnings=False
         ):
