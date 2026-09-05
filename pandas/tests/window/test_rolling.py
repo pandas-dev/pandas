@@ -577,6 +577,70 @@ def test_missing_minp_zero_variable():
     tm.assert_series_equal(result, expected)
 
 
+def test_rolling_prod():
+    # GH 48030
+    values = Series([2.0, -3.0, 0.0, np.nan, 4.0, -5.0, 2.0])
+    expected = Series([2.0, -6.0, 0.0, 0.0, 0.0, -20.0, -40.0])
+
+    result = values.rolling(3, min_periods=1).prod()
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_prod_min_periods_zero():
+    # GH 48030
+    values = Series([np.nan])
+
+    result = values.rolling(1, min_periods=0).prod()
+    expected = Series([1.0])
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_prod_variable_window():
+    # GH 48030
+    values = Series(
+        [2.0, 3.0, 4.0, 5.0],
+        index=DatetimeIndex(["2026-01-01", "2026-01-02", "2026-01-04", "2026-01-05"]),
+    )
+    expected = Series([2.0, 6.0, 12.0, 20.0], index=values.index)
+
+    result = values.rolling("3D", min_periods=1).prod()
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_prod_recovers_from_overflow():
+    # GH 48030
+    values = Series([1e308, 1e308, 1e-308])
+    expected = Series([np.nan, np.inf, 1.0])
+
+    result = values.rolling(2).prod()
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_prod_recovers_from_underflow():
+    # GH 48030
+    values = Series([1e-308, 1e-308, 1e308])
+    expected = Series([np.nan, 0.0, 1.0])
+
+    result = values.rolling(2).prod()
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rolling_prod_preserves_signed_zero():
+    # GH 48030
+    values = Series([-2.0, 0.0, 3.0])
+    result = values.rolling(2).prod()
+    expected = Series([np.nan, -0.0, 0.0])
+
+    tm.assert_series_equal(result, expected)
+    assert np.signbit(result.iloc[1])
+    assert not np.signbit(result.iloc[2])
+
+
 def test_multi_index_names():
     # GH 16789, 16825
     cols = pd.MultiIndex.from_product([["A", "B"], ["C", "D", "E"]], names=["1", "2"])
@@ -1962,6 +2026,19 @@ def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
     expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
     assert list(expected.columns) == columns
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_rolling_prod_numeric_only_frame(numeric_only):
+    df = DataFrame({"a": [2], "b": [3], "c": [4]})
+    df["c"] = df["c"].astype(object)
+
+    result = df.rolling(1).prod(numeric_only=numeric_only)
+
+    columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
+    expected = df[columns].astype(float)
 
     tm.assert_frame_equal(result, expected)
 

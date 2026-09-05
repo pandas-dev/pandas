@@ -578,6 +578,17 @@ def test_npfunc_no_warnings():
         df.col1.rolling(2).apply(np.prod, raw=True, engine="numba")
 
 
+@td.skip_if_no("numba")
+def test_rolling_prod_numba():
+    # GH 48030
+    values = Series([2.0, 3.0, 4.0, 5.0])
+
+    result = values.rolling(2).prod(engine="numba")
+    expected = values.rolling(2).prod(engine="cython")
+
+    tm.assert_series_equal(result, expected)
+
+
 class PrescribedWindowIndexer(BaseIndexer):
     def __init__(self, start, end):
         self._start = start
