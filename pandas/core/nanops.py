@@ -1277,13 +1277,13 @@ def nanvar(
     if values.size == 0:
         # GH#18976
         return cast("float", _na_for_min_count(values, axis))
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     dtype = values.dtype
-    mask = _maybe_get_mask(values, skipna, mask)
-    if dtype.kind in "iu":
-        values = values.astype("f8")
-        if mask is not None:
-            values[mask] = np.nan
-    elif dtype.kind == "c":
+    if dtype.kind == "c":
+        if mask is None:
+            # Create mask to handle partial NaN
+            mask = np.isnan(values)
+
         # https://en.wikipedia.org/wiki/Complex_random_variable#Variance_and_pseudo-variance
         # The variance is equal to the sum of
         # the variances of the real and imaginary part of the complex random variable.
@@ -1291,33 +1291,23 @@ def nanvar(
             values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
         ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
-    if values.dtype.kind == "f":
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    if values.dtype != np.float64:
+        values = values.astype(np.float64, order=preferred_order)
+
+    result: npt.NDArray[np.floating] | np.floating
+    if axis is None or (values.ndim == 1 and axis == 0):
+        order: Literal["F", "C"] = "F" if values.flags.f_contiguous else "C"
+        result_float = libalgos.scalar_var(
+            values.ravel(order),
+            skipna,
+            ddof,
+            mask.ravel(order) if mask is not None else None,
+        )
+        result = np.float64(result_float)
+    elif axis in {0, 1}:
+        result = libalgos.axis_var(values, axis, skipna, ddof, mask)
     else:
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
-
-    if skipna and mask is not None:
-        values = values.copy()
-        np.putmask(values, mask, 0)
-
-    # xref GH10242
-    # Compute variance via two-pass algorithm, which is stable against
-    # cancellation errors and relatively accurate for small numbers of
-    # observations.
-    #
-    # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = values.sum(axis=axis, dtype=np.float64) / count
-    if axis is not None:
-        avg = np.expand_dims(avg, axis)
-
-    sqr = (avg - values) ** 2
-    if mask is not None:
-        np.putmask(sqr, mask, 0)
-    # numpy's stubs allow the division to produce a plain float, which it never
-    #  does here; d is an ndarray or an np.float64 and so is the sum
-    result: np.ndarray | np.float64 = cast(
-        "np.ndarray | np.float64", sqr.sum(axis=axis, dtype=np.float64) / d
-    )
+        raise ValueError("axis must be 0, 1 or None")
 
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
@@ -1364,20 +1354,11 @@ def nansem(
     >>> nanops.nansem(s.values)
      np.float64(0.5773502691896258)
     """
-    # This checks if non-numeric-like data is passed with numeric_only=False
-    # and raises a TypeError otherwise
-    nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
-
-    mask = _maybe_get_mask(values, skipna, mask)
+    preferred_order: Literal["F", "C"] = "F" if axis == 0 else "C"
     # Convert to bottleneck return a float
     if values.dtype.kind not in "fc":
-        values = values.astype("f8")
-
-    if not skipna and mask is not None:
-        # For masked arrays, the values underneath `mask` are fill values
-        # rather than NaN, so NaN would not otherwise propagate. GH#65373
-        values = values.copy()
-        np.putmask(values, mask, np.nan)
+        values = values.astype("f8", order=preferred_order)
+    mask = _maybe_get_mask(values, skipna, mask)
 
     dtype_count = np.dtype(np.float64)
     if values.dtype.kind == "f":
