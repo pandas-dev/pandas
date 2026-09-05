@@ -169,7 +169,7 @@ With pip, optional pandas dependencies can be installed or managed in a file (e.
 as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencies can be installed with ``pandas[all]``,
 and specific sets of dependencies are listed in the sections below.
 
-Generally, the minimum supported version is ~1 years old from the release date of a major or minor pandas version.
+Generally, the minimum supported version is ~1 year old from the release date of a major or minor pandas version.
 Older versions of optional dependencies may still work, but they are not tested or considered supported.
 
 .. _install.recommended_dependencies:
