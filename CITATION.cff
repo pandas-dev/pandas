@@ -4,7 +4,7 @@ message: 'If you use this software, please cite it as below.'
 authors:
   - name: "The pandas development team"
     website: "https://pandas.pydata.org/about/team.html"
-abstract: "Pandas is a powerful data structures for data analysis, time series, and statistics."
+abstract: "Pandas is a Python package that provides powerful data structures for data analysis, time series, and statistics."
 doi: 10.5281/zenodo.3509134
 license: BSD-3-Clause
 license-url: "https://github.com/pandas-dev/pandas/blob/main/LICENSE"
