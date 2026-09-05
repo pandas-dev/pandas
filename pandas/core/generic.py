@@ -8732,12 +8732,60 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
         if is_list_like(threshold):
-            fill_value = np.inf if method.__name__ == "le" else -np.inf
-            threshold_inf = threshold.fillna(fill_value)
+            if isinstance(threshold, ABCDataFrame):
+                is_dt_like = all(d.kind in "mM" for d in threshold.dtypes)
+            else:
+                dtype = getattr(threshold, "dtype", None)
+                is_dt_like = (
+                    dtype is not None and dtype.kind in "mM"
+                )
+            if is_dt_like:
+                # GH 44785: ±np.inf cannot be compared against datetime or
+                # timedelta values, so track the missing positions
+                # explicitly and keep the original values there.
+                no_bound_mask = threshold.isna()
+                threshold_inf = threshold
+            else:
+                fill_value = np.inf if method.__name__ == "le" else -np.inf
+                threshold_inf = threshold.fillna(fill_value)
+                no_bound_mask = None
         else:
             threshold_inf = threshold
+            no_bound_mask = None
 
         subset = method(threshold_inf, axis=axis) | isna(self)
+        if no_bound_mask is not None:
+            if isinstance(no_bound_mask, ABCSeries):
+                # Align the missing-threshold positions to the shape of
+                # the comparison result along the axis the threshold
+                # was applied on.
+                if isinstance(subset, ABCSeries):
+                    no_bound_mask = no_bound_mask.reindex(
+                        subset.index, fill_value=True
+                    )
+                elif axis in (0, None):
+                    values = no_bound_mask.reindex(
+                        subset.index, fill_value=True
+                    ).to_numpy()
+                    no_bound_mask = self._constructor(
+                        np.tile(values[:, None], (1, len(subset.columns))),
+                        index=subset.index,
+                        columns=subset.columns,
+                    )
+                else:
+                    values = no_bound_mask.reindex(
+                        subset.columns, fill_value=True
+                    ).to_numpy()
+                    no_bound_mask = self._constructor(
+                        np.tile(values, (len(subset.index), 1)),
+                        index=subset.index,
+                        columns=subset.columns,
+                    )
+            elif no_bound_mask.shape != subset.shape:
+                no_bound_mask = no_bound_mask.reindex_like(
+                    subset, fill_value=True
+                )
+            subset = subset | no_bound_mask
 
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)

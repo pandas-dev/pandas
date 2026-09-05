@@ -547,6 +547,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`Series.clip` and :meth:`DataFrame.clip` where missing values in a datetime or timedelta threshold raised a ``TypeError`` instead of acting as no bounds (:issue:`44785`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal` incorrectly raising when equivalent :class:`MultiIndex` column labels contained missing values (:issue:`54521`)
