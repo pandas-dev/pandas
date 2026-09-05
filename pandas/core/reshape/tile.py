@@ -372,6 +372,8 @@ def qcut(
     x_idx, _ = _coerce_to_type(x_idx)
 
     if is_integer(q):
+        if q < 1:
+            raise ValueError("`q` should be a positive integer.")
         quantiles = np.linspace(0, 1, q + 1)
         # Round up rather than to nearest if not representable in base 2
         np.putmask(
@@ -379,8 +381,10 @@ def qcut(
             q * quantiles != np.arange(q + 1),
             np.nextafter(quantiles, 1),
         )
-    else:
+    elif is_list_like(q):
         quantiles = q
+    else:
+        raise ValueError("`q` should be a positive integer.")
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 
