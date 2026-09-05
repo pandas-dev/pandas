@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 import pytest
 
@@ -1235,6 +1237,47 @@ def test_select_large_integer(temp_hdfstore):
     expected = df["y"][0]
 
     assert expected == result
+
+
+@pytest.mark.parametrize(
+    "op, func",
+    [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
+)
+@pytest.mark.parametrize(
+    "values, rhs",
+    [
+        (pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]), "2020-01-02"),
+        (
+            pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]).as_unit("s"),
+            "2020-01-02",
+        ),
+        (
+            pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]).tz_localize("UTC"),
+            "2020-01-02 00:00:00+00:00",
+        ),
+        (pd.to_timedelta(["1s", "3s", pd.NaT]), "2s"),
+    ],
+)
+def test_select_ordering_comparison_skips_nat(temp_hdfstore, values, rhs, op, func):
+    # datetime64/timedelta64 columns are stored as int64 with NaT as iNaT, which
+    # sorts below every real value, so "<"/"<=" used to match the NaT rows
+    df = pd.DataFrame({"col": values, "pos": range(3)})
+    temp_hdfstore.append("df", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("df", where=f"col {op} '{rhs}'")
+    expected = df[func(df["col"], rhs)]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<="])
+def test_select_ordering_comparison_skips_nat_on_index(temp_hdfstore, op):
+    idx = pd.DatetimeIndex(["2020-01-01", "2020-01-03", pd.NaT])
+    df = pd.DataFrame({"pos": range(3)}, index=idx)
+    temp_hdfstore.append("df", df, index=False)
+
+    result = temp_hdfstore.select("df", where=f"index {op} '2020-01-02'")
+    expected = df.iloc[:1]
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("unit", ["us", "ns", "ms", "s"])
