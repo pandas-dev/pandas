@@ -547,7 +547,7 @@ def test_zero_sparse_column():
 
 
 def test_series_repr_datetime64():
-    # GH#68053 printed the raw i8 value
+    # GH#68073 printed the raw i8 value
     arr = SparseArray(np.array(["2020-01-01", "NaT"], dtype="M8[ns]"))
     expected = "0    2020-01-01 00:00:00\n1                    NaT"
     assert pd.Series(arr).to_string() == expected
@@ -556,7 +556,7 @@ def test_series_repr_datetime64():
 @pytest.mark.parametrize("kind", ["M8", "m8"])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_array_object_datetimelike(kind, unit):
-    # GH#68053 numpy renders datetime64/timedelta64 as ints when casting to
+    # GH#68073 numpy renders datetime64/timedelta64 as ints when casting to
     # object, so we have to box these ourselves
     values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
     values[1] = "NaT"
