@@ -1471,7 +1471,7 @@ def read_csv(
         Number of lines to read from the file per chunk. Passing a value will cause the
         function to return a ``TextFileReader`` object for iteration.
         See the `IO Tools docs
-        <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
+        <https://pandas.pydata.org/docs/dev/user_guide/io.html#io-chunking>`_
         for more information on ``iterator`` and ``chunksize``.
 
     compression : str or dict, default 'infer'
@@ -2071,7 +2071,7 @@ def read_table(
         Number of lines to read from the file per chunk. Passing a value will cause the
         function to return a ``TextFileReader`` object for iteration.
         See the `IO Tools docs
-        <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
+        <https://pandas.pydata.org/docs/dev/user_guide/io.html#io-chunking>`_
         for more information on ``iterator`` and ``chunksize``.
 
     compression : str or dict, default 'infer'
