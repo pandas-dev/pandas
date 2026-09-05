@@ -35,6 +35,7 @@ import numpy as np
 import pytest
 
 from pandas._config.localization import set_locale
+
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
