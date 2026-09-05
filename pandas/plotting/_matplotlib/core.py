@@ -2060,12 +2060,23 @@ class BarPlot(MPLPlot):
                 _stacked_subplots_offsets[offset_index] = (pos_new, neg_new)
 
             elif self.subplots:
-                w = self.bar_width / 2
+                if isinstance(self.subplots, list):
+                    subplot_columns = self.subplots[self._col_idx_to_axis_idx(i)]
+                    series_idx = subplot_columns.index(i)
+                    width = self.bar_width / len(subplot_columns)
+                else:
+                    series_idx = 0
+                    width = self.bar_width
+
+                if self._align == "edge":
+                    bar_position = self.ax_pos + self.bar_width / 2 + series_idx * width
+                else:
+                    bar_position = self.ax_pos + (series_idx + 0.5) * width
                 rect = self._plot(
                     ax,
-                    self.ax_pos + w,
+                    bar_position,
                     y,
-                    self.bar_width,
+                    width,
                     start=start,
                     label=label,
                     log=self.log,
