@@ -160,7 +160,7 @@ Optional dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 pandas has many optional dependencies that are only used for specific methods.
-For example, :func:`pandas.read_hdf` requires the ``pytables`` package, while
+For example, :func:`pandas.read_hdf` requires the ``PyTables`` package, while
 :meth:`DataFrame.to_markdown` requires the ``tabulate`` package. If the
 optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
