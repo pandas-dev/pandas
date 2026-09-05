@@ -208,7 +208,7 @@ def contains(cat, key, container) -> bool:
     Helper for membership check for ``key`` in ``cat``.
 
     This is a helper method for :meth:`__contains__`
-    and :class:`CategoricalIndex.__contains__`.
+    and :meth:`CategoricalIndex.__contains__`.
 
     Returns True if ``key`` is in ``cat.categories`` and the
     location of ``key`` in ``categories`` is in ``container``.

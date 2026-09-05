@@ -445,7 +445,7 @@ The general rules for the various types of input:
 
 - The new default resolution when parsing strings is microseconds, falling back
   to nanoseconds when the precision of the string requires it.
-- The resolution of the input is preserved for stdlib  ``datetime`` objects (i.e. microseconds)
+- The resolution of the input is preserved for stdlib ``datetime`` objects (i.e. microseconds)
   or ``np.datetime64``/``np.timedelta64`` objects (i.e. the unit, capped to
   the supported range of seconds to nanoseconds).
 - For integer input, the resolution used to interpret the integer value is used

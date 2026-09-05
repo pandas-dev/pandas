@@ -11,7 +11,6 @@ from numpy in the following ways:
        pandas convention is to return [-inf, nan, inf] for all dtype
        combinations.
 
-
     2) np.array([-1, 0, 1], dtype=dtype1) % np.array([0, 0, 0], dtype=dtype2)
        gives precisely the same results as the // operation.
 
