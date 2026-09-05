@@ -425,3 +425,20 @@ def test_array_repr(any_numpy_array):
     expected = f"<NumpyExtensionArray>\n{values}\nLength: 2, dtype: {nparray.dtype}"
     result = repr(arr)
     assert result == expected, f"{result} vs {expected}"
+
+
+def test_array_repr_bytes():
+    # GH#68077 "S" was lumped in with "U", so the NEP 51 str workaround rendered
+    #  b"foo" as 'b'foo''
+    arr = NumpyExtensionArray(np.array([b"foo", b"bar"], dtype="S3"))
+    assert repr(arr).splitlines()[1] == "[b'foo', b'bar']"
+
+    # matches how the same bytes render in an object-dtype array
+    obj = NumpyExtensionArray(np.array([b"foo", b"bar"], dtype=object))
+    assert repr(obj).splitlines()[1] == "[b'foo', b'bar']"
+
+
+def test_array_repr_str():
+    # GH#68077 the NEP 51 workaround for numpy str scalars is unaffected
+    arr = NumpyExtensionArray(np.array(["foo", "bar"], dtype="U3"))
+    assert repr(arr).splitlines()[1] == "['foo', 'bar']"
