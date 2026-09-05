@@ -1995,7 +1995,7 @@ class TestPivotTable:
 
     def test_pivot_table_margins_dict_aggfunc_with_list(self):
         # GH#12210
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "type": [
                     "duck",
@@ -2019,16 +2019,16 @@ class TestPivotTable:
             aggfunc={"random1": ["median", "mean"], "random2": "sum"},
             margins=True,
         )
-        cols = MultiIndex.from_tuples(
+        cols = pd.MultiIndex.from_tuples(
             [("random1", "mean"), ("random1", "median"), ("random2", "sum")]
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [6.5, 6.5, 260],
                 [2.5, 2.5, 100],
                 [4.5, 4.5, 360],
             ],
-            index=Index(["bird", "duck", "All"], name="type"),
+            index=pd.Index(["bird", "duck", "All"], name="type"),
             columns=cols,
         )
         expected[("random2", "sum")] = expected[("random2", "sum")].astype("int64")
@@ -2042,7 +2042,7 @@ class TestPivotTable:
             aggfunc={"random1": ["median", "mean"], "random2": "sum"},
             margins=True,
         )
-        cols = MultiIndex.from_tuples(
+        cols = pd.MultiIndex.from_tuples(
             [
                 ("random1", "mean", "x"),
                 ("random1", "mean", "y"),
@@ -2056,13 +2056,13 @@ class TestPivotTable:
             ],
             names=[None, None, "cat"],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [6.0, 7.0, 6.5, 6.0, 7.0, 6.5, 120, 140, 260],
                 [2.0, 3.0, 2.5, 2.0, 3.0, 2.5, 40, 60, 100],
                 [4.0, 5.0, 4.5, 4.0, 5.0, 4.5, 160, 200, 360],
             ],
-            index=Index(["bird", "duck", "All"], name="type"),
+            index=pd.Index(["bird", "duck", "All"], name="type"),
             columns=cols,
         )
         for col in [("random2", "sum", "x"), ("random2", "sum", "y")]:
@@ -2075,7 +2075,7 @@ class TestPivotTable:
         # be confused, via MultiIndex._get_level_number resolving ints as
         # names first, with the positional lookups used to handle the
         # extra function-name level(s) added by a dict aggfunc with a list.
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "type": [
                     "duck",
@@ -2098,7 +2098,7 @@ class TestPivotTable:
             aggfunc={"random1": ["median", "mean"], "random2": "sum"},
             margins=True,
         )
-        cols = MultiIndex.from_tuples(
+        cols = pd.MultiIndex.from_tuples(
             [
                 ("random1", "mean", "x"),
                 ("random1", "mean", "y"),
@@ -2112,13 +2112,13 @@ class TestPivotTable:
             ],
             names=[None, None, 1],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [6.0, 7.0, 6.5, 6.0, 7.0, 6.5, 120, 140, 260],
                 [2.0, 3.0, 2.5, 2.0, 3.0, 2.5, 40, 60, 100],
                 [4.0, 5.0, 4.5, 4.0, 5.0, 4.5, 160, 200, 360],
             ],
-            index=Index(["bird", "duck", "All"], name="type"),
+            index=pd.Index(["bird", "duck", "All"], name="type"),
             columns=cols,
         )
         for col in [("random2", "sum", "x"), ("random2", "sum", "y")]:
@@ -2132,24 +2132,24 @@ class TestPivotTable:
         # (GroupBy.agg), but the grand-margin computation aggregates on a
         # plain, non-grouped Series, which never mangles lambda names on
         # its own; the two must be kept in sync.
-        df = DataFrame({"type": ["a", "a", "b", "b"], "v": [1, 2, 3, 4]})
+        df = pd.DataFrame({"type": ["a", "a", "b", "b"], "v": [1, 2, 3, 4]})
         result = df.pivot_table(
             index="type",
             values="v",
             aggfunc={"v": [lambda x: x.sum(), lambda x: x.mean()]},
             margins=True,
         )
-        cols = Index(["<lambda_0>", "<lambda_1>"])
-        expected = DataFrame(
+        cols = pd.Index(["<lambda_0>", "<lambda_1>"])
+        expected = pd.DataFrame(
             [[3, 1.5], [7, 3.5], [10, 2.5]],
-            index=Index(["a", "b", "All"], name="type"),
+            index=pd.Index(["a", "b", "All"], name="type"),
             columns=cols,
         )
         expected["<lambda_0>"] = expected["<lambda_0>"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
         # mixed lambdas + a named aggfunc, combined with columns=
-        df2 = DataFrame(
+        df2 = pd.DataFrame(
             {
                 "type": [
                     "duck",
@@ -2175,7 +2175,7 @@ class TestPivotTable:
             },
             margins=True,
         )
-        cols = MultiIndex.from_tuples(
+        cols = pd.MultiIndex.from_tuples(
             [
                 ("random1", "<lambda_0>", "x"),
                 ("random1", "<lambda_0>", "y"),
@@ -2189,13 +2189,13 @@ class TestPivotTable:
             ],
             names=[None, None, "cat"],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 [6.0, 7.0, 6.5, 6.0, 7.0, 6.5, 120, 140, 260],
                 [2.0, 3.0, 2.5, 2.0, 3.0, 2.5, 40, 60, 100],
                 [4.0, 5.0, 4.5, 4.0, 5.0, 4.5, 160, 200, 360],
             ],
-            index=Index(["bird", "duck", "All"], name="type"),
+            index=pd.Index(["bird", "duck", "All"], name="type"),
             columns=cols,
         )
         for col in [("random2", "sum", "x"), ("random2", "sum", "y")]:
