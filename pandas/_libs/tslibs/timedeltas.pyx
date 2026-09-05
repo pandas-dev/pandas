@@ -74,6 +74,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -408,6 +409,12 @@ def array_to_timedelta64(
 
             elif cnp.is_timedelta64_object(item):
                 # TODO: de-duplicate this with Timedelta.__new__
+                if get_datetime64_unit_count(item) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.timedelta64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 ival = cnp.get_timedelta64_value(item)
                 dt64_reso = get_datetime64_unit(item)
                 if not (
@@ -2679,6 +2686,12 @@ class Timedelta(_Timedelta):
                 new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
             )
         elif cnp.is_timedelta64_object(value):
+            if get_datetime64_unit_count(value) != 1:
+                raise ValueError(
+                    # GH#25611
+                    "np.timedelta64 objects with units containing a multiplier "
+                    "are not supported"
+                )
             # Retain the resolution if possible, otherwise cast to the nearest
             #  supported resolution.
             new_value = cnp.get_timedelta64_value(value)
@@ -3298,10 +3311,31 @@ cdef object _exact_if_integral(object other):
 cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
+    cdef:
+        _Timedelta td
+        int64_t factor
+
     freq = to_offset(freq)
     if isinstance(freq, Day):
         # In the "round" context, Day unambiguously means 24h, not calendar-day
-        freq = Timedelta(days=freq.n)
+        td = Timedelta(days=freq.n)
     else:
         freq.nanos  # raises on non-fixed freq
-    return delta_to_nanoseconds(freq, creso)
+        td = Timedelta(freq)
+
+    if td._creso > creso:
+        # GH#67978 freq is expressed in a finer resolution than creso, so it
+        #  need not be a whole number of creso units.
+        factor = convert_reso(1, creso, td._creso, round_ok=False)
+        if td._value % factor != 0:
+            if factor % td._value == 0:
+                # freq divides one creso unit evenly, so every value we can
+                #  represent is already a multiple of freq; callers treat a
+                #  return of 0 as "no-op".
+                return 0
+            raise ValueError(
+                f"freq={freq} is incompatible with "
+                f"unit={npy_unit_to_abbrev(creso)}. "
+                "Use a lower freq or a higher unit instead."
+            )
+    return delta_to_nanoseconds(td, creso)

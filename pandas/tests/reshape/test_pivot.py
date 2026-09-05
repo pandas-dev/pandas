@@ -1721,9 +1721,7 @@ class TestPivotTable:
             values="Quantity",
             aggfunc="sum",
         )
-        # result columns carry a freq on the datetimelike MultiIndex levels that
-        #  the from_tuples expected does not; freq is not what this test checks
-        tm.assert_frame_equal(result, expected.T, check_freq=False)
+        tm.assert_frame_equal(result, expected.T)
 
     def test_pivot_datetime_tz(self):
         dates1 = pd.DatetimeIndex(

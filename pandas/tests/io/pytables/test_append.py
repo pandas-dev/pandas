@@ -823,23 +823,19 @@ def test_append_with_timedelta(temp_hdfstore, unit):
     tm.assert_frame_equal(result, df)
 
     result = temp_hdfstore.select("df", where="C<100000")
-    tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta(100000, unit="s")])
 
     result = temp_hdfstore.select("df", where="C<pd.Timedelta('-3D')")
-    tm.assert_frame_equal(result, df.iloc[3:])
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-3D")])
 
     result = temp_hdfstore.select("df", "C<'-3D'")
-    tm.assert_frame_equal(result, df.iloc[3:])
-
-    # a bit hacky here as we don't really deal with the NaT properly
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-3D")])
 
     result = temp_hdfstore.select("df", "C<'-500000s'")
-    result = result.dropna(subset=["C"])
-    tm.assert_frame_equal(result, df.iloc[6:])
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-500000s")])
 
     result = temp_hdfstore.select("df", "C<'-3.5D'")
-    result = result.iloc[1:]
-    tm.assert_frame_equal(result, df.iloc[4:])
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-3.5D")])
 
     # fixed
     temp_hdfstore.put("df2", df, track_times=False)

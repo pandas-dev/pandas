@@ -356,6 +356,15 @@ def test_from_td64_retain_resolution():
     assert td3._creso == NpyDatetimeUnit.NPY_FR_us.value
 
 
+def test_disallow_td64_with_multiplier_unit():
+    # GH#25611 matches the Timestamp(np.datetime64) behavior; reading "500m"
+    #  as "m" silently divided the value by 500
+    td64 = np.timedelta64(1, "500m")
+    msg = "np.timedelta64 objects with units containing a multiplier"
+    with pytest.raises(ValueError, match=msg):
+        pd.Timedelta(td64)
+
+
 def test_from_pytimedelta_us_reso():
     # pytimedelta has microsecond resolution, so Timedelta(pytd) inherits that
     td = timedelta(days=4, minutes=3)
