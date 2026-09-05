@@ -782,7 +782,7 @@ def _dates_null_with_late_metadata_page(
         #  moves the boundary between the pages the rows come from.
         (64728, 808, [(5 * 8, 16), (6 * 8, 12), (15 * 8, 2)]),
         (64728, 808, [(5 * 8, 16), (6 * 8, 2), (15 * 8, 2)]),
-        (64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 9999)]),
+        (64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 4)]),
         # Replaying the column-name and column-attributes subheaders verbatim,
         #  which append rather than overwrite: the file ends up describing each
         #  of its columns twice.
@@ -828,7 +828,7 @@ def test_late_metadata_page_reached_mid_chunk_raises(datapath):
         datapath,
         64728,
         808,
-        [(5 * 8, 16), (6 * 8, 5000), (15 * 8, 9999)],
+        [(5 * 8, 16), (6 * 8, 5000), (15 * 8, 4000)],
         total_rows=5000,
         tail_page_type=const.page_mix_type,
     )
@@ -836,17 +836,19 @@ def test_late_metadata_page_reached_mid_chunk_raises(datapath):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
-def test_mix_page_row_count_too_large_to_reach_raises(datapath):
-    # GH#47339 the mix page's row count bounds a row index the parser holds in
-    #  an int, so a count that does not fit one has to be rejected rather than
-    #  leave that boundary unreachable and the rest of the page handed out as
-    #  rows. What the file gets is an error, not which error.
+@pytest.mark.parametrize("row_count", [4097, 2**31])
+def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
+    # GH#47339 the mix page's row count is how many rows the parser hands out
+    #  from such a page, so a count the page cannot hold keeps it reading past
+    #  the rows into the page padding and the metadata subheaders behind them.
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
-    # the row-size subheader's row_count and mix-page row count
-    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 2**31)
-    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2**31)
-    with pytest.raises(OverflowError, match="too large to convert"):
+    # the row-size subheader's row_count and mix-page row count; dates_null is a
+    #  65536-byte page of 16-byte rows, so 4096 is the most it could ever hold.
+    #  row_count moves too, since the smaller of the two bounds the mix page.
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, row_count)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, row_count)
+    with pytest.raises(ValueError, match="does not fit in a 65536-byte page"):
         pd.read_sas(
             io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
         ).read()
