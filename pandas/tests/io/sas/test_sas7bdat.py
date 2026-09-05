@@ -712,10 +712,8 @@ def test_column_offset_near_int64_max_raises(datapath, bad_offset):
 
 @pytest.mark.parametrize("declared", [3, 4096])
 def test_column_count_above_column_attributes_raises(datapath, declared):
-    # GH#68065 column_count comes from the column-size subheader, and nothing
-    #  lined it up with the column-attributes subheaders the columns are built
-    #  from, so a count above them ran off the end of those lists as a bare
-    #  IndexError from the middle of the reader.
+    # GH#68065 a count above the columns the file describes ran off the end of
+    #  those lists as a bare IndexError from the middle of the reader.
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
     # the count field of the column-size subheader, one word into it
@@ -725,15 +723,12 @@ def test_column_count_above_column_attributes_raises(datapath, declared):
 
 
 def test_column_count_above_column_names_raises(datapath):
-    # GH#68065 the names are described separately from the attributes, and it is
-    #  _chunk_to_dataframe that indexes them, so a count that clears the
-    #  attributes but not the names got as far as reading the file's rows.
+    # GH#68065 the names get their own arm because _chunk_to_dataframe indexes
+    #  them; pre-fix this file raised from the column_formats lookup instead.
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
     # the page's last subheader pointer is a zero-length placeholder, so
-    #  overwriting it replays the column-attributes subheader -- describing the
-    #  attributes of four columns but still naming two -- without moving
-    #  anything else on the page
+    #  overwriting it adds a subheader without moving anything else on the page
     pointer = (
         65536
         + const.page_bit_offset_x64

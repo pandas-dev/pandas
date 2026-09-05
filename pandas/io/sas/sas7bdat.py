@@ -395,11 +395,9 @@ class SAS7BDATReader(SASReader):
 
     def _validate_column_count(self) -> None:
         # column_count comes from the column-size subheader, independently of
-        # the column-attributes and column-name subheaders the columns are
-        # built from. _parse_metadata and the parser both index those lists
-        # with range(column_count), the parser with bounds checking off. Only
-        # the inflated direction is rejected: a count below what the file
-        # describes is how 0x00controlbyte.sas7bdat reads, see
+        # the column-attribute and column-name subheaders the columns are built
+        # from, and the parser indexes those lists with range(column_count)
+        # under boundscheck(False). Inflated direction only, see
         # test_0x00_control_byte.
         for kind, described in (
             ("attribute", len(self._column_types)),
