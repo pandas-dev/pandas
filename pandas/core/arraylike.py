@@ -293,6 +293,13 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     kwargs = _standardize_out_kwarg(**kwargs)
 
+    if "where" in kwargs:
+        # GH#60611 if `where` is a Series/Index/ExtensionArray, leaving it
+        # in kwargs means it gets passed straight through to the ufunc,
+        # which re-triggers our __array_ufunc__ on it and recurses
+        # infinitely (eventually raising RecursionError or segfaulting).
+        kwargs["where"] = extract_array(kwargs["where"], extract_numpy=True)
+
     # for binary ops, use our custom dunder methods
     result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
     if result is not NotImplemented:
@@ -494,8 +501,15 @@ def _assign_where(out, result, where) -> None:
     if where is None:
         # no 'where' arg passed to ufunc
         out[:] = result
-    else:
+    elif isinstance(out, np.ndarray):
         np.putmask(out, where, result)
+    else:
+        # GH#60611 np.putmask requires `out` to be an ndarray, but `out` may
+        # instead be a Series/Index passed by the user. `out` is 1D in this
+        # case, so masked assignment via __setitem__ is equivalent to
+        # putmask; convert `result` to an ndarray first so boolean indexing
+        # is elementwise rather than e.g. DataFrame's row-selection.
+        out[where] = np.asarray(result)[where]
 
 
 def default_array_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):

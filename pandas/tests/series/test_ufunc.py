@@ -246,6 +246,17 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_series_equal(out, expected)
 
 
+def test_binary_ufunc_where_pandas_object():
+    # GH#60611 passing a Series as the ufunc `where` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of masking the result.
+    a = pd.Series([-3.22, 4.0])
+
+    result = np.maximum(a, 0, where=a > 2, out=a.copy())
+
+    expected = pd.Series([-3.22, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:
