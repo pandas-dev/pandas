@@ -2978,7 +2978,12 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        convert: bool = True,
+    ):
         """
         Map values using an input mapping or function.
 
@@ -2990,6 +2995,10 @@ class ExtensionArray:
             If 'ignore', propagate NA values, without passing them to the
             mapping correspondence. If 'ignore' is not supported, a
             ``NotImplementedError`` should be raised.
+        convert : bool, default True
+            Try to find better dtype for elementwise function results. If
+            False, the mapped values are kept as-is in an object-dtype
+            result instead of being passed through dtype inference.
 
         Returns
         -------
@@ -2998,8 +3007,10 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        result = map_array(self, mapper, na_action=na_action)
+        result = map_array(self, mapper, na_action=na_action, convert=convert)
         if isinstance(result, np.ndarray):
+            if not convert:
+                return result
             return self._cast_pointwise_result(result)
         return result
 

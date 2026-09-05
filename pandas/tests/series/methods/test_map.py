@@ -16,7 +16,10 @@ import pandas._testing as tm
 
 # The fixture it's mostly used in pandas/tests/apply, so it's defined in that
 # conftest, which is out of scope here. So we need to manually import
-from pandas.tests.apply.conftest import engine  # noqa: F401
+from pandas.tests.apply.conftest import (  # noqa: F401
+    MockEngineDecorator,
+    engine,
+)
 
 
 def test_series_map_box_timedelta():
@@ -263,6 +266,32 @@ def test_map_type_inference():
     s = pd.Series(range(3))
     s2 = s.map(lambda x: np.where(x == 0, 0, 1))
     assert issubclass(s2.dtype.type, np.integer)
+
+
+def test_map_convert_dtype_false_keeps_none():
+    # GH#46377
+    s = Series([2.0, np.nan, 1.0])
+    result = s.map(lambda x: None if np.isnan(x) else x, convert_dtype=False)
+    expected = Series([2.0, None, 1.0], dtype=object)
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[1] is None
+
+
+def test_map_convert_dtype_true_default_still_infers():
+    # GH#46377 - default behavior (convert_dtype=True) is unchanged:
+    # None is coerced back to NaN by dtype inference.
+    s = Series([2.0, np.nan, 1.0])
+    result = s.map(lambda x: None if np.isnan(x) else x)
+    expected = Series([2.0, np.nan, 1.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_convert_dtype_false_with_engine_raises():
+    # GH#46377
+    s = Series([1, 2, 3])
+    msg = "convert_dtype=False is not supported when engine is specified"
+    with pytest.raises(ValueError, match=msg):
+        s.map(lambda x: x, engine=MockEngineDecorator, convert_dtype=False)
 
 
 def test_map_decimal(string_series):
