@@ -700,6 +700,12 @@ class DataFrameFormatter:
             _len = len(self.tr_frame)
             _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
             self.tr_frame = self.tr_frame.iloc[_slice]
+        elif self.max_rows_fitted == 1:
+            # Room for a single row, so there is no tail half to show. Keep the
+            # head, as SeriesFormatter does; falling through to max_rows below
+            # would ignore the min_rows that narrowed the frame to one row.
+            row_num = 1
+            self.tr_frame = self.tr_frame.iloc[:1, :]
         else:
             row_num = cast("int", self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]

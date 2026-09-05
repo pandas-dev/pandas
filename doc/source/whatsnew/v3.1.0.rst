@@ -890,6 +890,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``orient="table"`` silently dropping the timezone of columns with a fixed-offset timezone (e.g. ``datetime.timezone(timedelta(hours=1))``), so the offset was lost on round-trip through :func:`read_json` (:issue:`39537`)
 - Bug in :meth:`DataFrame.to_json` and :meth:`Series.to_json` writing unsigned NumPy integer scalars stored in ``object`` dtype as negative numbers when they exceeded the signed ``int64`` maximum (:issue:`66142`)
 - Bug in :meth:`DataFrame.to_stata` raising ``KeyError`` when column names require renaming and ``convert_dates`` is specified for a different column (:issue:`60536`)
+- Bug in :meth:`DataFrame.to_string` and :meth:`DataFrame.__repr__` where ``min_rows=1`` was ignored and ``max_rows`` rows were shown instead of one, and where a terminal tall enough for exactly one row showed no rows at all; :class:`Series` already showed the single row (:issue:`64824`)
 - Bug in :meth:`DataFrame.to_string` where ``formatters`` dict was applied to wrong columns when output was horizontally truncated via ``max_cols`` (:issue:`35410`)
 - Fixed :func:`read_json` silently converting non-date strings such as ``"Jan"`` or ``"1st"`` into year-1 timestamps when they appeared in an axis or in a column subject to automatic date parsing (:issue:`63473`)
 - Fixed :func:`read_json` with ``lines=True`` and ``nrows=0`` to return an empty DataFrame (:issue:`64025`)
