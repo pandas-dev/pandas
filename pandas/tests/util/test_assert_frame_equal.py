@@ -573,3 +573,91 @@ def test_assert_frame_equal_first_diff_quotes_strings():
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_frame_equal(df1, df2, check_column_type=False)
+
+
+def test_assert_frame_equal_check_freq_multiindex_level():
+    # GH#66761 a freq mismatch in a MultiIndex level was not checked before
+    #  the check_freq deprecation, so it warns rather than raising
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = pd.DataFrame(
+        {"a": [1, 2, 3]}, index=pd.MultiIndex.from_arrays([dates, [1, 2, 3]])
+    )
+    right = pd.DataFrame(
+        {"a": [1, 2, 3]},
+        index=pd.MultiIndex.from_arrays([dates._with_freq(None), [1, 2, 3]]),
+    )
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_frame_equal(left, right)
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_equal(left, right)
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_equal(left.index, right.index)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(left, right, check_freq=False)
+
+
+def test_assert_frame_equal_check_freq_multiindex_repeated_codes():
+    # GH#66761 a level whose codes repeat loses its freq to get_level_values, so
+    #  neither side has a freq to compare and check_freq=True passes; the
+    #  deprecation must not warn where the future default accepts
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = pd.DataFrame(
+        {"a": range(6)}, index=pd.MultiIndex.from_product([dates, ["a", "b"]])
+    )
+    right = pd.DataFrame(
+        {"a": range(6)},
+        index=pd.MultiIndex.from_product([dates._with_freq(None), ["a", "b"]]),
+    )
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(left, right)
+    tm.assert_frame_equal(left, right, check_freq=True)
+
+
+def test_assert_frame_equal_check_freq_categorical_column():
+    # GH#66761 the categories of a Categorical column go through the
+    #  deprecation even when the frame's own index resolves check_freq to the
+    #  long-standing hard check
+    dates = pd.date_range("2012-01-01", periods=3)
+    nofreq = dates._with_freq(None)
+    left = pd.DataFrame({"a": pd.Categorical(dates, categories=dates)}, index=dates)
+    right = pd.DataFrame({"a": pd.Categorical(nofreq, categories=nofreq)}, index=dates)
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_frame_equal(left, right)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(left, right, check_freq=False)
+
+
+def test_assert_frame_equal_check_freq_categorical_index():
+    # GH#66761 a freq mismatch in Categorical categories was not checked before
+    #  the check_freq deprecation, so it warns rather than raising
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = pd.DataFrame({"a": [1, 2, 3]}, index=pd.CategoricalIndex(dates))
+    right = pd.DataFrame(
+        {"a": [1, 2, 3]}, index=pd.CategoricalIndex(dates._with_freq(None))
+    )
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_frame_equal(left, right)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_frame_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_frame_equal(left, right, check_freq=False)

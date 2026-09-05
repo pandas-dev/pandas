@@ -2,7 +2,10 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 
-from datetime import datetime
+from datetime import (
+    UTC,
+    datetime,
+)
 import re
 
 from dateutil.parser import parse as du_parse
@@ -55,6 +58,33 @@ def test_parsing_tzlocal_deprecated():
 
         with pytest.raises(ValueError, match=msg):
             pd.Timestamp(dtstr)
+
+
+@pytest.mark.skipif(
+    is_platform_windows() or WASM,
+    reason="requires a working tzset to set the system timezone",
+)
+@pytest.mark.parametrize("tzname", ["UTC", "GMT", "Z", "z"])
+@pytest.mark.parametrize("system_tz", ["US/Eastern", "Europe/London", "Africa/Abidjan"])
+def test_parsing_utc_tzname_not_tzlocal(tzname, system_tz):
+    # GH#66827 these all denote a zero offset regardless of the system
+    #  timezone, so they must parse the same way even when they happen to
+    #  match time.tzname (e.g. "GMT" under Europe/London or Africa/Abidjan)
+    dtstr = f"Jan 15 2004 03:00 {tzname}"
+    expected = pd.Timestamp("2004-01-15 03:00", tz="UTC")
+
+    with tm.set_timezone(system_tz):
+        result = pd.Timestamp(dtstr)
+        assert result == expected
+        # stdlib utc, not dateutil's tzutc(), matching the ISO-8601 and
+        #  strptime paths
+        assert result.tzinfo is UTC
+
+        assert parsing.py_parse_datetime_string(dtstr) == expected
+
+        parsed, _ = parse_datetime_string_with_reso(dtstr)
+        assert parsed == expected
+        assert parsed.tzinfo is UTC
 
 
 def test_parse_datetime_string_with_reso():

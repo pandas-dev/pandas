@@ -856,22 +856,20 @@ class TestSeriesPlots:
 
         _check_plot_works(s.plot)
 
-    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.drop is")
-    @pytest.mark.xfail(
-        reason="GH#24426, see also "
-        "github.com/pandas-dev/pandas/commit/"
-        "ef1bd69fa42bbed5d09dd17f08c44fc8bfc2b685#r61470674"
-    )
     def test_plot_accessor_updates_on_inplace(self):
         ser = pd.Series([1, 2, 3, 4])
         _, ax = mpl.pyplot.subplots()
-        ax = ser.plot(ax=ax)
-        before = ax.xaxis.get_ticklocs()
+        ax = ser.plot.line(ax=ax)
+        before = ax.yaxis.get_ticklocs()
 
-        ser.drop([0, 1], inplace=True)
+        ser.replace({4: 100}, inplace=True)
+        after = ax.yaxis.get_ticklocs()
+        assert list(before) == list(after)
+
         _, ax = mpl.pyplot.subplots()
-        after = ax.xaxis.get_ticklocs()
-        tm.assert_numpy_array_equal(before, after)
+        ax = ser.plot.line(ax=ax)
+        new = ax.yaxis.get_ticklocs()
+        assert list(new) != list(before)
 
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_plot_xlim_for_series(self, kind):

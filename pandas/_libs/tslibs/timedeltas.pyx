@@ -3298,10 +3298,31 @@ cdef object _exact_if_integral(object other):
 cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
+    cdef:
+        _Timedelta td
+        int64_t factor
+
     freq = to_offset(freq)
     if isinstance(freq, Day):
         # In the "round" context, Day unambiguously means 24h, not calendar-day
-        freq = Timedelta(days=freq.n)
+        td = Timedelta(days=freq.n)
     else:
         freq.nanos  # raises on non-fixed freq
-    return delta_to_nanoseconds(freq, creso)
+        td = Timedelta(freq)
+
+    if td._creso > creso:
+        # GH#67978 freq is expressed in a finer resolution than creso, so it
+        #  need not be a whole number of creso units.
+        factor = convert_reso(1, creso, td._creso, round_ok=False)
+        if td._value % factor != 0:
+            if factor % td._value == 0:
+                # freq divides one creso unit evenly, so every value we can
+                #  represent is already a multiple of freq; callers treat a
+                #  return of 0 as "no-op".
+                return 0
+            raise ValueError(
+                f"freq={freq} is incompatible with "
+                f"unit={npy_unit_to_abbrev(creso)}. "
+                "Use a lower freq or a higher unit instead."
+            )
+    return delta_to_nanoseconds(td, creso)

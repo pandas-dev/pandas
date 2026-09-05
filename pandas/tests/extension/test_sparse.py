@@ -99,6 +99,12 @@ class TestSparseArray(base.ExtensionTests):
     def _honors_copy_keyword(self, data) -> bool:
         return False
 
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        if op_name in ["mean", "median", "var", "std", "sem", "skew", "kurt"]:
+            # not closed over the subtype, so the result widens to float64
+            return pd.SparseDtype("float64", arr.fill_value)
+        return arr.dtype
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         if op_name in [
             "prod",
