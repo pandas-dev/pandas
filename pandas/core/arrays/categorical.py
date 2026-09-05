@@ -215,7 +215,7 @@ def contains(cat, key, container) -> bool:
 
     Parameters
     ----------
-    cat : :class:`Categorical`or :class:`CategoricalIndex`
+    cat : :class:`Categorical` or :class:`CategoricalIndex`
     key : a hashable object
         The key to check membership for.
     container : Container (e.g. list-like or mapping)

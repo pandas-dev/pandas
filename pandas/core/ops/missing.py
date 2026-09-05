@@ -166,7 +166,7 @@ def dispatch_fill_zeros(op, left, right, result):
         #  we want.
         result = mask_zero_div_zero(left, right, result)
     elif op is roperator.rfloordiv:
-        # Note: no need to do this for rtruediv; numpy behaves the wayS
+        # Note: no need to do this for rtruediv; numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(right, left, result)
     elif op is operator.mod:
