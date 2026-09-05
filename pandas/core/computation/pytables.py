@@ -218,6 +218,11 @@ class BinOp(ops.BinOp):
         """the metadata of my field"""
         return getattr(self.queryables.get(self.lhs.value), "metadata", None)
 
+    @property
+    def ordered(self):
+        """whether my field is an ordered Categorical (None if unrecorded)"""
+        return getattr(self.queryables.get(self.lhs.value), "ordered", None)
+
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
@@ -274,6 +279,16 @@ class BinOp(ops.BinOp):
             return TermValue(int(conv_val), conv_val, kind)
 
         elif meta == "category":
+            # `ordered` may be a np.bool_, and is None for files written before
+            #  the flag was recorded, where we cannot tell.
+            ordered = self.ordered
+            is_unordered = ordered is not None and not ordered
+            if is_unordered and self.op in ["<", "<=", ">", ">="]:
+                # GH#68040 the stored codes are orderable, but the categories
+                #  they stand for are not; match the in-memory comparison.
+                raise TypeError(
+                    "Unordered Categoricals can only compare equality or not"
+                )
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
