@@ -1693,3 +1693,87 @@ class RangeIndex(Index):
         if was_scalar:
             return np.intp(result.item())
         return result.astype(np.intp, copy=False)
+
+    def isin(
+        self, values: Axes | set, level: str | int | None = None
+    ) -> npt.NDArray[np.bool_]:
+        """
+        Return a boolean array where the index values are in `values`.
+
+        Compute boolean array of whether each index value is found in the
+        passed set of values. The length of the returned boolean array matches
+        the length of the index.
+
+        Parameters
+        ----------
+        values : set or list-like
+            Sought values.
+        level : str or int, optional
+            Name or position of the index level to use (if the index is a
+            `MultiIndex`).
+
+        Returns
+        -------
+        np.ndarray[bool]
+            NumPy array of boolean values.
+
+        See Also
+        --------
+        Series.isin : Same for Series.
+        DataFrame.isin : Same method for DataFrames.
+
+        Notes
+        -----
+        In the case of `MultiIndex` you must either specify `values` as a
+        list-like object containing tuples that are the same length as the
+        number of levels, or specify `level`. Otherwise it will raise a
+        ``ValueError``.
+
+        If `level` is specified:
+
+        - if it is the name of one *and only one* index level, use that level;
+        - otherwise it should be a number indicating level position.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(3)
+        >>> idx
+        RangeIndex(start=0, stop=3, step=1)
+        >>> idx.isin([1, 4])
+        array([False,  True, False])
+        """
+        if level is not None:
+            self._validate_index_level(level)
+
+        if not lib.is_list_like(values):
+            raise TypeError(
+                "only list-like objects are allowed to be passed "
+                f"to isin(), you passed a `{type(values).__name__}`"
+            )
+
+        if len(self) == 0:
+            return np.zeros(0, dtype=bool)
+
+        try:
+            n_values = len(values)
+        except TypeError:
+            # e.g. a generator; only the base implementation can handle it, as
+            # it materializes `values` itself before searching.
+            return super().isin(values, level=level)
+
+        # GH#66263: for small query sets, avoid materializing the full
+        # integer array (``self._values``) that algos.isin would allocate. Use
+        # O(1) ``range.__contains__`` membership checks instead.
+        if n_values < len(self):
+            start = self.start
+            step = self.step
+            result = np.zeros(len(self), dtype=bool)
+            for val in values:
+                try:
+                    if val in self._range:
+                        result[int((val - start) // step)] = True
+                except (TypeError, ValueError):
+                    pass
+            return result
+
+        return super().isin(values, level=level)
