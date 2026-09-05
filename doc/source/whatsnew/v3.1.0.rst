@@ -936,6 +936,7 @@ I/O
 - Storing a :class:`DataFrame` or :class:`Series` with a :class:`MultiIndex` level named ``'index'`` via :meth:`HDFStore.put` or :meth:`HDFStore.append` with ``format='table'`` now raises a clear ``ValueError`` instead of an opaque reshape error (:issue:`6208`)
 - The :class:`~pandas.errors.PerformanceWarning` emitted by :meth:`DataFrame.to_hdf` for object columns now names only the columns that cannot be mapped to a c-type, instead of every object column sharing the same block (:issue:`28460`)
 - Writing a :class:`DataFrame` with ``format='table'`` and a column named ``'index'`` as a ``data_columns`` entry (including ``data_columns=True``) now raises a clear ``ValueError`` instead of an opaque reshape error (:issue:`41437`)
+- Fixed bug in :func:`read_csv` with the ``c`` engine where string values representing ``"nan"`` could raise a :class:`ValueError` during float conversion instead of being correctly parsed as missing values.
 
 Period
 ^^^^^^
