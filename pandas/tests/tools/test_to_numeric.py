@@ -945,7 +945,7 @@ def test_coerce_arrow_dtype_input_no_dtype_backend():
 
 
 def test_coerce_arrow_dtype_input_mixed_real_and_coerced_na():
-    # GH#67949 A real null mixed with an unparseable non-null value: the
+    # GH#67949 A real null mixed with an unparsable non-null value: the
     # real null is dropped before parsing, so the coerced-NaN mask (indexed
     # relative to the post-drop array) must be scattered back into the
     # full-length mask rather than discarded.
