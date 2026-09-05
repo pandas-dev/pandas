@@ -261,6 +261,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.core.col import Expression
     from pandas.core.groupby.generic import DataFrameGroupBy
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
@@ -5944,6 +5945,169 @@ class DataFrame(NDFrame, OpsMixin):
             return isinstance(arr.dtype, dtype_class)
 
         return self._mgr._get_data_subset_indices(predicate)
+
+    @overload
+    def select(
+        self, arg0: ListLike | Hashable = ..., /, **kwargs: Any
+    ) -> DataFrame: ...
+
+    @overload
+    def select(self, /, *args: Hashable | Expression, **kwargs: Any) -> DataFrame: ...
+
+    def select(self, /, *args: Any, **kwargs: Any) -> DataFrame:
+        """
+        Select a subset of columns from the DataFrame.
+
+        Return a new DataFrame containing the specified columns.
+        Columns can be existing column labels as well as computed columns,
+        expressed via :func:`pandas.col` expressions, or callables passed as
+        keyword arguments.
+
+        .. versionadded:: 3.1.0
+
+        Parameters
+        ----------
+        *args : hashable, Expression, or a single list of these
+            Column labels to select, or expressions evaluated against the
+            DataFrame. Requesting a label twice returns the
+            column twice, and with a ``MultiIndex`` a non-tuple label selects the
+            entire first level while tuples select from multiple
+            levels. An :class:`~pandas.api.typing.Expression` evaluating to
+            a Series must be named; use ``.rename(...)`` to name the
+            result of an unnamed expression. If a single list
+            or other non-tuple sequence (e.g. an ``Index`` or array) is
+            provided, its elements are the items to select; a sequence
+            cannot be mixed with further positional arguments.
+        **kwargs : callable, Expression, Series, scalar, array-like, or dict
+            Additional computed columns, where each keyword results in a new column
+            with that name and are included in the selection. Values are resolved
+            like the values of :meth:`DataFrame.assign`: callables and expressions
+            are evaluated on the DataFrame, and other values are assigned as-is
+            following the alignment and broadcasting rules of
+            :meth:`DataFrame.__setitem__`.
+
+        Returns
+        -------
+        DataFrame
+            A new DataFrame with the selected columns.
+
+        See Also
+        --------
+        DataFrame.assign : Add new columns to a DataFrame.
+        DataFrame.filter : Subset the DataFrame rows or columns according
+            to labels.
+        DataFrame.select_dtypes : Select columns based on their dtypes.
+        col : Generate a deferred object representing a column of a DataFrame.
+
+        Notes
+        -----
+        Items are resolved in order, and computed columns are made available
+        to later items under their name, as in :meth:`DataFrame.assign`. A
+        computed column with the same name as an existing column replaces it
+        for later items, but does not replace a column already selected: a name
+        requested more than once is returned more than once.
+
+        When the columns are a ``MultiIndex``, computed columns must have
+        full-length tuple names so only positional arguments are allowed.
+        Rename expressions with ``.rename(...)`` when needed.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "first_name": ["John", "Alice", "Bob"],
+        ...         "last_name": ["Smith", "Cooper", "Marley"],
+        ...         "age": [61, 22, 35],
+        ...     }
+        ... )
+
+        Select a subset of columns:
+
+        >>> df.select("first_name", "age")
+          first_name  age
+        0       John   61
+        1      Alice   22
+        2        Bob   35
+
+        A single list can also be used to specify the columns to return:
+
+        >>> df.select(["last_name", "age"])
+          last_name  age
+        0     Smith   61
+        1    Cooper   22
+        2    Marley   35
+
+        All columns can be selected, but in a different order:
+
+        >>> df.select("last_name", "first_name", "age")
+          last_name first_name  age
+        0     Smith       John   61
+        1    Cooper      Alice   22
+        2    Marley        Bob   35
+
+        Note that a DataFrame is always returned. If a single column is
+        requested, a DataFrame with a single column is returned, not a Series:
+
+        >>> df.select("age")
+           age
+        0   61
+        1   22
+        2   35
+
+        Columns can be computed with :func:`pandas.col` expressions, either
+        positionally (the result keeps the name of the underlying column) or
+        as keyword arguments (the keyword is the resulting column name):
+
+        >>> df.select("first_name", pd.col("age"), age_months=pd.col("age") * 12)
+          first_name  age  age_months
+        0       John   61         732
+        1      Alice   22         264
+        2        Bob   35         420
+
+        Later items can refer to columns computed earlier in the same call:
+
+        >>> df.select(
+        ...     "first_name",
+        ...     age_months=pd.col("age") * 12,
+        ...     age_days=pd.col("age_months") * 30,
+        ... )
+          first_name  age_months  age_days
+        0       John         732     21960
+        1      Alice         264      7920
+        2        Bob         420     12600
+
+        The ``select`` method also works when the columns are a
+        ``MultiIndex``:
+
+        >>> df = pd.DataFrame(
+        ...     [("John", "Smith", 61), ("Alice", "Cooper", 22), ("Bob", "Marley", 35)],
+        ...     columns=pd.MultiIndex.from_tuples(
+        ...         [("names", "first_name"), ("names", "last_name"), ("other", "age")]
+        ...     ),
+        ... )
+
+        If column names are provided, they will select from the first level of
+        the ``MultiIndex``:
+
+        >>> df.select("names")
+               names
+          first_name last_name
+        0       John     Smith
+        1      Alice    Cooper
+        2        Bob    Marley
+
+        To select from multiple or all levels, tuples can be used:
+
+        >>> df.select(("names", "last_name"), ("other", "age"))
+              names other
+          last_name   age
+        0     Smith    61
+        1    Cooper    22
+        2    Marley    35
+        """
+        from pandas.core.methods.select import select
+
+        return select(self, args, kwargs)
 
     def insert(
         self,
