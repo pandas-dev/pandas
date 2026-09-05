@@ -417,11 +417,17 @@ class ArrowParserWrapper(ParserBase):
 
                 # Process dtype for index_col and drop from dtypes
                 if isinstance(self.dtype, dict):
-                    key, new_dtype = (
-                        (item, self.dtype.get(item))
-                        if self.dtype.get(item) is not None
-                        else (frame.columns[item], self.dtype.get(frame.columns[item]))
-                    )
+                    # GH#68041 an index_col given by position looks the
+                    # dtype up by column name; a string index_col that is
+                    # missing from the dtype dict is left as-is (the
+                    # remaining dtype keys are applied in _finalize_dtype)
+                    if self.dtype.get(item) is not None:
+                        key, new_dtype = item, self.dtype[item]
+                    elif is_integer(item) and frame.columns[item] in self.dtype:
+                        col_name = frame.columns[item]
+                        key, new_dtype = col_name, self.dtype[col_name]
+                    else:
+                        key, new_dtype = item, None
                     if new_dtype is not None:
                         frame[key] = frame[key].astype(new_dtype)
                         del self.dtype[key]
