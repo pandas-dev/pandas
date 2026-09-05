@@ -24,6 +24,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas.core.apply import maybe_mangle_lambdas
 import pandas.core.common as com
 from pandas.core.groupby import Grouper
 from pandas.core.indexes.api import (
@@ -451,8 +452,15 @@ def _add_margins(
 
     if table.ndim == 2:
         # i.e. DataFrame
-        for level in table.columns.names[1:]:
-            if margins_name in table.columns.get_level_values(level):
+        # GH#12210 use the private, purely positional _get_level_values:
+        # get_level_values resolves an int as a *name* first (MultiIndex.
+        # _get_level_number), so if some other level happens to be named
+        # with an integer, a "positional" lookup here could silently
+        # inspect the wrong level. The extra function-name level(s) added
+        # by a dict aggfunc containing a list of functions are unnamed and
+        # may also collide (all None), which breaks name-based lookup too.
+        for i in range(1, table.columns.nlevels):
+            if margins_name in table.columns._get_level_values(i):
                 raise ValueError(msg)
 
     key: str | tuple[str, ...]
@@ -500,7 +508,13 @@ def _add_margins(
         if isinstance(k, str):
             row_margin[k] = grand_margin[k]
         else:
-            row_margin[k] = grand_margin[k[0]]
+            gm = grand_margin[k[0]]
+            if isinstance(gm, ABCSeries):
+                # GH#12210 aggfunc[k[0]] was a list of functions, so the
+                # grand margin for this column is itself keyed by func name.
+                row_margin[k] = gm[k[1]]
+            else:
+                row_margin[k] = gm
 
     # GH#55484 recover the correct dtype when row_margin was initialized as
     # object (len(cols)==0 path); no-op for already-typed series.
@@ -540,15 +554,16 @@ def _compute_grand_margin(
         grand_margin = {}
         for k, v in data[values].items():
             try:
-                if isinstance(aggfunc, str):
-                    grand_margin[k] = getattr(v, aggfunc)(**kwargs)
-                elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], str):
-                        grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
-                    else:
-                        grand_margin[k] = aggfunc[k](v, **kwargs)
+                # GH#12210 use Series.agg uniformly: it already handles a
+                # string, a callable, or a list of functions (the latter
+                # returns a Series keyed by function name). Duplicate
+                # anonymous lambdas need mangling to unique names (as
+                # GroupBy.agg already does for the main aggregation), so
+                # the resulting labels agree with table.columns.
+                if isinstance(aggfunc, dict):
+                    grand_margin[k] = v.agg(maybe_mangle_lambdas(aggfunc[k]), **kwargs)
                 else:
-                    grand_margin[k] = aggfunc(v, **kwargs)
+                    grand_margin[k] = v.agg(aggfunc, **kwargs)
             except TypeError:
                 pass
         return grand_margin
@@ -582,8 +597,15 @@ def _generate_marginal_results(
         table_pieces = []
         margin_keys = []
 
+        # GH#12210 a dict aggfunc containing a list of functions adds an
+        # extra function-name level above the `cols` levels, so more than
+        # one level may need to be grouped over / included in the key.
+        n_group_levels = table.columns.nlevels - len(cols)
+
         def _all_key(key):
-            return (key, margins_name) + ("",) * (len(cols) - 1)
+            if not isinstance(key, tuple):
+                key = (key,)
+            return key + (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
             margin = (
@@ -593,7 +615,19 @@ def _generate_marginal_results(
             )
             cat_axis = 1
 
-            for key, piece in table.T.groupby(level=0, observed=observed):
+            # Build explicit level-value arrays instead of passing `level=`
+            # positions: MultiIndex._get_level_number resolves integers as
+            # *names* first, so an integer level name elsewhere in the index
+            # (e.g. a `columns=` level literally named with an int) could
+            # hijack a positional `level=` lookup. Grouping by a
+            # single-element list (rather than a bare array) changes the
+            # yielded key from a scalar to a 1-tuple, so only wrap in a list
+            # when there is more than one level to group by.
+            level_arrays = [
+                table.columns._get_level_values(i) for i in range(n_group_levels)
+            ]
+            group_by = level_arrays if n_group_levels > 1 else level_arrays[0]
+            for key, piece in table.T.groupby(by=group_by, observed=observed):
                 piece = piece.T
                 all_key = _all_key(key)
 
@@ -648,12 +682,22 @@ def _generate_marginal_results(
             .groupby(cols, observed=observed, dropna=dropna)
             .agg(aggfunc, **kwargs)
         )
-        row_margin = row_margin.stack()
+        # GH#12210 stack all non-`cols` column levels (normally just the
+        # single "value" level, but a dict aggfunc with a list of functions
+        # adds an extra "func name" level that must be stacked too).
+        n_stacked = row_margin.columns.nlevels
+        row_margin = row_margin.stack(list(range(n_stacked)))
 
-        # GH#26568. Use names instead of indices in case of numeric names
-        new_order_indices = itertools.chain([len(cols)], range(len(cols)))
-        new_order_names = [row_margin.index.names[i] for i in new_order_indices]
-        row_margin.index = row_margin.index.reorder_levels(new_order_names)
+        # GH#26568/GH#12210: reorder by raw position via the private
+        # _reorder_ilevels, not the public reorder_levels. The public API
+        # resolves ints as *names* first (MultiIndex._get_level_number), so
+        # an integer level name (numeric column names) or a duplicated/None
+        # name (list-of-functions aggfunc) can each cause a plain
+        # positional order list to be misinterpreted.
+        new_order_indices = list(
+            itertools.chain(range(len(cols), len(cols) + n_stacked), range(len(cols)))
+        )
+        row_margin.index = row_margin.index._reorder_ilevels(new_order_indices)
     else:
         # GH#55484 use object dtype so setitem works for grand-margin scalars
         # whose dtype cannot hold NA (e.g. IntervalDtype with integer subtype);
