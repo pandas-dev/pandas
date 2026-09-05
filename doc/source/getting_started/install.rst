@@ -105,7 +105,7 @@ Installing the development version is the quickest way to:
 * Check whether a bug you encountered has been fixed since the last release.
 
 The development version is usually uploaded daily to the scientific-python-nightly-wheels
-index from the PyPI registry of anaconda.org. You can install it by running.
+index from the PyPI registry of anaconda.org. You can install it by running:
 
 .. code-block:: shell
 
