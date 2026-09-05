@@ -87,6 +87,16 @@ def arrow_table_to_pandas(
 
     to_pandas_kwargs = {} if to_pandas_kwargs is None else to_pandas_kwargs
 
+    # GH#XXXXX pandas derives 'types_mapper' from 'dtype_backend' below and
+    # passes it to Table.to_pandas itself. Letting it through here would reach
+    # to_pandas twice and fail with an opaque "multiple values for keyword
+    # argument" TypeError, so reject it with an actionable message instead.
+    if "types_mapper" in to_pandas_kwargs:
+        raise ValueError(
+            "The 'types_mapper' key is not supported in 'to_pandas_kwargs'; "
+            "use 'dtype_backend' to control the resulting dtypes"
+        )
+
     types_mapper: type[pd.ArrowDtype] | Callable | None
     if dtype_backend == "numpy_nullable":
         mapping = _arrow_dtype_mapping()
