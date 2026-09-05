@@ -1595,8 +1595,24 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
         # see https://github.com/cython/cython/issues/2646
         if arr.dtype.name in ["int8", "int16"]:
             dtype = np.float32
+        elif (
+            arr.dtype.name == "uint64"
+            and arr.size
+            and arr.max() > np.iinfo(np.int64).max
+        ):
+            # values too large for int64 can't be diffed in a signed dtype
+            # without overflowing; use arbitrary-precision Python ints
+            # instead of silently wrapping around, see GH#4899
+            dtype = np.object_
+            arr = arr.astype(object)
         else:
             dtype = np.float64
+            if arr.dtype.kind == "u":
+                # unsigned ints must be diffed in a signed dtype wide
+                # enough to hold them, else e.g. uint32(0) - uint32(3)
+                # wraps around to a large positive value instead of
+                # producing -3, see GH#4899
+                arr = arr.astype(np.int64)
 
     orig_ndim = arr.ndim
     if orig_ndim == 1:
