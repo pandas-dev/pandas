@@ -852,6 +852,21 @@ def test_mix_page_row_count_too_large_to_reach_raises(datapath):
         ).read()
 
 
+@pytest.mark.parametrize("sub_offset", [63782, 63718])
+def test_late_metadata_page_format_subheader_raises(datapath, sub_offset):
+    # GH#68053 a format subheader builds a column from the next name the file
+    #  declared, so one on a metadata page after the data pages runs off the end
+    #  of those names -- every column already has its format. dates_null has two
+    #  of them; either one replayed reported as a bare IndexError from inside the
+    #  subheader walk.
+    data = _dates_null_with_late_metadata_page(datapath, sub_offset, 64, [])
+    with pd.read_sas(
+        io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
+    ) as reader:
+        with pytest.raises(ValueError, match="the file is corrupt"):
+            reader.read()
+
+
 def test_late_metadata_page_repeating_layout_reads(datapath):
     # GH#47339 the check above must not fire on a metadata page that follows the
     #  data pages and restates the layout the file was opened with -- the parser

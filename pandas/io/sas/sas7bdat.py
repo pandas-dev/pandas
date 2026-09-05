@@ -802,6 +802,16 @@ class SAS7BDATReader(SASReader):
         pass
 
     def _process_format_subheader(self, offset: int, length: int) -> None:
+        # A format subheader describes the next column the file declared, so one
+        # past them cannot be applied. Every format subheader reached after the
+        # file is open is such a one -- every column already has its format.
+        n_declared = min(len(self.column_names), len(self._column_types))
+        if len(self.columns) >= n_declared:
+            raise ValueError(
+                f"A format subheader describes a column past the {n_declared} "
+                f"the file declared; the file is corrupt"
+            )
+
         int_len = self._int_length
         text_subheader_format = (
             offset + const.column_format_text_subheader_index_offset + 3 * int_len
