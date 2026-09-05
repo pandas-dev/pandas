@@ -11,8 +11,8 @@ def autouse_mpl_cleanup(mpl_cleanup):
 
 @pytest.fixture(autouse=True)
 def restore_plot_params():
-    # plot_params is process-global, so a test that sets it changes how every
-    # later test in the same process plots datetime indexes
+    # guard: plot_params is process-global, so a write that escapes its test
+    # changes how every later test in the same process plots datetime indexes
     original = dict(pd.plotting.plot_params)
     yield
     pd.plotting.plot_params.clear()
