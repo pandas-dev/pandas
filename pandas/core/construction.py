@@ -561,6 +561,15 @@ def ensure_wrapped_if_datetimelike(arr):
     return arr
 
 
+def ensure_s3_converted_to_obj(arr):
+    """
+    Convert numpy S3 dtype to function astype(object).
+    """
+    if isinstance(arr.dtype, np.dtype) and arr.dtype.kind == "S" and arr.dtype == "S3":
+        arr = arr.astype(object)
+    return arr
+
+
 def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     Convert numpy MaskedArray to a plain ndarray with the masked entries filled.

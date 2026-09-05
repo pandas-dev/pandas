@@ -155,6 +155,7 @@ from pandas.core.base import (
 )
 import pandas.core.common as com
 from pandas.core.construction import (
+    ensure_s3_converted_to_obj,
     ensure_wrapped_if_datetimelike,
     extract_array,
     sanitize_array,
@@ -584,6 +585,8 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError("Index data must be 1-dimensional") from err
             raise
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
+
+        arr = ensure_s3_converted_to_obj(arr)  # GH#50127
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
