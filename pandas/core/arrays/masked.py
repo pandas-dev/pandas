@@ -1094,14 +1094,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if len(self) != len(other):
                 raise ValueError("Lengths must match to compare")
 
+        mask = self._propagate_mask(mask, other)
         if other is libmissing.NA:
             # numpy does not handle pd.NA well as "other" scalar (it returns
             # a scalar False instead of an array)
             # This may be fixed by NA.__array_ufunc__. Revisit this check
             # once that's implemented.
             result = np.zeros(self._data.shape, dtype="bool")
-            mask = np.ones(self._data.shape, dtype="bool")
         else:
+            if isinstance(other, np.ndarray) and other.dtype == object and mask.any():
+                other = np.where(mask, False, other)
             with warnings.catch_warnings():
                 # numpy may show a FutureWarning or DeprecationWarning:
                 #     elementwise comparison failed; returning scalar instead,

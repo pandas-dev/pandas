@@ -690,6 +690,7 @@ Numeric
 - Bug in :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.sem`, and their :class:`DataFrame` counterparts raising ``TypeError`` for object-dtype data holding numbers that the other statistics accept, such as :class:`decimal.Decimal` or complex numbers (:issue:`34671`)
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) for :class:`ArrowDtype` returning the biased (population) statistic instead of the bias-corrected sample statistic returned by other dtypes; :meth:`Series.kurt` also raised ``TypeError`` instead of computing a result (:issue:`66336`)
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)
+- Fixed bug in comparisons involving object dtype array-like, :class:`Series`, or :class:`DataFrame` containing ``pd.NA``. These now return ``pd.NA`` instead of ``False`` (:issue:`63328`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
 

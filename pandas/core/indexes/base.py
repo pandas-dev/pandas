@@ -43,7 +43,11 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    NA,
+    is_matching_na,
+    is_pdna,
+)
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     Timestamp,
@@ -7696,17 +7700,18 @@ class Index(IndexOpsMixin, PandasObject):
         Wrapper used to dispatch comparison operations.
         """
         if isinstance(other, Index) and self.is_(other):
-            # fastpath
-            if op in {operator.eq, operator.le, operator.ge}:
-                arr = np.ones(len(self), dtype=bool)
+            if op in {operator.eq, operator.le, operator.ge, operator.ne}:
+                # fastpath
+                is_ne = op is operator.ne
+                arr = np.full(len(self), not is_ne, dtype=bool)
                 if self._can_hold_na and not isinstance(self, ABCMultiIndex):
                     # TODO: should set MultiIndex._can_hold_na = False?
-                    arr[self.isna()] = False
-                return arr
-            elif op is operator.ne:
-                arr = np.zeros(len(self), dtype=bool)
-                if self._can_hold_na and not isinstance(self, ABCMultiIndex):
-                    arr[self.isna()] = True
+                    arr[self.isna()] = is_ne
+                    if self.dtype == object and self.hasnans:
+                        is_pdna_mask = is_pdna(self._values)  # type: ignore[arg-type]
+                        if is_pdna_mask.any():
+                            arr = arr.astype(object)
+                            arr[is_pdna_mask] = NA
                 return arr
 
         if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
