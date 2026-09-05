@@ -1058,6 +1058,8 @@ Other
 - Bug in :meth:`Series.transform` and :meth:`DataFrame.transform` where passing a list of duplicate function names did not raise :class:`errors.SpecificationError` (:issue:`54929`)
 - Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
 - Bug in the ``display.max_colwidth`` option where values smaller than ``4`` were silently ignored, leaving the repr untruncated and its column headers misaligned (:issue:`16097`)
+- Bug in ufunc calls such as ``np.maximum(series, 0, where=series > 2)`` where passing a :class:`Series`, :class:`Index`, or other pandas object as the ``where`` argument recursed infinitely, raising ``RecursionError`` or crashing the interpreter, instead of masking the result (:issue:`60611`)
+- Bug in ufunc calls with both ``out`` and ``where`` arguments where passing a :class:`Series` or :class:`Index` as ``out`` raised ``TypeError`` from ``numpy.putmask`` instead of writing the masked result into it (:issue:`60611`)
 
 .. ***DO NOT USE THIS SECTION***
 
