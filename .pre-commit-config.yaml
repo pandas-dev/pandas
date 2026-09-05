@@ -312,6 +312,12 @@ repos:
         files: ^(pixi\.toml|\.github/workflows/unit-tests\.yml|pandas/tests/.*\.py|pandas/conftest\.py)$
         additional_dependencies: [pyyaml]
         pass_filenames: false
+    -   id: validate-pixi-version
+        name: Check pixi version is pinned consistently
+        entry: python -m scripts.validate_pixi_version
+        language: python
+        files: ^(\.github/actions/setup-pixi/action\.yml|\.github/workflows/update-pixi-lock\.yml)$
+        pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations
         description: Validate errors are in appropriate locations.
