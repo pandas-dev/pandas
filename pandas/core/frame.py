@@ -7495,7 +7495,7 @@ class DataFrame(NDFrame, OpsMixin):
         append: bool = ...,
         inplace: bool | lib.NoDefault = lib.no_default,
         verify_integrity: bool | lib.NoDefault = ...,
-    ) -> DataFrame: ...
+    ) -> DataFrame | None: ...
 
     def set_index(
         self,
