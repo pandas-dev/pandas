@@ -3731,6 +3731,29 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+def test_replace_with_mask_null_type_no_abort():
+    # GH#66703 replace_with_mask hard-aborts the process (SIGABRT, not a
+    # catchable exception) for null-typed arrays on some pyarrow versions;
+    # any operation routed through _replace_with_mask should avoid the
+    # pyarrow kernel entirely for this type instead of calling into it.
+    pa_arr = pa.array([None, None, None], type=pa.null())
+    ser = pd.Series(pa_arr, dtype=ArrowDtype(pa.null()))
+    mask = np.array([True, False, False])
+
+    result = ser.copy()
+    result[mask] = None
+    tm.assert_series_equal(result, ser)
+
+    tm.assert_series_equal(ser.where(mask), ser)
+    tm.assert_series_equal(ser.mask(mask), ser)
+    tm.assert_series_equal(ser.combine_first(ser), ser)
+
+    df = ser.to_frame("a")
+    result = df.copy()
+    result.loc[mask, "a"] = None
+    tm.assert_frame_equal(result, df)
+
+
 def test_setitem_na_chunked_string_if_else():
     # GH#64320
     df = pd.concat(
