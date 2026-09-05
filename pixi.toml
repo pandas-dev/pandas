@@ -73,6 +73,9 @@ python = "3.14.*"
 [feature.py313-freethreading.dependencies]
 python-freethreading = "3.13.*"
 
+[feature.py313-freethreading.pypi-dependencies]
+pyarrow = ">=16.0.0, <25"
+
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
 pytest-xdist = ">=3.6.1"
@@ -218,7 +221,7 @@ py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-net
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
 minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
 py313-freethreading = { features = ["py313-freethreading", "numpy", "test-base", "default-compiler"] }
-numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "default-compiler"] }
+numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "pyarrow", "default-compiler"] }
 pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly", "default-compiler"] }
 downstream = { features = ["py313", "numpy", "test-base", "downstream", "default-compiler"] }
 asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks", "default-compiler"] }
@@ -226,7 +229,7 @@ doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dep
 typing = { features = ["py313", "numpy", "test-base", "pyarrow25", "optional-dependencies", "typing", "default-compiler"] }
 docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website", "default-compiler"] }
 mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
-sanitizers = { features = ["py313", "numpy", "test-base", "optional-dependencies", "sanitizers"] }
+sanitizers = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "sanitizers"] }
 
 
 [tasks]
