@@ -5870,6 +5870,11 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
+                    if dtype_obj.kind == "M" and dtype_obj.pyarrow_dtype.tz is not None:
+                        # GH#68075: numpy_dtype drops the tz, so a tz-aware
+                        # column would match a naive datetime64 spec; a
+                        # DatetimeTZDtype column matches none of these either
+                        return False
                     # class- and string-based matching treats ArrowDtype
                     # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
