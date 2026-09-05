@@ -107,3 +107,15 @@ def test_maybe_unbox_numpy_scalar_object_dtype():
             value, object_with_dtype=np.array([], dtype=object)
         )
     assert result is value
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [(np.longdouble("1.5"), float), (np.clongdouble("1.5+2.5j"), complex)],
+)
+def test_maybe_unbox_numpy_scalar_extended_precision(value, expected):
+    # GH#68053 np.float128/np.complex256 do not exist on macOS arm64 or Windows,
+    # so the checks must use the always-present longdouble aliases
+    with pd.option_context("future.python_scalars", True):
+        result = maybe_unbox_numpy_scalar(value)
+    assert type(result) is expected
