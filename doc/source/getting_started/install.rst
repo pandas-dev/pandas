@@ -11,7 +11,7 @@ through the following methods:
 
 * Available on `conda-forge <https://anaconda.org/conda-forge/pandas>`__ for installation with the conda package manager.
 * Available on `PyPI <https://pypi.org/project/pandas/>`__ for installation with pip.
-* Available on `Github <https://github.com/pandas-dev/pandas>`__ for installation from source.
+* Available on `GitHub <https://github.com/pandas-dev/pandas>`__ for installation from source.
 
 .. note::
     pandas may be installable from other sources besides the ones listed above,
