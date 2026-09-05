@@ -4321,7 +4321,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
         # trying to reindex on an axis with duplicates
         if not self._index_as_unique and len(indexer):
-            raise ValueError("cannot reindex on an axis with duplicate labels")
+            raise ValueError(
+                "cannot reindex on an axis with duplicate labels; reindexing "
+                "to a target that differs from the current index is "
+                "ambiguous when the current index has duplicates. "
+                "Reindexing to the exact same index (a no-op) is still "
+                "allowed even when it has duplicate labels."
+            )
 
     def reindex(
         self,
@@ -4377,7 +4383,12 @@ class Index(IndexOpsMixin, PandasObject):
         ValueError
             If non-unique multi-index
         ValueError
-            If non-unique index and ``method`` or ``limit`` passed.
+            If the index has duplicate labels and ``target`` differs from
+            the index itself, since choosing among the duplicates would be
+            ambiguous; this includes the case where ``method`` or ``limit``
+            is passed. Reindexing to a target identical to the existing
+            index is always allowed, even with duplicate labels, since it
+            is a no-op.
 
         See Also
         --------
@@ -4434,7 +4445,13 @@ class Index(IndexOpsMixin, PandasObject):
             raise ValueError("cannot handle a non-unique multi-index!")
         elif not self.is_unique:
             # GH#42568
-            raise ValueError("cannot reindex on an axis with duplicate labels")
+            raise ValueError(
+                "cannot reindex on an axis with duplicate labels; reindexing "
+                "to a target that differs from the current index is "
+                "ambiguous when the current index has duplicates. "
+                "Reindexing to the exact same index (a no-op) is still "
+                "allowed even when it has duplicate labels."
+            )
         else:
             indexer, _ = self.get_indexer_non_unique(target)
 
