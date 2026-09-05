@@ -141,6 +141,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.computation.parsing import clean_column_name
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -5077,6 +5078,14 @@ class DataFrame(NDFrame, OpsMixin):
             DataFrame resulting from the provided query expression or
             None if ``inplace=True``.
 
+        Raises
+        ------
+        ValueError
+            If ``expr`` refers to a column label that is not unique and still
+            evaluates to a DataFrame, since there is then no row mask to select
+            with. Reducing those columns back to one dimension, as in
+            ``df.query("a.max(axis=1) > 4")``, is fine.
+
         See Also
         --------
         eval : Evaluate a string describing operations on
@@ -5196,6 +5205,12 @@ class DataFrame(NDFrame, OpsMixin):
             msg = f"expr must be a string to be evaluated, {type(expr)} given"
             raise ValueError(msg)
 
+        query_resolvers: tuple[Mapping[Any, Any], ...] = tuple(resolvers or ())
+        duplicates: _DuplicateColumnRecorder | None = None
+        if self.columns.has_duplicates:
+            duplicates = _DuplicateColumnRecorder.from_columns(self.columns)
+            query_resolvers += (duplicates,)
+
         res = self.eval(
             expr,
             level=level + 1,
@@ -5204,8 +5219,20 @@ class DataFrame(NDFrame, OpsMixin):
             engine=engine,
             local_dict=local_dict,
             global_dict=global_dict,
-            resolvers=resolvers or (),
+            resolvers=query_resolvers,
         )
+
+        if (
+            duplicates is not None
+            and duplicates.referenced
+            and getattr(res, "ndim", 1) == 2
+        ):
+            raise ValueError(
+                "expr referenced a duplicated column label, which resolves to "
+                "a DataFrame rather than a Series, so expr did not evaluate to "
+                "a row mask. Rename or drop the duplicate labels, or reduce "
+                "the result to one dimension with e.g. .any(axis=1)."
+            )
 
         try:
             result = self.loc[res]
@@ -5846,6 +5873,11 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
+                    if dtype_obj.kind == "M" and dtype_obj.pyarrow_dtype.tz is not None:
+                        # GH#68075: numpy_dtype drops the tz, so a tz-aware
+                        # column would match a naive datetime64 spec; a
+                        # DatetimeTZDtype column matches none of these either
+                        return False
                     # class- and string-based matching treats ArrowDtype
                     # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
@@ -7740,7 +7772,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel = ...,
         *,
         drop: bool = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool = ...,
@@ -7752,7 +7784,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel | None = None,
         *,
         drop: bool = False,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool = False,
@@ -7775,6 +7807,14 @@ class DataFrame(NDFrame, OpsMixin):
             the index to the default integer index.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -7916,6 +7956,19 @@ class DataFrame(NDFrame, OpsMixin):
         lion           mammal   80.5     run
         monkey         mammal    NaN    jump
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if inplace:
@@ -20089,6 +20142,49 @@ def _values_unchanged(before: ArrayLike, after: ArrayLike) -> bool:
     right = construct_1d_object_array_from_listlike(list(after))
     both_na = isna(left) & isna(right)
     return array_equivalent(left[~both_na], right[~both_na], strict_nan=True)
+
+
+class _DuplicateColumnRecorder(dict):
+    """
+    Notes whether a query expression referenced a duplicated column label.
+
+    Such a label resolves to a :class:`DataFrame` rather than a
+    :class:`Series` (GH#65588), which is fine for an expression that reduces it
+    back to one dimension and useless to :meth:`DataFrame.query` otherwise, so
+    this only takes note and ``query`` decides once it can see the result.
+
+    Lookups always raise ``KeyError`` so that the column resolvers behind this
+    one still supply the value. The names live in an attribute rather than in
+    the dict itself because the scope machinery rewrites an ``@local``
+    reference by writing it into the first resolver that *contains* that name
+    (``Scope.swapkey``), so anything stored here would capture locals sharing a
+    name with a duplicated column.
+    """
+
+    def __init__(self, names: set[Hashable]) -> None:
+        super().__init__()
+        self.names = names
+        self.referenced = False
+
+    @classmethod
+    def from_columns(cls, columns: Index) -> _DuplicateColumnRecorder:
+        # _get_cleaned_column_resolvers keys on the cleaned name and lets the
+        # last label win, and clean_column_name is not injective, so work out
+        # which label each name resolves to before asking whether that one is
+        # duplicated.
+        resolved = dict(
+            zip(
+                (clean_column_name(label) for label in columns),
+                columns.duplicated(keep=False),
+                strict=True,
+            )
+        )
+        return cls({name for name, is_duplicated in resolved.items() if is_duplicated})
+
+    def __getitem__(self, key):
+        if key in self.names:
+            self.referenced = True
+        raise KeyError(key)
 
 
 def _from_nested_dict(

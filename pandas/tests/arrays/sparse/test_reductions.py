@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
 
@@ -339,3 +340,77 @@ class TestArgmaxArgmin:
         arr = SparseArray([])
         with pytest.raises(ValueError, match=msg):
             getattr(arr, method)()
+
+
+@pytest.mark.parametrize("values, expected", [([1, 2, 4], 7 / 3), ([1, 2, 3], 2.0)])
+def test_frame_mean_int_column_not_truncated(values, expected):
+    # GH#55123 the DataFrame path cast the reduction back to the column's
+    #  dtype, truncating the mean of an integer column
+    df = pd.DataFrame({"a": SparseArray(np.array(values), fill_value=0)})
+    result = df.mean()
+    expected = pd.Series([expected], index=["a"], dtype=pd.SparseDtype("float64", 0.0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_sum_bool_column_not_cast_back():
+    # GH#55123 summing a bool column gave True instead of the count
+    df = pd.DataFrame({"a": SparseArray([True, False, False], fill_value=False)})
+    result = df.sum()
+    expected = pd.Series([1], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_sum_narrow_int_column_does_not_overflow():
+    # GH#55123 casting the sum back to a narrow subtype wrapped around
+    df = pd.DataFrame({"a": SparseArray(np.array([100, 100, 100], dtype="int8"))})
+    result = df.sum()
+    expected = pd.Series([300], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_count_sparse_columns():
+    # GH#55123 count went through the same cast and collapsed every sparse
+    #  column to 1
+    df = pd.DataFrame(
+        {"a": SparseArray([1.0, 2.0, 3.0]), "b": SparseArray([1.0, np.nan, 3.0])}
+    )
+    result = df.count()
+    expected = pd.Series([3, 2], index=["a", "b"], dtype="int64")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize("subtype", ["int64", "bool"])
+def test_frame_min_max_empty_column(method, subtype):
+    # GH#55123 reducing an empty column gives NaN, which these subtypes cannot
+    #  hold; casting back gave True for bool and raised for int64
+    df = pd.DataFrame({"a": SparseArray(np.array([], dtype=subtype))})
+    result = getattr(df, method)()
+    expected = pd.Series([np.nan], index=["a"], dtype=pd.SparseDtype("float64", 0.0))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arr, subtype",
+    [
+        (SparseArray([True, False, False], fill_value=False), "float64"),
+        (SparseArray(np.array([1, 2, 4]), fill_value=0), "float64"),
+        # a float32 subtype already holds the missing value, so it is retained
+        (SparseArray(np.array([1, 2, 4], dtype="float32"), fill_value=0), "float32"),
+    ],
+)
+def test_frame_sum_min_count_not_cast_to_column_dtype(arr, subtype):
+    # GH#55123 the missing value produced by min_count was swallowed by the
+    #  cast back to the column's dtype
+    df = pd.DataFrame({"a": arr})
+    result = df.sum(min_count=4)
+    expected = pd.Series([np.nan], index=["a"], dtype=pd.SparseDtype(subtype, 0.0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_reduction_keeps_datetime64_dtype():
+    # the widening must not kick in for a datetime64 subtype
+    arr = SparseArray(np.array(["2020-01-01", "2020-01-03"], dtype="M8[ns]"))
+    result = pd.DataFrame({"a": arr}).max()
+    expected = pd.Series([pd.Timestamp("2020-01-03")], index=["a"], dtype=arr.dtype)
+    tm.assert_series_equal(result, expected)

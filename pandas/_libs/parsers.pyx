@@ -22,6 +22,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas import (
     ArrowDtype,
+    Index,
     StringDtype,
 )
 from pandas.core.arrays import (
@@ -418,6 +419,8 @@ cdef class TextReader:
         dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
+        bint low_memory_chunking
+        dict deferred_cat_cols  # dict[int, CategoricalDtype]
         str _pa_target  # cached _string_convert target; None = unresolved
         # Let the pyarrow string fast path return raw _PendingStringColumn
         # handles instead of ExtensionArrays; the c_parser_wrapper layer
@@ -608,6 +611,9 @@ cdef class TextReader:
         self.datetime_cols = {}
         self.dt_chunk_states = None
         self.lm_chunk_idx = 0
+
+        self.low_memory_chunking = False
+        self.deferred_cat_cols = {}
 
         self.index_col = index_col
 
@@ -967,6 +973,7 @@ cdef class TextReader:
         """
         self._check_not_closed()
         # Don't care about memory usage
+        self.low_memory_chunking = False
         columns = self._read_rows(rows, self.trim_after_read)
 
         return columns
@@ -983,6 +990,8 @@ cdef class TextReader:
             list chunks = []
 
         self._check_not_closed()
+        self.low_memory_chunking = True
+        self.deferred_cat_cols = {}
 
         if self.datetime_cols:
             # Per-chunk fastpath state keyed by column; see _DatetimeChunkState.
@@ -1049,6 +1058,50 @@ cdef class TextReader:
                         dtype_backend=self.dtype_backend,
                     )
                 chunks[chunk_idx][col] = strs
+
+    cdef tuple _categorical_convert_options(self):
+        """
+        Parser options feeding category inference, shared by the deferred
+        low-memory path and the per-column one so they cannot drift.
+
+        Returns (true_values, false_values, convert_numeric, float_only).
+        ``to_numeric`` is unaware of the thousands/decimal options, so columns
+        read with those set keep string categories rather than mis-parsing.
+        """
+        return (
+            [x.decode() for x in self.true_values],
+            [x.decode() for x in self.false_values],
+            self.parser.thousands == b"\0" and self.parser.decimal == b".",
+            self.parser.quoting == QUOTE_NONNUMERIC,
+        )
+
+    def _maybe_infer_categoricals(self, data: dict) -> None:
+        """
+        Apply category-dtype inference deferred by read_low_memory.
+
+        Per-chunk inference could give chunks with differing category dtypes,
+        breaking union_categoricals, so _convert_with_dtype defers it during
+        low-memory reads. Modifies the concatenated ``data`` in place.
+        """
+        true_values, false_values, convert_numeric, float_only = (
+            self._categorical_convert_options()
+        )
+        for i, dtype in self.deferred_cat_cols.items():
+            cat = data[i]
+            array_type = dtype.construct_array_type()
+            converted = array_type._maybe_convert_categories(
+                cat.categories, true_values=true_values,
+                false_values=false_values, convert_numeric=convert_numeric,
+                convert_bool=True, float_only=float_only,
+                bool_case_insensitive=True)
+            if converted is None:
+                # no conversion applies, but union_categoricals still left the
+                #  categories in chunk order; sorting here is what makes
+                #  low_memory=True agree with low_memory=False
+                converted = cat.categories
+            data[i] = array_type._from_converted_categories(
+                converted, cat._codes, ordered=dtype.ordered)
+        self.deferred_cat_cols = {}
 
     cdef _tokenize_rows(self, uint64_t nrows):
         cdef:
@@ -1382,11 +1435,38 @@ cdef class TextReader:
                 self.parser, i, start, end, na_filter, na_hashset,
                 self.encoding_errors)
 
-            # Method accepts list of strings, not encoded ones.
-            true_values = [x.decode() for x in self.true_values]
             array_type = dtype.construct_array_type()
-            cat = array_type._from_inferred_categories(
-                cats, codes, dtype, true_values=true_values)
+            if self.low_memory_chunking and dtype.categories is None:
+                # GH#56044 chunks could each infer a different category dtype,
+                #  breaking union_categoricals; defer inference to
+                #  _maybe_infer_categoricals on the concatenated result.  dtype
+                #  is dropped for the per-chunk call along with it, since
+                #  union_categoricals rejects ordered inputs whose categories
+                #  differ.  Sorting is deferred too, so the concatenated
+                #  categories arrive in the observation order the non-chunked
+                #  path sees, rather than a per-chunk sorted one.
+                self.deferred_cat_cols[i] = dtype
+                cat = array_type._from_inferred_categories(
+                    cats, codes, None, sort_categories=False)
+                return cat, na_count, None
+
+            true_values, false_values, convert_numeric, float_only = (
+                self._categorical_convert_options()
+            )
+            if dtype.categories is None:
+                # GH#56044 mirror the type inference performed on ordinary
+                #  (non-categorical) columns so that all engines agree
+                cats = Index(cats, copy=False)
+                converted = array_type._maybe_convert_categories(
+                    cats, true_values=true_values, false_values=false_values,
+                    convert_numeric=convert_numeric, convert_bool=True,
+                    float_only=float_only, bool_case_insensitive=True)
+                cat = array_type._from_converted_categories(
+                    cats if converted is None else converted, codes,
+                    ordered=dtype.ordered)
+            else:
+                cat = array_type._from_inferred_categories(
+                    cats, codes, dtype, true_values=true_values)
             return cat, na_count, None
 
         elif isinstance(dtype, ExtensionDtype):
@@ -2010,38 +2090,41 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         khiter_t k
 
     table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
+    try:
+        lines = line_end - line_start
+        result = np.empty(lines, dtype=np.object_)
+        coliter_setup(&it, parser, col, line_start)
 
-    for i in range(lines):
-        word = coliter_next_with_idx(&it, &token_idx)
-        word_len = _token_len(parser, token_idx)
+        for i in range(lines):
+            word = coliter_next_with_idx(&it, &token_idx)
+            word_len = _token_len(parser, token_idx)
 
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
-                # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
+            if na_filter:
+                if kh_get_str_starts_item(na_hashset, word, <size_t>word_len):
+                    # in the hash table
+                    na_count += 1
+                    result[i] = NA
+                    continue
 
-        # no deletions from this table, so ret == 0 means already present.
-        # The key carries its length, so two fields that differ only past an
-        # embedded NUL no longer intern to the same object.
-        k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+            # no deletions from this table, so ret == 0 means already present.
+            # The key carries its length, so two fields that differ only past an
+            # embedded NUL no longer intern to the same object.
+            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
 
-        # in the hash table
-        if ret == 0:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+            # in the hash table
+            if ret == 0:
+                # this increments the refcount, but need to test
+                pyval = <object>table.vals[k]
+            else:
+                # can raise for invalid UTF-8 under encoding_errors="strict"
+                # (GH#67931)
+                pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
 
-            table.vals[k] = <PyObject *>pyval
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
 
     return result, na_count
 
@@ -2401,24 +2484,29 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
         khiter_t k
 
     table = kh_init_strbox()
-    for i in range(lines):
-        if offsets[i] == -1:
-            result[i] = NA
-            continue
-        word = buf + offsets[i]
-        word_len = strlen(word)
+    try:
+        for i in range(lines):
+            if offsets[i] == -1:
+                result[i] = NA
+                continue
+            word = buf + offsets[i]
+            word_len = strlen(word)
 
-        k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
-        if k != table.n_buckets:
-            pyval = <object>table.vals[k]
-        else:
-            pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
-            k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
-            table.vals[k] = <PyObject *>pyval
+            k = kh_get_strbox(table, kh_strview(word, <size_t>word_len))
+            if k != table.n_buckets:
+                pyval = <object>table.vals[k]
+            else:
+                # defensive: the arena only ever holds ISO-parsed ASCII or
+                # empty fields, so this cannot actually raise here.  The
+                # finally keeps the table's lifetime the same as in
+                # `_string_box_utf8`, where the decode is reachable.
+                pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+                k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
     return result
 
 
@@ -3054,41 +3142,43 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
     # factorize parsed values, creating a hash table
     # bytes -> category code
-    with nogil:
-        table = kh_init_str()
-        coliter_setup(&it, parser, col, line_start)
+    table = kh_init_str()
+    try:
+        with nogil:
+            coliter_setup(&it, parser, col, line_start)
 
-        for i in range(lines):
-            word = coliter_next_with_idx(&it, &token_idx)
-            word_len = _token_len(parser, token_idx)
+            for i in range(lines):
+                word = coliter_next_with_idx(&it, &token_idx)
+                word_len = _token_len(parser, token_idx)
 
-            if na_filter:
-                if kh_get_str_starts_item(na_hashset, word,
-                                          <size_t>word_len):
-                    # is in NA values
-                    na_count += 1
-                    codes[i] = NA
-                    continue
+                if na_filter:
+                    if kh_get_str_starts_item(na_hashset, word,
+                                              <size_t>word_len):
+                        # is in NA values
+                        na_count += 1
+                        codes[i] = NA
+                        continue
 
-            key = kh_strview(word, <size_t>word_len)
-            k = kh_get_str(table, key)
-            # not in the hash table
-            if k == table.n_buckets:
-                k = kh_put_str(table, key, &ret)
-                table.vals[k] = current_category
-                current_category += 1
+                key = kh_strview(word, <size_t>word_len)
+                k = kh_get_str(table, key)
+                # not in the hash table
+                if k == table.n_buckets:
+                    k = kh_put_str(table, key, &ret)
+                    table.vals[k] = current_category
+                    current_category += 1
 
-            codes[i] = table.vals[k]
+                codes[i] = table.vals[k]
 
-    # parse and box categories to python strings
-    n_cats = table.n_occupied
-    result = np.empty(n_cats, dtype=np.object_)
-    for k in range(table.n_buckets):
-        if kh_exist_str(table, k):
-            result[table.vals[k]] = PyUnicode_DecodeUTF8(
-                table.keys[k].ptr, table.keys[k].len, encoding_errors)
-
-    kh_destroy_str(table)
+        # parse and box categories to python strings
+        n_cats = table.n_occupied
+        result = np.empty(n_cats, dtype=np.object_)
+        for k in range(table.n_buckets):
+            if kh_exist_str(table, k):
+                # can raise; see _string_box_utf8 (GH#67931)
+                result[table.vals[k]] = PyUnicode_DecodeUTF8(
+                    table.keys[k].ptr, table.keys[k].len, encoding_errors)
+    finally:
+        kh_destroy_str(table)
 
     # The table dedupes on raw bytes, but a lossy encoding_errors can decode two
     # distinct keys to the same label (b"q\xff" and b"q\xfe" both -> "q�").

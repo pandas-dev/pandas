@@ -147,6 +147,46 @@ def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
     tm.assert_frame_equal(result, iter_result)
 
 
+@pytest.mark.parametrize("column", ["num", "text", "ts"])
+def test_select_ne_list_of_values(temp_hdfstore, column):
+    # GH#68030 "col != [a, b]" OR-joined the per-value comparisons, and
+    # "(col != a) | (col != b)" is true for every row, so the query silently
+    # degraded to no filter at all. A single-element list was fine.
+    df = pd.DataFrame(
+        {
+            "num": np.arange(40),
+            "text": [f"s{i:02d}" for i in range(40)],
+            "ts": pd.date_range("2020-01-01", periods=40, unit="ns"),
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    selector = list(df[column][10:13])
+    where = f"{column} != selector"
+    expected = df[~df[column].isin(selector)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=where), expected)
+
+    # the coordinate path must agree with a plain read
+    coords = temp_hdfstore.select_as_coordinates("df", where=where)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=coords), expected)
+
+
+def test_select_ne_list_matches_post_read_filter(temp_hdfstore):
+    # GH#68030 a >31-value "!=" list is realized as a post-read filter instead
+    # of a numexpr condition; padding the list with values that are not in the
+    # column must not change which rows come back
+    df = pd.DataFrame({"num": np.arange(40)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    small = [10, 11, 12]
+    big = small + list(range(100, 135))
+    expected = df[~df["num"].isin(small)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {small}"), expected)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {big}"), expected)
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = pd.DataFrame(
@@ -802,9 +842,12 @@ def test_frame_select_complex(temp_hdfstore):
     expected = df.loc[(df.index > df.index[3]) | (df.string == "bar")]
     tm.assert_frame_equal(result, expected)
 
-    result = temp_hdfstore.select(
-        "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
-    )
+    # OR-ing an AND-ed condition over indexed columns warns about GH#50598,
+    # even though this particular query does return the right rows
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        result = temp_hdfstore.select(
+            "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
+        )
     expected = df.loc[
         ((df.index > df.index[3]) & (df.index <= df.index[6])) | (df.string == "bar")
     ]
@@ -1144,6 +1187,38 @@ def test_select_empty_where(temp_hdfstore, where):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("value", [1.5, 2.5, -1.5, -0.5])
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+@pytest.mark.parametrize("indexed", [True, False])
+def test_select_integer_column_non_integer_value(temp_hdfstore, op, value, indexed):
+    # GH#68032 a value that is not a whole number equals no row of an integer
+    # column, so the query must not compare against a rounded value
+    df = pd.DataFrame({"i": [-3, -2, -1, 0, 1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=indexed)
+
+    result = temp_hdfstore.select("t", where=f"i {op} {value}")
+    expected = df.query(f"i {op} {value}")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_integer_column_non_integer_value_in_list(temp_hdfstore):
+    # GH#68032 only the whole-number members of the list can match
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i == [1.5, 2]")
+    tm.assert_frame_equal(result, df.loc[[1]])
+
+
+def test_select_integer_column_non_integer_string_value(temp_hdfstore):
+    # GH#68032 the value can also reach convert_value as a string literal
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i > '1.5'")
+    tm.assert_frame_equal(result, df.loc[[1, 2]])
+
+
 def test_select_large_integer(temp_hdfstore):
     df = pd.DataFrame(
         zip(
@@ -1177,31 +1252,31 @@ def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit)
     tm.assert_frame_equal(result, expected)
 
 
-def _multichunk_indexed_frame(n=200):
-    # wide "pad" column forces the table to span more than one chunk (row group),
-    # a precondition for the PyTables bug in GH#50598. PyTables picks chunkshape
-    # heuristically, so pad generously to keep rows-per-chunk well below n across
-    # PyTables versions/platforms (the same string object is reused, so it's cheap)
-    return pd.DataFrame(
-        {
-            "a": np.arange(n) % 5,
-            "b": np.arange(n) % 7,
-            "pad": ["x" * 20000] * n,
-        }
-    )
+def _indexed_frame(pad):
+    # the GH#50598 bug hits tables that span more than one chunk (row group) and
+    # tables that fit in a single one, so both regimes are exercised. PyTables
+    # picks chunkshape from the row width, so a wide "pad" column is what forces
+    # several chunks at this row count; without it 200 rows fit in one. Padding
+    # is cheap -- the same string object is reused for every row.
+    num_rows = 200
+    data = {"a": np.arange(num_rows) % 5, "b": np.arange(num_rows) % 7}
+    if pad:
+        data["pad"] = ["x" * 20000] * num_rows
+    return pd.DataFrame(data)
 
 
-def test_select_nested_or_query_warns(temp_hdfstore):
+@pytest.mark.parametrize("pad", [True, False], ids=["multi_chunk", "single_chunk"])
+def test_select_nested_or_query_warns(temp_hdfstore, pad):
     # GH#50598 nested queries that OR together AND-ed conditions over indexed
-    # columns on a multi-chunk table can return incorrect results due to an
-    # upstream PyTables bug, so warn the user.
-    n = 200
-    df = _multichunk_indexed_frame(n)
+    # columns can return incorrect results due to an upstream PyTables bug,
+    # so warn the user.
+    df = _indexed_frame(pad)
     temp_hdfstore.put(
         "df", df, format="table", data_columns=["a", "b"], track_times=False
     )
-    # sanity check: the table really does span more than one chunk
-    assert temp_hdfstore.get_storer("df").table.chunkshape[0] < n
+    # the padding is only worth carrying if it really does span several chunks
+    table = temp_hdfstore.get_storer("df").table
+    assert bool(table.chunkshape[0] < table.nrows) is pad
 
     # both the symmetric and asymmetric shapes can hit the bug, so both warn
     for where in [
@@ -1221,11 +1296,37 @@ def test_select_nested_or_query_warns(temp_hdfstore):
             temp_hdfstore.select("df", where=where)
 
 
+def test_select_nested_or_query_wrong_rows_single_chunk(temp_hdfstore):
+    # GH#50598 the bug is not gated on the table spanning more than one chunk:
+    # a table small enough to fit in a single chunk silently drops matching
+    # rows too, so it must warn as well.
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    table = temp_hdfstore.get_storer("df").table
+    assert table.chunkshape[0] >= table.nrows
+
+    # one AND branch matching nothing is what makes the upstream bug bite; with
+    # both branches matching rows the same table answers correctly
+    where = "(a > 100 & b > 100) | (a < 5 & b < 5)"
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        result = temp_hdfstore.select("df", where=where)
+
+    # TODO(GH#50598): the correct answer is df.iloc[:5]; PyTables returns
+    # nothing. This pins the premise of the warning, so it is deliberately
+    # asserted rather than left implicit -- if a future PyTables starts
+    # answering correctly, this is the test that should say so.
+    assert len(result) == 0, (
+        "PyTables now answers this query correctly -- GH#50598 looks fixed "
+        "upstream, so this test and the warning it covers should be revisited"
+    )
+
+
 def test_select_nested_or_query_no_warn_without_index(temp_hdfstore):
     # GH#50598 the bug requires column indexes; writing with index=False is the
     # recommended workaround and must not trigger the warning
-    n = 200
-    df = _multichunk_indexed_frame(n)
+    df = _indexed_frame(pad=False)
     temp_hdfstore.put(
         "df",
         df,
@@ -1236,3 +1337,170 @@ def test_select_nested_or_query_no_warn_without_index(temp_hdfstore):
     )
     with tm.assert_produces_warning(None):
         temp_hdfstore.select("df", where="(a >= 0 & b <= 3) | (a <= 4 & b >= 2)")
+
+
+@pytest.mark.parametrize(
+    "where, indexed, warns",
+    [
+        # flat: "c" is a bare OR operand, "a"/"b" are the AND-ed ones
+        ("(a > 100 & b > 100) | c < 5", ["c"], False),
+        ("(a > 100 & b > 100) | c < 5", ["a"], True),
+        # the AND-ed operands sit one OR deeper on the left, and the right-hand
+        # AND contributes "e" -- both must still be found through the nesting.
+        # Indexing "b" and "c" together is the one combination here that really
+        # does trip the upstream bug (it returns nothing), so this where is what
+        # makes the no-warn rows below a claim about safety rather than about a
+        # fixture that happens to be immune.
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["b", "c"], True),
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["c"], False),
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["a"], True),
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["e"], True),
+        # "c" and "e" appear only as bare operands of the nested OR
+        ("(a > 100 & b > 100) | (c < 5 | e > 100)", ["c"], False),
+        ("(a > 100 & b > 100) | (c < 5 | e > 100)", ["e"], False),
+        ("(a > 100 & b > 100) | (c < 5 | e > 100)", ["b"], True),
+    ],
+)
+def test_select_nested_or_query_warns_only_for_and_operand_columns(
+    temp_hdfstore, where, indexed, warns
+):
+    # GH#50598 the AND-ed operands can sit at any depth, so the walk has to find
+    # them through nesting -- and must still ignore purely OR-ed columns
+    num_rows = 12
+    df = pd.DataFrame(
+        {
+            "a": np.arange(num_rows),
+            "b": np.arange(num_rows),
+            "c": np.arange(num_rows),
+            "e": np.arange(num_rows),
+        }
+    )
+    temp_hdfstore.put(
+        "df",
+        df,
+        format="table",
+        data_columns=["a", "b", "c", "e"],
+        index=False,
+        track_times=False,
+    )
+    temp_hdfstore.create_table_index("df", columns=indexed)
+
+    if warns:
+        with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+            temp_hdfstore.select("df", where=where)
+    else:
+        # staying silent is only correct if the query really is unaffected, so
+        # the rows are checked too -- otherwise this would pass just as happily
+        # on a detector that had stopped warning altogether
+        with tm.assert_produces_warning(None):
+            result = temp_hdfstore.select("df", where=where)
+        tm.assert_frame_equal(result, df.iloc[:5])
+
+
+def test_remove_nested_or_query_warns(temp_hdfstore):
+    # GH#50598 the warning must also reach HDFStore.remove, which runs the same
+    # index-accelerated query -- here it matches nothing and so silently fails
+    # to delete the five rows the caller asked for, rather than deleting others
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        removed = temp_hdfstore.remove(
+            "df", where="(a > 100 & b > 100) | (a < 5 & b < 5)"
+        )
+
+    # TODO(GH#50598): five rows should have gone; see the note in
+    # test_select_nested_or_query_wrong_rows_single_chunk
+    assert removed == 0
+    assert temp_hdfstore.get_storer("df").nrows == len(df)
+
+
+@pytest.mark.parametrize(
+    "start, stop",
+    [(-20, None), (-5, None), (None, -20), (None, 50), (-20, 50), (50, None)],
+)
+def test_select_as_coordinates_out_of_range_window(temp_hdfstore, start, stop):
+    # GH#68033 an out-of-range or negative start/stop was not resolved against
+    # the length of the table, so the coordinates named rows that do not exist
+    # -- negative ones silently wrapped around to the front of the table when
+    # they were passed back in.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=start, stop=stop)
+    assert coords.tolist() == np.arange(len(df))[start:stop].tolist()
+
+
+def test_select_as_coordinates_negative_start_round_trip(temp_hdfstore):
+    # GH#68033 coordinates that name no row wrapped silently when they were fed
+    # back to select, so the caller got rows the window never covered
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=-20)
+    result = temp_hdfstore.select("df", where=np.asarray(coords))
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_as_coordinates_negative_start_with_condition(temp_hdfstore):
+    # GH#68033 the same window applies to a condition query
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", where="A>=5", start=-20)
+    tm.assert_index_equal(coords, pd.Index([5, 6, 7, 8, 9]))
+
+
+@pytest.mark.parametrize("start", [-20, -5])
+def test_select_boolean_mask_negative_start(temp_hdfstore, start):
+    # GH#68033 the mask is aligned to the rows in the [start, stop) window, so
+    # a negative start has to be resolved before the window is built -- it used
+    # to build an oversized window and raise IndexError on the mask.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    expected = temp_hdfstore.select("df", start=start)
+    mask = np.zeros(len(expected), dtype=bool)
+    mask[[0, -1]] = True
+
+    result = temp_hdfstore.select("df", where=mask, start=start)
+    tm.assert_frame_equal(result, expected.iloc[[0, -1]])
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 2}, {"iterator": True}])
+def test_select_iterator_negative_start(temp_hdfstore, iter_kwargs):
+    # GH#68033 a negative start was carried into the per-chunk row slicing, so
+    # the iterator walked off the front of the table and yielded rows twice
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    result = pd.concat(list(temp_hdfstore.select("df", start=-5, **iter_kwargs)))
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+    result = pd.concat(
+        list(temp_hdfstore.select("df", where="A>=0", start=-5, **iter_kwargs))
+    )
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+
+@pytest.mark.parametrize(
+    "read",
+    [
+        lambda store, where: store.select("df", where=where),
+        lambda store, where: list(store.select("df", where=where, chunksize=5)),
+        lambda store, where: store.select_as_coordinates("df", where=where),
+    ],
+    ids=["select", "iterator", "select_as_coordinates"],
+)
+def test_select_nested_or_query_warns_once(temp_hdfstore, read):
+    # GH#50598 one read builds several Selection objects for the same "where",
+    # so the warning has to come from the query rather than from every parse
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    with tm.assert_produces_warning(UserWarning, match="GH#50598") as record:
+        read(temp_hdfstore, "(a > 100 & b > 100) | (a < 5 & b < 5)")
+
+    assert sum("GH#50598" in str(warning.message) for warning in record) == 1

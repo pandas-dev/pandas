@@ -2684,3 +2684,54 @@ def test_read_json_quarterly_string_kept_parse_warns_once():
     assert len(record) == 1
     assert result["date"].dtype.kind == "M"
     assert result["date"][0] == pd.Timestamp("2014-04-01")
+
+
+@pytest.mark.parametrize(
+    "labels",
+    [
+        ["Jan", "Feb", "Mar"],
+        ["March", "April"],
+        ["1st", "2nd", "3rd"],
+        ["T1", "T2", "T3"],
+    ],
+)
+def test_read_json_non_date_strings_kept_as_str(labels):
+    # GH#63473 dateutil fills the fields missing from these strings from
+    #  datetime(1, 1, 1); such a parse must not be accepted for the
+    #  speculative date conversion of an axis or of a date-like column name
+    df = pd.DataFrame({"sales": range(len(labels))}, index=labels)
+    result = pd.read_json(StringIO(df.to_json()))
+    tm.assert_index_equal(result.index, pd.Index(labels))
+
+    df = pd.DataFrame({"date": labels})
+    result = pd.read_json(StringIO(df.to_json()))
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("other", [1, 5, 1500000000])
+def test_read_json_mixed_non_date_string_and_int_kept(other):
+    # GH#63473 a mixed string/int column is object dtype in both string modes,
+    #  so it reaches the numeric branch's out-of-nanosecond-bounds fallback;
+    #  that fallback must reject the default-filled parse too
+    result = pd.read_json(StringIO(f'{{"date":{{"0":"Jan","1":{other}}}}}'))
+    expected = pd.DataFrame({"date": ["Jan", other]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dates",
+    [
+        ["1500-01-01", "2500-01-01"],
+        # year-1 dates the default-filled gate would otherwise swallow; the
+        #  strict ISO8601 parse proves they came from the strings themselves
+        ["0001-01-01", "0001-06-05"],
+        ["0001-01-01", "2020-01-01"],
+    ],
+)
+def test_read_json_out_of_ns_bounds_date_strings_converted(dates):
+    # GH#63473 rejecting the year-1 parses above must not also reject genuine
+    #  dates outside the nanosecond bounds
+    df = pd.DataFrame({"date": dates})
+    result = pd.read_json(StringIO(df.to_json()))
+    expected = pd.DataFrame({"date": np.array(dates, dtype="M8[us]")})
+    tm.assert_frame_equal(result, expected)
