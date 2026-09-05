@@ -682,8 +682,10 @@ class BaseGrouper:
                 ids, categories=range(len(result_index))
             )
             result = {
-                values[group]: axis_ilocs
+                # mypy is not aware that group has to be an integer
+                values[group]: axis_ilocs  # type: ignore[call-overload]
                 for group, axis_ilocs in categories._reverse_indexer().items()
+                if len(axis_ilocs)
             }
         if not self.dropna:
             has_mi = isinstance(self.result_index, MultiIndex)
