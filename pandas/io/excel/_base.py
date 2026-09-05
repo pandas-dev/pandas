@@ -1650,7 +1650,7 @@ class ExcelFile:
             ext: str | None = None
 
             # GH#56692 - avoid importing xlrd; a Book only exists if the caller
-            # already imported it. GH#68075 - must precede inspect_excel_format,
+            # already imported it. GH#68086 - must precede inspect_excel_format,
             # which seeks.
             xlrd = sys.modules.get("xlrd")
             if xlrd is not None and isinstance(path_or_buffer, xlrd.Book):

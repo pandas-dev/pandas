@@ -86,7 +86,7 @@ def test_xlrd_engine_deprecated(datapath):
 
 
 def test_read_xlrd_book_no_engine(datapath):
-    # GH#68075 - a Book has "read" but no "seek", so it passes is_file_like
+    # GH#68086 - a Book has "read" but no "seek", so it passes is_file_like
     # and used to reach inspect_excel_format instead of the xlrd branch
     sheet_name = "Sheet1"
     pth = datapath("io", "data", "excel", "test1.xls")
