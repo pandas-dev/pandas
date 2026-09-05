@@ -270,6 +270,51 @@ class TestSeriesStatReductions:
             else:
                 assert isinstance(s.kurt(), np.float64)  # GH53482
 
+    @pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+    @pytest.mark.parametrize("bias", [True, False])
+    def test_skew_kurt_bias(self, name, sp_func, bias):
+        sp_stats = pytest.importorskip("scipy.stats")
+        compare_func = getattr(sp_stats, sp_func)
+
+        string_series = pd.Series([1.0, 2.0, 2.0, 3.0, 10.0], name="series")
+
+        result = getattr(string_series, name)(bias=bias)
+        expected = compare_func(string_series, bias=bias)
+        tm.assert_almost_equal(result, expected)
+
+        df = pd.DataFrame({"a": string_series, "b": string_series * 2})
+        result = getattr(df, name)(bias=bias)
+        expected = pd.Series(
+            [compare_func(df[c], bias=bias) for c in df.columns], index=df.columns
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, name)(axis=None, bias=bias)
+        flat = np.concatenate([df["a"].to_numpy(), df["b"].to_numpy()])
+        expected = compare_func(flat, bias=bias)
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "name, sp_func, data",
+        [
+            ("skew", "skew", [1.0, 2.0]),
+            ("kurt", "kurtosis", [1.0, 2.0, 4.0]),
+        ],
+    )
+    @pytest.mark.parametrize("bias", [True, False])
+    def test_skew_kurt_bias_small_sample(self, name, sp_func, data, bias):
+        # GH#66659: below the nobs threshold the bias-corrected statistic is
+        #  undefined, while the biased one still computes.
+        sp_stats = pytest.importorskip("scipy.stats")
+
+        ser = pd.Series(data)
+        result = getattr(ser, name)(bias=bias)
+
+        if bias:
+            tm.assert_almost_equal(result, getattr(sp_stats, sp_func)(data, bias=True))
+        else:
+            assert np.isnan(result)
+
 
 @pytest.mark.parametrize(
     "opname",

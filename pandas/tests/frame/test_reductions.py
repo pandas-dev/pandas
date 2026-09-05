@@ -3004,6 +3004,45 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("bias", [True, False])
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+def test_axis1_extension_array_bias(name, sp_func, bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+    df = pd.DataFrame(
+        {
+            "a": pd.array([1, 2, 2], dtype="Int64"),
+            "b": pd.array([5, 1, 9], dtype="Int64"),
+            "c": pd.array([3, 8, 4], dtype="Int64"),
+            "d": pd.array([7, 2, 5], dtype="Int64"),
+        }
+    )
+    result = getattr(df, name)(axis=1, bias=bias)
+    expected = pd.Series(
+        [getattr(sp_stats, sp_func)(df.iloc[i], bias=bias) for i in range(len(df))],
+        dtype="Float64",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+def test_axis1_extension_array_bias_skipna(name, sp_func):
+    sp_stats = pytest.importorskip("scipy.stats")
+    df = pd.DataFrame(
+        {
+            "a": pd.array([1, 2, pd.NA, 3], dtype="Int64"),
+            "b": pd.array([5, 1, 9, 2], dtype="Int64"),
+            "c": pd.array([3, 8, 4, 6], dtype="Int64"),
+            "d": pd.array([7, 2, 5, 1], dtype="Int64"),
+            "e": pd.array([2, 4, 6, 3], dtype="Int64"),
+        }
+    )
+    result_skipna = getattr(df, name)(axis=1, bias=True, skipna=True)
+    result_no_skipna = getattr(df, name)(axis=1, bias=True, skipna=False)
+    expected = getattr(sp_stats, sp_func)([9.0, 4.0, 5.0, 6.0], bias=True)
+    tm.assert_almost_equal(result_skipna.iloc[2], expected)
+    assert pd.isna(result_no_skipna.iloc[2])
+
+
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
@@ -3108,13 +3147,22 @@ def test_numeric_only_validates_bool():
     df_num = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     msg = "Passing non-boolean values for 'numeric_only' is deprecated"
 
-    # _stat_function family: mean, min, max, median, skew, kurt
-    for method in ["mean", "min", "max", "median", "skew", "kurt"]:
+    # _stat_function family: mean, min, max, median
+    for method in ["mean", "min", "max", "median"]:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=1)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
         # None is falsy so _reduce includes all columns; use numeric-only df
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # _stat_function_bias family: skew, kurt
+    for method in ["skew", "kurt"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df_num, method)(numeric_only=None)
 

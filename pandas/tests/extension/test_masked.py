@@ -351,3 +351,17 @@ def test_cast_pointwise_result_all_na_respects_original_dtype(arr):
     result = arr._cast_pointwise_result(values)
     assert result.dtype == arr.dtype
     assert all(x is pd.NA for x in result)
+
+
+@pytest.mark.parametrize("dtype", ["Float64", "Int64"])
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+@pytest.mark.parametrize("bias", [True, False])
+def test_skew_kurt_bias_array_method(dtype, name, sp_func, bias):
+    # GH#66659: the array-level methods accept bias, not just Series/DataFrame
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    data = [1.0, 2.0, 2.0, 3.0, 10.0]
+    arr = pd.array(data, dtype=dtype)
+    result = getattr(arr, name)(bias=bias)
+    expected = getattr(sp_stats, sp_func)(data, bias=bias)
+    tm.assert_almost_equal(float(result), expected)

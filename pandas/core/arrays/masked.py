@@ -1842,9 +1842,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._reduce("median", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("median", result, skipna=skipna, axis=axis)
 
-    def kurt(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def kurt(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        bias: bool = False,
+        **kwargs,
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="kurt")
-        result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce("kurt", skipna=skipna, axis=axis, bias=bias, **kwargs)
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
     def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
@@ -1852,9 +1859,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
-    def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def skew(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        bias: bool = False,
+        **kwargs,
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
-        result = self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce("skew", skipna=skipna, axis=axis, bias=bias, **kwargs)
         return self._wrap_reduction_result("skew", result, skipna=skipna, axis=axis)
 
     def var(
