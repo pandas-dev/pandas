@@ -211,13 +211,13 @@ class TestReductions:
     )
     @pytest.mark.parametrize("skipna", [True, False])
     def test_mean_all_na(self, arr, skipna):
-        # GH#68041 dividing by a zero count warned or raised depending on the subtype
+        # GH#68087 dividing by a zero count warned or raised depending on the subtype
         with tm.assert_produces_warning(None):
             result = arr.mean(skipna=skipna)
         assert pd.isna(result)
 
     def test_mean_all_na_datetimelike(self):
-        # GH#68041 the NA is the subtype's, not float nan
+        # GH#68087 the NA is the subtype's, not float nan
         arr = SparseArray(np.array([], dtype="m8[ns]"))
         with tm.assert_produces_warning(None):
             result = arr.mean()

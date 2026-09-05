@@ -1785,7 +1785,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if not nobs:
             # nobs == 0 is exactly "every entry is NA", empty arrays included; the
-            # division and the fill_value adjustment both warn or raise there (GH#68041)
+            # division and the fill_value adjustment both warn or raise there (GH#68087)
             return na_value_for_dtype(self.dtype.subtype, compat=False)
 
         if self._null_fill_value:
