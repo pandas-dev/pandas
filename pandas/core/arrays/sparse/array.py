@@ -1769,7 +1769,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Returns
         -------
-        mean : float
+        scalar
         """
         nv.validate_mean(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
@@ -1780,11 +1780,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Compute the reduction before the skipna=False NA short-circuit so
         # unsupported dtypes still raise during the operation validation.
 
+        nsparse = 0 if self._null_fill_value else self.sp_index.ngaps
+        nobs = ct + nsparse
+
+        if not nobs:
+            # nobs == 0 is exactly "every entry is NA", empty arrays included; the
+            # division and the fill_value adjustment both warn or raise there (GH#68041)
+            return na_value_for_dtype(self.dtype.subtype, compat=False)
+
         if self._null_fill_value:
-            mean = sp_sum / ct
+            mean = sp_sum / nobs
         else:
-            nsparse = self.sp_index.ngaps
-            mean = (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+            mean = (sp_sum + self.fill_value * nsparse) / nobs
 
         if not skipna and self._hasna:
             return na_value_for_dtype(self.dtype.subtype, compat=False)

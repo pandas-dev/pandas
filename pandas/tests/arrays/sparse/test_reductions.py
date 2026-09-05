@@ -194,6 +194,36 @@ class TestReductions:
         out = arr.mean(skipna=False)
         assert pd.isna(out)
 
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            SparseArray(np.array([], dtype="float64")),
+            SparseArray(np.array([], dtype="float64"), fill_value=0),
+            SparseArray(np.array([], dtype="int64")),
+            SparseArray(np.array([np.nan, np.nan])),
+            SparseArray(np.array([np.nan]), fill_value=0),
+            SparseArray(np.array([], dtype=object)),
+            SparseArray(np.array([np.nan, np.nan], dtype=object)),
+            # a non-numeric fill_value makes even the nsparse adjustment raise
+            SparseArray(["a", "a", "b"], fill_value="a")[:0],
+            SparseArray(np.array([np.nan], dtype=object), fill_value="a"),
+        ],
+    )
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_mean_all_na(self, arr, skipna):
+        # GH#68041 dividing by a zero count warned or raised depending on the subtype
+        with tm.assert_produces_warning(None):
+            result = arr.mean(skipna=skipna)
+        assert pd.isna(result)
+
+    def test_mean_all_na_datetimelike(self):
+        # GH#68041 the NA is the subtype's, not float nan
+        arr = SparseArray(np.array([], dtype="m8[ns]"))
+        with tm.assert_produces_warning(None):
+            result = arr.mean()
+        assert isinstance(result, np.timedelta64)
+        assert pd.isna(result)
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_mean_raises_for_unsupported_object_dtype_with_na(self, skipna):
         arr = SparseArray(["a", np.nan], dtype=pd.SparseDtype(object))
