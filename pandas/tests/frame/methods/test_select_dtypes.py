@@ -1049,7 +1049,7 @@ def test_select_dtypes_arrow_timestamp_string_matches_only_arrow():
     "spec", ["datetime64[s]", "datetime64", "datetime", np.datetime64]
 )
 def test_select_dtypes_naive_spec_skips_tz_aware_arrow(spec):
-    # GH#68053: ArrowDtype columns are matched through their numpy_dtype, which
+    # GH#68075: ArrowDtype columns are matched through their numpy_dtype, which
     # drops the tz, so a naive spec used to select a tz-aware Arrow column --
     # the tz-aware numpy column it mirrors is correctly not selected
     pa = pytest.importorskip("pyarrow")
@@ -1070,7 +1070,7 @@ def test_select_dtypes_naive_spec_skips_tz_aware_arrow(spec):
 
 
 def test_select_dtypes_tz_aware_arrow_still_matched_by_arrow_spec():
-    # GH#68053: the specs that do name the tz-aware Arrow dtype keep working
+    # GH#68075: the specs that do name the tz-aware Arrow dtype keep working
     pa = pytest.importorskip("pyarrow")
     dti = pd.date_range("2020-01-01", periods=2, tz="UTC").as_unit("s")
     dtype = pd.ArrowDtype(pa.timestamp("s", tz="UTC"))
