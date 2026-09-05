@@ -1211,13 +1211,39 @@ def test_loc_setitem_2d_list_on_object_frame(value):
 )
 def test_setitem_2d_value_wrong_shape_multi_column(value, indexer_li):
     # GH#65264 a 2D value whose rows don't match the target column count must
-    #  raise however the rows are spelled; list-of-tuples was written column-major
+    #  raise however the rows are spelled
     df = pd.DataFrame({"a": ["x", "y", "z"], "b": [1, 2, 3], "c": [4.0, 5.0, 6.0]})
     key = ["b", "c"] if indexer_li is tm.loc else [1, 2]
 
     msg = "Must have equal len keys and value when setting with an ndarray"
     with pytest.raises(ValueError, match=msg):
         indexer_li(df)[:, key] = value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        [(1, 2, 3), (4, 5, 6)],
+        [[1, 2, 3], [4, 5, 6]],
+        np.array([[1, 2, 3], [4, 5, 6]]),
+    ],
+    ids=["tuples", "lists", "ndarray"],
+)
+def test_setitem_2d_value_scalar_row_multi_column(value, indexer_li):
+    # GH#65264 one nested value per column under a scalar row key is a 2D value
+    #  on the split path, so a row that is not len(key) long has to raise
+    df = pd.DataFrame(
+        {
+            "a": np.array([None] * 3, dtype=object),
+            "b": np.array([None] * 3, dtype=object),
+            "c": [1, 2, 3],
+        }
+    )
+    key = ["a", "b"] if indexer_li is tm.loc else [0, 1]
+
+    msg = "Must have equal len keys and value when setting with an ndarray"
+    with pytest.raises(ValueError, match=msg):
+        indexer_li(df)[0, key] = value
 
 
 @pytest.mark.parametrize(

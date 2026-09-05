@@ -3561,11 +3561,11 @@ def _positional_row(row):
 
 def _is_2d_value_for_columns(value, ncols: int) -> bool:
     """
-    Whether ``value`` is a 2-D value spanning ``ncols`` selected columns.
+    Whether ``value`` should be treated as a 2-D value for ``ncols`` columns.
 
     A list of tuples aimed at a single column is per-cell values unless the
-    tuples are length-1 (GH#37629). With more than one target column it is a
-    shape mismatch, left for the 2-D path to reject. GH#65264
+    tuples are length-1 (GH#37629). With more columns it takes the 2-D path
+    whatever the tuple width, which rejects a mismatched one. GH#65264
     """
     if not _is_2d_value(value):
         return False
