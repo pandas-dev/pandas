@@ -292,13 +292,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         If data is a list of dicts, column order follows insertion-order.
 
-    index : Index or array-like
+    index : Index or array-like or dict
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided.
-    columns : Index or array-like
-        Column labels to use for resulting frame when data does not have them,
-        defaulting to RangeIndex(0, 1, 2, ..., n). If data contains column labels,
-        will perform column selection instead.
+    columns : Index or array-like or dict
+        Column labels to use for resulting frame. When data does not have
+        column labels, defaults to RangeIndex(0, 1, 2, ..., n). If data
+        contains column labels, will perform column selection instead.
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer.
         If ``data`` is DataFrame then is ignored. Missing values in ``data``
@@ -311,6 +311,10 @@ class DataFrame(NDFrame, OpsMixin):
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
+    Notes
+    -----
+    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
+
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
@@ -318,10 +322,6 @@ class DataFrame(NDFrame, OpsMixin):
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_table : Read general delimited file into DataFrame.
     read_clipboard : Read text from clipboard into DataFrame.
-
-    Notes
-    -----
-    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
 
     Examples
     --------
