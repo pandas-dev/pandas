@@ -148,7 +148,7 @@ jobs:
       if: ${{ matrix.extra_loc && matrix.extra_apt }}
 
     - name: Create virtual environment with Pixi
-      uses: $/.github/actions/setup-pixi
+      uses: ./.github/actions/setup-pixi
       with:
         environment: ${{ matrix.environment }}
 
@@ -172,7 +172,7 @@ jobs:
           ci-check-import
 
     - name: Test (not single_cpu)
-      uses: $/.github/actions/run-tests
+      uses: ./.github/actions/run-tests
       id: test-not-single-cpu
       env:
         # Ensure port matches moto service
@@ -186,7 +186,7 @@ jobs:
 
     - name: Test (single_cpu)
       id: test-single-cpu
-      uses: $/.github/actions/run-tests
+      uses: ./.github/actions/run-tests
       env:
         # Ensure port matches moto service
         PANDAS_MOTO_URL: "http://localhost:5000"
@@ -234,7 +234,7 @@ jobs:
           persist-credentials: false
 
       - name: Create virtual environment with Pixi
-        uses: $/.github/actions/setup-pixi
+        uses: ./.github/actions/setup-pixi
         with:
           environment: ${{ matrix.environment }}
 
@@ -253,7 +253,7 @@ jobs:
             "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
 
       - name: Test
-        uses: $/.github/actions/run-tests
+        uses: ./.github/actions/run-tests
         with:
           environment: ${{ matrix.environment }}
           numprocesses: 'auto'
@@ -356,7 +356,7 @@ jobs:
           persist-credentials: false
 
       - name: Create virtual environment with Pixi
-        uses: $/.github/actions/setup-pixi
+        uses: ./.github/actions/setup-pixi
         with:
           environment: mingw
 
@@ -389,7 +389,7 @@ jobs:
           persist-credentials: false
 
       - name: Create virtual environment with Pixi
-        uses: $/.github/actions/setup-pixi
+        uses: ./.github/actions/setup-pixi
         with:
           environment: sanitizers
 
@@ -411,7 +411,7 @@ jobs:
           echo "ASAN_LIB_PATH=$(pixi run -e sanitizers clang -print-file-name=libclang_rt.asan-x86_64.so)" >> $GITHUB_ENV
 
       - name: Test
-        uses: $/.github/actions/run-tests
+        uses: ./.github/actions/run-tests
         env:
           LD_PRELOAD: ${{ env.ASAN_LIB_PATH }}
           ASAN_OPTIONS: detect_leaks=0

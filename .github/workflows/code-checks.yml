@@ -36,7 +36,7 @@ jobs:
         persist-credentials: false
 
     - name: Create virtual environment with Pixi
-      uses: $/.github/actions/setup-pixi
+      uses: ./.github/actions/setup-pixi
       with:
         environment: "doctests"
 
@@ -73,7 +73,7 @@ jobs:
         persist-credentials: false
 
     - name: Create virtual environment with Pixi
-      uses: $/.github/actions/setup-pixi
+      uses: ./.github/actions/setup-pixi
       with:
         environment: "typing"
 
@@ -107,7 +107,7 @@ jobs:
         persist-credentials: false
 
     - name: Create virtual environment with Pixi
-      uses: $/.github/actions/setup-pixi
+      uses: ./.github/actions/setup-pixi
       with:
         environment: "asv"
 

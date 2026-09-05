@@ -91,7 +91,7 @@ jobs:
         persist-credentials: false
 
     - name: Create virtual environment with Pixi
-      uses: $/.github/actions/setup-pixi
+      uses: ./.github/actions/setup-pixi
       with:
         environment: docs-and-web
 
