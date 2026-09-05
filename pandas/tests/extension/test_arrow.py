@@ -73,7 +73,10 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.array import (
+    ArrowExtensionArray,
+    to_pyarrow_type,
+)
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 # GH#62423; matched instead of the leading clause, whose wording differs per warn site
@@ -5356,3 +5359,25 @@ def test_reduction_axis_out_of_bounds(method, axis):
     msg = "`axis` must be fewer than the number of dimensions"
     with pytest.raises(ValueError, match=msg):
         getattr(arr, method)(axis=axis)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (pd.StringDtype("python"), pa.large_string()),
+        (pd.StringDtype("pyarrow"), pa.large_string()),
+        (pd.Int64Dtype(), pa.int64()),
+        (pd.Float64Dtype(), pa.float64()),
+        (pd.BooleanDtype(), pa.bool_()),
+        (ArrowDtype(pa.large_string()), pa.large_string()),
+        (pd.CategoricalDtype(), None),
+        (pd.PeriodDtype("D"), None),
+        (np.dtype("int64"), pa.int64()),
+        (str, pa.string()),
+    ],
+)
+def test_to_pyarrow_type_extension_dtypes(dtype, expected):
+    # GH#62242 to_pyarrow_type raised TypeError for extension dtype
+    # instances without a direct pyarrow equivalent
+    result = to_pyarrow_type(dtype)
+    assert result == expected
