@@ -1718,6 +1718,30 @@ class TestDatetime64OverflowHandling:
         with pytest.raises(OverflowError, match=msg):
             obj + pd.Timedelta(-1, unit)
 
+    def test_dt64arr_add_large_td_non_fixed_tz(self):
+        # GH#68009 adding a Timedelta large enough to push the result past
+        #  the range of Python's standard library datetime (year > 9999)
+        #  used to return None for a non-fixed-offset tz-aware array, silently
+        #  swallowing an internal exception, while tz-naive/UTC arrays (whose
+        #  offset never needs a stdlib datetime lookup) worked fine. This was
+        #  a regression from 2.x, where the (then-default) pytz backend
+        #  always extrapolated using the last known DST offset instead of
+        #  needing the stdlib API.
+        naive = pd.array([0, 86400], dtype="M8[s]")
+        aware = pd.array([0, 86400], dtype="M8[s, Europe/Brussels]")
+        td = np.timedelta64(10**13, "s")
+
+        naive_result = naive + td
+        aware_result = aware + td
+
+        assert aware_result is not None
+        # the underlying UTC instants match the naive/UTC result exactly;
+        # only the displayed wall time/offset is a DST extrapolation
+        tm.assert_numpy_array_equal(naive_result.asi8, aware_result.asi8)
+
+        result_str = str(aware_result)
+        assert "318857" in result_str
+
     def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by GH#19024
         dt = pd.Timestamp("1700-01-31")
