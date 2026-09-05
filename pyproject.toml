@@ -482,10 +482,6 @@ filterwarnings = [
   "ignore:grpcio < 1.83.0 does not support Post-Quantum Cryptography:FutureWarning",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
-  # Emitted when importing pandas with a blocked numexpr version installed.
-  #  Without this the "error" filter above turns it into a collection failure
-  #  for the entire suite, GH#65408
-  "ignore:numexpr version .* can silently return incorrect results:UserWarning",
 ]
 junit_family = "xunit2"
 

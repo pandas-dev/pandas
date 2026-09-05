@@ -7,11 +7,10 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
-# GH#65408 some 2.14.1 binaries silently return incorrect results.  Good and
-#  bad builds shipped under this same version on both conda and PyPI, so we
-#  refuse the release as a whole.
-#  https://github.com/pydata/numexpr/issues/557
-#  https://github.com/pydata/numexpr/issues/566
+# https://github.com/pandas-dev/pandas/issues/65408
+# Avoid bad numexpr binaries producing incorrect results
+# https://github.com/pydata/numexpr/issues/557
+# https://github.com/pydata/numexpr/issues/566
 BLOCKED_NUMEXPR_VERSIONS = frozenset({"2.14.1"})
 
 ne = import_optional_dependency("numexpr", errors="warn")
