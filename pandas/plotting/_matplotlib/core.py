@@ -2006,11 +2006,16 @@ class BarPlot(MPLPlot):
 
         if not isinstance(self.subplots, bool):
             if bool(self.subplots) and self.stacked:
-                for i, sub_plot in enumerate(self.subplots):
+                for sub_plot in self.subplots:
                     if len(sub_plot) <= 1:
                         continue
+                    # Index into `_stacked_subplots_offsets`, which only gains
+                    # an entry for groups that are actually stacked. Enumerating
+                    # `self.subplots` instead would skip a position for every
+                    # single-column group (GH#67726).
+                    offset_index = len(_stacked_subplots_offsets)
                     for plot in sub_plot:
-                        _stacked_subplots_ind[int(plot)] = i
+                        _stacked_subplots_ind[int(plot)] = offset_index
                     _stacked_subplots_offsets.append((pos_prior, neg_prior))
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
