@@ -1147,6 +1147,38 @@ def test_select_empty_where(temp_hdfstore, where):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("value", [1.5, 2.5, -1.5, -0.5])
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+@pytest.mark.parametrize("indexed", [True, False])
+def test_select_integer_column_non_integer_value(temp_hdfstore, op, value, indexed):
+    # GH#68032 a value that is not a whole number equals no row of an integer
+    # column, so the query must not compare against a rounded value
+    df = pd.DataFrame({"i": [-3, -2, -1, 0, 1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=indexed)
+
+    result = temp_hdfstore.select("t", where=f"i {op} {value}")
+    expected = df.query(f"i {op} {value}")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_integer_column_non_integer_value_in_list(temp_hdfstore):
+    # GH#68032 only the whole-number members of the list can match
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i == [1.5, 2]")
+    tm.assert_frame_equal(result, df.loc[[1]])
+
+
+def test_select_integer_column_non_integer_string_value(temp_hdfstore):
+    # GH#68032 the value can also reach convert_value as a string literal
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i > '1.5'")
+    tm.assert_frame_equal(result, df.loc[[1, 2]])
+
+
 def test_select_large_integer(temp_hdfstore):
     df = pd.DataFrame(
         zip(

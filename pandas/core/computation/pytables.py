@@ -221,6 +221,19 @@ class BinOp(ops.BinOp):
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
+        if v.truncated:
+            # The requested value fell strictly between `val` and the next
+            # storable one, so no row can equal it. Compare against `val` with
+            # an adjusted operator rather than against the value we truncated to.
+            lhs = self.lhs.value
+            if self.op == "==":
+                # matches nothing
+                return f"(({lhs} > {val}) & ({lhs} <= {val}))"
+            if self.op == "!=":
+                # matches everything
+                return f"(({lhs} <= {val}) | ({lhs} > {val}))"
+            op = "<=" if self.op in ("<", "<=") else ">"
+            return f"({lhs} {op} {val})"
         return f"({self.lhs.value} {self.op} {val})"
 
     def convert_value(self, conv_val) -> TermValue:
@@ -279,7 +292,13 @@ class BinOp(ops.BinOp):
                 # convert v to float to raise float's ValueError
                 float(conv_val)
             else:
-                conv_val = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+                # Round toward -inf rather than to nearest, and flag the loss, so
+                # that generate() can adjust the operator instead of silently
+                # querying for a neighboring integer.
+                floored = v_dec.to_integral_exact(rounding="ROUND_FLOOR")
+                truncated = floored != v_dec
+                conv_val = int(floored)
+                return TermValue(conv_val, conv_val, kind, truncated=truncated)
             return TermValue(conv_val, conv_val, kind)
         elif kind == "float":
             conv_val = float(conv_val)
@@ -661,11 +680,14 @@ class PyTablesExpr(expr.Expr):
 class TermValue:
     """hold a term value that we use to construct a condition/filter"""
 
-    def __init__(self, value, converted, kind: str) -> None:
+    def __init__(self, value, converted, kind: str, truncated: bool = False) -> None:
         assert isinstance(kind, str), kind
         self.value = value
         self.converted = converted
         self.kind = kind
+        # whether `converted` lost information relative to the value the user
+        # asked for; see BinOp.generate
+        self.truncated = truncated
 
     def tostring(self, encoding) -> str:
         """quote the string if not encoded else encode and return"""
