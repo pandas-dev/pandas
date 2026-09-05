@@ -1313,11 +1313,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        Each group passed to ``func`` has a ``name`` attribute set to the group
-        key (the value of the grouping for that group). This is useful for
-        identifying the current group, for example when grouping by an external
-        grouper rather than by a column of the object.
-
         Examples
         --------
         >>> df = pd.DataFrame({"A": "a a b".split(), "B": [1, 2, 3], "C": [4, 6, 5]})
@@ -1466,9 +1461,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Apply a plotting function f group-wise.
 
         Each Series group gets its group key as the name, which plotting
-        methods use for legend labels. Unlike the general apply path, this
-        labels the group explicitly rather than relying on the name attribute
-        being pinned to the group key as a side effect (GH#41090).
+        methods use for legend labels. This does not rely on the deprecated
+        pinning of the group key to the name attribute (GH#41090).
         """
         data = self._selected_obj
         values = []
