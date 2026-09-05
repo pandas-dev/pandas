@@ -11,6 +11,7 @@ import datetime
 from decimal import Decimal
 from functools import partial
 import os
+import sys
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -28,10 +29,7 @@ import zipfile
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
-from pandas.compat._optional import (
-    get_version,
-    import_optional_dependency,
-)
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     EmptyDataError,
     Pandas4Warning,
@@ -45,14 +43,12 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     is_bool,
     is_decimal,
-    is_file_like,
     is_float,
     is_integer,
     is_list_like,
 )
 
 from pandas.core.frame import DataFrame
-from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -1653,20 +1649,13 @@ class ExcelFile:
             # Only determine ext if it is needed
             ext: str | None = None
 
-            if not isinstance(
-                path_or_buffer, (str, os.PathLike, ExcelFile)
-            ) and not is_file_like(path_or_buffer):
-                # GH#56692 - avoid importing xlrd if possible
-                if import_optional_dependency("xlrd", errors="ignore") is None:
-                    xlrd_version = None
-                else:
-                    import xlrd
-
-                    xlrd_version = Version(get_version(xlrd))
-
-                if xlrd_version is not None and isinstance(path_or_buffer, xlrd.Book):
-                    ext = "xls"
-                    engine = "xlrd"
+            # GH#56692 - avoid importing xlrd; a Book only exists if the caller
+            # already imported it. GH#68075 - must precede inspect_excel_format,
+            # which seeks.
+            xlrd = sys.modules.get("xlrd")
+            if xlrd is not None and isinstance(path_or_buffer, xlrd.Book):
+                ext = "xls"
+                engine = "xlrd"
 
             if ext is None:
                 ext = inspect_excel_format(
