@@ -1301,7 +1301,7 @@ class IntervalDtype(PandasExtensionDtype):
                 raise ValueError(
                     "closed must be one of 'right', 'left', 'both', 'neither'"
                 )
-            # GH#68077 np.str_ etc: dtype.closed and the IntervalTree engine
+            # GH#68078 np.str_ etc: dtype.closed and the IntervalTree engine
             #  both need an exact str
             closed = cast("IntervalClosedType", str(closed))
 

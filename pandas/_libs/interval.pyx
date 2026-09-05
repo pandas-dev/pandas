@@ -476,7 +476,7 @@ cdef class Interval(IntervalMixin):
                 raise TypeError(
                     f"'closed' must be a str, got {type(closed).__name__} instead."
                 )
-            # GH#68077 store str subclasses e.g. np.str_ as exact str
+            # GH#68078 store str subclasses e.g. np.str_ as exact str
             closed = str(closed)
 
         if closed not in VALID_CLOSED:

@@ -285,7 +285,7 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
 
 
 def test_closed_str_subclass():
-    # GH#68077 a np.str_ closed used to be stored un-normalized, so every
+    # GH#68078 a np.str_ closed used to be stored un-normalized, so every
     #  operation building an Interval scalar raised TypeError
     arr = IntervalArray.from_breaks([0, 1, 2], closed=np.str_("both"))
     expected = IntervalArray.from_breaks([0, 1, 2], closed="both")

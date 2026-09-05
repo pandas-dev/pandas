@@ -49,7 +49,7 @@ class TestIntervalConstructors:
 
 
 def test_constructor_closed_str_subclass():
-    # GH#68077 np.str_ is a str subclass, and is stored as an exact str
+    # GH#68078 np.str_ is a str subclass, and is stored as an exact str
     iv = pd.Interval(0, 1, closed=np.str_("left"))
     assert iv == pd.Interval(0, 1, closed="left")
     assert type(iv.closed) is str
@@ -57,7 +57,7 @@ def test_constructor_closed_str_subclass():
 
 @pytest.mark.parametrize("closed", [None, 1, ["left"]])
 def test_constructor_closed_not_str(closed):
-    # GH#68077
+    # GH#68078
     msg = f"'closed' must be a str, got {type(closed).__name__} instead."
     with pytest.raises(TypeError, match=msg):
         pd.Interval(0, 1, closed=closed)
