@@ -1417,6 +1417,74 @@ def test_remove_nested_or_query_warns(temp_hdfstore):
 
 
 @pytest.mark.parametrize(
+    "start, stop",
+    [(-20, None), (-5, None), (None, -20), (None, 50), (-20, 50), (50, None)],
+)
+def test_select_as_coordinates_out_of_range_window(temp_hdfstore, start, stop):
+    # GH#68033 an out-of-range or negative start/stop was not resolved against
+    # the length of the table, so the coordinates named rows that do not exist
+    # -- negative ones silently wrapped around to the front of the table when
+    # they were passed back in.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=start, stop=stop)
+    assert coords.tolist() == np.arange(len(df))[start:stop].tolist()
+
+
+def test_select_as_coordinates_negative_start_round_trip(temp_hdfstore):
+    # GH#68033 coordinates that name no row wrapped silently when they were fed
+    # back to select, so the caller got rows the window never covered
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=-20)
+    result = temp_hdfstore.select("df", where=np.asarray(coords))
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_as_coordinates_negative_start_with_condition(temp_hdfstore):
+    # GH#68033 the same window applies to a condition query
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", where="A>=5", start=-20)
+    tm.assert_index_equal(coords, pd.Index([5, 6, 7, 8, 9]))
+
+
+@pytest.mark.parametrize("start", [-20, -5])
+def test_select_boolean_mask_negative_start(temp_hdfstore, start):
+    # GH#68033 the mask is aligned to the rows in the [start, stop) window, so
+    # a negative start has to be resolved before the window is built -- it used
+    # to build an oversized window and raise IndexError on the mask.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    expected = temp_hdfstore.select("df", start=start)
+    mask = np.zeros(len(expected), dtype=bool)
+    mask[[0, -1]] = True
+
+    result = temp_hdfstore.select("df", where=mask, start=start)
+    tm.assert_frame_equal(result, expected.iloc[[0, -1]])
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 2}, {"iterator": True}])
+def test_select_iterator_negative_start(temp_hdfstore, iter_kwargs):
+    # GH#68033 a negative start was carried into the per-chunk row slicing, so
+    # the iterator walked off the front of the table and yielded rows twice
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    result = pd.concat(list(temp_hdfstore.select("df", start=-5, **iter_kwargs)))
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+    result = pd.concat(
+        list(temp_hdfstore.select("df", where="A>=0", start=-5, **iter_kwargs))
+    )
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+
+@pytest.mark.parametrize(
     "read",
     [
         lambda store, where: store.select("df", where=where),
