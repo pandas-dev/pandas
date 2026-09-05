@@ -2,6 +2,25 @@
 Data I/O API
 """
 
+__lazy_modules__ = (
+    "pandas.io.clipboards",
+    "pandas.io.excel",
+    "pandas.io.feather_format",
+    "pandas.io.html",
+    "pandas.io.iceberg",
+    "pandas.io.json",
+    "pandas.io.orc",
+    "pandas.io.parquet",
+    "pandas.io.parsers",
+    "pandas.io.pickle",
+    "pandas.io.pytables",
+    "pandas.io.sas",
+    "pandas.io.spss",
+    "pandas.io.sql",
+    "pandas.io.stata",
+    "pandas.io.xml",
+)
+
 from pandas.io.clipboards import read_clipboard
 from pandas.io.excel import (
     ExcelFile,
