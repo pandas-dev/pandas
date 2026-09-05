@@ -1024,7 +1024,7 @@ ExtensionArray
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Bug in the :class:`Series` constructor with an index but no data raising ``RecursionError`` for an :class:`~pandas.api.extensions.ExtensionDtype` whose ``na_value`` is dict-like, e.g. a nested or arrow-backed dtype (:issue:`33900`, :issue:`41377`)
-- Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68077`)
+- Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 - Fixed bug in :meth:`Series.cummax` and :meth:`Series.cummin` (and their :class:`DataFrame` counterparts) with floating-point :class:`ArrowDtype` returning a finite sentinel value instead of the correct running maximum/minimum (:issue:`66257`)
 - Fixed the :attr:`~Series.is_monotonic_increasing` and :attr:`~Series.is_monotonic_decreasing` properties to dispatch to the underlying :class:`ExtensionArray` implementation (:issue:`65585`)
