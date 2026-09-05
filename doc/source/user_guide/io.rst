@@ -5688,6 +5688,19 @@ included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <https://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
+A database with an ODBC driver but no native ADBC driver can still be used through an
+ADBC connection: `adbcBridge <https://adbcbridge.org>`__ is an ADBC driver that wraps the
+database's ODBC driver and returns a standard ADBC DBAPI connection, which
+:func:`~pandas.read_sql` and :meth:`~DataFrame.to_sql` accept like any other ADBC
+connection.
+
+.. code-block:: python
+
+   import adbcbridge
+
+   with adbcbridge.connect(uri="DSN=warehouse;") as conn:
+       df = pd.read_sql("SELECT * FROM sales", conn)
+
 If SQLAlchemy is not installed, you can use a :class:`sqlite3.Connection` in place of
 a SQLAlchemy engine, connection, or URI string.
 
