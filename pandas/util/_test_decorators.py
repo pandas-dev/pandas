@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from pandas._typing import F
 
 from pandas._config.localization import can_set_locale
+
 from pandas.compat import (
     IS64,
     WASM,

@@ -4,9 +4,10 @@ import locale
 import numpy as np
 import pytest
 
+from pandas._config.localization import set_locale
+
 import pandas.util._test_decorators as td
 
-from pandas._config.localization import set_locale
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.tools.times import to_time
