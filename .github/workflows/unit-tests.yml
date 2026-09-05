@@ -400,6 +400,7 @@ jobs:
             -- \
             -Csetup-args="-Dbuildtype=debugoptimized" \
             -Csetup-args="-Db_sanitize=address,undefined" \
+            -Csetup-args="-Dstrict_c_sanitize=true" \
             -Csetup-args="-Db_lundef=false"
 
       - name: Get Sanitizer Path
