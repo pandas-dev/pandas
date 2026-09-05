@@ -1454,7 +1454,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
     If future.python_scalars is disabled or ``value`` is not a NumPy scalar, ``value``
     is returned unchanged. ``np.datetime64`` and ``np.timedelta64`` values are
     converted to ``Timestamp`` and ``Timedelta`` respectively. Converting
-    ``np.longdouble`` to ``float`` and ``np.complex256`` to ``complex`` can
+    ``np.longdouble`` to ``float`` and ``np.clongdouble`` to ``complex`` can
     lose precision.
 
     Parameters
@@ -1483,7 +1483,7 @@ def maybe_unbox_numpy_scalar(value: Any, *, object_with_dtype: Any = None) -> An
             return result
         if isinstance(result, np.longdouble):
             result = float(result)
-        elif isinstance(result, np.complex256):
+        elif isinstance(result, np.clongdouble):
             result = complex(result)
         elif isinstance(result, np.datetime64):
             result = Timestamp(result)
