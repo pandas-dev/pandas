@@ -462,6 +462,9 @@ try_examples_global_warning_text = (
     "Interactive examples are experimental and may not always work as expected."
 )
 try_examples_preamble = "import pandas as pd\nimport numpy as np"
+# Keep .ipynb rendering with nbsphinx: jupyterlite-sphinx would otherwise bind
+# the ipynb suffix and break nbsphinx pages (e.g. style.ipynb labels)
+jupyterlite_bind_ipynb_suffix = False
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
