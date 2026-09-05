@@ -6,11 +6,14 @@ from datetime import (
     UTC,
     datetime,
 )
+import locale
 import re
 
 from dateutil.parser import parse as du_parse
 import numpy as np
 import pytest
+
+from pandas._config.localization import set_locale
 
 from pandas._libs.tslibs import (
     parsing,
@@ -315,12 +318,13 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    msg = r"when dayfirst=False \(the default\) was specified"
-    with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
-    ):
-        result = parsing.guess_datetime_format(string)
-    assert result == fmt
+    with set_locale("C", locale.LC_TIME):
+        msg = r"when dayfirst=False \(the default\) was specified"
+        with tm.maybe_produces_warning(
+            UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
+        ):
+            result = parsing.guess_datetime_format(string)
+        assert result == fmt
 
 
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
@@ -340,8 +344,9 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ],
 )
 def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
-    result = parsing.guess_datetime_format(string)
-    assert result == fmt
+    with set_locale("C", locale.LC_TIME):
+        result = parsing.guess_datetime_format(string)
+        assert result == fmt
 
 
 @pytest.mark.parametrize(

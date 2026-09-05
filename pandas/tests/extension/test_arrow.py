@@ -24,6 +24,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import locale
 import operator
 import pickle
 import re
@@ -32,6 +33,8 @@ import unicodedata
 
 import numpy as np
 import pytest
+
+from pandas._config.localization import set_locale
 
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
@@ -4849,9 +4852,10 @@ def test_string_to_time_parsing_cast():
 @pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
 def test_string_to_time_parsing_cast_meridiem(dtype):
     # GH#18793 the space before AM/PM used to make these coerce to null
-    result = pd.Series(["3:25:00 PM"], dtype=dtype)
-    expected = pd.Series(["15:25:00"], dtype=dtype)
-    tm.assert_series_equal(result, expected)
+    with set_locale("C", locale.LC_TIME):
+        result = pd.Series(["3:25:00 PM"], dtype=dtype)
+        expected = pd.Series(["15:25:00"], dtype=dtype)
+        tm.assert_series_equal(result, expected)
 
 
 def test_to_numpy_float():
