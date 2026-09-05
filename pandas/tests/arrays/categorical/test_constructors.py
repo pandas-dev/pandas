@@ -19,6 +19,27 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
+    @pytest.mark.parametrize(
+        "values, dtype, codes",
+        [
+            ([1.5, 2.0], CategoricalDtype([1, 2, 3]), [-1, 1]),
+            (
+                np.array([200], dtype="int64"),
+                CategoricalDtype(pd.Index([-56], dtype="int8")),
+                [-1],
+            ),
+            ([1, 2, "a"], CategoricalDtype([1, 2, 3]), [0, 1, -1]),
+        ],
+    )
+    def test_constructor_does_not_cast_values(self, values, dtype, codes):
+        # GH#66688
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Categorical(values, dtype=dtype)
+
+        expected = pd.Categorical.from_codes(codes, dtype=dtype)
+        tm.assert_categorical_equal(result, expected)
+
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
         cat = pd.Categorical([3, 1], categories=[3, 2, 1], ordered=True)
