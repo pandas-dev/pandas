@@ -35,7 +35,7 @@ jobs:
         fetch-depth: 0
 
     - name: Create virtual environment with Pixi
-      uses: ./.github/actions/setup-pixi
+      uses: $/.github/actions/setup-pixi
       with:
         environment: "doctests"
 
@@ -71,7 +71,7 @@ jobs:
         fetch-depth: 0
 
     - name: Create virtual environment with Pixi
-      uses: ./.github/actions/setup-pixi
+      uses: $/.github/actions/setup-pixi
       with:
         environment: "typing"
 
@@ -104,7 +104,7 @@ jobs:
         fetch-depth: 0
 
     - name: Create virtual environment with Pixi
-      uses: ./.github/actions/setup-pixi
+      uses: $/.github/actions/setup-pixi
       with:
         environment: "asv"
 
