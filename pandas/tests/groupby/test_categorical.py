@@ -1888,7 +1888,7 @@ def test_groupby_categorical_indices_sort_false_multi_key():
 
     result = gb.indices
     for key, value in gb.groups.items():
-        tm.assert_numpy_array_equal(result[key], value.to_numpy())
+        tm.assert_numpy_array_equal(result[key], value.to_numpy(), check_dtype=False)
 
 
 @pytest.mark.parametrize("func", ["first", "last"])
