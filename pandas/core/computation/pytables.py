@@ -22,6 +22,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
+    iNaT,
 )
 from pandas.errors import UndefinedVariableError
 
@@ -218,10 +219,34 @@ class BinOp(ops.BinOp):
         """the metadata of my field"""
         return getattr(self.queryables.get(self.lhs.value), "metadata", None)
 
+    @property
+    def ordered(self):
+        """whether my field is an ordered Categorical (None if unrecorded)"""
+        return getattr(self.queryables.get(self.lhs.value), "ordered", None)
+
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
-        return f"({self.lhs.value} {self.op} {val})"
+        lhs = self.lhs.value
+        if v.truncated:
+            # The requested value fell strictly between `val` and the next
+            # storable one, so no row can equal it. Compare against `val` with
+            # an adjusted operator rather than against the value we truncated to.
+            if self.op == "==":
+                # matches nothing
+                return f"(({lhs} > {val}) & ({lhs} <= {val}))"
+            if self.op == "!=":
+                # matches everything
+                return f"(({lhs} <= {val}) | ({lhs} > {val}))"
+            op = "<=" if self.op in ("<", "<=") else ">"
+            return f"({lhs} {op} {val})"
+        kind = ensure_decoded(self.kind) or ""
+        if self.op in ("<", "<=") and kind.startswith(("datetime", "timedelta")):
+            # datetime64/timedelta64 columns are stored as int64 with NaT as
+            # iNaT, which sorts below every real value, so an unguarded "less
+            # than" would match the NaT rows. ">"/">=" need no such guard.
+            return f"(({lhs} != {iNaT}) & ({lhs} {self.op} {val}))"
+        return f"({lhs} {self.op} {val})"
 
     def convert_value(self, conv_val) -> TermValue:
         """
@@ -261,6 +286,16 @@ class BinOp(ops.BinOp):
             return TermValue(int(conv_val), conv_val, kind)
 
         elif meta == "category":
+            # `ordered` may be a np.bool_, and is None for files written before
+            #  the flag was recorded, where we cannot tell.
+            ordered = self.ordered
+            is_unordered = ordered is not None and not ordered
+            if is_unordered and self.op in ["<", "<=", ">", ">="]:
+                # GH#68040 the stored codes are orderable, but the categories
+                #  they stand for are not; match the in-memory comparison.
+                raise TypeError(
+                    "Unordered Categoricals can only compare equality or not"
+                )
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
@@ -279,7 +314,13 @@ class BinOp(ops.BinOp):
                 # convert v to float to raise float's ValueError
                 float(conv_val)
             else:
-                conv_val = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+                # Round toward -inf rather than to nearest, and flag the loss, so
+                # that generate() can adjust the operator instead of silently
+                # querying for a neighboring integer.
+                floored = v_dec.to_integral_exact(rounding="ROUND_FLOOR")
+                truncated = floored != v_dec
+                conv_val = int(floored)
+                return TermValue(conv_val, conv_val, kind, truncated=truncated)
             return TermValue(conv_val, conv_val, kind)
         elif kind == "float":
             conv_val = float(conv_val)
@@ -405,7 +446,10 @@ class ConditionBinOp(BinOp):
             # too many values to create the expression?
             if len(values) <= self._max_selectors:
                 vs = [self.generate(v) for v in values]
-                self.condition = f"({' | '.join(vs)})"
+                # De Morgan: "col != [a, b]" means "col != a AND col != b".
+                # OR-joining "!=" comparisons is true for every row.
+                joiner = " & " if self.op == "!=" else " | "
+                self.condition = f"({joiner.join(vs)})"
 
             # use a filter after reading
             else:
@@ -661,11 +705,14 @@ class PyTablesExpr(expr.Expr):
 class TermValue:
     """hold a term value that we use to construct a condition/filter"""
 
-    def __init__(self, value, converted, kind: str) -> None:
+    def __init__(self, value, converted, kind: str, truncated: bool = False) -> None:
         assert isinstance(kind, str), kind
         self.value = value
         self.converted = converted
         self.kind = kind
+        # whether `converted` lost information relative to the value the user
+        # asked for; see BinOp.generate
+        self.truncated = truncated
 
     def tostring(self, encoding) -> str:
         """quote the string if not encoded else encode and return"""

@@ -4,6 +4,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
@@ -93,6 +95,7 @@ class TestResetIndex:
         result2 = result.reset_index()
         tm.assert_frame_equal(result2, original)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.reset_index")
     def test_reset_index(self, float_frame):
         stacked = float_frame.stack()[::2]
         stacked = pd.DataFrame({"foo": stacked, "bar": stacked})
@@ -171,6 +174,7 @@ class TestResetIndex:
         xp = xp.set_index(["B"], append=True)
         tm.assert_frame_equal(rs, xp)
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.reset_index")
     def test_reset_index_name(self):
         df = pd.DataFrame(
             [[1, 2, 3, 4], [5, 6, 7, 8]],
@@ -825,3 +829,28 @@ def test_reset_index_with_empty_frame(columns):
     result = df.reset_index()
     expected = pd.DataFrame({"foo": [1, 2], "bar": [2, 3]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_inplace_depr():
+    msg = "The inplace keyword in DataFrame.reset_index is deprecated"
+
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index([0, 1, 2], name="idx"))
+    df_orig = df.copy()
+    expected = pd.DataFrame({"idx": [0, 1, 2], "a": [1, 2, 3]})
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.reset_index()
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.reset_index(inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.reset_index(inplace=True)
+    tm.assert_frame_equal(df, expected)

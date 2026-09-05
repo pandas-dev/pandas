@@ -4,6 +4,7 @@ from cpython.datetime cimport (
     datetime,
 )
 from numpy cimport (
+    PyDatetimeScalarObject,
     int32_t,
     int64_t,
     npy_datetime,
@@ -97,6 +98,12 @@ cdef int64_t pydate_to_dt64(
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
+
+# The unit multiplier, e.g. 10 for np.timedelta64(1, "10s"). Inline for the same
+#  reason as check_nat_sentinel: this runs per element in the object-dtype
+#  array_to_datetime/array_to_timedelta64 loops.
+cdef inline int get_datetime64_unit_count(object obj) noexcept nogil:
+    return (<PyDatetimeScalarObject*>obj).obmeta.num
 
 cdef int string_to_dts(
     str val,

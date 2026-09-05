@@ -589,6 +589,28 @@ def test_get_indexer_scalar_monotonic_timedelta():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("closed", ["left", "right", "neither"])
+def test_get_indexer_nested_empty_interval(closed):
+    # GH#26893 an empty interval nested inside another one is not an overlap,
+    #  so the index is usable with get_indexer; the empty one matches nothing
+    index = pd.IntervalIndex.from_tuples([(0, 3), (1, 1)], closed=closed)
+    assert index.is_overlapping is False
+
+    result = index.get_indexer([0, 1, 2, 3])
+    expected = np.array(
+        {
+            "left": [0, 0, 0, -1],
+            "right": [-1, 0, 0, 0],
+            "neither": [-1, 0, 0, -1],
+        }[closed],
+        dtype="intp",
+    )
+    tm.assert_numpy_array_equal(result, expected)
+
+    # the empty interval is still found by an exact Interval lookup
+    assert index.get_loc(pd.Interval(1, 1, closed=closed)) == 1
+
+
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):
         # increasing monotonically

@@ -474,7 +474,8 @@ specification:
    pd.read_csv(StringIO(data), dtype={"col1": "category"}).dtypes
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
-whose ``categories`` are the unique values observed in the data. For more
+whose ``categories`` are the unique values observed in the data, after the
+numeric and boolean inference described below. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
 that column's ``dtype``.
@@ -501,22 +502,30 @@ among the specified categories will raise.
 
 .. note::
 
-   With ``dtype='category'``, the resulting categories will always be parsed
-   as strings (object dtype). If the categories are numeric they can be
-   converted using the :func:`to_numeric` function, or as appropriate, another
-   converter such as :func:`to_datetime`.
+   With ``dtype="category"``, numeric and boolean categories are inferred.
 
-   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
-   all numeric, all datetimes, etc.), the conversion is done automatically.
+   .. versionchanged:: 3.1.0
+
+      Previously the categories were always parsed as strings.
 
    .. ipython:: python
 
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      new_categories = pd.to_numeric(df["col3"].cat.categories)
-      df["col3"] = df["col3"].cat.rename_categories(new_categories)
-      df["col3"]
+
+   Columns whose values do not all parse as numeric or boolean retain string
+   categories, and can be converted with an explicit converter such as
+   :func:`to_datetime`.
+
+   Columns read with non-default ``thousands`` or ``decimal`` options also
+   retain string categories, because the inference is unaware of those
+   options. Strip the separators before converting those: with
+   ``thousands="."``, :func:`to_numeric` reads ``"1.000"`` as ``1.0`` rather
+   than ``1000``.
+
+   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
+   all numeric, all datetimes, etc.), the conversion is done automatically.
 
 
 Naming and using columns
@@ -3854,8 +3863,10 @@ for reading binary Excel files mostly match what can be done for
 
 .. note::
 
-   The ``pyxlsb`` engine is also available for reading ``.xlsb`` files but is
-   deprecated; prefer ``engine="calamine"``.
+   The ``pyxlsb`` engine is still used for ``.xlsb`` files by default whenever it
+   is installed, but it is deprecated and does not recognize datetime types in
+   files, returning the raw Excel serial numbers instead. Prefer
+   ``engine="calamine"``.
 
 .. note::
 
@@ -5106,8 +5117,11 @@ Categorical data
 ++++++++++++++++
 
 You can write data that contains ``category`` dtypes to a ``HDFStore``.
-Queries work the same as if it was an object array. However, the ``category`` dtyped data is
-stored in a more efficient manner.
+Queries work the same as if it was an object array, except that the ordering
+comparisons ``<``, ``<=``, ``>`` and ``>=`` require the column to have been
+written with ``ordered=True`` and compare by category order rather than by
+value. However, the ``category`` dtyped data is stored in a more efficient
+manner.
 
 .. ipython:: python
 

@@ -573,6 +573,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if (
+            dtype is not None
+            and np.dtype(dtype) == object
+            and self.sp_values.dtype.kind in "mM"
+        ):
+            # numpy renders datetime64/timedelta64 as ints when casting to
+            # object; box them ourselves, see test_array_object_datetimelike
+            if copy is False:
+                raise ValueError(
+                    "Unable to avoid copy while creating an array as requested."
+                )
+            dense = ensure_wrapped_if_datetimelike(np.asarray(self))
+            return np.asarray(dense, dtype=object)
+
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
             if copy is True:
@@ -1616,7 +1630,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             result = getattr(arr, name)(**kwargs)
 
         if keepdims:
-            return type(self)([result], dtype=self.dtype)
+            dtype = self.dtype
+            if dtype.subtype.kind in "biufc":
+                # The reduction is not always closed over self.dtype, e.g. the
+                # mean of an integer column, the sum of a narrow one, or the
+                # NaN that min_count inserts; casting the result back to
+                # self.dtype would silently truncate it.
+                subtype = np.result_type(dtype.subtype, result)
+                if subtype != dtype.subtype:
+                    fill_value = self.fill_value
+                    if notna(fill_value):
+                        # keep the fill value so that reducing a frame of
+                        # sparse columns does not mix fill values
+                        fill_value = subtype.type(fill_value).item()
+                    dtype = SparseDtype(subtype, fill_value)
+            return type(self)([result], dtype=dtype)
         else:
             return result
 

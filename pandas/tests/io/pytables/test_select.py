@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 import pytest
 
@@ -145,6 +147,46 @@ def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
     # a plain read must match the iterator/coordinate path
     iter_result = pd.concat(list(temp_hdfstore.select("df", where=where, chunksize=50)))
     tm.assert_frame_equal(result, iter_result)
+
+
+@pytest.mark.parametrize("column", ["num", "text", "ts"])
+def test_select_ne_list_of_values(temp_hdfstore, column):
+    # GH#68030 "col != [a, b]" OR-joined the per-value comparisons, and
+    # "(col != a) | (col != b)" is true for every row, so the query silently
+    # degraded to no filter at all. A single-element list was fine.
+    df = pd.DataFrame(
+        {
+            "num": np.arange(40),
+            "text": [f"s{i:02d}" for i in range(40)],
+            "ts": pd.date_range("2020-01-01", periods=40, unit="ns"),
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    selector = list(df[column][10:13])
+    where = f"{column} != selector"
+    expected = df[~df[column].isin(selector)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=where), expected)
+
+    # the coordinate path must agree with a plain read
+    coords = temp_hdfstore.select_as_coordinates("df", where=where)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=coords), expected)
+
+
+def test_select_ne_list_matches_post_read_filter(temp_hdfstore):
+    # GH#68030 a >31-value "!=" list is realized as a post-read filter instead
+    # of a numexpr condition; padding the list with values that are not in the
+    # column must not change which rows come back
+    df = pd.DataFrame({"num": np.arange(40)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    small = [10, 11, 12]
+    big = small + list(range(100, 135))
+    expected = df[~df["num"].isin(small)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {small}"), expected)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {big}"), expected)
 
 
 def test_select_with_dups(temp_hdfstore):
@@ -1147,6 +1189,38 @@ def test_select_empty_where(temp_hdfstore, where):
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("value", [1.5, 2.5, -1.5, -0.5])
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+@pytest.mark.parametrize("indexed", [True, False])
+def test_select_integer_column_non_integer_value(temp_hdfstore, op, value, indexed):
+    # GH#68032 a value that is not a whole number equals no row of an integer
+    # column, so the query must not compare against a rounded value
+    df = pd.DataFrame({"i": [-3, -2, -1, 0, 1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=indexed)
+
+    result = temp_hdfstore.select("t", where=f"i {op} {value}")
+    expected = df.query(f"i {op} {value}")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_integer_column_non_integer_value_in_list(temp_hdfstore):
+    # GH#68032 only the whole-number members of the list can match
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i == [1.5, 2]")
+    tm.assert_frame_equal(result, df.loc[[1]])
+
+
+def test_select_integer_column_non_integer_string_value(temp_hdfstore):
+    # GH#68032 the value can also reach convert_value as a string literal
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i > '1.5'")
+    tm.assert_frame_equal(result, df.loc[[1, 2]])
+
+
 def test_select_large_integer(temp_hdfstore):
     df = pd.DataFrame(
         zip(
@@ -1163,6 +1237,47 @@ def test_select_large_integer(temp_hdfstore):
     expected = df["y"][0]
 
     assert expected == result
+
+
+@pytest.mark.parametrize(
+    "op, func",
+    [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
+)
+@pytest.mark.parametrize(
+    "values, rhs",
+    [
+        (pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]), "2020-01-02"),
+        (
+            pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]).as_unit("s"),
+            "2020-01-02",
+        ),
+        (
+            pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]).tz_localize("UTC"),
+            "2020-01-02 00:00:00+00:00",
+        ),
+        (pd.to_timedelta(["1s", "3s", pd.NaT]), "2s"),
+    ],
+)
+def test_select_ordering_comparison_skips_nat(temp_hdfstore, values, rhs, op, func):
+    # datetime64/timedelta64 columns are stored as int64 with NaT as iNaT, which
+    # sorts below every real value, so "<"/"<=" used to match the NaT rows
+    df = pd.DataFrame({"col": values, "pos": range(3)})
+    temp_hdfstore.append("df", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("df", where=f"col {op} '{rhs}'")
+    expected = df[func(df["col"], rhs)]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<="])
+def test_select_ordering_comparison_skips_nat_on_index(temp_hdfstore, op):
+    idx = pd.DatetimeIndex(["2020-01-01", "2020-01-03", pd.NaT])
+    df = pd.DataFrame({"pos": range(3)}, index=idx)
+    temp_hdfstore.append("df", df, index=False)
+
+    result = temp_hdfstore.select("df", where=f"index {op} '2020-01-02'")
+    expected = df.iloc[:1]
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("unit", ["us", "ns", "ms", "s"])
@@ -1342,3 +1457,93 @@ def test_remove_nested_or_query_warns(temp_hdfstore):
     # test_select_nested_or_query_wrong_rows_single_chunk
     assert removed == 0
     assert temp_hdfstore.get_storer("df").nrows == len(df)
+
+
+@pytest.mark.parametrize(
+    "start, stop",
+    [(-20, None), (-5, None), (None, -20), (None, 50), (-20, 50), (50, None)],
+)
+def test_select_as_coordinates_out_of_range_window(temp_hdfstore, start, stop):
+    # GH#68033 an out-of-range or negative start/stop was not resolved against
+    # the length of the table, so the coordinates named rows that do not exist
+    # -- negative ones silently wrapped around to the front of the table when
+    # they were passed back in.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=start, stop=stop)
+    assert coords.tolist() == np.arange(len(df))[start:stop].tolist()
+
+
+def test_select_as_coordinates_negative_start_round_trip(temp_hdfstore):
+    # GH#68033 coordinates that name no row wrapped silently when they were fed
+    # back to select, so the caller got rows the window never covered
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=-20)
+    result = temp_hdfstore.select("df", where=np.asarray(coords))
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_as_coordinates_negative_start_with_condition(temp_hdfstore):
+    # GH#68033 the same window applies to a condition query
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", where="A>=5", start=-20)
+    tm.assert_index_equal(coords, pd.Index([5, 6, 7, 8, 9]))
+
+
+@pytest.mark.parametrize("start", [-20, -5])
+def test_select_boolean_mask_negative_start(temp_hdfstore, start):
+    # GH#68033 the mask is aligned to the rows in the [start, stop) window, so
+    # a negative start has to be resolved before the window is built -- it used
+    # to build an oversized window and raise IndexError on the mask.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    expected = temp_hdfstore.select("df", start=start)
+    mask = np.zeros(len(expected), dtype=bool)
+    mask[[0, -1]] = True
+
+    result = temp_hdfstore.select("df", where=mask, start=start)
+    tm.assert_frame_equal(result, expected.iloc[[0, -1]])
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 2}, {"iterator": True}])
+def test_select_iterator_negative_start(temp_hdfstore, iter_kwargs):
+    # GH#68033 a negative start was carried into the per-chunk row slicing, so
+    # the iterator walked off the front of the table and yielded rows twice
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    result = pd.concat(list(temp_hdfstore.select("df", start=-5, **iter_kwargs)))
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+    result = pd.concat(
+        list(temp_hdfstore.select("df", where="A>=0", start=-5, **iter_kwargs))
+    )
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+
+@pytest.mark.parametrize(
+    "read",
+    [
+        lambda store, where: store.select("df", where=where),
+        lambda store, where: list(store.select("df", where=where, chunksize=5)),
+        lambda store, where: store.select_as_coordinates("df", where=where),
+    ],
+    ids=["select", "iterator", "select_as_coordinates"],
+)
+def test_select_nested_or_query_warns_once(temp_hdfstore, read):
+    # GH#50598 one read builds several Selection objects for the same "where",
+    # so the warning has to come from the query rather than from every parse
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    with tm.assert_produces_warning(UserWarning, match="GH#50598") as record:
+        read(temp_hdfstore, "(a > 100 & b > 100) | (a < 5 & b < 5)")
+
+    assert sum("GH#50598" in str(warning.message) for warning in record) == 1
