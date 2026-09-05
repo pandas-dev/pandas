@@ -546,6 +546,30 @@ def test_zero_sparse_column():
     tm.assert_frame_equal(result, expected)
 
 
+def test_series_repr_datetime64():
+    # GH#68053 printed the raw i8 value
+    arr = SparseArray(np.array(["2020-01-01", "NaT"], dtype="M8[ns]"))
+    expected = "0    2020-01-01 00:00:00\n1                    NaT"
+    assert pd.Series(arr).to_string() == expected
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_array_object_datetimelike(kind, unit):
+    # GH#68053 numpy renders datetime64/timedelta64 as ints when casting to
+    # object, so we have to box these ourselves
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    values[1] = "NaT"
+    expected = pd.array(values).astype(object)
+
+    arr = SparseArray(values)
+    tm.assert_numpy_array_equal(np.asarray(arr, dtype=object), expected)
+
+    # no gaps, so __array__ takes the sp_values shortcut
+    no_gaps = SparseArray(values[::2])
+    tm.assert_numpy_array_equal(np.asarray(no_gaps, dtype=object), expected[::2])
+
+
 def test_array_interface(arr_data, arr):
     # https://github.com/pandas-dev/pandas/pull/60046
     result = np.asarray(arr)

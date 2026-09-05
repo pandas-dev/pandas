@@ -573,6 +573,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if (
+            dtype is not None
+            and np.dtype(dtype) == object
+            and self.sp_values.dtype.kind in "mM"
+        ):
+            # numpy renders datetime64/timedelta64 as ints when casting to
+            # object; box them ourselves, see test_array_object_datetimelike
+            if copy is False:
+                raise ValueError(
+                    "Unable to avoid copy while creating an array as requested."
+                )
+            dense = ensure_wrapped_if_datetimelike(np.asarray(self))
+            return np.asarray(dense, dtype=object)
+
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
             if copy is True:
