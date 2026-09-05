@@ -1,8 +1,11 @@
 cimport cython
+
 from datetime import (
     timedelta,
     timezone,
 )
+import pickle
+import weakref
 import zoneinfo
 from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
@@ -45,6 +48,12 @@ cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tz
 
 cdef tzinfo utc_zoneinfo = None
 cdef type ZoneInfo = zoneinfo.ZoneInfo
+
+# Pure-python ZoneInfo twins of the ZoneInfo objects we have vetted, see
+#  get_zoneinfo_twin.  Weakly keyed so that we do not keep the tz objects we
+#  are passed alive for the life of the process; the stdlib interns only some
+#  of them.
+cdef object _zoneinfo_twin_cache = weakref.WeakKeyDictionary()
 
 
 # ----------------------------------------------------------------------
@@ -217,6 +226,11 @@ cdef object tz_cache_key(tzinfo tz):
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
     elif is_zoneinfo(tz):
+        if get_zoneinfo_twin(tz) is None:
+            # i.e. ZoneInfo.from_file; tz.key, if there is one, does not
+            #  identify the data this object holds, so caching under it would
+            #  hand out another zone's transitions.  GH#64379
+            return None
         return "zoneinfo/" + tz.key
     else:
         return None
@@ -246,7 +260,12 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
         else:
             return 0
     elif is_zoneinfo(tz):
-        tz_py = _ZoneInfo(tz.key)
+        tz_py = get_zoneinfo_twin(tz)
+        if tz_py is None:
+            # i.e. ZoneInfo.from_file; without a twin we cannot see the
+            #  transitions, so report not-fixed and let callers take the
+            #  tzinfo-API path.  GH#64379
+            return 0
         if tz_py._fixed_offset:
             return 1
         else:
@@ -292,6 +311,57 @@ cdef int64_t[::1] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
+cdef object get_zoneinfo_twin(tzinfo tz):
+    """
+    Get the pure-python ``zoneinfo`` implementation of `tz`.
+
+    The cached-transition fast path needs transition data that only the
+    pure-python implementation exposes, and the only handle we have for
+    rebuilding it is ``tz.key``.  That handle is good when `tz` was loaded
+    from the installed tzdata under that key, but ``ZoneInfo.from_file``
+    objects have no reliable key (absent or not necessarily matching with
+    tzdata).  In those cases we have no way to see the transitions and callers
+    must fall back to the tzinfo API.  GH#64379
+
+    Whether the key describes the object is decided by asking it to pickle.
+    The stdlib documents that a ``from_file`` object cannot be pickled,
+    because its data is not recoverable from its key.
+
+    Parameters
+    ----------
+    tz : ZoneInfo
+
+    Returns
+    -------
+    zoneinfo._zoneinfo.ZoneInfo or None
+    """
+    try:
+        return _zoneinfo_twin_cache[tz]
+    except KeyError:
+        pass
+
+    twin = _build_zoneinfo_twin(tz)
+    _zoneinfo_twin_cache[tz] = twin
+    return twin
+
+
+cdef object _build_zoneinfo_twin(tzinfo tz):
+    try:
+        tz.__reduce__()
+    except pickle.PicklingError:
+        # i.e. ZoneInfo.from_file, for which both implementations refuse this.
+        #  A __reduce__ that succeeds tells us the object was loaded from the
+        #  installed tzdata under its key, by ZoneInfo() or no_cache().
+        return None
+
+    try:
+        return _ZoneInfo(tz.key)
+    except (KeyError, ValueError, OSError):
+        # Not expected to be reached: the C and pure-python loaders search the
+        #  same TZPATH, so having gotten this far the key resolves for both.
+        return None
+
+
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
     Get transition times and UTC offsets for a ZoneInfo timezone.
@@ -321,7 +391,9 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
         bint valid
 
-    tz_py = _ZoneInfo(tz.key)
+    # NB: only reached via get_dst_info, whose callers all avoid it when
+    #  there is no twin, so this is non-None here.
+    tz_py = get_zoneinfo_twin(tz)
 
     if tz_py._fixed_offset:
         fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
