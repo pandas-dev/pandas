@@ -462,7 +462,7 @@ class TestJoin:
         df = pd.DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": ["mean", "sum"]})
         other_df = pd.DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
-        other = other_df.set_index("a")
+        other_df = other_df.set_index("a")
         # GH 9455, 12219
         with pytest.raises(
             pd.errors.MergeError, match="Not allowed to merge between different levels"
