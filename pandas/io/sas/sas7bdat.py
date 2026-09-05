@@ -393,6 +393,25 @@ class SAS7BDATReader(SASReader):
             len(self.column_names),
         )
 
+    def _validate_column_count(self) -> None:
+        # column_count comes from the column-size subheader, independently of
+        # the column-attributes and column-name subheaders the columns are
+        # built from. _parse_metadata and the parser both index those lists
+        # with range(column_count), the parser with bounds checking off. Only
+        # the inflated direction is rejected: a count below what the file
+        # describes is how 0x00controlbyte.sas7bdat reads, see
+        # test_0x00_control_byte.
+        for kind, described in (
+            ("attribute", len(self._column_types)),
+            ("name", len(self.column_names)),
+        ):
+            if self.column_count > described:
+                raise ValueError(
+                    f"The file declares {self.column_count} columns but its "
+                    f"column-{kind} subheaders describe only {described}; the "
+                    f"file is corrupt"
+                )
+
     def _validate_column_data_ranges(self) -> None:
         # The column offsets, lengths and types come straight out of the file's
         # column-attributes subheader, and every row is then read at those
@@ -582,6 +601,8 @@ class SAS7BDATReader(SASReader):
             if len(self._cached_page) != self._page_length:
                 raise ValueError("Failed to read a meta data page from the SAS file.")
             done = self._process_page_meta()
+
+        self._validate_column_count()
 
         self._column_convert_types: list[str | None] = []
         for j in range(self.column_count):

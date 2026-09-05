@@ -710,6 +710,42 @@ def test_column_offset_near_int64_max_raises(datapath, bad_offset):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
+@pytest.mark.parametrize("declared", [3, 4096])
+def test_column_count_above_column_attributes_raises(datapath, declared):
+    # GH#68053 column_count comes from the column-size subheader, and nothing
+    #  lined it up with the column-attributes subheaders the columns are built
+    #  from, so a count above them ran off the end of those lists as a bare
+    #  IndexError from the middle of the reader.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    # the count field of the column-size subheader, one word into it
+    struct.pack_into("<q", data, 65536 + 64704 + 8, declared)
+    with pytest.raises(ValueError, match="column-attribute subheaders describe only 2"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+def test_column_count_above_column_names_raises(datapath):
+    # GH#68053 the names are described separately from the attributes, and it is
+    #  _chunk_to_dataframe that indexes them, so a count that clears the
+    #  attributes but not the names got as far as reading the file's rows.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    # the page's last subheader pointer is a zero-length placeholder, so
+    #  overwriting it replays the column-attributes subheader -- describing the
+    #  attributes of four columns but still naming two -- without moving
+    #  anything else on the page
+    pointer = (
+        65536
+        + const.page_bit_offset_x64
+        + const.subheader_pointers_offset
+        + 9 * const.subheader_pointer_length_x64
+    )
+    struct.pack_into("<qqBB", data, pointer, 63900, 60, 0, 1)
+    struct.pack_into("<q", data, 65536 + 64704 + 8, 4)
+    with pytest.raises(ValueError, match="column-name subheaders describe only 2"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
 def _dates_null_with_late_metadata_page(
     datapath,
     sub_offset,
