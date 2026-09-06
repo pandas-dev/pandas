@@ -94,7 +94,10 @@ from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
 )
-from pandas.core.nanops import check_below_min_count
+from pandas.core.nanops import (
+    check_below_min_count,
+    na_accum_func,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -1735,6 +1738,33 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
+
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> SparseArray:
+        accum_func = {
+            "cumsum": np.cumsum,
+            "cumprod": np.cumprod,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }.get(name)
+        if accum_func is None:
+            raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
+        if name == "cumsum" and skipna and self.dtype.subtype.kind in "biufc":
+            # numeric cumsum keeps the NA gaps as gaps instead of densifying;
+            # other subtypes go dense to match its NA handling
+            return self.cumsum(**kwargs)
+
+        result: ExtensionArray | np.ndarray
+        values = ensure_wrapped_if_datetimelike(self.to_dense())
+        if isinstance(values, ExtensionArray):
+            # datetimelike subtypes have their own accumulations
+            result = values._accumulate(name, skipna=skipna, **kwargs)
+        else:
+            result = na_accum_func(values, accum_func, skipna=skipna)
+
+        # like cumsum, the result's fill value is NA regardless of our own
+        fill_value = na_value_for_dtype(result.dtype, compat=False)
+        return type(self)(result, fill_value=fill_value)
 
     def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
         """
