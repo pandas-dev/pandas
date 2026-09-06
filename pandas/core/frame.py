@@ -5870,7 +5870,8 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
-                    if dtype_obj.kind == "M" and dtype_obj.pyarrow_dtype.tz is not None:
+                    # tz exists only on pa.timestamp; date32/date64 reach here too
+                    if getattr(dtype_obj.pyarrow_dtype, "tz", None) is not None:
                         # GH#68075: numpy_dtype drops the tz, so a tz-aware
                         # column would match a naive datetime64 spec; a
                         # DatetimeTZDtype column matches none of these either
