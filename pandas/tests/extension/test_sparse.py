@@ -105,6 +105,9 @@ class TestSparseArray(base.ExtensionTests):
             return pd.SparseDtype("float64", arr.fill_value)
         return arr.dtype
 
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
         if op_name in [
             "prod",
