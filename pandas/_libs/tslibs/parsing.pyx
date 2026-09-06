@@ -1039,6 +1039,12 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 return None
             tokens = tokens[:offset_index + 1 or None]
 
+        elif "GMT" in tokens:
+            # GH#68079 "GMT" resolves to a zero offset, whose strftime("%Z") is
+            #  "UTC", so it would not otherwise match %Z; "UTC" matches as-is
+            #  and "Z" is handled above.
+            tokens[tokens.index("GMT")] = parsed_datetime.strftime("%Z")
+
     format_guess = [None] * len(tokens)
     found_attrs = set()
 
