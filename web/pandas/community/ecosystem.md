@@ -471,7 +471,7 @@ This helps one to scale your pandas code base, at the same time, keeping mainten
 
 For more information, see [documentation](https://hamilton.readthedocs.io/).
 
-#### [IPython](https://ipython.org/documentation.html)
+#### [IPython](https://ipython.readthedocs.io/)
 
 IPython is an interactive command shell and distributed computing
 environment. IPython tab completion works with Pandas methods and also
