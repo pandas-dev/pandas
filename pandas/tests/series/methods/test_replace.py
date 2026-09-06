@@ -461,6 +461,14 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_invalid_value_callable(self, regex):
+        # GH#68199 replace() should raise instead of storing a callable value
+        series = pd.Series(["a1", "b2"])
+        msg = "'value' cannot be callable, got invalid type 'function'"
+        with pytest.raises(TypeError, match=msg):
+            series.replace(r"\d" if regex else "a1", lambda m: "X", regex=regex)
+
     def test_replace_ellipsis(self):
         # GH#50373 Ellipsis should be accepted as a scalar to_replace
         series = pd.Series([..., 2, 3])

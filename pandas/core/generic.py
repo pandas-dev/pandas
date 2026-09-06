@@ -7586,6 +7586,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         TypeError
             * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
+            * If `value` is callable
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -7830,6 +7831,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Expecting 'to_replace' to be either a scalar, array-like, "
                 "dict or None, got invalid type "
                 f"{type(to_replace).__name__!r}"
+            )
+
+        if callable(value):
+            raise TypeError(
+                f"'value' cannot be callable, got invalid type {type(value).__name__!r}"
             )
 
         if value is lib.no_default and not (
