@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
 from pandas._libs import index as libindex
 
 import pandas as pd
@@ -111,6 +112,9 @@ class TestGetLoc:
             idx.get_loc(pd.NaT)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(), reason="string dtype inference not enabled"
+)
 def test_get_indexer_pd_na_matches_nan():
     # GH#65419
     idx = pd.Index([np.nan, "b"])
