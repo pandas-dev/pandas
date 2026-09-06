@@ -337,7 +337,7 @@ def test_guess_datetime_format_with_parseable_formats(string, fmt):
     ],
 )
 def test_guess_datetime_format_utc_alias(tzname, template, fmt):
-    # GH#68079 the "GMT" spelling used to survive as a literal, so to_datetime
+    # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
     #  silently returned a naive result where Timestamp was tz-aware
     dtstr = template.format(tz=tzname)
     assert parsing.guess_datetime_format(dtstr) == fmt

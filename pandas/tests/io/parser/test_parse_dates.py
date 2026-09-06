@@ -874,7 +874,7 @@ def test_parse_dates_arrow_engine(all_parsers):
 
 
 def test_parse_dates_gmt_timezone(all_parsers):
-    # GH#68079 the "GMT" spelling used to survive inference as a literal, so the
+    # GH#68193 the "GMT" spelling used to survive inference as a literal, so the
     #  column came back naive where the "UTC" spelling was tz-aware
     parser = all_parsers
     data = "a\n2020-01-15 08:30:00 GMT\n2020-01-15 09:30:00 GMT"
