@@ -3,7 +3,6 @@
 from collections.abc import (
     Callable,
     Generator,
-    Hashable,
 )
 from decimal import Decimal
 from typing import (
@@ -192,12 +191,6 @@ def map_infer_mask(
     na_value: Any = ...,
     dtype: np.dtype = ...,
 ) -> ArrayLike: ...
-def indices_fast(
-    index: npt.NDArray[np.intp],
-    labels: np.ndarray,  # const int64_t[:]
-    keys: list,
-    sorted_labels: list[npt.NDArray[np.int64]],
-) -> dict[Hashable, npt.NDArray[np.intp]]: ...
 def generate_slices(
     labels: np.ndarray,
     ngroups: int,  # const intp_t[:]
