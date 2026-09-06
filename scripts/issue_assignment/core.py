@@ -87,6 +87,7 @@ class OpenPRState(TypedDict):
     reopened_events: list[Comment]
     labels: list[str]
     stale_marked_at: datetime | None
+    gate_marked_at: datetime | None
 
 
 class GateDecision(TypedDict, total=False):
@@ -313,17 +314,22 @@ def issue_is_active(
 def pr_subject_to_stale(
     is_exempt_author: bool,
     is_draft: bool,
+    gate_label_present: bool,
     changes_requested_at: datetime | None,
     rereview_requested_at: datetime | None,
 ) -> bool:
     """Whether a PR is in the contributor's court and may go stale.
 
-    Exempt authors (owners/members/collaborators) and drafts are never subject;
-    otherwise the PR is subject only while ``awaiting_contributor`` (a maintainer
-    requested changes and the author hasn't re-requested review since).
+    Exempt authors (owners/members/collaborators) and drafts are never subject.
+    Otherwise the PR is subject while it carries the ``Needs Issue Assignment``
+    label (it won't be reviewed until the author claims the linked issue) or
+    while ``awaiting_contributor`` (a maintainer requested changes and the
+    author hasn't re-requested review since).
     """
     if is_exempt_author or is_draft:
         return False
+    if gate_label_present:
+        return True
     return awaiting_contributor(changes_requested_at, rereview_requested_at)
 
 
@@ -358,21 +364,15 @@ def pr_stale_action(
     return "close"
 
 
-def gate_action(
-    decision: GateDecision, label_present: bool, close_enabled: bool
-) -> str:
+def gate_action(decision: GateDecision, label_present: bool) -> str:
     """What the gate should actually do, given the decision and current labels.
 
-    Returns ``"none"``, ``"clear_label"``, ``"flag"``, or ``"flag_and_close"``.
-    In warn-only mode an already-flagged PR is left alone — reopening without
-    fixing the assignment shouldn't repost the same comment. In close mode a
-    repeat still comments and closes: silently re-closing a reopened PR would
-    be far worse than repeating the explanation.
+    Returns ``"none"``, ``"clear_label"``, or ``"flag"``. A PR that is no
+    longer flaggable — the author now holds the assignment, or the PR has
+    dropped out of scope — sheds any label it carries. An already-flagged PR
+    that is still invalid is left alone: a reopen (or the daily re-check)
+    without fixing the assignment shouldn't repost the same comment.
     """
-    if decision["outcome"] == "not_in_scope":
-        return "none"
-    if decision["outcome"] == "valid_assignment":
-        return "clear_label" if label_present else "none"
-    if close_enabled:
-        return "flag_and_close"
-    return "none" if label_present else "flag"
+    if decision["outcome"] == "invalid_assignment":
+        return "none" if label_present else "flag"
+    return "clear_label" if label_present else "none"

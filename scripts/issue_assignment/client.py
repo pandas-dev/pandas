@@ -19,7 +19,10 @@ from typing import (
 )
 from urllib.parse import quote
 
-from scripts.issue_assignment.core import STALE_LABEL
+from scripts.issue_assignment.core import (
+    GATE_LABEL,
+    STALE_LABEL,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -208,6 +211,17 @@ class GitHubClient:
                     and (marked := parse_dt(event["createdAt"])) is not None
                 ]
                 newest_stale = max(stale_events, default=None)
+                # Newest gate label application, whoever applied it: a
+                # maintainer hand-applying the label means the same thing.
+                gate_marked_at = max(
+                    (
+                        marked
+                        for event in node["labelEvents"]["nodes"]
+                        if event["label"]["name"] == GATE_LABEL
+                        and (marked := parse_dt(event["createdAt"])) is not None
+                    ),
+                    default=None,
+                )
                 reopened_events: list[Comment] = [
                     {
                         "author": (event.get("actor") or {}).get("login"),
@@ -249,6 +263,7 @@ class GitHubClient:
                         if newest_stale is not None and newest_stale[1] == _BOT_LOGIN
                         else None
                     ),
+                    "gate_marked_at": gate_marked_at,
                 }
             page = connection["pageInfo"]
             if not page["hasNextPage"]:
