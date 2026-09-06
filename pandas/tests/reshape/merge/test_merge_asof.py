@@ -1965,6 +1965,16 @@ class TestAsOfMerge:
             tolerance=1,
         )
 
+        # zero tolerance is valid (exact-match only, GH#66289)
+        pd.merge_asof(trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta(0))
+        pd.merge_asof(
+            trades.reset_index(),
+            quotes.reset_index(),
+            on="index",
+            by="ticker",
+            tolerance=0,
+        )
+
         msg = r"incompatible tolerance .*, must be compat with type .*"
 
         # incompat
@@ -1981,7 +1991,7 @@ class TestAsOfMerge:
                 tolerance=1.0,
             )
 
-        msg = "tolerance must be positive"
+        msg = "tolerance must be non-negative"
 
         # invalid negative
         with pytest.raises(MergeError, match=msg):
@@ -2000,12 +2010,27 @@ class TestAsOfMerge:
 
     def test_tolerance_negative_one_nanosecond(self, trades, quotes):
         # GH#58517
-        msg = "tolerance must be positive"
+        msg = "tolerance must be non-negative"
 
         with pytest.raises(MergeError, match=msg):
             pd.merge_asof(
                 trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta(-1)
             )
+
+    def test_tolerance_zero(self):
+        # GH#66289, tolerance=0 is valid and means exact-match only
+        left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
+        right = pd.DataFrame({"a": [1, 6, 10], "right_val": ["A", "B", "C"]})
+
+        result = pd.merge_asof(left, right, on="a", tolerance=0)
+        expected = pd.DataFrame(
+            {
+                "a": [1, 5, 10],
+                "left_val": ["a", "b", "c"],
+                "right_val": ["A", np.nan, "C"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_non_sorted(self, trades, quotes):
         trades = trades.sort_values("time", ascending=False)
