@@ -3750,17 +3750,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
-            if self.index.equals(other.index):
-                new_index = self.index
+            if (
+                isinstance(self.index, MultiIndex)
+                and isinstance(other.index, MultiIndex)
+                and self.index.nlevels != other.index.nlevels
+            ):
+                raise ValueError(
+                    "Cannot combine Series whose MultiIndexes have different "
+                    f"numbers of levels: {self.index.nlevels} and "
+                    f"{other.index.nlevels}"
+                )
+            new_index = self.index.union(other.index)
+            if self.index.equals(new_index) and other.index.equals(new_index):
                 lindexer = rindexer = range(len(new_index))
+            elif self.index._index_as_unique and other.index._index_as_unique:
+                lindexer = self.index.get_indexer(new_index).tolist()
+                rindexer = other.index.get_indexer(new_index).tolist()
             else:
-                new_index = self.index.union(other.index)
-                if self.index._index_as_unique and other.index._index_as_unique:
-                    lindexer = self.index.get_indexer(new_index).tolist()
-                    rindexer = other.index.get_indexer(new_index).tolist()
-                else:
-                    lindexer = self.index._pairwise_indexer(new_index).tolist()
-                    rindexer = other.index._pairwise_indexer(new_index).tolist()
+                lindexer = self.index._pairwise_indexer(new_index).tolist()
+                rindexer = other.index._pairwise_indexer(new_index).tolist()
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
             lvalues = self._values

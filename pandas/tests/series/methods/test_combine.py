@@ -1,3 +1,5 @@
+import pytest
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -114,3 +116,32 @@ class TestCombine:
             index=pd.IntervalIndex.from_tuples([(0, 2), (0, 2), (1, 3), (4, 5)]),
         )
         tm.assert_series_equal(result, expected)
+
+    def test_combine_equal_index_different_names(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        # result index follows union semantics: mismatched names are dropped
+        left = pd.Series([1, 2], index=pd.Index(["a", "b"], name="x"))
+        right = pd.Series([10, 20], index=pd.Index(["a", "b"], name="y"))
+        result = left.combine(right, lambda x, y: x + y)
+        expected = pd.Series([11, 22], index=pd.Index(["a", "b"]))
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_equal_index_different_dtypes(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        # result index follows union semantics: dtypes are reconciled
+        left = pd.Series([1, 2], index=pd.Index([1, 2]))
+        right = pd.Series([10, 20], index=pd.Index([1.0, 2.0]))
+        result = left.combine(right, lambda x, y: x + y)
+        expected = pd.Series([11, 22], index=pd.Index([1.0, 2.0]))
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_multiindex_different_nlevels_raises(self):
+        # https://github.com/pandas-dev/pandas/pull/67446
+        left = pd.Series([1, 2], index=pd.MultiIndex.from_tuples([("a", 1), ("b", 2)]))
+        right = pd.Series([10], index=pd.MultiIndex.from_tuples([("a", 1, "z")]))
+        msg = "different numbers of levels: 2 and 3"
+        with pytest.raises(ValueError, match=msg):
+            left.combine(right, lambda x, y: x + y)
+        msg = "different numbers of levels: 3 and 2"
+        with pytest.raises(ValueError, match=msg):
+            right.combine(left, lambda x, y: x + y)
