@@ -72,6 +72,38 @@ class TestDataFrameClip:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_clip_datetime_threshold_with_unaligned_index(self):
+        # GH#44785
+        # a DataFrame threshold that is not aligned to the index must still
+        # treat missing (NaT) positions as no bounds
+        df = pd.DataFrame(
+            {"a": pd.to_datetime(["2020-01-05", "2020-01-01"])}, index=[0, 1]
+        )
+        threshold = pd.DataFrame(
+            {"a": pd.to_datetime(["2020-01-03", None])}, index=[1, 2]
+        )
+        result = df.clip(lower=threshold)
+        expected = pd.DataFrame(
+            {"a": pd.to_datetime(["2020-01-05", "2020-01-03"])}, index=[0, 1]
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_clip_mixed_dtype_threshold_with_missing_values(self):
+        # GH#44785
+        # datetime columns must not be filled with inf even when other
+        # columns are; missing positions act as no bounds per column
+        df = pd.DataFrame(
+            {"a": pd.to_datetime(["2020-01-05", "2020-01-01"]), "n": [1.0, 2.0]}
+        )
+        threshold = pd.DataFrame(
+            {"a": pd.to_datetime(["2020-01-03", None]), "n": [np.nan, 5.0]}
+        )
+        result = df.clip(lower=threshold)
+        expected = pd.DataFrame(
+            {"a": pd.to_datetime(["2020-01-05", "2020-01-01"]), "n": [1.0, 5.0]}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_clip_mixed_numeric(self):
         # clip on mixed integer or floats
         # GH#24162, clipping now preserves numeric types per column
