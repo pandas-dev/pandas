@@ -17,6 +17,32 @@ class TestToNumpy:
         result = df.to_numpy(dtype="int64")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_to_numpy_na_value_no_missing(self):
+        # GH#56233 assigning na_value is a no-op when there is no NA, even
+        # when the na_value cannot be cast to the target dtype
+        df = pd.DataFrame(
+            [
+                1577840521123543000,
+                1577934062321654000,
+                1578027849987321000,
+            ],
+            dtype="Int64",
+            columns=["col1"],
+        )
+        expected = np.array(
+            [[1577840521123543000], [1577934062321654000], [1578027849987321000]],
+            dtype="int64",
+        )
+        result = df.to_numpy(dtype="int64", na_value=float("nan"))
+        tm.assert_numpy_array_equal(result, expected)
+        # Series path already worked and must stay consistent
+        result_series = df["col1"].to_numpy(dtype="int64", na_value=float("nan"))
+        expected_series = np.array(
+            [1577840521123543000, 1577934062321654000, 1578027849987321000],
+            dtype="int64",
+        )
+        tm.assert_numpy_array_equal(result_series, expected_series)
+
     def test_to_numpy_copy(self):
         arr = np.random.default_rng(2).standard_normal((4, 3))
         df = pd.DataFrame(arr)
