@@ -1039,7 +1039,8 @@ ExtensionArray
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 - Fixed bug in :meth:`Series.cummax` and :meth:`Series.cummin` (and their :class:`DataFrame` counterparts) with floating-point :class:`ArrowDtype` returning a finite sentinel value instead of the correct running maximum/minimum (:issue:`66257`)
 - Fixed the :attr:`~Series.is_monotonic_increasing` and :attr:`~Series.is_monotonic_decreasing` properties to dispatch to the underlying :class:`ExtensionArray` implementation (:issue:`65585`)
--
+ - Bug in :meth:`ExtensionArray.factorize` where pre-encoded ``pyarrow.dictionary`` arrays that stored nulls as dictionary values ignored ``use_na_sentinel=True``, keeping the null in the returned ``uniques`` (:issue:`66490`)
+ -
 
 Styler
 ^^^^^^

@@ -4697,6 +4697,53 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+@pytest.mark.parametrize("use_na_sentinel", [True, False])
+def test_factorize_dictionary_array_null_encoding(null_encoding, use_na_sentinel):
+    # GH 66490
+    # a pre-encoded DictionaryArray must factorize the same regardless of the
+    # null_encoding it was created with
+    values = pa.array([*"abc", None])
+    encoded = values.dictionary_encode(null_encoding=null_encoding)
+    arr = pd.array(encoded, dtype=ArrowDtype(encoded.type))
+
+    indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+
+    plain = ArrowExtensionArray(pa.chunked_array([values]))
+    exp_indices, exp_uniques = plain.factorize(use_na_sentinel=use_na_sentinel)
+    tm.assert_numpy_array_equal(indices, exp_indices)
+    tm.assert_extension_array_equal(uniques, exp_uniques)
+
+
+@pytest.mark.parametrize(
+    ("codes", "uniques", "exp_indices", "exp_uniques"),
+    [
+        pytest.param([0, None], ["a1"], [0, -1], ["a1"], id="null-in-indices"),
+        pytest.param([0, 1], ["a1", None], [0, -1], ["a1"], id="null-in-dictionary"),
+        pytest.param(
+            [None, 0, 1, 1, 2, None],
+            ["a1", None, "a2"],
+            [-1, 0, -1, -1, 1, -1],
+            ["a1", "a2"],
+            id="null-in-both",
+        ),
+    ],
+)
+def test_factorize_dictionary_null_sentinel(codes, uniques, exp_indices, exp_uniques):
+    # GH 66490
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array(codes, type=pa.int32()), pa.array(uniques, type=pa.utf8())
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+
+    indices, res_uniques = arr.factorize(use_na_sentinel=True)
+
+    tm.assert_numpy_array_equal(indices, np.array(exp_indices, dtype=np.intp))
+    tm.assert_extension_array_equal(
+        res_uniques, pd.array(exp_uniques, dtype=ArrowDtype(pa.string()))
+    )
+
+
 def test_dictionary_astype_categorical():
     # GH#56672
     arrs = [
