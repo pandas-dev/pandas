@@ -1406,7 +1406,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         drop: bool = False,
         name: Level = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         allow_duplicates: bool = False,
     ) -> DataFrame | Series | None:
         """
@@ -1430,6 +1430,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
@@ -1513,6 +1521,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2  baz  one    2
         3  baz  two    3
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
             new_index = default_index(len(self))
@@ -5609,7 +5630,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis | None = None,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> Series | None:
@@ -5648,6 +5669,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         level : int or level name, default None
             In case of MultiIndex, only rename labels in the specified level.
         errors : {'ignore', 'raise'}, default 'ignore'
@@ -5690,6 +5719,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    3
         dtype: int64
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.rename is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         self._check_copy_deprecation(copy)
         if axis is not None:
             # Make sure we raise if an invalid 'axis' is passed.
@@ -6044,7 +6085,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=...,
         axis: Axis = ...,
         copy: bool | lib.NoDefault = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
     ) -> Self | None: ...
 
     def rename_axis(
@@ -6054,7 +6095,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=lib.no_default,
         axis: Axis = 0,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Set the name of the axis for the index.
@@ -6093,6 +6134,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
 
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         Returns
         -------
         Series, or None
@@ -6120,6 +6168,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    monkey
         dtype: str
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.rename_axis is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().rename_axis(
             mapper=mapper,
             index=index,
@@ -6163,7 +6223,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: IndexLabel | ListLike = ...,
         columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         errors: IgnoreRaise = ...,
     ) -> Series | None: ...
 
@@ -6175,7 +6235,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: IndexLabel | ListLike = None,
         columns: IndexLabel | ListLike = None,
         level: Level | None = None,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         errors: IgnoreRaise = "raise",
     ) -> Series | None:
         """
@@ -6200,6 +6260,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
             If True, do operation inplace and return None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are dropped.
 
@@ -6263,6 +6331,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 length      0.3
         dtype: float64
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.drop is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         return super().drop(
             labels=labels,
             axis=axis,

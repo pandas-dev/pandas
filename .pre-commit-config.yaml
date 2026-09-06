@@ -181,6 +181,12 @@ repos:
         entry: '[a-zA-Z0-9]\`\`?[a-zA-Z0-9]'
         types: [rst]
         files: ^doc/source/
+    -   id: no-executable-ipython-in-whatsnew
+        name: Whatsnew code examples must be static, not re-executed
+        language: pygrep
+        entry: '^\s*\.\. ipython'
+        types: [rst]
+        files: ^doc/source/whatsnew/
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep

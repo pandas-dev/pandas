@@ -94,7 +94,10 @@ from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
 )
-from pandas.core.nanops import check_below_min_count
+from pandas.core.nanops import (
+    check_below_min_count,
+    na_accum_func,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -573,6 +576,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if (
+            dtype is not None
+            and np.dtype(dtype) == object
+            and self.sp_values.dtype.kind in "mM"
+        ):
+            # numpy renders datetime64/timedelta64 as ints when casting to
+            # object; box them ourselves, see test_array_object_datetimelike
+            if copy is False:
+                raise ValueError(
+                    "Unable to avoid copy while creating an array as requested."
+                )
+            dense = ensure_wrapped_if_datetimelike(np.asarray(self))
+            return np.asarray(dense, dtype=object)
+
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
             if copy is True:
@@ -1616,7 +1633,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             result = getattr(arr, name)(**kwargs)
 
         if keepdims:
-            return type(self)([result], dtype=self.dtype)
+            dtype = self.dtype
+            if dtype.subtype.kind in "biufc":
+                # The reduction is not always closed over self.dtype, e.g. the
+                # mean of an integer column, the sum of a narrow one, or the
+                # NaN that min_count inserts; casting the result back to
+                # self.dtype would silently truncate it.
+                subtype = np.result_type(dtype.subtype, result)
+                if subtype != dtype.subtype:
+                    fill_value = self.fill_value
+                    if notna(fill_value):
+                        # keep the fill value so that reducing a frame of
+                        # sparse columns does not mix fill values
+                        fill_value = subtype.type(fill_value).item()
+                    dtype = SparseDtype(subtype, fill_value)
+            return type(self)([result], dtype=dtype)
         else:
             return result
 
@@ -1707,6 +1738,33 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
                 return na_value_for_dtype(self.dtype.subtype, compat=False)
             return sp_sum + self.fill_value * nsparse
+
+    def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> SparseArray:
+        accum_func = {
+            "cumsum": np.cumsum,
+            "cumprod": np.cumprod,
+            "cummin": np.minimum.accumulate,
+            "cummax": np.maximum.accumulate,
+        }.get(name)
+        if accum_func is None:
+            raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+
+        if name == "cumsum" and skipna and self.dtype.subtype.kind in "biufc":
+            # numeric cumsum keeps the NA gaps as gaps instead of densifying;
+            # other subtypes go dense to match its NA handling
+            return self.cumsum(**kwargs)
+
+        result: ExtensionArray | np.ndarray
+        values = ensure_wrapped_if_datetimelike(self.to_dense())
+        if isinstance(values, ExtensionArray):
+            # datetimelike subtypes have their own accumulations
+            result = values._accumulate(name, skipna=skipna, **kwargs)
+        else:
+            result = na_accum_func(values, accum_func, skipna=skipna)
+
+        # like cumsum, the result's fill value is NA regardless of our own
+        fill_value = na_value_for_dtype(result.dtype, compat=False)
+        return type(self)(result, fill_value=fill_value)
 
     def cumsum(self, axis: AxisInt = 0, *args, **kwargs) -> SparseArray:
         """

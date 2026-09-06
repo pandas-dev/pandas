@@ -170,8 +170,11 @@ def test_select_too_many_conditions_raises(temp_hdfstore):
 
     where = " | ".join(f"(la == 'a' & lb == {i})" for i in range(n))
     msg = "too many comparisons"
-    with pytest.raises(ValueError, match=msg):
-        temp_hdfstore.select("df", where=where)
+    # the where is also an OR of AND-ed conditions over indexed columns, so it
+    # trips the GH#50598 warning on the way to the error
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        with pytest.raises(ValueError, match=msg):
+            temp_hdfstore.select("df", where=where)
 
 
 def test_append_with_diff_col_name_types_raises_value_error(temp_hdfstore):

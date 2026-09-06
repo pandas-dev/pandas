@@ -693,7 +693,8 @@ class NumpyExtensionArray(
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         # NEP 51: https://github.com/numpy/numpy/pull/22449
-        if self.dtype.kind in "SU":
+        if self.dtype.kind == "U":
+            # not "S": str(np.bytes_(b"foo")) is already "b'foo'"
             return "'{}'".format
         elif self.dtype == "object":
             return repr

@@ -1283,3 +1283,92 @@ def test_to_json_bad_label_frees_values():
     del ser, values
     # a reference held by the failed encode would keep this alive
     assert ref() is None
+
+
+@pytest.mark.parametrize("indent", [1, 2, 4, 8])
+@pytest.mark.parametrize(
+    "wrap", [lambda value: [value], lambda value: {"k": value}], ids=["list", "dict"]
+)
+def test_indent_deeply_nested_does_not_overflow_buffer(indent, wrap):
+    # GH#67929
+    # encode() reserves a fixed 256 bytes per frame, but the writes a frame
+    # makes after its recursive encode() calls -- the indent, the separator and
+    # the closing bracket -- are not covered by that reservation, so deep
+    # nesting wrote past the output buffer. Arrays and objects have their own
+    # copies of those writes. Which depths overflow depends on where the writes
+    # land relative to the end of the buffer, so sweep.
+    for depth in range(2, 400):
+        nested = [1]
+        for _ in range(depth):
+            nested = wrap(nested)
+
+        result = ujson.ujson_dumps(nested, indent=indent)
+
+        assert json.loads(result) == nested, depth
+
+
+@pytest.mark.parametrize("indent", [0, 1, 2])
+def test_indent_past_recursion_max_raises(indent):
+    # GH#67929
+    # nesting past recursionMax unwinds ~1024 frames with the error already
+    # set. Each of those frames still wrote its indent -- half a megabyte of
+    # spaces in all -- so the OverflowError came back as a crash instead.
+    # indent=0 is the control: one bracket per frame stayed in bounds.
+    nested = [1]
+    for _ in range(1100):
+        nested = [nested]
+
+    with pytest.raises(OverflowError, match="Maximum recursion level reached"):
+        ujson.ujson_dumps(nested, indent=indent)
+
+
+def test_dumps_string_filling_buffer_does_not_overflow():
+    # GH#67929
+    # a string whose escaped form exactly fills the reservation it asked for
+    # leaves the enclosing array with no room for the separator and closing
+    # bracket that follow it. "\x01" escapes to six bytes, so "\x01" * 100 is an
+    # exact fit; the leading elements put it near the end of the output buffer,
+    # and the two sweeps walk it across the boundary a byte at a time.
+    for nfill in range(1505, 1515):
+        for pad in range(46):
+            doc = ["a" * 40] * nfill + ["a" * pad] + ["\x01" * 100] + ["z"] * 2000
+
+            result = ujson.ujson_dumps(doc)
+
+            assert json.loads(result) == doc, (nfill, pad)
+
+
+def test_to_json_indent_deeply_nested_does_not_overflow_buffer():
+    # GH#67929
+    # the same overflow, reachable from the public API through an object-dtype
+    # column holding a deeply nested value
+    nested = [1]
+    for _ in range(300):
+        nested = [nested]
+    frame = pd.DataFrame({"c": [nested]})
+
+    result = frame.to_json(indent=2)
+
+    assert json.loads(result)["c"]["0"] == nested
+
+
+def test_to_json_datetime64_scalar_frees_dtype():
+    # GH#67930
+    # Object_beginTypeContext took a reference on the scalar's dtype via
+    # PyArray_DescrFromScalar and never gave it back. The builtin descrs are
+    # immortal so most scalar types hid this, but a datetime64 descr carries
+    # unit metadata and so is a freshly allocated, mortal object every call.
+    # The encoder is called directly so that a leak of ~160 bytes per call
+    # stands out against the allocations the loop itself makes.
+    payload = [np.datetime64("2020-01-01T00:00:00", "s")]
+
+    tracemalloc.start()
+    before = tracemalloc.take_snapshot()
+    for _ in range(20_000):
+        ujson.ujson_dumps(payload, iso_dates=True)
+    after = tracemalloc.take_snapshot()
+    tracemalloc.stop()
+
+    grew = sum(stat.size_diff for stat in after.compare_to(before, "filename"))
+    # a leak here would be ~3.2 MiB over this loop
+    assert grew < 1_000_000

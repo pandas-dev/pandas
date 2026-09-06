@@ -477,7 +477,6 @@ def _convert_listlike_datetimes(
         yearfirst=yearfirst,
         utc=utc,
         errors=errors,
-        allow_object=True,
     )
 
     if tz_parsed is not None:
