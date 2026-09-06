@@ -2341,6 +2341,6 @@ def test_union_with_duplicates(op):
     ],
 )
 def test_occurrence_rank(codes, expected):
-    # https://github.com/pandas-dev/pandas/pull/67446
+    # GH#67446
     result = algos.occurrence_rank(np.array(codes, dtype=np.intp))
     tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
