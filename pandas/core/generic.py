@@ -8736,9 +8736,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 is_dt_like = all(d.kind in "mM" for d in threshold.dtypes)
             else:
                 dtype = getattr(threshold, "dtype", None)
-                is_dt_like = (
-                    dtype is not None and dtype.kind in "mM"
-                )
+                is_dt_like = dtype is not None and dtype.kind in "mM"
             if is_dt_like:
                 # GH 44785: ±np.inf cannot be compared against datetime or
                 # timedelta values, so track the missing positions
@@ -8760,9 +8758,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # the comparison result along the axis the threshold
                 # was applied on.
                 if isinstance(subset, ABCSeries):
-                    no_bound_mask = no_bound_mask.reindex(
-                        subset.index, fill_value=True
-                    )
+                    no_bound_mask = no_bound_mask.reindex(subset.index, fill_value=True)
                 elif axis in (0, None):
                     values = no_bound_mask.reindex(
                         subset.index, fill_value=True
@@ -8782,9 +8778,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         columns=subset.columns,
                     )
             elif no_bound_mask.shape != subset.shape:
-                no_bound_mask = no_bound_mask.reindex_like(
-                    subset, fill_value=True
-                )
+                no_bound_mask = no_bound_mask.reindex_like(subset, fill_value=True)
             subset = subset | no_bound_mask
 
         # GH 40420

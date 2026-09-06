@@ -39,6 +39,7 @@ class TestDataFrameClip:
             assert (clipped_df.values[lb_mask] == lb).all()
             assert (clipped_df.values[ub_mask] == ub).all()
             assert (clipped_df.values[mask] == df.values[mask]).all()
+
     def test_clip_datetime_columns_with_missing_threshold(self):
         # GH#44785
         df = pd.DataFrame(
@@ -70,7 +71,6 @@ class TestDataFrameClip:
             }
         )
         tm.assert_frame_equal(result, expected)
-
 
     def test_clip_mixed_numeric(self):
         # clip on mixed integer or floats
