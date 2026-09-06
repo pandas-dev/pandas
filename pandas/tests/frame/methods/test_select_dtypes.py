@@ -1045,6 +1045,58 @@ def test_select_dtypes_arrow_timestamp_string_matches_only_arrow():
     tm.assert_frame_equal(result, df[["arrow"]])
 
 
+@pytest.mark.parametrize(
+    "spec", ["datetime64[s]", "datetime64", "datetime", np.datetime64]
+)
+def test_select_dtypes_naive_spec_skips_tz_aware_arrow(spec):
+    # GH#68075: ArrowDtype columns are matched through their numpy_dtype, which
+    # drops the tz, so a naive spec used to select a tz-aware Arrow column --
+    # the tz-aware numpy column it mirrors is correctly not selected
+    pa = pytest.importorskip("pyarrow")
+    dti = pd.date_range("2020-01-01", periods=2, tz="UTC").as_unit("s")
+    df = pd.DataFrame(
+        {
+            "arrow_tz": pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("s", tz="UTC"))),
+            "np_tz": dti,
+            "arrow_naive": pd.array(
+                dti.tz_localize(None), dtype=pd.ArrowDtype(pa.timestamp("s"))
+            ),
+            "np_naive": dti.tz_localize(None),
+        }
+    )
+    expected = df[["arrow_naive", "np_naive"]]
+    tm.assert_frame_equal(df.select_dtypes(include=[spec]), expected)
+    tm.assert_frame_equal(df.select_dtypes(exclude=[spec]), df[["arrow_tz", "np_tz"]])
+
+
+def test_select_dtypes_tz_aware_arrow_still_matched_by_arrow_spec():
+    # GH#68075: the specs that do name the tz-aware Arrow dtype keep working
+    pa = pytest.importorskip("pyarrow")
+    dti = pd.date_range("2020-01-01", periods=2, tz="UTC").as_unit("s")
+    dtype = pd.ArrowDtype(pa.timestamp("s", tz="UTC"))
+    df = pd.DataFrame({"arrow_tz": pd.array(dti, dtype=dtype), "np_tz": dti})
+    expected = df[["arrow_tz"]]
+    for spec in [dtype, dtype.name, pd.ArrowDtype]:
+        tm.assert_frame_equal(df.select_dtypes(include=[spec]), expected)
+
+
+@pytest.mark.parametrize("pa_type", ["date32", "date64"])
+def test_select_dtypes_arrow_date_no_tz_attribute(pa_type):
+    # GH#68075: the tz guard must not assume every kind "M" ArrowDtype is a
+    # timestamp -- date32/date64 have no tz attribute
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    df = pd.DataFrame({"num": [1, 2], "date": pd.array([1, 2], dtype=dtype)})
+    tm.assert_frame_equal(df.select_dtypes(include="number"), df[["num"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude="number"), df[["date"]])
+    tm.assert_frame_equal(df.select_dtypes(include=dtype), df[["date"]])
+    # the guard must skip these columns, not reject them: their numpy_dtype is
+    # a datetime64, so a naive datetime spec selects them
+    for spec in ["datetime", np.datetime64]:
+        tm.assert_frame_equal(df.select_dtypes(include=spec), df[["date"]])
+        tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[["num"]])
+
+
 @pytest.mark.parametrize("spec", ["interval[int64]", pd.IntervalDtype("int64")])
 def test_select_dtypes_interval_subtype_matches_any_closed(spec):
     # GH#66119, GH#66120: an interval spec with a subtype but no ``closed``

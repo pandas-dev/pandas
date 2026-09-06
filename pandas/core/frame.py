@@ -5870,6 +5870,12 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
+                    # tz exists only on pa.timestamp; date32/date64 reach here too
+                    if getattr(dtype_obj.pyarrow_dtype, "tz", None) is not None:
+                        # GH#68075: numpy_dtype drops the tz, so a tz-aware
+                        # column would match a naive datetime64 spec; a
+                        # DatetimeTZDtype column matches none of these either
+                        return False
                     # class- and string-based matching treats ArrowDtype
                     # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
@@ -13855,7 +13861,7 @@ class DataFrame(NDFrame, OpsMixin):
         margins_name : str, default 'All'
             Name of the row / column that will contain the totals
             when margins is True.
-        observed : bool, default False
+        observed : bool, default True
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.

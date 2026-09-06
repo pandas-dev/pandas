@@ -432,8 +432,8 @@ with cf.config_prefix("mode"):
 # user warnings
 chained_assignment = """
 : string
-    Raise an exception, warn, or no action if trying to use chained assignment,
-    The default is warn
+    No longer used. This option has had no effect since SettingWithCopyWarning
+    was removed in pandas 3.0. This option will be removed in pandas 4.0.
 """
 
 with cf.config_prefix("mode"):
@@ -1047,5 +1047,16 @@ cf.deprecate_option(
         "The 'mode.copy_on_write' option is deprecated. Copy-on-Write can no longer "
         "be disabled (it is always enabled with pandas >= 3.0), and setting the option "
         "has no impact. This option will be removed in pandas 4.0."
+    ),
+)
+cf.deprecate_option(
+    "mode.chained_assignment",
+    Pandas4Warning,
+    msg=(
+        "The 'mode.chained_assignment' option is deprecated. It has had no effect "
+        "since pandas 3.0, which removed the SettingWithCopyWarning it controlled. "
+        "Chained assignment now emits a ChainedAssignmentError warning instead; use "
+        "warnings.filterwarnings with category=ChainedAssignmentError to silence or "
+        "escalate it. This option will be removed in pandas 4.0."
     ),
 )
