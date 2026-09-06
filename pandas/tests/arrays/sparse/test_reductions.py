@@ -453,7 +453,7 @@ def test_frame_prod():
     # GH#68194 DataFrame.prod raised for every SparseDtype column
     df = pd.DataFrame({"a": SparseArray(np.array([1, 2, 3]), fill_value=0)})
     result = df.prod()
-    expected = pd.Series([6], index=["a"], dtype=pd.SparseDtype("int64", 0))
+    expected = pd.Series([6], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
     tm.assert_series_equal(result, expected)
 
 
