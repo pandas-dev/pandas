@@ -225,6 +225,26 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
 
 
+def _check_replace_value_not_callable(value) -> None:
+    """
+    Raise if `value` (or any element nested inside a list-like or
+    dict-like `value`) is callable (GH#68199).
+    """
+    if callable(value):
+        raise TypeError(
+            f"'value' cannot be callable, got invalid type {type(value).__name__!r}"
+        )
+    if is_dict_like(value):
+        # use .items() rather than .values() since the latter means
+        # something different for a dict (the values) than for a Series
+        # (the underlying ndarray)
+        for _, v in value.items():
+            _check_replace_value_not_callable(v)
+    elif is_list_like(value) and not isinstance(value, str):
+        for v in value:
+            _check_replace_value_not_callable(v)
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -7586,7 +7606,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         TypeError
             * If `to_replace` is not a scalar, array-like, ``dict``, or ``None``
-            * If `value` is callable
             * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
             * If `to_replace` is ``None`` and `regex` is not compilable
@@ -7595,6 +7614,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * When replacing multiple ``bool`` or ``datetime64`` objects and
               the arguments to `to_replace` does not match the type of the
               value being replaced
+            * If `value` is callable, or contains a callable
 
         ValueError
             * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
@@ -7833,10 +7853,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f"{type(to_replace).__name__!r}"
             )
 
-        if callable(value):
-            raise TypeError(
-                f"'value' cannot be callable, got invalid type {type(value).__name__!r}"
-            )
+        _check_replace_value_not_callable(value)
 
         if value is lib.no_default and not (
             is_dict_like(to_replace) or is_dict_like(regex)
