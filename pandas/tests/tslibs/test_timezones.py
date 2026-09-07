@@ -464,8 +464,8 @@ def test_normalize_pytz_timezone():
 
 def _write_big_bang_tzif(path):
     """
-    Write a TZif file opening with the -2**59 "big bang" transition, as
-    "zic -b fat" writes every zone.
+    Write a TZif file opening with the -2**59 "big bang" transition, as zic
+    did between 2013 and 2018f.
     """
     # (utoff, isdst, abbrev index)
     ttinfos = [(-17762, 0, 0), (-18000, 0, 4), (-14400, 1, 8)]
@@ -503,8 +503,8 @@ def _write_big_bang_tzif(path):
 
 
 def test_zoneinfo_big_bang_transition(tmp_path):
-    # GH#67066 - the -2**59 second "big bang" transition wrapped to 1970 when
-    # scaled to nanoseconds, leaving the cached transition array unsorted.
+    # GH#67066 - the "big bang" transition wrapped into the middle of the cached
+    # transition array, so 1883-1918 dates came out as LMT instead of EST.
     _write_big_bang_tzif(tmp_path / "Test" / "BigBang")
     zoneinfo.reset_tzpath([str(tmp_path)])
     try:
@@ -527,10 +527,8 @@ def test_zoneinfo_big_bang_transition(tmp_path):
 
 
 def test_zoneinfo_posix_rule_transitions_cached():
-    # GH#67066 - the transitions generated from the POSIX TZ rule used to be
-    # validated with datetime.fromtimestamp, which overflows the platform
-    # time_t past 2038 on 32-bit and took every future transition down with it.
-    # A no-op on 64-bit; this guards the Linux-32-bit CI job.
+    # GH#67826 - the POSIX-rule transitions must survive validation on 32-bit,
+    # where the platform time_t overflows past 2038. A no-op on 64-bit.
     tz = zoneinfo.ZoneInfo("US/Eastern")
     pd.Timestamp("2020-01-01", tz=tz)
 
