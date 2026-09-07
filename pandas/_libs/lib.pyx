@@ -2758,8 +2758,8 @@ def maybe_convert_numeric(
                     fval = NaN
                     seen.float_ = True
                     if not distinguish_nan_and_na:
-                        seen.null_ = True  # Legacy, treat "nan" string as logical pd.NA and ensure mask for position
-                        mask[i] = 1
+                        seen.null_ = True  # Legacy, treat "nan" string as logical pd.NA
+                        mask[i] = 1      # and ensure mask for position
                     floats[i] = fval
                     if have_complexes:
                         complexes[i] = fval
