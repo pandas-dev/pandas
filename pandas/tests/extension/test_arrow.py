@@ -76,6 +76,9 @@ pa = pytest.importorskip("pyarrow")
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
+# GH#62423; matched instead of the leading clause, whose wording differs per warn site
+depr_msg = "In a future version these will be treated as scalar-like"
+
 
 def _require_timezone_database(request):
     if is_platform_windows() and pa_version_under22p0:
@@ -300,10 +303,33 @@ class TestArrowArray(base.ExtensionTests):
             )
 
     def test_compare_range_len(self, data, comparison_op):
-        # GH#63429
+        # GH#63429 a range compares elementwise like the equivalent list.
+        #  Note we can't go through _compare_other here: its pointwise
+        #  expectation uses Series.combine, which treats the range as a scalar
+        #  and so matches an all-False result too.
         ser = pd.Series(data)
-        range_test = range(len(ser))
-        self._compare_other(ser, range_test, comparison_op, range_test)
+        rng = range(len(ser))
+
+        try:
+            expected = comparison_op(ser, list(rng))
+        except Exception as err:
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                with pytest.raises(type(err)):
+                    comparison_op(ser, rng)
+            return
+
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = comparison_op(ser, rng)
+        tm.assert_series_equal(result, expected)
+
+    def test_compare_range_mismatched_len(self, data, comparison_op):
+        # GH#63429 the length check must not be bypassed for a range
+        ser = pd.Series(data)
+        rng = range(len(ser) + 1)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match="Lengths must match to compare"):
+                comparison_op(ser, rng)
 
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -3630,6 +3656,39 @@ def test_from_sequence_of_strings_boolean():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
+def test_from_sequence_of_strings_empty_string_float():
+    # GH#66834 match numpy float64: empty string is not a valid float
+    strings = ["1.5", "", "2.0"]
+    dtype = ArrowDtype(pa.float64())
+    with pytest.raises(ValueError, match=r"could not convert string to double"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_empty_string_with_na():
+    # GH#66834 pd.NA must not make the empty-string check raise TypeError
+    strings = np.array(["1.5", pd.NA, ""], dtype=object)
+    dtype = ArrowDtype(pa.float64())
+    with pytest.raises(ValueError, match=r"could not convert string to double"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_empty_string_int():
+    # GH#66834
+    strings = ["1", "", "2"]
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(ValueError, match=r"could not convert string to int64"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_none_float():
+    # GH#66834
+    strings = ["1.5", None, "2.0"]
+    dtype = ArrowDtype(pa.float64())
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
+    tm.assert_extension_array_equal(result, expected)
+
+
 def test_concat_empty_arrow_backed_series(dtype):
     # GH#51734
     ser = pd.Series([], dtype=dtype)
@@ -3958,6 +4017,28 @@ def test_arithmetic_temporal(pa_type, request):
     result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
     expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index])
+def test_comparison_range_matches_numpy_backed(box, comparison_op):
+    # GH#63429 an arrow-backed box compared to a range must give the same
+    #  elementwise answer as the numpy-backed equivalent, not the all-False
+    #  result that routing through ops.invalid_comparison produces.
+    #  Series and Index gate both the GH#62423 warning and the length check
+    #  separately before reaching the EA, so both need covering.
+    values = [5, 1, 7]
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        expected = comparison_op(box(values), range(3))
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = comparison_op(box(values, dtype="int64[pyarrow]"), range(3))
+
+    tm.assert_numpy_array_equal(np.asarray(result), np.asarray(expected))
+    assert result.dtype == "bool[pyarrow]"
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with pytest.raises(ValueError, match="Lengths must match to compare"):
+            comparison_op(box(values, dtype="int64[pyarrow]"), range(4))
 
 
 @pytest.mark.parametrize(
@@ -4764,7 +4845,7 @@ def test_string_to_time_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
 def test_string_to_time_parsing_cast_meridiem(dtype):
     # GH#18793 the space before AM/PM used to make these coerce to null

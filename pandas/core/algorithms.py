@@ -1539,8 +1539,6 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
         number of periods
     axis : {0, 1}
         axis to shift on
-    stacklevel : int, default 3
-        The stacklevel for the lost dtype warning.
 
     Returns
     -------

@@ -8,24 +8,19 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    Series,
-)
 import pandas._testing as tm
 
 
 def test_get_values_for_csv_sub_minute_utc_offset():
     # GH#66547 array formatting routes through Timestamp.isoformat, so a UTC
     #  offset carrying seconds used to have the fraction spliced into it
-    dti = DatetimeIndex(["1800-01-01 00:00:00.000000001"], tz="UTC").tz_convert(
+    dti = pd.DatetimeIndex(["1800-01-01 00:00:00.000000001"], tz="UTC").tz_convert(
         "Asia/Tokyo"
     )
     expected = np.array(["1800-01-01 09:18:59.000000001+09:18:59"], dtype=object)
 
     tm.assert_numpy_array_equal(dti._get_values_for_csv(), expected)
-    tm.assert_numpy_array_equal(Series(dti).astype(str).to_numpy(), expected)
+    tm.assert_numpy_array_equal(pd.Series(dti).astype(str).to_numpy(), expected)
     assert expected[0] in repr(dti)
 
 
@@ -49,7 +44,7 @@ def test_get_values_for_csv():
     tm.assert_numpy_array_equal(result, expected)
 
     # NULL object handling should work
-    index = DatetimeIndex(["2017-01-01", NaT, "2017-01-03"])
+    index = pd.DatetimeIndex(["2017-01-01", pd.NaT, "2017-01-03"])
     expected = np.array(["2017-01-01", "NaT", "2017-01-03"], dtype=object)
 
     result = index._get_values_for_csv(na_rep="NaT")
@@ -134,7 +129,7 @@ class TestDatetimeIndexRendering:
     )
     def test_dti_repr_time_midnight(self, dates, freq, expected_repr, unit):
         # GH53634
-        dti = DatetimeIndex(dates, freq).as_unit(unit)
+        dti = pd.DatetimeIndex(dates, freq).as_unit(unit)
         actual_repr = repr(dti)
         assert actual_repr == expected_repr.replace("[ns]", f"[{unit}]")
 
@@ -150,24 +145,26 @@ class TestDatetimeIndexRendering:
 
     def test_dti_representation(self, unit):
         idxs = []
-        idxs.append(DatetimeIndex([], freq="D"))
-        idxs.append(DatetimeIndex(["2011-01-01"], freq="D"))
-        idxs.append(DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D"))
-        idxs.append(DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D"))
+        idxs.append(pd.DatetimeIndex([], freq="D"))
+        idxs.append(pd.DatetimeIndex(["2011-01-01"], freq="D"))
+        idxs.append(pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D"))
         idxs.append(
-            DatetimeIndex(
+            pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        )
+        idxs.append(
+            pd.DatetimeIndex(
                 ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
                 freq="h",
                 tz="Asia/Tokyo",
             )
         )
         idxs.append(
-            DatetimeIndex(
-                ["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="US/Eastern"
+            pd.DatetimeIndex(
+                ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
             )
         )
         idxs.append(
-            DatetimeIndex(["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="UTC")
+            pd.DatetimeIndex(["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="UTC")
         )
 
         exp = []
@@ -209,19 +206,19 @@ class TestDatetimeIndexRendering:
 
     # TODO: this is a Series.__repr__ test
     def test_dti_representation_to_series(self, unit):
-        idx1 = DatetimeIndex([], freq="D")
-        idx2 = DatetimeIndex(["2011-01-01"], freq="D")
-        idx3 = DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
-        idx4 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = DatetimeIndex(
+        idx1 = pd.DatetimeIndex([], freq="D")
+        idx2 = pd.DatetimeIndex(["2011-01-01"], freq="D")
+        idx3 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
+        idx4 = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx5 = pd.DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
             freq="h",
             tz="Asia/Tokyo",
         )
-        idx6 = DatetimeIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="US/Eastern"
+        idx6 = pd.DatetimeIndex(
+            ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
         )
-        idx7 = DatetimeIndex(["2011-01-01 09:00", "2011-01-02 10:15"])
+        idx7 = pd.DatetimeIndex(["2011-01-01 09:00", "2011-01-02 10:15"])
 
         exp1 = """Series([], dtype: datetime64[ns])"""
 
@@ -253,23 +250,23 @@ class TestDatetimeIndexRendering:
                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7],
                 strict=True,
             ):
-                ser = Series(idx.as_unit(unit))
+                ser = pd.Series(idx.as_unit(unit))
                 result = repr(ser)
                 assert result == expected.replace("[ns", f"[{unit}")
 
     def test_dti_summary(self):
         # GH#9116
-        idx1 = DatetimeIndex([], freq="D")
-        idx2 = DatetimeIndex(["2011-01-01"], freq="D")
-        idx3 = DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
-        idx4 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = DatetimeIndex(
+        idx1 = pd.DatetimeIndex([], freq="D")
+        idx2 = pd.DatetimeIndex(["2011-01-01"], freq="D")
+        idx3 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
+        idx4 = pd.DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx5 = pd.DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
             freq="h",
             tz="Asia/Tokyo",
         )
-        idx6 = DatetimeIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="US/Eastern"
+        idx6 = pd.DatetimeIndex(
+            ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
         )
 
         exp1 = "DatetimeIndex: 0 entries\nFreq: D"

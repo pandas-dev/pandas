@@ -1,14 +1,11 @@
-from pandas import (
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestGetNumericData:
     def test_get_numeric_data_preserve_dtype(self):
         # get the numeric data
-        obj = Series([1, 2, 3])
+        obj = pd.Series([1, 2, 3])
         result = obj._get_numeric_data()
         tm.assert_series_equal(result, obj)
 
@@ -16,16 +13,16 @@ class TestGetNumericData:
         result.iloc[0] = 0
         assert obj.iloc[0] == 1
 
-        obj = Series([1, "2", 3.0])
+        obj = pd.Series([1, "2", 3.0])
         result = obj._get_numeric_data()
-        expected = Series([], dtype=object)
+        expected = pd.Series([], dtype=object)
         tm.assert_series_equal(result, expected)
 
-        obj = Series([True, False, True])
+        obj = pd.Series([True, False, True])
         result = obj._get_numeric_data()
         tm.assert_series_equal(result, obj)
 
-        obj = Series(date_range("20130101", periods=3, unit="ns"))
+        obj = pd.Series(pd.date_range("20130101", periods=3, unit="ns"))
         result = obj._get_numeric_data()
-        expected = Series([], dtype="M8[ns]")
+        expected = pd.Series([], dtype="M8[ns]")
         tm.assert_series_equal(result, expected)

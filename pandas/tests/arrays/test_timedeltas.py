@@ -6,7 +6,6 @@ import pytest
 from pandas.compat import IS64
 
 import pandas as pd
-from pandas import Timedelta
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -67,9 +66,9 @@ class TestNonNano:
 
     def test_timedelta_array_total_seconds(self):
         # GH34290
-        expected = Timedelta("2 min").total_seconds()
+        expected = pd.Timedelta("2 min").total_seconds()
 
-        result = pd.array([Timedelta("2 min")]).total_seconds()[0]
+        result = pd.array([pd.Timedelta("2 min")]).total_seconds()[0]
         assert result == expected
 
     def test_total_seconds_nanoseconds(self):
@@ -104,7 +103,7 @@ class TestNonNano:
         else:
             assert result[0] > boundary
         # Vectorized result agrees with the scalar Timedelta path
-        assert result[0] == Timedelta(value).total_seconds()
+        assert result[0] == pd.Timedelta(value).total_seconds()
 
     @pytest.mark.skipif(
         not IS64, reason="32-bit x87 excess precision breaks bit-for-bit parity"
@@ -122,7 +121,7 @@ class TestNonNano:
         ]
         values = values + [-val for val in values]
         result = pd.to_timedelta(values, unit="ns").total_seconds()
-        expected = [Timedelta(val).total_seconds() for val in values]
+        expected = [pd.Timedelta(val).total_seconds() for val in values]
         assert list(result) == expected
 
     @pytest.mark.skipif(
@@ -143,7 +142,7 @@ class TestNonNano:
         values = values + [-val for val in values]
         tdi = pd.TimedeltaIndex(np.array(values, dtype=f"m8[{unit}]"))
         result = tdi.total_seconds()
-        expected = [Timedelta(val, unit=unit).total_seconds() for val in values]
+        expected = [pd.Timedelta(val, unit=unit).total_seconds() for val in values]
         assert list(result) == expected
 
     @pytest.mark.parametrize(
@@ -182,7 +181,7 @@ class TestNonNano:
         res = ts + tda
         tm.assert_extension_array_equal(res, expected)
 
-        ts += Timedelta(1)  # case where we can't cast losslessly
+        ts += pd.Timedelta(1)  # case where we can't cast losslessly
 
         exp_values = tda._ndarray + ts.asm8
         expected = (
@@ -264,7 +263,7 @@ class TestNonNano:
 class TestTimedeltaArray:
     def test_astype_int(self, any_int_numpy_dtype):
         arr = TimedeltaArray._from_sequence(
-            [Timedelta("1h"), Timedelta("2h")], dtype="m8[ns]"
+            [pd.Timedelta("1h"), pd.Timedelta("2h")], dtype="m8[ns]"
         )
 
         if np.dtype(any_int_numpy_dtype) != np.int64:
@@ -279,9 +278,9 @@ class TestTimedeltaArray:
     @pytest.mark.parametrize(
         "obj",
         [
-            Timedelta(seconds=1),
-            Timedelta(seconds=1).to_timedelta64(),
-            Timedelta(seconds=1).to_pytimedelta(),
+            pd.Timedelta(seconds=1),
+            pd.Timedelta(seconds=1).to_timedelta64(),
+            pd.Timedelta(seconds=1).to_pytimedelta(),
         ],
     )
     def test_setitem_objects(self, obj):
@@ -290,7 +289,7 @@ class TestTimedeltaArray:
         arr = tdi._data
 
         arr[0] = obj
-        assert arr[0] == Timedelta(seconds=1)
+        assert arr[0] == pd.Timedelta(seconds=1)
 
     @pytest.mark.parametrize(
         "other",

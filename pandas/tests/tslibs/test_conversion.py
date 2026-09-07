@@ -17,11 +17,7 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 
-from pandas import (
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -70,8 +66,8 @@ def test_tz_localize_to_utc_copies():
 
 def test_tz_convert_single_matches_tz_convert_hourly(tz_aware_fixture):
     tz = tz_aware_fixture
-    tz_didx = date_range("2014-03-01", "2014-04-01", freq="h", tz=tz, unit="ns")
-    naive_didx = date_range("2014-03-01", "2014-04-01", freq="h", unit="ns")
+    tz_didx = pd.date_range("2014-03-01", "2014-04-01", freq="h", tz=tz, unit="ns")
+    naive_didx = pd.date_range("2014-03-01", "2014-04-01", freq="h", unit="ns")
 
     _compare_utc_to_local(tz_didx)
     _compare_local_to_utc(tz_didx, naive_didx)
@@ -80,8 +76,8 @@ def test_tz_convert_single_matches_tz_convert_hourly(tz_aware_fixture):
 @pytest.mark.parametrize("freq", ["D", "YE"])
 def test_tz_convert_single_matches_tz_convert(tz_aware_fixture, freq):
     tz = tz_aware_fixture
-    tz_didx = date_range("2018-01-01", "2020-01-01", freq=freq, tz=tz, unit="ns")
-    naive_didx = date_range("2018-01-01", "2020-01-01", freq=freq, unit="ns")
+    tz_didx = pd.date_range("2018-01-01", "2020-01-01", freq=freq, tz=tz, unit="ns")
+    naive_didx = pd.date_range("2018-01-01", "2020-01-01", freq=freq, unit="ns")
 
     _compare_utc_to_local(tz_didx)
     _compare_local_to_utc(tz_didx, naive_didx)
@@ -145,8 +141,8 @@ class SubDatetime(datetime):
     "dt, expected",
     [
         pytest.param(
-            Timestamp("2000-01-01"),
-            Timestamp("2000-01-01", tz=UTC),
+            pd.Timestamp("2000-01-01"),
+            pd.Timestamp("2000-01-01", tz=UTC),
             id="timestamp",
         ),
         pytest.param(
@@ -191,7 +187,7 @@ def test_cast_from_unit_vectorized_near_int64_boundary(unit):
         arr = np.array([val], dtype="float64")
         # Timedelta(...).value is the scalar cast_from_unit result in ns
         try:
-            expected = Timedelta(val, unit=unit).value
+            expected = pd.Timedelta(val, unit=unit).value
         except (OutOfBoundsDatetime, OutOfBoundsTimedelta, OverflowError):
             with pytest.raises(OutOfBoundsDatetime):
                 conversion.cast_from_unit_vectorized(arr, unit)

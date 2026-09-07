@@ -1080,6 +1080,8 @@ are what constitutes the bootstrap plot.
    :suppress:
 
    np.random.seed(123456)
+   import random
+   random.seed(123456)
 
 .. ipython:: python
 

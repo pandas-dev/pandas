@@ -2,10 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    date_range,
-)
 import pandas._testing as tm
 from pandas.core import algorithms
 from pandas.core.arrays import PeriodArray
@@ -13,17 +9,17 @@ from pandas.core.arrays import PeriodArray
 
 class TestSeriesIsIn:
     def test_isin(self):
-        s = Series(["A", "B", "C", "a", "B", "B", "A", "C"])
+        s = pd.Series(["A", "B", "C", "a", "B", "B", "A", "C"])
 
         result = s.isin(["A", "C"])
-        expected = Series([True, False, True, False, False, False, True, True])
+        expected = pd.Series([True, False, True, False, False, False, True, True])
         tm.assert_series_equal(result, expected)
 
         # GH#16012
         # This specific issue has to have a series over 1e6 in len, but the
         # comparison array (in_list) must be large enough so that numpy doesn't
         # do a manual masking trick that will avoid this issue altogether
-        s = Series(list("abcdefghijk" * 10**5))
+        s = pd.Series(list("abcdefghijk" * 10**5))
         # If numpy doesn't do the manual comparison/mask, these
         # unorderable mixed types are what cause the exception in numpy
         in_list = [-1, "a", "b", "G", "Y", "Z", "E", "K", "E", "S", "I", "R", "R"] * 6
@@ -32,7 +28,7 @@ class TestSeriesIsIn:
 
     def test_isin_with_string_scalar(self):
         # GH#4763
-        s = Series(["A", "B", "C", "a", "B", "B", "A", "C"])
+        s = pd.Series(["A", "B", "C", "a", "B", "B", "A", "C"])
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
             r"you passed a `str`"
@@ -40,14 +36,14 @@ class TestSeriesIsIn:
         with pytest.raises(TypeError, match=msg):
             s.isin("a")
 
-        s = Series(["aaa", "b", "c"])
+        s = pd.Series(["aaa", "b", "c"])
         with pytest.raises(TypeError, match=msg):
             s.isin("aaa")
 
     def test_isin_datetimelike_mismatched_reso(self):
-        expected = Series([True, True, False, False, False])
+        expected = pd.Series([True, True, False, False, False])
 
-        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+        ser = pd.Series(pd.date_range("jan-01-2013", "jan-05-2013"))
 
         # fails on dtype conversion in the first place
         day_values = np.asarray(ser[0:2].values).astype("datetime64[D]")
@@ -59,9 +55,9 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
     def test_isin_datetimelike_mismatched_reso_list(self):
-        expected = Series([True, True, False, False, False])
+        expected = pd.Series([True, True, False, False, False])
 
-        ser = Series(date_range("jan-01-2013", "jan-05-2013"))
+        ser = pd.Series(pd.date_range("jan-01-2013", "jan-05-2013"))
 
         dta = ser[:2]._values.astype("M8[s]")
         result = ser.isin(list(dta))
@@ -70,11 +66,11 @@ class TestSeriesIsIn:
     def test_isin_with_i8(self):
         # GH#5021
 
-        expected = Series([True, True, False, False, False])
-        expected2 = Series([False, True, False, False, False])
+        expected = pd.Series([True, True, False, False, False])
+        expected2 = pd.Series([False, True, False, False, False])
 
         # datetime64[ns]
-        s = Series(date_range("jan-01-2013", "jan-05-2013"))
+        s = pd.Series(pd.date_range("jan-01-2013", "jan-05-2013"))
 
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
@@ -92,15 +88,15 @@ class TestSeriesIsIn:
         tm.assert_series_equal(result, expected)
 
         # timedelta64[ns]
-        s = Series(pd.to_timedelta(range(5), unit="D"))
+        s = pd.Series(pd.to_timedelta(range(5), unit="D"))
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
+    @pytest.mark.parametrize("empty", [[], pd.Series(dtype=object), np.array([])])
     def test_isin_empty(self, empty):
         # see GH#16991
-        s = Series(["a", "b"])
-        expected = Series([False, False])
+        s = pd.Series(["a", "b"])
+        expected = pd.Series([False, False])
 
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
@@ -109,16 +105,16 @@ class TestSeriesIsIn:
         # https://github.com/pandas-dev/pandas/issues/37174
         arr = np.array([1, 2, 3])
         arr.setflags(write=False)
-        s = Series([1, 2, 3])
+        s = pd.Series([1, 2, 3])
         result = s.isin(arr)
-        expected = Series([True, True, True])
+        expected = pd.Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [object, None])
     def test_isin_dt64_values_vs_ints(self, dtype):
         # GH#36621 dont cast integers to datetimes for isin
-        dti = date_range("2013-01-01", "2013-01-05")
-        ser = Series(dti)
+        dti = pd.date_range("2013-01-01", "2013-01-05")
+        ser = pd.Series(dti)
 
         comps = np.asarray([1356998400000000000], dtype=dtype)
 
@@ -127,14 +123,14 @@ class TestSeriesIsIn:
         tm.assert_numpy_array_equal(res, expected)
 
         res = ser.isin(comps)
-        tm.assert_series_equal(res, Series(expected))
+        tm.assert_series_equal(res, pd.Series(expected))
 
         res = pd.core.algorithms.isin(ser, comps)
         tm.assert_numpy_array_equal(res, expected)
 
     def test_isin_tzawareness_mismatch(self):
-        dti = date_range("2013-01-01", "2013-01-05")
-        ser = Series(dti)
+        dti = pd.date_range("2013-01-01", "2013-01-05")
+        ser = pd.Series(dti)
 
         other = dti.tz_localize("UTC")
 
@@ -143,15 +139,15 @@ class TestSeriesIsIn:
         tm.assert_numpy_array_equal(res, expected)
 
         res = ser.isin(other)
-        tm.assert_series_equal(res, Series(expected))
+        tm.assert_series_equal(res, pd.Series(expected))
 
         res = pd.core.algorithms.isin(ser, other)
         tm.assert_numpy_array_equal(res, expected)
 
     def test_isin_period_freq_mismatch(self):
-        dti = date_range("2013-01-01", "2013-01-05")
+        dti = pd.date_range("2013-01-01", "2013-01-05")
         pi = dti.to_period("M")
-        ser = Series(pi)
+        ser = pd.Series(pi)
 
         # We construct another PeriodIndex with the same i8 values
         #  but different dtype
@@ -163,7 +159,7 @@ class TestSeriesIsIn:
         tm.assert_numpy_array_equal(res, expected)
 
         res = ser.isin(other)
-        tm.assert_series_equal(res, Series(expected))
+        tm.assert_series_equal(res, pd.Series(expected))
 
         res = pd.core.algorithms.isin(ser, other)
         tm.assert_numpy_array_equal(res, expected)
@@ -171,9 +167,9 @@ class TestSeriesIsIn:
     @pytest.mark.parametrize("values", [[-9.0, 0.0], [-9, 0]])
     def test_isin_float_in_int_series(self, values):
         # GH#19356 GH#21804
-        ser = Series(values)
+        ser = pd.Series(values)
         result = ser.isin([-9, -0.5])
-        expected = Series([True, False])
+        expected = pd.Series([True, False])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
@@ -190,10 +186,10 @@ class TestSeriesIsIn:
     )
     def test_isin_masked_types(self, dtype, data, values, expected):
         # GH#42405
-        ser = Series(data, dtype=dtype)
+        ser = pd.Series(data, dtype=dtype)
 
         result = ser.isin(values)
-        expected = Series(expected, dtype="boolean")
+        expected = pd.Series(expected, dtype="boolean")
 
         tm.assert_series_equal(result, expected)
 
@@ -203,11 +199,11 @@ def test_isin_large_series_mixed_dtypes_and_nan(monkeypatch):
     # combination of object dtype for the values
     # and > _MINIMUM_COMP_ARR_LEN elements
     min_isin_comp = 5
-    ser = Series([1, 2, np.nan] * min_isin_comp)
+    ser = pd.Series([1, 2, np.nan] * min_isin_comp)
     with monkeypatch.context() as m:
         m.setattr(algorithms, "_MINIMUM_COMP_ARR_LEN", min_isin_comp)
         result = ser.isin({"foo", "bar"})
-    expected = Series([False] * 3 * min_isin_comp)
+    expected = pd.Series([False] * 3 * min_isin_comp)
     tm.assert_series_equal(result, expected)
 
 
@@ -226,8 +222,8 @@ def test_isin_large_series_and_pdNA(dtype, data, values, expected, monkeypatch):
     # combination of  large series (> _MINIMUM_COMP_ARR_LEN elements) and
     # values contains pdNA
     min_isin_comp = 2
-    ser = Series(data, dtype=dtype)
-    expected = Series(expected, dtype="boolean")
+    ser = pd.Series(data, dtype=dtype)
+    expected = pd.Series(expected, dtype="boolean")
 
     with monkeypatch.context() as m:
         m.setattr(algorithms, "_MINIMUM_COMP_ARR_LEN", min_isin_comp)
@@ -246,8 +242,8 @@ def test_isin_arrow_dtype_with_na_value(dtype, data, values, expected):
     # GH#63304
     pytest.importorskip("pyarrow")
 
-    result = Series(data, dtype=dtype).isin(values)
-    expected = Series(expected)
+    result = pd.Series(data, dtype=dtype).isin(values)
+    expected = pd.Series(expected)
 
     tm.assert_series_equal(result, expected)
 
@@ -255,8 +251,8 @@ def test_isin_arrow_dtype_with_na_value(dtype, data, values, expected):
 def test_isin_complex_numbers():
     # GH 17927
     array = [0, 1j, 1j, 1, 1 + 1j, 1 + 2j, 1 + 1j]
-    result = Series(array).isin([1j, 1 + 1j, 1 + 2j])
-    expected = Series([False, True, True, False, True, True, True], dtype=bool)
+    result = pd.Series(array).isin([1j, 1 + 1j, 1 + 2j])
+    expected = pd.Series([False, True, True, False, True, True, True], dtype=bool)
     tm.assert_series_equal(result, expected)
 
 
@@ -267,9 +263,9 @@ def test_isin_complex_numbers():
 def test_isin_filtering_with_mixed_object_types(data, is_in):
     # GH 20883
 
-    ser = Series(data)
+    ser = pd.Series(data)
     result = ser.isin(is_in)
-    expected = Series([True, False])
+    expected = pd.Series([True, False])
 
     tm.assert_series_equal(result, expected)
 
@@ -279,9 +275,9 @@ def test_isin_filtering_with_mixed_object_types(data, is_in):
 def test_isin_filtering_on_iterable(data, isin):
     # GH 50234
 
-    ser = Series(data)
+    ser = pd.Series(data)
     result = ser.isin(i for i in isin)
-    expected_result = Series([True, True, False])
+    expected_result = pd.Series([True, True, False])
 
     tm.assert_series_equal(result, expected_result)
 
@@ -293,7 +289,7 @@ def test_isin_set_matches_list(set_cls, dtype, n_comps):
     # GH#25507: passing a set must match the list-based path. With a small
     # comps (n_comps=2 < len(targets)) this exercises the set-membership fast
     # path; with a larger comps it exercises the materialize-to-list fallback.
-    ser = Series(range(n_comps), dtype=dtype)
+    ser = pd.Series(range(n_comps), dtype=dtype)
     targets = [1, 3, 5, 7, 9, 11, 13]
     expected = ser.isin(list(targets))
     result = ser.isin(set_cls(targets))
@@ -304,7 +300,7 @@ def test_isin_set_matches_list(set_cls, dtype, n_comps):
 def test_isin_set_matches_list_bool(set_cls):
     # GH#25507: boolean comps go through the same set fast path (taken here
     # since the single-element comps is smaller than the two-element set).
-    ser = Series([True])
+    ser = pd.Series([True])
     expected = ser.isin([True, False])
     result = ser.isin(set_cls([True, False]))
     tm.assert_series_equal(result, expected)
@@ -312,9 +308,9 @@ def test_isin_set_matches_list_bool(set_cls):
 
 def test_isin_empty_set():
     # GH#25507 set fast path must handle empty set
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     result = ser.isin(set())
-    expected = Series([False, False, False])
+    expected = pd.Series([False, False, False])
     tm.assert_series_equal(result, expected)
 
 
@@ -326,7 +322,7 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     # lossily under the materialized path (which casts through float64) but
     # not under exact set membership; the result must not depend on the
     # comps size.
-    ser = Series([magnitude] * n_comps, dtype="int64")
+    ser = pd.Series([magnitude] * n_comps, dtype="int64")
     result = ser.isin(values)
     expected = ser.isin(list(values))
     tm.assert_series_equal(result, expected)

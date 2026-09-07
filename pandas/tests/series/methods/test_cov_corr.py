@@ -4,11 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    date_range,
-    isna,
-)
 import pandas._testing as tm
 
 
@@ -31,14 +26,14 @@ class TestSeriesCov:
         # all NA
         cp = datetime_series[:10].copy()
         cp[:] = np.nan
-        assert isna(cp.cov(cp))
+        assert pd.isna(cp.cov(cp))
 
         # min_periods
-        assert isna(datetime_series[:15].cov(datetime_series[5:], min_periods=12))
+        assert pd.isna(datetime_series[:15].cov(datetime_series[5:], min_periods=12))
 
         ts1 = datetime_series[:15].reindex(datetime_series.index)
         ts2 = datetime_series[5:].reindex(datetime_series.index)
-        assert isna(ts1.cov(ts2, min_periods=12))
+        assert pd.isna(ts1.cov(ts2, min_periods=12))
 
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
     @pytest.mark.parametrize("dtype", ["float64", "Float64"])
@@ -47,8 +42,8 @@ class TestSeriesCov:
         np_array1 = np.random.default_rng(2).random(10)
         np_array2 = np.random.default_rng(2).random(10)
 
-        s1 = Series(np_array1, dtype=dtype)
-        s2 = Series(np_array2, dtype=dtype)
+        s1 = pd.Series(np_array1, dtype=dtype)
+        s2 = pd.Series(np_array2, dtype=dtype)
 
         result = s1.cov(s2, ddof=test_ddof)
         expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]
@@ -67,11 +62,11 @@ class TestSeriesCorr:
         # partial overlap
         tm.assert_almost_equal(datetime_series[:15].corr(datetime_series[5:]), 1)
 
-        assert isna(datetime_series[:15].corr(datetime_series[5:], min_periods=12))
+        assert pd.isna(datetime_series[:15].corr(datetime_series[5:], min_periods=12))
 
         ts1 = datetime_series[:15].reindex(datetime_series.index)
         ts2 = datetime_series[5:].reindex(datetime_series.index)
-        assert isna(ts1.corr(ts2, min_periods=12))
+        assert pd.isna(ts1.corr(ts2, min_periods=12))
 
         # No overlap
         assert np.isnan(datetime_series[::2].corr(datetime_series[1::2]))
@@ -79,11 +74,11 @@ class TestSeriesCorr:
         # all NA
         cp = datetime_series[:10].copy()
         cp[:] = np.nan
-        assert isna(cp.corr(cp))
+        assert pd.isna(cp.corr(cp))
 
-        A = Series(
+        A = pd.Series(
             np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
+            index=pd.date_range("2020-01-01", periods=10),
             name="ts",
         )
         result = A.corr(A)
@@ -94,14 +89,14 @@ class TestSeriesCorr:
         stats = pytest.importorskip("scipy.stats")
 
         # kendall and spearman
-        B = Series(
+        B = pd.Series(
             np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
+            index=pd.date_range("2020-01-01", periods=10),
             name="ts",
         )
-        A = Series(
+        A = pd.Series(
             np.concatenate([np.arange(5, dtype=np.float64)] * 2),
-            index=date_range("2020-01-01", periods=10),
+            index=pd.date_range("2020-01-01", periods=10),
             name="ts",
         )
         result = A.corr(B, method="kendall")
@@ -113,7 +108,7 @@ class TestSeriesCorr:
         tm.assert_almost_equal(result, expected)
 
         # results from R
-        A = Series(
+        A = pd.Series(
             [
                 -0.89926396,
                 0.94209606,
@@ -127,7 +122,7 @@ class TestSeriesCorr:
                 0.94209606,
             ]
         )
-        B = Series(
+        B = pd.Series(
             [
                 -1.01270225,
                 -0.62210117,
@@ -148,8 +143,8 @@ class TestSeriesCorr:
 
     def test_corr_invalid_method(self):
         # GH PR #22298
-        s1 = Series(np.random.default_rng(2).standard_normal(10))
-        s2 = Series(np.random.default_rng(2).standard_normal(10))
+        s1 = pd.Series(np.random.default_rng(2).standard_normal(10))
+        s2 = pd.Series(np.random.default_rng(2).standard_normal(10))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")
@@ -160,8 +155,8 @@ class TestSeriesCorr:
         my_corr = lambda a, b: 1.0 if (a == b).all() else 0.0
 
         # simple example
-        s1 = Series([1, 2, 3, 4, 5])
-        s2 = Series([5, 4, 3, 2, 1])
+        s1 = pd.Series([1, 2, 3, 4, 5])
+        s2 = pd.Series([5, 4, 3, 2, 1])
         expected = 0
         tm.assert_almost_equal(s1.corr(s2, method=my_corr), expected)
 

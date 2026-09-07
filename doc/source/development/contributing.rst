@@ -69,8 +69,9 @@ If you are brand new to pandas or open-source development, we recommend searchin
 the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
 to find issues that interest you and are available to work on. Issues available to work on are:
 
-* Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
-  from a maintainer before proceeding.
+* Issues without the labels ``Needs Triage``, ``Needs Discussion``, ``Needs Info``,
+  or ``Closing Candidate``. These issues require clarification or confirmation from
+  a maintainer before proceeding.
 * Issues that are not already assigned to another contributor.
 
 Once you've found an interesting, available issue, claim it by commenting ``/take``
@@ -113,8 +114,9 @@ The bot will assign the issue to you.
 
 An issue is available to claim if it is:
 
-* **not** labeled ``Needs Triage`` or ``Needs Discussion`` — these still need a
-  maintainer's review before work begins, and ``/take`` will be declined; and
+* **not** labeled ``Needs Triage``, ``Needs Discussion``, ``Needs Info``, or
+  ``Closing Candidate`` — these still need attention from a maintainer or the
+  reporter before work begins, and ``/take`` will be declined; and
 * **not** already assigned to someone else.
 
 If you change your mind, comment ``/untake`` to release the issue so others can
