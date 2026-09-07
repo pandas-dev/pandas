@@ -8,10 +8,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -21,7 +18,7 @@ def test_basic(all_parsers):
     data = "a,a,b,b,b\n1,2,3,4,5"
     result = parser.read_csv(StringIO(data), sep=",")
 
-    expected = DataFrame([[1, 2, 3, 4, 5]], columns=["a", "a.1", "b", "b.1", "b.2"])
+    expected = pd.DataFrame([[1, 2, 3, 4, 5]], columns=["a", "a.1", "b", "b.1", "b.2"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -30,7 +27,7 @@ def test_basic_names(all_parsers):
     parser = all_parsers
 
     data = "a,b,a\n0,1,2\n3,4,5"
-    expected = DataFrame([[0, 1, 2], [3, 4, 5]], columns=["a", "b", "a.1"])
+    expected = pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["a", "b", "a.1"])
 
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
@@ -48,17 +45,17 @@ def test_basic_names_raise(all_parsers):
 @pytest.mark.parametrize(
     "data,expected",
     [
-        ("a,a,a.1\n1,2,3", DataFrame([[1, 2, 3]], columns=["a", "a.2", "a.1"])),
+        ("a,a,a.1\n1,2,3", pd.DataFrame([[1, 2, 3]], columns=["a", "a.2", "a.1"])),
         (
             "a,a,a.1,a.1.1,a.1.1.1,a.1.1.1.1\n1,2,3,4,5,6",
-            DataFrame(
+            pd.DataFrame(
                 [[1, 2, 3, 4, 5, 6]],
                 columns=["a", "a.2", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1"],
             ),
         ),
         (
             "a,a,a.3,a.1,a.2,a,a\n1,2,3,4,5,6,7",
-            DataFrame(
+            pd.DataFrame(
                 [[1, 2, 3, 4, 5, 6, 7]],
                 columns=["a", "a.4", "a.3", "a.1", "a.2", "a.5", "a.6"],
             ),
@@ -79,14 +76,14 @@ def test_thorough_mangle_columns(all_parsers, data, expected):
         (
             "a,b,b\n1,2,3",
             ["a.1", "a.1", "a.1.1"],
-            DataFrame(
+            pd.DataFrame(
                 [["a", "b", "b"], ["1", "2", "3"]], columns=["a.1", "a.1.1", "a.1.1.1"]
             ),
         ),
         (
             "a,b,c,d,e,f\n1,2,3,4,5,6",
             ["a", "a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1"],
-            DataFrame(
+            pd.DataFrame(
                 [["a", "b", "c", "d", "e", "f"], ["1", "2", "3", "4", "5", "6"]],
                 columns=["a", "a.1", "a.1.1", "a.1.1.1", "a.1.1.1.1", "a.1.1.1.1.1"],
             ),
@@ -94,7 +91,7 @@ def test_thorough_mangle_columns(all_parsers, data, expected):
         (
             "a,b,c,d,e,f,g\n1,2,3,4,5,6,7",
             ["a", "a", "a.3", "a.1", "a.2", "a", "a"],
-            DataFrame(
+            pd.DataFrame(
                 [
                     ["a", "b", "c", "d", "e", "f", "g"],
                     ["1", "2", "3", "4", "5", "6", "7"],
@@ -118,11 +115,11 @@ def test_mangled_unnamed_placeholders(all_parsers):
     parser = all_parsers
 
     orig_value = [1, 2, 3]
-    df = DataFrame({orig_key: orig_value})
+    df = pd.DataFrame({orig_key: orig_value})
 
     # This test recursively updates `df`.
     for i in range(3):
-        expected = DataFrame(columns=Index([], dtype="str"))
+        expected = pd.DataFrame(columns=pd.Index([], dtype="str"))
 
         for j in range(i + 1):
             col_name = "Unnamed: 0" + f".{1 * j}" * min(j, 1)
@@ -140,7 +137,7 @@ def test_mangle_dupe_cols_already_exists(all_parsers):
 
     data = "a,a,a.1,a,a.3,a.1,a.1.1\n1,2,3,4,5,6,7"
     result = parser.read_csv(StringIO(data))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4, 5, 6, 7]],
         columns=["a", "a.2", "a.1", "a.4", "a.3", "a.1.2", "a.1.1"],
     )
@@ -153,7 +150,7 @@ def test_mangle_dupe_cols_already_exists_unnamed_col(all_parsers):
 
     data = ",Unnamed: 0,,Unnamed: 2\n1,2,3,4"
     result = parser.read_csv(StringIO(data))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4]],
         columns=["Unnamed: 0.1", "Unnamed: 0", "Unnamed: 2.1", "Unnamed: 2"],
     )

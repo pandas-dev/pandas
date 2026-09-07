@@ -18,27 +18,20 @@ import pytest
 from pandas._libs import index as libindex
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 
 
 def test_fancy_getitem():
-    dti = date_range(
+    dti = pd.date_range(
         freq="WOM-1FRI", start=datetime(2005, 1, 1), end=datetime(2010, 1, 1)
     )
 
-    s = Series(np.arange(len(dti)), index=dti)
+    s = pd.Series(np.arange(len(dti)), index=dti)
 
     assert s["1/2/2009"] == 48
     assert s["2009-1-2"] == 48
     assert s[datetime(2009, 1, 2)] == 48
-    assert s[Timestamp(datetime(2009, 1, 2))] == 48
+    assert s[pd.Timestamp(datetime(2009, 1, 2))] == 48
     with pytest.raises(KeyError, match=r"^'2009-1-3'$"):
         s["2009-1-3"]
     tm.assert_series_equal(
@@ -47,11 +40,11 @@ def test_fancy_getitem():
 
 
 def test_fancy_setitem():
-    dti = date_range(
+    dti = pd.date_range(
         freq="WOM-1FRI", start=datetime(2005, 1, 1), end=datetime(2010, 1, 1)
     )
 
-    s = Series(np.arange(len(dti)), index=dti)
+    s = pd.Series(np.arange(len(dti)), index=dti)
 
     s["1/2/2009"] = -2
     assert s.iloc[48] == -2
@@ -70,8 +63,8 @@ def test_getitem_setitem_datetime_tz(tz_source):
 
     N = 50
     # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="h", tz=tzget("US/Eastern"))
-    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
+    rng = pd.date_range("1/1/1990", periods=N, freq="h", tz=tzget("US/Eastern"))
+    ts = pd.Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     # also test Timestamp tz handling, GH #2789
     result = ts.copy()
@@ -91,7 +84,7 @@ def test_getitem_setitem_datetime_tz(tz_source):
     tm.assert_series_equal(result, ts)
 
     result = ts.copy()
-    dt = Timestamp(1990, 1, 1, 3).tz_localize(tzget("US/Central"))
+    dt = pd.Timestamp(1990, 1, 1, 3).tz_localize(tzget("US/Central"))
     dt = dt.to_pydatetime()
     result[dt] = 0
     result[dt] = ts.iloc[4]
@@ -101,8 +94,8 @@ def test_getitem_setitem_datetime_tz(tz_source):
 def test_getitem_setitem_datetimeindex():
     N = 50
     # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="h", tz="US/Eastern", unit="ns")
-    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
+    rng = pd.date_range("1/1/1990", periods=N, freq="h", tz="US/Eastern", unit="ns")
+    ts = pd.Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04:00:00"]
     expected = ts.iloc[4]
@@ -138,7 +131,7 @@ def test_getitem_setitem_datetimeindex():
     # But we do not give datetimes a pass on tzawareness compat
     msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
     naive = datetime(1990, 1, 1, 4)
-    for key in [naive, Timestamp(naive), np.datetime64(naive, "ns")]:
+    for key in [naive, pd.Timestamp(naive), np.datetime64(naive, "ns")]:
         with pytest.raises(KeyError, match=re.escape(repr(key))):
             # GH#36148 as of 2.0 we require tzawareness-compat
             ts[key]
@@ -175,8 +168,8 @@ def test_getitem_setitem_datetimeindex():
         # see GH#18376, GH#18162
         ts[(ts.index >= lb) & (ts.index <= rb)]
 
-    lb = Timestamp(naive).tz_localize(rng.tzinfo)
-    rb = Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
+    lb = pd.Timestamp(naive).tz_localize(rng.tzinfo)
+    rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
     result = ts[(ts.index >= lb) & (ts.index <= rb)]
     expected = ts[4:8]
     tm.assert_series_equal(result, expected)
@@ -207,8 +200,8 @@ def test_getitem_setitem_datetimeindex():
 
 def test_getitem_setitem_periodindex():
     N = 50
-    rng = period_range("1/1/1990", periods=N, freq="h")
-    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
+    rng = pd.period_range("1/1/1990", periods=N, freq="h")
+    ts = pd.Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04"]
     expected = ts.iloc[4]
@@ -250,11 +243,11 @@ def test_getitem_setitem_periodindex():
 
 
 def test_datetime_indexing():
-    index = date_range("1/1/2000", "1/7/2000")
+    index = pd.date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)
 
-    s = Series(len(index), index=index)
-    stamp = Timestamp("1/8/2000")
+    s = pd.Series(len(index), index=index)
+    stamp = pd.Timestamp("1/8/2000")
 
     with pytest.raises(KeyError, match=re.escape(repr(stamp))):
         s[stamp]
@@ -262,7 +255,7 @@ def test_datetime_indexing():
     assert s[stamp] == 0
 
     # not monotonic
-    s = Series(len(index), index=index)
+    s = pd.Series(len(index), index=index)
     s = s[::-1]
 
     with pytest.raises(KeyError, match=re.escape(repr(stamp))):
@@ -293,7 +286,7 @@ def test_indexing_with_duplicate_datetimeindex(
 
         cp = ts.copy()
         cp[date] = 0
-        expected = Series(np.where(mask, 0, ts), index=ts.index)
+        expected = pd.Series(np.where(mask, 0, ts), index=ts.index)
         tm.assert_series_equal(cp, expected)
 
     key = datetime(2000, 1, 6)
@@ -328,7 +321,7 @@ def test_loc_getitem_over_size_cutoff(monkeypatch):
     for p in duplicate_positions:
         dates[p + 1] = dates[p]
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((len(dates), 4)),
         index=dates,
         columns=list("ABCD"),
@@ -349,10 +342,10 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
 
     n = 1100
-    idx = period_range("1/1/2000", freq="min", periods=n)
+    idx = pd.period_range("1/1/2000", freq="min", periods=n)
     assert idx._engine.over_size_threshold
 
-    s = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
+    s = pd.Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
     pos = n - 1
     timestamp = idx[pos]
@@ -365,8 +358,8 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
 
 def test_indexing_unordered():
     # GH 2437
-    rng = date_range(start="2011-01-01", end="2011-01-15")
-    ts = Series(np.random.default_rng(2).random(len(rng)), index=rng)
+    rng = pd.date_range(start="2011-01-01", end="2011-01-15")
+    ts = pd.Series(np.random.default_rng(2).random(len(rng)), index=rng)
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
@@ -405,8 +398,8 @@ def test_indexing_unordered():
 
 def test_indexing_unordered2():
     # diff freq
-    rng = date_range(datetime(2005, 1, 1), periods=20, freq="ME")
-    ts = Series(np.arange(len(rng)), index=rng)
+    rng = pd.date_range(datetime(2005, 1, 1), periods=20, freq="ME")
+    ts = pd.Series(np.arange(len(rng)), index=rng)
     ts = ts.take(np.random.default_rng(2).permutation(20))
 
     result = ts["2005"]
@@ -415,8 +408,8 @@ def test_indexing_unordered2():
 
 
 def test_indexing():
-    idx = date_range("2001-1-1", periods=20, freq="ME")
-    ts = Series(np.random.default_rng(2).random(len(idx)), index=idx)
+    idx = pd.date_range("2001-1-1", periods=20, freq="ME")
+    ts = pd.Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
     # getting
 
@@ -424,7 +417,7 @@ def test_indexing():
     result = ts["2001"]
     tm.assert_series_equal(result, ts.iloc[:12])
 
-    df = DataFrame({"A": ts})
+    df = pd.DataFrame({"A": ts})
 
     # GH#36179 pre-2.0 df["2001"] operated as slicing on rows. in 2.0 it behaves
     #  like any other key, so raises
@@ -432,7 +425,7 @@ def test_indexing():
         df["2001"]
 
     # setting
-    ts = Series(np.random.default_rng(2).random(len(idx)), index=idx)
+    ts = pd.Series(np.random.default_rng(2).random(len(idx)), index=idx)
     expected = ts.copy()
     expected.iloc[:12] = 1
     ts["2001"] = 1
@@ -446,33 +439,37 @@ def test_indexing():
 
 def test_getitem_str_month_with_datetimeindex():
     # GH3546 (not including times on the last day)
-    idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:00", freq="h")
-    ts = Series(range(len(idx)), index=idx)
+    idx = pd.date_range(start="2013-05-31 00:00", end="2013-05-31 23:00", freq="h")
+    ts = pd.Series(range(len(idx)), index=idx)
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
 
-    idx = date_range(start="2013-05-31 23:00:00", end="2013-05-31 23:59:59", freq="s")
-    ts = Series(range(len(idx)), index=idx)
+    idx = pd.date_range(
+        start="2013-05-31 23:00:00", end="2013-05-31 23:59:59", freq="s"
+    )
+    ts = pd.Series(range(len(idx)), index=idx)
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
 
 
 def test_getitem_str_year_with_datetimeindex():
     idx = [
-        Timestamp("2013-05-31 00:00"),
-        Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999)),
+        pd.Timestamp("2013-05-31 00:00"),
+        pd.Timestamp(datetime(2013, 5, 31, 23, 59, 59, 999999)),
     ]
-    ts = Series(range(len(idx)), index=idx)
+    ts = pd.Series(range(len(idx)), index=idx)
     expected = ts["2013"]
     tm.assert_series_equal(expected, ts)
 
 
 def test_getitem_str_second_with_datetimeindex():
     # GH14826, indexing with a seconds resolution string / datetime object
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((5, 5)),
         columns=["open", "high", "low", "close", "volume"],
-        index=date_range("2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"),
+        index=pd.date_range(
+            "2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"
+        ),
     )
 
     # this is a single date, so will raise
@@ -486,8 +483,8 @@ def test_getitem_str_second_with_datetimeindex():
 
 def test_compare_datetime_with_all_none():
     # GH#54870
-    ser = Series(["2020-01-01", "2020-01-02"], dtype="datetime64[ns]")
-    ser2 = Series([None, None])
+    ser = pd.Series(["2020-01-01", "2020-01-02"], dtype="datetime64[ns]")
+    ser2 = pd.Series([None, None])
     result = ser > ser2
-    expected = Series([False, False])
+    expected = pd.Series([False, False])
     tm.assert_series_equal(result, expected)

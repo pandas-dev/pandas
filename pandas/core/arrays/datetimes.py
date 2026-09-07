@@ -815,7 +815,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             values = self
 
         try:
-            res_values = offset._apply_array(values._ndarray)
+            res_values = offset._add_datetime_ndarray(values._ndarray)
             if res_values.dtype.kind == "i":
                 # values is tz-naive here, so its dtype is the ndarray's
                 res_values = res_values.view(values._ndarray.dtype)
@@ -1030,10 +1030,9 @@ default 'raise'
 
         >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
         >>> tz_aware
-        DatetimeIndex(['2018-03-01 09:00:00-05:00',
-                       '2018-03-02 09:00:00-05:00',
+        DatetimeIndex(['2018-03-01 09:00:00-05:00', '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[us, US/Eastern]', freq=None)
+                      dtype='datetime64[us, US/Eastern]', freq='D')
 
         With ``tz=None`` we can remove the time zone information while
         preserving the wall time (no conversion to UTC):
@@ -1041,7 +1040,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[us]', freq=None)
+                      dtype='datetime64[us]', freq='D')
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -2687,7 +2686,6 @@ def _sequence_to_dt64(
                 data,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
-                allow_object=False,
                 out_unit=out_unit,
             )
             copy = False
@@ -2795,7 +2793,6 @@ def objects_to_datetime64(
     yearfirst,
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
-    allow_object: bool = False,
     out_unit: str | None = None,
 ) -> tuple[np.ndarray, tzinfo | None]:
     """
@@ -2809,9 +2806,6 @@ def objects_to_datetime64(
     utc : bool, default False
         Whether to convert/localize timestamps to UTC.
     errors : {'raise', 'coerce'}
-    allow_object : bool
-        Whether to return an object-dtype ndarray instead of raising if the
-        data contains more than one timezone.
     out_unit : str or None, default None
         None indicates we should do resolution inference.
 
@@ -2820,7 +2814,6 @@ def objects_to_datetime64(
     result : ndarray
         np.datetime64[out_unit] if returned values represent wall times or UTC
         timestamps.
-        object if mixed timezones
     inferred_tz : tzinfo or None
         If not None, then the datetime64 values in `result` denote UTC timestamps.
 
@@ -2849,18 +2842,8 @@ def objects_to_datetime64(
         return result, tz_parsed
     elif result.dtype.kind == "M":
         return result, tz_parsed
-    elif result.dtype == object:
-        # GH#23675 when called via `pd.to_datetime`, returning an object-dtype
-        #  array is allowed.  When called via `pd.DatetimeIndex`, we can
-        #  only accept datetime64 dtype, so raise TypeError if object-dtype
-        #  is returned, as that indicates the values can be recognized as
-        #  datetimes but they have conflicting timezones/awareness
-        if allow_object:
-            return result, tz_parsed
-        raise TypeError("DatetimeIndex has mixed timezones")
     else:  # pragma: no cover
-        # GH#23675 this TypeError should never be hit, whereas the TypeError
-        #  in the object-dtype branch above is reachable.
+        # this TypeError should never be hit
         raise TypeError(result)
 
 
@@ -3225,7 +3208,8 @@ def _generate_range(
         if (
             start_tod
             # Check if the offset preserves start's time-of-day
-            and (offset._apply(start) - offset._apply(start).normalize()) == start_tod
+            and (offset._add_datetime(start) - offset._add_datetime(start).normalize())
+            == start_tod
         ):
             if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
                 end = end.normalize() + start_tod
@@ -3267,7 +3251,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._add_datetime(cur)
             next_date = next_date.as_unit(unit)
             if next_date <= cur:
                 raise ValueError(f"Offset {offset} did not increment date")
@@ -3282,7 +3266,7 @@ def _generate_range(
                 break
 
             # faster than cur + offset
-            next_date = offset._apply(cur)
+            next_date = offset._add_datetime(cur)
             next_date = next_date.as_unit(unit)
             if next_date >= cur:
                 raise ValueError(f"Offset {offset} did not decrement date")

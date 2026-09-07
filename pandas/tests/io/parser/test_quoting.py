@@ -11,7 +11,7 @@ import pytest
 from pandas.compat import PY314
 from pandas.errors import ParserError
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 if PY314:
@@ -66,7 +66,7 @@ def test_bad_quoting(all_parsers, quoting, msg):
 def test_quote_char_basic(all_parsers):
     parser = all_parsers
     data = 'a,b,c\n1,2,"cat"'
-    expected = DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
+    expected = pd.DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
 
     result = parser.read_csv(StringIO(data), quotechar='"')
     tm.assert_frame_equal(result, expected)
@@ -75,7 +75,7 @@ def test_quote_char_basic(all_parsers):
 @pytest.mark.parametrize("quote_char", ["~", "*", "%", "$", "@", "P"])
 def test_quote_char_various(all_parsers, quote_char):
     parser = all_parsers
-    expected = DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
+    expected = pd.DataFrame([[1, 2, "cat"]], columns=["a", "b", "c"])
 
     data = 'a,b,c\n1,2,"cat"'
     new_data = data.replace('"', quote_char)
@@ -114,7 +114,7 @@ def test_null_quote_char(all_parsers, quoting, quote_char):
             parser.read_csv(StringIO(data), **kwargs)
     elif all_parsers.engine != "python":
         # Python doesn't support null/blank quote chars in their csv parsers
-        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+        expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
         result = parser.read_csv(StringIO(data), **kwargs)
         tm.assert_frame_equal(result, expected)
 
@@ -151,7 +151,7 @@ def test_quoting_various(all_parsers, kwargs, exp_data, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), names=columns, **kwargs)
-    expected = DataFrame(exp_data, columns=columns)
+    expected = pd.DataFrame(exp_data, columns=columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -167,7 +167,7 @@ def test_double_quote(all_parsers, doublequote, exp_data, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), quotechar='"', doublequote=doublequote)
-    expected = DataFrame(exp_data, columns=["a", "b"])
+    expected = pd.DataFrame(exp_data, columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -176,7 +176,7 @@ def test_quotechar_unicode(all_parsers, quotechar):
     # see gh-14477
     data = "a\n1"
     parser = all_parsers
-    expected = DataFrame({"a": [1]})
+    expected = pd.DataFrame({"a": [1]})
 
     result = parser.read_csv(StringIO(data), quotechar=quotechar)
     tm.assert_frame_equal(result, expected)
@@ -194,7 +194,7 @@ def test_unbalanced_quoting(all_parsers, balanced, request):
 
     if balanced:
         # Re-balance the quoting and read in without errors.
-        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+        expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
         result = parser.read_csv(StringIO(data + '"'))
         tm.assert_frame_equal(result, expected)
     else:

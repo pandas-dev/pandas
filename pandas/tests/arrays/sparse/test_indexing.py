@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -166,13 +165,13 @@ class TestTake:
         tm.assert_sp_array_equal(arr.take([0, 1, 2]), exp)
 
     def test_take_all_empty(self):
-        sparse = pd.array([0, 0], dtype=SparseDtype("int64"))
+        sparse = pd.array([0, 0], dtype=pd.SparseDtype("int64"))
         result = sparse.take([0, 1], allow_fill=True, fill_value=np.nan)
         tm.assert_sp_array_equal(sparse, result)
 
     def test_take_different_fill_value(self):
         # Take with a different fill value shouldn't overwrite the original
-        sparse = pd.array([0.0], dtype=SparseDtype("float64", fill_value=0.0))
+        sparse = pd.array([0.0], dtype=pd.SparseDtype("float64", fill_value=0.0))
         result = sparse.take([0, -1], allow_fill=True, fill_value=np.nan)
         expected = pd.array([0, np.nan], dtype=sparse.dtype)
         tm.assert_sp_array_equal(expected, result)
@@ -184,7 +183,7 @@ class TestTake:
         sparse = SparseArray([False, False, True], fill_value=False)
         result = sparse.take([0, 2, -1], allow_fill=True)
         expected = SparseArray([False, True, np.nan], fill_value=False)
-        assert result.dtype == SparseDtype(object, False)
+        assert result.dtype == pd.SparseDtype(object, False)
         tm.assert_sp_array_equal(result, expected)
 
     def test_take_fill_bool_all_fill_upcasts_to_object(self):
@@ -192,7 +191,7 @@ class TestTake:
         sparse = SparseArray([False, False], fill_value=False)
         result = sparse.take([0, -1], allow_fill=True)
         expected = SparseArray([False, np.nan], fill_value=False)
-        assert result.dtype == SparseDtype(object, False)
+        assert result.dtype == pd.SparseDtype(object, False)
         tm.assert_sp_array_equal(result, expected)
 
     def test_take_fill_value(self):

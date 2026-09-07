@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -27,7 +22,7 @@ from pandas.tests.copy_view.util import get_array
     ],
 )
 def test_replace(replace_kwargs):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
     df_replaced = df.replace(**replace_kwargs)
@@ -48,7 +43,7 @@ def test_replace(replace_kwargs):
 
 
 def test_replace_regex_inplace_refs():
-    df = DataFrame({"a": ["aaa", "bbb"]})
+    df = pd.DataFrame({"a": ["aaa", "bbb"]})
     df_orig = df.copy()
     view = df[:]
     arr = get_array(df, "a")
@@ -59,7 +54,7 @@ def test_replace_regex_inplace_refs():
 
 
 def test_replace_regex_inplace():
-    df = DataFrame({"a": ["aaa", "bbb"]})
+    df = pd.DataFrame({"a": ["aaa", "bbb"]})
     arr = get_array(df, "a")
     df.replace(to_replace=r"^a.*$", value="new", inplace=True, regex=True)
     assert df._mgr._has_no_reference(0)
@@ -76,18 +71,18 @@ def test_replace_regex_non_inplace_does_not_mutate_original(dtype):
     # GH#57733 - replace_regex with non-string value triggers astype to object,
     # which for StringArray (backed by object ndarray) returned a view, causing
     # in-place mutation of the original
-    df = DataFrame({"b": list("ab..")}, dtype=dtype)
+    df = pd.DataFrame({"b": list("ab..")}, dtype=dtype)
     df_orig = df.copy()
     result = df.replace([r"\s*\.\s*", "b"], 0, regex=True)
 
-    expected = DataFrame({"b": ["a", 0, 0, 0]}, dtype=object)
+    expected = pd.DataFrame({"b": ["a", 0, 0, 0]}, dtype=object)
     tm.assert_frame_equal(result, expected)
     # Original must be unchanged
     tm.assert_frame_equal(df, df_orig)
 
 
 def test_replace_regex_inplace_no_op():
-    df = DataFrame({"a": [1, 2]})
+    df = pd.DataFrame({"a": [1, 2]})
     arr = get_array(df, "a")
     df.replace(to_replace=r"^a.$", value="new", inplace=True, regex=True)
     assert df._mgr._has_no_reference(0)
@@ -100,7 +95,7 @@ def test_replace_regex_inplace_no_op():
 
 
 def test_replace_mask_all_false_second_block():
-    df = DataFrame({"a": [1.5, 2, 3], "b": 100.5, "c": 1, "d": 2})
+    df = pd.DataFrame({"a": [1.5, 2, 3], "b": 100.5, "c": 1, "d": 2})
     df_orig = df.copy()
 
     df2 = df.replace(to_replace=1.5, value=55.5)
@@ -117,7 +112,7 @@ def test_replace_mask_all_false_second_block():
 
 
 def test_replace_coerce_single_column():
-    df = DataFrame({"a": [1.5, 2, 3], "b": 100.5})
+    df = pd.DataFrame({"a": [1.5, 2, 3], "b": 100.5})
     df_orig = df.copy()
 
     df2 = df.replace(to_replace=1.5, value="a")
@@ -130,7 +125,7 @@ def test_replace_coerce_single_column():
 
 
 def test_replace_to_replace_wrong_dtype():
-    df = DataFrame({"a": [1.5, 2, 3], "b": 100.5})
+    df = pd.DataFrame({"a": [1.5, 2, 3], "b": 100.5})
     df_orig = df.copy()
 
     df2 = df.replace(to_replace="xxx", value=1.5)
@@ -144,7 +139,7 @@ def test_replace_to_replace_wrong_dtype():
 
 
 def test_replace_list_categorical():
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype="category")
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype="category")
     arr = get_array(df, "a")
 
     df.replace(["c"], value="a", inplace=True)
@@ -160,7 +155,7 @@ def test_replace_list_categorical():
 
 
 def test_replace_list_inplace_refs_categorical():
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype="category")
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype="category")
     view = df[:]
     df_orig = df.copy()
     df.replace(["c"], value="a", inplace=True)
@@ -169,7 +164,7 @@ def test_replace_list_inplace_refs_categorical():
 
 @pytest.mark.parametrize("to_replace", [1.5, [1.5], []])
 def test_replace_inplace(to_replace):
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     df.replace(to_replace=1.5, value=15.5, inplace=True)
 
@@ -179,7 +174,7 @@ def test_replace_inplace(to_replace):
 
 @pytest.mark.parametrize("to_replace", [1.5, [1.5]])
 def test_replace_inplace_reference(to_replace):
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     view = df[:]
     df.replace(to_replace=to_replace, value=15.5, inplace=True)
@@ -191,7 +186,7 @@ def test_replace_inplace_reference(to_replace):
 
 @pytest.mark.parametrize("to_replace", ["a", 100.5])
 def test_replace_inplace_reference_no_op(to_replace):
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     view = df[:]
     df.replace(to_replace=to_replace, value=15.5, inplace=True)
@@ -203,7 +198,7 @@ def test_replace_inplace_reference_no_op(to_replace):
 
 @pytest.mark.parametrize("to_replace", [1, [1]])
 def test_replace_categorical_inplace_reference(to_replace):
-    df = DataFrame({"a": Categorical([1, 2, 3])})
+    df = pd.DataFrame({"a": pd.Categorical([1, 2, 3])})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
@@ -215,19 +210,19 @@ def test_replace_categorical_inplace_reference(to_replace):
 
 
 def test_replace_categorical_inplace():
-    df = DataFrame({"a": Categorical([1, 2, 3])})
+    df = pd.DataFrame({"a": pd.Categorical([1, 2, 3])})
     arr_a = get_array(df, "a")
     df.replace(to_replace=1, value=1, inplace=True)
 
     assert np.shares_memory(get_array(df, "a").codes, arr_a.codes)
     assert df._mgr._has_no_reference(0)
 
-    expected = DataFrame({"a": Categorical([1, 2, 3])})
+    expected = pd.DataFrame({"a": pd.Categorical([1, 2, 3])})
     tm.assert_frame_equal(df, expected)
 
 
 def test_replace_categorical():
-    df = DataFrame({"a": Categorical([1, 2, 3])})
+    df = pd.DataFrame({"a": pd.Categorical([1, 2, 3])})
     df_orig = df.copy()
     df2 = df.replace(to_replace=1, value=1)
 
@@ -243,7 +238,7 @@ def test_replace_categorical():
 
 @pytest.mark.parametrize("method", ["where", "mask"])
 def test_masking_inplace(method):
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
@@ -258,7 +253,7 @@ def test_masking_inplace(method):
 
 
 def test_replace_empty_list():
-    df = DataFrame({"a": [1, 2]})
+    df = pd.DataFrame({"a": [1, 2]})
 
     df2 = df.replace([], [])
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -272,7 +267,7 @@ def test_replace_empty_list():
 
 @pytest.mark.parametrize("value", ["d", None])
 def test_replace_object_list_inplace(value):
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype=object)
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype=object)
     arr = get_array(df, "a")
     df.replace(["c"], value, inplace=True)
     assert np.shares_memory(arr, get_array(df, "a"))
@@ -280,7 +275,7 @@ def test_replace_object_list_inplace(value):
 
 
 def test_replace_list_multiple_elements_inplace():
-    df = DataFrame({"a": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3]})
     arr = get_array(df, "a")
     df.replace([1, 2], 4, inplace=True)
     assert np.shares_memory(arr, get_array(df, "a"))
@@ -288,7 +283,7 @@ def test_replace_list_multiple_elements_inplace():
 
 
 def test_replace_list_none():
-    df = DataFrame({"a": ["a", "b", "c"]})
+    df = pd.DataFrame({"a": ["a", "b", "c"]})
 
     df_orig = df.copy()
     df2 = df.replace(["b"], value=None)
@@ -304,7 +299,7 @@ def test_replace_list_none():
 
 
 def test_replace_list_none_inplace_refs():
-    df = DataFrame({"a": ["a", "b", "c"]})
+    df = pd.DataFrame({"a": ["a", "b", "c"]})
     arr = get_array(df, "a")
     df_orig = df.copy()
     view = df[:]
@@ -315,7 +310,7 @@ def test_replace_list_none_inplace_refs():
 
 
 def test_replace_columnwise_no_op_inplace():
-    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     view = df[:]
     df_orig = df.copy()
     df.replace({"a": 10}, 100, inplace=True)
@@ -325,7 +320,7 @@ def test_replace_columnwise_no_op_inplace():
 
 
 def test_replace_columnwise_no_op():
-    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     df_orig = df.copy()
     df2 = df.replace({"a": 10}, 100)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -334,7 +329,7 @@ def test_replace_columnwise_no_op():
 
 
 def test_replace_chained_assignment():
-    df = DataFrame({"a": [1, np.nan, 2], "b": 1})
+    df = pd.DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
     with tm.raises_chained_assignment_error():
         df["a"].replace(1, 100, inplace=True)
@@ -346,7 +341,7 @@ def test_replace_chained_assignment():
 
 
 def test_replace_listlike():
-    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     df_orig = df.copy()
 
     result = df.replace([200, 201], [11, 11])
@@ -361,7 +356,7 @@ def test_replace_listlike():
 
 
 def test_replace_listlike_inplace():
-    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     arr = get_array(df, "a")
     df.replace([200, 2], [10, 11], inplace=True)
     assert np.shares_memory(get_array(df, "a"), arr)
@@ -387,11 +382,11 @@ def test_replace_listlike_inplace():
 def test_replace_listlike_inplace_keeps_tracking_copies(to_replace, value):
     # GH#58966 replace_list dropped the block's self-reference once it had
     #  copied, so views taken afterwards were no longer copy-on-write protected
-    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     view = df[:]
     df.replace(to_replace, value, inplace=True)
     # the copy triggered by ``view`` must not have leaked the original values
-    tm.assert_frame_equal(view, DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}))
+    tm.assert_frame_equal(view, pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}))
 
     df_orig = df.copy()
     view2 = df[:]
@@ -402,10 +397,10 @@ def test_replace_listlike_inplace_keeps_tracking_copies(to_replace, value):
 
 def test_replace_dictlike_inplace_keeps_tracking_copies():
     # GH#58966
-    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     view = df[:]
     df.replace({2: 20, 3: 30}, inplace=True)
-    tm.assert_frame_equal(view, DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}))
+    tm.assert_frame_equal(view, pd.DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]}))
 
     df_orig = df.copy()
     view2 = df[:]
@@ -416,10 +411,10 @@ def test_replace_dictlike_inplace_keeps_tracking_copies():
 
 def test_replace_object_inplace_keeps_tracking_copies():
     # GH#58966
-    ser = Series(["a", "b", "c"], dtype=object)
+    ser = pd.Series(["a", "b", "c"], dtype=object)
     view = ser[:]
     ser.replace(["b", "z"], ["B", "Z"], inplace=True)
-    tm.assert_series_equal(view, Series(["a", "b", "c"], dtype=object))
+    tm.assert_series_equal(view, pd.Series(["a", "b", "c"], dtype=object))
 
     ser_orig = ser.copy()
     view2 = ser[:]
@@ -431,7 +426,7 @@ def test_replace_object_inplace_keeps_tracking_copies():
 def test_replace_listlike_inplace_upcast_keeps_tracking_copies():
     # GH#58966 no pre-existing reference is needed: the upcast to object mints
     #  fresh refs, which were then emptied
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     ser.replace([2, 200], ["x", "y"], inplace=True)
 
     ser_orig = ser.copy()
@@ -443,10 +438,10 @@ def test_replace_listlike_inplace_upcast_keeps_tracking_copies():
 
 def test_replace_regex_inplace_keeps_tracking_copies():
     # GH#58966
-    ser = Series(["ab", "bc", "cd"], dtype=object)
+    ser = pd.Series(["ab", "bc", "cd"], dtype=object)
     view = ser[:]
     ser.replace(["^a", "^z"], ["A", "Z"], regex=True, inplace=True)
-    tm.assert_series_equal(view, Series(["ab", "bc", "cd"], dtype=object))
+    tm.assert_series_equal(view, pd.Series(["ab", "bc", "cd"], dtype=object))
 
     ser_orig = ser.copy()
     view2 = ser[:]
@@ -462,11 +457,11 @@ def test_replace_listlike_inplace_ea_keeps_tracking_copies(dtype):
     value = [20, 10]
     new_val = 999
     if dtype == "datetime64[ns]":
-        to_replace = [Timestamp(val) for val in to_replace]
-        value = [Timestamp(val) for val in value]
-        new_val = Timestamp(new_val)
+        to_replace = [pd.Timestamp(val) for val in to_replace]
+        value = [pd.Timestamp(val) for val in value]
+        new_val = pd.Timestamp(new_val)
 
-    ser = Series([1, 2, 3]).astype(dtype)
+    ser = pd.Series([1, 2, 3]).astype(dtype)
     orig = ser.copy()
     view = ser[:]
     ser.replace(to_replace, value, inplace=True)
@@ -489,7 +484,7 @@ def test_replace_listlike_inplace_ea_keeps_tracking_copies(dtype):
 def test_replace_listlike_inplace_split_keeps_tracking_copies(to_replace, value):
     # GH#58966 upcasting one column of a multi-column block splits it; the
     #  untouched sibling survives the pair loop and must stay registered
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df.replace(to_replace, value, inplace=True)
 
     df_orig = df.copy()
@@ -501,7 +496,7 @@ def test_replace_listlike_inplace_split_keeps_tracking_copies(to_replace, value)
 
 def test_replace_dictlike_inplace_split_keeps_tracking_copies():
     # GH#58966
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df.replace({1: "s0", 2: "s1"}, inplace=True)
 
     df_orig = df.copy()

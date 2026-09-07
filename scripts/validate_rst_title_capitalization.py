@@ -96,6 +96,7 @@ CAPITALIZATION_EXCEPTIONS = {
     "HalfYearEnd",
     "BHalfYearBegin",
     "BHalfYearEnd",
+    "HalfYear",
     "HalfYearOffset",
     "QuarterBegin",
     "QuarterEnd",

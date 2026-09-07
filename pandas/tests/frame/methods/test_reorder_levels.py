@@ -1,21 +1,18 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestReorderLevels:
     def test_reorder_levels(self, frame_or_series):
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
             names=["L0", "L1", "L2"],
         )
-        df = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=index)
+        df = pd.DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=index)
         obj = tm.get_obj(df, frame_or_series)
 
         # no change, position
@@ -28,22 +25,22 @@ class TestReorderLevels:
 
         # rotate, position
         result = obj.reorder_levels([1, 2, 0])
-        e_idx = MultiIndex(
+        e_idx = pd.MultiIndex(
             levels=[["one", "two", "three"], [0, 1], ["bar"]],
             codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1], [0, 0, 0, 0, 0, 0]],
             names=["L1", "L2", "L0"],
         )
-        expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
+        expected = pd.DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
         expected = tm.get_obj(expected, frame_or_series)
         tm.assert_equal(result, expected)
 
         result = obj.reorder_levels([0, 0, 0])
-        e_idx = MultiIndex(
+        e_idx = pd.MultiIndex(
             levels=[["bar"], ["bar"], ["bar"]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]],
             names=["L0", "L0", "L0"],
         )
-        expected = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
+        expected = pd.DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=e_idx)
         expected = tm.get_obj(expected, frame_or_series)
         tm.assert_equal(result, expected)
 
