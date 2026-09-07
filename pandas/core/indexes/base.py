@@ -6920,8 +6920,6 @@ class Index(IndexOpsMixin, PandasObject):
         ser = Series(self, copy=False)
         replaced = ser.replace(to_replace, value, regex=regex)
 
-        # Not _shallow_copy: self's subclass may not be able to hold a dtype-changing
-        # result, see test_index_replace_widening_to_object
         return Index(replaced, dtype=replaced.dtype, name=self.name, copy=False)
 
     # TODO: De-duplicate with map, xref GH#32349
