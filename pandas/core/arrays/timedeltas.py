@@ -1325,6 +1325,7 @@ def sequence_to_td64ns(
             in_int64_range = ~float_outside_int64(data)
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
+                int_data[mask] = 0
                 result = sequence_to_td64ns(
                     int_data, copy=False, unit=unit, errors=errors
                 )
