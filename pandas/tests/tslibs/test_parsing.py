@@ -284,6 +284,7 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
         ("2011-12-30T00:00:00UTC", "%Y-%m-%dT%H:%M:%S%Z"),
+        ("2011-12-30T00:00:00GMT", "%Y-%m-%dT%H:%M:%S%Z"),
         ("2011-12-30T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+9", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09", "%Y-%m-%dT%H:%M:%S%z"),
@@ -295,6 +296,7 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:", None),
         ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z"),
+        ("2011-12-30T00:00:00.000000GMT", "%Y-%m-%dT%H:%M:%S.%f%Z"),
         ("2011-12-30T00:00:00.000000Z", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+9", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09", "%Y-%m-%dT%H:%M:%S.%f%z"),
@@ -321,6 +323,33 @@ def test_guess_datetime_format_with_parseable_formats(string, fmt):
     ):
         result = parsing.guess_datetime_format(string)
     assert result == fmt
+
+
+@td.skip_if_not_english_lc_time
+@pytest.mark.parametrize("tzname", ["UTC", "GMT"])
+@pytest.mark.parametrize(
+    "template, fmt",
+    [
+        # RFC 1123 / HTTP date, zone in the last token
+        ("Wed, 15 Jan 2020 08:30:00 {tz}", "%a, %d %b %Y %H:%M:%S %Z"),
+        # unix `date` / java Date.toString(), zone before the year
+        ("Wed Jan 15 08:30:00 {tz} 2020", "%a %b %d %H:%M:%S %Z %Y"),
+    ],
+)
+def test_guess_datetime_format_utc_alias(tzname, template, fmt):
+    # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
+    #  silently returned a naive result where Timestamp was tz-aware
+    dtstr = template.format(tz=tzname)
+    assert parsing.guess_datetime_format(dtstr) == fmt
+
+    expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
+    assert pd.Timestamp(dtstr) == expected
+    # the scalar arg shape infers a format too, unlike the Timestamp constructor
+    assert pd.to_datetime(dtstr) == expected
+
+    result = pd.to_datetime([dtstr])
+    assert result[0] == expected
+    assert result.tz is UTC
 
 
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
