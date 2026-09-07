@@ -2737,13 +2737,12 @@ def maybe_convert_numeric(
         elif util.is_float_object(val):
             fval = val
             if fval != fval:
+                seen.null_ = True
                 if allow_null_in_int:
-                    seen.null_ = True
                     mask[i] = 1
                 else:
-                    if convert_to_masked_nullable and not distinguish_nan_and_na:
+                    if convert_to_masked_nullable:
                         mask[i] = 1
-                        seen.null_ = True
                     seen.float_ = True
             else:
                 seen.float_ = True
@@ -2831,10 +2830,15 @@ def maybe_convert_numeric(
                 val_lower = val.lower()
                 if val_lower in ("nan", "-nan", "+nan"):
                     fval = NaN
-                    seen.float_ = True
-                    if not distinguish_nan_and_na:
-                        seen.null_ = True  # Legacy, treat "nan" string as logical pd.NA
-                        mask[i] = 1      # and ensure mask for position
+                    seen.null_ = True
+
+                    if allow_null_in_int:
+                        mask[i] = 1
+                    else:
+                        if convert_to_masked_nullable:
+                            mask[i] = 1
+                        seen.float_ = True
+
                     floats[i] = fval
                     if have_complexes:
                         complexes[i] = fval
