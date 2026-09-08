@@ -384,7 +384,7 @@ def qcut(
     elif is_list_like(q):
         quantiles = q
     else:
-        raise ValueError("`q` should be a positive integer.")
+        raise ValueError("`q` should be a positive integer or list-like of quantiles.")
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 
