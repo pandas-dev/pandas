@@ -20,6 +20,7 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.core.construction import array as pd_array
+from pandas.core.indexing import check_bool_indexer
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -57,11 +58,11 @@ def has_bool_labels(labels: Index) -> bool:
     """
     Whether ``labels`` contains the values True or False.
     """
-    if labels.dtype == bool:
+    if is_bool_dtype(labels.dtype):
         return True
     if labels.dtype != np.object_:
         return False
-    return any(isinstance(label, (bool, np.bool_)) for label in labels)
+    return any(lib.is_bool(label) for label in labels)
 
 
 def filter_mask(
@@ -73,8 +74,6 @@ def filter_mask(
     """
     Select the entries of ``obj`` along ``axis`` where ``mask`` is True.
     """
-    from pandas.core.indexing import check_bool_indexer
-
     labels = obj._get_axis(axis)
 
     if getattr(mask, "ndim", 1) != 1:

@@ -5608,7 +5608,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        items : boolean array-like, callable, or :class:`Expression`
+        items : array-like of bool, callable, or :class:`Expression`
             The boolean mask selecting the entries to keep. A callable is
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the

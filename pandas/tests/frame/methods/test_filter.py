@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -409,4 +410,23 @@ def test_filter_mask_default_axis_is_index(df):
     # unlike the deprecated label-based usage, a mask defaults to the index
     result = df.filter([True, False, True])
     expected = df.iloc[[0, 2]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "bool",
+        "boolean",
+        pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_filter_bool_labels_extension_dtype(dtype):
+    # GH#61317
+    index = pd.Index([True, False], dtype=dtype)
+    df = pd.DataFrame({"a": [1, 2]}, index=index)
+    msg = "DataFrame.filter with boolean values currently selects the labels"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.filter([True], axis=0)
+    expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
