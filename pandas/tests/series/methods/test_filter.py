@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -82,47 +80,18 @@ def test_filter_mask_na(ser, mask):
     tm.assert_series_equal(result, expected)
 
 
-def test_filter_bool_labels_deprecated():
+def test_filter_bool_labels_select_labels():
     # GH#61317
+    # Boolean values on an axis with boolean labels keep selecting labels
     ser = pd.Series([1, 2, 3], index=[True, False, "c"])
-    msg = (
-        "Series.filter with boolean values currently selects the labels True "
-        "and False when the axis contains boolean labels. In a future version the "
-        "values will be treated as a boolean mask. Use obj.loc with "
-        "obj.columns.isin\\(items\\) \\(or obj.index.isin\\(items\\)\\) to select "
-        "these labels instead."
-    )
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = ser.filter([True, False])
+    result = ser.filter([True, False])
     expected = ser.iloc[:2]
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "kwargs, hint",
-    [
-        (
-            {"items": ["x"]},
-            "obj.loc\\(axis='index'\\)\\[obj.index.intersection\\(items\\)\\]",
-        ),
-        (
-            {"like": "x"},
-            "obj.filter\\(obj.index.str.contains\\(like, regex=False\\)...*",
-        ),
-        (
-            {"regex": "x"},
-            "obj.filter\\(obj.index.str.contains\\(regex\\), axis='index'\\)",
-        ),
-    ],
-)
-def test_filter_labels_deprecated(ser, kwargs, hint):
+@pytest.mark.parametrize("kwargs", [{"items": ["x"]}, {"like": "x"}, {"regex": "x"}])
+def test_filter_labels(ser, kwargs):
     # GH#61317
-    msg = (
-        "Passing labels, `like`, or `regex` to Series.filter is deprecated and "
-        "will be removed in a future version; filter will only accept a boolean "
-        f"mask. Use {hint} instead."
-    )
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = ser.filter(**kwargs)
+    result = ser.filter(**kwargs)
     expected = ser.iloc[[0]]
     tm.assert_series_equal(result, expected)

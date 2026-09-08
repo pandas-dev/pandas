@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
-from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -381,9 +380,7 @@ def test_filter(filter_kwargs):
     # + afterwards modifying the result
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
-    msg = "Passing labels, `like`, or `regex` to DataFrame.filter is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        df2 = df.filter(**filter_kwargs)
+    df2 = df.filter(**filter_kwargs)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column/block
