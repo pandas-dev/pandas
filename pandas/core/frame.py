@@ -15470,9 +15470,8 @@ class DataFrame(NDFrame, OpsMixin):
                         )
                     casted_dtype = casted.dtype
                     if isinstance(casted_dtype, NumpyEADtype):
-                        # infer_and_maybe_downcast re-wraps its result to match
-                        #  the NumpyExtensionArray it was handed; NumpyEADtype
-                        #  never == the np.dtype the manager reports.
+                        # NumpyEADtype never == the np.dtype the manager
+                        #  reports, so unwrap before comparing.
                         casted_dtype = casted_dtype.numpy_dtype
                     # GH#65431 adopt only where the pre-cast is a pure
                     #  optimization: same dtype (else it saves nothing) and every
@@ -20132,9 +20131,7 @@ def _values_unchanged(before: ArrayLike, after: ArrayLike) -> bool:
     """
     Whether every value in `before` still compares equal in `after`.
 
-    Equality, not identity of type -- 3.0 matching 3 is the point, since that
-    is what lets an int column stay an int column.  A position that is NA on
-    both sides matches whichever NA flavor each side uses.
+    Equality, not identity of type -- 3.0 matching 3 is the point.
     """
     # np.asarray would read an array of sequence-valued scalars as 2-D, so box
     #  each side one element at a time.  list() is only for the typing.
