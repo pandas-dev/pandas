@@ -40,6 +40,7 @@ from cython cimport (
 from libc.string cimport memcmp
 
 from pandas._config import (
+    get_option,
     using_string_dtype,
 )
 
@@ -2677,6 +2678,8 @@ def maybe_convert_numeric(
     cdef:
         # fastpath for ints - try to convert all based on first value
         object val = values[0]
+        # fastpath for distinguish_nan_and_na for float na and non float no
+        bint distinguish_nan_and_na = get_option("future.distinguish_nan_and_na")
 
     if util.is_integer_object(val):
         try:
@@ -2832,10 +2835,8 @@ def maybe_convert_numeric(
                     if allow_null_in_int:
                         mask[i] = 1
                     else:
-                        if convert_to_masked_nullable:
                             mask[i] = 1
                         seen.float_ = True
-
                     floats[i] = fval
                     if have_complexes:
                         complexes[i] = fval
