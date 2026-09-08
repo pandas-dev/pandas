@@ -975,3 +975,20 @@ def test_complex_keeps_preceding_values(data, expected):
     # GH#35051 entries seen before the first complex were left uninitialized
     result = pd.to_numeric(pd.Series(data, dtype=object))
     tm.assert_series_equal(result, pd.Series(expected, dtype=np.complex128))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "+0.0000000000000000000000005",
+        "+0.0001234567890123456789",
+    ],
+)
+def test_leading_plus_fractional_leading_zeros(value):
+    # GH#68283 a leading "+" routes the token to the same fallback converter
+    # read_csv uses for thousands=, which charged the fractional leading zeros
+    # against its 17 significant-digit budget
+    result = pd.to_numeric(pd.Series([value]))
+    # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
+    # 5e-25 it should be, so without this the test passes either way
+    tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)

@@ -159,15 +159,63 @@ def test_precise_xstrtod_leading_zeros(c_parser_only, value):
     tm.assert_frame_equal(result, expected, check_exact=True)
 
 
-@pytest.mark.parametrize("value", ["0", "000", "0.", "0.0", "-0", "0e5"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        # first significant digit past the budget: the whole value was lost
+        "0.0000000000000000000000005",
+        ".0000000000000000000000005",
+        "-0.0000000000000000000000005",
+        "000.0000000000000000000000005",
+        "0.0000000000000000000000005e10",
+        "0.000000000000000000123456789012345678",
+        # fewer leading zeros: not 0.0, just quietly short of significant digits
+        "0.0001234567890123456789",
+        "0.000009999999999999999999",
+        "0.00000000001234567890123456789",
+        "0.0000000000000001234567890123",
+        # >=309 zeros reaches the subnormal branch with a nonzero mantissa
+        "0." + "0" * 320 + "12345",
+    ],
+)
+def test_precise_xstrtod_fractional_leading_zeros(c_parser_only, value):
+    # GH#68283: fractional leading zeros consumed the significant-digit budget
+    # as well, so k of them left only 17 - k significant digits
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = pd.DataFrame({"val": [float(value)]})
+    # check_exact: see test_precise_xstrtod_leading_zeros. The values are picked
+    # to land exactly; this converter is not correctly rounded for every input.
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "value", ["0", "000", "0.", "0.0", "-0", "0e5", ".0", ".000", "+.0"]
+)
 def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
-    # GH#64184: an all-zero mantissa is a valid zero, not an unparsable string.
-    # Guards the branch that skipping the leading zeros makes necessary.
+    # GH#64184, GH#68283: an all-zero mantissa is a valid zero, not an
+    # unparsable string. Guards the two branches that skipping the leading
+    # zeros makes necessary -- the integer one and the fractional one.
     parser = c_parser_only
     data = f"val\n{value}\n"
     result = parser.read_csv(StringIO(data), thousands=",")
     expected = pd.DataFrame({"val": [float(value)]})
     tm.assert_frame_equal(result, expected, check_dtype=False, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "value", ["+0.0000000000000000000000005", "+0.0001234567890123456789"]
+)
+def test_leading_plus_fractional_leading_zeros(c_parser_only, value):
+    # GH#68283: a leading "+" is rejected by fast_float, so the token falls
+    # through to the same converter thousands= uses, which charged the
+    # fractional leading zeros against its 17 significant-digit budget.
+    # dtype="category" is how the C engine reaches it -- via Categorical's
+    # to_numeric -- where plain read_csv takes try_parse_plain_double instead
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(f"val\n{value}\n"), dtype="category")
+    assert result["val"].cat.categories[0] == float(value)
 
 
 def test_precise_xstrtod_leading_zero_matches_bare_point(c_parser_only):
