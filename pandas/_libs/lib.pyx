@@ -2831,10 +2831,10 @@ def maybe_convert_numeric(
                 if val_lower in ("nan", "-nan", "+nan"):
                     fval = NaN
                     seen.null_ = True
-
                     if allow_null_in_int:
                         mask[i] = 1
                     else:
+                        if convert_to_masked_nullable and not distinguish_nan_and_na:
                             mask[i] = 1
                         seen.float_ = True
                     floats[i] = fval
