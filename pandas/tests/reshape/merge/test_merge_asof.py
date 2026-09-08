@@ -1965,16 +1965,6 @@ class TestAsOfMerge:
             tolerance=1,
         )
 
-        # zero tolerance is valid (exact-match only, GH#66289)
-        pd.merge_asof(trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta(0))
-        pd.merge_asof(
-            trades.reset_index(),
-            quotes.reset_index(),
-            on="index",
-            by="ticker",
-            tolerance=0,
-        )
-
         msg = r"incompatible tolerance .*, must be compat with type .*"
 
         # incompat
@@ -2028,6 +2018,31 @@ class TestAsOfMerge:
                 "a": [1, 5, 10],
                 "left_val": ["a", "b", "c"],
                 "right_val": ["A", np.nan, "C"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        left = pd.DataFrame(
+            {
+                "time": pd.to_datetime(["2016-05-25 13:30:00", "2016-05-25 13:30:01"]),
+                "left_val": ["a", "b"],
+            }
+        )
+        right = pd.DataFrame(
+            {
+                "time": pd.to_datetime(["2016-05-25 13:30:00", "2016-05-25 13:30:02"]),
+                "right_val": ["A", "B"],
+            }
+        )
+
+        result = pd.merge_asof(left, right, on="time", tolerance=pd.Timedelta(0))
+        expected = pd.DataFrame(
+            {
+                "time": pd.to_datetime(
+                    ["2016-05-25 13:30:00", "2016-05-25 13:30:01"]
+                ),
+                "left_val": ["a", "b"],
+                "right_val": ["A", np.nan],
             }
         )
         tm.assert_frame_equal(result, expected)
