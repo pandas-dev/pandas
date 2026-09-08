@@ -554,13 +554,12 @@ def _compute_grand_margin(
         grand_margin = {}
         for k, v in data[values].items():
             try:
-                # GH#12210 use Series.agg uniformly: it already handles a
-                # string, a callable, or a list of functions (the latter
-                # returns a Series keyed by function name). Duplicate
-                # anonymous lambdas need mangling to unique names (as
-                # GroupBy.agg already does for the main aggregation), so
-                # the resulting labels agree with table.columns.
+                # GH#12210: Series.agg + maybe_mangle_lambdas handles a dict
+                # value that is a list of (possibly anonymous) functions.
+                # GH#66151: a dict aggfunc need not cover every column.
                 if isinstance(aggfunc, dict):
+                    if k not in aggfunc:
+                        continue
                     grand_margin[k] = v.agg(maybe_mangle_lambdas(aggfunc[k]), **kwargs)
                 else:
                     grand_margin[k] = v.agg(aggfunc, **kwargs)

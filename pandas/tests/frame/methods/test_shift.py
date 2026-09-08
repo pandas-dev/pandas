@@ -809,9 +809,10 @@ class TestDataFrameShift:
         expected = pd.Series([np.nan, pd.Interval(1, 2, closed="right")])
         tm.assert_series_equal(result, expected)
 
-    def test_series_shift_bytes_dtype(self):
+    @pytest.mark.parametrize("dtype", ["S1", "V1"])
+    def test_series_shift_cannot_hold_na_dtype(self, dtype):
         # GH#52373
-        ser = pd.Series(["a", "b", "c"]).astype(bytes)
+        ser = pd.Series(np.array([b"a", b"b", b"c"], dtype=dtype))
 
         with tm.assert_produces_warning(None):
             result = ser.shift(1)

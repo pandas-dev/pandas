@@ -439,16 +439,16 @@ Prior to pandas 3.0, whenever converting a sequence of strings, stdlib ``datetim
 objects, ``np.datetime64`` objects, or integers to a ``datetime64`` / ``timedelta64``
 dtype, this would always have resulted in nanosecond resolution (or raised an
 out-of-bounds error).
-Now it performs inference on the appropriate resolution (a.k.a. ``unit``) for the output dtype. This affects both the generric constructors (:class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`DatetimeIndex`) as specific conversion or creation functions (:func:`to_datetime`, :func:`to_timedelta`, :func:`date_range`, :func:`timedelta_range`, :class:`Timestamp`, :class:`Timedelta`).
+Now it performs inference on the appropriate resolution (a.k.a. ``unit``) for the output dtype. This affects both the generic constructors (:class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`DatetimeIndex`) and specific conversion or creation functions (:func:`to_datetime`, :func:`to_timedelta`, :func:`date_range`, :func:`timedelta_range`, :class:`Timestamp`, :class:`Timedelta`).
 
 The general rules for the various types of input:
 
 - The new default resolution when parsing strings is microseconds, falling back
   to nanoseconds when the precision of the string requires it.
-- The resolution of the input is preserved for stdlib  ``datetime`` objects (i.e. microseconds)
+- The resolution of the input is preserved for stdlib ``datetime`` objects (i.e. microseconds)
   or ``np.datetime64``/``np.timedelta64`` objects (i.e. the unit, capped to
   the supported range of seconds to nanoseconds).
-- For integer input, the resolution how the integer value is interpreted is used
+- For integer input, the resolution used to interpret the integer value is used
   as the resulting resolution (or capped to the supported range of seconds to nanoseconds).
 
 For example, the following would always have given nanosecond resolution previously,
@@ -473,7 +473,7 @@ but now infer:
    >>> print(pd.Series([np.datetime64("2024-03-22", "ms")]).dtype)
    datetime64[ms]
 
-Similar when passed a sequence of ``np.datetime64`` objects, the resolution of the passed objects will be retained (or for lower-than-second resolution, second resolution will be used).
+Similarly, when passed a sequence of ``np.datetime64`` objects, the resolution of the passed objects will be retained (or for lower-than-second resolution, second resolution will be used).
 
 When parsing strings, the default is now microseconds (which also impacts I/O
 methods reading from text files, such as :func:`read_csv` and :func:`read_json`).
@@ -537,7 +537,7 @@ times. These cases will now raise a ``ValueError``.
 If you were relying on pandas to use ``pytz`` timezones and accessing the timezone
 through a ``.tz`` attribute, you may now get different timezone objects than before.
 In most cases, this should not cause any issues, but if you were relying on specific
-behavior of ``pytz`` timezones, you may need to update your code or used ``pytz`` explicitly.
+behavior of ``pytz`` timezones, you may need to update your code or use ``pytz`` explicitly.
 See this `pytz migration guide <https://pytz-deprecation-shim.readthedocs.io/en/latest/migration.html>`__ for more details.
 
 .. warning::
