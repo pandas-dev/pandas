@@ -956,6 +956,22 @@ def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     assert nanops.nanmedian(values) == 0.5 + 3.5j
 
 
+@pytest.mark.parametrize("shape", [(1, 1), (1, 3), (3, 1), (3, 3)])
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_nanmedian_2d_matches_numpy(disable_bottleneck, shape, axis, skipna):
+    # GH#68191: the squeezable fastpath returned a 0-d result for a (1, 1) array
+    values = np.arange(shape[0] * shape[1], dtype="f8").reshape(shape)
+    if values.shape[axis] > 1:
+        # an all-NaN slice would only be testing numpy's warning behaviour
+        values[0, 0] = np.nan
+    expected = (
+        np.nanmedian(values, axis=axis) if skipna else np.median(values, axis=axis)
+    )
+    result = nanops.nanmedian(values, axis=axis, skipna=skipna)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_ensure_numeric_passthrough():
     # non-object dtypes are handed back untouched
     values = np.array([1, 2, 3])

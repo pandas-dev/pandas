@@ -424,6 +424,47 @@ def test_cumsum_float_fill_value_zero():
     tm.assert_sp_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("op_name", ["cumsum", "cumprod", "cummin", "cummax"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+def test_accumulate_matches_dense(op_name, skipna, fill_value):
+    # GH#68187 these raised NotImplementedError from Series/DataFrame
+    values = np.array([1.0, 2.0, np.nan, 3.0])
+    ser = pd.Series(SparseArray(values, fill_value=fill_value))
+
+    result = getattr(ser, op_name)(skipna=skipna)
+    expected = getattr(pd.Series(values), op_name)(skipna=skipna)
+
+    assert result.dtype == pd.SparseDtype("float64", np.nan)
+    tm.assert_series_equal(result.sparse.to_dense(), expected)
+
+    frame_result = getattr(pd.DataFrame({"a": ser}), op_name)(skipna=skipna)
+    tm.assert_series_equal(
+        frame_result["a"].sparse.to_dense(), expected, check_names=False
+    )
+
+
+def test_accumulate_integer_subtype():
+    # GH#68187 the fill value widens to NaN, as it does for cumsum
+    arr = SparseArray([1, 0, 2], fill_value=0)
+    result = pd.Series(arr).cumprod()
+    expected = pd.Series(SparseArray([1, 0, 0], fill_value=np.nan))
+    tm.assert_series_equal(result, expected)
+
+
+def test_accumulate_datetime64():
+    # GH#68187 a datetimelike subtype accumulates through its own array
+    dti = pd.to_datetime(["2020-01-02", "NaT", "2020-01-01"])
+    ser = pd.Series(SparseArray(dti))
+
+    result = ser.cummax()
+    tm.assert_series_equal(result.sparse.to_dense(), pd.Series(dti).cummax())
+
+    msg = "Accumulation cumsum not supported"
+    with pytest.raises(TypeError, match=msg):
+        ser.cumsum()
+
+
 def test_setting_fill_value_updates():
     arr = SparseArray([0.0, np.nan], fill_value=0)
     arr.fill_value = np.nan
