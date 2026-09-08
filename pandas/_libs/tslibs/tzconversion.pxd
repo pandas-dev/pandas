@@ -38,7 +38,7 @@ cdef class Localizer:
     cdef:
         tzinfo tz
         NPY_DATETIMEUNIT _creso
-        bint use_utc, use_fixed, use_tzlocal, use_dst, use_pytz, use_zoneinfo
+        bint use_utc, use_fixed, use_tzinfo_api, use_dst, use_pytz, use_zoneinfo
         bint has_tz_rule
         ndarray trans
         Py_ssize_t ntrans

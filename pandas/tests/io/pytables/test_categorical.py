@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 import pytest
 
@@ -395,3 +397,85 @@ def test_categorical_where_non_category_with_nan(temp_h5_path, where, mask):
     result = pd.read_hdf(temp_h5_path, "df", where=where)
     expected = df[mask(df["col"])]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
+def test_categorical_where_ordering_op_unordered_raises(temp_h5_path, op):
+    # GH#68040 - in memory this raises, so the query must not answer it
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        pd.read_hdf(temp_h5_path, "df", where=f'col {op} "b"')
+
+
+@pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
+def test_categorical_index_where_ordering_op_unordered_raises(temp_h5_path, op):
+    # GH#68040 - same for an unordered CategoricalIndex
+    df = pd.DataFrame({"v": [1, 2, 3]}, index=pd.CategoricalIndex(["a", "b", "c"]))
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        pd.read_hdf(temp_h5_path, "df", where=f'index {op} "b"')
+
+
+@pytest.mark.parametrize(
+    "op, comparison",
+    [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
+)
+@pytest.mark.parametrize("as_index", [True, False])
+def test_categorical_where_ordering_op_ordered(temp_h5_path, op, comparison, as_index):
+    # GH#68040 - non-lexicographic categories, so the result distinguishes
+    #  "compare by category order" from "compare the values themselves"
+    cat = pd.Categorical(["a", "b", "c"], categories=["c", "b", "a"], ordered=True)
+    if as_index:
+        df = pd.DataFrame({"v": [1, 2, 3]}, index=pd.CategoricalIndex(cat))
+        name, kwargs = "index", {}
+    else:
+        df = pd.DataFrame({"col": cat, "v": [1, 2, 3]})
+        name, kwargs = "col", {"data_columns": ["col"]}
+    df.to_hdf(temp_h5_path, key="df", format="table", **kwargs)
+
+    result = pd.read_hdf(temp_h5_path, "df", where=f'{name} {op} "b"')
+    tm.assert_frame_equal(result, df[comparison(cat, "b")])
+
+
+def test_categorical_where_equality_op_unordered(temp_h5_path):
+    # GH#68040 - equality comparisons are unaffected
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    result = pd.read_hdf(temp_h5_path, "df", where='col == "b"')
+    tm.assert_frame_equal(result, df[df["col"] == "b"])
+
+    result = pd.read_hdf(temp_h5_path, "df", where='col in ["a", "c"]')
+    tm.assert_frame_equal(result, df[df["col"].isin(["a", "c"])])
+
+
+def test_categorical_where_ordering_op_numpy_bool_ordered(temp_h5_path):
+    # GH#68040 - CategoricalDtype keeps a np.bool_ `ordered` as passed
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"], ordered=np.False_)})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        pd.read_hdf(temp_h5_path, "df", where='col < "b"')
+
+
+def test_categorical_where_ordering_op_unrecorded_ordered(temp_h5_path):
+    # GH#68040 - no flag recorded, so the query cannot tell and stays permissive
+    tables = pytest.importorskip("tables")
+
+    df = pd.DataFrame({"col": pd.Categorical(["a", "b", "c"])})
+    df.to_hdf(temp_h5_path, key="df", format="table", data_columns=["col"])
+
+    with tables.open_file(temp_h5_path, "a") as handle:
+        node = handle.get_node("/df")
+        info = node._v_attrs.info
+        del info["col"]["ordered"]
+        node._v_attrs.info = info
+
+    result = pd.read_hdf(temp_h5_path, "df", where='col < "b"')
+    tm.assert_frame_equal(result, df.iloc[:1])
