@@ -179,7 +179,7 @@ def test_precise_xstrtod_leading_zeros(c_parser_only, value):
     ],
 )
 def test_precise_xstrtod_fractional_leading_zeros(c_parser_only, value):
-    # GH#68283: fractional leading zeros consumed the significant-digit budget
+    # GH#68311: fractional leading zeros consumed the significant-digit budget
     # as well, so k of them left only 17 - k significant digits
     parser = c_parser_only
     data = f"val\n{value}\n"
@@ -194,7 +194,7 @@ def test_precise_xstrtod_fractional_leading_zeros(c_parser_only, value):
     "value", ["0", "000", "0.", "0.0", "-0", "0e5", ".0", ".000", "+.0"]
 )
 def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
-    # GH#64184, GH#68283: an all-zero mantissa is a valid zero, not an
+    # GH#64184, GH#68311: an all-zero mantissa is a valid zero, not an
     # unparsable string. Guards the two branches that skipping the leading
     # zeros makes necessary -- the integer one and the fractional one.
     parser = c_parser_only
@@ -208,7 +208,7 @@ def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
     "value", ["+0.0000000000000000000000005", "+0.0001234567890123456789"]
 )
 def test_leading_plus_fractional_leading_zeros(c_parser_only, value):
-    # GH#68283: a leading "+" is rejected by fast_float, so the token falls
+    # GH#68311: a leading "+" is rejected by fast_float, so the token falls
     # through to the same converter thousands= uses, which charged the
     # fractional leading zeros against its 17 significant-digit budget.
     # dtype="category" is how the C engine reaches it -- via Categorical's

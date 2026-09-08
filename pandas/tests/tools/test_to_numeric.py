@@ -985,7 +985,7 @@ def test_complex_keeps_preceding_values(data, expected):
     ],
 )
 def test_leading_plus_fractional_leading_zeros(value):
-    # GH#68283 a leading "+" routes the token to the same fallback converter
+    # GH#68311 a leading "+" routes the token to the same fallback converter
     # read_csv uses for thousands=, which charged the fractional leading zeros
     # against its 17 significant-digit budget
     result = pd.to_numeric(pd.Series([value]))
