@@ -2038,9 +2038,7 @@ class TestAsOfMerge:
         result = pd.merge_asof(left, right, on="time", tolerance=pd.Timedelta(0))
         expected = pd.DataFrame(
             {
-                "time": pd.to_datetime(
-                    ["2016-05-25 13:30:00", "2016-05-25 13:30:01"]
-                ),
+                "time": pd.to_datetime(["2016-05-25 13:30:00", "2016-05-25 13:30:01"]),
                 "left_val": ["a", "b"],
                 "right_val": ["A", np.nan],
             }
