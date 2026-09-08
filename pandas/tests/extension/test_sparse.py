@@ -105,38 +105,11 @@ class TestSparseArray(base.ExtensionTests):
             return pd.SparseDtype("float64", arr.fill_value)
         return arr.dtype
 
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        if op_name in [
-            "prod",
-            "median",
-            "var",
-            "std",
-            "sem",
-            "skew",
-            "kurt",
-        ]:
-            # These should be viable but are not implemented
-            return False
-        else:
-            return True
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
-        if all_numeric_reductions in [
-            "prod",
-            "median",
-            "var",
-            "std",
-            "sem",
-            "skew",
-            "kurt",
-        ]:
-            mark = pytest.mark.xfail(
-                reason="This should be viable but is not implemented"
-            )
-            request.node.add_marker(mark)
-
-        super().test_reduce_frame(data, all_numeric_reductions, skipna)
+        return True
 
     def _check_unsupported(self, data):
         if data.dtype == pd.SparseDtype(int, 0):
