@@ -455,10 +455,9 @@ $1$,$2$
         df_sec = pd.DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
         df_day = pd.DataFrame({"A": pd.date_range("20130101", periods=5, freq="D")})
 
-        if uses_pyarrow(engine):
-            # The python engine drops the (all-zero) fractional seconds for
-            # this column (GH#62111); pyarrow's writer always shows the
-            # column's full declared (here, microsecond) precision.
+        # GH#62111 - sub-second resolution renders differently even at whole seconds
+        pyarrow_used = engine == "pyarrow"
+        if pyarrow_used:
             expected_rows = [
                 '"","A"',
                 "0,2013-01-01 00:00:00.000000",
@@ -476,8 +475,9 @@ $1$,$2$
                 "3,2013-01-01 00:00:03",
                 "4,2013-01-01 00:00:04",
             ]
-        expected_default_sec = csv_str_for_engine(expected_rows, uses_pyarrow(engine))
-        assert df_sec.to_csv(engine=engine) == expected_default_sec
+        expected_default_sec = csv_str_for_engine(expected_rows, pyarrow_used)
+        with check_warns_if_pyarrow_renders_differently(engine):
+            assert df_sec.to_csv(engine=engine) == expected_default_sec
 
         expected_rows = [
             ",A",
@@ -518,7 +518,7 @@ $1$,$2$
                 "4,2013-01-05",
             ]
         )
-        if uses_pyarrow(engine):
+        if pyarrow_used:
             # see the freq="s" case above: the python engine drops the
             # (all-zero) time-of-day here entirely, pyarrow does not.
             expected_default_day = csv_str_for_engine(
@@ -530,12 +530,13 @@ $1$,$2$
                     "3,2013-01-04 00:00:00.000000",
                     "4,2013-01-05 00:00:00.000000",
                 ],
-                uses_pyarrow(engine),
+                pyarrow_used,
             )
         else:
             expected_default_day = expected_short_day
         # no date_format passed: reflects whichever engine actually runs
-        assert df_day.to_csv(engine=engine) == expected_default_day
+        with check_warns_if_pyarrow_renders_differently(engine):
+            assert df_day.to_csv(engine=engine) == expected_default_day
         # date_format="%Y-%m-%d" passed explicitly: unsupported by pyarrow
         # (raises), and produces the same short-date text on both python
         # and auto (which falls back to python for this call)
@@ -570,10 +571,9 @@ $1$,$2$
                 "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
             }
         )
-        if uses_pyarrow(engine):
-            # the "date" column is entirely midnight, so the python engine
-            # drops the (all-zero) time-of-day (GH#62111); pyarrow does not,
-            # and also always quotes the (string) header
+        # GH#62111 - sub-second resolution renders differently even at midnight
+        pyarrow_used = engine == "pyarrow"
+        if pyarrow_used:
             expected_rows = [
                 '"date","datetime"',
                 "1970-01-01 00:00:00.000000,1970-01-01 00:00:00.000000",
@@ -585,8 +585,9 @@ $1$,$2$
                 "1970-01-01,1970-01-01 00:00:00",
                 "1970-01-01,1970-01-01 01:00:00",
             ]
-        expected = csv_str_for_engine(expected_rows, uses_pyarrow(engine))
-        assert df.to_csv(index=False, engine=engine) == expected
+        expected = csv_str_for_engine(expected_rows, pyarrow_used)
+        with check_warns_if_pyarrow_renders_differently(engine):
+            assert df.to_csv(index=False, engine=engine) == expected
 
     def test_to_csv_period_columns(self, engine):
         # GH#55426 - exercise the column path for PeriodArray
@@ -653,7 +654,10 @@ $1$,$2$
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
         ser = ser.astype("category")
         expected = tm.convert_rows_list_to_csv_str(["0", "2021-03-27", '""'])
-        with raises_if_pyarrow_na_row:
+        with (
+            raises_if_pyarrow_na_row,
+            check_warns_if_pyarrow_renders_differently(engine),
+        ):
             assert ser.to_csv(index=False, engine=engine) == expected
 
         ser = pd.Series(
@@ -1598,6 +1602,22 @@ def test_to_csv_datetime_tz_consistent_format(engine):
             pd.DataFrame({"f": pd.Categorical([1.0, 2.0])}),
             id="categorical-of-whole-number-float",
         ),
+        pytest.param(
+            pd.DataFrame(
+                {
+                    "a": pd.Series(
+                        [pd.Timestamp("2020-01-01 12:34:56"), None], dtype=object
+                    )
+                }
+            ),
+            id="object-dtype-tz-naive-timestamp",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {"a": pd.Categorical(pd.to_datetime(["2020-01-01 12:34:56"]))}
+            ),
+            id="categorical-of-tz-naive-timestamp",
+        ),
     ],
 )
 def test_to_csv_renders_differently_detected_through_object_and_categorical(df, engine):
@@ -1617,6 +1637,10 @@ def test_to_csv_renders_differently_detected_through_object_and_categorical(df, 
             pd.DataFrame({"a": pd.to_timedelta(["1D", "2D"])}), id="timedelta64"
         ),
         pytest.param(pd.DataFrame({"a": [1.0, 2.0]}), id="whole-number-float"),
+        pytest.param(
+            pd.DataFrame({"a": pd.to_datetime(["2020-01-01"]).as_unit("ns")}),
+            id="datetime64-ns",
+        ),
     ],
 )
 def test_to_csv_auto_engine_skips_pyarrow_table_for_natively_typed_fallback(
@@ -1630,3 +1654,26 @@ def test_to_csv_auto_engine_skips_pyarrow_table_for_natively_typed_fallback(
     monkeypatch.setattr(pytest.importorskip("pyarrow"), "Table", stub_table)
     df.to_csv(engine="auto")
     assert calls == []
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_to_csv_datetime64_resolution(unit, engine):
+    # GH#64342 - only whole-second resolution matches python exactly;
+    # finer resolutions pad the fractional part, unlike python
+    pyarrow_used = uses_pyarrow(engine) and (unit == "s" or engine == "pyarrow")
+    df = pd.DataFrame({"a": pd.to_datetime(["2020-01-01 12:34:56"]).as_unit(unit)})
+    warns = (
+        check_warns_if_pyarrow_renders_differently(engine)
+        if unit != "s"
+        else tm.assert_produces_warning(None)
+    )
+    with warns:
+        result = df.to_csv(index=False, engine=engine)
+    header = '"a"' if pyarrow_used else "a"
+    if pyarrow_used and unit != "s":
+        width = {"ms": 3, "us": 6, "ns": 9}[unit]
+        data_row = f"2020-01-01 12:34:56.{'0' * width}"
+    else:
+        data_row = "2020-01-01 12:34:56"
+    expected = csv_str_for_engine([header, data_row], pyarrow_used)
+    assert result == expected

@@ -346,21 +346,26 @@ class CSVFormatter:
         return self._unwrap_dictionary_type(pa, arr_type)
 
     @staticmethod
-    def _is_tz_aware_dtype(dtype: DtypeObj) -> bool:
-        if isinstance(dtype, DatetimeTZDtype):
-            return True
+    def _datetime_dtype_renders_differently(dtype: DtypeObj) -> bool:
+        """Whether a datetime64-kind dtype is tz-aware, or sub-second resolution."""
         if isinstance(dtype, ArrowDtype):
             pa = import_optional_dependency("pyarrow")
             pa_dtype = dtype.pyarrow_dtype
-            return pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
-        return False
+            return pa.types.is_timestamp(pa_dtype) and (
+                pa_dtype.tz is not None or pa_dtype.unit != "s"
+            )
+        if isinstance(dtype, DatetimeTZDtype):
+            return True
+        return np.datetime_data(cast("np.dtype[np.datetime64]", dtype))[0] != "s"
 
     def _pyarrow_renders_differently(self, obj: DataFrame) -> bool:
-        """Whether any column in `obj` renders as bool/timedelta64/tz-aware."""
+        """Whether any column in `obj` renders as bool/timedelta64/datetime64."""
         pa = import_optional_dependency("pyarrow")
         for _, col in obj.items():
             dtype = col.dtype
-            if dtype.kind in ("b", "m") or self._is_tz_aware_dtype(dtype):
+            if dtype.kind in ("b", "m") or (
+                dtype.kind == "M" and self._datetime_dtype_renders_differently(dtype)
+            ):
                 return True
             if dtype.kind != "O":
                 continue
@@ -368,7 +373,10 @@ class CSVFormatter:
             if (
                 pa.types.is_boolean(field_type)
                 or pa.types.is_duration(field_type)
-                or (pa.types.is_timestamp(field_type) and field_type.tz is not None)
+                or (
+                    pa.types.is_timestamp(field_type)
+                    and (field_type.tz is not None or field_type.unit != "s")
+                )
             ):
                 return True
         return False
