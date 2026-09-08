@@ -7,6 +7,7 @@ from datetime import (
 import io
 import os
 import sys
+import tempfile
 from zipfile import ZipFile
 
 import numpy as np
@@ -1092,6 +1093,20 @@ z
         if engine != "pyarrow":
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected
+
+    def test_to_csv_write_to_named_temporary_file(self, engine):
+        # GH#64342 - tempfile.NamedTemporaryFile("w") wraps a text-mode
+        # file but isn't an io.TextIOBase subclass, so it evaded the
+        # binary-only destination check
+        raise_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
+        df = pd.DataFrame({"a": ["x", "y", "z"]})
+        with tempfile.NamedTemporaryFile("w", suffix=".csv") as f:
+            with raise_if_pyarrow:
+                df.to_csv(f, index=False, engine=engine)
+            if engine != "pyarrow":
+                f.flush()
+                with open(f.name, encoding="utf-8") as rf:
+                    assert rf.read() == df.to_csv(index=False, engine="python")
 
     def test_to_csv_write_to_open_file_with_newline_py3(self, temp_file, engine):
         # see gh-21696

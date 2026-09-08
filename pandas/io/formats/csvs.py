@@ -4,7 +4,6 @@ Module for formatting output data into CSV files.
 
 from __future__ import annotations
 
-import codecs
 from collections.abc import (
     Hashable,
     Iterable,
@@ -40,11 +39,15 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCPeriodIndex,
 )
+from pandas.core.dtypes.inference import is_file_like
 from pandas.core.dtypes.missing import notna
 
 from pandas.core.indexes.api import Index
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    _is_binary_mode,
+    get_handle,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -65,12 +68,6 @@ if TYPE_CHECKING:
 
 
 _DEFAULT_CHUNKSIZE_CELLS = 100_000
-
-# Objects that expect str (not bytes) to be written to them, even though
-# they may wrap/proxy an underlying binary handle (e.g. codecs.StreamWriter
-# wraps a binary file but itself only accepts str). The pyarrow CSV writer
-# only ever writes bytes, so none of these are usable as its destination.
-_TEXT_LIKE_CLASSES = (io.TextIOBase, codecs.StreamWriter, codecs.StreamReaderWriter)
 
 
 class CSVFormatter:
@@ -275,6 +272,13 @@ class CSVFormatter:
 
         return encoded_labels
 
+    def _pyarrow_incompatible_destination(self) -> bool:
+        """Whether filepath_or_buffer is an already-open, text-mode handle."""
+        dest = self.filepath_or_buffer
+        if not is_file_like(dest):
+            return False
+        return not _is_binary_mode(cast("WriteBuffer[bytes]", dest), "")
+
     def _pyarrow_option_incompatibility(self) -> str | None:
         """
         Return a reason the pyarrow engine cannot honor the requested
@@ -283,7 +287,7 @@ class CSVFormatter:
         using pyarrow would produce output that quietly ignores the option
         rather than applying it.
         """
-        if isinstance(self.filepath_or_buffer, _TEXT_LIKE_CLASSES):
+        if self._pyarrow_incompatible_destination():
             return "The pyarrow engine can only write to a binary buffer or file path."
         if self.mode is not None and "b" not in self.mode:
             return "The pyarrow engine can only write in binary mode."
@@ -559,8 +563,7 @@ class CSVFormatter:
             )
 
         if self.engine == "pyarrow" and (
-            "b" not in self.mode
-            or isinstance(self.filepath_or_buffer, _TEXT_LIKE_CLASSES)
+            "b" not in self.mode or self._pyarrow_incompatible_destination()
         ):
             raise ValueError("The pyarrow engine can only open files in binary mode.")
 
