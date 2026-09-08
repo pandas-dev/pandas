@@ -348,7 +348,7 @@ Once you have finished your code changes, your code change will need to follow t
 
 If everything looks good, you are ready to make a pull request. A pull request is how
 code from your local repository becomes available to the GitHub community to review
-and merged into the project to appear in the next release. To submit a pull request:
+and merge into the project to appear in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button
