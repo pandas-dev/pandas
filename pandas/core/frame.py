@@ -10422,6 +10422,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : scalar, sequence, Series, or DataFrame
             Any single or multiple element data structure, or list-like object.
+            Scalar values, including strings, are supported.
         axis : {0 or 'index', 1 or 'columns'}, default 'columns'
             Whether to compare by the index (0 or 'index') or columns
             (1 or 'columns').
@@ -10578,6 +10579,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : scalar, sequence, Series, or DataFrame
             Any single or multiple element data structure, or list-like object.
+            Scalar values, including strings, are supported.
         axis : {0 or 'index', 1 or 'columns'}, default 'columns'
             Whether to compare by the index (0 or 'index') or columns
             (1 or 'columns').
@@ -10735,6 +10737,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : scalar, sequence, Series, or DataFrame
             Any single or multiple element data structure, or list-like object.
+            Scalar values, including strings, are supported.
         axis : {0 or 'index', 1 or 'columns'}, default 'columns'
             Whether to compare by the index (0 or 'index') or columns
             (1 or 'columns').
@@ -10883,6 +10886,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : scalar, sequence, Series, or DataFrame
             Any single or multiple element data structure, or list-like object.
+            Scalar values, including strings, are supported.
         axis : {0 or 'index', 1 or 'columns'}, default 'columns'
             Whether to compare by the index (0 or 'index') or columns
             (1 or 'columns').
@@ -11040,6 +11044,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : scalar, sequence, Series, or DataFrame
             Any single or multiple element data structure, or list-like object.
+            Scalar values, including strings, are supported.
         axis : {0 or 'index', 1 or 'columns'}, default 'columns'
             Whether to compare by the index (0 or 'index') or columns
             (1 or 'columns').
@@ -11188,6 +11193,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         other : scalar, sequence, Series, or DataFrame
             Any single or multiple element data structure, or list-like object.
+            Scalar values, including strings, are supported.
         axis : {0 or 'index', 1 or 'columns'}, default 'columns'
             Whether to compare by the index (0 or 'index') or columns
             (1 or 'columns').
