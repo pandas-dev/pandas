@@ -5601,20 +5601,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         na: Literal["raise"] | bool = False,
     ) -> Self:
         """
-        Subset the rows or columns according to a boolean mask.
+        Subset the rows or columns according to a boolean mask or the labels.
 
-        The mask can be a boolean array-like, a callable returning one, or an
-        expression such as ``pd.col("a") > 1``. Labels can also be selected
-        with ``items``, ``like``, or ``regex``; this usage will be deprecated
-        in a future version.
+        The primary usage is with a boolean mask, which keeps the rows (or
+        columns with ``axis=1``) where the mask is True. The mask can be a
+        boolean array-like, a callable returning one, or an expression such
+        as ``pd.col("a") > 1``. Alternatively, labels can be selected with a
+        list-like of labels in ``items``, or with ``like`` or ``regex``;
+        label-based selection will be deprecated in a future version.
 
         Parameters
         ----------
         items : array-like of bool, callable, :class:`Expression`, or list-like
-            The boolean mask selecting the entries to keep. A callable is
-            called with the object and must return a boolean mask. An
-            expression such as ``pd.col("a") > 1`` is evaluated against the
-            DataFrame.
+            A boolean mask selecting the entries to keep, or a list-like of
+            labels to keep. A callable is called with the object and must
+            return a boolean mask. An expression such as ``pd.col("a") > 1``
+            is evaluated against the DataFrame.
 
             A list-like of labels keeps the labels from the axis which are in
             ``items``. This usage will be deprecated in a future version; use
@@ -5638,9 +5640,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``DataFrame``. For ``Series`` this parameter is unused and
             defaults to ``None``.
         na : {"raise", True, False}, default False
-            How to treat missing values in the mask. ``True`` or ``False``
-            treats missing values as that value, matching ``obj[mask]``;
-            ``"raise"`` raises a ``ValueError``.
+            How to treat missing values when ``items`` is a boolean mask.
+            ``True`` or ``False`` treats missing values as that value,
+            matching ``obj[mask]``; ``"raise"`` raises a ``ValueError``.
+            Ignored when selecting labels.
 
         Returns
         -------
@@ -5650,13 +5653,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Raises
         ------
         ValueError
-            If the mask contains missing values and ``na="raise"``, or if
-            the mask is not one-dimensional.
+            If a mask contains missing values and ``na="raise"``, or if
+            a mask is not one-dimensional.
         IndexError
             If a mask that is not a Series has a different length than the
             filtered axis.
         IndexingError
             If a Series mask cannot be aligned with the filtered axis.
+        TypeError
+            If none of ``items``, ``like``, or ``regex`` is passed, or if
+            more than one of them is passed.
 
         See Also
         --------
