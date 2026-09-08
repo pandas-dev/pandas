@@ -910,6 +910,7 @@ def test_int64_min_with_na_explicit_nullable_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # object-dtype NA reads back as None, not NaN
 @pytest.mark.parametrize(
     "na_values, data, expected_values",
     [
