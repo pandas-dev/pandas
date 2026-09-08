@@ -293,16 +293,12 @@ def values_for_np_reduce(request):
 class TestNumpyReductions:
     # TODO: cases with NAs, axis kwarg for DataFrame
 
-    def test_multiply(self, values_for_np_reduce, box_with_array, request):
+    def test_multiply(self, values_for_np_reduce, box_with_array):
         box = box_with_array
         values = values_for_np_reduce
 
         with tm.assert_produces_warning(None):
             obj = box(values)
-
-        if isinstance(values, pd.core.arrays.SparseArray):
-            mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
-            request.applymarker(mark)
 
         if values.dtype.kind in "iuf":
             result = np.multiply.reduce(obj)
