@@ -1102,7 +1102,9 @@ z
         # binary-only destination check
         raise_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
         df = pd.DataFrame({"a": ["x", "y", "z"]})
-        with tempfile.NamedTemporaryFile("w+", suffix=".csv", encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile(
+            "w+", suffix=".csv", encoding="utf-8", newline=""
+        ) as f:
             with raise_if_pyarrow:
                 df.to_csv(f, index=False, engine=engine)
             if engine != "pyarrow":
