@@ -1102,13 +1102,16 @@ z
         # binary-only destination check
         raise_if_pyarrow = check_raises_if_pyarrow_binary_only(engine)
         df = pd.DataFrame({"a": ["x", "y", "z"]})
-        with tempfile.NamedTemporaryFile("w", suffix=".csv", encoding="utf-8") as f:
+        with tempfile.NamedTemporaryFile("w+", suffix=".csv", encoding="utf-8") as f:
             with raise_if_pyarrow:
                 df.to_csv(f, index=False, engine=engine)
             if engine != "pyarrow":
+                # read back through the same handle: on Windows, the
+                # NamedTemporaryFile holds an exclusive lock, so opening
+                # f.name again while it's still open raises PermissionError
                 f.flush()
-                with open(f.name, encoding="utf-8") as rf:
-                    assert rf.read() == df.to_csv(index=False, engine="python")
+                f.seek(0)
+                assert f.read() == df.to_csv(index=False, engine="python")
 
     def test_to_csv_write_to_open_file_with_newline_py3(self, temp_file, engine):
         # see gh-21696
