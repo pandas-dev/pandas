@@ -790,6 +790,7 @@ Indexing
 - Fixed bug in :meth:`DataFrame.loc` where assigning a :class:`Series` to a subset of rows of one column upcast the dtype of other columns in a single-dtype :class:`DataFrame` (:issue:`66105`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
+- Bug in :meth:`Series.iloc` setitem raising ``TypeError`` ("boolean value of NA is ambiguous") when the right-hand side is a nullable :class:`Series` (e.g. ``Int64``) containing a missing value with a non-default index, because the coercion compared the value positionally against the original by label (:issue:`62473`) 
 -
 
 Missing
