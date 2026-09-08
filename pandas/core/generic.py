@@ -5603,12 +5603,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Subset the rows or columns according to a boolean mask.
 
-        The mask is aligned with the labels of the filtered axis when it is a
-        :class:`Series`; otherwise it must have the same length as that axis.
+        The mask can be a boolean array-like, a callable returning one, or an
+        expression such as ``pd.col("a") > 1``. Labels can also be selected
+        with ``items``, ``like``, or ``regex``; this usage will be deprecated
+        in a future version.
 
         Parameters
         ----------
-        items : array-like of bool, callable, or :class:`Expression`
+        items : array-like of bool, callable, :class:`Expression`, or list-like
             The boolean mask selecting the entries to keep. A callable is
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
@@ -5661,6 +5663,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         DataFrame.loc : Access a group of rows and columns
             by label(s) or a boolean array.
         DataFrame.where : Replace values where the condition is False.
+
+        Notes
+        -----
+        A mask is aligned with the labels of the filtered axis when it is a
+        :class:`Series`; otherwise it must have the same length as that axis.
 
         Examples
         --------
