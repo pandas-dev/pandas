@@ -327,7 +327,9 @@ $1$,$2$
         if engine == "pyarrow":
             raises = check_raises_if_pyarrow("sep", engine)
         else:
-            raises = pytest.raises(TypeError, match="1-character string")
+            # exact wording of the stdlib csv module's error varies by
+            # Python version (GH#64342)
+            raises = pytest.raises(TypeError, match="delimiter")
         with raises:
             df.to_csv(sep="||", engine=engine)
 
