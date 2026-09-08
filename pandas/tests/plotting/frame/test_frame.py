@@ -373,43 +373,16 @@ class TestDataFramePlots:
         assert not isinstance(lines[0].get_xdata(), pd.PeriodIndex)
         _check_ticks_props(ax, xrot=30)
 
-    def test_xcompat_plot_params(self):
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((10, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.date_range("2000-01-01", periods=10, freq="B"),
-        )
-        pd.plotting.plot_params["xaxis.compat"] = True
-        ax = df.plot()
-        lines = ax.get_lines()
-        assert not isinstance(lines[0].get_xdata(), pd.PeriodIndex)
-        _check_ticks_props(ax, xrot=30)
-
-    def test_xcompat_plot_params_x_compat(self):
-        df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((10, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.date_range("2000-01-01", periods=10, freq="B"),
-        )
-        pd.plotting.plot_params["x_compat"] = False
-
-        ax = df.plot()
-        lines = ax.get_lines()
-
-        # x-data is plain int64 business-day ordinals (not Period[B])
-        xdata = lines[0].get_xdata()
-        assert not isinstance(xdata, pd.PeriodIndex)
-        # consecutive uniform spacing (no weekend gaps)
-        assert len(np.unique(np.diff(xdata))) == 1
-
-    def test_xcompat_plot_params_context_manager(self):
+    # "x_compat" is the alias for the canonical "xaxis.compat"
+    @pytest.mark.parametrize("key", ["xaxis.compat", "x_compat"])
+    def test_xcompat_plot_params(self, key):
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=pd.Index(list("ABCD"), dtype=object),
             index=pd.date_range("2000-01-01", periods=10, freq="B"),
         )
         # useful if you're plotting a bunch together
-        with pd.plotting.plot_params.use("x_compat", True):
+        with pd.plotting.plot_params.use(key, True):
             ax = df.plot()
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), pd.PeriodIndex)
