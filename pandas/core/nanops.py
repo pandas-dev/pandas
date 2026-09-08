@@ -1094,7 +1094,10 @@ def nanmedian(
                         values.shape[0] == 1 and axis == 1
                     ):
                         # GH52788: fastpath when squeezable, nanmedian for 2D array slow
-                        res = np.nanmedian(np.squeeze(values), keepdims=True)
+                        # atleast_1d: see test_nanmedian_2d_matches_numpy (GH#68191)
+                        res = np.nanmedian(
+                            np.atleast_1d(np.squeeze(values)), keepdims=True
+                        )
                     else:
                         res = np.nanmedian(values, axis=axis)
 

@@ -873,6 +873,19 @@ def test_parse_dates_arrow_engine(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_parse_dates_gmt_timezone(all_parsers):
+    # GH#68193 the "GMT" spelling used to survive inference as a literal, so the
+    #  column came back naive where the "UTC" spelling was tz-aware
+    parser = all_parsers
+    data = "a\n2020-01-15 08:30:00 GMT\n2020-01-15 09:30:00 GMT"
+
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    expected = pd.DataFrame(
+        {"a": pd.to_datetime(["2020-01-15 08:30", "2020-01-15 09:30"], utc=True)}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 # pyarrow normalizes mixed offsets to UTC; reading as strings to preserve them
 # would change the resolution of cleanly-parsed datetimes (see
 # test_parse_dates_arrow_engine), so this divergence is left for a follow-up.

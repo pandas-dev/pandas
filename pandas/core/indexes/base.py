@@ -6877,7 +6877,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
     def replace(
-        self, to_replace: Any = None, value: Any = lib.no_default, regex: bool = False
+        self, to_replace: Any = None, value: Any = lib.no_default, regex: Any = False
     ) -> Index:
         """
         Replace values in the Index.
@@ -6887,12 +6887,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        to_replace : scalar, list, or dict
-            The value(s) to be replaced. If a dict is provided, value must be omitted.
-        value : scalar, default None
-            The value to replace occurrences of to_replace with.
-        regex : bool, default False
-            Whether to interpret to_replace as a regular expression.
+        to_replace : str, regex, list, dict, Series, scalar, or None
+            The value(s) to be replaced. If a dict is provided, `value` must be omitted.
+        value : scalar, dict, list, str, regex, default None
+            The value to replace occurrences of `to_replace` with.
+        regex : bool or same types as `to_replace`, default False
+            Whether to interpret `to_replace` and/or `value` as regular expressions.
 
         Returns
         -------
@@ -6913,10 +6913,14 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             raise NotImplementedError("replace is not implemented for MultiIndex")
 
-        ser = self.to_series()
+        from pandas import Series
+
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         replaced = ser.replace(to_replace, value, regex=regex)
 
-        return self._shallow_copy(replaced._values, name=self.name)
+        return Index(replaced, dtype=replaced.dtype, name=self.name, copy=False)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
