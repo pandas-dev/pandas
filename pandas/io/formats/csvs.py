@@ -291,6 +291,9 @@ class CSVFormatter:
         if self.quotechar is not None and self.quotechar != '"':
             return 'The pyarrow engine only supports " as a quotechar.'
 
+        if len(self.sep) != 1 or not self.sep.isascii():
+            return "The sep option is not supported with the pyarrow engine."
+
         # pyarrow's CSV writer always writes "\n" as its line terminator; it
         # has no option to configure this, and does not follow os.linesep
         # (e.g. it still writes "\n" on Windows). When the caller didn't

@@ -308,6 +308,28 @@ $1$,$2$
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected
 
+    def test_to_csv_sep_non_ascii(self, engine):
+        # GH#64342 - the pyarrow writer requires a single ASCII-byte
+        # delimiter; a non-ASCII sep (valid for the python engine) must
+        # fall back (auto) or raise cleanly (pyarrow)
+        raises_if_pyarrow = check_raises_if_pyarrow("sep", engine)
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+        with raises_if_pyarrow:
+            result = df.to_csv(sep="€", engine=engine)
+            assert result == df.to_csv(sep="€", engine="python")
+
+    def test_to_csv_sep_multi_char(self, engine):
+        # GH#64342 - a multi-character sep is invalid for the python
+        # engine too, but the pyarrow engine used to raise a confusing
+        # raw error instead of the usual clean ValueError
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+        if engine == "pyarrow":
+            raises = check_raises_if_pyarrow("sep", engine)
+        else:
+            raises = pytest.raises(TypeError, match="1-character string")
+        with raises:
+            df.to_csv(sep="||", engine=engine)
+
     def test_csv_to_string(self, engine):
         df = pd.DataFrame({"col": [1, 2]})
         if uses_pyarrow(engine):

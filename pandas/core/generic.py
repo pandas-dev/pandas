@@ -4096,8 +4096,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               ``decimal``, ``lineterminator``, ``encoding``, ``errors``,
               ``escapechar``, or ``doublequote`` is set to a non-default
               value (``encoding`` may still be a spelling of ``"utf-8"``,
-              since that is what the pyarrow engine always writes), or
-              ``quotechar`` is set to something other than ``'"'``.
+              since that is what the pyarrow engine always writes),
+              ``quotechar`` is set to something other than ``'"'``, or
+              ``sep`` is not a single ASCII character.
             * the columns being written have a :class:`MultiIndex`.
             * any row being written would be entirely missing values,
               since the pyarrow engine has no way to mark a missing value
