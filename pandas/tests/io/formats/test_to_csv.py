@@ -1632,6 +1632,30 @@ def test_to_csv_renders_differently_detected_through_object_and_categorical(df, 
 @pytest.mark.parametrize(
     "df",
     [
+        pytest.param(
+            pd.DataFrame({"a": pd.Series([True, pd.Timedelta("1D")], dtype=object)}),
+            id="bool-and-timedelta",
+        ),
+        pytest.param(
+            pd.DataFrame({"a": pd.Series([True, 5], dtype=object)}),
+            id="bool-and-int",
+        ),
+    ],
+)
+def test_to_csv_object_column_probe_failure_defers_to_table_build(df, engine):
+    # GH#64342 - a genuinely mixed-type object column can't be converted
+    # to a single pyarrow array at all; the per-column type probe used to
+    # let that conversion failure escape uncaught instead of deferring to
+    # the existing (correct) fallback/raise handling around the full
+    # pyarrow Table build
+    raises_if_pyarrow = check_raises_if_pyarrow_unsupported_data(engine)
+    with raises_if_pyarrow:
+        assert df.to_csv(engine=engine) == df.to_csv(engine="python")
+
+
+@pytest.mark.parametrize(
+    "df",
+    [
         pytest.param(pd.DataFrame({"a": [True, False]}), id="bool"),
         pytest.param(
             pd.DataFrame({"a": pd.to_timedelta(["1D", "2D"])}), id="timedelta64"

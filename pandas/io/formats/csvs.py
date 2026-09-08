@@ -337,12 +337,15 @@ class CSVFormatter:
         return pa_type.value_type if pa.types.is_dictionary(pa_type) else pa_type
 
     def _pyarrow_infer_field_type(self, pa: Any, col: Any) -> Any:
-        """The pyarrow type pyarrow would infer for `col`."""
-        # warnings suppressed: pyarrow's conversion internally uses a
-        # deprecated pandas accessor on tz-aware data
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            arr_type = pa.array(col, from_pandas=True).type
+        """The pyarrow type pyarrow would infer for `col`, or null() if it can't."""
+        # warnings suppressed: pyarrow's conversion internally uses a deprecated
+        # pandas accessor on tz-aware data
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                arr_type = pa.array(col, from_pandas=True).type
+        except (pa.lib.ArrowException, TypeError, ValueError):
+            return pa.null()
         return self._unwrap_dictionary_type(pa, arr_type)
 
     @staticmethod
@@ -491,8 +494,14 @@ class CSVFormatter:
                 warnings.simplefilter("ignore")  # pyarrow warns on tz-aware data
                 table = pa.Table.from_pandas(arrow_obj, preserve_index=False)
         except (pa.lib.ArrowException, TypeError, ValueError):
+            reason = (
+                "The pyarrow engine cannot write one or more columns in "
+                "this data (e.g. Period/Interval dtype, a genuinely "
+                "mixed-type object column, or an object column of "
+                "list/dict values)."
+            )
             if explicit:
-                raise
+                raise ValueError(reason) from None
             return "python"
 
         # Some dtypes (e.g. Period, Interval extension types, or Python
