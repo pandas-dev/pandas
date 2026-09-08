@@ -27,7 +27,9 @@ class TestSetOps:
         index = Index(np.arange(5, dtype=dtype), dtype=dtype)
         assert index.dtype == dtype
 
-        other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
+        other = Index(
+            [datetime(2011, 1, 1) + timedelta(i) for i in range(4)], dtype=object
+        )
         result = index.union(other)
         expected = Index(np.concatenate((index, other)))
         tm.assert_index_equal(result, expected)

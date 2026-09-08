@@ -18,7 +18,7 @@ from pandas.errors import (
     ParserError,
 )
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -214,7 +214,7 @@ def test_sep_none_falls_back_to_python_engine():
     # GH#66639 sniffing the separator is python-engine only, so the default
     # engine falls back to it rather than handing sep=None to the C parser
     data = "a;b\n1;2\n"
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
 
     with tm.assert_produces_warning(parsers.ParserWarning, match="sep=None"):
         result = read_csv(StringIO(data), sep=None)

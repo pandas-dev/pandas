@@ -10,15 +10,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
 )
 
-from pandas import (
-    CategoricalIndex,
-    Index,
-    IntervalIndex,
-    NaT,
-    Timedelta,
-    Timestamp,
-    interval_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -34,13 +26,13 @@ class AstypeTests:
 
     def test_astype_object(self, index):
         result = index.astype(object)
-        expected = Index(index.values, dtype="object")
+        expected = pd.Index(index.values, dtype="object")
         tm.assert_index_equal(result, expected)
         assert not result.equals(index)
 
     def test_astype_category(self, index):
         result = index.astype("category")
-        expected = CategoricalIndex(index.values)
+        expected = pd.CategoricalIndex(index.values)
         tm.assert_index_equal(result, expected)
 
         result = index.astype(CategoricalDtype())
@@ -53,7 +45,7 @@ class AstypeTests:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = index.astype(dtype)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = CategoricalIndex(
+            expected = pd.CategoricalIndex(
                 index.values, categories=categories, ordered=True
             )
         tm.assert_index_equal(result, expected)
@@ -88,8 +80,8 @@ class TestIntSubtype(AstypeTests):
     """Tests specific to IntervalIndex with integer-like subtype"""
 
     indexes = [
-        IntervalIndex.from_breaks(np.arange(-10, 11, dtype="int64")),
-        IntervalIndex.from_breaks(np.arange(100, dtype="uint64"), closed="left"),
+        pd.IntervalIndex.from_breaks(np.arange(-10, 11, dtype="int64")),
+        pd.IntervalIndex.from_breaks(np.arange(100, dtype="uint64"), closed="left"),
     ]
 
     @pytest.fixture(params=indexes)
@@ -102,7 +94,7 @@ class TestIntSubtype(AstypeTests):
     def test_subtype_conversion(self, index, subtype):
         dtype = IntervalDtype(subtype, index.closed)
         result = index.astype(dtype)
-        expected = IntervalIndex.from_arrays(
+        expected = pd.IntervalIndex.from_arrays(
             index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
         )
         tm.assert_index_equal(result, expected)
@@ -111,10 +103,10 @@ class TestIntSubtype(AstypeTests):
         "subtype_start, subtype_end", [("int64", "uint64"), ("uint64", "int64")]
     )
     def test_subtype_integer(self, subtype_start, subtype_end):
-        index = IntervalIndex.from_breaks(np.arange(100, dtype=subtype_start))
+        index = pd.IntervalIndex.from_breaks(np.arange(100, dtype=subtype_start))
         dtype = IntervalDtype(subtype_end, index.closed)
         result = index.astype(dtype)
-        expected = IntervalIndex.from_arrays(
+        expected = pd.IntervalIndex.from_arrays(
             index.left.astype(subtype_end),
             index.right.astype(subtype_end),
             closed=index.closed,
@@ -124,7 +116,7 @@ class TestIntSubtype(AstypeTests):
     @pytest.mark.xfail(reason="GH#15832")
     def test_subtype_integer_errors(self):
         # int64 -> uint64 fails with negative values
-        index = interval_range(-10, 10)
+        index = pd.interval_range(-10, 10)
         dtype = IntervalDtype("uint64", "right")
 
         # Until we decide what the exception message _should_ be, we
@@ -140,8 +132,8 @@ class TestFloatSubtype(AstypeTests):
     """Tests specific to IntervalIndex with float subtype"""
 
     indexes = [
-        interval_range(-10.0, 10.0, closed="neither"),
-        IntervalIndex.from_arrays(
+        pd.interval_range(-10.0, 10.0, closed="neither"),
+        pd.IntervalIndex.from_arrays(
             [-1.5, np.nan, 0.0, 0.0, 1.5], [-0.5, np.nan, 1.0, 1.0, 3.0], closed="both"
         ),
     ]
@@ -152,10 +144,10 @@ class TestFloatSubtype(AstypeTests):
 
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer(self, subtype):
-        index = interval_range(0.0, 10.0)
+        index = pd.interval_range(0.0, 10.0)
         dtype = IntervalDtype(subtype, "right")
         result = index.astype(dtype)
-        expected = IntervalIndex.from_arrays(
+        expected = pd.IntervalIndex.from_arrays(
             index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
         )
         tm.assert_index_equal(result, expected)
@@ -167,17 +159,17 @@ class TestFloatSubtype(AstypeTests):
 
     @pytest.mark.parametrize("subtype", ["int64", "uint64"])
     def test_subtype_integer_with_non_integer_borders(self, subtype):
-        index = interval_range(0.0, 3.0, freq=0.25)
+        index = pd.interval_range(0.0, 3.0, freq=0.25)
         dtype = IntervalDtype(subtype, "right")
         result = index.astype(dtype)
-        expected = IntervalIndex.from_arrays(
+        expected = pd.IntervalIndex.from_arrays(
             index.left.astype(subtype), index.right.astype(subtype), closed=index.closed
         )
         tm.assert_index_equal(result, expected)
 
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
-        index = interval_range(-10.0, 10.0)
+        index = pd.interval_range(-10.0, 10.0)
         dtype = IntervalDtype("uint64", "right")
         msg = re.escape(
             "Cannot convert interval[float64, right] to interval[uint64, right]; "
@@ -201,11 +193,11 @@ class TestDatetimelikeSubtype(AstypeTests):
     """Tests specific to IntervalIndex with datetime-like subtype"""
 
     indexes = [
-        interval_range(Timestamp("2018-01-01"), periods=10, closed="neither"),
-        interval_range(Timestamp("2018-01-01"), periods=10).insert(2, NaT),
-        interval_range(Timestamp("2018-01-01", tz="US/Eastern"), periods=10),
-        interval_range(Timedelta("0 days"), periods=10, closed="both"),
-        interval_range(Timedelta("0 days"), periods=10).insert(2, NaT),
+        pd.interval_range(pd.Timestamp("2018-01-01"), periods=10, closed="neither"),
+        pd.interval_range(pd.Timestamp("2018-01-01"), periods=10).insert(2, pd.NaT),
+        pd.interval_range(pd.Timestamp("2018-01-01", tz="US/Eastern"), periods=10),
+        pd.interval_range(pd.Timedelta("0 days"), periods=10, closed="both"),
+        pd.interval_range(pd.Timedelta("0 days"), periods=10).insert(2, pd.NaT),
     ]
 
     @pytest.fixture(params=indexes)
@@ -230,7 +222,9 @@ class TestDatetimelikeSubtype(AstypeTests):
         new_left = index.left.astype(subtype)
         new_right = index.right.astype(subtype)
 
-        expected = IntervalIndex.from_arrays(new_left, new_right, closed=index.closed)
+        expected = pd.IntervalIndex.from_arrays(
+            new_left, new_right, closed=index.closed
+        )
         tm.assert_index_equal(result, expected)
 
     def test_subtype_float(self, index):
@@ -244,16 +238,16 @@ class TestDatetimelikeSubtype(AstypeTests):
         dtype = IntervalDtype("timedelta64[ns]", "right")
         msg = "Cannot convert .* to .*; subtypes are incompatible"
 
-        index = interval_range(Timestamp("2018-01-01"), periods=10)
+        index = pd.interval_range(pd.Timestamp("2018-01-01"), periods=10)
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
-        index = interval_range(Timestamp("2018-01-01", tz="CET"), periods=10)
+        index = pd.interval_range(pd.Timestamp("2018-01-01", tz="CET"), periods=10)
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
 
         # timedelta -> datetime raises
         dtype = IntervalDtype("datetime64[ns]", "right")
-        index = interval_range(Timedelta("0 days"), periods=10)
+        index = pd.interval_range(pd.Timedelta("0 days"), periods=10)
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)

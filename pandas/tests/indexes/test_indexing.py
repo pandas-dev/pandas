@@ -26,16 +26,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
 )
 
-from pandas import (
-    NA,
-    DatetimeIndex,
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    NaT,
-    PeriodIndex,
-    TimedeltaIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -64,7 +55,7 @@ class TestTake:
         expected = index[indexer]
         assert result.equals(expected)
 
-        if not isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+        if not isinstance(index, (pd.DatetimeIndex, pd.PeriodIndex, pd.TimedeltaIndex)):
             # GH 10791
             msg = r"'(.*Index)' object has no attribute 'freq'"
             with pytest.raises(AttributeError, match=msg):
@@ -72,7 +63,7 @@ class TestTake:
 
     def test_take_indexer_type(self):
         # GH#42875
-        integer_index = Index([0, 1, 2, 3])
+        integer_index = pd.Index([0, 1, 2, 3])
         scalar_index = 1
         msg = "Expected indices to be array-like"
         with pytest.raises(TypeError, match=msg):
@@ -103,24 +94,24 @@ class TestContains:
         ],
     )
     def test_index_contains(self, index, val):
-        index = Index(index)
+        index = pd.Index(index)
         assert val in index
 
     @pytest.mark.parametrize(
         "index,val",
         [
-            (Index([0, 1, 2]), "2"),
-            (Index([0, 1, "2"]), 2),
-            (Index([0, 1, 2, np.inf]), 4),
-            (Index([0, 1, 2, np.nan]), 4),
-            (Index([0, 1, 2, np.inf]), np.nan),
-            (Index([0, 1, 2, np.nan]), np.inf),
+            (pd.Index([0, 1, 2]), "2"),
+            (pd.Index([0, 1, "2"]), 2),
+            (pd.Index([0, 1, 2, np.inf]), 4),
+            (pd.Index([0, 1, 2, np.nan]), 4),
+            (pd.Index([0, 1, 2, np.inf]), np.nan),
+            (pd.Index([0, 1, 2, np.nan]), np.inf),
             # Checking if np.inf in int64 Index should not cause an OverflowError
             # Related to GH 16957
-            (Index([0, 1, 2], dtype=np.int64), np.inf),
-            (Index([0, 1, 2], dtype=np.int64), np.nan),
-            (Index([0, 1, 2], dtype=np.uint64), np.inf),
-            (Index([0, 1, 2], dtype=np.uint64), np.nan),
+            (pd.Index([0, 1, 2], dtype=np.int64), np.inf),
+            (pd.Index([0, 1, 2], dtype=np.int64), np.nan),
+            (pd.Index([0, 1, 2], dtype=np.uint64), np.inf),
+            (pd.Index([0, 1, 2], dtype=np.uint64), np.nan),
         ],
     )
     def test_index_not_contains(self, index, val):
@@ -129,20 +120,20 @@ class TestContains:
     @pytest.mark.parametrize("val", [0, "2"])
     def test_mixed_index_contains(self, val):
         # GH#19860
-        index = Index([0, 1, "2"])
+        index = pd.Index([0, 1, "2"])
         assert val in index
 
     @pytest.mark.parametrize("val", ["1", 2])
     def test_mixed_index_not_contains(self, index, val):
         # GH#19860
-        index = Index([0, 1, "2"])
+        index = pd.Index([0, 1, "2"])
         assert val not in index
 
     def test_contains_with_float_index(self, any_real_numpy_dtype):
         # GH#22085
         dtype = any_real_numpy_dtype
         data = [0, 1, 2, 3] if not is_float_dtype(dtype) else [0.1, 1.1, 2.2, 3.3]
-        index = Index(data, dtype=dtype)
+        index = pd.Index(data, dtype=dtype)
 
         if not is_float_dtype(index.dtype):
             assert 1.1 not in index
@@ -154,7 +145,7 @@ class TestContains:
             assert 1 not in index
 
     def test_contains_requires_hashable_raises(self, index):
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             return  # TODO: do we want this to raise?
 
         msg = "unhashable type: 'list'"
@@ -199,10 +190,10 @@ class TestGetLoc:
         if isinstance(
             index,
             (
-                DatetimeIndex,
-                TimedeltaIndex,
-                PeriodIndex,
-                IntervalIndex,
+                pd.DatetimeIndex,
+                pd.TimedeltaIndex,
+                pd.PeriodIndex,
+                pd.IntervalIndex,
             ),
         ):
             # TODO: make these more consistent?
@@ -216,11 +207,11 @@ class TestGetLoc:
         if isinstance(
             index,
             (
-                DatetimeIndex,
-                TimedeltaIndex,
-                PeriodIndex,
-                IntervalIndex,
-                MultiIndex,
+                pd.DatetimeIndex,
+                pd.TimedeltaIndex,
+                pd.PeriodIndex,
+                pd.IntervalIndex,
+                pd.MultiIndex,
             ),
         ):
             # TODO: make these more consistent?
@@ -231,8 +222,8 @@ class TestGetLoc:
 
     def test_get_loc_masked_duplicated_na(self):
         # GH#48411
-        idx = Index([1, 2, NA, NA], dtype="Int64")
-        result = idx.get_loc(NA)
+        idx = pd.Index([1, 2, pd.NA, pd.NA], dtype="Int64")
+        result = idx.get_loc(pd.NA)
         expected = np.array([False, False, True, True])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -269,15 +260,15 @@ class TestGetIndexer:
 
     def test_get_indexer_masked_duplicated_na(self):
         # GH#48411
-        idx = Index([1, 2, NA, NA], dtype="Int64")
-        result = idx.get_indexer_for(Index([1, NA], dtype="Int64"))
+        idx = pd.Index([1, 2, pd.NA, pd.NA], dtype="Int64")
+        result = idx.get_indexer_for(pd.Index([1, pd.NA], dtype="Int64"))
         expected = np.array([0, 2, 3], dtype=result.dtype)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_for_mixed_tuples(self):
         # GH#41882
-        idx = Index(["i", "i", "j"])
-        other = Index([("i", "i"), ("i", "j"), ("j", "i"), "j"])
+        idx = pd.Index(["i", "i", "j"])
+        other = pd.Index([("i", "i"), ("i", "j"), ("j", "i"), "j"])
         result = idx.get_indexer_for(other)
         expected = np.array([-1, -1, -1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -289,7 +280,7 @@ class TestConvertSliceIndexer:
 
         key = slice(None, None, "foo")
 
-        if isinstance(index, IntervalIndex):
+        if isinstance(index, pd.IntervalIndex):
             msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
             with pytest.raises(ValueError, match=msg):
                 index._convert_slice_indexer(key, "loc")
@@ -321,7 +312,7 @@ class TestPutmask:
 @pytest.mark.parametrize("idx", [[1, 2, 3], [0.1, 0.2, 0.3], ["a", "b", "c"]])
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191
-    idx = Index(idx)
+    idx = pd.Index(idx)
     msg = "Indexing with a float is no longer supported"
     with pytest.raises(IndexError, match=msg):
         idx[1.0]
@@ -342,28 +333,28 @@ def test_getitem_deprecated_float(idx):
             np.array([0, 2], dtype=np.intp),
         ),
         (
-            DatetimeIndex(["2020-08-05", NaT, NaT]),
-            [NaT],
+            pd.DatetimeIndex(["2020-08-05", pd.NaT, pd.NaT]),
+            [pd.NaT],
             np.array([1, 2], dtype=np.intp),
         ),
         (["a", "b", "a", np.nan], [np.nan], np.array([3], dtype=np.intp)),
         (
             np.array(["b", np.nan, float("NaN"), "b"], dtype=object),
-            Index([np.nan], dtype=object),
+            pd.Index([np.nan], dtype=object),
             np.array([1, 2], dtype=np.intp),
         ),
     ],
 )
 def test_get_indexer_non_unique_multiple_nans(idx, target, expected):
     # GH 35392
-    axis = Index(idx)
+    axis = pd.Index(idx)
     actual = axis.get_indexer_for(target)
     tm.assert_numpy_array_equal(actual, expected)
 
 
 def test_get_indexer_non_unique_nans_in_object_dtype_target(nulls_fixture):
-    idx = Index([1.0, 2.0])
-    target = Index([1, nulls_fixture], dtype="object")
+    idx = pd.Index([1.0, 2.0])
+    target = pd.Index([1, nulls_fixture], dtype="object")
 
     result_idx, result_missing = idx.get_indexer_non_unique(target)
     tm.assert_numpy_array_equal(result_idx, np.array([0, -1], dtype=np.intp))
@@ -374,8 +365,8 @@ def test_get_indexer_non_unique_longdouble():
     # GH#66125 longdouble has no typed fastpath and must use the fallback
     # (on platforms where longdouble is a distinct 16-byte dtype, the index
     # is backed by ObjectEngine holding the raw longdouble ndarray)
-    index = Index(np.array([1.0, 2.0, 2.0], dtype=np.longdouble))
-    target = Index(np.array([2.0, 3.0], dtype=np.longdouble))
+    index = pd.Index(np.array([1.0, 2.0, 2.0], dtype=np.longdouble))
+    target = pd.Index(np.array([2.0, 3.0], dtype=np.longdouble))
 
     result_idx, result_missing = index.get_indexer_non_unique(target)
 
@@ -398,8 +389,8 @@ def test_get_indexer_non_unique_empty_index(dtype, target_values):
     # GH#64674 (masked) / GH#54746 (non-masked): an empty index reindexed
     # against a non-empty target raised ZeroDivisionError in the binary-search
     # heuristic.  An empty index matches nothing, so every target is missing.
-    index = Index([], dtype=dtype)
-    target = Index(target_values, dtype=dtype)
+    index = pd.Index([], dtype=dtype)
+    target = pd.Index(target_values, dtype=dtype)
 
     result_idx, result_missing = index.get_indexer_non_unique(target)
 

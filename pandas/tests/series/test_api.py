@@ -5,21 +5,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 
 
 class TestSeriesMisc:
     def test_tab_completion(self):
         # GH 9910
-        s = Series(list("abcd"))
+        s = pd.Series(list("abcd"))
         # Series of str values should have .str but not .dt/.cat in __dir__
         assert "str" in dir(s)
         assert "dt" not in dir(s)
@@ -27,7 +19,7 @@ class TestSeriesMisc:
 
     def test_tab_completion_dt(self):
         # similarly for .dt
-        s = Series(date_range("1/1/2015", periods=5))
+        s = pd.Series(pd.date_range("1/1/2015", periods=5))
         assert "dt" in dir(s)
         assert "str" not in dir(s)
         assert "cat" not in dir(s)
@@ -35,14 +27,14 @@ class TestSeriesMisc:
     def test_tab_completion_cat(self):
         # Similarly for .cat, but with the twist that str and dt should be
         # there if the categories are of that type first cat and str.
-        s = Series(list("abbcd"), dtype="category")
+        s = pd.Series(list("abbcd"), dtype="category")
         assert "cat" in dir(s)
         assert "str" in dir(s)  # as it is a string categorical
         assert "dt" not in dir(s)
 
     def test_tab_completion_cat_str(self):
         # similar to cat and str
-        s = Series(date_range("1/1/2015", periods=5)).astype("category")
+        s = pd.Series(pd.date_range("1/1/2015", periods=5)).astype("category")
         assert "cat" in dir(s)
         assert "str" not in dir(s)
         assert "dt" in dir(s)  # as it is a datetime categorical
@@ -63,31 +55,31 @@ class TestSeriesMisc:
             "as_unordered",
         ]
 
-        s = Series(list("aabbcde")).astype("category")
+        s = pd.Series(list("aabbcde")).astype("category")
         results = sorted({r for r in s.cat.__dir__() if not r.startswith("_")})
         tm.assert_almost_equal(results, sorted(set(ok_for_cat)))
 
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("ab") * 5, dtype="category"),
-            Index([str(i) for i in range(10)]),
-            Index(["foo", "bar", "baz"] * 2),
-            date_range("2020-01-01", periods=10),
-            period_range("2020-01-01", periods=10, freq="D"),
-            timedelta_range("1 day", periods=10),
-            Index(np.arange(10), dtype=np.uint64),
-            Index(np.arange(10), dtype=np.int64),
-            Index(np.arange(10), dtype=np.float64),
-            Index([True, False]),
-            Index([f"a{i}" for i in range(101)]),
+            pd.Index(list("ab") * 5, dtype="category"),
+            pd.Index([str(i) for i in range(10)]),
+            pd.Index(["foo", "bar", "baz"] * 2),
+            pd.date_range("2020-01-01", periods=10),
+            pd.period_range("2020-01-01", periods=10, freq="D"),
+            pd.timedelta_range("1 day", periods=10),
+            pd.Index(np.arange(10), dtype=np.uint64),
+            pd.Index(np.arange(10), dtype=np.int64),
+            pd.Index(np.arange(10), dtype=np.float64),
+            pd.Index([True, False]),
+            pd.Index([f"a{i}" for i in range(101)]),
             pd.MultiIndex.from_tuples(zip("ABCD", "EFGH", strict=True)),
             pd.MultiIndex.from_tuples(zip([0, 1, 2, 3], "EFGH", strict=True)),
         ],
     )
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
-        s = Series(index=index, dtype=object)
+        s = pd.Series(index=index, dtype=object)
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
@@ -95,7 +87,7 @@ class TestSeriesMisc:
             else:
                 assert x not in dir_s
 
-    @pytest.mark.parametrize("ser", [Series(dtype=object), Series([1])])
+    @pytest.mark.parametrize("ser", [pd.Series(dtype=object), pd.Series([1])])
     def test_not_hashable(self, ser):
         msg = "unhashable type: 'Series'"
         with pytest.raises(TypeError, match=msg):
@@ -105,7 +97,7 @@ class TestSeriesMisc:
         tm.assert_contains_all(datetime_series.index, datetime_series)
 
     def test_axis_alias(self):
-        s = Series([1, 2, np.nan])
+        s = pd.Series([1, 2, np.nan])
         tm.assert_series_equal(s.dropna(axis="rows"), s.dropna(axis="index"))
         assert s.dropna().sum(axis="rows") == 3
         assert s._get_axis_number("rows") == 0
@@ -114,14 +106,14 @@ class TestSeriesMisc:
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
         # no exception and no empty docstring
-        assert pydoc.getdoc(Series.index)
+        assert pydoc.getdoc(pd.Series.index)
 
     def test_ndarray_compat(self):
         # test numpy compat with Series as sub-class of NDFrame
-        tsdf = DataFrame(
+        tsdf = pd.DataFrame(
             np.random.default_rng(2).standard_normal((1000, 3)),
             columns=["A", "B", "C"],
-            index=date_range("1/1/2000", periods=1000),
+            index=pd.date_range("1/1/2000", periods=1000),
         )
 
         def f(x):
@@ -133,28 +125,28 @@ class TestSeriesMisc:
 
     def test_ndarray_compat_like_func(self):
         # using an ndarray like function
-        s = Series(np.random.default_rng(2).standard_normal(10))
-        result = Series(np.ones_like(s))
-        expected = Series(1, index=range(10), dtype="float64")
+        s = pd.Series(np.random.default_rng(2).standard_normal(10))
+        result = pd.Series(np.ones_like(s))
+        expected = pd.Series(1, index=range(10), dtype="float64")
         tm.assert_series_equal(result, expected)
 
     def test_empty_method(self):
-        s_empty = Series(dtype=object)
+        s_empty = pd.Series(dtype=object)
         assert s_empty.empty
 
     @pytest.mark.parametrize("dtype", ["int64", object])
     def test_empty_method_full_series(self, dtype):
-        full_series = Series(index=[1], dtype=dtype)
+        full_series = pd.Series(index=[1], dtype=dtype)
         assert not full_series.empty
 
     @pytest.mark.parametrize("dtype", [None, "Int64"])
     def test_integer_series_size(self, dtype):
         # GH 25580
-        s = Series(range(9), dtype=dtype)
+        s = pd.Series(range(9), dtype=dtype)
         assert s.size == 9
 
     def test_attrs(self):
-        s = Series([0, 1], name="abc")
+        s = pd.Series([0, 1], name="abc")
         assert s.attrs == {}
         s.attrs["version"] = 1
         result = s + 1
@@ -162,13 +154,13 @@ class TestSeriesMisc:
 
     def test_inspect_getmembers(self):
         # GH38782
-        ser = Series(dtype=object)
+        ser = pd.Series(dtype=object)
         inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
         # GH#9680
-        tdi = timedelta_range(start=0, periods=10, freq="1s")
-        ser = Series(np.random.default_rng(2).normal(size=10), index=tdi)
+        tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
+        ser = pd.Series(np.random.default_rng(2).normal(size=10), index=tdi)
         assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):
@@ -183,13 +175,13 @@ class TestSeriesMisc:
 
     def test_series_datetimelike_attribute_access(self):
         # attribute access should still work!
-        ser = Series({"year": 2000, "month": 1, "day": 10})
+        ser = pd.Series({"year": 2000, "month": 1, "day": 10})
         assert ser.year == 2000
         assert ser.month == 1
         assert ser.day == 10
 
     def test_series_datetimelike_attribute_access_invalid(self):
-        ser = Series({"year": 2000, "month": 1, "day": 10})
+        ser = pd.Series({"year": 2000, "month": 1, "day": 10})
         msg = "'Series' object has no attribute 'weekday'"
         with pytest.raises(AttributeError, match=msg):
             ser.weekday
@@ -236,7 +228,7 @@ class TestSeriesMisc:
     @pytest.mark.parametrize("dtype", [bool, int, float, object])
     def test_numeric_only(self, kernel, has_numeric_only, dtype):
         # GH#47500
-        ser = Series([0, 1, 1], dtype=dtype)
+        ser = pd.Series([0, 1, 1], dtype=dtype)
         if kernel == "corrwith":
             args = (ser,)
         elif kernel == "corr":
@@ -270,7 +262,7 @@ class TestSeriesMisc:
         else:
             result = method(*args, numeric_only=True)
             expected = method(*args, numeric_only=False)
-            if isinstance(expected, Series):
+            if isinstance(expected, pd.Series):
                 # transformer
                 tm.assert_series_equal(result, expected)
             else:

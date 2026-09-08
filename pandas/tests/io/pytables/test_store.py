@@ -1,6 +1,7 @@
 import contextlib
 import datetime as dt
 import hashlib
+import re
 import tempfile
 import time
 
@@ -8,18 +9,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.api.types import (
     CategoricalDtype,
@@ -43,18 +32,18 @@ def test_context(temp_h5_path):
     except ValueError:
         pass
     with HDFStore(temp_h5_path) as tbl:
-        tbl["a"] = DataFrame(
+        tbl["a"] = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD"), dtype=object),
+            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
         )
         assert len(tbl) == 1
-        assert type(tbl["a"]) == DataFrame
+        assert type(tbl["a"]) == pd.DataFrame
 
 
 def test_track_times_default_deprecated(temp_h5_path):
     # GH#51456 - not passing track_times explicitly warns about default change
-    df = DataFrame({"a": [1]})
+    df = pd.DataFrame({"a": [1]})
     msg = "The default value of 'track_times' in HDFStore.put"
     with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
         with HDFStore(temp_h5_path, mode="w") as hdf:
@@ -77,7 +66,7 @@ def test_no_track_times(temp_h5_path):
         return h.digest()
 
     def create_h5_and_return_checksum(temp_h5_path, track_times):
-        df = DataFrame({"a": [1]})
+        df = pd.DataFrame({"a": [1]})
 
         with HDFStore(temp_h5_path, mode="w") as hdf:
             hdf.put(
@@ -116,20 +105,22 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
     store = temp_hdfstore
     repr(store)
     store.info()
-    store["a"] = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    store["a"] = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
-    store["b"] = Series(range(10), dtype="float64", index=[f"i_{i}" for i in range(10)])
-    store["c"] = DataFrame(
+    store["b"] = pd.Series(
+        range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
+    )
+    store["c"] = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
 
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
@@ -138,8 +129,8 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
     df["bool3"] = True
     df["int1"] = 1
     df["int2"] = 2
-    df["timestamp1"] = Timestamp("20010102")
-    df["timestamp2"] = Timestamp("20010103")
+    df["timestamp1"] = pd.Timestamp("20010102")
+    df["timestamp2"] = pd.Timestamp("20010103")
     df["datetime1"] = dt.datetime(2001, 1, 2, 0, 0)
     df["datetime2"] = dt.datetime(2001, 1, 3, 0, 0)
     df.loc[df.index[3:6], ["obj1"]] = np.nan
@@ -160,10 +151,10 @@ def test_repr(temp_hdfstore, performance_warning, using_infer_string):
 
 def test_repr_get_storer(temp_hdfstore):
     # storers
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     temp_hdfstore.append("df", df)
 
@@ -175,13 +166,15 @@ def test_repr_get_storer(temp_hdfstore):
 @pytest.mark.parametrize(
     "obj, expected",
     [
-        (DataFrame(np.zeros((0, 1), dtype=np.int64)), [0, 1]),
-        (DataFrame(np.zeros((0, 3))), [0, 3]),
+        (pd.DataFrame(np.zeros((0, 1), dtype=np.int64)), [0, 1]),
+        (pd.DataFrame(np.zeros((0, 3))), [0, 3]),
         (
-            DataFrame({"a": Series(dtype=np.int64), "b": Series(dtype=np.float64)}),
+            pd.DataFrame(
+                {"a": pd.Series(dtype=np.int64), "b": pd.Series(dtype=np.float64)}
+            ),
             [0, 2],
         ),
-        (Series(dtype=np.int64), (0,)),
+        (pd.Series(dtype=np.int64), (0,)),
     ],
 )
 def test_get_storer_shape_empty(temp_hdfstore, obj, expected):
@@ -193,18 +186,18 @@ def test_get_storer_shape_empty(temp_hdfstore, obj, expected):
 
 def test_contains(temp_hdfstore):
     store = temp_hdfstore
-    store["a"] = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    store["a"] = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
-    store["b"] = DataFrame(
+    store["b"] = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
-    store["foo/bar"] = DataFrame(
+    store["foo/bar"] = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     assert "a" in store
     assert "b" in store
@@ -219,10 +212,10 @@ def test_contains(temp_hdfstore):
     with tm.assert_produces_warning(
         tables.NaturalNameWarning, check_stacklevel=False, match=msg
     ):
-        store["node())"] = DataFrame(
+        store["node())"] = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)]),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         )
     assert "node())" in store
 
@@ -251,11 +244,11 @@ def test_contains(temp_hdfstore):
 def test_walk(where, expected, temp_hdfstore):
     # GH10143
     objs = {
-        "df1": DataFrame([1, 2, 3]),
-        "df2": DataFrame([4, 5, 6]),
-        "df3": DataFrame([6, 7, 8]),
-        "df4": DataFrame([9, 10, 11]),
-        "s1": Series([10, 9, 8]),
+        "df1": pd.DataFrame([1, 2, 3]),
+        "df2": pd.DataFrame([4, 5, 6]),
+        "df3": pd.DataFrame([6, 7, 8]),
+        "df4": pd.DataFrame([9, 10, 11]),
+        "s1": pd.Series([10, 9, 8]),
         # Next 3 items aren't pandas objects and should be ignored
         "a1": np.array([[1, 2, 3], [4, 5, 6]]),
         "tb1": np.array([(1, 2, 3), (4, 5, 6)], dtype="i,i,i"),
@@ -290,8 +283,8 @@ def test_walk(where, expected, temp_hdfstore):
 
 def test_getattr(temp_hdfstore):
     store = temp_hdfstore
-    s = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    s = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
     store["a"] = s
 
@@ -301,10 +294,10 @@ def test_getattr(temp_hdfstore):
     result = store.a
     tm.assert_series_equal(result, s)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     store["df"] = df
     result = store.df
@@ -322,11 +315,11 @@ def test_getattr(temp_hdfstore):
 
 
 def test_store_dropna(temp_h5_path):
-    df_with_missing = DataFrame(
+    df_with_missing = pd.DataFrame(
         {"col1": [0.0, np.nan, 2.0], "col2": [1.0, np.nan, np.nan]},
         index=list("abc"),
     )
-    df_without_missing = DataFrame(
+    df_without_missing = pd.DataFrame(
         {"col1": [0.0, 2.0], "col2": [1.0, np.nan]}, index=list("ac")
     )
 
@@ -350,30 +343,32 @@ def test_store_dropna(temp_h5_path):
 
 def test_to_hdf_with_min_itemsize(temp_h5_path):
     # min_itemsize in index with to_hdf (GH 10381)
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": [0.0, 1.0, 2.0, 3.0, 4.0],
             "B": [0.0, 1.0, 0.0, 1.0, 0.0],
-            "C": Index(["foo1", "foo2", "foo3", "foo4", "foo5"]),
-            "D": date_range("20130101", periods=5),
+            "C": pd.Index(["foo1", "foo2", "foo3", "foo4", "foo5"]),
+            "D": pd.date_range("20130101", periods=5),
         }
     ).set_index("C")
     df.to_hdf(temp_h5_path, key="ss3", format="table", min_itemsize={"index": 6})
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")
     df2.to_hdf(temp_h5_path, key="ss3", append=True, format="table")
-    tm.assert_frame_equal(read_hdf(temp_h5_path, "ss3"), concat([df, df2]))
+    tm.assert_frame_equal(read_hdf(temp_h5_path, "ss3"), pd.concat([df, df2]))
 
     # same as above, with a Series
     df["B"].to_hdf(temp_h5_path, key="ss4", format="table", min_itemsize={"index": 6})
     df2["B"].to_hdf(temp_h5_path, key="ss4", append=True, format="table")
-    tm.assert_series_equal(read_hdf(temp_h5_path, "ss4"), concat([df["B"], df2["B"]]))
+    tm.assert_series_equal(
+        read_hdf(temp_h5_path, "ss4"), pd.concat([df["B"], df2["B"]])
+    )
 
 
 @pytest.mark.parametrize("format", ["fixed", "table"])
 def test_to_hdf_errors(format, temp_h5_path, using_infer_string):
     data = ["\ud800foo"]
-    ser = Series(data, index=Index(data, dtype="object"), dtype="object")
+    ser = pd.Series(data, index=pd.Index(data, dtype="object"), dtype="object")
     # GH 20835
     ser.to_hdf(temp_h5_path, key="table", format=format, errors="surrogatepass")
 
@@ -385,7 +380,7 @@ def test_to_hdf_errors(format, temp_h5_path, using_infer_string):
         dtype = pd.StringDtype(storage="python", na_value=np.nan)
     else:
         dtype = "object"
-    expected = Series(data, index=Index(data, dtype=dtype), dtype=dtype)
+    expected = pd.Series(data, index=pd.Index(data, dtype=dtype), dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -396,10 +391,10 @@ def test_create_table_index(temp_hdfstore):
         return getattr(store.get_storer(t).table.cols, column)
 
     # data columns
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df["string"] = "foo"
     df["string2"] = "bar"
@@ -430,10 +425,10 @@ def test_create_table_index_data_columns_argument(temp_hdfstore):
         return getattr(store.get_storer(t).table.cols, column)
 
     # data columns
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df["string"] = "foo"
     df["string2"] = "bar"
@@ -457,10 +452,10 @@ def test_create_table_index_data_columns_argument(temp_hdfstore):
 
 def test_mi_data_columns(temp_hdfstore):
     # GH 14435
-    idx = MultiIndex.from_arrays(
-        [date_range("2000-01-01", periods=5), range(5)], names=["date", "id"]
+    idx = pd.MultiIndex.from_arrays(
+        [pd.date_range("2000-01-01", periods=5), range(5)], names=["date", "id"]
     )
-    df = DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
+    df = pd.DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
 
     temp_hdfstore.append("df", df, data_columns=True)
 
@@ -471,10 +466,10 @@ def test_mi_data_columns(temp_hdfstore):
 
 def test_table_mixed_dtypes(temp_hdfstore):
     # frame
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df["obj1"] = "foo"
     df["obj2"] = "bar"
@@ -483,10 +478,10 @@ def test_table_mixed_dtypes(temp_hdfstore):
     df["bool3"] = True
     df["int1"] = 1
     df["int2"] = 2
-    df["timestamp1"] = Timestamp("20010102").as_unit("ns")
-    df["timestamp2"] = Timestamp("20010103").as_unit("ns")
-    df["datetime1"] = Timestamp("20010102").as_unit("ns")
-    df["datetime2"] = Timestamp("20010103").as_unit("ns")
+    df["timestamp1"] = pd.Timestamp("20010102").as_unit("ns")
+    df["timestamp2"] = pd.Timestamp("20010103").as_unit("ns")
+    df["datetime1"] = pd.Timestamp("20010102").as_unit("ns")
+    df["datetime2"] = pd.Timestamp("20010103").as_unit("ns")
     df.loc[df.index[3:6], ["obj1"]] = np.nan
     df = df._consolidate()
 
@@ -507,9 +502,11 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
         holidays=holidays, weekmask=weekmask_egypt
     )
     mydt = dt.datetime(2013, 4, 30)
-    dts = date_range(mydt, periods=5, freq=bday_egypt)
+    dts = pd.date_range(mydt, periods=5, freq=bday_egypt)
 
-    s = Series(dts.day_of_week, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
+    s = pd.Series(dts.day_of_week, dts).map(
+        pd.Series("Mon Tue Wed Thu Fri Sat Sun".split())
+    )
 
     temp_hdfstore.put("fixed", s, track_times=False)
     result = temp_hdfstore.select("fixed")
@@ -522,13 +519,13 @@ def test_calendar_roundtrip_issue(temp_hdfstore):
 
 def test_remove(temp_hdfstore):
     store = temp_hdfstore
-    ts = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    ts = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     store["a"] = ts
     store["b"] = df
@@ -570,9 +567,9 @@ def test_remove_where_many_selectors(temp_hdfstore, n_selectors):
     #  handle, i.e. > _max_selectors=31) falls back to a post-read filter;
     #  remove must apply that filter rather than dropping every row
     store = temp_hdfstore
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": np.arange(1000)},
-        index=date_range("2020-01-01", periods=1000, unit="ns"),
+        index=pd.date_range("2020-01-01", periods=1000, unit="ns"),
     )
     store.put("df", df, format="table", track_times=False)
 
@@ -595,9 +592,9 @@ def test_remove_where_filter_and_condition(temp_hdfstore, n_selectors):
     #  "A>=50"). select_coords must apply the filter on top of the condition's
     #  coordinates; otherwise remove drops the wrong rows.
     store = temp_hdfstore
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": np.arange(1000)},
-        index=date_range("2020-01-01", periods=1000, unit="ns"),
+        index=pd.date_range("2020-01-01", periods=1000, unit="ns"),
     )
     store.put("df", df, format="table", data_columns=["A"], track_times=False)
 
@@ -617,12 +614,12 @@ def test_remove_where_filter_and_condition(temp_hdfstore, n_selectors):
 
 
 def test_same_name_scoping(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((20, 2)),
-        index=date_range("20130101", periods=20, unit="ns"),
+        index=pd.date_range("20130101", periods=20, unit="ns"),
     )
     temp_hdfstore.put("df", df, format="table", track_times=False)
-    expected = df[df.index > Timestamp("20130105")]
+    expected = df[df.index > pd.Timestamp("20130105")]
 
     result = temp_hdfstore.select("df", "index>datetime.datetime(2013,1,5)")
     tm.assert_frame_equal(result, expected)
@@ -639,10 +636,10 @@ def test_same_name_scoping(temp_hdfstore):
 
 
 def test_store_index_name(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df.index.name = "foo"
 
@@ -656,7 +653,7 @@ def test_store_index_name(temp_hdfstore):
 def test_store_index_name_numpy_str(table_format, temp_h5_path, unit, tz):
     # GH #13492
     idx = (
-        DatetimeIndex(
+        pd.DatetimeIndex(
             [dt.date(2000, 1, 1), dt.date(2000, 1, 2)],
             name="cols\u05d2",
         )
@@ -664,14 +661,14 @@ def test_store_index_name_numpy_str(table_format, temp_h5_path, unit, tz):
         .as_unit(unit)
     )
     idx1 = (
-        DatetimeIndex(
+        pd.DatetimeIndex(
             [dt.date(2010, 1, 1), dt.date(2010, 1, 2)],
             name="rows\u05d0",
         )
         .as_unit(unit)
         .tz_localize(tz)
     )
-    df = DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
+    df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 
     # This used to fail, returning numpy strings instead of python strings.
     df.to_hdf(temp_h5_path, key="df", format=table_format)
@@ -684,10 +681,10 @@ def test_store_index_name_numpy_str(table_format, temp_h5_path, unit, tz):
 
 
 def test_store_series_name(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     series = df["A"]
 
@@ -697,13 +694,13 @@ def test_store_series_name(temp_hdfstore):
 
 
 def test_overwrite_node(temp_hdfstore):
-    temp_hdfstore["a"] = DataFrame(
+    temp_hdfstore["a"] = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
-    ts = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    ts = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
     temp_hdfstore["a"] = ts
 
@@ -711,10 +708,10 @@ def test_overwrite_node(temp_hdfstore):
 
 
 def test_coordinates(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
 
     store = temp_hdfstore
@@ -729,7 +726,7 @@ def test_coordinates2(temp_hdfstore):
     # get coordinates back & test vs frame
     store = temp_hdfstore
 
-    df = DataFrame({"A": range(5), "B": range(5)})
+    df = pd.DataFrame({"A": range(5), "B": range(5)})
     store.append("df", df)
     c = store.select_as_coordinates("df", ["index<3"])
     assert (c.values == np.arange(3)).all()
@@ -742,15 +739,15 @@ def test_coordinates2(temp_hdfstore):
     result = store.select("df", where=c)
     expected = df.loc[3:4, :]
     tm.assert_frame_equal(result, expected)
-    assert isinstance(c, Index)
+    assert isinstance(c, pd.Index)
 
 
 def test_coordinates_multiple_tables(temp_hdfstore):
     store = temp_hdfstore
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     store.append("df1", df1, data_columns=["A", "B"])
@@ -759,22 +756,22 @@ def test_coordinates_multiple_tables(temp_hdfstore):
     c = store.select_as_coordinates("df1", ["A>0", "B>0"])
     df1_result = store.select("df1", c)
     df2_result = store.select("df2", c)
-    result = concat([df1_result, df2_result], axis=1)
+    result = pd.concat([df1_result, df2_result], axis=1)
 
-    expected = concat([df1, df2], axis=1)
+    expected = pd.concat([df1, df2], axis=1)
     expected = expected[(expected.A > 0) & (expected.B > 0)]
     tm.assert_frame_equal(result, expected)
 
 
 def test_coordinates_array_mask(temp_hdfstore):
     store = temp_hdfstore
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((1000, 2)),
-        index=date_range("20000101", periods=1000),
+        index=pd.date_range("20000101", periods=1000),
     )
     store.append("df", df)
     c = store.select_column("df", "index")
-    where = c[DatetimeIndex(c).month == 5].index
+    where = c[pd.DatetimeIndex(c).month == 5].index
     expected = df.iloc[where]
 
     # locations
@@ -790,23 +787,26 @@ def test_coordinates_array_mask(temp_hdfstore):
     with pytest.raises(TypeError, match=msg):
         store.select("df", where=np.arange(len(df), dtype="float64"))
 
-    with pytest.raises(TypeError, match=msg):
+    # GH#68029 out-of-range coordinates report the range check, not the
+    #  grammar error they used to fall through to
+    msg = "where must have index locations >= start and < stop"
+    with pytest.raises(ValueError, match=msg):
         store.select("df", where=np.arange(len(df) + 1))
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         store.select("df", where=np.arange(len(df)), start=5)
 
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         store.select("df", where=np.arange(len(df)), start=5, stop=10)
 
     # selection with filter
-    selection = date_range("20000101", periods=500)
+    selection = pd.date_range("20000101", periods=500)
     result = store.select("df", where="index in selection")
     expected = df[df.index.isin(selection)]
     tm.assert_frame_equal(result, expected)
 
     # list
-    df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
     store.append("df2", df)
     result = store.select("df2", where=[0, 3, 5])
     expected = df.iloc[[0, 3, 5]]
@@ -825,9 +825,78 @@ def test_coordinates_array_mask(temp_hdfstore):
     tm.assert_frame_equal(result, expected)
 
 
+def test_select_out_of_range_coordinates(temp_hdfstore):
+    # GH#68029 an out-of-range coordinate `where` used to surface as a
+    #  TypeError about the query grammar, because the range check's
+    #  ValueError was swallowed and the coordinates fell through to the
+    #  expression parser
+    df = pd.DataFrame({"a": range(10)})
+    temp_hdfstore.append("df", df)
+
+    # the message names the offending locations and the effective window,
+    #  which is what start/stop were resolved to rather than what was passed
+    msg = re.escape(
+        "where must have index locations >= start and < stop, "
+        "but got [100] with start=0 and stop=10"
+    )
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=[100])
+
+    # only the out-of-range entries are named, and long runs are truncated
+    msg = re.escape("but got [10, 11, 12, 13, 14] ... with start=0 and stop=10")
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=list(range(20)))
+
+    msg = "where must have index locations >= start and < stop"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=[1, 2, 3], start=5)
+
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select_as_coordinates("df", where=[1, 2, 3], stop=2)
+
+    # in-range coordinates are unaffected
+    result = temp_hdfstore.select("df", where=[1, 2, 3])
+    tm.assert_frame_equal(result, df.iloc[[1, 2, 3]])
+
+    result = temp_hdfstore.select("df", where=[6, 7], start=5)
+    tm.assert_frame_equal(result, df.iloc[[6, 7]])
+
+
+@pytest.mark.parametrize("where", [[100], [-3]])
+def test_select_out_of_range_coordinates_all_paths(temp_hdfstore, where):
+    # GH#68029 the range check ran only when start/stop were passed, so the
+    #  coordinate-based reads -- which leave them as None -- skipped it. A
+    #  negative coordinate then wrapped around and returned the wrong row
+    #  instead of raising, so two spellings of the same call disagreed.
+    df = pd.DataFrame({"a": range(10)})
+    temp_hdfstore.append("df", df)
+
+    msg = "where must have index locations >= start and < stop"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select("df", where=where)
+
+    with pytest.raises(ValueError, match=msg):
+        list(temp_hdfstore.select("df", where=where, chunksize=2))
+
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select_as_coordinates("df", where=where)
+
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.remove("df", where=where)
+
+    # select_as_multiple already ran the check (TableIterator fills in
+    #  start/stop); only the exception type it reports has changed
+    temp_hdfstore.append("df2", pd.DataFrame({"b": range(10)}))
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.select_as_multiple(["df", "df2"], where=where, selector="df")
+
+    # the failed remove left the table alone
+    assert temp_hdfstore.get_storer("df").nrows == 10
+
+
 def test_start_stop_table(temp_hdfstore):
     # table
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": np.random.default_rng(2).random(20),
             "B": np.random.default_rng(2).random(20),
@@ -848,7 +917,7 @@ def test_start_stop_table(temp_hdfstore):
 
 def test_start_stop_multiple(temp_hdfstore):
     # GH 16209
-    df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
+    df = pd.DataFrame({"foo": [1, 2], "bar": [1, 2]})
 
     temp_hdfstore.append_to_multiple(
         {"selector": ["foo"], "data": None}, df, selector="selector"
@@ -863,12 +932,12 @@ def test_start_stop_multiple(temp_hdfstore):
 def test_start_stop_fixed(temp_hdfstore):
     # fixed, GH 8287
     store = temp_hdfstore
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": np.random.default_rng(2).random(20),
             "B": np.random.default_rng(2).random(20),
         },
-        index=date_range("20130101", periods=20),
+        index=pd.date_range("20130101", periods=20),
     )
     store.put("df", df, track_times=False)
 
@@ -897,17 +966,17 @@ def test_start_stop_fixed(temp_hdfstore):
     tm.assert_series_equal(result, expected)
 
     # sparse; not implemented
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     df.iloc[3:5, 1:3] = np.nan
     df.iloc[8:10, -2] = np.nan
 
 
 def test_select_filter_corner(temp_hdfstore):
-    df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
@@ -925,7 +994,7 @@ def test_select_filter_corner(temp_hdfstore):
 def test_select_string_index_aligned(temp_hdfstore):
     # GH#54396 string index -> byte-unaligned values block; the read-back
     #  block must be realigned to avoid SIGBUS on strict-alignment platforms
-    df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
     df.index = [f"{c:3d}" for c in df.index]
 
     temp_hdfstore.put("frame", df, format="table", track_times=False)
@@ -936,10 +1005,10 @@ def test_select_string_index_aligned(temp_hdfstore):
 
 
 def test_path_pathlib(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
 
     result = tm.round_trip_pathlib(
@@ -951,10 +1020,10 @@ def test_path_pathlib(temp_h5_path):
 @pytest.mark.parametrize("start, stop", [(0, 2), (1, 2), (None, None)])
 def test_contiguous_mixed_data_table(start, stop, temp_hdfstore):
     # GH 17021
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "a": Series([20111010, 20111011, 20111012]),
-            "b": Series(["ab", "cd", "ab"]),
+            "a": pd.Series([20111010, 20111011, 20111012]),
+            "b": pd.Series(["ab", "cd", "ab"]),
         }
     )
 
@@ -965,10 +1034,10 @@ def test_contiguous_mixed_data_table(start, stop, temp_hdfstore):
 
 
 def test_path_pathlib_hdfstore(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
 
     def writer(path):
@@ -984,10 +1053,10 @@ def test_path_pathlib_hdfstore(temp_h5_path):
 
 
 def test_pickle_path_localpath(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     result = tm.round_trip_pathlib(
         lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df"), temp_h5_path
@@ -997,10 +1066,10 @@ def test_pickle_path_localpath(temp_h5_path):
 
 @pytest.mark.parametrize("propindexes", [True, False])
 def test_copy(propindexes, temp_file):
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
 
     with HDFStore(temp_file) as st:
@@ -1029,7 +1098,7 @@ def test_copy(propindexes, temp_file):
 
 
 def test_duplicate_column_name(temp_h5_path):
-    df = DataFrame(columns=["a", "a"], data=[[0, 0]])
+    df = pd.DataFrame(columns=["a", "a"], data=[[0, 0]])
 
     msg = "Columns index has to be unique for fixed format"
     with pytest.raises(ValueError, match=msg):
@@ -1045,8 +1114,8 @@ def test_duplicate_column_name(temp_h5_path):
 
 def test_preserve_timedeltaindex_type(temp_hdfstore, unit):
     # GH9635
-    df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
-    df.index = timedelta_range(
+    df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
+    df.index = pd.timedelta_range(
         start="0s", periods=10, freq="1s", name="example", unit=unit
     )
 
@@ -1058,8 +1127,8 @@ def test_preserve_timedeltaindex_type(temp_hdfstore, unit):
 def test_preserve_timedeltaindex_type_table_format(temp_h5_path, unit, freq):
     # GH#21466 with format="table", a TimedeltaIndex used to round-trip as
     #  PeriodIndex (when freq was set) or Int64Index (otherwise)
-    df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
-    df.index = timedelta_range(
+    df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
+    df.index = pd.timedelta_range(
         start="0s", periods=10, freq=freq, name="example", unit=unit
     )
     df.to_hdf(temp_h5_path, key="df", format="table")
@@ -1070,7 +1139,7 @@ def test_preserve_timedeltaindex_type_table_format(temp_h5_path, unit, freq):
 def test_columns_multiindex_modified(temp_h5_path):
     # BUG: 7212
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((4, 5)),
         index=list("abcd"),
         columns=list("ABCDE"),
@@ -1097,16 +1166,18 @@ def test_columns_multiindex_modified(temp_h5_path):
 @pytest.mark.parametrize(
     "columns",
     [
-        Index([0, 1], dtype=np.int64),
-        Index([0.0, 1.0], dtype=np.float64),
-        date_range("2020-01-01", periods=2),
-        timedelta_range("1 day", periods=2),
-        period_range("2020-01-01", periods=2, freq="D"),
+        pd.Index([0, 1], dtype=np.int64),
+        pd.Index([0.0, 1.0], dtype=np.float64),
+        pd.date_range("2020-01-01", periods=2),
+        pd.timedelta_range("1 day", periods=2),
+        pd.period_range("2020-01-01", periods=2, freq="D"),
     ],
 )
 def test_to_hdf_with_object_column_names_should_fail(temp_h5_path, columns):
     # GH9057
-    df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), columns=columns)
+    df = pd.DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)), columns=columns
+    )
     msg = "cannot have non-object label DataIndexableCol"
     with pytest.raises(ValueError, match=msg):
         df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
@@ -1115,9 +1186,9 @@ def test_to_hdf_with_object_column_names_should_fail(temp_h5_path, columns):
 @pytest.mark.parametrize("dtype", [None, "category"])
 def test_to_hdf_with_object_column_names_should_run(temp_h5_path, dtype):
     # GH9057
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 2)),
-        columns=Index(["a", "b"], dtype=dtype),
+        columns=pd.Index(["a", "b"], dtype=dtype),
     )
     df.to_hdf(temp_h5_path, key="df", format="table", data_columns=True)
     result = read_hdf(temp_h5_path, "df", where=f"index = [{df.index[0]}]")
@@ -1126,14 +1197,14 @@ def test_to_hdf_with_object_column_names_should_run(temp_h5_path, dtype):
 
 def test_hdfstore_strides(temp_hdfstore):
     # GH22073
-    df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
     temp_hdfstore.put("df", df, track_times=False)
     assert df["a"].values.strides == temp_hdfstore["df"]["a"].values.strides
 
 
 def test_store_bool_index(temp_h5_path):
     # GH#48667
-    df = DataFrame([[1]], columns=[True], index=Index([False], dtype="bool"))
+    df = pd.DataFrame([[1]], columns=[True], index=pd.Index([False], dtype="bool"))
     expected = df.copy()
 
     # # Test to make sure defaults are to not drop.
@@ -1148,7 +1219,7 @@ def test_select_categorical_string_columns(temp_hdfstore, model):
     # Corresponding to BUG: 57608
 
     models = CategoricalDtype(categories=["name", "longname", "verylongname"])
-    df = DataFrame(
+    df = pd.DataFrame(
         {"modelId": ["name", "longname", "longname"], "value": [1, 2, 3]}
     ).astype({"modelId": models, "value": int})
 
@@ -1161,8 +1232,10 @@ def test_select_categorical_string_columns(temp_hdfstore, model):
 
 def test_to_hdf_multiindex_string_dtype_crash(temp_h5_path):
     # GH#63412
-    index = MultiIndex.from_tuples([("a", "x"), ("b", "y")], names=["level1", "level2"])
-    df = DataFrame({"value": [1, 2]}, index=index)
+    index = pd.MultiIndex.from_tuples(
+        [("a", "x"), ("b", "y")], names=["level1", "level2"]
+    )
+    df = pd.DataFrame({"value": [1, 2]}, index=index)
     df.to_hdf(temp_h5_path, key="test")
     result = read_hdf(temp_h5_path, key="test")
     tm.assert_frame_equal(df, result, check_dtype=False)

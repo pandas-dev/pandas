@@ -4,16 +4,13 @@ Tests for np.foo applied to DataFrame, not necessarily ufuncs.
 
 import numpy as np
 
-from pandas import (
-    Categorical,
-    DataFrame,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestAsArray:
     def test_asarray_homogeneous(self):
-        df = DataFrame({"A": Categorical([1, 2]), "B": Categorical([1, 2])})
+        df = pd.DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})
         result = np.asarray(df)
         # may change from object in the future
         expected = np.array([[1, 1], [2, 2]], dtype="object")
@@ -33,7 +30,7 @@ class TestAsArray:
         #  called when we do np.sum(df)
 
         arr = np.random.default_rng(2).standard_normal((4, 3))
-        df = DataFrame(arr)
+        df = pd.DataFrame(arr)
 
         res = np.sum(df)
         expected = df.to_numpy().sum(axis=None)
@@ -48,7 +45,7 @@ class TestAsArray:
             ]
         )
 
-        result = np.ravel([DataFrame(batch.reshape(1, 3)) for batch in arr])
+        result = np.ravel([pd.DataFrame(batch.reshape(1, 3)) for batch in arr])
         expected = np.array(
             [
                 0.11197053,
@@ -61,13 +58,15 @@ class TestAsArray:
         )
         tm.assert_numpy_array_equal(result, expected)
 
-        result = np.ravel(DataFrame(arr[0].reshape(1, 3), columns=["x1", "x2", "x3"]))
+        result = np.ravel(
+            pd.DataFrame(arr[0].reshape(1, 3), columns=["x1", "x2", "x3"])
+        )
         expected = np.array([0.11197053, 0.44361564, -0.92589452])
         tm.assert_numpy_array_equal(result, expected)
 
         result = np.ravel(
             [
-                DataFrame(batch.reshape(1, 3), columns=["x1", "x2", "x3"])
+                pd.DataFrame(batch.reshape(1, 3), columns=["x1", "x2", "x3"])
                 for batch in arr
             ]
         )

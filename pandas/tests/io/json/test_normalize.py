@@ -3,12 +3,7 @@ import json
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    json_normalize,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.json._normalize import nested_to_record
@@ -118,26 +113,26 @@ class TestJSONNormalize:
             {"a": 10, "b": 11, "c": 12},
         ]
 
-        result = json_normalize(recs)
-        expected = DataFrame(recs)
+        result = pd.json_normalize(recs)
+        expected = pd.DataFrame(recs)
 
         tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize(self, state_data):
-        result = json_normalize(state_data[0], "counties")
-        expected = DataFrame(state_data[0]["counties"])
+        result = pd.json_normalize(state_data[0], "counties")
+        expected = pd.DataFrame(state_data[0]["counties"])
         tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(state_data, "counties")
+        result = pd.json_normalize(state_data, "counties")
 
         expected = []
         for rec in state_data:
             expected.extend(rec["counties"])
-        expected = DataFrame(expected)
+        expected = pd.DataFrame(expected)
 
         tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(state_data, "counties", meta="state")
+        result = pd.json_normalize(state_data, "counties", meta="state")
         expected["state"] = np.array(["Florida", "Ohio"]).repeat([3, 2])
 
         tm.assert_frame_equal(result, expected)
@@ -146,19 +141,19 @@ class TestJSONNormalize:
         parse_metadata_fields_list_type = [
             {"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}
         ]
-        result = json_normalize(
+        result = pd.json_normalize(
             parse_metadata_fields_list_type,
             record_path=["values"],
             meta=[["metadata", "listdata"]],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {0: [1, 2, 3], "metadata.listdata": [[1, 2], [1, 2], [1, 2]]}
         )
         tm.assert_frame_equal(result, expected)
 
     def test_empty_array(self):
-        result = json_normalize([])
-        expected = DataFrame()
+        result = pd.json_normalize([])
+        expected = pd.DataFrame()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -173,46 +168,48 @@ class TestJSONNormalize:
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
             with pytest.raises(exception_type, match="^$"):
-                json_normalize(data, record_path=record_path)
+                pd.json_normalize(data, record_path=record_path)
         else:
-            result = json_normalize(data, record_path=record_path)
-            expected = DataFrame([0, 1], columns=["a"])
+            result = pd.json_normalize(data, record_path=record_path)
+            expected = pd.DataFrame([0, 1], columns=["a"])
             tm.assert_frame_equal(result, expected)
 
     def test_simple_normalize_with_separator(self, deep_nested):
         # GH 14883
-        result = json_normalize({"A": {"A": 1, "B": 2}})
-        expected = DataFrame([[1, 2]], columns=["A.A", "A.B"])
+        result = pd.json_normalize({"A": {"A": 1, "B": 2}})
+        expected = pd.DataFrame([[1, 2]], columns=["A.A", "A.B"])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-        result = json_normalize({"A": {"A": 1, "B": 2}}, sep="_")
-        expected = DataFrame([[1, 2]], columns=["A_A", "A_B"])
+        result = pd.json_normalize({"A": {"A": 1, "B": 2}}, sep="_")
+        expected = pd.DataFrame([[1, 2]], columns=["A_A", "A_B"])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-        result = json_normalize({"A": {"A": 1, "B": 2}}, sep="\u03c3")
-        expected = DataFrame([[1, 2]], columns=["A\u03c3A", "A\u03c3B"])
+        result = pd.json_normalize({"A": {"A": 1, "B": 2}}, sep="\u03c3")
+        expected = pd.DataFrame([[1, 2]], columns=["A\u03c3A", "A\u03c3B"])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-        result = json_normalize(
+        result = pd.json_normalize(
             deep_nested,
             ["states", "cities"],
             meta=["country", ["states", "name"]],
             sep="_",
         )
-        expected = Index(["name", "pop", "country", "states_name"]).sort_values()
+        expected = pd.Index(["name", "pop", "country", "states_name"]).sort_values()
         assert result.columns.sort_values().equals(expected)
 
     def test_normalize_with_multichar_separator(self):
         # GH #43831
         data = {"a": [1, 2], "b": {"b_1": 2, "b_2": (3, 4)}}
-        result = json_normalize(data, sep="__")
-        expected = DataFrame([[[1, 2], 2, (3, 4)]], columns=["a", "b__b_1", "b__b_2"])
+        result = pd.json_normalize(data, sep="__")
+        expected = pd.DataFrame(
+            [[[1, 2], 2, (3, 4)]], columns=["a", "b__b_1", "b__b_2"]
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_value_array_record_prefix(self):
         # GH 21536
-        result = json_normalize({"A": [1, 2]}, "A", record_prefix="Prefix.")
-        expected = DataFrame([[1], [2]], columns=["Prefix.0"])
+        result = pd.json_normalize({"A": [1, 2]}, "A", record_prefix="Prefix.")
+        expected = pd.DataFrame([[1], [2]], columns=["Prefix.0"])
         tm.assert_frame_equal(result, expected)
 
     def test_nested_object_record_path(self):
@@ -228,15 +225,15 @@ class TestJSONNormalize:
                 ],
             },
         }
-        result = json_normalize(data, record_path=["info", "counties"])
-        expected = DataFrame(
+        result = pd.json_normalize(data, record_path=["info", "counties"])
+        expected = pd.DataFrame(
             [["Dade", 12345], ["Broward", 40000], ["Palm Beach", 60000]],
             columns=["name", "population"],
         )
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):
-        result = json_normalize(
+        result = pd.json_normalize(
             deep_nested, ["states", "cities"], meta=["country", ["states", "name"]]
         )
         ex_data = {
@@ -262,7 +259,7 @@ class TestJSONNormalize:
             "pop": [12345, 12346, 1234, 1236, 12347, 1238, 1239],
         }
 
-        expected = DataFrame(ex_data, columns=result.columns)
+        expected = pd.DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
     def test_shallow_nested(self):
@@ -288,7 +285,7 @@ class TestJSONNormalize:
             },
         ]
 
-        result = json_normalize(
+        result = pd.json_normalize(
             data, "counties", ["state", "shortname", ["info", "governor"]]
         )
         ex_data = {
@@ -298,12 +295,12 @@ class TestJSONNormalize:
             "info.governor": ["Rick Scott"] * 3 + ["John Kasich"] * 2,
             "population": [12345, 40000, 60000, 1234, 1337],
         }
-        expected = DataFrame(ex_data, columns=result.columns)
+        expected = pd.DataFrame(ex_data, columns=result.columns)
         tm.assert_frame_equal(result, expected)
 
     def test_nested_meta_path_with_nested_record_path(self, state_data):
         # GH 27220
-        result = json_normalize(
+        result = pd.json_normalize(
             data=state_data,
             record_path=["counties"],
             meta=["state", "shortname", ["info", "governor"]],
@@ -318,7 +315,7 @@ class TestJSONNormalize:
             "info.governor": ["Rick Scott"] * 3 + ["John Kasich"] * 2,
         }
 
-        expected = DataFrame(ex_data)
+        expected = pd.DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
     def test_meta_name_conflict(self):
@@ -335,9 +332,11 @@ class TestJSONNormalize:
 
         msg = r"Conflicting metadata name (foo|bar), need distinguishing prefix"
         with pytest.raises(ValueError, match=msg):
-            json_normalize(data, "data", meta=["foo", "bar"])
+            pd.json_normalize(data, "data", meta=["foo", "bar"])
 
-        result = json_normalize(data, "data", meta=["foo", "bar"], meta_prefix="meta")
+        result = pd.json_normalize(
+            data, "data", meta=["foo", "bar"], meta_prefix="meta"
+        )
 
         for val in ["metafoo", "metabar", "foo", "bar"]:
             assert val in result
@@ -356,25 +355,25 @@ class TestJSONNormalize:
         ]
 
         COLUMNS = ["foo", "bar"]
-        result = json_normalize(data, "data", meta=COLUMNS, meta_prefix="meta")
+        result = pd.json_normalize(data, "data", meta=COLUMNS, meta_prefix="meta")
 
         assert COLUMNS == ["foo", "bar"]
         for val in ["metafoo", "metabar", "foo", "bar"]:
             assert val in result
 
     def test_record_prefix(self, state_data):
-        result = json_normalize(state_data[0], "counties")
-        expected = DataFrame(state_data[0]["counties"])
+        result = pd.json_normalize(state_data[0], "counties")
+        expected = pd.DataFrame(state_data[0]["counties"])
         tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(
+        result = pd.json_normalize(
             state_data, "counties", meta="state", record_prefix="county_"
         )
 
         expected = []
         for rec in state_data:
             expected.extend(rec["counties"])
-        expected = DataFrame(expected)
+        expected = pd.DataFrame(expected)
         expected = expected.rename(columns=lambda x: "county_" + x)
         expected["state"] = np.array(["Florida", "Ohio"]).repeat([3, 2])
 
@@ -382,9 +381,9 @@ class TestJSONNormalize:
 
     def test_record_prefix_no_record_path_series(self):
         # Ensure record_prefix is applied when record_path is None for Series input
-        s = Series([{"k": f"{i}", "m": "q"} for i in range(3)])
-        result = json_normalize(s, record_prefix="T.")
-        expected = DataFrame(
+        s = pd.Series([{"k": f"{i}", "m": "q"} for i in range(3)])
+        result = pd.json_normalize(s, record_prefix="T.")
+        expected = pd.DataFrame(
             [
                 {"T.k": "0", "T.m": "q"},
                 {"T.k": "1", "T.m": "q"},
@@ -404,9 +403,9 @@ class TestJSONNormalize:
             "sub.A": [1, 3],
             "sub.B": [2, 4],
         }
-        expected = DataFrame(testdata)
+        expected = pd.DataFrame(testdata)
 
-        result = json_normalize(json.loads(testjson))
+        result = pd.json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
     def test_missing_field(self):
@@ -418,7 +417,7 @@ class TestJSONNormalize:
                 "author_name": {"first": "Jane", "last_name": "Doe"},
             },
         ]
-        result = json_normalize(author_missing_data)
+        result = pd.json_normalize(author_missing_data)
         ex_data = [
             {
                 "info": np.nan,
@@ -435,7 +434,7 @@ class TestJSONNormalize:
                 "author_name.last_name": "Doe",
             },
         ]
-        expected = DataFrame(ex_data)
+        expected = pd.DataFrame(ex_data)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -502,13 +501,13 @@ class TestJSONNormalize:
             }
         ]
 
-        result = json_normalize(
+        result = pd.json_normalize(
             test_input,
             record_path=["Lookup"],
             meta=[["CreatedBy"], ["Image"]],
             max_level=max_level,
         )
-        expected_df = DataFrame(data=expected, columns=result.columns.values)
+        expected_df = pd.DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
     @pytest.mark.parametrize("max_level", [0, None])
@@ -516,18 +515,18 @@ class TestJSONNormalize:
         # gh-62829, gh-64188
         data_list = [np.nan, {"id": 12}, {"id": 13}]
 
-        result = json_normalize(data_list, max_level=max_level)
-        expected = DataFrame({"id": [np.nan, 12, 13]})
+        result = pd.json_normalize(data_list, max_level=max_level)
+        expected = pd.DataFrame({"id": [np.nan, 12, 13]})
         tm.assert_frame_equal(result, expected)
 
         msg = "All items in data must be of type dict or NA-like, found float"
         with pytest.raises(TypeError, match=msg):
-            json_normalize([1.0, {"id": 12}], max_level=max_level)
+            pd.json_normalize([1.0, {"id": 12}], max_level=max_level)
 
     def test_nested_flattening_consistent(self):
         # see gh-21537
-        df1 = json_normalize([{"A": {"B": 1}}])
-        df2 = json_normalize({"dummy": [{"A": {"B": 1}}]}, "dummy")
+        df1 = pd.json_normalize([{"A": {"B": 1}}])
+        df2 = pd.json_normalize({"dummy": [{"A": {"B": 1}}]}, "dummy")
 
         # They should be the same.
         tm.assert_frame_equal(df1, df2)
@@ -535,14 +534,14 @@ class TestJSONNormalize:
     def test_nonetype_record_path(self, nulls_fixture):
         # see gh-30148
         # should not raise TypeError
-        result = json_normalize(
+        result = pd.json_normalize(
             [
                 {"state": "Texas", "info": nulls_fixture},
                 {"state": "Florida", "info": [{"i": 2}]},
             ],
             record_path=["info"],
         )
-        expected = DataFrame({"i": 2}, index=range(1))
+        expected = pd.DataFrame({"i": 2}, index=range(1))
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])
@@ -556,14 +555,14 @@ class TestJSONNormalize:
             f"but got {type(parsed_value).__name__} at 'info'"
         )
         with pytest.raises(TypeError, match=msg):
-            json_normalize([test_input], record_path=[test_path])
+            pd.json_normalize([test_input], record_path=[test_path])
 
     def test_meta_non_iterable(self):
         # GH 31507
         data = """[{"id": 99, "data": [{"one": 1, "two": 2}]}]"""
 
-        result = json_normalize(json.loads(data), record_path=["data"], meta=["id"])
-        expected = DataFrame(
+        result = pd.json_normalize(json.loads(data), record_path=["data"], meta=["id"])
+        expected = pd.DataFrame(
             {"one": [1], "two": [2], "id": np.array([99], dtype=object)}
         )
         tm.assert_frame_equal(result, expected)
@@ -574,25 +573,25 @@ class TestJSONNormalize:
         def generator_data():
             yield from state_data[0]["counties"]
 
-        result = json_normalize(generator_data())
-        expected = DataFrame(state_data[0]["counties"])
+        result = pd.json_normalize(generator_data())
+        expected = pd.DataFrame(state_data[0]["counties"])
 
         tm.assert_frame_equal(result, expected)
 
     def test_top_column_with_leading_underscore(self):
         # 49861
         data = {"_id": {"a1": 10, "l2": {"l3": 0}}, "gg": 4}
-        result = json_normalize(data, sep="_")
-        expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
+        result = pd.json_normalize(data, sep="_")
+        expected = pd.DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
 
     def test_series_index(self, state_data):
-        idx = Index([7, 8])
-        series = Series(state_data, index=idx)
-        result = json_normalize(series)
+        idx = pd.Index([7, 8])
+        series = pd.Series(state_data, index=idx)
+        result = pd.json_normalize(series)
         tm.assert_index_equal(result.index, idx)
-        result = json_normalize(series, "counties")
+        result = pd.json_normalize(series, "counties")
         tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
 
@@ -640,7 +639,7 @@ class TestNestedToRecord:
             "'name' with np.nan, pass in errors='ignore'"
         )
         with pytest.raises(KeyError, match=msg):
-            json_normalize(
+            pd.json_normalize(
                 data=missing_metadata,
                 record_path="addresses",
                 meta="name",
@@ -651,7 +650,7 @@ class TestNestedToRecord:
         # GH25468
         # If metadata is nullable with errors set to ignore, the null values
         # should be numpy.nan values
-        result = json_normalize(
+        result = pd.json_normalize(
             data=missing_metadata, record_path="addresses", meta="name", errors="ignore"
         )
         ex_data = [
@@ -659,14 +658,14 @@ class TestNestedToRecord:
             [8449, "Spring St.", "Elizabethton", "TN", 37643, np.nan],
         ]
         columns = ["number", "street", "city", "state", "zip", "name"]
-        expected = DataFrame(ex_data, columns=columns)
+        expected = pd.DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
     def test_missing_nested_meta(self):
         # GH44312
         # If errors="ignore" and nested metadata is null, we should return nan
         data = {"meta": "foo", "nested_meta": None, "value": [{"rec": 1}, {"rec": 2}]}
-        result = json_normalize(
+        result = pd.json_normalize(
             data,
             record_path="value",
             meta=["meta", ["nested_meta", "leaf"]],
@@ -674,7 +673,7 @@ class TestNestedToRecord:
         )
         ex_data = [[1, "foo", np.nan], [2, "foo", np.nan]]
         columns = ["rec", "meta", "nested_meta.leaf"]
-        expected = DataFrame(ex_data, columns=columns).astype(
+        expected = pd.DataFrame(ex_data, columns=columns).astype(
             {"nested_meta.leaf": object}
         )
         tm.assert_frame_equal(result, expected)
@@ -682,7 +681,7 @@ class TestNestedToRecord:
         # If errors="raise" and nested metadata is null, we should raise with the
         # key of the first missing level
         with pytest.raises(KeyError, match="'leaf' not found"):
-            json_normalize(
+            pd.json_normalize(
                 data,
                 record_path="value",
                 meta=["meta", ["nested_meta", "leaf"]],
@@ -698,7 +697,7 @@ class TestNestedToRecord:
             "'name' with np.nan, pass in errors='ignore'"
         )
         with pytest.raises(KeyError, match=msg):
-            json_normalize(
+            pd.json_normalize(
                 data=missing_metadata,
                 record_path=["previous_residences", "cities"],
                 meta="name",
@@ -709,7 +708,7 @@ class TestNestedToRecord:
         # GH41876
         # Ensure errors='ignore' works as intended even when a record_path of length
         # greater than one is passed in
-        result = json_normalize(
+        result = pd.json_normalize(
             data=missing_metadata,
             record_path=["previous_residences", "cities"],
             meta="name",
@@ -720,7 +719,7 @@ class TestNestedToRecord:
             ["Barmingham", np.nan],
         ]
         columns = ["city_name", "name"]
-        expected = DataFrame(ex_data, columns=columns)
+        expected = pd.DataFrame(ex_data, columns=columns)
         tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
@@ -915,10 +914,10 @@ class TestNestedToRecord:
             1: {"id": 2, "name": "Bar", "elements": {"b": 2}},
             2: {"id": 3, "name": "Baz", "elements": {"c": 3}},
         }
-        s = Series(data)
+        s = pd.Series(data)
         s.index = [1, 2, 3]
-        result = json_normalize(s)
-        expected = DataFrame(
+        result = pd.json_normalize(s)
+        expected = pd.DataFrame(
             {
                 "id": [1, 2, 3],
                 "name": ["Foo", "Bar", "Baz"],
@@ -936,7 +935,7 @@ class TestNestedToRecord:
 
         # Test non-string meta raises TypeError consistently
         with pytest.raises(TypeError, match="must be strings"):
-            json_normalize(data, meta=[12])
+            pd.json_normalize(data, meta=[12])
 
         with pytest.raises(TypeError, match="must be strings"):
-            json_normalize(data, record_path=["nested"], meta=[12])
+            pd.json_normalize(data, record_path=["nested"], meta=[12])

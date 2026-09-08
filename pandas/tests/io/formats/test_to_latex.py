@@ -4,10 +4,6 @@ from textwrap import dedent
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
 
 pytest.importorskip("jinja2")
 
@@ -25,7 +21,7 @@ def _dedent(string):
 @pytest.fixture
 def df_short():
     """Short dataframe for testing table/tabular/longtable LaTeX env."""
-    return DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+    return pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
 
 
 class TestToLatex:
@@ -36,20 +32,20 @@ class TestToLatex:
 
     def test_to_latex_to_file_utf8_with_encoding(self, temp_file):
         # test with utf-8 and encoding option (GH 7061)
-        df = DataFrame([["au\xdfgangen"]])
+        df = pd.DataFrame([["au\xdfgangen"]])
         df.to_latex(temp_file, encoding="utf-8")
         with open(temp_file, encoding="utf-8") as f:
             assert df.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_without_encoding(self, temp_file):
         # test with utf-8 without encoding option
-        df = DataFrame([["au\xdfgangen"]])
+        df = pd.DataFrame([["au\xdfgangen"]])
         df.to_latex(temp_file)
         with open(temp_file, encoding="utf-8") as f:
             assert df.to_latex() == f.read()
 
     def test_to_latex_tabular_with_index(self):
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex()
         expected = _dedent(
             r"""
@@ -66,7 +62,7 @@ class TestToLatex:
         assert result == expected
 
     def test_to_latex_tabular_without_index(self):
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(index=False)
         expected = _dedent(
             r"""
@@ -87,7 +83,7 @@ class TestToLatex:
         [5, 1.2, ["l", "r"], ("r", "c"), {"r", "c", "l"}, {"a": "r", "b": "l"}],
     )
     def test_to_latex_bad_column_format(self, bad_column_format):
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         msg = r"`column_format` must be str or unicode"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(column_format=bad_column_format)
@@ -97,7 +93,7 @@ class TestToLatex:
         float_frame.to_latex(column_format="lcr")
 
     def test_to_latex_column_format(self):
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(column_format="lcr")
         expected = _dedent(
             r"""
@@ -115,7 +111,7 @@ class TestToLatex:
 
     def test_to_latex_float_format_object_col(self):
         # GH#40024
-        ser = Series([1000.0, "test"])
+        ser = pd.Series([1000.0, "test"])
         result = ser.to_latex(float_format="{:,.0f}".format)
         expected = _dedent(
             r"""
@@ -132,7 +128,7 @@ class TestToLatex:
         assert result == expected
 
     def test_to_latex_empty_tabular(self):
-        df = DataFrame()
+        df = pd.DataFrame()
         result = df.to_latex()
         expected = _dedent(
             r"""
@@ -146,7 +142,7 @@ class TestToLatex:
         assert result == expected
 
     def test_to_latex_series(self):
-        s = Series(["a", "b", "c"])
+        s = pd.Series(["a", "b", "c"])
         result = s.to_latex()
         expected = _dedent(
             r"""
@@ -165,7 +161,7 @@ class TestToLatex:
 
     def test_to_latex_midrule_location(self):
         # GH 18326
-        df = DataFrame({"a": [1, 2]})
+        df = pd.DataFrame({"a": [1, 2]})
         df.index.name = "foo"
         result = df.to_latex(index_names=False)
         expected = _dedent(
@@ -185,7 +181,7 @@ class TestToLatex:
 
 class TestToLatexLongtable:
     def test_to_latex_empty_longtable(self):
-        df = DataFrame()
+        df = pd.DataFrame()
         result = df.to_latex(longtable=True)
         expected = _dedent(
             r"""
@@ -208,7 +204,7 @@ class TestToLatexLongtable:
         assert result == expected
 
     def test_to_latex_longtable_with_index(self):
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(longtable=True)
         expected = _dedent(
             r"""
@@ -235,7 +231,7 @@ class TestToLatexLongtable:
         assert result == expected
 
     def test_to_latex_longtable_without_index(self):
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(index=False, longtable=True)
         expected = _dedent(
             r"""
@@ -270,7 +266,7 @@ class TestToLatexLongtable:
         ],
     )
     def test_to_latex_longtable_continued_on_next_page(self, df_data, expected_number):
-        df = DataFrame(df_data)
+        df = pd.DataFrame(df_data)
         result = df.to_latex(index=False, longtable=True)
         assert rf"\multicolumn{{{expected_number}}}" in result
 
@@ -278,7 +274,7 @@ class TestToLatexLongtable:
 class TestToLatexHeader:
     def test_to_latex_no_header_with_index(self):
         # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=False)
         expected = _dedent(
             r"""
@@ -295,7 +291,7 @@ class TestToLatexHeader:
 
     def test_to_latex_no_header_without_index(self):
         # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(index=False, header=False)
         expected = _dedent(
             r"""
@@ -312,7 +308,7 @@ class TestToLatexHeader:
 
     def test_to_latex_specified_header_with_index(self):
         # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=["AA", "BB"])
         expected = _dedent(
             r"""
@@ -330,7 +326,7 @@ class TestToLatexHeader:
 
     def test_to_latex_specified_header_without_index(self):
         # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=["AA", "BB"], index=False)
         expected = _dedent(
             r"""
@@ -361,14 +357,14 @@ class TestToLatexHeader:
         num_aliases,
     ):
         # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         msg = f"Writing 2 cols but got {num_aliases} aliases"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(header=header)
 
     def test_to_latex_decimal(self):
         # GH 12031
-        df = DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1.0, 2.1], "b": ["b1", "b2"]})
         result = df.to_latex(decimal=",")
         expected = _dedent(
             r"""
@@ -388,7 +384,7 @@ class TestToLatexHeader:
 class TestToLatexBold:
     def test_to_latex_bold_rows(self):
         # GH 16707
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(bold_rows=True)
         expected = _dedent(
             r"""
@@ -406,7 +402,7 @@ class TestToLatexBold:
 
     def test_to_latex_no_bold_rows(self):
         # GH 16707
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(bold_rows=False)
         expected = _dedent(
             r"""
@@ -582,7 +578,7 @@ class TestToLatexCaptionLabel:
     )
     def test_to_latex_bad_caption_raises(self, bad_caption):
         # test that wrong number of params is raised
-        df = DataFrame({"a": [1]})
+        df = pd.DataFrame({"a": [1]})
         msg = "`caption` must be either a string or 2-tuple of strings"
         with pytest.raises(ValueError, match=msg):
             df.to_latex(caption=bad_caption)
@@ -751,7 +747,7 @@ class TestToLatexEscape:
         """Dataframe with special characters for testing chars escaping."""
         a = "a"
         b = "b"
-        return DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
+        return pd.DataFrame({"co$e^x$": {a: "a", b: "b"}, "co^l1": {a: "a", b: "b"}})
 
     def test_to_latex_escape_false(self, df_with_symbols):
         result = df_with_symbols.to_latex(escape=False)
@@ -776,7 +772,7 @@ class TestToLatexEscape:
         assert default != specified_true
 
     def test_to_latex_special_escape(self):
-        df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
+        df = pd.DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
         result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
@@ -795,7 +791,7 @@ class TestToLatexEscape:
 
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
-        df = DataFrame(data=special_characters)
+        df = pd.DataFrame(data=special_characters)
         result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
@@ -823,7 +819,7 @@ class TestToLatexEscape:
         # https://github.com/pandas-dev/pandas/issues/61309
         # https://github.com/pandas-dev/pandas/issues/57362
         index = "&%$#_{}}~^\\"
-        df = DataFrame({index: [1, 2, 3]}).set_index(index)
+        df = pd.DataFrame({index: [1, 2, 3]}).set_index(index)
         result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
@@ -841,7 +837,7 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_special_chars_in_column_name(self):
-        df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "c"]})
+        df = pd.DataFrame({"A": [1, 2, 3], "B": ["a", "b", "c"]})
         df.columns.name = "_^~"
         result = df.to_latex(escape=True)
         expected = _dedent(
@@ -861,7 +857,7 @@ class TestToLatexEscape:
 
     def test_to_latex_specified_header_special_chars_without_escape(self):
         # GH 7124
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(header=["$A$", "$B$"], escape=False)
         expected = _dedent(
             r"""
@@ -881,7 +877,7 @@ class TestToLatexEscape:
 class TestToLatexPosition:
     def test_to_latex_position(self):
         the_position = "h"
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(position=the_position)
         expected = _dedent(
             r"""
@@ -901,7 +897,7 @@ class TestToLatexPosition:
 
     def test_to_latex_longtable_position(self):
         the_position = "t"
-        df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
+        df = pd.DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         result = df.to_latex(longtable=True, position=the_position)
         expected = _dedent(
             r"""
@@ -930,7 +926,7 @@ class TestToLatexPosition:
 
 class TestToLatexFormatters:
     def test_to_latex_with_formatters(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "datetime64": [
                     datetime(2016, 1, 1),
@@ -969,7 +965,7 @@ class TestToLatexFormatters:
 
     def test_to_latex_float_format_no_fixed_width_3decimals(self):
         # GH 21625
-        df = DataFrame({"x": [0.19999]})
+        df = pd.DataFrame({"x": [0.19999]})
         result = df.to_latex(float_format="%.3f")
         expected = _dedent(
             r"""
@@ -986,7 +982,7 @@ class TestToLatexFormatters:
 
     def test_to_latex_float_format_no_fixed_width_integer(self):
         # GH 22270
-        df = DataFrame({"x": [100.0]})
+        df = pd.DataFrame({"x": [100.0]})
         result = df.to_latex(float_format="%.0f")
         expected = _dedent(
             r"""
@@ -1003,7 +999,7 @@ class TestToLatexFormatters:
 
     @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
     def test_to_latex_na_rep_and_float_format(self, na_rep):
-        df = DataFrame(
+        df = pd.DataFrame(
             [
                 ["A", 1.2225],
                 ["A", None],
@@ -1030,20 +1026,20 @@ class TestToLatexMultiindex:
     @pytest.fixture
     def multiindex_frame(self):
         """Multiindex dataframe for testing multirow LaTeX macros."""
-        return DataFrame.from_dict(
+        return pd.DataFrame.from_dict(
             {
-                ("c1", 0): Series({x: x for x in range(4)}),
-                ("c1", 1): Series({x: x + 4 for x in range(4)}),
-                ("c2", 0): Series({x: x for x in range(4)}),
-                ("c2", 1): Series({x: x + 4 for x in range(4)}),
-                ("c3", 0): Series({x: x for x in range(4)}),
+                ("c1", 0): pd.Series({x: x for x in range(4)}),
+                ("c1", 1): pd.Series({x: x + 4 for x in range(4)}),
+                ("c2", 0): pd.Series({x: x for x in range(4)}),
+                ("c2", 1): pd.Series({x: x + 4 for x in range(4)}),
+                ("c3", 0): pd.Series({x: x for x in range(4)}),
             }
         ).T
 
     @pytest.fixture
     def multicolumn_frame(self):
         """Multicolumn dataframe for testing multicolumn LaTeX macros."""
-        return DataFrame(
+        return pd.DataFrame(
             {
                 ("c1", 0): {x: x for x in range(5)},
                 ("c1", 1): {x: x + 5 for x in range(5)},
@@ -1055,7 +1051,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multindex_header(self):
         # GH 16718
-        df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
+        df = pd.DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
         df = df.set_index(["a", "b"])
         observed = df.to_latex(header=["r1", "r2"], multirow=False)
         expected = _dedent(
@@ -1075,7 +1071,7 @@ class TestToLatexMultiindex:
     def test_to_latex_multiindex_empty_name(self):
         # GH 18669
         mi = pd.MultiIndex.from_product([[1, 2]], names=[""])
-        df = DataFrame(-1, index=mi, columns=range(4))
+        df = pd.DataFrame(-1, index=mi, columns=range(4))
         observed = df.to_latex()
         expected = _dedent(
             r"""
@@ -1093,7 +1089,7 @@ class TestToLatexMultiindex:
         assert observed == expected
 
     def test_to_latex_multiindex_column_tabular(self):
-        df = DataFrame({("x", "y"): ["a"]})
+        df = pd.DataFrame({("x", "y"): ["a"]})
         result = df.to_latex()
         expected = _dedent(
             r"""
@@ -1110,7 +1106,7 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multiindex_small_tabular(self):
-        df = DataFrame({("x", "y"): ["a"]}).T
+        df = pd.DataFrame({("x", "y"): ["a"]}).T
         result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
@@ -1168,7 +1164,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
-        df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
+        df = pd.DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
         result = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
@@ -1189,7 +1185,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_groupby_tabular(self):
         # GH 10660
-        df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
+        df = pd.DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
         result = (
             df.groupby("a")
             .describe()
@@ -1219,7 +1215,7 @@ class TestToLatexMultiindex:
         # ONLY happen if all higher order indices (to the left) are
         # equal too. In this test, 'c' has to be printed both times
         # because the higher order index 'A' != 'B'.
-        df = DataFrame(
+        df = pd.DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
         result = df.to_latex(multirow=False)
@@ -1334,7 +1330,7 @@ class TestToLatexMultiindex:
         # GH 18667
         names = [name0, name1]
         mi = pd.MultiIndex.from_product([[1, 2], [3, 4]])
-        df = DataFrame(-1, index=mi.copy(), columns=mi.copy())
+        df = pd.DataFrame(-1, index=mi.copy(), columns=mi.copy())
         for idx in axes:
             df.axes[idx].names = names
 
@@ -1363,7 +1359,7 @@ class TestToLatexMultiindex:
     @pytest.mark.parametrize("one_row", [True, False])
     def test_to_latex_multiindex_nans(self, one_row):
         # GH 14249
-        df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
+        df = pd.DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
         observed = df.set_index(["a", "b"]).to_latex(multirow=False)
@@ -1387,7 +1383,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_non_string_index(self):
         # GH 19981
-        df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
+        df = pd.DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
         result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
@@ -1409,7 +1405,7 @@ class TestToLatexMultiindex:
         mi = pd.MultiIndex.from_product(
             [[0.0, 1.0], [3.0, 2.0, 1.0], ["0", "1"]], names=["i", "val0", "val1"]
         )
-        df = DataFrame(index=mi)
+        df = pd.DataFrame(index=mi)
         result = df.to_latex(multirow=True, escape=False)
         expected = _dedent(
             r"""
@@ -1443,7 +1439,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multiindex_format_single_index_hidden(self):
         # GH 52218
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2],
                 "B": [4, 5],
@@ -1473,7 +1469,7 @@ class TestToLatexMultiindex:
         index = pd.MultiIndex.from_arrays(
             arrays, names=["Level 0", "Level 1", "Level 2"]
         )
-        df = DataFrame(
+        df = pd.DataFrame(
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
             index=index,
             columns=["C1", "C2", "C3"],
@@ -1505,7 +1501,7 @@ class TestToLatexMultiindex:
         index = pd.MultiIndex.from_arrays(
             arrays, names=["Level 0", "Level 1", "Level 2"]
         )
-        df = DataFrame(
+        df = pd.DataFrame(
             [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
             index=index,
             columns=["C1", "C2", "C3"],

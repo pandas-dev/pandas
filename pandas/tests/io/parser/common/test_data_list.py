@@ -8,7 +8,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers import TextParser
@@ -84,5 +84,5 @@ foo
 bar"""
 
     result = parser.read_csv(StringIO(data), header=None)
-    expected = DataFrame(["foo", "bar baz", "qux foo", "foo", "bar"])
+    expected = pd.DataFrame(["foo", "bar baz", "qux foo", "foo", "bar"])
     tm.assert_frame_equal(result, expected)

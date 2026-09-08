@@ -70,6 +70,7 @@ Modifying and computations
    Index.reindex
    Index.rename
    Index.repeat
+   Index.replace
    Index.where
    Index.take
    Index.putmask

@@ -1,22 +1,15 @@
 import pytest
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    Series,
-    _testing as tm,
-    date_range,
-    errors,
-    read_hdf,
-)
+import pandas as pd
+import pandas._testing as tm
 
 pytestmark = pytest.mark.single_cpu
 
 
 def test_retain_index_attributes(temp_hdfstore, unit):
     # GH 3499, losing frequency info on index recreation
-    dti = date_range("2000-1-1", periods=3, freq="h", unit=unit)
-    df = DataFrame({"A": Series(range(3), index=dti)})
+    dti = pd.date_range("2000-1-1", periods=3, freq="h", unit=unit)
+    df = pd.DataFrame({"A": pd.Series(range(3), index=dti)})
 
     temp_hdfstore.put("data", df, format="table", track_times=False)
 
@@ -29,70 +22,78 @@ def test_retain_index_attributes(temp_hdfstore, unit):
                 getattr(result, idx), attr, None
             )
 
-    dti2 = date_range("2002-1-1", periods=3, freq="D", unit=unit)
+    dti2 = pd.date_range("2002-1-1", periods=3, freq="D", unit=unit)
     # try to append a table with a different frequency
     msg = r"the \[freq\] attribute of the existing index"
-    with tm.assert_produces_warning(errors.AttributeConflictWarning, match=msg):
-        df2 = DataFrame({"A": Series(range(3), index=dti2)})
+    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning, match=msg):
+        df2 = pd.DataFrame({"A": pd.Series(range(3), index=dti2)})
         temp_hdfstore.append("data", df2)
 
     assert temp_hdfstore.get_storer("data").info["index"]["freq"] is None
 
     # this is ok
-    dti3 = DatetimeIndex(
+    dti3 = pd.DatetimeIndex(
         ["2001-01-01", "2001-01-02", "2002-01-01"], dtype=f"M8[{unit}]"
     )
-    df2 = DataFrame(
+    df2 = pd.DataFrame(
         {
-            "A": Series(
+            "A": pd.Series(
                 range(3),
                 index=dti3,
             )
         }
     )
     temp_hdfstore.append("df2", df2)
-    dti4 = date_range("2002-1-1", periods=3, freq="D", unit=unit)
-    df3 = DataFrame({"A": Series(range(3), index=dti4)})
+    dti4 = pd.date_range("2002-1-1", periods=3, freq="D", unit=unit)
+    df3 = pd.DataFrame({"A": pd.Series(range(3), index=dti4)})
     temp_hdfstore.append("df2", df3)
 
 
 def test_retain_index_attributes2(temp_h5_path):
     msg = r"the \[freq\] attribute of the existing index"
-    with tm.assert_produces_warning(errors.AttributeConflictWarning, match=msg):
-        df = DataFrame(
-            {"A": Series(range(3), index=date_range("2000-1-1", periods=3, freq="h"))}
+    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning, match=msg):
+        df = pd.DataFrame(
+            {
+                "A": pd.Series(
+                    range(3), index=pd.date_range("2000-1-1", periods=3, freq="h")
+                )
+            }
         )
         df.to_hdf(temp_h5_path, key="data", mode="w", append=True)
-        df2 = DataFrame(
-            {"A": Series(range(3), index=date_range("2002-1-1", periods=3, freq="D"))}
+        df2 = pd.DataFrame(
+            {
+                "A": pd.Series(
+                    range(3), index=pd.date_range("2002-1-1", periods=3, freq="D")
+                )
+            }
         )
 
         df2.to_hdf(temp_h5_path, key="data", append=True)
 
-        idx = date_range("2000-1-1", periods=3, freq="h")
+        idx = pd.date_range("2000-1-1", periods=3, freq="h")
         idx.name = "foo"
-        df = DataFrame({"A": Series(range(3), index=idx)})
+        df = pd.DataFrame({"A": pd.Series(range(3), index=idx)})
         df.to_hdf(temp_h5_path, key="data", mode="w", append=True)
 
-    assert read_hdf(temp_h5_path, key="data").index.name == "foo"
+    assert pd.read_hdf(temp_h5_path, key="data").index.name == "foo"
 
     msg = r"the \[index_name\] attribute of the existing index"
-    with tm.assert_produces_warning(errors.AttributeConflictWarning, match=msg):
-        idx2 = date_range("2001-1-1", periods=3, freq="h")
+    with tm.assert_produces_warning(pd.errors.AttributeConflictWarning, match=msg):
+        idx2 = pd.date_range("2001-1-1", periods=3, freq="h")
         idx2.name = "bar"
-        df2 = DataFrame({"A": Series(range(3), index=idx2)})
+        df2 = pd.DataFrame({"A": pd.Series(range(3), index=idx2)})
         df2.to_hdf(temp_h5_path, key="data", append=True)
 
-    assert read_hdf(temp_h5_path, "data").index.name is None
+    assert pd.read_hdf(temp_h5_path, "data").index.name is None
 
 
 def test_retain_datetime_attribute(temp_h5_path):
-    ser = Series(
+    ser = pd.Series(
         ["2024-08-26 15:13:14", "2024-08-26 15:14:14"],
         dtype="datetime64[us, UTC]",
     )
-    dataframe = DataFrame(ser)
+    dataframe = pd.DataFrame(ser)
     dataframe.to_hdf(temp_h5_path, key="Annotations", mode="w")
 
-    recovered_dataframe = read_hdf(temp_h5_path, key="Annotations")
+    recovered_dataframe = pd.read_hdf(temp_h5_path, key="Annotations")
     tm.assert_frame_equal(dataframe, recovered_dataframe)

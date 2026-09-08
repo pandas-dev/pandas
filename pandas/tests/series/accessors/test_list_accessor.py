@@ -2,10 +2,7 @@ import re
 
 import pytest
 
-from pandas import (
-    ArrowDtype,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
@@ -20,26 +17,26 @@ pa = pytest.importorskip("pyarrow")
     ),
 )
 def test_list_getitem(list_dtype):
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(list_dtype),
+        dtype=pd.ArrowDtype(list_dtype),
         name="a",
     )
     actual = ser.list[1]
-    expected = Series([2, None, None], dtype="int64[pyarrow]", name="a")
+    expected = pd.Series([2, None, None], dtype="int64[pyarrow]", name="a")
     tm.assert_series_equal(actual, expected)
 
 
 def test_list_getitem_index():
     # GH 58425
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         index=[1, 3, 7],
         name="a",
     )
     actual = ser.list[1]
-    expected = Series(
+    expected = pd.Series(
         [2, None, None],
         dtype="int64[pyarrow]",
         index=[1, 3, 7],
@@ -49,16 +46,16 @@ def test_list_getitem_index():
 
 
 def test_list_getitem_slice():
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         index=[1, 3, 7],
         name="a",
     )
     actual = ser.list[1:None:None]
-    expected = Series(
+    expected = pd.Series(
         [[2, 3], [None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         index=[1, 3, 7],
         name="a",
     )
@@ -66,26 +63,26 @@ def test_list_getitem_slice():
 
 
 def test_list_len():
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         name="a",
     )
     actual = ser.list.len()
-    expected = Series([3, 2, None], dtype=ArrowDtype(pa.int32()), name="a")
+    expected = pd.Series([3, 2, None], dtype=pd.ArrowDtype(pa.int32()), name="a")
     tm.assert_series_equal(actual, expected)
 
 
 def test_list_flatten():
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], None, [4, None], [], [7, 8]],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         name="a",
     )
     actual = ser.list.flatten()
-    expected = Series(
+    expected = pd.Series(
         [1, 2, 3, 4, None, 7, 8],
-        dtype=ArrowDtype(pa.int64()),
+        dtype=pd.ArrowDtype(pa.int64()),
         index=[0, 0, 0, 2, 2, 4, 4],
         name="a",
     )
@@ -93,18 +90,18 @@ def test_list_flatten():
 
 
 def test_list_getitem_slice_invalid():
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
     )
     with tm.external_error_raised(pa.ArrowInvalid):
         ser.list[1:None:0]
 
 
 def test_list_accessor_non_list_dtype():
-    ser = Series(
+    ser = pd.Series(
         [1, 2, 4],
-        dtype=ArrowDtype(pa.int64()),
+        dtype=pd.ArrowDtype(pa.int64()),
     )
     with pytest.raises(
         AttributeError,
@@ -125,9 +122,9 @@ def test_list_accessor_non_list_dtype():
     ),
 )
 def test_list_getitem_invalid_index(list_dtype):
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None, 5], None],
-        dtype=ArrowDtype(list_dtype),
+        dtype=pd.ArrowDtype(list_dtype),
     )
     with tm.external_error_raised(pa.ArrowInvalid):
         ser.list[-1]
@@ -138,9 +135,9 @@ def test_list_getitem_invalid_index(list_dtype):
 
 
 def test_list_accessor_not_iterable():
-    ser = Series(
+    ser = pd.Series(
         [[1, 2, 3], [4, None], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        dtype=pd.ArrowDtype(pa.list_(pa.int64())),
     )
     with pytest.raises(TypeError, match="'ListAccessor' object is not iterable"):
         iter(ser.list)

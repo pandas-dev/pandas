@@ -7,17 +7,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-    interval_range,
-    period_range,
-    plotting,
-    read_csv,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_colors,
@@ -37,24 +27,24 @@ from pandas.plotting._matplotlib.style import get_standard_colors
 
 
 @pytest.fixture
-def iris(datapath) -> DataFrame:
+def iris(datapath) -> pd.DataFrame:
     """
     The iris dataset as a DataFrame.
     """
-    return read_csv(datapath("io", "data", "csv", "iris.csv"))
+    return pd.read_csv(datapath("io", "data", "csv", "iris.csv"))
 
 
 @td.skip_if_installed("matplotlib")
 def test_import_error_message():
     # GH-19810
-    df = DataFrame({"A": [1, 2]})
+    df = pd.DataFrame({"A": [1, 2]})
 
     with pytest.raises(ImportError, match="matplotlib is required for plotting"):
         df.plot()
 
 
 def test_get_accessor_args():
-    func = plotting._core.PlotAccessor._get_call_args
+    func = pd.plotting._core.PlotAccessor._get_call_args
 
     msg = "Called plot accessor for type list, expected Series or DataFrame"
     with pytest.raises(TypeError, match=msg):
@@ -62,11 +52,16 @@ def test_get_accessor_args():
 
     msg = "should not be called with positional arguments"
     with pytest.raises(TypeError, match=msg):
-        func(backend_name="", data=Series(dtype=object), args=["line", None], kwargs={})
+        func(
+            backend_name="",
+            data=pd.Series(dtype=object),
+            args=["line", None],
+            kwargs={},
+        )
 
     x, y, kind, kwargs = func(
         backend_name="",
-        data=DataFrame(),
+        data=pd.DataFrame(),
         args=["x"],
         kwargs={"y": "y", "kind": "bar", "grid": False},
     )
@@ -77,7 +72,7 @@ def test_get_accessor_args():
 
     x, y, kind, kwargs = func(
         backend_name="pandas.plotting._matplotlib",
-        data=Series(dtype=object),
+        data=pd.Series(dtype=object),
         args=[],
         kwargs={},
     )
@@ -87,16 +82,16 @@ def test_get_accessor_args():
     assert len(kwargs) == 24
 
 
-@pytest.mark.parametrize("kind", plotting.PlotAccessor._all_kinds)
+@pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._all_kinds)
 @pytest.mark.parametrize(
-    "data", [DataFrame(np.arange(15).reshape(5, 3)), Series(range(5))]
+    "data", [pd.DataFrame(np.arange(15).reshape(5, 3)), pd.Series(range(5))]
 )
 @pytest.mark.parametrize(
     "index",
     [
-        Index(range(5)),
-        date_range("2020-01-01", periods=5),
-        period_range("2020-01-01", periods=5),
+        pd.Index(range(5)),
+        pd.date_range("2020-01-01", periods=5),
+        pd.period_range("2020-01-01", periods=5),
     ],
 )
 def test_savefig(kind, data, index):
@@ -104,7 +99,7 @@ def test_savefig(kind, data, index):
     data.index = index
     kwargs = {}
     if kind in ["hexbin", "scatter", "pie"]:
-        if isinstance(data, Series):
+        if isinstance(data, pd.Series):
             pytest.skip(f"{kind} not supported with Series")
         kwargs = {"x": 0, "y": 1}
     data.plot(kind=kind, ax=ax, **kwargs)
@@ -113,48 +108,50 @@ def test_savefig(kind, data, index):
 
 class TestSeriesPlots:
     def test_autocorrelation_plot(self):
-        ser = Series(
+        ser = pd.Series(
             np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
+            index=pd.date_range("2020-01-01", periods=10),
             name="ts",
         )
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(plotting.autocorrelation_plot, series=ser)
-            _check_plot_works(plotting.autocorrelation_plot, series=ser.values)
+            _check_plot_works(pd.plotting.autocorrelation_plot, series=ser)
+            _check_plot_works(pd.plotting.autocorrelation_plot, series=ser.values)
 
-            ax = plotting.autocorrelation_plot(ser, label="Test")
+            ax = pd.plotting.autocorrelation_plot(ser, label="Test")
         _check_legend_labels(ax, labels=["Test"])
 
     @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
     def test_lag_plot(self, kwargs):
-        ser = Series(
+        ser = pd.Series(
             np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
+            index=pd.date_range("2020-01-01", periods=10),
             name="ts",
         )
-        _check_plot_works(plotting.lag_plot, series=ser, **kwargs)
+        _check_plot_works(pd.plotting.lag_plot, series=ser, **kwargs)
 
     def test_lag_plot_tz_aware(self):
         # GH#64613 lag_plot read Series.values, so it raised the lossy-.values
         #  deprecation from inside pandas and plotted in UTC rather than in the
         #  data's own timezone
-        ser = Series(date_range("2020-01-01", periods=10, tz="US/Pacific"), name="ts")
+        ser = pd.Series(
+            pd.date_range("2020-01-01", periods=10, tz="US/Pacific"), name="ts"
+        )
 
         with tm.assert_produces_warning(None):
-            ax = plotting.lag_plot(ser)
+            ax = pd.plotting.lag_plot(ser)
 
         expected = [mpl.dates.date2num(ser.iloc[0]), mpl.dates.date2num(ser.iloc[1])]
         assert list(ax.collections[0].get_offsets()[0]) == expected
 
     def test_bootstrap_plot(self):
-        ser = Series(
+        ser = pd.Series(
             np.arange(10, dtype=np.float64),
-            index=date_range("2020-01-01", periods=10),
+            index=pd.date_range("2020-01-01", periods=10),
             name="ts",
         )
         _check_plot_works(
-            plotting.bootstrap_plot, series=ser, size=10, default_axes=True
+            pd.plotting.bootstrap_plot, series=ser, size=10, default_axes=True
         )
 
 
@@ -162,13 +159,13 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
         pytest.importorskip("scipy")
-        scatter_matrix = plotting.scatter_matrix
+        scatter_matrix = pd.plotting.scatter_matrix
 
         ax = None
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
 
         # we are plotting multiples on a sub-plot
         msg = "the figure containing the passed axes is being cleared"
@@ -188,13 +185,13 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis_smaller(self, pass_axis):
         pytest.importorskip("scipy")
-        scatter_matrix = plotting.scatter_matrix
+        scatter_matrix = pd.plotting.scatter_matrix
 
         ax = None
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(11).standard_normal((10, 3)))
+        df = pd.DataFrame(np.random.default_rng(11).standard_normal((10, 3)))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -215,7 +212,9 @@ class TestDataFramePlots:
     def test_andrews_curves_no_warning(self, iris):
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(plotting.andrews_curves, frame=iris, class_column="Name")
+            _check_plot_works(
+                pd.plotting.andrews_curves, frame=iris, class_column="Name"
+            )
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -229,7 +228,7 @@ class TestDataFramePlots:
         "df",
         [
             "iris",
-            DataFrame(
+            pd.DataFrame(
                 {
                     "A": np.random.default_rng(2).standard_normal(10),
                     "B": np.random.default_rng(2).standard_normal(10),
@@ -243,7 +242,7 @@ class TestDataFramePlots:
         if isinstance(df, str):
             df = request.getfixturevalue(df)
         ax = _check_plot_works(
-            plotting.andrews_curves, frame=df, class_column="Name", color=linecolors
+            pd.plotting.andrews_curves, frame=df, class_column="Name", color=linecolors
         )
         _check_colors(
             ax.get_lines()[:10], linecolors=linecolors, mapping=df["Name"][:10]
@@ -254,7 +253,7 @@ class TestDataFramePlots:
         "df",
         [
             "iris",
-            DataFrame(
+            pd.DataFrame(
                 {
                     "A": np.random.default_rng(2).standard_normal(10),
                     "B": np.random.default_rng(2).standard_normal(10),
@@ -269,15 +268,17 @@ class TestDataFramePlots:
             df = request.getfixturevalue(df)
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         ax = _check_plot_works(
-            plotting.andrews_curves, frame=df, class_column="Name", color=cmaps
+            pd.plotting.andrews_curves, frame=df, class_column="Name", color=cmaps
         )
         _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
     @pytest.mark.slow
     def test_andrews_curves_handle(self):
         colors = ["b", "g", "r"]
-        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
-        ax = plotting.andrews_curves(df, "Name", color=colors)
+        df = pd.DataFrame(
+            {"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors}
+        )
+        ax = pd.plotting.andrews_curves(df, "Name", color=colors)
         handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
@@ -290,7 +291,7 @@ class TestDataFramePlots:
         df = iris
 
         ax = _check_plot_works(
-            plotting.parallel_coordinates, frame=df, class_column="Name", color=color
+            pd.plotting.parallel_coordinates, frame=df, class_column="Name", color=color
         )
         _check_colors(ax.get_lines()[:10], linecolors=color, mapping=df["Name"][:10])
 
@@ -299,7 +300,7 @@ class TestDataFramePlots:
         df = iris
 
         ax = _check_plot_works(
-            plotting.parallel_coordinates,
+            pd.plotting.parallel_coordinates,
             frame=df,
             class_column="Name",
             colormap=cm.jet,
@@ -311,11 +312,11 @@ class TestDataFramePlots:
         # GH#64613 parallel_coordinates read Series.values, so it raised the
         #  lossy-.values deprecation from inside pandas and plotted in UTC
         #  rather than in the data's own timezone
-        values = date_range("2020-01-01", periods=4, tz="US/Pacific")
-        df = DataFrame({"a": values, "b": values.shift(1), "kls": list("aabb")})
+        values = pd.date_range("2020-01-01", periods=4, tz="US/Pacific")
+        df = pd.DataFrame({"a": values, "b": values.shift(1), "kls": list("aabb")})
 
         with tm.assert_produces_warning(None):
-            ax = plotting.parallel_coordinates(df, "kls")
+            ax = pd.plotting.parallel_coordinates(df, "kls")
 
         expected = np.array([values[0], values[1]], dtype=object)
         tm.assert_numpy_array_equal(ax.get_lines()[0].get_ydata(), expected)
@@ -325,13 +326,16 @@ class TestDataFramePlots:
         df = iris
 
         ax = _check_plot_works(
-            plotting.parallel_coordinates, frame=df, class_column="Name"
+            pd.plotting.parallel_coordinates, frame=df, class_column="Name"
         )
         nlines = len(ax.get_lines())
         nxticks = len(ax.xaxis.get_ticklabels())
 
         ax = _check_plot_works(
-            plotting.parallel_coordinates, frame=df, class_column="Name", axvlines=False
+            pd.plotting.parallel_coordinates,
+            frame=df,
+            class_column="Name",
+            axvlines=False,
         )
         assert len(ax.get_lines()) == (nlines - nxticks)
 
@@ -339,8 +343,10 @@ class TestDataFramePlots:
     def test_parallel_coordinates_handles(self, iris):
         df = iris
         colors = ["b", "g", "r"]
-        df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
-        ax = plotting.parallel_coordinates(df, "Name", color=colors)
+        df = pd.DataFrame(
+            {"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors}
+        )
+        ax = pd.plotting.parallel_coordinates(df, "Name", color=colors)
         handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
@@ -348,7 +354,7 @@ class TestDataFramePlots:
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
         # GH 15908
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "feat": list(range(30)),
                 "class": [2 for _ in range(10)]
@@ -356,7 +362,7 @@ class TestDataFramePlots:
                 + [1 for _ in range(10)],
             }
         )
-        ax = plotting.parallel_coordinates(df, "class", sort_labels=True)
+        ax = pd.plotting.parallel_coordinates(df, "class", sort_labels=True)
         polylines, labels = ax.get_legend_handles_labels()
         color_label_tuples = zip(
             [polyline.get_color() for polyline in polylines], labels, strict=True
@@ -374,7 +380,7 @@ class TestDataFramePlots:
     def test_radviz_no_warning(self, iris):
         # Ensure no UserWarning when making plot
         with tm.assert_produces_warning(None):
-            _check_plot_works(plotting.radviz, frame=iris, class_column="Name")
+            _check_plot_works(pd.plotting.radviz, frame=iris, class_column="Name")
 
     @pytest.mark.parametrize(
         "color",
@@ -383,7 +389,7 @@ class TestDataFramePlots:
     def test_radviz_color(self, iris, color):
         df = iris
         ax = _check_plot_works(
-            plotting.radviz, frame=df, class_column="Name", color=color
+            pd.plotting.radviz, frame=df, class_column="Name", color=color
         )
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
@@ -392,7 +398,7 @@ class TestDataFramePlots:
     def test_radviz_color_cmap(self, iris):
         df = iris
         ax = _check_plot_works(
-            plotting.radviz, frame=df, class_column="Name", colormap=cm.jet
+            pd.plotting.radviz, frame=df, class_column="Name", colormap=cm.jet
         )
         cmaps = [mpl.cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
@@ -400,10 +406,10 @@ class TestDataFramePlots:
 
     def test_radviz_colors_handles(self):
         colors = [[0.0, 0.0, 1.0, 1.0], [0.0, 0.5, 1.0, 1.0], [1.0, 0.0, 0.0, 1.0]]
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [1, 2, 3], "B": [2, 1, 3], "C": [3, 2, 1], "Name": ["b", "g", "r"]}
         )
-        ax = plotting.radviz(df, "Name", color=colors)
+        ax = pd.plotting.radviz(df, "Name", color=colors)
         handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, facecolors=colors)
 
@@ -465,12 +471,12 @@ class TestDataFramePlots:
 
     def test_get_standard_colors_random_seed(self):
         # GH17525
-        df = DataFrame(np.zeros((10, 10)))
+        df = pd.DataFrame(np.zeros((10, 10)))
 
         # Make sure that the random seed isn't reset by get_standard_colors
-        plotting.parallel_coordinates(df, 0)
+        pd.plotting.parallel_coordinates(df, 0)
         rand1 = np.random.default_rng(None).random()
-        plotting.parallel_coordinates(df, 0)
+        pd.plotting.parallel_coordinates(df, 0)
         rand2 = np.random.default_rng(None).random()
         assert rand1 != rand2
 
@@ -492,7 +498,7 @@ class TestDataFramePlots:
 
     def test_plot_single_color(self):
         # Example from #20585. All 3 bars should have the same color
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "account-start": ["2017-02-03", "2017-03-03", "2017-01-01"],
                 "client": ["Alice Anders", "Bob Baker", "Charlie Chaplin"],
@@ -515,7 +521,7 @@ class TestDataFramePlots:
         color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((48, 4)), columns=list("ABCD")
         )
 
@@ -531,7 +537,7 @@ class TestDataFramePlots:
 
         expected = [(0.5, 0.24, 0.6), (0.3, 0.7, 0.7)]
 
-        df1 = DataFrame(np.random.default_rng(2).random((2, 2)), columns=data_files)
+        df1 = pd.DataFrame(np.random.default_rng(2).random((2, 2)), columns=data_files)
         dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
 
         ax = df1.plot(kind=kind, color=dic_color)
@@ -546,11 +552,11 @@ class TestDataFramePlots:
         # Test bar plot with string and int index
         expected = [mpl.text.Text(0, 0, "0"), mpl.text.Text(1, 0, "Total")]
 
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": [1, 2],
             },
-            index=Index([0, "Total"]),
+            index=pd.Index([0, "Total"]),
         )
         plot_bar = df.plot.bar()
         assert all(
@@ -561,7 +567,7 @@ class TestDataFramePlots:
     def test_barh_plot_labels_mixed_integer_string(self):
         # GH39126
         # Test barh plot with string and integer at the same column
-        df = DataFrame([{"word": 1, "value": 0}, {"word": "knowledge", "value": 2}])
+        df = pd.DataFrame([{"word": 1, "value": 0}, {"word": "knowledge", "value": 2}])
         plot_barh = df.plot.barh(x="word", legend=None)
         expected_yticklabels = [
             mpl.text.Text(0, 0, "1"),
@@ -577,7 +583,7 @@ class TestDataFramePlots:
     def test_has_externally_shared_axis_x_axis(self):
         # GH33819
         # Test _has_externally_shared_axis() works for x-axis
-        func = plotting._matplotlib.tools._has_externally_shared_axis
+        func = pd.plotting._matplotlib.tools._has_externally_shared_axis
 
         fig = mpl.pyplot.figure()
         plots = fig.subplots(2, 4)
@@ -602,7 +608,7 @@ class TestDataFramePlots:
     def test_has_externally_shared_axis_y_axis(self):
         # GH33819
         # Test _has_externally_shared_axis() works for y-axis
-        func = plotting._matplotlib.tools._has_externally_shared_axis
+        func = pd.plotting._matplotlib.tools._has_externally_shared_axis
 
         fig = mpl.pyplot.figure()
         plots = fig.subplots(4, 2)
@@ -628,7 +634,7 @@ class TestDataFramePlots:
         # GH33819
         # Test _has_externally_shared_axis() raises an exception when
         # passed an invalid value as compare_axis parameter
-        func = plotting._matplotlib.tools._has_externally_shared_axis
+        func = pd.plotting._matplotlib.tools._has_externally_shared_axis
 
         fig = mpl.pyplot.figure()
         plots = fig.subplots(4, 2)
@@ -644,7 +650,7 @@ class TestDataFramePlots:
     def test_externally_shared_axes(self):
         # Example from GH33819
         # Create data
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": np.random.default_rng(2).standard_normal(10),
                 "b": np.random.default_rng(2).standard_normal(10),
@@ -693,21 +699,21 @@ class TestDataFramePlots:
         # GH 38736
         # Ensure string x-axis from the second plot will not be converted to datetime
         # due to axis data from first plot
-        df = DataFrame(
+        df = pd.DataFrame(
             [1.0],
-            index=[Timestamp("2022-02-22 22:22:22")],
+            index=[pd.Timestamp("2022-02-22 22:22:22")],
         )
         _check_plot_works(df.plot)
-        s = Series({"A": 1.0})
+        s = pd.Series({"A": 1.0})
         _check_plot_works(s.plot.bar)
 
     def test_bar_plt_xaxis_intervalrange(self):
         # GH 38969
         # Ensure IntervalIndex x-axis produces a bar plot as expected
         expected = [mpl.text.Text(0, 0, "([0, 1],)"), mpl.text.Text(1, 0, "([1, 2],)")]
-        s = Series(
+        s = pd.Series(
             [1, 2],
-            index=[interval_range(0, 2, closed="both")],
+            index=[pd.interval_range(0, 2, closed="both")],
         )
         _check_plot_works(s.plot.bar)
         assert all(
@@ -722,8 +728,8 @@ def df_bar_data():
 
 
 @pytest.fixture
-def df_bar_df(df_bar_data) -> DataFrame:
-    df_bar_df = DataFrame(
+def df_bar_df(df_bar_data) -> pd.DataFrame:
+    df_bar_df = pd.DataFrame(
         {
             "A": df_bar_data,
             "B": df_bar_data[::-1],
@@ -747,7 +753,7 @@ def _df_bar_xyheight_from_ax_helper(df_bar_data, ax, subplot_division):
             ]
         )
         subplot_data_df_list.append(
-            DataFrame(data=subplot_data, columns=["x_coord", "y_coord", "height"])
+            pd.DataFrame(data=subplot_data, columns=["x_coord", "y_coord", "height"])
         )
 
     return subplot_data_df_list
@@ -867,14 +873,14 @@ def test_bar_subplots_stacking_bool(df_bar_data, df_bar_df):
 
 
 def test_plot_bar_label_count_default():
-    df = DataFrame(
+    df = pd.DataFrame(
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
     )
     df.plot(subplots=True, kind="bar", title=["A", "B", "C", "D"])
 
 
 def test_plot_bar_label_count_expected_fail():
-    df = DataFrame(
+    df = pd.DataFrame(
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
     )
     error_regex = re.escape(
@@ -889,7 +895,7 @@ def test_plot_bar_label_count_expected_fail():
 
 
 def test_plot_bar_label_count_expected_success():
-    df = DataFrame(
+    df = pd.DataFrame(
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
     )
     df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])

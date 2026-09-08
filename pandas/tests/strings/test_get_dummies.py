@@ -4,33 +4,27 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    _testing as tm,
-)
+import pandas._testing as tm
 
 
 def test_get_dummies(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|")
-    expected = DataFrame([[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"))
+    expected = pd.DataFrame([[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"))
     tm.assert_frame_equal(result, expected)
 
-    s = Series(["a;b", "a", 7], dtype=any_string_dtype)
+    s = pd.Series(["a;b", "a", 7], dtype=any_string_dtype)
     result = s.str.get_dummies(";")
-    expected = DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]], columns=list("7ab"))
+    expected = pd.DataFrame([[0, 1, 1], [0, 1, 0], [1, 0, 0]], columns=list("7ab"))
     tm.assert_frame_equal(result, expected)
 
 
 def test_get_dummies_index():
     # GH9980, GH8028
-    idx = Index(["a|b", "a|c", "b|c"])
+    idx = pd.Index(["a|b", "a|c", "b|c"])
     result = idx.str.get_dummies("|")
 
-    expected = MultiIndex.from_tuples(
+    expected = pd.MultiIndex.from_tuples(
         [(1, 1, 0), (1, 0, 1), (0, 1, 1)], names=("a", "b", "c")
     )
     tm.assert_index_equal(result, expected)
@@ -56,9 +50,9 @@ def test_get_dummies_index():
     ],
 )
 def test_get_dummies_with_dtype(any_string_dtype, dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|", dtype=dtype)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=dtype
     )
     tm.assert_frame_equal(result, expected)
@@ -81,9 +75,9 @@ def test_get_dummies_with_dtype(any_string_dtype, dtype):
     ],
 )
 def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
     result = s.str.get_dummies("|", dtype=dtype)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 1, 0], [1, 0, 1], [0, 0, 0]],
         columns=list("abc"),
         dtype=dtype,
@@ -93,7 +87,7 @@ def test_get_dummies_with_pyarrow_dtype(any_string_dtype, dtype):
 
 # GH#47872
 def test_get_dummies_with_str_dtype(any_string_dtype):
-    s = Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
 
     msg = "Only numeric or boolean dtypes are supported for 'dtype'"
     with pytest.raises(ValueError, match=msg):
@@ -105,9 +99,9 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 
 def test_get_dummies_empty_and_missing_entries(any_string_dtype):
     # GH#XXXXX an entry that yields no tag must not become a column
-    s = Series(["a|b", "", "b", None, "|a|", "a||b"], dtype=any_string_dtype)
+    s = pd.Series(["a|b", "", "b", None, "|a|", "a||b"], dtype=any_string_dtype)
     result = s.str.get_dummies("|")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 1], [0, 0], [0, 1], [0, 0], [1, 0], [1, 1]], columns=list("ab")
     )
     tm.assert_frame_equal(result, expected)
@@ -116,9 +110,9 @@ def test_get_dummies_empty_and_missing_entries(any_string_dtype):
 @pytest.mark.parametrize("data", [["", None], [None, None], ["", "|"]])
 def test_get_dummies_all_entries_empty(any_string_dtype, data):
     # GH#XXXXX
-    s = Series(data, dtype=any_string_dtype)
+    s = pd.Series(data, dtype=any_string_dtype)
     result = s.str.get_dummies("|")
-    expected = DataFrame(np.empty((2, 0), dtype=np.int64), columns=Index([]))
+    expected = pd.DataFrame(np.empty((2, 0), dtype=np.int64), columns=pd.Index([]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -129,9 +123,9 @@ def test_get_dummies_arrow_dtype(pa_type):
     import pyarrow as pa
 
     dtype = pd.ArrowDtype(getattr(pa, pa_type)())
-    s = Series(["a|b", "", "b", None, "|a|", "a||b"], dtype=dtype)
+    s = pd.Series(["a|b", "", "b", None, "|a|", "a||b"], dtype=dtype)
     result = s.str.get_dummies("|")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 1], [0, 0], [0, 1], [0, 0], [1, 0], [1, 1]],
         columns=list("ab"),
         dtype="bool[pyarrow]",
@@ -141,15 +135,15 @@ def test_get_dummies_arrow_dtype(pa_type):
 
 def test_get_dummies_categorical():
     # GH#XXXXX missing values must not be encoded as a literal "NaN" tag
-    s = Series(["a|NaN", "b", None], dtype="category")
+    s = pd.Series(["a|NaN", "b", None], dtype="category")
     result = s.str.get_dummies("|")
-    expected = DataFrame([[1, 1, 0], [0, 0, 1], [0, 0, 0]], columns=["NaN", "a", "b"])
+    expected = pd.DataFrame([[1, 1, 0], [0, 0, 1], [0, 0, 0]], columns=["NaN", "a", "b"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_get_dummies_no_tags_nullable_dtype(any_string_dtype):
     # GH#XXXXX an all-tagless input must not crash for an extension dtype. The
     # empty branch used to hand the raw dtype to np.empty, which cannot take one.
-    ser = Series(["", None], dtype=any_string_dtype)
+    ser = pd.Series(["", None], dtype=any_string_dtype)
     result = ser.str.get_dummies("|", dtype="Int64")
     assert list(result.columns) == []

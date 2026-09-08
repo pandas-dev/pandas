@@ -4,11 +4,7 @@ import pytest
 from pandas.compat import is_platform_arm
 from pandas.errors import NumbaUtilError
 
-from pandas import (
-    DataFrame,
-    Series,
-    option_context,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.util.version import Version
 
@@ -29,7 +25,7 @@ def test_correct_function_signature():
     def incorrect_function(x):
         return x + 1
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
@@ -49,7 +45,7 @@ def test_check_nopython_kwargs():
     def correct_function(values, index, a):
         return values + a
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
@@ -97,12 +93,12 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, as_index):
 
         func = numba.jit(func)
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
     grouped = data.groupby(0, as_index=as_index)
-    if frame_or_series is Series:
+    if frame_or_series is pd.Series:
         grouped = grouped[1]
 
     result = grouped.transform(func, engine="numba", engine_kwargs=engine_kwargs)
@@ -130,12 +126,12 @@ def test_cache(jit, frame_or_series, nogil, parallel):
         func_1 = numba.jit(func_1)
         func_2 = numba.jit(func_2)
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
     grouped = data.groupby(0)
-    if frame_or_series is Series:
+    if frame_or_series is pd.Series:
         grouped = grouped[1]
 
     result = grouped.transform(func_1, engine="numba", engine_kwargs=engine_kwargs)
@@ -158,12 +154,12 @@ def test_use_global_config():
     def func_1(values, index):
         return values + 1
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     expected = grouped.transform(func_1, engine="numba")
-    with option_context("compute.use_numba", True):
+    with pd.option_context("compute.use_numba", True):
         result = grouped.transform(func_1, engine=None)
     tm.assert_frame_equal(expected, result)
 
@@ -175,7 +171,7 @@ def test_use_global_config():
 def test_string_cython_vs_numba(agg_func, numba_supported_reductions):
     pytest.importorskip("numba")
     agg_func, kwargs = numba_supported_reductions
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
@@ -196,14 +192,14 @@ def test_args_not_cached():
     def sum_last(values, index, n):
         return values[-n:].sum()
 
-    df = DataFrame({"id": [0, 0, 1, 1], "x": [1, 1, 1, 1]})
+    df = pd.DataFrame({"id": [0, 0, 1, 1], "x": [1, 1, 1, 1]})
     grouped_x = df.groupby("id")["x"]
     result = grouped_x.transform(sum_last, 1, engine="numba")
-    expected = Series([1.0] * 4, name="x")
+    expected = pd.Series([1.0] * 4, name="x")
     tm.assert_series_equal(result, expected)
 
     result = grouped_x.transform(sum_last, 2, engine="numba")
-    expected = Series([2.0] * 4, name="x")
+    expected = pd.Series([2.0] * 4, name="x")
     tm.assert_series_equal(result, expected)
 
 
@@ -214,9 +210,9 @@ def test_index_data_correctly_passed():
     def f(values, index):
         return index - 1
 
-    df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
+    df = pd.DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
     result = df.groupby("group").transform(f, engine="numba")
-    expected = DataFrame([-2.0, -3.0, -4.0], columns=["v"], index=[-1, -2, -3])
+    expected = pd.DataFrame([-2.0, -3.0, -4.0], columns=["v"], index=[-1, -2, -3])
     tm.assert_frame_equal(result, expected)
 
 
@@ -227,11 +223,11 @@ def test_index_order_consistency_preserved():
     def f(values, index):
         return values
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {"vals": [0.0, 1.0, 2.0, 3.0], "group": [0, 1, 0, 1]}, index=range(3, -1, -1)
     )
     result = df.groupby("group")["vals"].transform(f, engine="numba")
-    expected = Series([0.0, 1.0, 2.0, 3.0], index=range(3, -1, -1), name="vals")
+    expected = pd.Series([0.0, 1.0, 2.0, 3.0], index=range(3, -1, -1), name="vals")
     tm.assert_series_equal(result, expected)
 
 
@@ -246,11 +242,11 @@ def test_engine_kwargs_not_cached():
         return nogil + parallel
 
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
-    df = DataFrame({"value": [0, 0, 0]})
+    df = pd.DataFrame({"value": [0, 0, 0]})
     result = df.groupby(level=0).transform(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+    expected = pd.DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     nogil = False
@@ -258,7 +254,7 @@ def test_engine_kwargs_not_cached():
     result = df.groupby(level=0).transform(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [0.0, 0.0, 0.0]})
+    expected = pd.DataFrame({"value": [0.0, 0.0, 0.0]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -269,12 +265,12 @@ def test_multiindex_one_key(nogil, parallel):
     def numba_func(values, index):
         return 1
 
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    df = pd.DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
     result = df.groupby("A").transform(
         numba_func, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame([{"A": 1, "B": 2, "C": 1.0}]).set_index(["A", "B"])
+    expected = pd.DataFrame([{"A": 1, "B": 2, "C": 1.0}]).set_index(["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -284,7 +280,7 @@ def test_multiindex_multi_key_not_supported(nogil, parallel):
     def numba_func(values, index):
         return 1
 
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    df = pd.DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
     with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).transform(
@@ -295,7 +291,7 @@ def test_multiindex_multi_key_not_supported(nogil, parallel):
 def test_multilabel_numba_vs_cython(numba_supported_reductions):
     pytest.importorskip("numba")
     reduction, kwargs = numba_supported_reductions
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -311,7 +307,7 @@ def test_multilabel_numba_vs_cython(numba_supported_reductions):
 
 def test_multilabel_udf_numba_vs_cython():
     pytest.importorskip("numba")
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],

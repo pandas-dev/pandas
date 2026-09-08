@@ -195,18 +195,22 @@ Create a pandas Series based on one or more conditions
 
 The :meth:`Series.case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-   import pandas as pd
+   >>> import pandas as pd
 
-   df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
-   default=pd.Series('default', index=df.index)
-   default.case_when(
-        caselist=[
-            (df.a == 1, 'first'),                              # condition, replacement
-            (df.a.gt(1) & df.b.eq(5), 'second'),  # condition, replacement
-        ],
-   )
+   >>> df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
+   >>> default=pd.Series('default', index=df.index)
+   >>> default.case_when(
+   ...      caselist=[
+   ...          (df.a == 1, 'first'),                              # condition, replacement
+   ...          (df.a.gt(1) & df.b.eq(5), 'second'),  # condition, replacement
+   ...      ],
+   ... )
+   0      first
+   1     second
+   2    default
+   dtype: object
 
 .. _whatsnew_220.enhancements.to_numpy_ea:
 
@@ -226,13 +230,16 @@ suitable NumPy dtype instead of ``object`` dtype for nullable and PyArrow backed
 
 *New behavior:*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ser = pd.Series([1, 2, 3], dtype="Int64")
-    ser.to_numpy()
+   >>> ser = pd.Series([1, 2, 3], dtype="Int64")
+   >>> ser.to_numpy()
+   array([1, 2, 3])
 
-    ser = pd.Series([1, 2, 3], dtype="timestamp[ns][pyarrow]")
-    ser.to_numpy()
+   >>> ser = pd.Series([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+   >>> ser.to_numpy()
+   array(['1970-01-01T00:00:00.000000001', '1970-01-01T00:00:00.000000002',
+          '1970-01-01T00:00:00.000000003'], dtype='datetime64[ns]')
 
 The default NumPy dtype (without any arguments) is determined as follows:
 
@@ -253,31 +260,39 @@ data with ``struct[pyarrow]`` dtype Series. For example,
 :meth:`Series.struct.explode` converts PyArrow structured data to a pandas
 DataFrame. (:issue:`54938`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    import pyarrow as pa
-    series = pd.Series(
-        [
-            {"project": "pandas", "version": "2.2.0"},
-            {"project": "numpy", "version": "1.25.2"},
-            {"project": "pyarrow", "version": "13.0.0"},
-        ],
-        dtype=pd.ArrowDtype(
-            pa.struct([
-                ("project", pa.string()),
-                ("version", pa.string()),
-            ])
-        ),
-    )
-    series.struct.explode()
+   >>> import pyarrow as pa
+   >>> series = pd.Series(
+   ...     [
+   ...         {"project": "pandas", "version": "2.2.0"},
+   ...         {"project": "numpy", "version": "1.25.2"},
+   ...         {"project": "pyarrow", "version": "13.0.0"},
+   ...     ],
+   ...     dtype=pd.ArrowDtype(
+   ...         pa.struct([
+   ...             ("project", pa.string()),
+   ...             ("version", pa.string()),
+   ...         ])
+   ...     ),
+   ... )
+   >>> series.struct.explode()
+      project version
+   0   pandas   2.2.0
+   1    numpy  1.25.2
+   2  pyarrow  13.0.0
 
 Use :meth:`Series.struct.field` to index into a (possible nested)
 struct field.
 
 
-.. ipython:: python
+.. code-block:: pycon
 
-    series.struct.field("project")
+   >>> series.struct.field("project")
+   0     pandas
+   1      numpy
+   2    pyarrow
+   Name: project, dtype: string[pyarrow]
 
 .. _whatsnew_220.enhancements.list_accessor:
 
@@ -289,20 +304,24 @@ data with ``list[pyarrow]`` dtype Series. For example,
 :meth:`Series.list.__getitem__` allows indexing pyarrow lists in
 a Series. (:issue:`55323`)
 
-.. ipython:: python
+.. code-block:: pycon
 
-    import pyarrow as pa
-    series = pd.Series(
-        [
-            [1, 2, 3],
-            [4, 5],
-            [6],
-        ],
-        dtype=pd.ArrowDtype(
-            pa.list_(pa.int64())
-        ),
-    )
-    series.list[0]
+   >>> import pyarrow as pa
+   >>> series = pd.Series(
+   ...     [
+   ...         [1, 2, 3],
+   ...         [4, 5],
+   ...         [6],
+   ...     ],
+   ...     dtype=pd.ArrowDtype(
+   ...         pa.list_(pa.int64())
+   ...     ),
+   ... )
+   >>> series.list[0]
+   0    1
+   1    4
+   2    6
+   dtype: int64[pyarrow]
 
 .. _whatsnew_220.enhancements.calamine:
 
@@ -380,11 +399,11 @@ join type (``how`` keyword):
 One example with changing behavior is inner joins with non-unique left join keys
 and ``sort=False``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    left = pd.DataFrame({"a": [1, 2, 1]})
-    right = pd.DataFrame({"a": [1, 2]})
-    result = pd.merge(left, right, how="inner", on="a", sort=False)
+   >>> left = pd.DataFrame({"a": [1, 2, 1]})
+   >>> right = pd.DataFrame({"a": [1, 2]})
+   >>> result = pd.merge(left, right, how="inner", on="a", sort=False)
 
 *Old Behavior*
 
@@ -399,9 +418,13 @@ and ``sort=False``:
 
 *New Behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    result
+   >>> result
+      a
+   0  1
+   1  2
+   2  1
 
 .. _whatsnew_220.notable_bug_fixes.multiindex_join_different_levels:
 
@@ -411,13 +434,21 @@ and ``sort=False``:
 In previous versions of pandas, :func:`merge` and :meth:`DataFrame.join` would reorder
 index levels when joining on two indexes with different levels (:issue:`34133`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    left = pd.DataFrame({"left": 1}, index=pd.MultiIndex.from_tuples([("x", 1), ("x", 2)], names=["A", "B"]))
-    right = pd.DataFrame({"right": 2}, index=pd.MultiIndex.from_tuples([(1, 1), (2, 2)], names=["B", "C"]))
-    left
-    right
-    result = left.join(right)
+   >>> left = pd.DataFrame({"left": 1}, index=pd.MultiIndex.from_tuples([("x", 1), ("x", 2)], names=["A", "B"]))
+   >>> right = pd.DataFrame({"right": 2}, index=pd.MultiIndex.from_tuples([(1, 1), (2, 2)], names=["B", "C"]))
+   >>> left
+        left
+   A B
+   x 1     1
+     2     1
+   >>> right
+        right
+   B C
+   1 1      2
+   2 2      2
+   >>> result = left.join(right)
 
 *Old Behavior*
 
@@ -432,9 +463,13 @@ index levels when joining on two indexes with different levels (:issue:`34133`).
 
 *New Behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    result
+   >>> result
+          left  right
+   A B C
+   x 1 1     1      2
+     2 2     1      2
 
 .. _whatsnew_220.api_breaking.deps:
 
@@ -615,9 +650,10 @@ For example:
 
 *Future behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
+   >>> pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
+   DatetimeIndex(['2020-02-29', '2020-05-31', '2020-08-31'], dtype='datetime64[ns]', freq='QE-NOV')
 
 .. _whatsnew_220.silent_downcasting:
 
