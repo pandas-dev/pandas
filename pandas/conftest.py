@@ -92,6 +92,7 @@ PANDAS_MARKERS = [
     "db: tests requiring a database (mysql or postgres)",
     "clipboard: mark a pd.read_clipboard test",
     "arm_slow: mark a test as slow for arm64 architecture",
+    "high_memory: mark a test as requiring a lot of memory (>5GB)",
 ]
 
 

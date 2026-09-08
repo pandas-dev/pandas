@@ -1200,18 +1200,17 @@ class TestParquetPyArrow(Base):
         expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
-    # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)
-    # @pytest.mark.slow
-    # def test_string_column_above_2GB(self, tmp_path, pa):
-    #     # https://github.com/pandas-dev/pandas/issues/55606
-    #     # above 2GB of string data
-    #     v1 = b"x" * 100000000
-    #     v2 = b"x" * 147483646
-    #     df = pd.DataFrame({"strings": [v1] * 20 + [v2] + ["x"] * 20}, dtype="string")
-    #     df.to_parquet(tmp_path / "test.parquet")
-    #     result = read_parquet(tmp_path / "test.parquet")
-    #     assert result["strings"].dtype == "string"
-    # FIXME: don't leave commented-out
+    @pytest.mark.high_memory
+    def test_string_column_above_2GB(self, temp_file, pa):
+        # GH#55606 above 2GB of string data
+        val1 = b"x" * 100000000
+        val2 = b"x" * 147483646
+        df = pd.DataFrame(
+            {"strings": [val1] * 20 + [val2] + ["x"] * 20}, dtype="string"
+        )
+        df.to_parquet(temp_file)
+        result = read_parquet(temp_file)
+        assert result["strings"].dtype == "string"
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236

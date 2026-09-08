@@ -788,6 +788,8 @@ speed by skipping some tests using the ``-m`` mark flag:
   no database is running, so ``-m "not db"`` is only needed to avoid the cost
   of checking for one
 - single_cpu: tests that should run on a single cpu only
+- high_memory: tests requiring a lot of memory (>5GB); these are never run on CI,
+  so run them locally with ``-m high_memory`` if you touch the relevant code
 
 You might want to enable the following option if it's relevant for you:
 
