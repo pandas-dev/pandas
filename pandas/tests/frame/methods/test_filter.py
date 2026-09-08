@@ -4,7 +4,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
 
 msg = (
@@ -43,22 +42,22 @@ class TestDataFrameFilter:
         assert "AA" in filtered
 
         # like with ints in column names
-        df = DataFrame(0.0, index=[0, 1, 2], columns=[0, 1, "_A", "_B"])
+        df = pd.DataFrame(0.0, index=[0, 1, 2], columns=[0, 1, "_A", "_B"])
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             filtered = df.filter(like="_")
         assert len(filtered.columns) == 2
 
         # regex with ints in column names
         # from PR #10384
-        df = DataFrame(0.0, index=[0, 1, 2], columns=["A1", 1, "B", 2, "C"])
-        expected = DataFrame(
+        df = pd.DataFrame(0.0, index=[0, 1, 2], columns=["A1", 1, "B", 2, "C"])
+        expected = pd.DataFrame(
             0.0, index=[0, 1, 2], columns=pd.Index([1, 2], dtype=object)
         )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             filtered = df.filter(regex="^[0-9]+$")
         tm.assert_frame_equal(filtered, expected)
 
-        expected = DataFrame(0.0, index=[0, 1, 2], columns=[0, "0", 1, "1"])
+        expected = pd.DataFrame(0.0, index=[0, 1, 2], columns=[0, "0", 1, "1"])
         # shouldn't remove anything
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             filtered = expected.filter(regex="^[0-9]+$")
@@ -110,7 +109,7 @@ class TestDataFrameFilter:
         assert "AA" in filtered
 
         # doesn't have to be at beginning
-        df = DataFrame(
+        df = pd.DataFrame(
             {"aBBa": [1, 2], "BBaBB": [1, 2], "aCCa": [1, 2], "aCCaBB": [1, 2]}
         )
 
@@ -128,8 +127,8 @@ class TestDataFrameFilter:
     )
     def test_filter_unicode(self, name, expected_data):
         # GH13101
-        df = DataFrame({"a": [1, 2], "あ": [3, 4]})
-        expected = DataFrame(expected_data)
+        df = pd.DataFrame({"a": [1, 2], "あ": [3, 4]})
+        expected = pd.DataFrame(expected_data)
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_frame_equal(df.filter(like=name), expected)
@@ -139,8 +138,8 @@ class TestDataFrameFilter:
     def test_filter_bytestring(self):
         # GH13101
         name = "a"
-        df = DataFrame({b"a": [1, 2], b"b": [3, 4]})
-        expected = DataFrame({b"a": [1, 2]})
+        df = pd.DataFrame({b"a": [1, 2], b"b": [3, 4]})
+        expected = pd.DataFrame({b"a": [1, 2]})
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tm.assert_frame_equal(df.filter(like=name), expected)
@@ -148,7 +147,7 @@ class TestDataFrameFilter:
             tm.assert_frame_equal(df.filter(regex=name), expected)
 
     def test_filter_corner(self):
-        empty = DataFrame()
+        empty = pd.DataFrame()
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = empty.filter([])
@@ -161,7 +160,9 @@ class TestDataFrameFilter:
     def test_filter_regex_non_string(self):
         # GH#5798 trying to filter on non-string columns should drop,
         #  not raise
-        df = DataFrame(np.random.default_rng(2).random((3, 2)), columns=["STRING", 123])
+        df = pd.DataFrame(
+            np.random.default_rng(2).random((3, 2)), columns=["STRING", 123]
+        )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.filter(regex="STRING")
         expected = df[["STRING"]]
@@ -169,7 +170,7 @@ class TestDataFrameFilter:
 
     def test_filter_keep_order(self):
         # GH#54980
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.filter(items=["B", "A"])
         expected = df[["B", "A"]]
@@ -177,7 +178,7 @@ class TestDataFrameFilter:
 
     def test_filter_different_dtype(self):
         # GH#54980
-        df = DataFrame({1: [1, 2, 3], 2: [4, 5, 6]})
+        df = pd.DataFrame({1: [1, 2, 3], 2: [4, 5, 6]})
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.filter(items=["B", "A"])
         expected = df[[]]
@@ -186,7 +187,7 @@ class TestDataFrameFilter:
 
 @pytest.fixture
 def df():
-    return DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=["x", "y", "z"])
+    return pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=["x", "y", "z"])
 
 
 @pytest.mark.parametrize(
@@ -325,7 +326,7 @@ def test_filter_bool_labels_deprecated(mask):
     # GH#61317
     # Boolean values on an axis with boolean labels keep selecting
     # labels until the deprecation is enforced.
-    df = DataFrame({True: [1], False: [2], "c": [3]})
+    df = pd.DataFrame({True: [1], False: [2], "c": [3]})
     msg = (
         "DataFrame.filter with boolean values currently selects the labels True "
         "and False when the axis contains boolean labels. In a future version the "
@@ -340,7 +341,7 @@ def test_filter_bool_labels_deprecated(mask):
 
     # the legacy default axis (columns) has no boolean labels, so this is
     # a mask on the index even though the index has boolean labels
-    df = DataFrame({"a": [1, 2]}, index=[True, False])
+    df = pd.DataFrame({"a": [1, 2]}, index=[True, False])
     if isinstance(mask, pd.Series):
         mask = mask.set_axis(df.index)
     result = df.filter(mask)
@@ -351,7 +352,7 @@ def test_filter_bool_labels_deprecated(mask):
 def test_filter_bool_list_int_labels_is_mask():
     # GH#61317
     # int labels are not boolean labels, even though True == 1
-    df = DataFrame({0: [1], 1: [2]})
+    df = pd.DataFrame({0: [1], 1: [2]})
     result = df.filter([True, False], axis=1)
     expected = df[[0]]
     tm.assert_frame_equal(result, expected)

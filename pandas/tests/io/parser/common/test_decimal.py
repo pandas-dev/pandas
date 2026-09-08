@@ -7,7 +7,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -34,7 +34,7 @@ import pandas._testing as tm
 )
 def test_1000_sep_with_decimal(all_parsers, data, thousands, decimal):
     parser = all_parsers
-    expected = DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
+    expected = pd.DataFrame({"A": [1, 10], "B": [2334.01, 13], "C": [5, 10.0]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
@@ -58,7 +58,7 @@ def test_euro_decimal_format(all_parsers):
 3;878,158;108013,434;GHI;rez;2,735694704"""
 
     result = parser.read_csv(StringIO(data), sep=";", decimal=",")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [1, 1521.1541, 187101.9543, "ABC", "poi", 4.738797819],
             [2, 121.12, 14897.76, "DEF", "uyt", 0.377320872],

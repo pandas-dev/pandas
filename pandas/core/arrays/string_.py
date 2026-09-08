@@ -1270,7 +1270,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
-            if not lib.is_string_array(result, skipna=True):
+            # GH#40624 is_string_array is False for a length-zero array, but a
+            #  length-zero result should keep the string dtype
+            if len(result) and not lib.is_string_array(result, skipna=True):
                 return result
             return self._from_backing_data(result)
         else:

@@ -3,11 +3,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -15,8 +11,8 @@ class TestSeriesSortValues:
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_values")
     def test_sort_values(self, datetime_series):
         # check indexes are reordered corresponding with the values
-        ser = Series([3, 2, 4, 1], ["A", "B", "C", "D"])
-        expected = Series([1, 2, 3, 4], ["D", "B", "A", "C"])
+        ser = pd.Series([3, 2, 4, 1], ["A", "B", "C", "D"])
+        expected = pd.Series([1, 2, 3, 4], ["D", "B", "A", "C"])
         result = ser.sort_values()
         tm.assert_series_equal(expected, result)
 
@@ -34,7 +30,7 @@ class TestSeriesSortValues:
         tm.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
 
         # something object-type
-        ser = Series(["A", "B"], [1, 2])
+        ser = pd.Series(["A", "B"], [1, 2])
         # no failure
         ser.sort_values()
 
@@ -80,28 +76,28 @@ class TestSeriesSortValues:
 
         # GH#5856/5853
         # Series.sort_values operating on a view
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         s = df.iloc[:, 0]
         s.sort_values(inplace=True)
         tm.assert_series_equal(s, df.iloc[:, 0].sort_values())
 
     def test_sort_values_categorical(self):
-        cat = Series(Categorical(["a", "b", "b", "a"], ordered=False))
+        cat = pd.Series(pd.Categorical(["a", "b", "b", "a"], ordered=False))
 
         # sort in the categories order
-        expected = Series(
-            Categorical(["a", "a", "b", "b"], ordered=False), index=[0, 3, 1, 2]
+        expected = pd.Series(
+            pd.Categorical(["a", "a", "b", "b"], ordered=False), index=[0, 3, 1, 2]
         )
         result = cat.sort_values()
         tm.assert_series_equal(result, expected)
 
-        cat = Series(Categorical(["a", "c", "b", "d"], ordered=True))
+        cat = pd.Series(pd.Categorical(["a", "c", "b", "d"], ordered=True))
         res = cat.sort_values()
         exp = np.array(["a", "b", "c", "d"], dtype=np.object_)
         tm.assert_numpy_array_equal(res.__array__(), exp)
 
-        cat = Series(
-            Categorical(
+        cat = pd.Series(
+            pd.Categorical(
                 ["a", "c", "b", "d"], categories=["a", "b", "c", "d"], ordered=True
             )
         )
@@ -113,14 +109,14 @@ class TestSeriesSortValues:
         exp = np.array(["d", "c", "b", "a"], dtype=np.object_)
         tm.assert_numpy_array_equal(res.__array__(), exp)
 
-        raw_cat1 = Categorical(
+        raw_cat1 = pd.Categorical(
             ["a", "b", "c", "d"], categories=["a", "b", "c", "d"], ordered=False
         )
-        raw_cat2 = Categorical(
+        raw_cat2 = pd.Categorical(
             ["a", "b", "c", "d"], categories=["d", "c", "b", "a"], ordered=True
         )
         s = ["a", "b", "c", "d"]
-        df = DataFrame(
+        df = pd.DataFrame(
             {"unsort": raw_cat1, "sort": raw_cat2, "string": s, "values": [1, 2, 3, 4]}
         )
 
@@ -141,10 +137,10 @@ class TestSeriesSortValues:
 
         # multi-columns sort
         # GH#7848
-        df = DataFrame(
+        df = pd.DataFrame(
             {"id": [6, 5, 4, 3, 2, 1], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
         )
-        df["grade"] = Categorical(df["raw_grade"], ordered=True)
+        df["grade"] = pd.Categorical(df["raw_grade"], ordered=True)
         df["grade"] = df["grade"].cat.set_categories(["b", "e", "a"])
 
         # sorts 'grade' according to the order of the categories
@@ -170,8 +166,8 @@ class TestSeriesSortValues:
         self, inplace, original_list, sorted_list, ignore_index, output_index
     ):
         # GH 30114
-        ser = Series(original_list)
-        expected = Series(sorted_list, index=output_index)
+        ser = pd.Series(original_list)
+        expected = pd.Series(sorted_list, index=output_index)
         kwargs = {"ignore_index": ignore_index, "inplace": inplace}
 
         if inplace:
@@ -181,34 +177,34 @@ class TestSeriesSortValues:
             result_ser = ser.sort_values(ascending=False, **kwargs)
 
         tm.assert_series_equal(result_ser, expected)
-        tm.assert_series_equal(ser, Series(original_list))
+        tm.assert_series_equal(ser, pd.Series(original_list))
 
     @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.sort_values")
     def test_sort_values_ignore_index_on_already_sorted(self):
         # GH 65833 - ignore_index had no effect on already sorted Series
-        ser = Series([1, 2, 3], index=[2, 3, 4])
-        expected = Series([1, 2, 3], index=[0, 1, 2])
+        ser = pd.Series([1, 2, 3], index=[2, 3, 4])
+        expected = pd.Series([1, 2, 3], index=[0, 1, 2])
         result = ser.sort_values(ignore_index=True)
         tm.assert_series_equal(result, expected)
 
-        ser2 = Series([1, 2, 3], index=[2, 3, 4])
+        ser2 = pd.Series([1, 2, 3], index=[2, 3, 4])
         ser2.sort_values(ignore_index=True, inplace=True)
         tm.assert_series_equal(ser2, expected)
 
-        ser3 = Series([1, 2, 3], index=[2, 3, 4])
+        ser3 = pd.Series([1, 2, 3], index=[2, 3, 4])
         result3 = ser3.sort_values(ignore_index=False)
-        tm.assert_series_equal(result3, Series([1, 2, 3], index=[2, 3, 4]))
+        tm.assert_series_equal(result3, pd.Series([1, 2, 3], index=[2, 3, 4]))
 
     def test_mergesort_descending_stability(self):
         # GH 28697
-        s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])
+        s = pd.Series([1, 2, 1, 3], ["first", "b", "second", "c"])
         result = s.sort_values(ascending=False, kind="mergesort")
-        expected = Series([3, 2, 1, 1], ["c", "b", "first", "second"])
+        expected = pd.Series([3, 2, 1, 1], ["c", "b", "first", "second"])
         tm.assert_series_equal(result, expected)
 
     def test_sort_values_validate_ascending_for_value_error(self):
         # GH41634
-        ser = Series([23, 7, 21])
+        ser = pd.Series([23, 7, 21])
 
         msg = 'For argument "ascending" expected type bool, received type str.'
         with pytest.raises(ValueError, match=msg):
@@ -216,7 +212,7 @@ class TestSeriesSortValues:
 
     def test_sort_values_validate_ascending_functional(self, ascending):
         # GH41634
-        ser = Series([23, 7, 21])
+        ser = pd.Series([23, 7, 21])
         expected = np.sort(ser.values)
 
         sorted_ser = ser.sort_values(ascending=ascending)
@@ -229,7 +225,7 @@ class TestSeriesSortValues:
 
 class TestSeriesSortingKey:
     def test_sort_values_key(self):
-        series = Series(np.array(["Hello", "goodbye"]))
+        series = pd.Series(np.array(["Hello", "goodbye"]))
 
         result = series.sort_values(axis=0)
         expected = series
@@ -240,7 +236,7 @@ class TestSeriesSortingKey:
         tm.assert_series_equal(result, expected)
 
     def test_sort_values_key_nan(self):
-        series = Series(np.array([0, 5, np.nan, 3, 2, np.nan]))
+        series = pd.Series(np.array([0, 5, np.nan, 3, 2, np.nan]))
 
         result = series.sort_values(axis=0)
         expected = series.iloc[[0, 4, 3, 1, 2, 5]]
@@ -258,9 +254,9 @@ class TestSeriesSortingKey:
 def test_sort_values_inplace_depr():
     msg = "The inplace keyword in Series.sort_values is deprecated"
 
-    ser = Series([3, 1, 2])
+    ser = pd.Series([3, 1, 2])
     ser_orig = ser.copy()
-    expected = Series([1, 2, 3], index=[1, 2, 0])
+    expected = pd.Series([1, 2, 3], index=[1, 2, 0])
 
     # does not use keyword, no warning
     with tm.assert_produces_warning(False):

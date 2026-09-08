@@ -20,17 +20,6 @@ from pandas.errors import Pandas4Warning
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    DataFrame,
-    DatetimeIndex,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-    period_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.indexing import IndexingError
 
@@ -40,7 +29,7 @@ from pandas.tseries.offsets import BDay
 class TestSeriesGetitemScalars:
     def test_getitem_object_index_float_string(self):
         # GH#17286
-        ser = Series([1] * 4, index=Index(["a", "b", "c", 1.0]))
+        ser = pd.Series([1] * 4, index=pd.Index(["a", "b", "c", 1.0]))
         assert ser["a"] == 1
         assert ser[1.0] == 1
 
@@ -48,13 +37,13 @@ class TestSeriesGetitemScalars:
         # see GH#13509
 
         # unique Index
-        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name="foo")
+        ser = pd.Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.1, 0.2], name="foo")
         result = ser[0.0]
         assert result == (1, 1)
 
         # non-unique Index
-        expected = Series([(1, 1), (2, 2)], index=[0.0, 0.0], name="foo")
-        ser = Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name="foo")
+        expected = pd.Series([(1, 1), (2, 2)], index=[0.0, 0.0], name="foo")
+        ser = pd.Series([(1, 1), (2, 2), (3, 3)], index=[0.0, 0.0, 0.2], name="foo")
 
         result = ser[0.0]
         tm.assert_series_equal(result, expected)
@@ -63,7 +52,7 @@ class TestSeriesGetitemScalars:
         # GH#32684 a scalar key that is not recognized by lib.is_scalar
 
         # a series that might be produced via `frame.dtypes`
-        ser = Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
+        ser = pd.Series([1, 2], index=[np.dtype("O"), np.dtype("i8")])
 
         key = ser.index[1]
 
@@ -71,7 +60,7 @@ class TestSeriesGetitemScalars:
         assert result == 2
 
     def test_getitem_negative_out_of_bounds(self):
-        ser = Series(["a"] * 10, index=["a"] * 10)
+        ser = pd.Series(["a"] * 10, index=["a"] * 10)
 
         with pytest.raises(KeyError, match="^-11$"):
             ser[-11]
@@ -85,15 +74,15 @@ class TestSeriesGetitemScalars:
     def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
         # GH#917
         # With a RangeIndex, an int key gives a KeyError
-        ser = Series([], dtype=object)
+        ser = pd.Series([], dtype=object)
         with pytest.raises(KeyError, match="-1"):
             ser[-1]
 
     def test_getitem_keyerror_with_integer_index(self, any_int_numpy_dtype):
         dtype = any_int_numpy_dtype
-        ser = Series(
+        ser = pd.Series(
             np.random.default_rng(2).standard_normal(6),
-            index=Index([0, 0, 1, 1, 2, 2], dtype=dtype),
+            index=pd.Index([0, 0, 1, 1, 2, 2], dtype=dtype),
         )
 
         with pytest.raises(KeyError, match=r"^5$"):
@@ -103,7 +92,7 @@ class TestSeriesGetitemScalars:
             ser["c"]
 
         # not monotonic
-        ser = Series(
+        ser = pd.Series(
             np.random.default_rng(2).standard_normal(6), index=[2, 2, 0, 0, 1, 1]
         )
 
@@ -121,7 +110,7 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_full_range(self):
         # github.com/pandas-dev/pandas/commit/4f433773141d2eb384325714a2776bcc5b2e20f7
-        ser = Series(range(5), index=list(range(5)))
+        ser = pd.Series(range(5), index=list(range(5)))
         result = ser[list(range(5))]
         tm.assert_series_equal(result, ser)
 
@@ -132,11 +121,11 @@ class TestSeriesGetitemScalars:
     def test_getitem_pydatetime_tz(self, tzstr):
         tz = timezones.maybe_get_tz(tzstr)
 
-        index = date_range(
+        index = pd.date_range(
             start="2012-12-24 16:00", end="2012-12-24 18:00", freq="h", tz=tzstr
         )
-        ts = Series(index=index, data=index.hour)
-        time_pandas = Timestamp("2012-12-24 17:00", tz=tzstr)
+        ts = pd.Series(index=index, data=index.hour)
+        time_pandas = pd.Timestamp("2012-12-24 17:00", tz=tzstr)
 
         dt = datetime(2012, 12, 24, 17, 0)
         time_datetime = conversion.localize_pydatetime(dt, tz)
@@ -144,15 +133,15 @@ class TestSeriesGetitemScalars:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_string_index_alias_tz_aware(self, tz):
-        rng = date_range("1/1/2000", periods=10, tz=tz)
-        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        rng = pd.date_range("1/1/2000", periods=10, tz=tz)
+        ser = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ser["1/3/2000"]
         tm.assert_almost_equal(result, ser.iloc[2])
 
     def test_getitem_time_object(self):
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         mask = (rng.hour == 9) & (rng.minute == 30)
         result = ts[time(9, 30)]
@@ -164,9 +153,9 @@ class TestSeriesGetitemScalars:
     # Series with CategoricalIndex
 
     def test_getitem_scalar_categorical_index(self):
-        cats = Categorical([Timestamp("12-31-1999"), Timestamp("12-31-2000")])
+        cats = pd.Categorical([pd.Timestamp("12-31-1999"), pd.Timestamp("12-31-2000")])
 
-        ser = Series([1, 2], index=cats)
+        ser = pd.Series([1, 2], index=cats)
 
         expected = ser.iloc[0]
         result = ser[cats[0]]
@@ -174,7 +163,7 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_numeric_categorical_listlike_matches_scalar(self):
         # GH#15470
-        ser = Series(["a", "b", "c"], index=pd.CategoricalIndex([2, 1, 0]))
+        ser = pd.Series(["a", "b", "c"], index=pd.CategoricalIndex([2, 1, 0]))
 
         # 0 is treated as a label
         assert ser[0] == "c"
@@ -189,13 +178,13 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_integer_categorical_not_positional(self):
         # GH#14865
-        ser = Series(["a", "b", "c"], index=Index([1, 2, 3], dtype="category"))
+        ser = pd.Series(["a", "b", "c"], index=pd.Index([1, 2, 3], dtype="category"))
         assert ser.get(3) == "c"
         assert ser[3] == "c"
 
     def test_getitem_str_with_timedeltaindex(self):
-        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
-        ser = Series(np.arange(len(rng)), index=rng)
+        rng = pd.timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = pd.Series(np.arange(len(rng)), index=rng)
 
         key = "6 days, 23:11:12"
         indexer = rng.get_loc(key)
@@ -212,7 +201,7 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_bool_index_positional(self):
         # GH#48653
-        ser = Series({True: 1, False: 0})
+        ser = pd.Series({True: 1, False: 0})
         with pytest.raises(KeyError, match="^0$"):
             ser[0]
 
@@ -220,21 +209,21 @@ class TestSeriesGetitemScalars:
 class TestSeriesGetitemSlices:
     def test_getitem_partial_str_slice_with_datetimeindex(self):
         # GH#34860
-        arr = date_range("1/1/2008", "1/1/2009")
+        arr = pd.date_range("1/1/2008", "1/1/2009")
         ser = arr.to_series()
         result = ser["2008"]
 
-        rng = date_range(start="2008-01-01", end="2008-12-31")
-        expected = Series(rng, index=rng)
+        rng = pd.date_range(start="2008-01-01", end="2008-12-31")
+        expected = pd.Series(rng, index=rng)
 
         tm.assert_series_equal(result, expected)
 
     def test_getitem_slice_strings_with_datetimeindex(self):
-        idx = DatetimeIndex(
+        idx = pd.DatetimeIndex(
             ["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"]
         )
 
-        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
+        ts = pd.Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["1/2/2000":]
         expected = ts[1:]
@@ -245,8 +234,8 @@ class TestSeriesGetitemSlices:
         tm.assert_series_equal(result, expected)
 
     def test_getitem_partial_str_slice_with_timedeltaindex(self):
-        rng = timedelta_range("1 day 10:11:12", freq="h", periods=500)
-        ser = Series(np.arange(len(rng)), index=rng)
+        rng = pd.timedelta_range("1 day 10:11:12", freq="h", periods=500)
+        ser = pd.Series(np.arange(len(rng)), index=rng)
 
         result = ser["5 day":"6 day"]
         expected = ser.iloc[86:134]
@@ -262,8 +251,8 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_partial_str_slice_high_reso_with_timedeltaindex(self):
         # higher reso
-        rng = timedelta_range("1 day 10:11:12", freq="us", periods=2000)
-        ser = Series(np.arange(len(rng)), index=rng)
+        rng = pd.timedelta_range("1 day 10:11:12", freq="us", periods=2000)
+        ser = pd.Series(np.arange(len(rng)), index=rng)
 
         result = ser["1 day 10:11:12":]
         expected = ser.iloc[0:]
@@ -282,8 +271,8 @@ class TestSeriesGetitemSlices:
             datetime_series[:, np.newaxis]
 
     def test_getitem_median_slice_bug(self):
-        index = date_range("20090415", "20090519", freq="2B")
-        ser = Series(np.random.default_rng(2).standard_normal(13), index=index)
+        index = pd.date_range("20090415", "20090519", freq="2B")
+        ser = pd.Series(np.random.default_rng(2).standard_normal(13), index=index)
 
         indexer = [slice(6, 7, None)]
         msg = "Indexing with a single-item list"
@@ -307,9 +296,9 @@ class TestSeriesGetitemSlices:
     )
     def test_getitem_slice_date(self, slc, positions):
         # https://github.com/pandas-dev/pandas/issues/31501
-        ser = Series(
+        ser = pd.Series(
             [0, 1, 2],
-            DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
+            pd.DatetimeIndex(["2019-01-01", "2019-01-01T06:00:00", "2019-01-02"]),
         )
         msg = "Slicing with a datetime.date object is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -329,7 +318,7 @@ class TestSeriesGetitemSlices:
             datetime_series[4.5:10.0]
 
     def test_getitem_slice_bug(self):
-        ser = Series(range(10), index=list(range(10)))
+        ser = pd.Series(range(10), index=list(range(10)))
         result = ser[-12:]
         tm.assert_series_equal(result, ser)
 
@@ -340,23 +329,23 @@ class TestSeriesGetitemSlices:
         tm.assert_series_equal(result, ser[:0])
 
     def test_getitem_slice_integers(self):
-        ser = Series(
+        ser = pd.Series(
             np.random.default_rng(2).standard_normal(8),
             index=[2, 4, 6, 8, 10, 12, 14, 16],
         )
 
         result = ser[:4]
-        expected = Series(ser.values[:4], index=[2, 4, 6, 8])
+        expected = pd.Series(ser.values[:4], index=[2, 4, 6, 8])
         tm.assert_series_equal(result, expected)
 
 
 class TestSeriesGetitemListLike:
-    @pytest.mark.parametrize("box", [list, np.array, Index, Series])
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
     def test_getitem_no_matches(self, box):
         # GH#33462 we expect the same behavior for list/ndarray/Index/Series
-        ser = Series(["A", "B"])
+        ser = pd.Series(["A", "B"])
 
-        key = Series(["C"], dtype=object)
+        key = pd.Series(["C"], dtype=object)
         key = box(key)
 
         msg = r"None of \[Index\(\['C'\], dtype='(object|str)'\)\] are in the \[index\]"
@@ -364,10 +353,10 @@ class TestSeriesGetitemListLike:
             ser[key]
 
     def test_getitem_intlist_intindex_periodvalues(self):
-        ser = Series(period_range("2000-01-01", periods=10, freq="D"))
+        ser = pd.Series(pd.period_range("2000-01-01", periods=10, freq="D"))
 
         result = ser[[2, 4]]
-        exp = Series(
+        exp = pd.Series(
             [pd.Period("2000-01-03", freq="D"), pd.Period("2000-01-05", freq="D")],
             index=[2, 4],
             dtype="Period[D]",
@@ -375,27 +364,27 @@ class TestSeriesGetitemListLike:
         tm.assert_series_equal(result, exp)
         assert result.dtype == "Period[D]"
 
-    @pytest.mark.parametrize("box", [list, np.array, Index])
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index])
     def test_getitem_intlist_intervalindex_non_int(self, box):
         # GH#33404 fall back to positional since ints are unambiguous;
         #  changed in 3.0 to never fallback
-        dti = date_range("2000-01-03", periods=3)._with_freq(None)
+        dti = pd.date_range("2000-01-03", periods=3)._with_freq(None)
         ii = pd.IntervalIndex.from_breaks(dti)
-        ser = Series(range(len(ii)), index=ii)
+        ser = pd.Series(range(len(ii)), index=ii)
 
         key = box([0])
         msg = r"None of \[Index\(\[0\], dtype='int(32|64)'\)\] are in the \[index\]"
         with pytest.raises(KeyError, match=msg):
             ser[key]
 
-    @pytest.mark.parametrize("box", [list, np.array, Index])
+    @pytest.mark.parametrize("box", [list, np.array, pd.Index])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, np.uint64])
     def test_getitem_intlist_multiindex_numeric_level(self, dtype, box):
         # GH#33404 do _not_ fall back to positional since ints are ambiguous
-        idx = Index(range(4)).astype(dtype)
-        dti = date_range("2000-01-03", periods=3)
+        idx = pd.Index(range(4)).astype(dtype)
+        dti = pd.date_range("2000-01-03", periods=3)
         mi = pd.MultiIndex.from_product([idx, dti])
-        ser = Series(range(len(mi))[::-1], index=mi)
+        ser = pd.Series(range(len(mi))[::-1], index=mi)
 
         key = box([5])
         with pytest.raises(KeyError, match="5"):
@@ -403,7 +392,7 @@ class TestSeriesGetitemListLike:
 
     def test_getitem_uint_array_key(self, any_unsigned_int_numpy_dtype):
         # GH #37218
-        ser = Series([1, 2, 3])
+        ser = pd.Series([1, 2, 3])
         key = np.array([4], dtype=any_unsigned_int_numpy_dtype)
 
         with pytest.raises(KeyError, match="4"):
@@ -424,7 +413,7 @@ class TestGetitemBooleanMask:
         tm.assert_index_equal(result.index, ser.index[mask])
 
     def test_getitem_boolean_empty(self):
-        ser = Series([], dtype=np.int64)
+        ser = pd.Series([], dtype=np.int64)
         ser.index.name = "index_name"
         ser = ser[ser.isna()]
         assert ser.index.name == "index_name"
@@ -432,9 +421,9 @@ class TestGetitemBooleanMask:
 
         # GH#5877
         # indexing with empty series
-        ser = Series(["A", "B"], dtype=object)
-        expected = Series(dtype=object, index=Index([], dtype="int64"))
-        result = ser[Series([], dtype=object)]
+        ser = pd.Series(["A", "B"], dtype=object)
+        expected = pd.Series(dtype=object, index=pd.Index([], dtype="int64"))
+        result = ser[pd.Series([], dtype=object)]
         tm.assert_series_equal(result, expected)
 
         # invalid because of the boolean indexer
@@ -444,10 +433,10 @@ class TestGetitemBooleanMask:
             r"the boolean Series and of the indexed object do not match"
         )
         with pytest.raises(IndexingError, match=msg):
-            ser[Series([], dtype=bool)]
+            ser[pd.Series([], dtype=bool)]
 
         with pytest.raises(IndexingError, match=msg):
-            ser[Series([True], dtype=bool)]
+            ser[pd.Series([True], dtype=bool)]
 
     def test_getitem_boolean_object(self, string_series):
         # using column from DataFrame
@@ -478,16 +467,16 @@ class TestGetitemBooleanMask:
 
     def test_getitem_boolean_dt64_copies(self):
         # GH#36210
-        dti = date_range("2016-01-01", periods=4, tz="US/Pacific")
+        dti = pd.date_range("2016-01-01", periods=4, tz="US/Pacific")
         key = np.array([True, True, False, False])
 
-        ser = Series(dti._data)
+        ser = pd.Series(dti._data)
 
         res = ser[key]
         assert res._values._ndarray.base is None
 
         # compare with numeric case for reference
-        ser2 = Series(range(4))
+        ser2 = pd.Series(range(4))
         res2 = ser2[key]
         assert res2._values.base is None
 
@@ -513,7 +502,7 @@ class TestGetitemBooleanMask:
         tm.assert_series_equal(sel, exp)
 
     def test_getitem_boolean_contiguous_preserve_freq(self):
-        rng = date_range("1/1/2000", "3/1/2000", freq="B")
+        rng = pd.date_range("1/1/2000", "3/1/2000", freq="B")
 
         mask = np.zeros(len(rng), dtype=bool)
         mask[10:20] = True
@@ -531,7 +520,7 @@ class TestGetitemBooleanMask:
 class TestGetitemCallable:
     def test_getitem_callable(self):
         # GH#12533
-        ser = Series(4, index=list("ABCD"))
+        ser = pd.Series(4, index=list("ABCD"))
         result = ser[lambda x: "A"]
         assert result == ser.loc["A"]
 
@@ -557,12 +546,12 @@ def test_getitem_generator(string_series):
     "data",
     [
         [0, 1],
-        date_range("2012-01-01", periods=2),
-        date_range("2012-01-01", periods=2, tz="CET"),
+        pd.date_range("2012-01-01", periods=2),
+        pd.date_range("2012-01-01", periods=2, tz="CET"),
     ],
 )
 def test_getitem_ndim_deprecated(data):
-    series = Series(data)
+    series = pd.Series(data)
     with pytest.raises(ValueError, match="Multi-dimensional indexing"):
         series[:, None]
 
@@ -581,8 +570,8 @@ def test_getitem_multilevel_scalar_slice_not_implemented(
 
 def test_getitem_dataframe_raises():
     rng = list(range(10))
-    ser = Series(10, index=rng)
-    df = DataFrame(rng, index=rng)
+    ser = pd.Series(10, index=rng)
+    df = pd.DataFrame(rng, index=rng)
     msg = (
         "Indexing a Series with DataFrame is not supported, "
         "use the appropriate DataFrame column"
@@ -594,16 +583,16 @@ def test_getitem_dataframe_raises():
 def test_getitem_assignment_series_alignment():
     # https://github.com/pandas-dev/pandas/issues/37427
     # with getitem, when assigning with a Series, it is not first aligned
-    ser = Series(range(10))
+    ser = pd.Series(range(10))
     idx = np.array([2, 4, 9])
-    ser[idx] = Series([10, 11, 12])
-    expected = Series([0, 1, 10, 3, 11, 5, 6, 7, 8, 12])
+    ser[idx] = pd.Series([10, 11, 12])
+    expected = pd.Series([0, 1, 10, 3, 11, 5, 6, 7, 8, 12])
     tm.assert_series_equal(ser, expected)
 
 
 def test_getitem_duplicate_index_mistyped_key_raises_keyerror():
     # GH#29189 float_index.get_loc(None) should raise KeyError, not TypeError
-    ser = Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
+    ser = pd.Series([2, 5, 6, 8], index=[2.0, 4.0, 4.0, 5.0])
     with pytest.raises(KeyError, match="None"):
         ser[None]
 
@@ -615,7 +604,7 @@ def test_getitem_duplicate_index_mistyped_key_raises_keyerror():
 
 
 def test_getitem_1tuple_slice_without_multiindex():
-    ser = Series(range(5))
+    ser = pd.Series(range(5))
     key = (slice(3),)
 
     result = ser[key]
@@ -633,7 +622,7 @@ def test_getitem_preserve_name(datetime_series):
 
 def test_getitem_with_integer_labels():
     # integer indexes, be careful
-    ser = Series(
+    ser = pd.Series(
         np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
     )
     inds = [0, 2, 5, 7, 8]
@@ -667,35 +656,35 @@ def test_getitem_box_float64(datetime_series):
 
 
 def test_getitem_unordered_dup():
-    obj = Series(range(5), index=["c", "a", "a", "b", "b"])
+    obj = pd.Series(range(5), index=["c", "a", "a", "b", "b"])
     assert is_scalar(obj["c"])
     assert obj["c"] == 0
 
 
 def test_getitem_dups():
-    ser = Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
-    expected = Series([3, 4], index=["C", "C"], dtype=np.int64)
+    ser = pd.Series(range(5), index=["A", "A", "B", "C", "C"], dtype=np.int64)
+    expected = pd.Series([3, 4], index=["C", "C"], dtype=np.int64)
     result = ser["C"]
     tm.assert_series_equal(result, expected)
 
 
 def test_getitem_categorical_str():
     # GH#31765
-    ser = Series(range(5), index=Categorical(["a", "b", "c", "a", "b"]))
+    ser = pd.Series(range(5), index=pd.Categorical(["a", "b", "c", "a", "b"]))
     result = ser["a"]
     expected = ser.iloc[[0, 3]]
     tm.assert_series_equal(result, expected)
 
 
 def test_slice_can_reorder_not_uniquely_indexed():
-    ser = Series(1, index=["a", "a", "b", "b", "c"])
+    ser = pd.Series(1, index=["a", "a", "b", "b", "c"])
     ser[::-1]  # it works!
 
 
 @pytest.mark.parametrize("index_vals", ["aabcd", "aadcb"])
 def test_duplicated_index_getitem_positional_indexer(index_vals):
     # GH 11747; changed in 3.0 integers are treated as always-labels
-    s = Series(range(5), index=list(index_vals))
+    s = pd.Series(range(5), index=list(index_vals))
 
     with pytest.raises(KeyError, match="^3$"):
         s[3]
@@ -705,13 +694,13 @@ class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
         # GH#42825 enforced in 2.0
-        ser = Series([1, 2, 3])
+        ser = pd.Series([1, 2, 3])
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key]
 
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_setitem_dict_and_set_disallowed(self, key):
         # GH#42825 enforced in 2.0
-        ser = Series([1, 2, 3])
+        ser = pd.Series([1, 2, 3])
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser[key] = 1

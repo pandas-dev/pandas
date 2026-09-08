@@ -4,13 +4,12 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 
 
 @pytest.fixture
 def ser():
-    return Series([1, 2, 3], index=["x", "y", "z"])
+    return pd.Series([1, 2, 3], index=["x", "y", "z"])
 
 
 @pytest.mark.parametrize(
@@ -31,7 +30,7 @@ def test_filter_mask(ser, mask):
 
 def test_filter_mask_series_aligns(ser):
     # GH#61317
-    mask = Series([True, True, False], index=["z", "y", "x"])
+    mask = pd.Series([True, True, False], index=["z", "y", "x"])
     result = ser.filter(mask)
     expected = ser.iloc[1:]
     tm.assert_series_equal(result, expected)
@@ -85,7 +84,7 @@ def test_filter_mask_na(ser, mask):
 
 def test_filter_bool_labels_deprecated():
     # GH#61317
-    ser = Series([1, 2, 3], index=[True, False, "c"])
+    ser = pd.Series([1, 2, 3], index=[True, False, "c"])
     msg = (
         "Series.filter with boolean values currently selects the labels True "
         "and False when the axis contains boolean labels. In a future version the "

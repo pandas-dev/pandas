@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -49,7 +48,7 @@ class TestSparseArrayArithmetics:
 
     def _check_bool_result(self, res):
         assert isinstance(res, SparseArray)
-        assert isinstance(res.dtype, SparseDtype)
+        assert isinstance(res.dtype, pd.SparseDtype)
         assert res.dtype.subtype == np.bool_
         assert isinstance(res.fill_value, bool)
 
@@ -254,30 +253,30 @@ class TestSparseArrayArithmetics:
         rvalues = np.array([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
         a = SparseArray(values, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix, op)
 
         a = SparseArray(values, fill_value=0, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, fill_value=0, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, fill_value=0, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, fill_value=1, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype, fill_value=1)
+        assert a.dtype == pd.SparseDtype(dtype, fill_value=1)
         b = SparseArray(rvalues, fill_value=2, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(dtype, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_int_array_comparison(self, kind):
@@ -334,24 +333,24 @@ class TestSparseArrayArithmetics:
 
         a = SparseArray(values, kind=kind)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind, fill_value=0)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=1)
         b = SparseArray(rvalues, kind=kind, fill_value=2)
-        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(rdtype, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_mixed_array_comparison(self, kind):
@@ -363,24 +362,24 @@ class TestSparseArrayArithmetics:
 
         a = SparseArray(values, kind=kind)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
 
         self._check_comparison_ops(a, b, values, rvalues)
         self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_comparison_ops(a, b, values, rvalues)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind, fill_value=0)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_comparison_ops(a, b, values, rvalues)
 
         a = SparseArray(values, kind=kind, fill_value=1)
         b = SparseArray(rvalues, kind=kind, fill_value=2)
-        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(rdtype, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
     def test_xor(self):
@@ -479,7 +478,7 @@ def test_logical_op_uneven_length_series(op):
     result = op(sparse == 5, dense == 5)
     expected = op(pd.Series(np.arange(10)) == 5, dense == 5)
 
-    assert isinstance(result.dtype, SparseDtype)
+    assert isinstance(result.dtype, pd.SparseDtype)
     tm.assert_series_equal(result.astype(bool), expected)
 
 

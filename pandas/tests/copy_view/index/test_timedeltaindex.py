@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    array,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -15,30 +9,30 @@ from pandas.tests.copy_view.util import get_array
 @pytest.mark.parametrize(
     "cons",
     [
-        lambda x: TimedeltaIndex(x),
-        lambda x: TimedeltaIndex(TimedeltaIndex(x)),
+        lambda x: pd.TimedeltaIndex(x),
+        lambda x: pd.TimedeltaIndex(pd.TimedeltaIndex(x)),
     ],
 )
 def test_timedeltaindex(cons):
-    dt = timedelta_range("1 day", periods=3)
-    ser = Series(dt)
+    dt = pd.timedelta_range("1 day", periods=3)
+    ser = pd.Series(dt)
     idx = cons(ser)
     expected = idx.copy(deep=True)
-    ser.iloc[0] = Timedelta("5 days")
+    ser.iloc[0] = pd.Timedelta("5 days")
     tm.assert_index_equal(idx, expected)
 
 
 def test_constructor_copy_input_timedelta_ndarray_default():
     # GH 63388
     arr = np.array([1, 2], dtype="timedelta64[ns]")
-    idx = TimedeltaIndex(arr)
+    idx = pd.TimedeltaIndex(arr)
     assert not np.shares_memory(arr, get_array(idx))
 
 
 def test_constructor_copy_input_timedelta_ea_default():
     # GH 63388
-    arr = array([1, 2], dtype="timedelta64[ns]")
-    idx = TimedeltaIndex(arr)
+    arr = pd.array([1, 2], dtype="timedelta64[ns]")
+    idx = pd.TimedeltaIndex(arr)
     assert not tm.shares_memory(arr, idx.array)
 
 
@@ -46,10 +40,10 @@ def test_series_from_temporary_timedeltaindex_readonly_data():
     # GH 63388
     arr = np.array([1, 2], dtype="timedelta64[ns]")
     arr.flags.writeable = False
-    ser = Series(TimedeltaIndex(arr))
+    ser = pd.Series(pd.TimedeltaIndex(arr))
     assert not np.shares_memory(arr, get_array(ser))
-    ser.iloc[0] = Timedelta(days=1)
-    expected = Series(
-        [Timedelta(days=1), Timedelta(nanoseconds=2)], dtype="timedelta64[ns]"
+    ser.iloc[0] = pd.Timedelta(days=1)
+    expected = pd.Series(
+        [pd.Timedelta(days=1), pd.Timedelta(nanoseconds=2)], dtype="timedelta64[ns]"
     )
     tm.assert_series_equal(ser, expected)

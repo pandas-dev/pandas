@@ -1,10 +1,6 @@
 import numpy as np
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -21,24 +17,26 @@ class TestDataFramePop:
         assert float_frame.columns.name == "baz"
 
         # gh-10912: inplace ops cause caching issue
-        a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"], index=["X", "Y"])
+        a = pd.DataFrame(
+            [[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"], index=["X", "Y"]
+        )
         b = a.pop("B")
         b += 1
 
         # original frame
-        expected = DataFrame([[1, 3], [4, 6]], columns=["A", "C"], index=["X", "Y"])
+        expected = pd.DataFrame([[1, 3], [4, 6]], columns=["A", "C"], index=["X", "Y"])
         tm.assert_frame_equal(a, expected)
 
         # result
-        expected = Series([2, 5], index=["X", "Y"], name="B") + 1
+        expected = pd.Series([2, 5], index=["X", "Y"], name="B") + 1
         tm.assert_series_equal(b, expected)
 
     def test_pop_non_unique_cols(self):
-        df = DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})
+        df = pd.DataFrame({0: [0, 1], 1: [0, 1], 2: [4, 5]})
         df.columns = ["a", "b", "a"]
 
         res = df.pop("a")
-        assert type(res) == DataFrame
+        assert type(res) == pd.DataFrame
         assert len(res) == 2
         assert len(df.columns) == 1
         assert "b" in df.columns
@@ -53,8 +51,10 @@ class TestDataFramePop:
         ]
 
         tuples = sorted(zip(*arrays, strict=True))
-        index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
+        index = pd.MultiIndex.from_tuples(tuples)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((4, 6)), columns=index
+        )
 
         df1 = df.copy()
         df2 = df.copy()

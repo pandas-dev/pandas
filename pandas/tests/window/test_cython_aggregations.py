@@ -6,7 +6,7 @@ import pytest
 
 import pandas._libs.window.aggregations as window_aggregations
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -84,8 +84,8 @@ def test_rolling_aggregation_boundary_consistency(rolling_aggregation):
     end = np.arange(width, size, step, dtype=np.int64)
     start = end - width
     selarr = np.array(selection, dtype=np.int32)
-    result = Series(rolling_aggregation(values, start[selarr], end[selarr], minp))
-    expected = Series(rolling_aggregation(values, start, end, minp)[selarr])
+    result = pd.Series(rolling_aggregation(values, start[selarr], end[selarr], minp))
+    expected = pd.Series(rolling_aggregation(values, start, end, minp)[selarr])
     tm.assert_equal(expected, result)
 
 
@@ -103,11 +103,11 @@ def test_rolling_aggregation_with_unused_elements(rolling_aggregation):
         [j for i in range(len(start)) for j in range(start[i], end[i])],
         dtype=np.int32,
     )
-    result = Series(rolling_aggregation(values, start, end, minp))
+    result = pd.Series(rolling_aggregation(values, start, end, minp))
     compact_values = np.array(values[loc], dtype=np.float64)
     compact_start = np.arange(0, len(start) * width, width, dtype=np.int64)
     compact_end = compact_start + width
-    expected = Series(
+    expected = pd.Series(
         rolling_aggregation(compact_values, compact_start, compact_end, minp)
     )
     assert np.isfinite(expected.values).all(), "Not all expected values are finite"

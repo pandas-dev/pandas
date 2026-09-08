@@ -6,19 +6,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    notna,
-    offsets,
-    timedelta_range,
-    to_timedelta,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -27,33 +15,33 @@ class TestGetItem:
         # GH#4226, GH#59051
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            tdi = timedelta_range("1d", "5d", freq="h", name="timebucket")
+            tdi = pd.timedelta_range("1d", "5d", freq="h", name="timebucket")
         assert tdi[1:].name == tdi.name
 
     def test_getitem(self):
-        idx1 = timedelta_range("1 day", "31 day", freq="D", name="idx")
+        idx1 = pd.timedelta_range("1 day", "31 day", freq="D", name="idx")
 
         for idx in [idx1]:
             result = idx[0]
-            assert result == Timedelta("1 day")
+            assert result == pd.Timedelta("1 day")
 
             result = idx[0:5]
-            expected = timedelta_range("1 day", "5 day", freq="D", name="idx")
+            expected = pd.timedelta_range("1 day", "5 day", freq="D", name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
             result = idx[0:10:2]
-            expected = timedelta_range("1 day", "9 day", freq="2D", name="idx")
+            expected = pd.timedelta_range("1 day", "9 day", freq="2D", name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
             result = idx[-20:-5:3]
-            expected = timedelta_range("12 day", "24 day", freq="3D", name="idx")
+            expected = pd.timedelta_range("12 day", "24 day", freq="3D", name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
             result = idx[4::-1]
-            expected = TimedeltaIndex(
+            expected = pd.TimedeltaIndex(
                 ["5 day", "4 day", "3 day", "2 day", "1 day"], freq="-1D", name="idx"
             )
             tm.assert_index_equal(result, expected)
@@ -62,32 +50,32 @@ class TestGetItem:
     @pytest.mark.parametrize(
         "key",
         [
-            Timestamp("1970-01-01"),
-            Timestamp("1970-01-02"),
+            pd.Timestamp("1970-01-01"),
+            pd.Timestamp("1970-01-02"),
             datetime(1970, 1, 1),
-            Timestamp("1970-01-03").to_datetime64(),
+            pd.Timestamp("1970-01-03").to_datetime64(),
             # non-matching NA values
             np.datetime64("NaT", "ns"),
         ],
     )
     def test_timestamp_invalid_key(self, key):
         # GH#20464
-        tdi = timedelta_range(0, periods=10)
+        tdi = pd.timedelta_range(0, periods=10)
         with pytest.raises(KeyError, match=re.escape(repr(key))):
             tdi.get_loc(key)
 
 
 class TestGetLoc:
     def test_get_loc_key_unit_mismatch(self):
-        idx = to_timedelta(["0 days", "1 days", "2 days"])
+        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
         key = idx[1].as_unit("ms")
         loc = idx.get_loc(key)
         assert loc == 1
 
     def test_get_loc_key_unit_mismatch_not_castable(self):
-        tdi = to_timedelta(["0 days", "1 days", "2 days"]).astype("m8[s]")
+        tdi = pd.to_timedelta(["0 days", "1 days", "2 days"]).astype("m8[s]")
         assert tdi.dtype == "m8[s]"
-        key = tdi[0].as_unit("ns") + Timedelta(1)
+        key = tdi[0].as_unit("ns") + pd.Timedelta(1)
 
         with pytest.raises(KeyError, match=r"Timedelta\('0 days 00:00:00.000000001'\)"):
             tdi.get_loc(key)
@@ -95,7 +83,7 @@ class TestGetLoc:
         assert key not in tdi
 
     def test_get_loc(self):
-        idx = to_timedelta(["0 days", "1 days", "2 days"])
+        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
 
         # GH 16909
         assert idx.get_loc(idx[1].to_timedelta64()) == 1
@@ -104,9 +92,9 @@ class TestGetLoc:
         assert idx.get_loc("0 days") == 0
 
     def test_get_loc_nat(self):
-        tidx = TimedeltaIndex(["1 days 01:00:00", "NaT", "2 days 01:00:00"])
+        tidx = pd.TimedeltaIndex(["1 days 01:00:00", "NaT", "2 days 01:00:00"])
 
-        assert tidx.get_loc(NaT) == 1
+        assert tidx.get_loc(pd.NaT) == 1
         assert tidx.get_loc(None) == 1
         assert tidx.get_loc(float("nan")) == 1
         assert tidx.get_loc(np.nan) == 1
@@ -114,12 +102,12 @@ class TestGetLoc:
 
 class TestGetIndexer:
     def test_get_indexer(self):
-        idx = to_timedelta(["0 days", "1 days", "2 days"])
+        idx = pd.to_timedelta(["0 days", "1 days", "2 days"])
         tm.assert_numpy_array_equal(
             idx.get_indexer(idx), np.array([0, 1, 2], dtype=np.intp)
         )
 
-        target = to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
+        target = pd.to_timedelta(["-1 hour", "12 hours", "1 day 1 hour"])
         tm.assert_numpy_array_equal(
             idx.get_indexer(target, "pad"), np.array([-1, 0, 1], dtype=np.intp)
         )
@@ -130,14 +118,14 @@ class TestGetIndexer:
             idx.get_indexer(target, "nearest"), np.array([0, 1, 1], dtype=np.intp)
         )
 
-        res = idx.get_indexer(target, "nearest", tolerance=Timedelta("1 hour"))
+        res = idx.get_indexer(target, "nearest", tolerance=pd.Timedelta("1 hour"))
         tm.assert_numpy_array_equal(res, np.array([0, -1, 1], dtype=np.intp))
 
     @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
     def test_get_indexer_nat_target(self, method):
         # GH#32572 NaT in the target should not be matched
-        tdi = to_timedelta(["0 days", "1 days", "2 days"])
-        target = TimedeltaIndex([NaT])
+        tdi = pd.to_timedelta(["0 days", "1 days", "2 days"])
+        target = pd.TimedeltaIndex([pd.NaT])
         result = tdi.get_indexer(target, method=method)
         expected = np.array([-1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -145,46 +133,48 @@ class TestGetIndexer:
 
 class TestWhere:
     def test_where_doesnt_retain_freq(self):
-        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        tdi = pd.timedelta_range("1 day", periods=3, freq="D", name="idx")
         cond = [True, True, False]
-        expected = TimedeltaIndex([tdi[0], tdi[1], tdi[0]], freq=None, name="idx")
+        expected = pd.TimedeltaIndex([tdi[0], tdi[1], tdi[0]], freq=None, name="idx")
 
         result = tdi.where(cond, tdi[::-1])
         tm.assert_index_equal(result, expected)
 
     def test_where_invalid_dtypes(self, fixed_now_ts):
-        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        tdi = pd.timedelta_range("1 day", periods=3, freq="D", name="idx")
 
         tail = tdi[2:].tolist()
-        i2 = Index([NaT, NaT, *tail])
-        mask = notna(i2)
+        i2 = pd.Index([pd.NaT, pd.NaT, *tail])
+        mask = pd.notna(i2)
 
-        expected = Index([NaT._value, NaT._value, *tail], dtype=object, name="idx")
+        expected = pd.Index(
+            [pd.NaT._value, pd.NaT._value, *tail], dtype=object, name="idx"
+        )
         assert isinstance(expected[0], int)
         result = tdi.where(mask, i2.asi8)
         tm.assert_index_equal(result, expected)
 
         ts = i2 + fixed_now_ts
-        expected = Index([ts[0], ts[1], *tail], dtype=object, name="idx")
+        expected = pd.Index([ts[0], ts[1], *tail], dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
         per = (i2 + fixed_now_ts).to_period("D")
-        expected = Index([per[0], per[1], *tail], dtype=object, name="idx")
+        expected = pd.Index([per[0], per[1], *tail], dtype=object, name="idx")
         result = tdi.where(mask, per)
         tm.assert_index_equal(result, expected)
 
         ts = fixed_now_ts
-        expected = Index([ts, ts, *tail], dtype=object, name="idx")
+        expected = pd.Index([ts, ts, *tail], dtype=object, name="idx")
         result = tdi.where(mask, ts)
         tm.assert_index_equal(result, expected)
 
     def test_where_mismatched_nat(self):
-        tdi = timedelta_range("1 day", periods=3, freq="D", name="idx")
+        tdi = pd.timedelta_range("1 day", periods=3, freq="D", name="idx")
         cond = np.array([True, False, False])
 
         dtnat = np.datetime64("NaT", "ns")
-        expected = Index([tdi[0], dtnat, dtnat], dtype=object, name="idx")
+        expected = pd.Index([tdi[0], dtnat, dtnat], dtype=object, name="idx")
         assert expected[2] is dtnat
         result = tdi.where(cond, dtnat)
         tm.assert_index_equal(result, expected)
@@ -193,42 +183,42 @@ class TestWhere:
 class TestTake:
     def test_take(self):
         # GH 10295
-        idx1 = timedelta_range("1 day", "31 day", freq="D", name="idx")
+        idx1 = pd.timedelta_range("1 day", "31 day", freq="D", name="idx")
 
         for idx in [idx1]:
             result = idx.take([0])
-            assert result == Timedelta("1 day")
+            assert result == pd.Timedelta("1 day")
 
             result = idx.take([-1])
-            assert result == Timedelta("31 day")
+            assert result == pd.Timedelta("31 day")
 
             result = idx.take([0, 1, 2])
-            expected = timedelta_range("1 day", "3 day", freq="D", name="idx")
+            expected = pd.timedelta_range("1 day", "3 day", freq="D", name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
             result = idx.take([0, 2, 4])
-            expected = timedelta_range("1 day", "5 day", freq="2D", name="idx")
+            expected = pd.timedelta_range("1 day", "5 day", freq="2D", name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
             result = idx.take([7, 4, 1])
-            expected = timedelta_range("8 day", "2 day", freq="-3D", name="idx")
+            expected = pd.timedelta_range("8 day", "2 day", freq="-3D", name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
             result = idx.take([3, 2, 5])
-            expected = TimedeltaIndex(["4 day", "3 day", "6 day"], name="idx")
+            expected = pd.TimedeltaIndex(["4 day", "3 day", "6 day"], name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq is None
 
             result = idx.take([-3, 2, 5])
-            expected = TimedeltaIndex(["29 day", "3 day", "6 day"], name="idx")
+            expected = pd.TimedeltaIndex(["29 day", "3 day", "6 day"], name="idx")
             tm.assert_index_equal(result, expected)
             assert result.freq is None
 
     def test_take_invalid_kwargs(self):
-        idx = timedelta_range("1 day", "31 day", freq="D", name="idx")
+        idx = pd.timedelta_range("1 day", "31 day", freq="D", name="idx")
         indices = [1, 6, 5, 9, 10, 13, 15, 3]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -245,33 +235,33 @@ class TestTake:
 
     def test_take_equiv_getitem(self):
         tds = ["1day 02:00:00", "1 day 04:00:00", "1 day 10:00:00"]
-        idx = timedelta_range(start="1D", end="2D", freq="h", name="idx")
-        expected = TimedeltaIndex(tds, freq=None, name="idx")
+        idx = pd.timedelta_range(start="1D", end="2D", freq="h", name="idx")
+        expected = pd.TimedeltaIndex(tds, freq=None, name="idx")
 
         taken1 = idx.take([2, 4, 10])
         taken2 = idx[[2, 4, 10]]
 
         for taken in [taken1, taken2]:
             tm.assert_index_equal(taken, expected)
-            assert isinstance(taken, TimedeltaIndex)
+            assert isinstance(taken, pd.TimedeltaIndex)
             assert taken.freq is None
             assert taken.name == expected.name
 
     def test_take_fill_value(self):
         # GH 12631
-        idx = TimedeltaIndex(["1 days", "2 days", "3 days"], name="xxx")
+        idx = pd.TimedeltaIndex(["1 days", "2 days", "3 days"], name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
+        expected = pd.TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # fill_value
-        result = idx.take(np.array([1, 0, -1]), fill_value=NaT)
-        expected = TimedeltaIndex(["2 days", "1 days", "NaT"], name="xxx")
+        result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
+        expected = pd.TimedeltaIndex(["2 days", "1 days", "NaT"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False)
-        expected = TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
+        expected = pd.TimedeltaIndex(["2 days", "1 days", "3 days"], name="xxx")
         tm.assert_index_equal(result, expected)
 
         msg = "When allow_fill=True, all indices must be >= -1"
@@ -292,7 +282,7 @@ class TestMaybeCastSliceBound:
 
     @pytest.fixture
     def tdi(self, monotonic):
-        tdi = timedelta_range("1 Day", periods=10)
+        tdi = pd.timedelta_range("1 Day", periods=10)
         if monotonic == "decreasing":
             tdi = tdi[::-1]
         elif monotonic is None:
@@ -340,87 +330,91 @@ class TestStringSliceResolution:
     def test_string_slice_reso_seconds_not_minutes(self):
         # GH#33603 - "720s" should have second resolution, not minute,
         #  even though 720s = 12 minutes exactly
-        tdi = timedelta_range("710s", "721s", freq="s")
-        df = DataFrame({"dummy": np.arange(len(tdi))}, index=tdi)
+        tdi = pd.timedelta_range("710s", "721s", freq="s")
+        df = pd.DataFrame({"dummy": np.arange(len(tdi))}, index=tdi)
 
         result = df["710s":"720s"]
-        expected = df[(df.index >= Timedelta("710s")) & (df.index < Timedelta("721s"))]
+        expected = df[
+            (df.index >= pd.Timedelta("710s")) & (df.index < pd.Timedelta("721s"))
+        ]
         tm.assert_frame_equal(result, expected)
 
     def test_string_slice_reso_value_not_elevated(self):
         # GH#33603 - "60s" should have second resolution, not minute;
         #  "3600s" should have second resolution, not hour
-        tdi = timedelta_range("0s", "7200s", freq="100ms")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("0s", "7200s", freq="100ms")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser["59s":"60s"]
-        expected = ser[(ser.index >= Timedelta("59s")) & (ser.index < Timedelta("61s"))]
+        expected = ser[
+            (ser.index >= pd.Timedelta("59s")) & (ser.index < pd.Timedelta("61s"))
+        ]
         tm.assert_series_equal(result, expected)
 
         result = ser["3599s":"3600s"]
         expected = ser[
-            (ser.index >= Timedelta("3599s")) & (ser.index < Timedelta("3601s"))
+            (ser.index >= pd.Timedelta("3599s")) & (ser.index < pd.Timedelta("3601s"))
         ]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_day_with_zero_hours(self):
         # GH#33603 - "2D 0 hours" should have hour resolution, not day
-        ser = Series(
+        ser = pd.Series(
             np.arange(100),
-            index=timedelta_range("1 days", periods=100, freq="h"),
+            index=pd.timedelta_range("1 days", periods=100, freq="h"),
         )
         result = ser[:"2D 0 hours"]
-        expected = ser[ser.index < Timedelta("2D 1h")]
+        expected = ser[ser.index < pd.Timedelta("2D 1h")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_120s_not_minutes(self):
         # GH#33603 - "120s" should have second resolution, not minute,
         #  even though 120s = 2 minutes exactly
-        tdi = timedelta_range("115s", "125s", freq="100ms")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("115s", "125s", freq="100ms")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"120s"]
-        expected = ser[ser.index < Timedelta("121s")]
+        expected = ser[ser.index < pd.Timedelta("121s")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_units_out_of_order(self):
         # GH#33603 - the finest unit in the string determines the resolution,
         #  regardless of the order the units appear in
-        tdi = timedelta_range("115s", "200s", freq="100ms")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("115s", "200s", freq="100ms")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"120s 0 days"]
-        expected = ser[ser.index < Timedelta("121s")]
+        expected = ser[ser.index < pd.Timedelta("121s")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_2000ms_not_seconds(self):
         # GH#33603 - "2000ms" should have millisecond resolution, not second,
         #  even though 2000ms = 2s exactly
-        tdi = timedelta_range("1900ms", "2100ms", freq="100us")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("1900ms", "2100ms", freq="100us")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"2000ms"]
-        expected = ser[ser.index < Timedelta("2001ms")]
+        expected = ser[ser.index < pd.Timedelta("2001ms")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_hh_mm_ss_exact_hour(self):
         # GH#33603 - "1:00:00" should have second resolution, not hour,
         #  even though it is exactly 1 hour
-        tdi = timedelta_range("0:59:55", periods=200, freq="100ms")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("0:59:55", periods=200, freq="100ms")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"1:00:00"]
-        expected = ser[ser.index < Timedelta("1:00:01")]
+        expected = ser[ser.index < pd.Timedelta("1:00:01")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_hh_mm_ss_exact_minute(self):
         # GH#33603 - "1:01:00" should have second resolution, not minute,
         #  even though the seconds component is zero
-        tdi = timedelta_range("1:00:55", periods=200, freq="100ms")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("1:00:55", periods=200, freq="100ms")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"1:01:00"]
-        expected = ser[ser.index < Timedelta("1:01:01")]
+        expected = ser[ser.index < pd.Timedelta("1:01:01")]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -430,18 +424,18 @@ class TestStringSliceResolution:
     def test_string_slice_non_nano_finer_reso(self, index_unit, label):
         # GH#33603 - a string in a finer unit than the index must not
         #  invert the bounds; e.g. "2000ms" == 2s should match on a m8[s] index
-        tdi = timedelta_range("0s", periods=5, freq="s", unit=index_unit)
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("0s", periods=5, freq="s", unit=index_unit)
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:label]
-        expected = ser[ser.index <= Timedelta(label)]
+        expected = ser[ser.index <= pd.Timedelta(label)]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_non_nano_finer_reso_non_monotonic(self):
         # GH#33603 - inverted bounds raised a bogus "non-monotonic index"
         #  KeyError even though 2000ms == 2s is present in the index
-        tdi = TimedeltaIndex(["5s", "2s", "7s"], dtype="m8[s]")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.TimedeltaIndex(["5s", "2s", "7s"], dtype="m8[s]")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"2000ms"]
         expected = ser.iloc[:2]
@@ -450,8 +444,8 @@ class TestStringSliceResolution:
     def test_string_slice_non_nano_unrepresentable(self):
         # GH#33603 - a string not representable in the index unit
         #  matches nothing
-        tdi = timedelta_range("0s", periods=5, freq="s", unit="s")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("0s", periods=5, freq="s", unit="s")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc["1500ms":"1500ms"]
         tm.assert_series_equal(result, ser.iloc[:0])
@@ -459,57 +453,57 @@ class TestStringSliceResolution:
     def test_string_slice_reso_iso_seconds_not_minutes(self):
         # GH#33603 - ISO "PT120S" has second resolution, not minute,
         #  even though 120s = 2 minutes exactly
-        tdi = timedelta_range("115s", "200s", freq="100ms")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("115s", "200s", freq="100ms")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"PT120S"]
-        expected = ser[ser.index < Timedelta("121s")]
+        expected = ser[ser.index < pd.Timedelta("121s")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_iso_minutes(self):
         # GH#33603 - ISO "PT2M" has minute resolution
-        tdi = timedelta_range("110s", "200s", freq="s")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("110s", "200s", freq="s")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"PT2M"]
-        expected = ser[ser.index < Timedelta("3min")]
+        expected = ser[ser.index < pd.Timedelta("3min")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_iso_hours(self):
         # GH#33603 - ISO "P1DT12H" has hour resolution
-        ser = Series(
+        ser = pd.Series(
             np.arange(100),
-            index=timedelta_range("1 days", periods=100, freq="h"),
+            index=pd.timedelta_range("1 days", periods=100, freq="h"),
         )
         result = ser.loc[:"P1DT12H"]
-        expected = ser[ser.index < Timedelta("1D 13h")]
+        expected = ser[ser.index < pd.Timedelta("1D 13h")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_iso_day_vs_zero_hours(self):
         # GH#33603 - a bare ISO "P2D" has day resolution, but the "T0H"
         #  marker in "P2DT0H" forces hour resolution even though both are
         #  exactly 2 days
-        ser = Series(
+        ser = pd.Series(
             np.arange(100),
-            index=timedelta_range("1 days", periods=100, freq="h"),
+            index=pd.timedelta_range("1 days", periods=100, freq="h"),
         )
         result = ser.loc[:"P2D"]
-        expected = ser[ser.index < Timedelta("3D")]
+        expected = ser[ser.index < pd.Timedelta("3D")]
         tm.assert_series_equal(result, expected)
 
         result = ser.loc[:"P2DT0H"]
-        expected = ser[ser.index < Timedelta("2D 1h")]
+        expected = ser[ser.index < pd.Timedelta("2D 1h")]
         tm.assert_series_equal(result, expected)
 
     def test_string_slice_reso_trailing_zero_fraction(self):
         # GH#33603 - sub-second precision comes from the value, so trailing
         #  zeros are not significant: "0:0:1.100000" resolves to millisecond
         #  (1.1s == 1100ms), not microsecond
-        tdi = timedelta_range("1099ms", "1102ms", freq="100us")
-        ser = Series(np.arange(len(tdi)), index=tdi)
+        tdi = pd.timedelta_range("1099ms", "1102ms", freq="100us")
+        ser = pd.Series(np.arange(len(tdi)), index=tdi)
 
         result = ser.loc[:"0:0:1.100000"]
-        expected = ser[ser.index < Timedelta("1101ms")]
+        expected = ser[ser.index < pd.Timedelta("1101ms")]
         tm.assert_series_equal(result, expected)
 
 
@@ -523,7 +517,7 @@ class TestContains:
             ["00:01:00", "00:01:00", "00:02:00"],
             ["00:01:00", "00:01:00", "00:00:01"],
         ):
-            idx = TimedeltaIndex(vals)
+            idx = pd.TimedeltaIndex(vals)
             assert idx[0] in idx
 
     def test_contains(self):
@@ -531,10 +525,10 @@ class TestContains:
         # GH#13603, GH#59051
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
-        for v in [NaT, None, float("nan"), np.nan]:
+            td = pd.to_timedelta(range(5), unit="d") + pd.offsets.Hour(1)
+        for v in [pd.NaT, None, float("nan"), np.nan]:
             assert v not in td
 
-        td = to_timedelta([NaT])
-        for v in [NaT, None, float("nan"), np.nan]:
+        td = pd.to_timedelta([pd.NaT])
+        for v in [pd.NaT, None, float("nan"), np.nan]:
             assert v in td
