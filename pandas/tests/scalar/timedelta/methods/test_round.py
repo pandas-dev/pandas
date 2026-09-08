@@ -295,3 +295,59 @@ class TestTimedeltaRound:
         assert td.round("100ms") == pd.Timedelta("1 days 00:00:00")
         assert td.floor("100ms") == pd.Timedelta("1 days 00:00:00")
         assert td.ceil("100ms") == pd.Timedelta("1 days 00:00:00")
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq, freq_unit",
+        [
+            ("s", "700ms", "ms"),
+            ("s", "1500ms", "ms"),
+            ("s", "2500ms", "ms"),
+            ("ms", "3us", "us"),
+            ("us", "300ns", "ns"),
+        ],
+    )
+    def test_round_freq_not_multiple_of_resolution(self, method, unit, freq, freq_unit):
+        # GH#67978 freq is neither a multiple nor a divisor of one unit of
+        #  self's resolution, so the result would not be representable.
+        #  The value is deliberately off the freq grid so the second half
+        #  below is not a no-op for any of the parametrizations.
+        td = pd.Timedelta("6.500000001s")
+
+        msg = rf"freq=.* is incompatible with unit={unit}"
+        with pytest.raises(ValueError, match=msg):
+            getattr(td.as_unit(unit), method)(freq)
+
+        # at a resolution that can represent freq we get the usual answer
+        finer = td.as_unit(freq_unit)
+        result = getattr(finer, method)(freq)
+        assert result != finer
+        assert result == getattr(finer.as_unit("ns"), method)(freq)
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq",
+        [
+            ("s", "250ms"),
+            ("s", "500ms"),
+            ("s", "1us"),
+            ("ms", "250us"),
+            ("us", "250ns"),
+        ],
+    )
+    def test_round_freq_divides_resolution(self, method, unit, freq):
+        # GH#67978 freq divides one unit of self's resolution evenly, so every
+        #  representable value is already a multiple of freq
+        td = pd.Timedelta("6s").as_unit(unit)
+        assert getattr(td, method)(freq) == td
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq, equivalent",
+        [("s", "2000ms", "2s"), ("us", "2000ns", "2us"), ("ms", "2000us", "2ms")],
+    )
+    def test_round_freq_finer_reso_whole_multiple(self, method, unit, freq, equivalent):
+        # GH#67978 freq is spelled in a finer resolution than self's but is a
+        #  whole number of self's units, so it rounds like the coarser spelling
+        td = pd.Timedelta("7s").as_unit(unit)
+        assert getattr(td, method)(freq) == getattr(td, method)(equivalent)

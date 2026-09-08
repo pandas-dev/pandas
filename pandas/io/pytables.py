@@ -270,6 +270,20 @@ def _set_attr_if_changed(attrs, name: str, value) -> None:
         setattr(attrs, name, value)
 
 
+def _resolve_row_window(
+    start: int | None, stop: int | None, nrows: int
+) -> tuple[int, int]:
+    """
+    Resolve ``start``/``stop`` row bounds against a table holding ``nrows`` rows.
+
+    Slice semantics count a negative bound back from the end of the table *and*
+    clamp both bounds into ``[0, nrows]``, which is what a plain read does; the
+    row-coordinate paths have to agree with it.
+    """
+    start, stop, _ = slice(start, stop).indices(nrows)
+    return start, stop
+
+
 def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
@@ -2518,11 +2532,7 @@ class TableIterator:
         if self.s.is_table:
             if nrows is None:
                 nrows = 0
-            if start is None:
-                start = 0
-            if stop is None:
-                stop = nrows
-            stop = min(nrows, stop)
+            start, stop = _resolve_row_window(start, stop, nrows)
 
         self.nrows = nrows
         self.start = start
@@ -3783,7 +3793,9 @@ class GenericFixed(Fixed):
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
-            lev = self.read_index_node(node, start=start, stop=stop)
+            # A level holds the unique values, not one entry per row, so it must
+            # be read in full; only the codes are sliced by start/stop.
+            lev = self.read_index_node(node)
             levels.append(lev)
             names.append(lev.name)
 
@@ -4530,6 +4542,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 nan_rep=nan_rep,
+                ordered=self.info.get(name, {}).get("ordered"),
             )
             _indexables.append(index_col)
 
@@ -4576,6 +4589,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 dtype=dtype,
+                ordered=self.info.get(c, {}).get("ordered"),
             )
             obj.is_mi_level = is_mi_level
             obj.nan_rep = nan_rep
@@ -6483,25 +6497,26 @@ class Selection:
 
         if is_list_like(where):
             # see if we have a passed coordinate like
-            with suppress(ValueError):
-                inferred = lib.infer_dtype(where, skipna=False)
-                if inferred in ("integer", "boolean"):
-                    where = np.asarray(where)
-                    if where.dtype == np.bool_:
-                        start, stop = self.start, self.stop
-                        if start is None:
-                            start = 0
-                        if stop is None:
-                            stop = self.table.nrows
-                        self.coordinates = np.arange(start, stop)[where]
-                    elif issubclass(where.dtype.type, np.integer):
-                        if (self.start is not None and (where < self.start).any()) or (
-                            self.stop is not None and (where >= self.stop).any()
-                        ):
-                            raise ValueError(
-                                "where must have index locations >= start and < stop"
-                            )
-                        self.coordinates = where
+            inferred = lib.infer_dtype(where, skipna=False)
+            if inferred in ("integer", "boolean"):
+                where = np.asarray(where)
+                # start/stop are None on the read_coordinates paths, which is how
+                #  an out-of-range coordinate used to reach PyTables unchecked
+                start, stop = _resolve_row_window(
+                    self.start, self.stop, self.table.nrows
+                )
+                if where.dtype == np.bool_:
+                    self.coordinates = np.arange(start, stop)[where]
+                elif issubclass(where.dtype.type, np.integer):
+                    invalid = where[(where < start) | (where >= stop)]
+                    if len(invalid):
+                        raise ValueError(
+                            "where must have index locations >= start and < stop, "
+                            f"but got {invalid[:5].tolist()}"
+                            f"{' ...' if len(invalid) > 5 else ''} "
+                            f"with start={start} and stop={stop}"
+                        )
+                    self.coordinates = where
 
         if self.coordinates is None:
             self.terms = self.generate(where)
@@ -6509,14 +6524,16 @@ class Selection:
             # create the numexpr & the filter
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
-                if self.condition is not None:
-                    self._warn_if_unreliable_or()
 
     def _warn_if_unreliable_or(self) -> None:
         """
         Warn for nested-OR queries with AND-ed operands over indexed columns
         (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
         an upstream PyTables bug (GH#50598).
+
+        Called from the query methods rather than ``__init__``: one read builds
+        several ``Selection`` objects for the same ``where``, and only the one
+        that runs the condition should warn.
         """
         table = getattr(self.table, "table", None)
         if table is None:
@@ -6572,6 +6589,7 @@ class Selection:
         generate the selection
         """
         if self.condition is not None:
+            self._warn_if_unreliable_or()
             try:
                 return self.table.table.read_where(
                     self.condition.format(), start=self.start, stop=self.stop
@@ -6600,18 +6618,10 @@ class Selection:
         """
         generate the selection
         """
-        start, stop = self.start, self.stop
-        nrows = self.table.nrows
-        if start is None:
-            start = 0
-        elif start < 0:
-            start += nrows
-        if stop is None:
-            stop = nrows
-        elif stop < 0:
-            stop += nrows
+        start, stop = _resolve_row_window(self.start, self.stop, self.table.nrows)
 
         if self.condition is not None:
+            self._warn_if_unreliable_or()
             coords = self.table.table.get_where_list(
                 self.condition.format(), start=start, stop=stop, sort=True
             )
