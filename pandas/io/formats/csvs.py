@@ -4,6 +4,7 @@ Module for formatting output data into CSV files.
 
 from __future__ import annotations
 
+import codecs
 from collections.abc import (
     Hashable,
     Iterable,
@@ -44,10 +45,7 @@ from pandas.core.dtypes.missing import notna
 
 from pandas.core.indexes.api import Index
 
-from pandas.io.common import (
-    _is_binary_mode,
-    get_handle,
-)
+from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -68,6 +66,10 @@ if TYPE_CHECKING:
 
 
 _DEFAULT_CHUNKSIZE_CELLS = 100_000
+
+# classes without a `.mode` attribute that fully decides binary vs. text
+_TEXT_LIKE_CLASSES = (io.TextIOBase, codecs.StreamWriter, codecs.StreamReaderWriter)
+_BINARY_LIKE_CLASSES = (io.RawIOBase, io.BufferedIOBase)
 
 
 class CSVFormatter:
@@ -277,7 +279,12 @@ class CSVFormatter:
         dest = self.filepath_or_buffer
         if not is_file_like(dest):
             return False
-        return not _is_binary_mode(cast("WriteBuffer[bytes]", dest), "")
+        if isinstance(dest, _TEXT_LIKE_CLASSES):
+            return True
+        if isinstance(dest, _BINARY_LIKE_CLASSES):
+            return False
+        mode = getattr(dest, "mode", None)
+        return mode is not None and "b" not in mode
 
     def _pyarrow_option_incompatibility(self) -> str | None:
         """
