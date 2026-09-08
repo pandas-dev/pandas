@@ -5603,12 +5603,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Subset the rows or columns according to a boolean mask or the labels.
 
-        The primary usage is with a boolean mask, which keeps the rows (or
-        columns with ``axis=1``) where the mask is True. The mask can be a
-        boolean array-like, a callable returning one, or an expression such
-        as ``pd.col("a") > 1``. Alternatively, labels can be selected with a
-        list-like of labels in ``items``, or with ``like`` or ``regex``;
-        label-based selection will be deprecated in a future version.
+        The primary usage is with a boolean mask, specifying for each label
+        whether it is kept or discarded. Alternatively, labels can be selected
+        with a list-like of labels in ``items``, or with ``like`` or ``regex``.
+        Label-based selection will be deprecated in a future version.
 
         Parameters
         ----------
