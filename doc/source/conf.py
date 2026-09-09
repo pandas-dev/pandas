@@ -459,7 +459,11 @@ nbsphinx_requirejs_path = ""
 global_enable_try_examples = True
 try_examples_global_button_text = "Try it in your browser!"
 try_examples_global_warning_text = (
-    "Interactive examples are experimental and may not always work as expected."
+    "Interactive examples are experimental and may take a moment to load. "
+    "The pandas version running in your browser may differ from the version "
+    "documented here, and some optional dependencies and local data files "
+    "may be unavailable. Run the cells from top to bottom, starting with "
+    "the imports."
 )
 try_examples_preamble = "import pandas as pd\nimport numpy as np"
 # Keep .ipynb rendering with nbsphinx: jupyterlite-sphinx would otherwise bind

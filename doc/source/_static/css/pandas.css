@@ -50,3 +50,24 @@ table {
 .card, .card img {
   background-color: var(--pst-color-background);
 }
+
+/* Interactive API examples */
+
+.try_examples_button {
+  background-color: var(--pst-color-background);
+  border: 1px solid var(--pst-color-primary);
+  border-radius: 0.25rem;
+  color: var(--pst-color-primary);
+  cursor: pointer;
+  margin: 0 0.5rem 1rem 0;
+  padding: 0.5rem 0.75rem;
+}
+
+.try_examples_button:hover {
+  background-color: var(--pst-color-surface);
+}
+
+.try_examples_button:focus-visible {
+  outline: 2px solid var(--pst-color-primary);
+  outline-offset: 2px;
+}
