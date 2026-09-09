@@ -1,4 +1,5 @@
 from datetime import datetime
+from html import escape
 from io import StringIO
 import itertools
 import re
@@ -1056,6 +1057,55 @@ def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
     ymd.columns.name = "foo"
     ymd.to_html()
     ymd.T.to_html()
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "object",
+        "Int64",
+        "Float64",
+        "boolean",
+        "string[python]",
+        "string[pyarrow]",
+        "int64[pyarrow]",
+    ],
+)
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", "", "<missing&>"])
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_na_rep_pd_na(dtype, na_rep, notebook):
+    # GH#33950
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = [True, pd.NA, False] if dtype == "boolean" else [1, pd.NA, 2]
+    df = pd.DataFrame({"a": pd.Series(values, dtype=dtype)})
+
+    result = df.to_html(na_rep=na_rep, notebook=notebook)
+    escaped = escape(na_rep, quote=False)
+    expected = df.to_html(notebook=notebook).replace(
+        "<td>&lt;NA&gt;</td>", f"<td>{escaped}</td>"
+    )
+    assert result == expected
+
+
+@pytest.mark.parametrize("dtype", ["object", "Int64", "Float64", "string", "boolean"])
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_pd_na_default(dtype, notebook):
+    # GH#33950: omitting na_rep must preserve the usual pd.NA representation.
+    df = pd.DataFrame({"a": pd.Series([pd.NA], dtype=dtype)})
+    result = df.to_html(notebook=notebook)
+    assert "<td>&lt;NA&gt;</td>" in result
+
+
+@pytest.mark.parametrize("escape_html", [True, False])
+@pytest.mark.parametrize("formatter", [None, lambda x: "<NA>"])
+def test_to_html_na_rep_pd_na_literal_and_formatter(escape_html, formatter):
+    # GH#33950: replace the missing scalar, not text or formatter output.
+    df = pd.DataFrame({"a": [pd.NA, "<NA>", "value"]}, dtype=object)
+    result = df.to_html(na_rep="zzzz", formatters={"a": formatter}, escape=escape_html)
+    assert result.count("<td>zzzz</td>") == 1
+    expected = "&lt;NA&gt;" if escape_html else "<NA>"
+    assert result.count(f"<td>{expected}</td>") == (2 if formatter else 1)
 
 
 @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
