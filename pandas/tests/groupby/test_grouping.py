@@ -1342,3 +1342,39 @@ def test_grouper_sort_true_transform():
     expected = df.groupby("k").cumsum()
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("grouper_sort", [None, True, False])
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("as_list", [True, False])
+@pytest.mark.parametrize("level", [True, False])
+def test_grouper_sort_precedence(grouper_sort, sort, as_list, level):
+    # GH#61943
+    df = pd.DataFrame({"k": [3, 1, 2, 3], "A": [1, 2, 3, 4]})
+    kwargs = {"sort": grouper_sort}
+    if level:
+        df = df.set_index("k")
+        kwargs["level"] = 0
+        expected = df.groupby(
+            level=0, sort=sort if grouper_sort is None else grouper_sort
+        )
+    else:
+        kwargs["key"] = "k"
+        expected = df.groupby("k", sort=sort if grouper_sort is None else grouper_sort)
+    grouper = pd.Grouper(**kwargs)
+    result = df.groupby([grouper] if as_list else grouper, sort=sort)
+
+    tm.assert_frame_equal(result.sum(), expected.sum())
+    tm.assert_frame_equal(result.cumsum(), expected.cumsum())
+
+
+@pytest.mark.parametrize("as_list", [True, False])
+def test_grouper_positional_freq(as_list):
+    # GH#61943
+    df = pd.DataFrame({"k": [3, 1, 2], "A": [1, 2, 3]})
+    grouper = pd.Grouper("k", None, "D")
+
+    result = df.groupby([grouper] if as_list else grouper).sum()
+    expected = df.groupby("k").sum()
+
+    tm.assert_frame_equal(result, expected)
