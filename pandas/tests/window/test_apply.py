@@ -1,17 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-    concat,
-    date_range,
-    isna,
-    notna,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -30,32 +20,32 @@ def f(x):
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])
 def test_rolling_apply_invalid_raw(bad_raw):
     with pytest.raises(ValueError, match="raw parameter must be `True` or `False`"):
-        Series(range(3)).rolling(1).apply(len, raw=bad_raw)
+        pd.Series(range(3)).rolling(1).apply(len, raw=bad_raw)
 
 
 def test_rolling_apply_out_of_bounds(engine_and_raw):
     # gh-1850
     engine, raw = engine_and_raw
 
-    vals = Series([1, 2, 3, 4])
+    vals = pd.Series([1, 2, 3, 4])
 
     result = vals.rolling(10).apply(np.sum, engine=engine, raw=raw)
     assert result.isna().all()
 
     result = vals.rolling(10, min_periods=1).apply(np.sum, engine=engine, raw=raw)
-    expected = Series([1, 3, 6, 10], dtype=float)
+    expected = pd.Series([1, 3, 6, 10], dtype=float)
     tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize("window", [2, "2s"])
 def test_rolling_apply_with_pandas_objects(window):
     # 5071
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": np.random.default_rng(2).standard_normal(5),
             "B": np.random.default_rng(2).integers(0, 10, size=5),
         },
-        index=date_range("20130101", periods=5, freq="s"),
+        index=pd.date_range("20130101", periods=5, freq="s"),
     )
 
     # we have an equal spaced timeseries index
@@ -76,18 +66,18 @@ def test_rolling_apply_with_pandas_objects(window):
 def test_rolling_apply(engine_and_raw, step):
     engine, raw = engine_and_raw
 
-    expected = Series([], dtype="float64")
+    expected = pd.Series([], dtype="float64")
     result = expected.rolling(10, step=step).apply(
         lambda x: x.mean(), engine=engine, raw=raw
     )
     tm.assert_series_equal(result, expected)
 
     # gh-8080
-    s = Series([None, None, None])
+    s = pd.Series([None, None, None])
     result = s.rolling(2, min_periods=0, step=step).apply(
         lambda x: len(x), engine=engine, raw=raw
     )
-    expected = Series([1.0, 2.0, 2.0])[::step]
+    expected = pd.Series([1.0, 2.0, 2.0])[::step]
     tm.assert_series_equal(result, expected)
 
     result = s.rolling(2, min_periods=0, step=step).apply(len, engine=engine, raw=raw)
@@ -98,8 +88,8 @@ def test_all_apply(engine_and_raw):
     engine, raw = engine_and_raw
 
     df = (
-        DataFrame(
-            {"A": date_range("20130101", periods=5, freq="s"), "B": range(5)}
+        pd.DataFrame(
+            {"A": pd.date_range("20130101", periods=5, freq="s"), "B": range(5)}
         ).set_index("A")
         * 2
     )
@@ -114,13 +104,13 @@ def test_all_apply(engine_and_raw):
 def test_ragged_apply(engine_and_raw):
     engine, raw = engine_and_raw
 
-    df = DataFrame({"B": range(5)})
+    df = pd.DataFrame({"B": range(5)})
     df.index = [
-        Timestamp("20130101 09:00:00"),
-        Timestamp("20130101 09:00:02"),
-        Timestamp("20130101 09:00:03"),
-        Timestamp("20130101 09:00:05"),
-        Timestamp("20130101 09:00:06"),
+        pd.Timestamp("20130101 09:00:00"),
+        pd.Timestamp("20130101 09:00:02"),
+        pd.Timestamp("20130101 09:00:03"),
+        pd.Timestamp("20130101 09:00:05"),
+        pd.Timestamp("20130101 09:00:06"),
     ]
 
     f = lambda x: 1
@@ -142,12 +132,12 @@ def test_ragged_apply(engine_and_raw):
 
 def test_invalid_engine():
     with pytest.raises(ValueError, match="engine must be either 'numba' or 'cython'"):
-        Series(range(1)).rolling(1).apply(lambda x: x, engine="foo")
+        pd.Series(range(1)).rolling(1).apply(lambda x: x, engine="foo")
 
 
 def test_invalid_engine_kwargs_cython():
     with pytest.raises(ValueError, match="cython engine does not accept engine_kwargs"):
-        Series(range(1)).rolling(1).apply(
+        pd.Series(range(1)).rolling(1).apply(
             lambda x: x, engine="cython", engine_kwargs={"parallel": False}
         )
 
@@ -156,7 +146,7 @@ def test_invalid_raw_numba():
     with pytest.raises(
         ValueError, match="raw must be `True` when using the numba engine"
     ):
-        Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
+        pd.Series(range(1)).rolling(1).apply(lambda x: x, raw=False, engine="numba")
 
 
 @pytest.mark.parametrize("args_kwargs", [[None, {"par": 10}], [(10,), None]])
@@ -165,16 +155,16 @@ def test_rolling_apply_args_kwargs(args_kwargs):
     def numpysum(x, par):
         return np.sum(x + par)
 
-    df = DataFrame({"gr": [1, 1], "a": [1, 2]})
+    df = pd.DataFrame({"gr": [1, 1], "a": [1, 2]})
 
-    idx = Index(["gr", "a"])
-    expected = DataFrame([[11.0, 11.0], [11.0, 12.0]], columns=idx)
+    idx = pd.Index(["gr", "a"])
+    expected = pd.DataFrame([[11.0, 11.0], [11.0, 12.0]], columns=idx)
 
     result = df.rolling(1).apply(numpysum, args=args_kwargs[0], kwargs=args_kwargs[1])
     tm.assert_frame_equal(result, expected)
 
-    midx = MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
-    expected = Series([11.0, 12.0], index=midx, name="a")
+    midx = pd.MultiIndex.from_tuples([(1, 0), (1, 1)], names=["gr", None])
+    expected = pd.Series([11.0, 12.0], index=midx, name="a")
 
     gb_rolling = df.groupby("gr")["a"].rolling(1)
 
@@ -183,7 +173,7 @@ def test_rolling_apply_args_kwargs(args_kwargs):
 
 
 def test_nans(raw):
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
 
@@ -192,16 +182,16 @@ def test_nans(raw):
 
     # min_periods is working correctly
     result = obj.rolling(20, min_periods=15).apply(f, raw=raw)
-    assert isna(result.iloc[23])
-    assert not isna(result.iloc[24])
+    assert pd.isna(result.iloc[23])
+    assert not pd.isna(result.iloc[24])
 
-    assert not isna(result.iloc[-6])
-    assert isna(result.iloc[-5])
+    assert not pd.isna(result.iloc[-6])
+    assert pd.isna(result.iloc[-5])
 
-    obj2 = Series(np.random.default_rng(2).standard_normal(20))
+    obj2 = pd.Series(np.random.default_rng(2).standard_normal(20))
     result = obj2.rolling(10, min_periods=5).apply(f, raw=raw)
-    assert isna(result.iloc[3])
-    assert notna(result.iloc[4])
+    assert pd.isna(result.iloc[3])
+    assert pd.notna(result.iloc[4])
 
     result0 = obj.rolling(20, min_periods=0).apply(f, raw=raw)
     result1 = obj.rolling(20, min_periods=1).apply(f, raw=raw)
@@ -209,13 +199,13 @@ def test_nans(raw):
 
 
 def test_center(raw):
-    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj = pd.Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.nan
     obj[-10:] = np.nan
 
     result = obj.rolling(20, min_periods=15, center=True).apply(f, raw=raw)
     expected = (
-        concat([obj, Series([np.nan] * 9)])
+        pd.concat([obj, pd.Series([np.nan] * 9)])
         .rolling(20, min_periods=15)
         .apply(f, raw=raw)
         .iloc[9:]
@@ -226,13 +216,13 @@ def test_center(raw):
 
 def test_series(raw, series):
     result = series.rolling(50).apply(f, raw=raw)
-    assert isinstance(result, Series)
+    assert isinstance(result, pd.Series)
     tm.assert_almost_equal(result.iloc[-1], np.mean(series[-50:]))
 
 
 def test_frame(raw, frame):
     result = frame.rolling(50).apply(f, raw=raw)
-    assert isinstance(result, DataFrame)
+    assert isinstance(result, pd.DataFrame)
     tm.assert_series_equal(
         result.iloc[-1, :],
         frame.iloc[-50:, :].apply(np.mean, axis=0, raw=raw),
@@ -276,8 +266,8 @@ def test_min_periods(raw, series, minp, step):
     expected = series.rolling(len(series), min_periods=minp, step=step).apply(
         f, raw=raw
     )
-    nan_mask = isna(result)
-    tm.assert_series_equal(nan_mask, isna(expected))
+    nan_mask = pd.isna(result)
+    tm.assert_series_equal(nan_mask, pd.isna(expected))
 
     nan_mask = ~nan_mask
     tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
@@ -303,7 +293,9 @@ def test_center_reindex_series(raw, series):
 
 def test_center_reindex_frame(raw):
     # shifter index
-    frame = DataFrame(range(100), index=date_range("2020-01-01", freq="D", periods=100))
+    frame = pd.DataFrame(
+        range(100), index=pd.date_range("2020-01-01", freq="D", periods=100)
+    )
     s = [f"x{x:d}" for x in range(12)]
     minp = 10
 

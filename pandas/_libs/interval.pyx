@@ -592,6 +592,7 @@ cdef class Interval(IntervalMixin):
 
         Two intervals overlap if they share a common point, including closed
         endpoints. Intervals that only have an open endpoint in common do not
+        overlap, and empty intervals contain no points at all, so they never
         overlap.
 
         Parameters
@@ -631,10 +632,22 @@ cdef class Interval(IntervalMixin):
         >>> i6 = pd.Interval(1, 2, closed='neither')
         >>> i4.overlaps(i6)
         False
+
+        Empty intervals do not overlap with anything, including themselves:
+
+        >>> i7 = pd.Interval(1, 1, closed='left')
+        >>> i4.overlaps(i7)
+        False
+        >>> i7.overlaps(i7)
+        False
         """
         if not isinstance(other, Interval):
             raise TypeError("`other` must be an Interval, "
                             f"got {type(other).__name__}")
+
+        # an empty interval contains no points, so it cannot share one
+        if self.is_empty or other.is_empty:
+            return False
 
         # equality is okay if both endpoints are closed (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt

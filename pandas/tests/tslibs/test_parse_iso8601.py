@@ -4,7 +4,7 @@ import pytest
 
 from pandas._libs import tslib
 
-from pandas import Timestamp
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -20,7 +20,7 @@ from pandas import Timestamp
         ("2011\\01\\02", datetime(2011, 1, 2)),
         ("2013-01-01 05:30:00", datetime(2013, 1, 1, 5, 30)),
         ("2013-1-1 5:30:00", datetime(2013, 1, 1, 5, 30)),
-        ("2013-1-1 5:30:00+01:00", Timestamp(2013, 1, 1, 5, 30, tz="UTC+01:00")),
+        ("2013-1-1 5:30:00+01:00", pd.Timestamp(2013, 1, 1, 5, 30, tz="UTC+01:00")),
     ],
 )
 def test_parsers_iso8601(date_str, exp):
@@ -115,5 +115,5 @@ def test_parsers_iso8601_leading_space():
 )
 def test_iso8601_formatter(date_str: str, timespec: str, exp: str):
     # GH#53020
-    ts = Timestamp(date_str)
+    ts = pd.Timestamp(date_str)
     assert ts.isoformat(timespec=timespec) == exp

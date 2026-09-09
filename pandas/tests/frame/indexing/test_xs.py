@@ -3,14 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    IndexSlice,
-    MultiIndex,
-    Series,
-    concat,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries.offsets import BDay
@@ -25,12 +18,12 @@ def four_level_index_dataframe():
             [-0.6662, -0.5243, -0.358, 0.89145, 2.5838],
         ]
     )
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[["a", "x"], ["b", "q"], [10.0032, 20.0, 30.0], [3, 4, 5]],
         codes=[[0, 0, 1], [0, 1, 1], [0, 1, 2], [2, 1, 0]],
         names=["one", "two", "three", "four"],
     )
-    return DataFrame(arr, index=index, columns=list("ABCDE"))
+    return pd.DataFrame(arr, index=index, columns=list("ABCDE"))
 
 
 class TestXS:
@@ -46,7 +39,7 @@ class TestXS:
     def test_xs_mixed(self):
         # mixed-type xs
         test_data = {"A": {"1": 1, "2": 2}, "B": {"1": "1", "2": "2", "3": "3"}}
-        frame = DataFrame(test_data)
+        frame = pd.DataFrame(test_data)
         xs = frame.xs("1")
         assert xs.dtype == np.object_
         assert xs["A"] == 1
@@ -74,7 +67,7 @@ class TestXS:
 
     def test_xs_corner(self):
         # pathological mixed-type reordering case
-        df = DataFrame(index=[0], columns=Index([], dtype="str"))
+        df = pd.DataFrame(index=[0], columns=pd.Index([], dtype="str"))
         df["A"] = 1.0
         df["B"] = "foo"
         df["C"] = 2.0
@@ -82,17 +75,17 @@ class TestXS:
         df["E"] = 3.0
 
         xs = df.xs(0)
-        exp = Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
+        exp = pd.Series([1.0, "foo", 2.0, "bar", 3.0], index=list("ABCDE"), name=0)
         tm.assert_series_equal(xs, exp)
 
         # no columns but Index(dtype=object)
-        df = DataFrame(index=["a", "b", "c"])
+        df = pd.DataFrame(index=["a", "b", "c"])
         result = df.xs("a")
-        expected = Series([], name="a", dtype=np.float64)
+        expected = pd.Series([], name="a", dtype=np.float64)
         tm.assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)),
             index=["b", "b", "c", "b", "a"],
         )
@@ -102,7 +95,7 @@ class TestXS:
         tm.assert_series_equal(cross, exp)
 
     def test_xs_keep_level(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "day": {0: "sat", 1: "sun"},
                 "flavour": {0: "strawberry", 1: "strawberry"},
@@ -121,7 +114,9 @@ class TestXS:
         # in 0.14 this will return a view if possible a copy otherwise, but
         # this is numpy dependent
 
-        dm = DataFrame(np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5))
+        dm = pd.DataFrame(
+            np.arange(20.0).reshape(4, 5), index=range(4), columns=range(5)
+        )
         df_orig = dm.copy()
 
         with tm.raises_chained_assignment_error():
@@ -139,8 +134,8 @@ class TestXSWithMultiIndex:
         ]
         tuples = list(zip(*arrays, strict=True))
 
-        index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(
+        index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 8)),
             index=["A", "B", "C"],
             columns=index,
@@ -155,8 +150,8 @@ class TestXSWithMultiIndex:
         # see GH#2107
         dates = range(20111201, 20111205)
         ids = list("abcde")
-        index = MultiIndex.from_product([dates, ids], names=["date", "secid"])
-        df = DataFrame(
+        index = pd.MultiIndex.from_product([dates, ids], names=["date", "secid"])
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 3)),
             index,
             ["X", "Y", "Z"],
@@ -170,17 +165,17 @@ class TestXSWithMultiIndex:
         df = multiindex_dataframe_random_data
         result = df.xs("two", level="second")
         expected = df[df.index.get_level_values(1) == "two"]
-        expected.index = Index(["foo", "bar", "baz", "qux"], name="first")
+        expected.index = pd.Index(["foo", "bar", "baz", "qux"], name="first")
         tm.assert_frame_equal(result, expected)
 
     def test_xs_level_eq_2(self):
         arr = np.random.default_rng(2).standard_normal((3, 5))
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[["a", "p", "x"], ["b", "q", "y"], ["c", "r", "z"]],
             codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
         )
-        df = DataFrame(arr, index=index)
-        expected = DataFrame(arr[1:2], index=[["a"], ["b"]])
+        df = pd.DataFrame(arr, index=index)
+        expected = pd.DataFrame(arr[1:2], index=[["a"], ["b"]])
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
 
@@ -206,9 +201,9 @@ class TestXSWithMultiIndex:
     def test_xs_with_duplicates(self, key, level, multiindex_dataframe_random_data):
         # see GH#13719
         frame = multiindex_dataframe_random_data
-        df = concat([frame] * 2)
+        df = pd.concat([frame] * 2)
         assert df.index.is_unique is False
-        expected = concat([frame.xs("one", level="second")] * 2)
+        expected = pd.concat([frame.xs("one", level="second")] * 2)
 
         if isinstance(key, list):
             result = df.xs(tuple(key), level=level)
@@ -228,10 +223,10 @@ class TestXSWithMultiIndex:
             ("z", "zbcde", 25),
             ("z", "ybcde", 26),
         ]
-        df = DataFrame(acc, columns=["a1", "a2", "cnt"]).set_index(["a1", "a2"])
-        expected = DataFrame(
+        df = pd.DataFrame(acc, columns=["a1", "a2", "cnt"]).set_index(["a1", "a2"])
+        expected = pd.DataFrame(
             {"cnt": [24, 26, 25, 26]},
-            index=Index(["xbcde", np.nan, "zbcde", "ybcde"], name="a2"),
+            index=pd.Index(["xbcde", np.nan, "zbcde", "ybcde"], name="a2"),
         )
 
         result = df.xs("z", level="a1")
@@ -240,21 +235,21 @@ class TestXSWithMultiIndex:
     @pytest.mark.parametrize(
         "key, level, exp_arr, exp_index",
         [
-            ("a", "lvl0", lambda x: x[:, 0:2], Index(["bar", "foo"], name="lvl1")),
-            ("foo", "lvl1", lambda x: x[:, 1:2], Index(["a"], name="lvl0")),
+            ("a", "lvl0", lambda x: x[:, 0:2], pd.Index(["bar", "foo"], name="lvl1")),
+            ("foo", "lvl1", lambda x: x[:, 1:2], pd.Index(["a"], name="lvl0")),
         ],
     )
     def test_xs_named_levels_axis_eq_1(self, key, level, exp_arr, exp_index):
         # see GH#2903
         arr = np.random.default_rng(2).standard_normal((4, 4))
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[["a", "b"], ["bar", "foo", "hello", "world"]],
             codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
             names=["lvl0", "lvl1"],
         )
-        df = DataFrame(arr, columns=index)
+        df = pd.DataFrame(arr, columns=index)
         result = df.xs(key, level=level, axis=1)
-        expected = DataFrame(exp_arr(arr), columns=exp_index)
+        expected = pd.DataFrame(exp_arr(arr), columns=exp_index)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -267,10 +262,10 @@ class TestXSWithMultiIndex:
     def test_xs_level_multiple(self, indexer, four_level_index_dataframe):
         df = four_level_index_dataframe
         expected_values = [[0.4473, 1.4152, 0.2834, 1.00661, 0.1744]]
-        expected_index = MultiIndex(
+        expected_index = pd.MultiIndex(
             levels=[["q"], [20.0]], codes=[[0], [0]], names=["two", "three"]
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             expected_values, index=expected_index, columns=list("ABCDE")
         )
         result = indexer(df)
@@ -285,12 +280,12 @@ class TestXSWithMultiIndex:
             [-0.5109, -2.3358, -0.4645, 0.05076, 0.364],
             [0.4473, 1.4152, 0.2834, 1.00661, 0.1744],
         ]
-        expected_index = MultiIndex(
+        expected_index = pd.MultiIndex(
             levels=[["b", "q"], [10.0032, 20.0], [4, 5]],
             codes=[[0, 1], [0, 1], [1, 0]],
             names=["two", "three", "four"],
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             expected_values, index=expected_index, columns=list("ABCDE")
         )
 
@@ -312,26 +307,28 @@ class TestXSWithMultiIndex:
     def test_xs_IndexSlice_argument_not_implemented(self, frame_or_series):
         # GH#35301
 
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[[("foo", "bar", 0), ("foo", "baz", 0), ("foo", "qux", 0)], [0, 1]],
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        obj = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
-        if frame_or_series is Series:
+        obj = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((6, 4)), index=index
+        )
+        if frame_or_series is pd.Series:
             obj = obj[0]
 
         expected = obj.iloc[-2:].droplevel(0)
 
-        result = obj.xs(IndexSlice[("foo", "qux", 0), :])
+        result = obj.xs(pd.IndexSlice[("foo", "qux", 0), :])
         tm.assert_equal(result, expected)
 
-        result = obj.loc[IndexSlice[("foo", "qux", 0), :]]
+        result = obj.loc[pd.IndexSlice[("foo", "qux", 0), :]]
         tm.assert_equal(result, expected)
 
     def test_xs_levels_raises(self, frame_or_series):
-        obj = DataFrame({"A": [1, 2, 3]})
-        if frame_or_series is Series:
+        obj = pd.DataFrame({"A": [1, 2, 3]})
+        if frame_or_series is pd.Series:
             obj = obj["A"]
 
         msg = "Index must be a MultiIndex"
@@ -340,14 +337,14 @@ class TestXSWithMultiIndex:
 
     def test_xs_multiindex_droplevel_false(self):
         # GH#19056
-        mi = MultiIndex.from_tuples(
+        mi = pd.MultiIndex.from_tuples(
             [("a", "x"), ("a", "y"), ("b", "x")], names=["level1", "level2"]
         )
-        df = DataFrame([[1, 2, 3]], columns=mi)
+        df = pd.DataFrame([[1, 2, 3]], columns=mi)
         result = df.xs("a", axis=1, drop_level=False)
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[1, 2]],
-            columns=MultiIndex.from_tuples(
+            columns=pd.MultiIndex.from_tuples(
                 [("a", "x"), ("a", "y")], names=["level1", "level2"]
             ),
         )
@@ -355,35 +352,35 @@ class TestXSWithMultiIndex:
 
     def test_xs_droplevel_false(self):
         # GH#19056
-        df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
+        df = pd.DataFrame([[1, 2, 3]], columns=pd.Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
-        expected = DataFrame({"a": [1]})
+        expected = pd.DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
     def test_xs_droplevel_false_view(self):
         # GH#37832
-        df = DataFrame([[1, 2, 3]], columns=Index(["a", "b", "c"]))
+        df = pd.DataFrame([[1, 2, 3]], columns=pd.Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         # check that result still views the same data as df
         assert np.shares_memory(result.iloc[:, 0]._values, df.iloc[:, 0]._values)
 
         df.iloc[0, 0] = 2
         # The subset is never modified
-        expected = DataFrame({"a": [1]})
+        expected = pd.DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame([[1, 2.5, "a"]], columns=Index(["a", "b", "c"]))
+        df = pd.DataFrame([[1, 2.5, "a"]], columns=pd.Index(["a", "b", "c"]))
         result = df.xs("a", axis=1, drop_level=False)
         df.iloc[0, 0] = 2
         # The subset is never modified
-        expected = DataFrame({"a": [1]})
+        expected = pd.DataFrame({"a": [1]})
         tm.assert_frame_equal(result, expected)
 
     def test_xs_full_key_droplevel_false(self):
         # GH#6507 - drop_level=False should be honored for fully specified keys
-        df = DataFrame(
+        df = pd.DataFrame(
             {"value": [1, 2, 3]},
-            index=MultiIndex.from_tuples(
+            index=pd.MultiIndex.from_tuples(
                 [(1, 2, 3), (4, 5, 6), (7, 8, 9)], names=["a", "b", "c"]
             ),
         )
@@ -393,7 +390,9 @@ class TestXSWithMultiIndex:
 
     def test_xs_list_indexer_droplevel_false(self):
         # GH#41760
-        mi = MultiIndex.from_tuples([("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")])
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
+        mi = pd.MultiIndex.from_tuples(
+            [("x", "m", "a"), ("x", "n", "b"), ("y", "o", "c")]
+        )
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
         with pytest.raises(KeyError, match="y"):
             df.xs(("x", "y"), drop_level=False, axis=1)

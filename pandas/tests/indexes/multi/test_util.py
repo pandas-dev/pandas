@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.indexes.multi import cartesian_product
 
@@ -21,10 +18,10 @@ class TestCartesianProduct:
     def test_datetimeindex(self):
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
-        x = date_range("2000-01-01", periods=2)
-        result1, result2 = (Index(y).day for y in cartesian_product([x, x]))
-        expected1 = Index([1, 1, 2, 2], dtype=np.int32)
-        expected2 = Index([1, 2, 1, 2], dtype=np.int32)
+        x = pd.date_range("2000-01-01", periods=2)
+        result1, result2 = (pd.Index(y).day for y in cartesian_product([x, x]))
+        expected1 = pd.Index([1, 1, 2, 2], dtype=np.int32)
+        expected2 = pd.Index([1, 2, 1, 2], dtype=np.int32)
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 

@@ -434,7 +434,7 @@ def test_max_sas_date_iterator(datapath):
     results = []
     for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
         # GH 19732: Timestamps imported from sas will incur floating point errors
-        df.reset_index(inplace=True, drop=True)
+        df = df.reset_index(drop=True)
         results.append(df)
     expected = [
         pd.DataFrame(
@@ -480,6 +480,44 @@ def test_date_too_large_to_cast_raises(datapath, field_offset, what, value):
     struct.pack_into("<d", data, field_offset, value)
     with pytest.raises(OutOfBoundsDatetime, match=rf"Out of bounds SAS {what} value"):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize("value", [2.0**63 / 86400, -(2.0**63 / 86400)])
+def test_date_too_large_to_scale_to_seconds_raises(datapath, value):
+    # GH#47339 a day count is scaled by 86400 so that its fraction survives, so
+    #  the guard has to sit that much below the int64 bound: -(2**63 / 86400)
+    #  days scales to exactly float(iNaT), which the cast deliberately
+    #  round-trips to NaT -- silently missing data, which is what the guard is
+    #  there to stop. Date-only: the same magnitude as a second count is in range.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, 65816, value)
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds SAS date value"):
+        pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+
+
+@pytest.mark.parametrize(
+    "day_count, expected_date",
+    [
+        (21762 + (13 * 3600 + 45 * 60 + 37) / 86400, "2019-08-01T13:45:37"),
+        (-0.5, "1959-12-31T12:00:00"),
+    ],
+)
+def test_fractional_date_keeps_time_of_day(datapath, day_count, expected_date):
+    # GH#47339 GH#56127 SAS stores a DATE value as a float64 day count and does
+    #  not force it whole, so a computed date-formatted column can carry a
+    #  fraction that the M8[D] cast dropped. That cast truncated toward zero, so
+    #  a date before the 1960 epoch came back a whole day late -- -0.5 read as
+    #  1960-01-01, not just at the wrong time of day. 65816 is the file offset
+    #  of the first row's date cell.
+    with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
+        data = bytearray(fd.read())
+    struct.pack_into("<d", data, 65816, day_count)
+    df = pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
+    expected = pd.Series(
+        np.array([expected_date, "NaT"], dtype="M8[s]"), name="datecol"
+    )
+    tm.assert_series_equal(df["datecol"], expected)
 
 
 def test_null_date(datapath):
@@ -744,7 +782,7 @@ def _dates_null_with_late_metadata_page(
         #  moves the boundary between the pages the rows come from.
         (64728, 808, [(5 * 8, 16), (6 * 8, 12), (15 * 8, 2)]),
         (64728, 808, [(5 * 8, 16), (6 * 8, 2), (15 * 8, 2)]),
-        (64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 9999)]),
+        (64728, 808, [(5 * 8, 16), (6 * 8, 6), (15 * 8, 4)]),
         # Replaying the column-name and column-attributes subheaders verbatim,
         #  which append rather than overwrite: the file ends up describing each
         #  of its columns twice.
@@ -790,7 +828,7 @@ def test_late_metadata_page_reached_mid_chunk_raises(datapath):
         datapath,
         64728,
         808,
-        [(5 * 8, 16), (6 * 8, 5000), (15 * 8, 9999)],
+        [(5 * 8, 16), (6 * 8, 5000), (15 * 8, 4000)],
         total_rows=5000,
         tail_page_type=const.page_mix_type,
     )
@@ -798,17 +836,19 @@ def test_late_metadata_page_reached_mid_chunk_raises(datapath):
         pd.read_sas(io.BytesIO(data), format="sas7bdat", encoding=None)
 
 
-def test_mix_page_row_count_too_large_to_reach_raises(datapath):
-    # GH#47339 the mix page's row count bounds a row index the parser holds in
-    #  an int, so a count that does not fit one has to be rejected rather than
-    #  leave that boundary unreachable and the rest of the page handed out as
-    #  rows. What the file gets is an error, not which error.
+@pytest.mark.parametrize("row_count", [4097, 2**31])
+def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
+    # GH#47339 the mix page's row count is how many rows the parser hands out
+    #  from such a page, so a count the page cannot hold keeps it reading past
+    #  the rows into the page padding and the metadata subheaders behind them.
     with open(datapath("io", "sas", "data", "dates_null.sas7bdat"), "rb") as fd:
         data = bytearray(fd.read())
-    # the row-size subheader's row_count and mix-page row count
-    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, 2**31)
-    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, 2**31)
-    with pytest.raises(OverflowError, match="too large to convert"):
+    # the row-size subheader's row_count and mix-page row count; dates_null is a
+    #  65536-byte page of 16-byte rows, so 4096 is the most it could ever hold.
+    #  row_count moves too, since the smaller of the two bounds the mix page.
+    struct.pack_into("<q", data, 65536 + 64728 + 6 * 8, row_count)
+    struct.pack_into("<q", data, 65536 + 64728 + 15 * 8, row_count)
+    with pytest.raises(ValueError, match="does not fit in a 65536-byte page"):
         pd.read_sas(
             io.BytesIO(data), format="sas7bdat", chunksize=2, encoding=None
         ).read()
@@ -844,7 +884,7 @@ def _dates_null_with_overrun_data_page(datapath):
 
 
 @pytest.mark.parametrize(
-    "build, expected, match",
+    "build, expected, match, chunksize",
     [
         (
             lambda datapath: _dates_null_with_late_metadata_page(
@@ -852,13 +892,14 @@ def _dates_null_with_overrun_data_page(datapath):
             ),
             ValueError,
             "changes the layout it declared",
+            2,
         ),
-        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read"),
+        (_dates_null_with_overrun_data_page, Exception, "Out of bounds read", 1000),
     ],
     ids=["layout redefined", "page overrun"],
 )
 def test_chunked_read_closes_the_file_it_rejects(
-    datapath, tmp_path, build, expected, match
+    datapath, tmp_path, build, expected, match, chunksize
 ):
     # GH#47339 GH#56127 read_sas closes the file for the caller only when it
     #  reads the whole of it itself, so a chunked reader that gives up on a file
@@ -866,7 +907,7 @@ def test_chunked_read_closes_the_file_it_rejects(
     #  buffer the caller opened is deliberately left to the caller.
     path = tmp_path / "rejected.sas7bdat"
     path.write_bytes(build(datapath))
-    reader = pd.read_sas(path, format="sas7bdat", chunksize=2, encoding=None)
+    reader = pd.read_sas(path, format="sas7bdat", chunksize=chunksize, encoding=None)
     with pytest.raises(expected, match=match):
         while not reader.read().empty:
             pass

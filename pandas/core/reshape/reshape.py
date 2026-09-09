@@ -399,7 +399,10 @@ class _Unstacker:
             if not self.has_nan:
                 return self.removed_level._rename(name=self.removed_name)
 
-            lev = self.removed_level.insert(0, item=self.removed_level._na_value)
+            nan_index = 0 if self.sort else self.unique_nan_index
+            lev = self.removed_level.insert(
+                nan_index, item=self.removed_level._na_value
+            )
             return lev.rename(self.removed_name)
 
         stride = len(self.removed_level) + self.has_nan

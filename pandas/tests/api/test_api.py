@@ -10,7 +10,6 @@ import sys
 import pytest
 
 import pandas as pd
-from pandas import api
 import pandas._testing as tm
 from pandas.api import (
     executors as api_executors,
@@ -250,7 +249,7 @@ class TestPDApi(Base):
             + self.deprecated_funcs_in_future
         )
         for depr in deprecated_list:
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
                 _ = getattr(pd, depr)
 
 
@@ -429,7 +428,7 @@ class TestApi(Base):
     ]
 
     def test_api(self):
-        self.check(api, self.allowed_api_dirs)
+        self.check(pd.api, self.allowed_api_dirs)
 
     def test_api_typing(self):
         self.check(api_typing, self.allowed_typing)
@@ -486,9 +485,7 @@ class TestTesting(Base):
     ]
 
     def test_testing(self):
-        from pandas import testing
-
-        self.check(testing, self.funcs)
+        self.check(pd.testing, self.funcs)
 
     def test_util_in_top_level(self):
         with pytest.raises(AttributeError, match="foo"):

@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 
 
 @pytest.mark.parametrize(
@@ -19,7 +18,7 @@ from pandas import SparseDtype
     ],
 )
 def test_inferred_dtype(dtype, fill_value):
-    sparse_dtype = SparseDtype(dtype)
+    sparse_dtype = pd.SparseDtype(dtype)
     result = sparse_dtype.fill_value
     if pd.isna(fill_value):
         assert pd.isna(result) and type(result) == type(fill_value)
@@ -28,15 +27,15 @@ def test_inferred_dtype(dtype, fill_value):
 
 
 def test_from_sparse_dtype():
-    dtype = SparseDtype("float", 0)
-    result = SparseDtype(dtype)
+    dtype = pd.SparseDtype("float", 0)
+    result = pd.SparseDtype(dtype)
     assert result.fill_value == 0
 
 
 def test_from_sparse_dtype_fill_value():
-    dtype = SparseDtype("int", 1)
-    result = SparseDtype(dtype, fill_value=2)
-    expected = SparseDtype("int", 2)
+    dtype = pd.SparseDtype("int", 1)
+    result = pd.SparseDtype(dtype, fill_value=2)
+    expected = pd.SparseDtype("int", 2)
     assert result == expected
 
 
@@ -54,32 +53,32 @@ def test_from_sparse_dtype_fill_value():
     ],
 )
 def test_equal(dtype, fill_value):
-    a = SparseDtype(dtype, fill_value)
-    b = SparseDtype(dtype, fill_value)
+    a = pd.SparseDtype(dtype, fill_value)
+    b = pd.SparseDtype(dtype, fill_value)
     assert a == b
     assert b == a
 
 
 def test_nans_equal():
-    a = SparseDtype(float, float("nan"))
-    b = SparseDtype(float, np.nan)
+    a = pd.SparseDtype(float, float("nan"))
+    b = pd.SparseDtype(float, np.nan)
     assert a == b
     assert b == a
 
 
 def test_nans_not_equal():
     # GH 54770
-    a = SparseDtype(float, 0)
-    b = SparseDtype(float, pd.NA)
+    a = pd.SparseDtype(float, 0)
+    b = pd.SparseDtype(float, pd.NA)
     assert a != b
     assert b != a
 
 
 tups = [
-    (SparseDtype("float64"), SparseDtype("float32")),
-    (SparseDtype("float64"), SparseDtype("float64", 0)),
-    (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
-    (SparseDtype("float64"), np.dtype("float64")),
+    (pd.SparseDtype("float64"), pd.SparseDtype("float32")),
+    (pd.SparseDtype("float64"), pd.SparseDtype("float64", 0)),
+    (pd.SparseDtype("float64"), pd.SparseDtype("datetime64[ns]", np.nan)),
+    (pd.SparseDtype("float64"), np.dtype("float64")),
 ]
 
 
@@ -95,7 +94,7 @@ def test_construct_from_string_raises():
     with pytest.raises(
         TypeError, match="Cannot construct a 'SparseDtype' from 'not a dtype'"
     ):
-        SparseDtype.construct_from_string("not a dtype")
+        pd.SparseDtype.construct_from_string("not a dtype")
 
 
 @pytest.mark.parametrize(
@@ -109,38 +108,38 @@ def test_construct_from_string_raises():
     ],
 )
 def test_is_numeric(dtype, expected):
-    assert SparseDtype(dtype)._is_numeric is expected
+    assert pd.SparseDtype(dtype)._is_numeric is expected
 
 
 def test_str_uses_object():
-    result = SparseDtype(str).subtype
+    result = pd.SparseDtype(str).subtype
     assert result == np.dtype("object")
 
 
 @pytest.mark.parametrize(
     "string, expected",
     [
-        ("Sparse[float64]", SparseDtype(np.dtype("float64"))),
-        ("Sparse[float32]", SparseDtype(np.dtype("float32"))),
-        ("Sparse[int]", SparseDtype(np.dtype("int"))),
-        ("Sparse[str]", SparseDtype(np.dtype("str"))),
-        ("Sparse[datetime64[ns]]", SparseDtype(np.dtype("datetime64[ns]"))),
-        ("Sparse", SparseDtype(np.dtype("float"), np.nan)),
+        ("Sparse[float64]", pd.SparseDtype(np.dtype("float64"))),
+        ("Sparse[float32]", pd.SparseDtype(np.dtype("float32"))),
+        ("Sparse[int]", pd.SparseDtype(np.dtype("int"))),
+        ("Sparse[str]", pd.SparseDtype(np.dtype("str"))),
+        ("Sparse[datetime64[ns]]", pd.SparseDtype(np.dtype("datetime64[ns]"))),
+        ("Sparse", pd.SparseDtype(np.dtype("float"), np.nan)),
     ],
 )
 def test_construct_from_string(string, expected):
-    result = SparseDtype.construct_from_string(string)
+    result = pd.SparseDtype.construct_from_string(string)
     assert result == expected
 
 
 @pytest.mark.parametrize(
     "a, b, expected",
     [
-        (SparseDtype(float, 0.0), SparseDtype(np.dtype("float"), 0.0), True),
-        (SparseDtype(int, 0), SparseDtype(int, 0), True),
-        (SparseDtype(float, float("nan")), SparseDtype(float, np.nan), True),
-        (SparseDtype(float, 0), SparseDtype(float, np.nan), False),
-        (SparseDtype(int, 0.0), SparseDtype(float, 0.0), False),
+        (pd.SparseDtype(float, 0.0), pd.SparseDtype(np.dtype("float"), 0.0), True),
+        (pd.SparseDtype(int, 0), pd.SparseDtype(int, 0), True),
+        (pd.SparseDtype(float, float("nan")), pd.SparseDtype(float, np.nan), True),
+        (pd.SparseDtype(float, 0), pd.SparseDtype(float, np.nan), False),
+        (pd.SparseDtype(int, 0.0), pd.SparseDtype(float, 0.0), False),
     ],
 )
 def test_hash_equal(a, b, expected):
@@ -162,7 +161,7 @@ def test_hash_equal(a, b, expected):
     ],
 )
 def test_parse_subtype(string, expected):
-    subtype, _ = SparseDtype._parse_subtype(string)
+    subtype, _ = pd.SparseDtype._parse_subtype(string)
     assert subtype == expected
 
 
@@ -171,16 +170,16 @@ def test_parse_subtype(string, expected):
 )
 def test_construct_from_string_fill_value_raises(string):
     with pytest.raises(TypeError, match="fill_value in the string is not"):
-        SparseDtype.construct_from_string(string)
+        pd.SparseDtype.construct_from_string(string)
 
 
 @pytest.mark.parametrize(
     "original, dtype, expected",
     [
-        (SparseDtype(int, 0), float, SparseDtype(float, 0.0)),
-        (SparseDtype(int, 1), float, SparseDtype(float, 1.0)),
-        (SparseDtype(int, 1), np.str_, SparseDtype(object, "1")),
-        (SparseDtype(float, 1.5), int, SparseDtype(int, 1)),
+        (pd.SparseDtype(int, 0), float, pd.SparseDtype(float, 0.0)),
+        (pd.SparseDtype(int, 1), float, pd.SparseDtype(float, 1.0)),
+        (pd.SparseDtype(int, 1), np.str_, pd.SparseDtype(object, "1")),
+        (pd.SparseDtype(float, 1.5), int, pd.SparseDtype(int, 1)),
     ],
 )
 def test_update_dtype(original, dtype, expected):
@@ -192,12 +191,12 @@ def test_update_dtype(original, dtype, expected):
     "original, dtype, expected_error_msg",
     [
         (
-            SparseDtype(float, np.nan),
+            pd.SparseDtype(float, np.nan),
             int,
             re.escape("Cannot convert non-finite values (NA or inf) to integer"),
         ),
         (
-            SparseDtype(str, "abc"),
+            pd.SparseDtype(str, "abc"),
             int,
             r"invalid literal for int\(\) with base 10: ('abc'|np\.str_\('abc'\))",
         ),
@@ -210,11 +209,11 @@ def test_update_dtype_raises(original, dtype, expected_error_msg):
 
 def test_repr():
     # GH-34352
-    result = str(SparseDtype("int64", fill_value=0))
+    result = str(pd.SparseDtype("int64", fill_value=0))
     expected = "Sparse[int64, 0]"
     assert result == expected
 
-    result = str(SparseDtype(object, fill_value="0"))
+    result = str(pd.SparseDtype(object, fill_value="0"))
     expected = "Sparse[object, '0']"
     assert result == expected
 
@@ -223,4 +222,4 @@ def test_sparse_dtype_subtype_must_be_numpy_dtype():
     # GH#53160
     msg = "SparseDtype subtype must be a numpy dtype"
     with pytest.raises(TypeError, match=msg):
-        SparseDtype("category", fill_value="c")
+        pd.SparseDtype("category", fill_value="c")
