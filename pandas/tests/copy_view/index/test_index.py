@@ -155,6 +155,33 @@ def test_index_where_noop():
     tm.assert_index_equal(idx, expected)
 
 
+def test_index_replace_noop():
+    # GH#65265 CoW references should be tracked through Index.replace
+    idx = pd.Index([1, 2, 3])
+    result = idx.replace(4, 100)
+    assert np.shares_memory(get_array(idx), get_array(result))
+    assert result._references.has_reference()
+
+    expected = idx.copy(deep=True)
+    result = pd.Series(result)
+    result.iloc[0] = 100
+    tm.assert_index_equal(idx, expected)
+
+
+def test_index_replace_noop_from_series():
+    # GH#65265 the result keeps tracking the Series the Index was built from,
+    #  even once the intermediate Index is gone
+    ser = pd.Series([1, 2, 3])
+    idx = pd.Index(ser)
+    result = idx.replace(4, 100)
+    idx = None  # overwrite to clear reference
+    assert np.shares_memory(get_array(ser), get_array(result))
+
+    expected = result.copy(deep=True)
+    ser.iloc[0] = 100
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, dtype",
     [
