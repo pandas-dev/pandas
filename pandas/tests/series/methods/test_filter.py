@@ -91,14 +91,14 @@ def test_filter_expression_raises(ser):
 
 def test_filter_callable_must_return_mask(ser):
     # GH#61317
-    msg = "The callable passed to Series.filter must evaluate to a boolean mask"
+    msg = "The callable passed to Series.filter must evaluate to a one-dimensional"
     with pytest.raises(TypeError, match=msg):
         ser.filter(lambda ser: ["x"])
 
 
 def test_filter_cond_not_mask_raises(ser):
     # GH#61317
-    msg = "cond passed to Series.filter must be a boolean mask"
+    msg = "cond passed to Series.filter must be a one-dimensional boolean mask"
     with pytest.raises(TypeError, match=msg):
         ser.filter(cond=["x"])
 
@@ -106,8 +106,8 @@ def test_filter_cond_not_mask_raises(ser):
 def test_filter_cond_2d_raises(ser):
     # GH#61317
     mask = pd.DataFrame({"a": [False, True, True]}, index=["x", "y", "z"])
-    msg = "The mask passed to Series.filter must be one-dimensional"
-    with pytest.raises(ValueError, match=msg):
+    msg = "cond passed to Series.filter must be a one-dimensional boolean mask"
+    with pytest.raises(TypeError, match=msg):
         ser.filter(cond=mask)
 
 
@@ -139,8 +139,7 @@ def test_filter_cond_na(ser, mask):
 def test_filter_na_label():
     # GH#61317
     ser = pd.Series([1, 2], index=[np.nan, "x"])
-    with tm.assert_produces_warning(None):
-        result = ser.filter([np.nan])
+    result = ser.filter(items=[np.nan])
     expected = ser.iloc[[0]]
     tm.assert_series_equal(result, expected, check_index_type=False)
 

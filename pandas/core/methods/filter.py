@@ -19,7 +19,6 @@ from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import (
     array as pd_array,
@@ -43,13 +42,10 @@ def is_mask(key: object) -> bool:
 
     A boolean dtype is a mask. Otherwise ``key`` must be a list or an
     object-dtype array-like that is one-dimensional with every non-missing
-    element a bool. A tuple is never a mask.
+    element a bool. A tuple or DataFrame is never a mask.
     """
     if isinstance(key, ABCDataFrame):
-        # A boolean DataFrame (e.g. df > 1) is an attempted mask, so classify
-        # it as one to get filter_mask's "must be one-dimensional" error
-        # rather than the generic error a non-mask gets.
-        return all(is_bool_dtype(dtype) for dtype in key.dtypes)
+        return False
     if isinstance(key, list):
         values = np.asarray(key, dtype=object)
     else:
@@ -66,22 +62,6 @@ def is_mask(key: object) -> bool:
         # (labels for a MultiIndex) would otherwise be mistaken for a mask.
         return False
     return lib.is_bool_array(values, skipna=True)
-
-
-def resembles_mask(key: object) -> bool:
-    """
-    Whether ``key``, passed positionally, was likely intended as a mask.
-
-    This only decides whether to warn; ``key`` selects labels regardless. At
-    least one boolean is required so that a list of missing labels such as
-    ``[np.nan]`` does not warn. A DataFrame is excluded because the label path
-    raises for it anyway, and a warning before an error is just noise.
-    """
-    if isinstance(key, ABCDataFrame) or not is_mask(key):
-        return False
-    if not isinstance(key, list) and is_bool_dtype(key.dtype):
-        return True
-    return not isna(np.asarray(key, dtype=object)).all()
 
 
 def filter_mask(

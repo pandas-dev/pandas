@@ -124,7 +124,6 @@ from pandas.core.methods.describe import describe_ndframe
 from pandas.core.methods.filter import (
     filter_mask,
     is_mask,
-    resembles_mask,
 )
 from pandas.core.missing import (
     clean_fill_method,
@@ -5663,10 +5662,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         TypeError
             If none or more than one of the positional argument, ``items``,
             ``cond``, ``like``, and ``regex`` is passed, or if ``cond`` is
-            not a boolean mask.
+            not a one-dimensional boolean mask.
         ValueError
             If a mask contains missing values and ``na="raise"``, or if
-            a mask is not one-dimensional.
+            a boolean array is not one-dimensional.
         IndexError
             If a mask that is not a Series has a different length than the
             filtered axis.
@@ -5777,7 +5776,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if callable(arg):
                 cond = arg
             else:
-                if resembles_mask(arg):
+                if is_mask(arg):
                     warnings.warn(
                         "A list-like of booleans passed positionally to "
                         f"{type(self).__name__}.filter selects labels. Pass "
@@ -5802,14 +5801,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     kind = "expression" if isinstance(cond, Expression) else "callable"
                     raise TypeError(
                         f"The {kind} passed to {type(self).__name__}.filter "
-                        "must evaluate to a boolean mask"
+                        "must evaluate to a one-dimensional boolean mask"
                     )
             elif is_mask(cond):
                 mask = cond
             else:
                 raise TypeError(
                     f"cond passed to {type(self).__name__}.filter must be a "
-                    "boolean mask"
+                    "one-dimensional boolean mask"
                 )
             return filter_mask(self, mask, mask_axis, na)
 

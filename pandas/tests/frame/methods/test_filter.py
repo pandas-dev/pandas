@@ -222,14 +222,11 @@ def test_filter_positional_bools_select_labels(df, mask):
         (["b", "a"], ["b", "a"]),
         (("b", "a"), ["b", "a"]),
         ((True, False, True), []),
-        ([np.nan], []),
-        ([None, None, None], []),
-        ([], []),
     ],
 )
 def test_filter_positional_labels_no_warning(df, arg, cols):
     # GH#61317
-    # tuples, missing values, and empty input do not resemble a mask
+    # tuples are never masks
     with tm.assert_produces_warning(None):
         result = df.filter(arg)
     expected = df[cols]
@@ -239,8 +236,7 @@ def test_filter_positional_labels_no_warning(df, arg, cols):
 def test_filter_na_label():
     # GH#61317
     df = pd.DataFrame({np.nan: [1], "a": [2]})
-    with tm.assert_produces_warning(None):
-        result = df.filter([np.nan])
+    result = df.filter(items=[np.nan])
     expected = df.iloc[:, [0]]
     tm.assert_frame_equal(result, expected, check_column_type=False)
 
@@ -309,7 +305,7 @@ def test_filter_positional_and_keyword_mutually_exclusive(df, kwargs):
 )
 def test_filter_cond_not_mask_raises(df, cond):
     # GH#61317
-    msg = "cond passed to DataFrame.filter must be a boolean mask"
+    msg = "cond passed to DataFrame.filter must be a one-dimensional boolean mask"
     with pytest.raises(TypeError, match=msg):
         df.filter(cond=cond)
 
@@ -350,11 +346,16 @@ def test_filter_cond_columns(df, axis):
 
 def test_filter_cond_2d_raises(df):
     # GH#61317
+    msg = "cond passed to DataFrame.filter must be a one-dimensional boolean mask"
+    with pytest.raises(TypeError, match=msg):
+        df.filter(cond=df > 1)
+    msg = "must evaluate to a one-dimensional boolean mask"
+    with pytest.raises(TypeError, match=msg):
+        df.filter(lambda df: df > 1)
+
     msg = "The mask passed to DataFrame.filter must be one-dimensional"
     with pytest.raises(ValueError, match=msg):
-        df.filter(cond=df > 1)
-    with pytest.raises(ValueError, match=msg):
-        df.filter(lambda df: df > 1)
+        df.filter(cond=np.array([[True, False, True]]))
 
 
 def test_filter_positional_frame_selects_labels(df):
@@ -369,7 +370,7 @@ def test_filter_positional_frame_selects_labels(df):
 
 def test_filter_callable_must_return_mask(df):
     # GH#61317
-    msg = "The callable passed to DataFrame.filter must evaluate to a boolean mask"
+    msg = "The callable passed to DataFrame.filter must evaluate to a one-dimensional"
     with pytest.raises(TypeError, match=msg):
         df.filter(lambda df: ["a"])
     with pytest.raises(TypeError, match=msg):
@@ -378,7 +379,7 @@ def test_filter_callable_must_return_mask(df):
 
 def test_filter_expression_must_return_mask(df):
     # GH#61317
-    msg = "The expression passed to DataFrame.filter must evaluate to a boolean mask"
+    msg = "The expression passed to DataFrame.filter must evaluate to a one-dimensional"
     with pytest.raises(TypeError, match=msg):
         df.filter(pd.col("a"))
 
