@@ -52,7 +52,9 @@ def is_mask(key: object, labels: Index) -> bool:
     and an uninformative mask otherwise.
     """
     if isinstance(key, ABCDataFrame):
-        # a boolean DataFrame is rejected as not one-dimensional by filter_mask
+        # A boolean DataFrame (e.g. df > 1) is an attempted mask, so classify
+        # it as one to get filter_mask's "must be one-dimensional" error
+        # rather than the label path's generic Index construction error.
         return all(is_bool_dtype(dtype) for dtype in key.dtypes)
     if isinstance(key, list):
         if len(key) == 0:
