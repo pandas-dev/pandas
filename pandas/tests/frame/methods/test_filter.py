@@ -285,12 +285,10 @@ def test_filter_invalid_na(df):
         df.filter([True, False, True], na="ignore")
 
 
-@pytest.mark.parametrize(
-    "mask", [[True, False], (True, False), pd.Index([True, False])]
-)
+@pytest.mark.parametrize("mask", [[True, False], pd.Index([True, False])])
 def test_filter_bool_labels_select_labels(mask):
     # GH#61317
-    # A list, tuple, or Index of booleans on an axis with boolean labels keeps
+    # A list or Index of booleans on an axis with boolean labels keeps
     # selecting labels
     df = pd.DataFrame({True: [1], False: [2], "c": [3]})
     result = df.filter(mask)
@@ -360,11 +358,23 @@ def test_filter_all_na_mask(df):
         df.filter([None, None, None], na="raise")
 
 
-def test_filter_tuple_mask(df):
+def test_filter_tuple_is_labels(df):
     # GH#61317
-    result = df.filter((False, True, True))
-    expected = df.iloc[1:]
+    # a tuple is always a sequence of labels, never a mask
+    result = df.filter(("b", "a"))
+    expected = df[["b", "a"]]
     tm.assert_frame_equal(result, expected)
+
+    result = df.filter((False, True, True))
+    expected = df.iloc[:, []]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_non_bool_frame_is_not_mask(df):
+    # GH#61317
+    msg = "Index data must be 1-dimensional"
+    with pytest.raises(ValueError, match=msg):
+        df.filter(df)
 
 
 def test_filter_tuple_labels_multiindex():

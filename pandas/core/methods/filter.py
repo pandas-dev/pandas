@@ -45,15 +45,16 @@ def is_mask(key: object, labels: Index) -> bool:
     Whether ``key`` is a boolean mask rather than a list-like of labels.
 
     A boolean dtype is always a mask. Otherwise ``key`` is a mask when it is
-    one-dimensional and every non-missing element is a bool. ``labels`` is the
-    axis that label-based selection would use; it only matters when ``key``
-    consists entirely of missing values, which is a list of labels when
-    ``labels`` contains a missing value and an uninformative mask otherwise.
+    one-dimensional and every non-missing element is a bool. A tuple is always
+    a sequence of labels. ``labels`` is the axis that label-based selection
+    would use; it only matters when ``key`` consists entirely of missing
+    values, which is a list of labels when ``labels`` contains a missing value
+    and an uninformative mask otherwise.
     """
     if isinstance(key, ABCDataFrame):
-        # rejected as not one-dimensional by filter_mask
-        return True
-    if isinstance(key, (list, tuple)):
+        # a boolean DataFrame is rejected as not one-dimensional by filter_mask
+        return all(is_bool_dtype(dtype) for dtype in key.dtypes)
+    if isinstance(key, list):
         if len(key) == 0:
             return False
         values = np.asarray(key, dtype=object)
@@ -99,7 +100,7 @@ def has_bool_labels(labels: Index) -> bool:
 
 def filter_mask(
     obj: NDFrameT,
-    mask: list | tuple | AnyArrayLike,
+    mask: list | AnyArrayLike,
     axis: AxisInt,
     na: Literal["raise"] | bool,
 ) -> NDFrameT:
@@ -114,7 +115,7 @@ def filter_mask(
         )
 
     values = extract_array(mask, extract_numpy=True)
-    if isinstance(values, (list, tuple)):
+    if isinstance(values, list):
         values = np.asarray(values, dtype=object)
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         # fast path: no missing values are possible

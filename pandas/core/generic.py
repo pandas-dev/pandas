@@ -5673,15 +5673,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         A boolean mask is recognized by its values: an array-like with a
         boolean dtype, or a list-like whose non-missing elements are all
-        booleans. Any other list-like selects labels. A mask is aligned with
-        the labels of the filtered axis when it is a :class:`Series`;
-        otherwise it must have the same length as that axis.
+        booleans. Any other list-like selects labels, and a tuple is always
+        treated as a sequence of labels. A mask is aligned with the labels of
+        the filtered axis when it is a :class:`Series`; otherwise it must
+        have the same length as that axis.
 
         Two cases depend on the labels of the axis that label-based selection
         would use (the columns of a DataFrame when ``axis`` is not specified).
         A list-like consisting only of missing values selects labels when
-        that axis contains a missing value. A list, tuple, or :class:`Index`
-        of booleans selects the labels ``True`` and ``False`` when that axis
+        that axis contains a missing value. A list or :class:`Index` of
+        booleans selects the labels ``True`` and ``False`` when that axis
         contains them; this will be deprecated in a future version, use
         ``.loc`` to select such labels instead.
 
@@ -5775,10 +5776,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return filter_mask(self, mask, mask_axis, na)
             legacy_labels = self._get_axis(legacy_axis)
             if is_mask(items, legacy_labels) and not (
-                # A list, tuple, or Index of booleans selects the labels True
-                # and False when the axis contains them. To be deprecated.
-                isinstance(items, (list, tuple, Index))
-                and has_bool_labels(legacy_labels)
+                # A list or Index of booleans selects the labels True and
+                # False when the axis contains them. To be deprecated.
+                isinstance(items, (list, Index)) and has_bool_labels(legacy_labels)
             ):
                 return filter_mask(self, items, mask_axis, na)
 
