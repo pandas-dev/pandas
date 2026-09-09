@@ -16,10 +16,6 @@ import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 pa = pytest.importorskip("pyarrow")
 
@@ -157,7 +153,9 @@ class TestFeather:
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        self.check_round_trip(df, temp_file, write_kwargs={"version": 1})
+        self.check_round_trip(
+            df, temp_file, write_kwargs={"compression": "uncompressed"}
+        )
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -249,6 +247,19 @@ class TestFeather:
         result = read_feather(temp_file)
         expected = df
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("ordered", [True, False])
+    def test_categorical_object_categories_no_infer_string(self, temp_file, ordered):
+        # GH#56044 with the string dtype disabled the categories come back as
+        #  object, including for an ordered dtype, where CategoricalDtype.__eq__
+        #  ignores the categories' dtype
+        with pd.option_context("future.infer_string", False):
+            cat = pd.Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)
+            df = pd.DataFrame({"a": cat})
+            df.to_feather(temp_file)
+            result = read_feather(temp_file)
+        assert result["a"].cat.categories.dtype == np.dtype(object)
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.skipif(pa_version_under18p0, reason="not supported before 18.0")
     def test_string_inference_string_view_type(self, temp_file):

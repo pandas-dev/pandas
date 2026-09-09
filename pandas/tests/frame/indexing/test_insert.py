@@ -9,30 +9,24 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestDataFrameInsert:
     def test_insert(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 3)),
             index=np.arange(5),
             columns=["c", "b", "a"],
         )
 
         df.insert(0, "foo", df["a"])
-        tm.assert_index_equal(df.columns, Index(["foo", "c", "b", "a"]))
+        tm.assert_index_equal(df.columns, pd.Index(["foo", "c", "b", "a"]))
         tm.assert_series_equal(df["a"], df["foo"], check_names=False)
 
         df.insert(2, "bar", df["c"])
-        tm.assert_index_equal(df.columns, Index(["foo", "c", "bar", "b", "a"]))
+        tm.assert_index_equal(df.columns, pd.Index(["foo", "c", "bar", "b", "a"]))
         tm.assert_almost_equal(df["c"], df["bar"], check_names=False)
 
         with pytest.raises(ValueError, match="already exists"):
@@ -49,28 +43,28 @@ class TestDataFrameInsert:
 
     def test_insert_column_bug_4032(self):
         # GH#4032, inserting a column and renaming causing errors
-        df = DataFrame({"b": [1.1, 2.2]})
+        df = pd.DataFrame({"b": [1.1, 2.2]})
 
         df = df.rename(columns={})
         df.insert(0, "a", [1, 2])
         result = df.rename(columns={})
 
-        expected = DataFrame([[1, 1.1], [2, 2.2]], columns=["a", "b"])
+        expected = pd.DataFrame([[1, 1.1], [2, 2.2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
         df.insert(0, "c", [1.3, 2.3])
         result = df.rename(columns={})
 
-        expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
+        expected = pd.DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
         tm.assert_frame_equal(result, expected)
 
     def test_insert_with_columns_dups(self):
         # GH#14291
-        df = DataFrame()
+        df = pd.DataFrame()
         df.insert(0, "A", ["g", "h", "i"], allow_duplicates=True)
         df.insert(0, "A", ["d", "e", "f"], allow_duplicates=True)
         df.insert(0, "A", ["a", "b", "c"], allow_duplicates=True)
-        exp = DataFrame(
+        exp = pd.DataFrame(
             [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]], columns=["A", "A", "A"]
         )
         tm.assert_frame_equal(df, exp)
@@ -78,7 +72,7 @@ class TestDataFrameInsert:
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when
         # using EAs (https://github.com/pandas-dev/pandas/issues/44098)
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).integers(0, 100, size=(3, 100)), dtype="Int64"
         )
         with tm.assert_produces_warning(None):
@@ -86,7 +80,7 @@ class TestDataFrameInsert:
 
     def test_insert_frame(self):
         # GH#42403
-        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+        df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
 
         msg = (
             "Expected a one-dimensional object, got a DataFrame with 2 columns instead."
@@ -96,22 +90,22 @@ class TestDataFrameInsert:
 
     def test_insert_int64_loc(self):
         # GH#53193
-        df = DataFrame({"a": [1, 2]})
+        df = pd.DataFrame({"a": [1, 2]})
         df.insert(np.int64(0), "b", 0)
-        tm.assert_frame_equal(df, DataFrame({"b": [0, 0], "a": [1, 2]}))
+        tm.assert_frame_equal(df, pd.DataFrame({"b": [0, 0], "a": [1, 2]}))
 
     def test_insert_delete_mixed_multiindex_columns(self):
         # GH#56853
 
-        df = DataFrame({("A", Timestamp("2024-01-01")): [0]})
+        df = pd.DataFrame({("A", pd.Timestamp("2024-01-01")): [0]})
         msg = "Setting a new column on a DataFrame with a MultiIndex"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.insert(1, "B", [1])
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [[0, 1]],
-            columns=MultiIndex.from_tuples(
-                [("A", Timestamp("2024-01-01")), ("B", NaT)]
+            columns=pd.MultiIndex.from_tuples(
+                [("A", pd.Timestamp("2024-01-01")), ("B", pd.NaT)]
             ),
         )
         tm.assert_frame_equal(df, expected)
@@ -119,5 +113,5 @@ class TestDataFrameInsert:
         # Should not raise RecursionError (this was the original bug)
         del df["B"]
 
-        expected = DataFrame({("A", Timestamp("2024-01-01")): [0]})
+        expected = pd.DataFrame({("A", pd.Timestamp("2024-01-01")): [0]})
         tm.assert_frame_equal(df, expected)

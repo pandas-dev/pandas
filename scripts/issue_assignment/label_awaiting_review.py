@@ -2,9 +2,12 @@
 
 Run once a day from the scheduled maintenance job (folded in to share a single
 runner boot rather than firing on every push). The label is informational: it
-flags PRs sitting in the maintainers' court. (The matching state — not the label
-— is what exempts a PR from the stale engine in ``unassign_inactive``.) Exempt
-authors and gated PRs are skipped. Lagging reality by up to a day is harmless
+flags PRs sitting in the maintainers' court and awaiting a *review* — a fully
+approved PR (every standing maintainer verdict an approval, no review request
+pending) is awaiting merge instead and drops the label. (The
+awaiting-contributor state — not the label — is what exempts a PR from the
+stale engine in ``unassign_inactive``.) Exempt authors and gated PRs are
+skipped. Lagging reality by up to a day is harmless
 against the 14-day stale window; current labels are read alongside the review
 state so PRs already in the right state cost no write request.
 """
@@ -46,10 +49,17 @@ def reconcile_all(client: SupportsLabelReconcile) -> None:
         rereview_requested_at = core.latest_rereview_request_at(
             pr["review_requests"], contributors
         )
+        fully_approved = core.all_reviewers_approved(
+            pr["reviews"], pr["has_pending_review_requests"]
+        )
         want = core.GATE_LABEL not in pr[
             "labels"
         ] and core.should_label_awaiting_review(
-            True, pr["is_draft"], changes_requested_at, rereview_requested_at
+            True,
+            pr["is_draft"],
+            changes_requested_at,
+            rereview_requested_at,
+            fully_approved,
         )
         has = label in pr["labels"]
         if want and not has:

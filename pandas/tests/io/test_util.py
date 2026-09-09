@@ -17,9 +17,6 @@ pytz = pytest.importorskip("pytz")
 
 pytestmark = [
     pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
-    pytest.mark.filterwarnings(
         "ignore:Series.values returning an ndarray that drops timezone "
         "information:pandas.errors.Pandas4Warning"
     ),

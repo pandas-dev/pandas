@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    HDFStore,
-    Index,
-    Series,
-    date_range,
-)
+import pandas as pd
 
 tables = pytest.importorskip("tables")
 
@@ -15,16 +9,16 @@ pytestmark = [pytest.mark.single_cpu]
 
 
 def test_keys(temp_hdfstore):
-    temp_hdfstore["a"] = Series(
-        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    temp_hdfstore["a"] = pd.Series(
+        np.arange(10, dtype=np.float64), index=pd.date_range("2020-01-01", periods=10)
     )
-    temp_hdfstore["b"] = Series(
+    temp_hdfstore["b"] = pd.Series(
         range(10), dtype="float64", index=[f"i_{i}" for i in range(10)]
     )
-    temp_hdfstore["c"] = DataFrame(
+    temp_hdfstore["c"] = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        columns=pd.Index(list("ABCD"), dtype=object),
+        index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
     )
 
     assert len(temp_hdfstore) == 3
@@ -48,7 +42,7 @@ def test_non_pandas_keys(temp_h5_path):
         h5file.create_table(group, "table1", Table1, "Table 1")
         h5file.create_table(group, "table2", Table2, "Table 2")
         h5file.create_table(group, "table3", Table3, "Table 3")
-    with HDFStore(temp_h5_path) as store:
+    with pd.HDFStore(temp_h5_path) as store:
         assert len(store.keys(include="native")) == 3
         expected = {"/group/table1", "/group/table2", "/group/table3"}
         assert set(store.keys(include="native")) == expected
@@ -69,7 +63,7 @@ def test_keys_illegal_include_keyword_value(temp_hdfstore):
 def test_keys_ignore_hdf_softlink(temp_hdfstore):
     # GH 20523
     # Puts a softlink into HDF file and rereads
-    df = DataFrame({"A": range(5), "B": range(5)})
+    df = pd.DataFrame({"A": range(5), "B": range(5)})
     temp_hdfstore.put("df", df, track_times=False)
 
     assert temp_hdfstore.keys() == ["/df"]

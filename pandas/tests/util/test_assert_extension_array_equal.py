@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Timestamp,
-    array,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -110,16 +107,48 @@ def test_assert_extension_array_equal_non_extension_array(side):
 
 def test_assert_extension_array_equal_ignore_dtype_mismatch(any_int_dtype):
     # https://github.com/pandas-dev/pandas/issues/35715
-    left = array([1, 2, 3], dtype="Int64")
-    right = array([1, 2, 3], dtype=any_int_dtype)
+    left = pd.array([1, 2, 3], dtype="Int64")
+    right = pd.array([1, 2, 3], dtype=any_int_dtype)
     tm.assert_extension_array_equal(left, right, check_dtype=False)
 
 
 def test_assert_extension_array_equal_time_units():
     # https://github.com/pandas-dev/pandas/issues/55730
-    timestamp = Timestamp("2023-11-04T12")
-    naive = array([timestamp], dtype="datetime64[ns]")
-    utc = array([timestamp], dtype="datetime64[ns, UTC]")
+    timestamp = pd.Timestamp("2023-11-04T12")
+    naive = pd.array([timestamp], dtype="datetime64[ns]")
+    utc = pd.array([timestamp], dtype="datetime64[ns, UTC]")
 
     tm.assert_extension_array_equal(naive, utc, check_dtype=False)
     tm.assert_extension_array_equal(utc, naive, check_dtype=False)
+
+
+@pytest.mark.parametrize("check_exact", [True, False])
+def test_assert_extension_array_equal_zero_dim_duck_array(check_exact):
+    # GH#45240 unequal arrays of scalars that define __iter__/__len__ delegating
+    #  to a scalar payload (as pint's Quantity does) report the difference
+    #  instead of raising TypeError
+    class Quantity:
+        # mimics pint's Quantity: __iter__/__len__ delegate to the magnitude,
+        #  and ndim reports 0 when that magnitude is a scalar
+        ndim = 0
+
+        def __init__(self, magnitude):
+            self.magnitude = magnitude
+
+        def __iter__(self):
+            return iter(self.magnitude)
+
+        def __len__(self):
+            return len(self.magnitude)
+
+        def __eq__(self, other):
+            return self.magnitude == other.magnitude
+
+    left = pd.array(np.array([Quantity(1), Quantity(2)], dtype=object))
+    right = pd.array(np.array([Quantity(1), Quantity(3)], dtype=object))
+
+    tm.assert_extension_array_equal(left, left.copy(), check_exact=check_exact)
+
+    msg = "ExtensionArray are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_extension_array_equal(left, right, check_exact=check_exact)

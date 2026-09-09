@@ -52,14 +52,9 @@ except ImportError:
 
 
 pytestmark = [
-    pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
-    pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-    ),
     pytest.mark.filterwarnings(
         "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
     ),
-    pytest.mark.filterwarnings("ignore:engine='auto' is deprecated:DeprecationWarning"),
 ]
 
 
@@ -148,9 +143,9 @@ def df_full():
 
 @pytest.fixture(
     params=[
-        datetime.datetime.now(datetime.UTC),
-        datetime.datetime.now(datetime.timezone.min),
-        datetime.datetime.now(datetime.timezone.max),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.UTC),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.timezone.min),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.timezone.max),
         datetime.datetime.strptime("2019-01-04T16:41:24+0200", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24+0215", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24-0200", "%Y-%m-%dT%H:%M:%S%z"),
@@ -1077,7 +1072,6 @@ class TestParquetPyArrow(Base):
         result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
-    @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
     @pytest.mark.filterwarnings(
         "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
     )

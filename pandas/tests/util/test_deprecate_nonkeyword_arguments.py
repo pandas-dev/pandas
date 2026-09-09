@@ -44,22 +44,21 @@ def test_two_and_two_arguments():
 
 
 def test_three_arguments():
-    with tm.assert_produces_warning(WARNING_CATEGORY):
-        assert f(6, 3, 3) == 12
-
-
-def test_four_arguments():
-    with tm.assert_produces_warning(WARNING_CATEGORY):
-        assert f(1, 2, 3, 4) == 10
-
-
-def test_three_arguments_with_name_in_warning():
     msg = (
         f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments of "
         "f_add_inputs except for the arguments 'a' and 'b' will be keyword-only."
     )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert f(6, 3, 3) == 12
+
+
+def test_four_arguments():
+    msg = (
+        f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments of "
+        "f_add_inputs except for the arguments 'a' and 'b' will be keyword-only."
+    )
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
+        assert f(1, 2, 3, 4) == 10
 
 
 @deprecate_nonkeyword_arguments(WARNING_CATEGORY)
@@ -78,11 +77,6 @@ def test_one_and_three_arguments_default_allowed_args():
 
 
 def test_three_arguments_default_allowed_args():
-    with tm.assert_produces_warning(WARNING_CATEGORY):
-        assert g(6, 3, 3) == 12
-
-
-def test_three_positional_argument_with_warning_message_analysis():
     msg = (
         f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments of g "
         "except for the argument 'a' will be keyword-only."
@@ -106,17 +100,12 @@ def test_all_keyword_arguments():
 
 
 def test_one_positional_argument():
-    with tm.assert_produces_warning(WARNING_CATEGORY):
-        assert h(23) == 23
-
-
-def test_one_positional_argument_with_warning_message_analysis():
     msg = (
         f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments "
         "of h will be keyword-only."
     )
     with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
-        assert h(19) == 19
+        assert h(23) == 23
 
 
 @deprecate_nonkeyword_arguments(WARNING_CATEGORY)
@@ -129,7 +118,11 @@ def test_i_signature():
 
 
 def test_i_warns_klass():
-    with tm.assert_produces_warning(WARNING_CATEGORY):
+    msg = (
+        f"Starting with pandas version {WARNING_CATEGORY.version()} all arguments "
+        "of i will be keyword-only."
+    )
+    with tm.assert_produces_warning(WARNING_CATEGORY, match=msg):
         assert i(1, 2) == 3
 
 
