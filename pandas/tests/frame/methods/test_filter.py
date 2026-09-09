@@ -388,10 +388,6 @@ def test_filter_expression_must_return_mask(df):
         pd.array([True, None, False], dtype="boolean"),
         pd.Series([True, None, False], dtype="boolean", index=["x", "y", "z"]),
         pd.Index([True, None, False], dtype=object),
-        pytest.param(
-            pd.array([True, None, False], dtype="bool[pyarrow]"),
-            marks=td.skip_if_no("pyarrow"),
-        ),
     ],
 )
 def test_filter_cond_na(df, mask):
@@ -403,6 +399,23 @@ def test_filter_cond_na(df, mask):
     tm.assert_frame_equal(result, expected)
 
     result = df.filter(cond=mask, na=False)
+    tm.assert_frame_equal(result, expected)
+
+    msg = "The mask contains missing values"
+    with pytest.raises(ValueError, match=msg):
+        df.filter(cond=mask, na="raise")
+
+    result = df.filter(cond=mask, na=True)
+    expected = df.iloc[[0, 1]]
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_filter_cond_na_pyarrow(df):
+    # GH#61317
+    mask = pd.array([True, None, False], dtype="bool[pyarrow]")
+    result = df.filter(cond=mask)
+    expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
 
     msg = "The mask contains missing values"
