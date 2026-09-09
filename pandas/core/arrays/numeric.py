@@ -230,9 +230,10 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             # a label lookup and can land on a missing element even when
             # ``values[idx]`` is concrete (GH#62473). Access positionally.
             original_idx = getattr(original, "iloc", original)[idx]
-            if not libmissing.checknull(
-                original_idx
-            ) and int(values[idx]) != original_idx:
+            if (
+                not libmissing.checknull(original_idx)
+                and int(values[idx]) != original_idx
+            ):
                 # We have ints that lost precision during the cast.
                 inferred_type = lib.infer_dtype(original, skipna=True)
                 if (

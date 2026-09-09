@@ -742,9 +742,7 @@ class TestSetitemCasting:
         assert result.dtype == "Int64"
         # The outcome is positional: the RHS index labels must not matter.
         expected = ser.copy()
-        expected.iloc[indices] = pd.Series(
-            [4, 6, 9, None, 10, 13, 15], dtype="Int64"
-        )
+        expected.iloc[indices] = pd.Series([4, 6, 9, None, 10, 13, 15], dtype="Int64")
         tm.assert_series_equal(result, expected)
 
 
