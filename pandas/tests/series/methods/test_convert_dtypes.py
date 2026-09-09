@@ -373,15 +373,17 @@ class TestSeriesConvertDtypes:
             result = ser.convert_dtypes()
         tm.assert_series_equal(result, ser.astype("Float64"))
 
-    def test_convert_dtypes_float_two_pow_63(self):
-        # GH#68315 float64(2**63) == INT64_MAX after the saturating cast, so the
-        # naive equality check let 2**63 through as an off-by-one Int64 value
-        ser = pd.Series([2.0**63])
+    def test_convert_dtypes_float_one_past_max(self):
+        # GH#68315 float(INT_MAX + 1) == INT_MAX after the saturating cast, so
+        # the naive equality check let it through as an off-by-one Int64 value.
+        # The cast is to the platform's C int, so take the bounds from that.
+        iinfo = np.iinfo(np.dtype(int))
+        ser = pd.Series([float(int(iinfo.max) + 1)])
         result = ser.convert_dtypes()
         tm.assert_series_equal(result, ser.astype("Float64"))
 
-        # the most negative float64 that fits is unaffected
-        ser = pd.Series([-(2.0**63)])
+        # the most negative float that fits is unaffected
+        ser = pd.Series([float(iinfo.min)])
         result = ser.convert_dtypes()
         tm.assert_series_equal(result, ser.astype("Int64"))
 
