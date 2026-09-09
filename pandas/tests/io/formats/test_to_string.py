@@ -443,8 +443,8 @@ class TestToStringNumericFormatting:
     @pytest.mark.parametrize(
         ("float_format", "error", "match"),
         [
-            ("%q", ValueError, "unsupported format character"),
-            ("%", ValueError, "incomplete format"),
+            ("%q", ValueError, "unsupported format"),
+            ("%", ValueError, "|".join(["incomplete format", "stray %"])),
             ("%f %f", TypeError, "not enough arguments"),
         ],
     )
