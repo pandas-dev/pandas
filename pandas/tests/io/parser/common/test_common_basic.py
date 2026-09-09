@@ -283,10 +283,6 @@ def test_bool_kwarg_not_bool(all_parsers, kwarg, value):
     parser = all_parsers
     msg = f'For argument "{kwarg}" expected type bool'
 
-    if parser.engine == "pyarrow" and kwarg == "iterator" and value:
-        # peeked at before the bool check, so pyarrow rejects it as unsupported
-        msg = "The 'iterator' option is not supported with the 'pyarrow' engine"
-
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO("a\n1\n"), **{kwarg: value})
 

@@ -131,16 +131,6 @@ class TestCanParallelizeCsv:
         kwds = self._kwds(compression={"method": "gzip"})
         assert not _can_parallelize_csv(path, kwds)
 
-    def test_rejects_non_bool_memory_map(self, tmp_path, monkeypatch):
-        # GH#68341 the parallel path overrides memory_map, so an invalid value
-        # has to go serial to be rejected at all
-        path = tmp_path / "data.csv"
-        path.write_text("a,b\n1,2\n", encoding="utf-8")
-        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-        # positive control: identical kwds bar the bad value are eligible
-        assert _can_parallelize_csv(path, self._kwds(memory_map=True))
-        assert not _can_parallelize_csv(path, self._kwds(memory_map="False"))
-
     def test_rejects_iterator_mode(self, tmp_path):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")

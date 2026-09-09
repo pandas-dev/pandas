@@ -13,8 +13,6 @@ from pandas.errors import ParserWarning
 import pandas as pd
 import pandas._testing as tm
 
-from pandas.io.parsers.readers import _bool_kwargs
-
 
 @pytest.fixture
 def custom_dialect():
@@ -121,12 +119,11 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
         else:  # Non-default + conflict with dialect --> warning.
             warning_klass = ParserWarning
             # skipinitialspace's dialect value and parser default are both
-            # False, so a valid True still conflicts; for the others no valid
-            # conflicting value exists, so use a bad one
+            # False, so a valid True still conflicts
             kwds[arg] = True if arg == "skipinitialspace" else "blah"
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
-        if arg in _bool_kwargs and isinstance(kwds.get(arg), str):
+        if arg == "doublequote" and value == "other":
             # GH#68341 doublequote has no valid conflicting value left (the
             # dialect says False, the parser default True), so its conflict is
             # only reachable with a non-bool, which is now rejected

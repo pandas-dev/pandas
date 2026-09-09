@@ -336,6 +336,9 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
+    # before the `iterator` peek below, which reads it for truthiness
+    _validate_bool_kwargs(kwds)
+
     # if we pass a date_format and parse_dates=False, we should not parse the
     # dates GH#44366
     if kwds.get("parse_dates", None) is None:
@@ -478,8 +481,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
-    * ``memory_map`` is a bool - the parallel path overrides it, so an invalid
-      value would never reach the check in ``TextFileReader``.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
       chunk-relative (i.e. wrong) line numbers.
     * Both the file and its data section (i.e. excluding the header preamble)
@@ -596,11 +597,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # CParserWrapper.read also branches on truthiness, so low_memory=0 /
     # np.False_ must take the serial path too (GH#66327).
     if not kwds.get("low_memory", True):
-        return False
-
-    # The parallel path overrides memory_map, so an invalid value would never
-    # reach the TextFileReader that rejects it (GH#68341); let serial raise.
-    if not _is_bool_like(kwds.get("memory_map", False)):
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
