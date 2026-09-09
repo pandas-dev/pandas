@@ -202,20 +202,17 @@ _python_unsupported = {"low_memory", "float_precision"}
 _PARALLEL_READ_MIN_BYTES = 5 * 1024 * 1024  # 5 MB
 # Minimum rows per parallel chunk, bounding how finely a file is split.
 _PARALLEL_MIN_CHUNK_ROWS = 2000
-# Target bytes per parallel chunk, used to add chunks to a file the
-# worker-derived count leaves coarsely split.  Between pyarrow's 1 MB read
-# block and DuckDB's 8 MB per-thread unit.
+# Target bytes per parallel chunk.  Between pyarrow's 1 MB read block and
+# DuckDB's 8 MB per-thread unit.
 _PARALLEL_CHUNK_BYTES = 4 * 1024 * 1024  # 4 MB
-# Ceiling on the total (column x chunk) pieces that addition may create.  Every
-# chunk repeats a per-column cost in its worker - a GIL-held allocation and
-# dtype inference - measured at ~9 us per (column x chunk), so this bounds the
-# added overhead at ~16 ms however wide the frame is.
+# Ceiling on the (column x chunk) pieces the byte-driven count may create,
+# bounding the per-column cost (a GIL-held allocation and dtype inference)
+# that every chunk repeats however wide the frame is.
 _PARALLEL_MAX_COLUMN_PIECES = 1800
 # Size of the last chunk relative to a full one.  Chunks are handed out first
-# come, first served, so the read ends when the last chunk *started* finishes,
-# and equal-size chunks make that tail as long as any other chunk.  Tapering
-# the final chunks down leaves a worker that arrives late something small to
-# take.  1.0 disables the taper.
+# come, first served, so the read ends when the last chunk *started* finishes;
+# tapering leaves a worker that arrives late something short to take.  1.0
+# disables the taper.
 _PARALLEL_TAPER_RATIO = 0.2
 
 # Ceiling on the *default* parallel-read worker count: parallel CSV reading
@@ -685,10 +682,12 @@ def _find_chunk_byte_offsets(
     Compute byte offsets that partition the data portion of *filepath* into
     *n_chunks* pieces aligned to newline boundaries.
 
-    The pieces are equal-sized, except that when *n_workers* is given the last
-    ``2 * n_workers`` of them taper down: the read finishes when the last chunk
-    a worker picked up does, so ending on small chunks costs less than ending
-    on a full one.
+    The pieces are equal-sized, except that when *n_workers* is given and the
+    chunks take more than one round the last ``2 * n_workers`` taper down: the
+    read finishes when the last chunk a worker picked up does, so ending on
+    small chunks costs less than ending on a full one.  Within a single round
+    every chunk runs at once, so the makespan is the largest of them and any
+    taper would only inflate it.
 
     Returns a list of ``n + 1`` offsets where the byte range
     ``[offsets[i], offsets[i+1])`` defines chunk *i*.
@@ -701,7 +700,8 @@ def _find_chunk_byte_offsets(
         offsets.append(file_size)
         return offsets
 
-    weights = _chunk_size_weights(n_chunks, 2 * n_workers)
+    n_tapered = 2 * n_workers if n_chunks > n_workers else 0
+    weights = _chunk_size_weights(n_chunks, n_tapered)
     total_weight = sum(weights)
     running_weight = 0.0
     with open(filepath, "rb") as fd:
@@ -918,24 +918,18 @@ def _read_csv_chunks(
 
     # n_target so far scales with the worker count, which says nothing about
     # the file: a 128 MB file gets the same split as one just over the size
-    # gate, leaving whole blocks unsplit.  Add chunks to follow the file's
-    # size, bounded by a (column x chunk) piece budget because every chunk
-    # repeats a per-column cost, and still by the row floor - a file can be
-    # large in bytes and short in rows (wide frames, long string fields), and
-    # splitting those below the floor costs more than the split buys.  Raising
-    # the count is the only direction taken: thinning a split is what a
-    # straggler chunk punishes.
+    # gate.  Raise it to follow the bytes, bounded by the piece budget and by
+    # the row floor, since a file can be byte-rich and row-poor.  Only ever
+    # raised, so no file comes out coarser than before.
     size_target = min(
         data_size // _PARALLEL_CHUNK_BYTES,
         _PARALLEL_MAX_COLUMN_PIECES // max(len(col_names), 1),
         est_rows // _PARALLEL_MIN_CHUNK_ROWS,
     )
-    # The workers drain the chunks in whole rounds, so a count that is not a
-    # multiple of the worker count spends its last round mostly idle: 31 chunks
-    # over 6 workers is 5.17 rounds' work that takes 6, measured at ~9% on a
-    # 126 MB file.  Round the size-driven count up to a whole round.  Up rather
-    # than down, and only this term rather than the count as a whole, so that
-    # neither the worker-derived floor nor a file below one block moves.
+    # A count that is not a multiple of the worker count spends its last round
+    # mostly idle: 31 chunks over 6 workers is 5.17 rounds' work that takes 6.
+    # Round up, and only this term, so neither the worker-derived floor nor a
+    # file below one block moves.
     if size_target > n_workers:
         size_target = -(-size_target // n_workers) * n_workers
     n_target = max(n_target, size_target)
