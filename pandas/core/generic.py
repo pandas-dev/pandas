@@ -5610,26 +5610,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        items : array-like of bool, callable, :class:`Expression`, or list-like
+        items : array-like of bool, callable, expression, or list-like
             A boolean mask selecting the entries to keep, or a list-like of
             labels to keep. A callable is called with the object and must
-            return a boolean mask. An expression such as ``pd.col("a") > 1``
-            is evaluated against the DataFrame.
+            return a boolean mask. An expression created with
+            :func:`pandas.col`, such as ``pd.col("a") > 1``, is evaluated
+            against the DataFrame.
 
             A list-like of labels keeps the labels from the axis which are in
             ``items``. This usage will be deprecated in a future version; use
-            ``obj.loc[:, obj.columns.intersection(labels)]`` (or the
-            equivalent for the index) instead.
+            ``obj.loc[:, pd.Index(labels).intersection(obj.columns)]`` (or
+            the equivalent for the index) instead.
         like : str
             Keep labels from axis for which "like in label == True". This
             will be deprecated in a future version; use
-            ``obj.filter(lambda obj: obj.columns.str.contains(like, regex=False),
-            axis=1)`` instead.
+            ``obj.filter(lambda obj: obj.columns.astype(str).str.contains(like,
+            regex=False), axis=1)`` instead.
         regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
             This will be deprecated in a future version; use
-            ``obj.filter(lambda obj: obj.columns.str.contains(regex), axis=1)``
-            instead.
+            ``obj.filter(lambda obj: obj.columns.astype(str).str.contains(regex),
+            axis=1)`` instead.
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). When ``items`` is a boolean mask this
@@ -5670,8 +5671,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        A mask is aligned with the labels of the filtered axis when it is a
-        :class:`Series`; otherwise it must have the same length as that axis.
+        A boolean mask is recognized by its values: an array-like with a
+        boolean dtype, or a list-like whose non-missing elements are all
+        booleans. Any other list-like selects labels. A mask is aligned with
+        the labels of the filtered axis when it is a :class:`Series`;
+        otherwise it must have the same length as that axis.
+
+        Two cases depend on the labels of the axis that label-based selection
+        would use (the columns of a DataFrame when ``axis`` is not specified).
+        A list-like consisting only of missing values selects labels when
+        that axis contains a missing value. A list, tuple, or :class:`Index`
+        of booleans selects the labels ``True`` and ``False`` when that axis
+        contains them; this will be deprecated in a future version, use
+        ``.loc`` to select such labels instead.
 
         Examples
         --------
@@ -5742,8 +5754,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if items is not None and like is None and regex is None:
             if axis is None:
                 mask_axis = 0
+                # label-based selection defaults to the info axis instead
+                legacy_axis = self._info_axis_number
             else:
-                mask_axis = self._get_axis_number(axis)
+                mask_axis = legacy_axis = self._get_axis_number(axis)
             if isinstance(items, Expression) and self.ndim != 2:
                 raise TypeError(
                     "Expressions such as pd.col(...) are only supported by "
@@ -5752,19 +5766,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if callable(items):
                 # Expression defines __call__, so it enters here too
                 mask = common.apply_if_callable(items, self)
-                if not is_mask(mask):
+                if not is_mask(mask, self._get_axis(mask_axis)):
                     kind = "expression" if isinstance(items, Expression) else "callable"
                     raise TypeError(
                         f"The {kind} passed to {type(self).__name__}.filter "
                         "must evaluate to a boolean mask"
                     )
                 return filter_mask(self, mask, mask_axis, na)
-            if is_mask(items):
-                # Boolean values select the labels True and False when the axis
-                # contains boolean labels; otherwise they are a boolean mask.
-                legacy_axis = self._info_axis_name if axis is None else axis
-                if not has_bool_labels(self._get_axis(legacy_axis)):
-                    return filter_mask(self, items, mask_axis, na)
+            legacy_labels = self._get_axis(legacy_axis)
+            if is_mask(items, legacy_labels) and not (
+                # A list, tuple, or Index of booleans selects the labels True
+                # and False when the axis contains them. To be deprecated.
+                isinstance(items, (list, tuple, Index))
+                and has_bool_labels(legacy_labels)
+            ):
+                return filter_mask(self, items, mask_axis, na)
 
         if axis is None:
             axis = self._info_axis_name

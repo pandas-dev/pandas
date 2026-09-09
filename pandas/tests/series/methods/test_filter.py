@@ -50,9 +50,10 @@ def test_filter_callable_must_return_mask(ser):
 
 def test_filter_mask_2d_raises(ser):
     # GH#61317
+    mask = pd.DataFrame({"a": [False, True, True]}, index=["x", "y", "z"])
     msg = "The mask passed to Series.filter must be one-dimensional"
     with pytest.raises(ValueError, match=msg):
-        ser.filter(ser.to_frame() > 1)
+        ser.filter(mask)
 
 
 @pytest.mark.parametrize(
@@ -82,10 +83,32 @@ def test_filter_mask_na(ser, mask):
 
 def test_filter_bool_labels_select_labels():
     # GH#61317
-    # Boolean values on an axis with boolean labels keep selecting labels
+    # A list of booleans on an axis with boolean labels keeps selecting labels
     ser = pd.Series([1, 2, 3], index=[True, False, "c"])
     result = ser.filter([True, False])
     expected = ser.iloc[:2]
+    tm.assert_series_equal(result, expected)
+
+    # a boolean Series is a mask even when the axis has boolean labels
+    result = ser.filter(ser > 1)
+    expected = ser.iloc[1:]
+    tm.assert_series_equal(result, expected)
+
+
+def test_filter_na_label():
+    # GH#61317
+    ser = pd.Series([1, 2], index=[np.nan, "x"])
+    result = ser.filter([np.nan])
+    expected = ser.iloc[[0]]
+    tm.assert_series_equal(result, expected, check_index_type=False)
+
+
+def test_filter_tuple_labels_multiindex():
+    # GH#61317
+    mi = pd.MultiIndex.from_tuples([(True, False), (False, True)])
+    ser = pd.Series([1, 2], index=mi)
+    result = ser.filter([(True, False)])
+    expected = ser.iloc[[0]]
     tm.assert_series_equal(result, expected)
 
 

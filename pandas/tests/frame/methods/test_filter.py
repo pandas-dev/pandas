@@ -286,17 +286,12 @@ def test_filter_invalid_na(df):
 
 
 @pytest.mark.parametrize(
-    "mask",
-    [
-        [True, False],
-        np.array([True, False]),
-        pd.Series([True, False]),
-        pd.Index([True, False]),
-    ],
+    "mask", [[True, False], (True, False), pd.Index([True, False])]
 )
 def test_filter_bool_labels_select_labels(mask):
     # GH#61317
-    # Boolean values on an axis with boolean labels keep selecting labels
+    # A list, tuple, or Index of booleans on an axis with boolean labels keeps
+    # selecting labels
     df = pd.DataFrame({True: [1], False: [2], "c": [3]})
     result = df.filter(mask)
     expected = df.iloc[:, :2]
@@ -305,8 +300,93 @@ def test_filter_bool_labels_select_labels(mask):
     # the legacy default axis (columns) has no boolean labels, so this is
     # a mask on the index even though the index has boolean labels
     df = pd.DataFrame({"a": [1, 2]}, index=[True, False])
-    if isinstance(mask, pd.Series):
-        mask = mask.set_axis(df.index)
+    result = df.filter(mask)
+    expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "mask",
+    [
+        np.array([False, True, False]),
+        pd.array([False, True, False], dtype="boolean"),
+        pd.Series([False, True, False], index=["a", "b", "c"]),
+    ],
+)
+def test_filter_bool_array_is_mask_with_bool_labels(mask):
+    # GH#61317
+    # A boolean array or Series is a mask even when the axis has boolean labels
+    df = pd.DataFrame({True: [1, 2, 3], False: [4, 5, 6]}, index=["a", "b", "c"])
+    result = df.filter(mask)
+    expected = df.iloc[[1]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_series_mask_from_bool_labeled_column():
+    # GH#61317
+    # A mask computed from a column labeled True is a mask on the index,
+    # not a selection of the columns True and False
+    df = pd.DataFrame({False: [1, 0, 1], True: [1, 2, 0]}, index=["a", "b", "c"])
+    result = df.filter(df[True] > 1)
+    expected = pd.DataFrame({False: [0], True: [2]}, index=["b"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_na_label():
+    # GH#61317
+    # an all-NA list selects labels when the axis has a missing label
+    df = pd.DataFrame({np.nan: [1], "a": [2]})
+    result = df.filter([np.nan])
+    expected = df.iloc[:, [0]]
+    tm.assert_frame_equal(result, expected, check_column_type=False)
+
+    df = pd.DataFrame({"a": [1, 2]}, index=[np.nan, "x"])
+    result = df.filter([np.nan], axis=0)
+    expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected, check_index_type=False)
+
+
+def test_filter_all_na_mask(df):
+    # GH#61317
+    # an all-NA list is a mask when the axis has no missing labels
+    result = df.filter([None, None, None])
+    expected = df.iloc[[]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.filter([None, None, None], na=True)
+    tm.assert_frame_equal(result, df)
+
+    with pytest.raises(ValueError, match="The mask contains missing values"):
+        df.filter([None, None, None], na="raise")
+
+
+def test_filter_tuple_mask(df):
+    # GH#61317
+    result = df.filter((False, True, True))
+    expected = df.iloc[1:]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_tuple_labels_multiindex():
+    # GH#61317
+    # a list of tuples selects labels from a MultiIndex, not a mask
+    mi = pd.MultiIndex.from_tuples([(True, False), (False, True)])
+    df = pd.DataFrame({"a": [1, 2]}, index=mi)
+    result = df.filter([(True, False)], axis=0)
+    expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_empty_list_selects_labels(df):
+    # GH#61317
+    result = df.filter([])
+    expected = df.iloc[:, []]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_object_index_mask_with_na(df):
+    # GH#61317
+    mask = pd.Index([True, None, False], dtype=object)
     result = df.filter(mask)
     expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
@@ -365,4 +445,9 @@ def test_filter_bool_labels_extension_dtype(dtype):
     df = pd.DataFrame({"a": [1, 2]}, index=index)
     result = df.filter([True], axis=0)
     expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected)
+
+    # a boolean array is a mask, not labels
+    result = df.filter(np.array([False, True]), axis=0)
+    expected = df.iloc[[1]]
     tm.assert_frame_equal(result, expected)

@@ -14,10 +14,63 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_310.enhancements.enhancement1:
+.. _whatsnew_310.enhancements.filter_mask:
 
-enhancement1
-^^^^^^^^^^^^
+Filtering with a boolean mask in ``DataFrame.filter`` and ``Series.filter``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.filter` and :meth:`Series.filter` now accept a boolean mask, a callable
+returning a boolean mask, or an expression created with :func:`pandas.col`, selecting the
+rows (or columns with ``axis=1``) where the mask is True (:issue:`61317`).
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    In [2]: df.filter(df["a"] > 1)
+    Out[2]:
+       a  b
+    1  2  5
+    2  3  6
+
+    In [3]: df.filter(pd.col("a") > 1)
+    Out[3]:
+       a  b
+    1  2  5
+    2  3  6
+
+    In [4]: df.filter(lambda df: df["b"] < 6)
+    Out[4]:
+       a  b
+    0  1  4
+    1  2  5
+
+A :class:`Series` mask is aligned with the filtered axis; any other mask must have the same
+length as that axis. Missing values in the mask are treated as False by default, matching
+``obj[mask]`` for a mask with nullable boolean dtype. Pass ``na=True`` to keep the
+corresponding entries instead, or ``na="raise"`` to raise.
+
+.. code-block:: ipython
+
+    In [5]: mask = pd.array([True, None, False], dtype="boolean")
+
+    In [6]: df.filter(mask)
+    Out[6]:
+       a  b
+    0  1  4
+
+    In [7]: df.filter(mask, na=True)
+    Out[7]:
+       a  b
+    0  1  4
+    1  2  5
+
+A mask is recognized by its values: an array-like with a boolean dtype, or a list-like
+whose non-missing elements are all booleans. Previously, such a list-like selected the labels
+``True`` and ``False``, typically resulting in an empty selection. A list, tuple, or
+:class:`Index` of booleans still selects those labels when the axis contains them; this will
+be deprecated in a future version. Selecting labels with ``items``, ``like``, or ``regex``
+continues to work, but will also be deprecated in a future version.
 
 .. _whatsnew_310.enhancements.enhancement2:
 
@@ -31,7 +84,6 @@ Other enhancements
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
 - :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
-- :meth:`DataFrame.filter` and :meth:`Series.filter` now accept a boolean mask, a callable returning a boolean mask, or an expression such as ``pd.col("a") > 1``, selecting the rows (or columns with ``axis=1``) where the mask is True. Missing values in the mask are treated as False by default, matching ``obj[mask]``; pass ``na=True`` to keep them or ``na="raise"`` to raise. Selecting labels with ``items``, ``like``, or ``regex`` will be deprecated in a future version (:issue:`61317`)
 - :meth:`DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`GroupBy.agg`, and supports :class:`NamedFunc` (:issue:`58318`)
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
 - :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
