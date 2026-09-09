@@ -1496,7 +1496,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted value.
         """
-        if isinstance(val, (float, complex)) and isna(val):
+        if isinstance(val, (float, complex, np.floating, np.complexfloating)) and isna(
+            val
+        ):
             # match Series/DataFrame NaN repr (GH#64733)
             return "NaN"
         return default_pprint(val)
