@@ -131,6 +131,16 @@ class TestCanParallelizeCsv:
         kwds = self._kwds(compression={"method": "gzip"})
         assert not _can_parallelize_csv(path, kwds)
 
+    def test_rejects_non_bool_memory_map(self, tmp_path, monkeypatch):
+        # GH#68318 the parallel path overrides memory_map, so an invalid value
+        # has to go serial to be rejected at all
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        # positive control: identical kwds bar the bad value are eligible
+        assert _can_parallelize_csv(path, self._kwds(memory_map=True))
+        assert not _can_parallelize_csv(path, self._kwds(memory_map="False"))
+
     def test_rejects_iterator_mode(self, tmp_path):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
@@ -744,6 +754,19 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
         result = pd.read_csv(path)  # auto-selects parallel path for C engine
     expected = pd.read_csv(path, engine="python")
     tm.assert_frame_equal(result, expected)
+
+
+def test_read_csv_parallel_non_bool_memory_map(tmp_path, monkeypatch):
+    # GH#68318 a non-bool must be rejected whatever the file size, i.e. the
+    # parallel path must not swallow it
+    path = tmp_path / "big.csv"
+    _make_large_csv(path)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+    msg = 'For argument "memory_map" expected type bool'
+    with pd.option_context("mode.max_threads", 4):
+        with pytest.raises(ValueError, match=msg):
+            pd.read_csv(path, memory_map="False")
 
 
 def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):

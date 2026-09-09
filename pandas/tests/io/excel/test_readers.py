@@ -1676,6 +1676,13 @@ class TestExcelFileRead:
         expected = pd.DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
+    def test_excel_bool_kwarg_not_bool(self, read_ext):
+        # GH#68318 a non-bool was taken for its truthiness
+        msg = 'For argument "na_filter" expected type bool'
+        with pd.ExcelFile("test1" + read_ext) as excel:
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel(excel, sheet_name="Sheet1", na_filter="False")
+
     def test_excel_table_sheet_by_index(self, request, engine, read_ext, df_ref):
         xfail_datetimes_with_pyxlsb(engine, request)
 

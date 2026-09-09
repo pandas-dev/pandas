@@ -13,6 +13,8 @@ from pandas.errors import ParserWarning
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io.parsers.readers import _bool_kwargs
+
 
 @pytest.fixture
 def custom_dialect():
@@ -118,9 +120,21 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
             kwds[arg] = parser_defaults[arg]
         else:  # Non-default + conflict with dialect --> warning.
             warning_klass = ParserWarning
-            kwds[arg] = "blah"
+            # skipinitialspace's dialect value and parser default are both
+            # False, so a valid True still conflicts; for the others no valid
+            # conflicting value exists, so use a bad one
+            kwds[arg] = True if arg == "skipinitialspace" else "blah"
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
+        if arg in _bool_kwargs and isinstance(kwds.get(arg), str):
+            # GH#68318 doublequote has no valid conflicting value left (the
+            # dialect says False, the parser default True), so its conflict is
+            # only reachable with a non-bool, which is now rejected
+            msg = f'For argument "{arg}" expected type bool'
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), dialect=dialect_name, **kwds)
+            return
+
         if parser.engine == "pyarrow":
             msg = "The 'dialect' option is not supported with the 'pyarrow' engine"
             with pytest.raises(ValueError, match=msg):
@@ -133,6 +147,7 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
                     **kwds,
                 )
             return
+
         result = parser.read_csv_check_warnings(
             warning_klass,
             "Conflicting values for",
@@ -141,6 +156,29 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
             **kwds,
         )
         tm.assert_frame_equal(result, expected)
+
+
+def test_dialect_supplies_non_bool(all_parsers):
+    # GH#68318 a dialect object is not required to normalize its attributes the
+    # way csv.register_dialect does, so the post-merge check is the only thing
+    # standing between a non-bool it supplies and the parser
+    parser = all_parsers
+
+    class BadDialect:
+        delimiter = ","
+        doublequote = "False"
+        escapechar = None
+        skipinitialspace = False
+        quotechar = '"'
+        quoting = 0
+
+    if parser.engine == "pyarrow":
+        msg = "The 'dialect' option is not supported with the 'pyarrow' engine"
+    else:
+        msg = 'For argument "doublequote" expected type bool'
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO('a\n"x""y"\n'), dialect=BadDialect)
 
 
 @pytest.mark.parametrize(

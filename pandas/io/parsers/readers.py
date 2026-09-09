@@ -51,7 +51,10 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import check_dtype_backend
+from pandas.util._validators import (
+    check_dtype_backend,
+    validate_bool_kwarg,
+)
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -195,6 +198,39 @@ class _Fwf_Defaults(TypedDict):
 _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
+
+# Documented as `bool` and consumed for their truthiness, so an unvalidated
+# non-bool like "False" silently means the opposite (GH#68318).
+_bool_kwargs = frozenset(
+    {
+        "cache_dates",
+        "dayfirst",
+        "doublequote",
+        "iterator",
+        "keep_default_na",
+        "low_memory",
+        "memory_map",
+        "na_filter",
+        "skip_blank_lines",
+        "skipinitialspace",
+    }
+)
+
+
+def _is_bool_like(value: object) -> bool:
+    # Only 0 and 1 stand in for the bools, numpy ints included; a larger int is
+    # truthy but not a bool, see test_bool_kwarg_int_not_zero_or_one (GH#68318)
+    return lib.is_bool(value) or (is_integer(value) and value in (0, 1))
+
+
+def _validate_bool_kwargs(kwds: Mapping[str, Any]) -> None:
+    # iterate kwds, not the frozenset, so the kwarg named is the first in
+    # signature order rather than whichever one hash randomization picks
+    for kwd, value in kwds.items():
+        if kwd in _bool_kwargs and not _is_bool_like(value):
+            # always raises; validate_bool_kwarg owns the message
+            validate_bool_kwarg(value, kwd, none_allowed=False)
+
 
 # Minimum file size (bytes) to attempt parallel CSV reading.
 # Below this threshold the overhead of splitting and threading outweighs the benefit.
@@ -442,6 +478,8 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       (``low_memory=True`` already documents per-chunk inference divergence).
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
+    * ``memory_map`` is a bool - the parallel path overrides it, so an invalid
+      value would never reach the check in ``TextFileReader``.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
       chunk-relative (i.e. wrong) line numbers.
     * Both the file and its data section (i.e. excluding the header preamble)
@@ -558,6 +596,11 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # CParserWrapper.read also branches on truthiness, so low_memory=0 /
     # np.False_ must take the serial path too (GH#66327).
     if not kwds.get("low_memory", True):
+        return False
+
+    # The parallel path overrides memory_map, so an invalid value would never
+    # reach the TextFileReader that rejects it (GH#68318); let serial raise.
+    if not _is_bool_like(kwds.get("memory_map", False)):
         return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
@@ -2559,6 +2602,8 @@ class TextFileReader(abc.Iterator):
         self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
+        # before _validate_skipfooter, which reads `iterator` for truthiness
+        _validate_bool_kwargs(kwds)
         _validate_skipfooter(kwds)
 
         dialect = _extract_dialect(kwds)
@@ -2568,6 +2613,8 @@ class TextFileReader(abc.Iterator):
                     "The 'dialect' option is not supported with the 'pyarrow' engine"
                 )
             kwds = _merge_with_dialect_properties(dialect, kwds)
+            # again, for the values the dialect supplied
+            _validate_bool_kwargs(kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
