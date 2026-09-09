@@ -136,6 +136,25 @@ def test_get_indexer_pd_na_matches_nan():
         tm.assert_index_equal(result, expected)
 
 
+def test_get_indexer_nat_matches_nan():
+    # GH#65419
+    # get_loc(pd.NaT) already matches np.nan for a string-dtype index, so
+    # get_indexer should match it regardless of how the target is passed.
+    idx = pd.Index([np.nan, "b"])
+    assert idx.get_loc(pd.NaT) == 0
+
+    for target in [
+        [pd.NaT],
+        np.array([pd.NaT], dtype=object),
+        pd.Index([pd.NaT]),
+        pd.Index([pd.NaT], dtype=object),
+        pd.DatetimeIndex([pd.NaT]),
+    ]:
+        result = idx.get_indexer(target)
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+
 def test_get_indexer_monotonic_above_size_cutoff(monkeypatch):
     # GH#14273 get_indexer should avoid building a hash table for large
     # monotonic indices.
