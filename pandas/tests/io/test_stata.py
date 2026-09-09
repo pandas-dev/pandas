@@ -2778,6 +2778,18 @@ def test_stata_elapsed_date_out_of_bounds_raises(fmt, value):
         _stata_elapsed_date_to_datetime_vec(Series([value]), fmt)
 
 
+@pytest.mark.parametrize("value", [1.5e12, 1e19, -1e19, 2.0**63])
+def test_stata_elapsed_date_tc_upper_passthrough(value):
+    # GH#68034 %tC is not converted, so out-of-int64-bounds values must come
+    #  back as stored rather than saturated
+    msg = "Encountered %tC format"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = _stata_elapsed_date_to_datetime_vec(Series([value, np.nan]), "%tC")
+    tm.assert_series_equal(result, Series([value, pd.NaT], dtype=object))
+    # object comparison uses ==, so check the type too
+    assert isinstance(result.iloc[0], float)
+
+
 @pytest.mark.parametrize(
     "fmt, dtype, value, expected",
     [

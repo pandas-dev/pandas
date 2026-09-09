@@ -1318,6 +1318,35 @@ def is_monotonic(values: ArrayLike) -> tuple[bool, bool, bool]:
 # ---- #
 
 
+def occurrence_rank(codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]:
+    """
+    For each element, the number of earlier elements with the same code.
+
+    Parameters
+    ----------
+    codes : np.ndarray[intp]
+
+    Returns
+    -------
+    np.ndarray[intp]
+
+    Examples
+    --------
+    >>> occurrence_rank(np.array([0, 1, 0, 0, 1]))
+    array([0, 0, 1, 2, 1])
+    """
+    order = np.argsort(codes, kind="stable")
+    sorted_codes = codes[order]
+    n = len(codes)
+    is_start = np.empty(n, dtype=bool)
+    is_start[:1] = True
+    is_start[1:] = sorted_codes[1:] != sorted_codes[:-1]
+    group_start = np.maximum.accumulate(np.where(is_start, np.arange(n), 0))
+    rank = np.empty(n, dtype=np.intp)
+    rank[order] = np.arange(n) - group_start
+    return rank
+
+
 @set_module("pandas.api.extensions")
 def take(
     arr,

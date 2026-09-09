@@ -10,7 +10,6 @@ from libc.stdint cimport (
 )
 from libc.string cimport memset
 from numpy cimport (
-    PyDatetimeScalarObject,
     int32_t,
     int64_t,
 )
@@ -54,6 +53,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dts_to_iso_string_ns,
     get_conversion_factor,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     get_implementation_bounds,
     import_pandas_datetime,
     npy_datetime,
@@ -489,7 +489,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif cnp.is_datetime64_object(ts):
-        num = (<PyDatetimeScalarObject*>ts).obmeta.num
+        num = get_datetime64_unit_count(ts)
         if num != 1:
             raise ValueError(
                 # GH#25611

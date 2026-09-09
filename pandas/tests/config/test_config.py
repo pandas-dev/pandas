@@ -22,11 +22,6 @@ class TestConfig:
             m.setattr(cf, "_deprecated_options", {})
             m.setattr(cf, "_registered_options", {})
 
-            # Our test fixture in conftest.py sets "chained_assignment"
-            # to "raise" only after all test methods have been setup.
-            # However, after this setup, there is no longer any
-            # "chained_assignment" option, so re-register it.
-            cf.register_option("chained_assignment", "raise")
             yield
 
     def test_api(self):

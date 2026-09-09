@@ -179,13 +179,11 @@ def _sas_to_gregorian_correction(values: np.ndarray, unit: str) -> np.ndarray:
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
-    Convert to Timestamp if possible, otherwise to datetime.datetime.
-    SAS float64 lacks precision for more than ms resolution so the fit
-    to datetime.datetime is ok.
+    Convert SAS day or second counts to a datetime64 Series.
 
     Parameters
     ----------
-    sas_datetimes : {Series, Sequence[float]}
+    sas_datetimes : Series
        Dates or datetimes in SAS
     unit : {'d', 's'}
        "d" if the floats represent dates, "s" for datetimes
@@ -193,7 +191,7 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     Returns
     -------
     Series
-       Series of datetime64 dtype or datetime.datetime.
+       datetime64[s] for unit="d", datetime64[ms] for unit="s".
     """
     td = (_sas_origin - _unix_origin).as_unit("s")
     # SAS's own date range tops out near 6e6 days, so a count this size is not
@@ -202,7 +200,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     # saturates: a negative one lands on the NaT sentinel and is read as
     # missing, and a positive one does raise below, but naming the date the
     # saturated cast landed on rather than anything the file holds.
-    too_large = np.abs(sas_datetimes._values) >= 2.0**63
+    # A day count is scaled by 86400 below, so its own limit is that much lower.
+    limit = 2.0**63 / 86400 if unit == "d" else 2.0**63
+    too_large = np.abs(sas_datetimes._values) >= limit
     if too_large.any():
         value = sas_datetimes._values[too_large][0]
         what = "date" if unit == "d" else "datetime"
@@ -221,8 +221,16 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         corrected = sas_datetimes._values + _sas_to_gregorian_correction(
             sas_datetimes._values, unit="d"
         )
-        vals = np.array(corrected, dtype="M8[D]") + td
-        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
+        # A date-formatted column is a float64 day count that SAS does not force
+        # whole, so scale the fraction in rather than truncating it with an M8[D]
+        # cast. Round to seconds here instead of scaling from "D" inside
+        # cast_from_unit_vectorized, whose rounding precision is a power of ten:
+        # 1e-4 of a day, coarser than the seconds this returns.
+        secs = cast_from_unit_vectorized(
+            np.round(corrected * 86400.0), unit="s", out_unit="s"
+        )
+        dt64s = secs.view("M8[s]") + td
+        return pd.Series(dt64s, index=sas_datetimes.index, copy=False)
 
 
 class _Column:
@@ -668,6 +676,15 @@ class SAS7BDATReader(SASReader):
         )
         mx = const.row_count_on_mix_page_offset_multiplier * int_len
         self._mix_page_row_count = self._read_uint(offset + mx, int_len)
+        # A mix page hands out this many rows, so a count the page cannot hold
+        #  walks off the rows into the padding and the metadata subheaders stored
+        #  behind them. Written as a product so row_length 0 cannot divide by zero.
+        if self._mix_page_row_count * self.row_length > self._page_length:
+            raise ValueError(
+                f"mix page row count ({self._mix_page_row_count}) does not fit in "
+                f"a {self._page_length}-byte page at {self.row_length} bytes per "
+                f"row; the file is corrupt"
+            )
         self._lcs = self._read_uint(lcs_offset, 2)
         self._lcp = self._read_uint(lcp_offset, 2)
 
