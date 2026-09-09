@@ -285,11 +285,19 @@ def test_filter_invalid_na(df):
         df.filter([True, False, True], na="ignore")
 
 
-@pytest.mark.parametrize("mask", [[True, False], pd.Index([True, False])])
+@pytest.mark.parametrize(
+    "mask",
+    [
+        [True, False],
+        np.array([True, False]),
+        pd.array([True, False], dtype="boolean"),
+        pd.Index([True, False]),
+        pd.Series([True, False]),
+    ],
+)
 def test_filter_bool_labels_select_labels(mask):
     # GH#61317
-    # A list or Index of booleans on an axis with boolean labels keeps
-    # selecting labels
+    # Boolean values on an axis with boolean labels keep selecting labels
     df = pd.DataFrame({True: [1], False: [2], "c": [3]})
     result = df.filter(mask)
     expected = df.iloc[:, :2]
@@ -298,35 +306,25 @@ def test_filter_bool_labels_select_labels(mask):
     # the legacy default axis (columns) has no boolean labels, so this is
     # a mask on the index even though the index has boolean labels
     df = pd.DataFrame({"a": [1, 2]}, index=[True, False])
+    if isinstance(mask, pd.Series):
+        mask = pd.Series([True, False], index=[True, False])
     result = df.filter(mask)
     expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "mask",
-    [
-        np.array([False, True, False]),
-        pd.array([False, True, False], dtype="boolean"),
-        pd.Series([False, True, False], index=["a", "b", "c"]),
-    ],
-)
-def test_filter_bool_array_is_mask_with_bool_labels(mask):
+def test_filter_mask_with_bool_labels_needs_callable():
     # GH#61317
-    # A boolean array or Series is a mask even when the axis has boolean labels
-    df = pd.DataFrame({True: [1, 2, 3], False: [4, 5, 6]}, index=["a", "b", "c"])
-    result = df.filter(mask)
-    expected = df.iloc[[1]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_series_mask_from_bool_labeled_column():
-    # GH#61317
-    # A mask computed from a column labeled True is a mask on the index,
-    # not a selection of the columns True and False
+    # A mask computed from a column labeled True selects the columns True
+    # and False; a callable or expression is needed to filter rows
     df = pd.DataFrame({False: [1, 0, 1], True: [1, 2, 0]}, index=["a", "b", "c"])
     result = df.filter(df[True] > 1)
+    tm.assert_frame_equal(result, df)
+
     expected = pd.DataFrame({False: [0], True: [2]}, index=["b"])
+    result = df.filter(lambda df: df[True] > 1)
+    tm.assert_frame_equal(result, expected)
+    result = df.filter(pd.col(True) > 1)
     tm.assert_frame_equal(result, expected)
 
 
@@ -457,7 +455,5 @@ def test_filter_bool_labels_extension_dtype(dtype):
     expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
 
-    # a boolean array is a mask, not labels
-    result = df.filter(np.array([False, True]), axis=0)
-    expected = df.iloc[[1]]
+    result = df.filter(np.array([True]), axis=0)
     tm.assert_frame_equal(result, expected)

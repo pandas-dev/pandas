@@ -67,11 +67,11 @@ corresponding entries instead, or ``na="raise"`` to raise.
 
 A mask is recognized by its values: an array-like with a boolean dtype, or a list-like
 whose non-missing elements are all booleans. Previously, such a list-like selected the labels
-``True`` and ``False``, typically resulting in an empty selection. A list or :class:`Index`
-of booleans still selects those labels when the axis contains them, and a tuple is always
-treated as a sequence of labels; this will be deprecated in a future version. Selecting labels
-with ``items``, ``like``, or ``regex`` continues to work, but will also be deprecated in a
-future version.
+``True`` and ``False``, typically resulting in an empty selection. When the axis does contain
+those labels (for example the columns of a :func:`crosstab` of a boolean column), boolean
+values still select them; pass a callable or expression to filter such an object with a mask.
+A tuple is always treated as a sequence of labels. Selecting labels this way, or with
+``items``, ``like``, or ``regex``, will be deprecated in a future version.
 
 .. _whatsnew_310.enhancements.enhancement2:
 

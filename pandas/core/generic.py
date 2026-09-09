@@ -5681,10 +5681,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Two cases depend on the labels of the axis that label-based selection
         would use (the columns of a DataFrame when ``axis`` is not specified).
         A list-like consisting only of missing values selects labels when
-        that axis contains a missing value. A list or :class:`Index` of
-        booleans selects the labels ``True`` and ``False`` when that axis
-        contains them; this will be deprecated in a future version, use
-        ``.loc`` to select such labels instead.
+        that axis contains a missing value. Boolean values select the labels
+        ``True`` and ``False`` when that axis contains them; this will be
+        deprecated in a future version, use ``.loc`` to select such labels
+        instead. Until then, pass a callable or expression to filter such an
+        object with a mask.
 
         Examples
         --------
@@ -5775,11 +5776,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     )
                 return filter_mask(self, mask, mask_axis, na)
             legacy_labels = self._get_axis(legacy_axis)
-            if is_mask(items, legacy_labels) and not (
-                # A list or Index of booleans selects the labels True and
-                # False when the axis contains them. To be deprecated.
-                isinstance(items, (list, Index)) and has_bool_labels(legacy_labels)
-            ):
+            # Preserve main's selection of the labels True and False by any
+            # boolean input until it is deprecated; on such an axis only a
+            # callable or expression is unambiguously a mask.
+            if is_mask(items, legacy_labels) and not has_bool_labels(legacy_labels):
                 return filter_mask(self, items, mask_axis, na)
 
         if axis is None:

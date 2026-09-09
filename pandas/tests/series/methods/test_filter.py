@@ -81,16 +81,24 @@ def test_filter_mask_na(ser, mask):
     tm.assert_series_equal(result, expected)
 
 
-def test_filter_bool_labels_select_labels():
+@pytest.mark.parametrize(
+    "mask",
+    [
+        [True, False],
+        np.array([True, False]),
+        pd.Series([True, False], index=[True, False]),
+    ],
+)
+def test_filter_bool_labels_select_labels(mask):
     # GH#61317
-    # A list of booleans on an axis with boolean labels keeps selecting labels
+    # Boolean values on an axis with boolean labels keep selecting labels;
+    # a callable is needed to filter with a mask
     ser = pd.Series([1, 2, 3], index=[True, False, "c"])
-    result = ser.filter([True, False])
+    result = ser.filter(mask)
     expected = ser.iloc[:2]
     tm.assert_series_equal(result, expected)
 
-    # a boolean Series is a mask even when the axis has boolean labels
-    result = ser.filter(ser > 1)
+    result = ser.filter(lambda ser: ser > 1)
     expected = ser.iloc[1:]
     tm.assert_series_equal(result, expected)
 
