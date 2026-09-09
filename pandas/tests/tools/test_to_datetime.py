@@ -3438,7 +3438,7 @@ class TestToDatetimeInferFormat:
 
     @pytest.mark.parametrize(
         "tz_name, offset",
-        [("UTC", 0), ("UTC-3", 180), ("UTC+3", -180)],
+        [("UTC", 0), ("GMT", 0), ("UTC-3", 180), ("UTC+3", -180)],
     )
     def test_infer_datetime_format_tz_name(self, tz_name, offset):
         # GH 33133

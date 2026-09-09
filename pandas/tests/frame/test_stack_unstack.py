@@ -1006,9 +1006,7 @@ class TestDataFrameReshape:
         )
 
         right = pd.DataFrame(vals, columns=cols, index=idx)
-        # the unstacked columns level has no freq while the date_range expected
-        #  does; freq is not what this test checks
-        tm.assert_frame_equal(left, right, check_freq=False)
+        tm.assert_frame_equal(left, right)
 
     def test_unstack_nan_index4(self):
         # GH4862

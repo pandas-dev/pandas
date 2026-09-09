@@ -37,9 +37,6 @@ def get_timedelta_days(
     tdindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> npt.NDArray[np.int64]: ...
-def isleapyear_arr(
-    years: np.ndarray,
-) -> npt.NDArray[np.bool_]: ...
 def build_isocalendar_sarray(
     dtindex: npt.NDArray[np.int64],  # const int64_t[:]
     reso: int,  # NPY_DATETIMEUNIT
