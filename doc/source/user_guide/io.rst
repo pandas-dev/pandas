@@ -6046,6 +6046,7 @@ You can also specify the name of the column as the ``DataFrame`` index,
 and specify a subset of columns to be read.
 
 .. ipython:: python
+
    pd.read_sql_table("data", engine, index_col="id")
    pd.read_sql_table("data", engine, columns=["Col_1", "Col_2"])
 
