@@ -1349,7 +1349,7 @@ def sequence_to_td64ns(
 
     elif lib.is_np_dtype(data.dtype, "m"):
         if data.dtype.byteorder == ">":
-            # GH#68321 supported units are otherwise stored as-is; the swap also
+            # GH#68342 supported units are otherwise stored as-is; the swap also
             #  has to precede the cast, whose finer->coarser branch views i8 raw
             data = data.astype(data.dtype.newbyteorder("<"))
             copy = False

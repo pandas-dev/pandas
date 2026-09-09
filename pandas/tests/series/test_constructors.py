@@ -1215,7 +1215,7 @@ class TestSeriesConstructors:
 
     @pytest.mark.parametrize("unit", ["D", "h", "s", "ms", "us", "ns", "ps", "fs"])
     def test_constructor_timedelta64_bigendian(self, unit):
-        # GH#68321 the byteswap also turned NaT into an ordinary duration; ps/fs
+        # GH#68342 the byteswap also turned NaT into an ordinary duration; ps/fs
         #  are load-bearing, only the finer->coarser cast views i8 unswapped
         arr = np.array([1000, "NaT"], dtype=f">m8[{unit}]")
 
