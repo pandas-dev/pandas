@@ -311,11 +311,6 @@ class DataFrame(NDFrame, OpsMixin):
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
-    Notes
-    -----
-    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
-    If a dict is passed for index or columns, the keys are used to create the corresponding index.
-    
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
@@ -324,6 +319,11 @@ class DataFrame(NDFrame, OpsMixin):
     read_table : Read general delimited file into DataFrame.
     read_clipboard : Read text from clipboard into DataFrame.
 
+    Notes
+    -----
+    Please reference the :ref:`User Guide <basics.dataframe>` for more information.
+    If a dict is passed for index or columns, the keys are used to create the corresponding index.
+    
     Examples
     --------
     Constructing DataFrame from a dictionary.
