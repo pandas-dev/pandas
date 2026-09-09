@@ -200,7 +200,7 @@ _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
 # Documented as `bool` and consumed for their truthiness, so an unvalidated
-# non-bool like "False" silently means the opposite (GH#68318).
+# non-bool like "False" silently means the opposite (GH#68341).
 _bool_kwargs = frozenset(
     {
         "cache_dates",
@@ -219,7 +219,7 @@ _bool_kwargs = frozenset(
 
 def _is_bool_like(value: object) -> bool:
     # Only 0 and 1 stand in for the bools, numpy ints included; a larger int is
-    # truthy but not a bool, see test_bool_kwarg_int_not_zero_or_one (GH#68318)
+    # truthy but not a bool, see test_bool_kwarg_int_not_zero_or_one (GH#68341)
     return lib.is_bool(value) or (is_integer(value) and value in (0, 1))
 
 
@@ -599,7 +599,7 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
         return False
 
     # The parallel path overrides memory_map, so an invalid value would never
-    # reach the TextFileReader that rejects it (GH#68318); let serial raise.
+    # reach the TextFileReader that rejects it (GH#68341); let serial raise.
     if not _is_bool_like(kwds.get("memory_map", False)):
         return False
 

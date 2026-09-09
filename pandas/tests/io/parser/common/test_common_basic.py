@@ -278,7 +278,7 @@ def test_bool_kwargs_covered():
 @pytest.mark.parametrize("kwarg", _fixture_bool_kwargs)
 @pytest.mark.parametrize("value", ["False", None, 1.5])
 def test_bool_kwarg_not_bool(all_parsers, kwarg, value):
-    # GH#68318 these were consumed for their truthiness, so e.g. the string
+    # GH#68341 these were consumed for their truthiness, so e.g. the string
     # "False" silently meant the opposite of what the caller asked for
     parser = all_parsers
     msg = f'For argument "{kwarg}" expected type bool'
@@ -293,7 +293,7 @@ def test_bool_kwarg_not_bool(all_parsers, kwarg, value):
 
 @pytest.mark.parametrize("value", ["False", None, 1.5])
 def test_low_memory_not_bool(value):
-    # GH#68318; low_memory is pinned by the all_parsers fixture, so go direct
+    # GH#68341; low_memory is pinned by the all_parsers fixture, so go direct
     msg = 'For argument "low_memory" expected type bool'
     with pytest.raises(ValueError, match=msg):
         pd.read_csv(StringIO("a\n1\n"), low_memory=value)
@@ -301,7 +301,7 @@ def test_low_memory_not_bool(value):
 
 @pytest.mark.parametrize("reader", [pd.read_table, pd.read_fwf])
 def test_bool_kwarg_not_bool_other_readers(reader):
-    # GH#68318 read_table and read_fwf share the check with read_csv
+    # GH#68341 read_table and read_fwf share the check with read_csv
     msg = 'For argument "keep_default_na" expected type bool'
     with pytest.raises(ValueError, match=msg):
         reader(StringIO("a\n1\n"), keep_default_na="False")
@@ -309,7 +309,7 @@ def test_bool_kwarg_not_bool_other_readers(reader):
 
 @pytest.mark.parametrize("value", [2, -1, np.int64(2)])
 def test_bool_kwarg_int_not_zero_or_one(all_parsers, value):
-    # GH#68318 only 0/1 stand in for the bools -- a larger int is truthy but
+    # GH#68341 only 0/1 stand in for the bools -- a larger int is truthy but
     # not a bool, e.g. memory_map=2 is truthy and mmaps nothing
     parser = all_parsers
     msg = 'For argument "keep_default_na" expected type bool'
@@ -318,7 +318,7 @@ def test_bool_kwarg_int_not_zero_or_one(all_parsers, value):
 
 
 def test_bool_kwarg_checked_before_skipfooter(all_parsers):
-    # GH#68318 _validate_skipfooter reads `iterator` for truthiness, so an
+    # GH#68341 _validate_skipfooter reads `iterator` for truthiness, so an
     # unchecked non-bool told the caller iteration was the problem
     parser = all_parsers
     if parser.engine == "pyarrow":
@@ -330,7 +330,7 @@ def test_bool_kwarg_checked_before_skipfooter(all_parsers):
 
 @pytest.mark.parametrize("value", [0, 1, np.bool_(True), np.bool_(False), np.int64(0)])
 def test_bool_kwarg_boolish(all_parsers, value):
-    # GH#68318 0/1 (numpy ints included) and numpy bools stay acceptable
+    # GH#68341 0/1 (numpy ints included) and numpy bools stay acceptable
     parser = all_parsers
     result = parser.read_csv(StringIO("a\nNA\n"), keep_default_na=value)
 

@@ -132,7 +132,7 @@ class TestCanParallelizeCsv:
         assert not _can_parallelize_csv(path, kwds)
 
     def test_rejects_non_bool_memory_map(self, tmp_path, monkeypatch):
-        # GH#68318 the parallel path overrides memory_map, so an invalid value
+        # GH#68341 the parallel path overrides memory_map, so an invalid value
         # has to go serial to be rejected at all
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
@@ -757,7 +757,7 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
 
 
 def test_read_csv_parallel_non_bool_memory_map(tmp_path, monkeypatch):
-    # GH#68318 a non-bool must be rejected whatever the file size, i.e. the
+    # GH#68341 a non-bool must be rejected whatever the file size, i.e. the
     # parallel path must not swallow it
     path = tmp_path / "big.csv"
     _make_large_csv(path)

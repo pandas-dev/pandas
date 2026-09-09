@@ -127,7 +127,7 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
 
     with tm.with_csv_dialect(dialect_name, **dialect_kwargs):
         if arg in _bool_kwargs and isinstance(kwds.get(arg), str):
-            # GH#68318 doublequote has no valid conflicting value left (the
+            # GH#68341 doublequote has no valid conflicting value left (the
             # dialect says False, the parser default True), so its conflict is
             # only reachable with a non-bool, which is now rejected
             msg = f'For argument "{arg}" expected type bool'
@@ -159,7 +159,7 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
 
 
 def test_dialect_supplies_non_bool(all_parsers):
-    # GH#68318 a dialect object is not required to normalize its attributes the
+    # GH#68341 a dialect object is not required to normalize its attributes the
     # way csv.register_dialect does, so the post-merge check is the only thing
     # standing between a non-bool it supplies and the parser
     parser = all_parsers

@@ -1677,7 +1677,7 @@ class TestExcelFileRead:
         tm.assert_frame_equal(parsed, expected)
 
     def test_excel_bool_kwarg_not_bool(self, read_ext):
-        # GH#68318 a non-bool was taken for its truthiness
+        # GH#68341 a non-bool was taken for its truthiness
         msg = 'For argument "na_filter" expected type bool'
         with pd.ExcelFile("test1" + read_ext) as excel:
             with pytest.raises(ValueError, match=msg):

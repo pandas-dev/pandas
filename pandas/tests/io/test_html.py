@@ -1274,7 +1274,7 @@ class TestReadHtml:
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_keep_default_na_not_bool(self, flavor_read_html):
-        # GH#68318 a non-bool was taken for its truthiness
+        # GH#68341 a non-bool was taken for its truthiness
         html_data = "<table><tr><th>a</th></tr><tr><td>1</td></tr></table>"
         msg = 'For argument "keep_default_na" expected type bool'
         with pytest.raises(ValueError, match=msg):
