@@ -144,7 +144,7 @@ class SeriesFormatter:
         index: bool = True,
         na_rep: str = "NaN",
         name: bool = False,
-        float_format: str | None = None,
+        float_format: FloatFormatType | None = None,
         dtype: bool = True,
         max_rows: int | None = None,
         min_rows: int | None = None,
@@ -384,11 +384,13 @@ class DataFrameFormatter:
         name.
         The result of each function must be a unicode string.
         List/tuple must be of length equal to the number of columns.
-    float_format : one-parameter function, optional, default None
-        Formatter function to apply to columns' elements if they are
-        floats. This function must return a unicode string and will be
-        applied only to the non-``NaN`` elements, with ``NaN`` being
-        handled by ``na_rep``.
+    float_format : str or callable, optional, default None
+        Formatter to apply to columns' elements if they are floats. A string
+        can use printf-style formatting, e.g. ``float_format="%.2f"``. A
+        callable, e.g. ``float_format="{:.2f}".format``, must accept one
+        positional argument and return a unicode string. The formatter is
+        applied only to the non-``NaN`` elements, with ``NaN`` being handled
+        by ``na_rep``.
     sparsify : bool, optional, default True
         Set to False for a DataFrame with a hierarchical index to print
         every multiindex key at each row.
@@ -1268,7 +1270,10 @@ class _GenericArrayFormatter:
             if (not is_float_type[i] or self.formatter is not None) and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
-                fmt_values.append(float_format(v))
+                if isinstance(float_format, str):
+                    fmt_values.append(float_format % v)
+                else:
+                    fmt_values.append(float_format(v))
             else:
                 if leading_space is False:
                     # False specifically, so that the default is
