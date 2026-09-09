@@ -52,7 +52,7 @@ class TestDataFrameFilter:
         tm.assert_frame_equal(filtered, expected)
 
         # pass in None
-        no_arg_msg = "Must pass either `items`, `like`, or `regex`"
+        no_arg_msg = "Must pass a positional argument or one of `items`, `cond`"
         with pytest.raises(TypeError, match=no_arg_msg):
             float_frame.filter()
         with pytest.raises(TypeError, match=no_arg_msg):
@@ -169,26 +169,160 @@ def df():
         np.array([False, True, True]),
         pd.array([False, True, True], dtype="boolean"),
         pd.Index([False, True, True]),
+        pd.Series([False, True, True], index=["x", "y", "z"]),
         lambda df: df["a"] > 1,
         pd.col("a") > 1,
     ],
 )
-def test_filter_mask_rows(df, mask):
+def test_filter_cond_rows(df, mask):
+    # GH#61317
+    result = df.filter(cond=mask)
+    expected = df.iloc[1:]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("mask", [lambda df: df["a"] > 1, pd.col("a") > 1])
+def test_filter_positional_callable_is_mask(df, mask):
     # GH#61317
     result = df.filter(mask)
     expected = df.iloc[1:]
     tm.assert_frame_equal(result, expected)
 
 
-def test_filter_mask_series_aligns(df):
+@pytest.mark.parametrize(
+    "mask",
+    [
+        [True, False, True],
+        [True, None, False],
+        np.array([True, False, True]),
+        pd.array([True, False, True], dtype="boolean"),
+        pd.Index([True, False, True]),
+        pd.Series([True, False, True], index=["x", "y", "z"]),
+    ],
+)
+def test_filter_positional_bools_select_labels(df, mask):
+    # GH#61317
+    # A list-like of booleans passed positionally selects labels, as it did
+    # before masks were supported, but warns since it is likely meant as a mask
+    msg = "A list-like of booleans passed positionally to DataFrame.filter"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = df.filter(mask)
+    expected = df.iloc[:, []]
+    tm.assert_frame_equal(result, expected)
+
+    # the explicit keyword does not warn
+    with tm.assert_produces_warning(None):
+        result = df.filter(items=mask)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arg, cols",
+    [
+        (["b", "a"], ["b", "a"]),
+        (("b", "a"), ["b", "a"]),
+        ((True, False, True), []),
+        ([np.nan], []),
+        ([None, None, None], []),
+        ([], []),
+    ],
+)
+def test_filter_positional_labels_no_warning(df, arg, cols):
+    # GH#61317
+    # tuples, missing values, and empty input do not resemble a mask
+    with tm.assert_produces_warning(None):
+        result = df.filter(arg)
+    expected = df[cols]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_filter_na_label():
+    # GH#61317
+    df = pd.DataFrame({np.nan: [1], "a": [2]})
+    with tm.assert_produces_warning(None):
+        result = df.filter([np.nan])
+    expected = df.iloc[:, [0]]
+    tm.assert_frame_equal(result, expected, check_column_type=False)
+
+    df = pd.DataFrame({"a": [1, 2]}, index=[np.nan, "x"])
+    result = df.filter(items=[np.nan], axis=0)
+    expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected, check_index_type=False)
+
+
+def test_filter_tuple_labels_multiindex():
+    # GH#61317
+    mi = pd.MultiIndex.from_tuples([(True, False), (False, True)])
+    df = pd.DataFrame({"a": [1, 2]}, index=mi)
+    with tm.assert_produces_warning(None):
+        result = df.filter([(True, False)], axis=0)
+    expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "bool",
+        "boolean",
+        pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_filter_bool_labels(dtype):
+    # GH#61317
+    df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([True, False], dtype=dtype))
+    result = df.filter(items=[True], axis=0)
+    expected = df.iloc[[0]]
+    tm.assert_frame_equal(result, expected)
+
+    msg = "A list-like of booleans passed positionally to DataFrame.filter"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = df.filter([True], axis=0)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.filter(cond=[False, True], axis=0)
+    expected = df.iloc[[1]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"items": ["a"]},
+        {"cond": [True, False, True]},
+        {"like": "a"},
+        {"regex": "a"},
+    ],
+)
+def test_filter_positional_and_keyword_mutually_exclusive(df, kwargs):
+    # GH#61317
+    msg = "mutually exclusive"
+    with pytest.raises(TypeError, match=msg):
+        df.filter(["a"], **kwargs)
+    with pytest.raises(TypeError, match=msg):
+        df.filter(cond=[True, False, True], items=["a"])
+
+
+@pytest.mark.parametrize(
+    "cond",
+    [["a"], [1, 0, 1], (True, False, True), "abc", np.array([1.0, 0.0, 1.0])],
+)
+def test_filter_cond_not_mask_raises(df, cond):
+    # GH#61317
+    msg = "cond passed to DataFrame.filter must be a boolean mask"
+    with pytest.raises(TypeError, match=msg):
+        df.filter(cond=cond)
+
+
+def test_filter_cond_series_aligns(df):
     # GH#61317
     mask = pd.Series([True, True, False], index=["z", "y", "x"])
-    result = df.filter(mask)
+    result = df.filter(cond=mask)
     expected = df.iloc[1:]
     tm.assert_frame_equal(result, expected)
 
 
-def test_filter_mask_series_unalignable(df):
+def test_filter_cond_series_unalignable(df):
     # GH#61317
     mask = pd.Series([True, True, False], index=["z", "y", "w"])
     msg = (
@@ -196,29 +330,41 @@ def test_filter_mask_series_unalignable(df):
         "Series and of the indexed object do not match\\)."
     )
     with pytest.raises(pd.errors.IndexingError, match=msg):
-        df.filter(mask)
+        df.filter(cond=mask)
 
 
-def test_filter_mask_wrong_length(df):
+def test_filter_cond_wrong_length(df):
     # GH#61317
     msg = "Boolean index has wrong length: 2 instead of 3"
     with pytest.raises(IndexError, match=msg):
-        df.filter(np.array([True, False]))
+        df.filter(cond=np.array([True, False]))
 
 
 @pytest.mark.parametrize("axis", [1, "columns"])
-def test_filter_mask_columns(df, axis):
+def test_filter_cond_columns(df, axis):
     # GH#61317
-    result = df.filter([False, True], axis=axis)
+    result = df.filter(cond=[False, True], axis=axis)
     expected = df[["b"]]
     tm.assert_frame_equal(result, expected)
 
 
-def test_filter_mask_2d_raises(df):
+def test_filter_cond_2d_raises(df):
     # GH#61317
     msg = "The mask passed to DataFrame.filter must be one-dimensional"
     with pytest.raises(ValueError, match=msg):
-        df.filter(df > 1)
+        df.filter(cond=df > 1)
+    with pytest.raises(ValueError, match=msg):
+        df.filter(lambda df: df > 1)
+
+
+def test_filter_positional_frame_selects_labels(df):
+    # GH#61317
+    # a DataFrame is not a mask positionally; it fails as a list of labels
+    # without warning
+    msg = "Index data must be 1-dimensional"
+    with tm.assert_produces_warning(None):
+        with pytest.raises(ValueError, match=msg):
+            df.filter(df > 1)
 
 
 def test_filter_callable_must_return_mask(df):
@@ -226,6 +372,8 @@ def test_filter_callable_must_return_mask(df):
     msg = "The callable passed to DataFrame.filter must evaluate to a boolean mask"
     with pytest.raises(TypeError, match=msg):
         df.filter(lambda df: ["a"])
+    with pytest.raises(TypeError, match=msg):
+        df.filter(cond=lambda df: ["a"])
 
 
 def test_filter_expression_must_return_mask(df):
@@ -242,171 +390,51 @@ def test_filter_expression_must_return_mask(df):
         np.array([True, None, False], dtype=object),
         pd.array([True, None, False], dtype="boolean"),
         pd.Series([True, None, False], dtype="boolean", index=["x", "y", "z"]),
+        pd.Index([True, None, False], dtype=object),
+        pytest.param(
+            pd.array([True, None, False], dtype="bool[pyarrow]"),
+            marks=td.skip_if_no("pyarrow"),
+        ),
     ],
 )
-def test_filter_mask_na(df, mask):
+def test_filter_cond_na(df, mask):
     # GH#61317
     # missing values are treated as False by default, matching df[mask]
-    result = df.filter(mask)
+    # for a nullable boolean mask
+    result = df.filter(cond=mask)
     expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
 
-    result = df.filter(mask, na=False)
+    result = df.filter(cond=mask, na=False)
     tm.assert_frame_equal(result, expected)
 
     msg = "The mask contains missing values"
     with pytest.raises(ValueError, match=msg):
-        df.filter(mask, na="raise")
+        df.filter(cond=mask, na="raise")
 
-    result = df.filter(mask, na=True)
+    result = df.filter(cond=mask, na=True)
     expected = df.iloc[[0, 1]]
     tm.assert_frame_equal(result, expected)
 
 
-def test_filter_mask_pyarrow_na(df):
+def test_filter_cond_all_na(df):
     # GH#61317
-    pytest.importorskip("pyarrow")
-    mask = pd.array([True, None, False], dtype="bool[pyarrow]")
-    msg = "The mask contains missing values"
-    with pytest.raises(ValueError, match=msg):
-        df.filter(mask, na="raise")
-    result = df.filter(mask)
-    expected = df.iloc[[0]]
+    result = df.filter(cond=[None, None, None])
+    expected = df.iloc[[]]
     tm.assert_frame_equal(result, expected)
-    result = df.filter(mask, na=True)
-    expected = df.iloc[[0, 1]]
-    tm.assert_frame_equal(result, expected)
+
+    result = df.filter(cond=[None, None, None], na=True)
+    tm.assert_frame_equal(result, df)
+
+    with pytest.raises(ValueError, match="The mask contains missing values"):
+        df.filter(cond=[None, None, None], na="raise")
 
 
 def test_filter_invalid_na(df):
     # GH#61317
     msg = "na must be 'raise', True, or False, got 'ignore'"
     with pytest.raises(ValueError, match=msg):
-        df.filter([True, False, True], na="ignore")
-
-
-@pytest.mark.parametrize(
-    "mask",
-    [
-        [True, False],
-        np.array([True, False]),
-        pd.array([True, False], dtype="boolean"),
-        pd.Index([True, False]),
-        pd.Series([True, False]),
-    ],
-)
-def test_filter_bool_labels_select_labels(mask):
-    # GH#61317
-    # Boolean values on an axis with boolean labels keep selecting labels
-    df = pd.DataFrame({True: [1], False: [2], "c": [3]})
-    result = df.filter(mask)
-    expected = df.iloc[:, :2]
-    tm.assert_frame_equal(result, expected)
-
-    # the legacy default axis (columns) has no boolean labels, so this is
-    # a mask on the index even though the index has boolean labels
-    df = pd.DataFrame({"a": [1, 2]}, index=[True, False])
-    if isinstance(mask, pd.Series):
-        mask = pd.Series([True, False], index=[True, False])
-    result = df.filter(mask)
-    expected = df.iloc[[0]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_mask_with_bool_labels_needs_callable():
-    # GH#61317
-    # A mask computed from a column labeled True selects the columns True
-    # and False; a callable or expression is needed to filter rows
-    df = pd.DataFrame({False: [1, 0, 1], True: [1, 2, 0]}, index=["a", "b", "c"])
-    result = df.filter(df[True] > 1)
-    tm.assert_frame_equal(result, df)
-
-    expected = pd.DataFrame({False: [0], True: [2]}, index=["b"])
-    result = df.filter(lambda df: df[True] > 1)
-    tm.assert_frame_equal(result, expected)
-    result = df.filter(pd.col(True) > 1)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_na_label():
-    # GH#61317
-    # an all-NA list selects labels when the axis has a missing label
-    df = pd.DataFrame({np.nan: [1], "a": [2]})
-    result = df.filter([np.nan])
-    expected = df.iloc[:, [0]]
-    tm.assert_frame_equal(result, expected, check_column_type=False)
-
-    df = pd.DataFrame({"a": [1, 2]}, index=[np.nan, "x"])
-    result = df.filter([np.nan], axis=0)
-    expected = df.iloc[[0]]
-    tm.assert_frame_equal(result, expected, check_index_type=False)
-
-
-def test_filter_all_na_mask(df):
-    # GH#61317
-    # an all-NA list is a mask when the axis has no missing labels
-    result = df.filter([None, None, None])
-    expected = df.iloc[[]]
-    tm.assert_frame_equal(result, expected)
-
-    result = df.filter([None, None, None], na=True)
-    tm.assert_frame_equal(result, df)
-
-    with pytest.raises(ValueError, match="The mask contains missing values"):
-        df.filter([None, None, None], na="raise")
-
-
-def test_filter_tuple_is_labels(df):
-    # GH#61317
-    # a tuple is always a sequence of labels, never a mask
-    result = df.filter(("b", "a"))
-    expected = df[["b", "a"]]
-    tm.assert_frame_equal(result, expected)
-
-    result = df.filter((False, True, True))
-    expected = df.iloc[:, []]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_non_bool_frame_is_not_mask(df):
-    # GH#61317
-    msg = "Index data must be 1-dimensional"
-    with pytest.raises(ValueError, match=msg):
-        df.filter(df)
-
-
-def test_filter_tuple_labels_multiindex():
-    # GH#61317
-    # a list of tuples selects labels from a MultiIndex, not a mask
-    mi = pd.MultiIndex.from_tuples([(True, False), (False, True)])
-    df = pd.DataFrame({"a": [1, 2]}, index=mi)
-    result = df.filter([(True, False)], axis=0)
-    expected = df.iloc[[0]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_empty_list_selects_labels(df):
-    # GH#61317
-    result = df.filter([])
-    expected = df.iloc[:, []]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_object_index_mask_with_na(df):
-    # GH#61317
-    mask = pd.Index([True, None, False], dtype=object)
-    result = df.filter(mask)
-    expected = df.iloc[[0]]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_filter_bool_list_int_labels_is_mask():
-    # GH#61317
-    # int labels are not boolean labels, even though True == 1
-    df = pd.DataFrame({0: [1], 1: [2]})
-    result = df.filter([True, False], axis=1)
-    expected = df[[0]]
-    tm.assert_frame_equal(result, expected)
+        df.filter(cond=[True, False, True], na="ignore")
 
 
 @pytest.mark.parametrize(
@@ -431,29 +459,20 @@ def test_filter_labels(df, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-def test_filter_mask_default_axis_is_index(df):
+def test_filter_cond_default_axis_is_index(df):
     # GH#61317
     # unlike the label-based usage, a mask defaults to the index
-    result = df.filter([True, False, True])
+    result = df.filter(cond=[True, False, True])
     expected = df.iloc[[0, 2]]
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "bool",
-        "boolean",
-        pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ],
-)
-def test_filter_bool_labels_extension_dtype(dtype):
+def test_filter_like_regex_positional():
     # GH#61317
-    index = pd.Index([True, False], dtype=dtype)
-    df = pd.DataFrame({"a": [1, 2]}, index=index)
-    result = df.filter([True], axis=0)
-    expected = df.iloc[[0]]
-    tm.assert_frame_equal(result, expected)
-
-    result = df.filter(np.array([True]), axis=0)
-    tm.assert_frame_equal(result, expected)
+    # like, regex, and axis remain positional-or-keyword after the
+    # positional-only first argument
+    df = pd.DataFrame({"a": [1]}, index=["x"])
+    result = df.filter(None, "x", None, 0)
+    tm.assert_frame_equal(result, df)
+    result = df.filter(None, None, "^x", 0)
+    tm.assert_frame_equal(result, df)

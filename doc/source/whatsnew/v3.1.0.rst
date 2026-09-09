@@ -19,15 +19,17 @@ Enhancements
 Filtering with a boolean mask in ``DataFrame.filter`` and ``Series.filter``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`DataFrame.filter` and :meth:`Series.filter` now accept a boolean mask, a callable
-returning a boolean mask, or an expression created with :func:`pandas.col`, selecting the
-rows (or columns with ``axis=1``) where the mask is True (:issue:`61317`).
+:meth:`DataFrame.filter` and :meth:`Series.filter` now accept a boolean mask through the new
+``cond`` keyword, keeping the rows (or columns with ``axis=1``) where the mask is True.
+``cond`` may also be a callable returning a boolean mask or an expression created with
+:func:`pandas.col`; these two forms may also be passed positionally, which is convenient in
+method chains (:issue:`61317`).
 
 .. code-block:: ipython
 
     In [1]: df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
-    In [2]: df.filter(df["a"] > 1)
+    In [2]: df.filter(cond=df["a"] > 1)
     Out[2]:
        a  b
     1  2  5
@@ -54,24 +56,21 @@ corresponding entries instead, or ``na="raise"`` to raise.
 
     In [5]: mask = pd.array([True, None, False], dtype="boolean")
 
-    In [6]: df.filter(mask)
+    In [6]: df.filter(cond=mask)
     Out[6]:
        a  b
     0  1  4
 
-    In [7]: df.filter(mask, na=True)
+    In [7]: df.filter(cond=mask, na=True)
     Out[7]:
        a  b
     0  1  4
     1  2  5
 
-A mask is recognized by its values: an array-like with a boolean dtype, or a list-like
-whose non-missing elements are all booleans. Previously, such a list-like selected the labels
-``True`` and ``False``, typically resulting in an empty selection. When the axis does contain
-those labels (for example the columns of a :func:`crosstab` of a boolean column), boolean
-values still select them; pass a callable or expression to filter such an object with a mask.
-A tuple is always treated as a sequence of labels. Selecting labels this way, or with
-``items``, ``like``, or ``regex``, will be deprecated in a future version.
+Any other value passed positionally continues to select labels, as before. Since a list-like
+of booleans passed this way is likely intended as a mask, it now issues a ``UserWarning``;
+pass ``items`` to select labels or ``cond`` to filter with a mask. Selecting labels with
+``items``, ``like``, or ``regex`` will be deprecated in a future version.
 
 .. _whatsnew_310.enhancements.enhancement2:
 

@@ -34,31 +34,23 @@ if TYPE_CHECKING:
         NDFrameT,
     )
 
-    from pandas import (
-        Index,
-        Series,
-    )
+    from pandas import Series
 
 
-def is_mask(key: object, labels: Index) -> bool:
+def is_mask(key: object) -> bool:
     """
-    Whether ``key`` is a boolean mask rather than a list-like of labels.
+    Whether ``key`` is a boolean mask, possibly holding missing values.
 
-    A boolean dtype is always a mask. Otherwise ``key`` is a mask when it is
-    one-dimensional and every non-missing element is a bool. A tuple is always
-    a sequence of labels. ``labels`` is the axis that label-based selection
-    would use; it only matters when ``key`` consists entirely of missing
-    values, which is a list of labels when ``labels`` contains a missing value
-    and an uninformative mask otherwise.
+    A boolean dtype is a mask. Otherwise ``key`` must be a list or an
+    object-dtype array-like that is one-dimensional with every non-missing
+    element a bool. A tuple is never a mask.
     """
     if isinstance(key, ABCDataFrame):
         # A boolean DataFrame (e.g. df > 1) is an attempted mask, so classify
         # it as one to get filter_mask's "must be one-dimensional" error
-        # rather than the label path's generic Index construction error.
+        # rather than the generic error a non-mask gets.
         return all(is_bool_dtype(dtype) for dtype in key.dtypes)
     if isinstance(key, list):
-        if len(key) == 0:
-            return False
         values = np.asarray(key, dtype=object)
     else:
         dtype = getattr(key, "dtype", None)
@@ -70,34 +62,26 @@ def is_mask(key: object, labels: Index) -> bool:
             return False
         values = np.asarray(key, dtype=object)
     if values.ndim != 1:
-        # e.g. a list of tuples selecting labels from a MultiIndex
+        # lib.is_bool_array iterates a 2-D array flat, so a list of bool tuples
+        # (labels for a MultiIndex) would otherwise be mistaken for a mask.
         return False
-    if not lib.is_bool_array(values, skipna=True):
-        return False
-    if isna(values).all():
-        return not labels.hasnans
-    return True
+    return lib.is_bool_array(values, skipna=True)
 
 
-def has_bool_labels(labels: Index) -> bool:
+def resembles_mask(key: object) -> bool:
     """
-    Whether ``labels`` contains the values True or False.
+    Whether ``key``, passed positionally, was likely intended as a mask.
+
+    This only decides whether to warn; ``key`` selects labels regardless. At
+    least one boolean is required so that a list of missing labels such as
+    ``[np.nan]`` does not warn. A DataFrame is excluded because the label path
+    raises for it anyway, and a warning before an error is just noise.
     """
-    if isinstance(labels, ABCMultiIndex):
-        # labels are tuples
+    if isinstance(key, ABCDataFrame) or not is_mask(key):
         return False
-    if is_bool_dtype(labels.dtype):
+    if not isinstance(key, list) and is_bool_dtype(key.dtype):
         return True
-    if labels.dtype != np.object_:
-        return False
-    # inferred_type is cached on the Index, avoiding the loop below on
-    # repeated calls with a homogeneous object-dtype axis
-    inferred = labels.inferred_type
-    if inferred == "boolean":
-        return True
-    if not inferred.startswith("mixed"):
-        return False
-    return any(lib.is_bool(label) for label in labels)
+    return not isna(np.asarray(key, dtype=object)).all()
 
 
 def filter_mask(
@@ -120,7 +104,8 @@ def filter_mask(
     if isinstance(values, list):
         values = np.asarray(values, dtype=object)
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
-        # fast path: no missing values are possible
+        # A NumPy bool array cannot hold missing values, so skip the copy
+        # through BooleanArray that the NA handling below requires.
         np_mask = values
     else:
         values = pd_array(values, dtype="boolean")
