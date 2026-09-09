@@ -651,7 +651,8 @@ class StylerRenderer:
         body : list
             The associated HTML elements needed for template rendering.
         body_row_indices : list[int]
-            The original data row indices for each row in body (including trim row as -1).
+            The original data row indices for each row in body
+            (including trim row as -1).
         """
         rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
