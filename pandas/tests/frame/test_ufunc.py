@@ -112,6 +112,37 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_frame_equal(out, expected)
 
 
+def test_binary_ufunc_where_pandas_object():
+    # GH#60611 passing a DataFrame as the ufunc `where` argument used to
+    #  recurse infinitely (RecursionError / segfault) instead of masking
+    #  the result.
+    df = pd.DataFrame({"A": [1.0, 2.0, 3.0], "B": [4.0, 5.0, 6.0]})
+    out = pd.DataFrame({"A": [0.0, 0.0, 0.0], "B": [0.0, 0.0, 0.0]})
+
+    result = np.maximum(df, 0, where=df > 2, out=out)
+
+    expected = pd.DataFrame({"A": [0.0, 0.0, 3.0], "B": [4.0, 5.0, 6.0]})
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(out, expected)
+
+
+def test_binary_ufunc_where_pandas_object_misaligned():
+    # GH#60611 a `where` DataFrame is aligned to the operands by label
+    #  (missing labels treated as False), mirroring DataFrame.where/mask,
+    #  rather than being matched up positionally.
+    df = pd.DataFrame({"A": [1.0, 2.0, 3.0], "B": [4.0, 5.0, 6.0]})
+    mask = pd.DataFrame(
+        {"B": [True, True, True], "A": [False, False, True]}, index=[2, 1, 0]
+    )
+    out = pd.DataFrame({"A": [0.0, 0.0, 0.0], "B": [0.0, 0.0, 0.0]})
+
+    result = np.maximum(df, 0, where=mask, out=out)
+
+    expected = pd.DataFrame({"A": [1.0, 0.0, 0.0], "B": [4.0, 5.0, 6.0]})
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(out, expected)
+
+
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
