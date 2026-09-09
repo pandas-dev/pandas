@@ -65,6 +65,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCIntervalIndex,
     ABCPeriodIndex,
+    ABCRangeIndex,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -1941,6 +1942,11 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         # empty lists/tuples get object dtype by default, but this is
         # prohibited for IntervalArray, so coerce to integer instead
         return np.array([], dtype=np.int64)
+    elif isinstance(values, ABCRangeIndex):
+        # GH#68343 RangeIndex passes the hasattr(values, "dtype") checks below
+        # but is not an ndarray, which raises a confusing TypeError from
+        # intervals_to_interval_bounds; ensure we get an ndarray instead
+        values = np.asarray(values)
     elif not is_list_like(values) or isinstance(values, ABCDataFrame):
         # This will raise later
         return values
