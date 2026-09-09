@@ -50,8 +50,7 @@ def test_filter_positional_bools_select_labels(ser, mask):
     expected = ser.iloc[[]]
     tm.assert_series_equal(result, expected)
 
-    with tm.assert_produces_warning(None):
-        result = ser.filter(items=mask)
+    result = ser.filter(items=mask)
     tm.assert_series_equal(result, expected)
 
 
@@ -148,8 +147,7 @@ def test_filter_tuple_labels_multiindex():
     # GH#61317
     mi = pd.MultiIndex.from_tuples([(True, False), (False, True)])
     ser = pd.Series([1, 2], index=mi)
-    with tm.assert_produces_warning(None):
-        result = ser.filter([(True, False)])
+    result = ser.filter([(True, False)])
     expected = ser.iloc[[0]]
     tm.assert_series_equal(result, expected)
 

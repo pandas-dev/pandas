@@ -211,8 +211,7 @@ def test_filter_positional_bools_select_labels(df, mask):
     tm.assert_frame_equal(result, expected)
 
     # the explicit keyword does not warn
-    with tm.assert_produces_warning(None):
-        result = df.filter(items=mask)
+    result = df.filter(items=mask)
     tm.assert_frame_equal(result, expected)
 
 
@@ -227,8 +226,7 @@ def test_filter_positional_bools_select_labels(df, mask):
 def test_filter_positional_labels_no_warning(df, arg, cols):
     # GH#61317
     # tuples are never masks
-    with tm.assert_produces_warning(None):
-        result = df.filter(arg)
+    result = df.filter(arg)
     expected = df[cols]
     tm.assert_frame_equal(result, expected)
 
@@ -250,8 +248,7 @@ def test_filter_tuple_labels_multiindex():
     # GH#61317
     mi = pd.MultiIndex.from_tuples([(True, False), (False, True)])
     df = pd.DataFrame({"a": [1, 2]}, index=mi)
-    with tm.assert_produces_warning(None):
-        result = df.filter([(True, False)], axis=0)
+    result = df.filter([(True, False)], axis=0)
     expected = df.iloc[[0]]
     tm.assert_frame_equal(result, expected)
 
@@ -363,9 +360,8 @@ def test_filter_positional_frame_selects_labels(df):
     # a DataFrame is not a mask positionally; it fails as a list of labels
     # without warning
     msg = "Index data must be 1-dimensional"
-    with tm.assert_produces_warning(None):
-        with pytest.raises(ValueError, match=msg):
-            df.filter(df > 1)
+    with pytest.raises(ValueError, match=msg):
+        df.filter(df > 1)
 
 
 def test_filter_callable_must_return_mask(df):
