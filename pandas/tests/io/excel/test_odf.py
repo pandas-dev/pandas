@@ -1,4 +1,5 @@
 import functools
+import uuid
 
 import numpy as np
 import pytest
@@ -7,6 +8,27 @@ import pandas as pd
 import pandas._testing as tm
 
 pytest.importorskip("odf")
+
+
+@pytest.fixture
+def ext():
+    return ".ods"
+
+
+@pytest.fixture
+def tmp_excel(ext, tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}{ext}"
+    tmp.touch()
+    return str(tmp)
+
+
+from odf.opendocument import OpenDocumentSpreadsheet
+from odf.table import (
+    CoveredTableCell,
+    Table,
+    TableCell,
+    TableRow,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -68,5 +90,53 @@ def test_read_cell_annotation():
     )
 
     result = pd.read_excel("test_cell_annotation.ods")
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_covered_table_cell_value(tmp_excel):
+    # GH#66579
+    doc = OpenDocumentSpreadsheet()
+    sheet = Table(name="Sheet1")
+    doc.spreadsheet.addElement(sheet)
+
+    row0 = TableRow()
+    sheet.addElement(row0)
+    row0.addElement(TableCell(valuetype="float", value="1"))
+    row0.addElement(TableCell(valuetype="float", value="100"))
+
+    row1 = TableRow()
+    sheet.addElement(row1)
+    row1.addElement(CoveredTableCell(valuetype="float", value="42"))
+    row1.addElement(TableCell(valuetype="float", value="200"))
+
+    row2 = TableRow()
+    sheet.addElement(row2)
+    row2.addElement(CoveredTableCell(valuetype="float"))
+    row2.addElement(TableCell(valuetype="float", value="300"))
+
+    row3 = TableRow()
+    sheet.addElement(row3)
+    row3.addElement(CoveredTableCell(valuetype="void"))
+    row3.addElement(TableCell(valuetype="float", value="400"))
+
+    row4 = TableRow()
+    sheet.addElement(row4)
+    row4.addElement(CoveredTableCell(valuetype="boolean", booleanvalue="true"))
+    row4.addElement(TableCell(valuetype="float", value="500"))
+
+    doc.save(tmp_excel)
+
+    result = pd.read_excel(tmp_excel, header=None)
+
+    expected = pd.DataFrame(
+        [
+            [1, 100],
+            [42, 200],
+            [np.nan, 300],
+            [np.nan, 400],
+            [np.nan, 500],
+        ]
+    )
 
     tm.assert_frame_equal(result, expected)

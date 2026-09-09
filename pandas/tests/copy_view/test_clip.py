@@ -1,12 +1,12 @@
 import numpy as np
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
 def test_clip_inplace_reference():
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     df_copy = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
@@ -19,7 +19,7 @@ def test_clip_inplace_reference():
 
 
 def test_clip_inplace_reference_no_op():
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     df_copy = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
@@ -33,7 +33,7 @@ def test_clip_inplace_reference_no_op():
 
 
 def test_clip_inplace():
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     df.clip(lower=2, inplace=True)
 
@@ -42,7 +42,7 @@ def test_clip_inplace():
 
 
 def test_clip():
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     df_orig = df.copy()
     df2 = df.clip(lower=2)
 
@@ -53,7 +53,7 @@ def test_clip():
 
 
 def test_clip_no_op():
-    df = DataFrame({"a": [1.5, 2, 3]})
+    df = pd.DataFrame({"a": [1.5, 2, 3]})
     df2 = df.clip(lower=0)
 
     assert not df._mgr._has_no_reference(0)
@@ -61,7 +61,7 @@ def test_clip_no_op():
 
 
 def test_clip_chained_inplace():
-    df = DataFrame({"a": [1, 4, 2], "b": 1})
+    df = pd.DataFrame({"a": [1, 4, 2], "b": 1})
     df_orig = df.copy()
     with tm.raises_chained_assignment_error():
         df["a"].clip(1, 2, inplace=True)

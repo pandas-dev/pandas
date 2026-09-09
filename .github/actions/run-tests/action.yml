@@ -13,19 +13,21 @@ inputs:
   pytest_target:
     description: File or directory path to run tests
     required: true
-  pandas_future_infer_string:
-    description: Environment variable for infer string behavior
-    default: '1'
-  pandas_future_python_scalars:
-    description: Environment variable for Python scalar behavior
-    default: '0'
+  pandas_future:
+    description: >-
+      Value for the PANDAS_FUTURE environment variable. "default" uses the
+      default value of every future config, "legacy" sets configs whose
+      default has changed back to their old values, and "upcoming" enables
+      configs whose default has not yet changed. Configs whose non-default
+      values do not yet pass the test suite are exempt; see
+      _register_future_option in pandas/core/config_init.py.
+    default: 'default'
 runs:
   using: composite
   steps:
     - name: Test
       env:
-        PANDAS_FUTURE_INFER_STRING: ${{ inputs.pandas_future_infer_string }}
-        PANDAS_FUTURE_PYTHON_SCALARS: ${{ inputs.pandas_future_python_scalars }}
+        PANDAS_FUTURE: ${{ inputs.pandas_future }}
         MESONPY_EDITABLE_VERBOSE: 1
         PYTHONDEVMODE: 1
         PYTHONWARNDEFAULTENCODING: 1

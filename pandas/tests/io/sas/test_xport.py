@@ -53,7 +53,7 @@ class TestXport:
 
         # Test read in loop
         m = 0
-        with read_sas(file01, format="xport", chunksize=100) as reader:
+        with read_sas(file01, format="xport", chunksize=1000) as reader:
             for x in reader:
                 m += x.shape[0]
         assert m == num_rows

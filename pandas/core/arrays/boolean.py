@@ -231,7 +231,7 @@ def coerce_to_array(
 
         # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
         # within this branch, it assumes it can also be None
-        mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))
+        mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))  # type: ignore[redundant-cast]
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 

@@ -10,10 +10,7 @@ import pytest
 from pandas._libs.tslibs import timezones
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -22,7 +19,7 @@ class TestAtTime:
     def test_localized_at_time(self, tzstr, frame_or_series):
         tz = timezones.maybe_get_tz(tzstr)
 
-        rng = date_range("4/16/2012", "5/1/2012", freq="h")
+        rng = pd.date_range("4/16/2012", "5/1/2012", freq="h")
         ts = frame_or_series(
             np.random.default_rng(2).standard_normal(len(rng)), index=rng
         )
@@ -35,8 +32,8 @@ class TestAtTime:
         assert timezones.tz_compare(result.index.tz, tz)
 
     def test_at_time(self, frame_or_series):
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+        ts = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
         )
         ts = tm.get_obj(ts, frame_or_series)
@@ -51,8 +48,8 @@ class TestAtTime:
 
     def test_at_time_midnight(self, frame_or_series):
         # midnight, everything
-        rng = date_range("1/1/2000", "1/31/2000")
-        ts = DataFrame(
+        rng = pd.date_range("1/1/2000", "1/31/2000")
+        ts = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
         )
         ts = tm.get_obj(ts, frame_or_series)
@@ -62,8 +59,8 @@ class TestAtTime:
 
     def test_at_time_nonexistent(self, frame_or_series):
         # time doesn't exist
-        rng = date_range("1/1/2012", freq="23Min", periods=384)
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng)), rng)
+        rng = pd.date_range("1/1/2012", freq="23Min", periods=384)
+        ts = pd.DataFrame(np.random.default_rng(2).standard_normal(len(rng)), rng)
         ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time("16:00")
         assert len(rs) == 0
@@ -71,8 +68,8 @@ class TestAtTime:
     @pytest.mark.parametrize("hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=UTC)])
     def test_at_time_errors(self, hour):
         # GH#24043
-        dti = date_range("2018", periods=3, freq="h")
-        df = DataFrame(list(range(len(dti))), index=dti)
+        dti = pd.date_range("2018", periods=3, freq="h")
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
         if getattr(hour, "tzinfo", None) is None:
             result = df.at_time(hour)
             expected = df.iloc[1:2]
@@ -83,15 +80,15 @@ class TestAtTime:
 
     def test_at_time_tz(self):
         # GH#24043
-        dti = date_range("2018", periods=3, freq="h", tz="US/Pacific")
-        df = DataFrame(list(range(len(dti))), index=dti)
+        dti = pd.date_range("2018", periods=3, freq="h", tz="US/Pacific")
+        df = pd.DataFrame(list(range(len(dti))), index=dti)
         result = df.at_time(time(4, tzinfo=zoneinfo.ZoneInfo("US/Eastern")))
         expected = df.iloc[1:2]
         tm.assert_frame_equal(result, expected)
 
     def test_at_time_raises(self, frame_or_series):
         # GH#20725
-        obj = DataFrame([[1, 2, 3], [4, 5, 6]])
+        obj = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
         obj = tm.get_obj(obj, frame_or_series)
         msg = "Index must be DatetimeIndex"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
@@ -99,8 +96,10 @@ class TestAtTime:
 
     def test_at_time_axis(self, axis):
         # issue 8839
-        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
+        rng = pd.date_range("1/1/2000", "1/2/2000", freq="5min")
+        ts = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), len(rng)))
+        )
         ts.index, ts.columns = rng, rng
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
@@ -118,8 +117,8 @@ class TestAtTime:
         tm.assert_frame_equal(result, expected)
 
     def test_at_time_datetimeindex(self):
-        index = date_range("2012-01-01", "2012-01-05", freq="30min")
-        df = DataFrame(
+        index = pd.date_range("2012-01-01", "2012-01-05", freq="30min")
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 5)), index=index
         )
         akey = time(12, 0, 0)
@@ -134,8 +133,8 @@ class TestAtTime:
 
     def test_at_time_ambiguous_format_deprecation(self):
         # GH#50839
-        rng = date_range("1/1/2000", "1/5/2000", freq="125min")
-        ts = DataFrame(list(range(len(rng))), index=rng)
+        rng = pd.date_range("1/1/2000", "1/5/2000", freq="125min")
+        ts = pd.DataFrame(list(range(len(rng))), index=rng)
 
         msg1 = "The string '.*' cannot be parsed"
         with tm.assert_produces_warning(Pandas4Warning, match=msg1):

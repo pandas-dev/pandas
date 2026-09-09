@@ -9,16 +9,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import read_orc
 import pandas._testing as tm
 
 pytest.importorskip("pyarrow.orc")
 
 import pyarrow as pa
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 
 @pytest.fixture
@@ -55,7 +50,7 @@ def test_orc_reader_empty(dirpath, using_infer_string):
     expected.columns = expected.columns.astype("str")
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
-    got = read_orc(inputfile, columns=columns)
+    got = pd.read_orc(inputfile, columns=columns)
 
     tm.assert_equal(expected, got)
 
@@ -75,7 +70,7 @@ def test_orc_reader_basic(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.test1.orc")
-    got = read_orc(inputfile, columns=data.keys())
+    got = pd.read_orc(inputfile, columns=data.keys())
 
     tm.assert_equal(expected, got)
 
@@ -102,7 +97,7 @@ def test_orc_reader_decimal(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.decimal.orc")
-    got = read_orc(inputfile).iloc[:10]
+    got = pd.read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -143,7 +138,7 @@ def test_orc_reader_date_low(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate1900.orc")
-    got = read_orc(inputfile).iloc[:10]
+    got = pd.read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -184,7 +179,7 @@ def test_orc_reader_date_high(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate2038.orc")
-    got = read_orc(inputfile).iloc[:10]
+    got = pd.read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -225,7 +220,7 @@ def test_orc_reader_snappy_compressed(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testSnappy.orc")
-    got = read_orc(inputfile).iloc[:10]
+    got = pd.read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -249,7 +244,7 @@ def test_orc_roundtrip_file(dirpath, temp_file):
     expected = pd.DataFrame.from_dict(data)
 
     expected.to_orc(temp_file)
-    got = read_orc(temp_file)
+    got = pd.read_orc(temp_file)
 
     tm.assert_equal(expected, got)
 
@@ -273,7 +268,7 @@ def test_orc_roundtrip_bytesio():
     expected = pd.DataFrame.from_dict(data)
 
     bytes = expected.to_orc()
-    got = read_orc(BytesIO(bytes))
+    got = pd.read_orc(BytesIO(bytes))
 
     tm.assert_equal(expected, got)
 
@@ -323,7 +318,7 @@ def test_orc_dtype_backend_pyarrow(using_infer_string):
     df["datetime_with_nat"] = df["datetime_with_nat"].astype("M8[ns]")
 
     bytes_data = df.copy().to_orc()
-    result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
+    result = pd.read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
 
     expected = pd.DataFrame(
         {
@@ -361,7 +356,7 @@ def test_orc_dtype_backend_numpy_nullable():
     )
 
     bytes_data = df.copy().to_orc()
-    result = read_orc(BytesIO(bytes_data), dtype_backend="numpy_nullable")
+    result = pd.read_orc(BytesIO(bytes_data), dtype_backend="numpy_nullable")
 
     expected = pd.DataFrame(
         {
@@ -385,7 +380,7 @@ def test_orc_uri_path(temp_file):
     expected = pd.DataFrame({"int": list(range(1, 4))})
     expected.to_orc(temp_file)
     uri = temp_file.as_uri()
-    result = read_orc(uri)
+    result = pd.read_orc(uri)
     tm.assert_frame_equal(result, expected)
 
 
@@ -417,7 +412,7 @@ def test_invalid_dtype_backend(temp_file):
     df = pd.DataFrame({"int": list(range(1, 4))})
     df.to_orc(temp_file)
     with pytest.raises(ValueError, match=msg):
-        read_orc(temp_file, dtype_backend="numpy")
+        pd.read_orc(temp_file, dtype_backend="numpy")
 
 
 def test_string_inference(temp_file):
@@ -425,5 +420,5 @@ def test_string_inference(temp_file):
     df = pd.DataFrame(data={"a": ["x", "y"]})
     expected = df.copy()
     df.to_orc(temp_file)
-    result = read_orc(temp_file)
+    result = pd.read_orc(temp_file)
     tm.assert_frame_equal(result, expected)

@@ -507,7 +507,7 @@ class ObjectStringArrayMixin:
     def _str_removesuffix(self, suffix: str):
         return self._str_map(lambda x: x.removesuffix(suffix))
 
-    def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
+    def _str_extract(self, pat: str | re.Pattern, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)
         na_value = self.dtype.na_value  # type: ignore[attr-defined]
 

@@ -4,4 +4,7 @@
 - [ ] Added [type annotations](https://pandas.pydata.org/pandas-docs/dev/development/contributing_codebase.html#type-hints) to new arguments/methods/functions.
 - [ ] Added an entry in the latest `doc/source/whatsnew/vX.X.X.rst` file if fixing a bug or adding a new feature.
 - [ ] I have reviewed and followed all the [contribution guidelines](https://pandas.pydata.org/docs/dev/development/contributing.html)
-- [ ] If I used AI to develop this pull request, I prompted it to follow `AGENTS.md`.
+Check exactly one of the following, per the [automated contributions policy](https://pandas.pydata.org/docs/dev/development/contributing.html#automated-contributions-policy):
+
+- [ ] I did **not** use AI to develop this pull request.
+- [ ] I used AI to develop this pull request. I prompted it to follow `AGENTS.md`, I have reviewed and understood every change, and I have described above how I used it and exactly which tool, model version, and effort setting — e.g. `claude opus 4.8 (xhigh)`, not just `claude`.

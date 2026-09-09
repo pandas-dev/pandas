@@ -1,11 +1,11 @@
 import pytest
 
-from pandas import Series
+import pandas as pd
 from pandas.core.strings.accessor import StringMethods
 
 _any_string_method = [
     ("cat", (), {"sep": ","}),
-    ("cat", (Series(list("zyx")),), {"sep": ",", "join": "left"}),
+    ("cat", (pd.Series(list("zyx")),), {"sep": ",", "join": "left"}),
     ("center", (10,), {}),
     ("contains", ("a",), {}),
     ("count", ("a",), {}),

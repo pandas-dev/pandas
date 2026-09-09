@@ -16,7 +16,7 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -184,7 +184,7 @@ def test_suppress_error_output(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
-    expected = DataFrame({"a": [1, 4]})
+    expected = pd.DataFrame({"a": [1, 4]})
 
     result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
@@ -209,7 +209,7 @@ def test_warn_bad_lines(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
-    expected = DataFrame({"a": [1, 4]})
+    expected = pd.DataFrame({"a": [1, 4]})
     match_msg = "Skipping line"
 
     expected_warning = ParserWarning
@@ -251,7 +251,7 @@ def test_null_byte_char(all_parsers):
         # GH#19886 a lone NUL is a one-character value, not the empty string,
         # so it is not an na_value. The C engine used to compare the
         # NUL-terminated word and report NaN here.
-        expected = DataFrame([["\x00", "foo"]], columns=names)
+        expected = pd.DataFrame([["\x00", "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
@@ -265,18 +265,14 @@ def test_null_byte_char(all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-@pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(all_parsers, temp_file):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
-    if parser.engine == "c":
-        msg = "object of type 'NoneType' has no len"
-        err = TypeError
-    elif parser.engine == "pyarrow":
-        msg = "'utf-8' codec can't decode byte 0xe4"
+    if parser.engine in ("c", "pyarrow"):
+        msg = f"the '{parser.engine}' engine does not support sep=None"
         err = ValueError
 
     file = Path(temp_file)
@@ -321,7 +317,7 @@ a,b,c
 a,b,d
 a,b
 """
-    expected = DataFrame({"1": "a", "2": ["b"] * 2})
+    expected = pd.DataFrame({"1": "a", "2": ["b"] * 2})
     match_msg = "Skipping line"
 
     expected_warning = ParserWarning

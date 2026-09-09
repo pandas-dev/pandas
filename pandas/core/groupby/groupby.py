@@ -2736,7 +2736,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self._grouper.size()
-        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        dtype_backend: Literal["pyarrow", "numpy_nullable"] | None = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
                 if isinstance(self.obj.array, ArrowStringArray):
@@ -4298,8 +4298,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
-        Can be either a call or an index. dropna is not available with index notation.
-        Index notation accepts a comma separated list of integers and slices.
+        .. deprecated:: 3.1.0
+
+            Index notation (``g.nth[n]``) is deprecated in favor of calling
+            ``g.nth(n)`` and will be removed in a future version of pandas.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -4341,20 +4343,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  2 3.0
         4  2 5.0
         >>> g.nth(slice(None, -1))
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-
-        Index notation may also be used
-
-        >>> g.nth[0, 1]
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-        4  2 5.0
-        >>> g.nth[:-1]
            A   B
         0  1 NaN
         1  1 2.0
@@ -4493,7 +4481,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-            pass_qs: None | np.ndarray = None
+            pass_qs: np.ndarray | None = None
         else:
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
@@ -5859,14 +5847,6 @@ def get_groupby(
     Parameters
     ----------
     obj : pandas object
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : str
-        Most users should ignore this
 
     Returns
     -------

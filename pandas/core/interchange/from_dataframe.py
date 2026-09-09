@@ -369,7 +369,7 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
                 null_pos = ~null_pos
 
     # Assemble the strings from the code units
-    str_list: list[None | float | str] = [None] * col.size()
+    str_list: list[float | str | None] = [None] * col.size()
     for i in range(col.size()):
         # Check for missing values
         if null_pos is not None and null_pos[i]:

@@ -8,14 +8,10 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers import TextParser
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
@@ -88,5 +84,5 @@ foo
 bar"""
 
     result = parser.read_csv(StringIO(data), header=None)
-    expected = DataFrame(["foo", "bar baz", "qux foo", "foo", "bar"])
+    expected = pd.DataFrame(["foo", "bar baz", "qux foo", "foo", "bar"])
     tm.assert_frame_equal(result, expected)

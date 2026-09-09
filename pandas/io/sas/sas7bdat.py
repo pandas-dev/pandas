@@ -43,6 +43,7 @@ from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
+    OutOfBoundsDatetime,
     Pandas4Warning,
 )
 from pandas.util._exceptions import find_stack_level
@@ -178,13 +179,11 @@ def _sas_to_gregorian_correction(values: np.ndarray, unit: str) -> np.ndarray:
 
 def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     """
-    Convert to Timestamp if possible, otherwise to datetime.datetime.
-    SAS float64 lacks precision for more than ms resolution so the fit
-    to datetime.datetime is ok.
+    Convert SAS day or second counts to a datetime64 Series.
 
     Parameters
     ----------
-    sas_datetimes : {Series, Sequence[float]}
+    sas_datetimes : Series
        Dates or datetimes in SAS
     unit : {'d', 's'}
        "d" if the floats represent dates, "s" for datetimes
@@ -192,9 +191,25 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
     Returns
     -------
     Series
-       Series of datetime64 dtype or datetime.datetime.
+       datetime64[s] for unit="d", datetime64[ms] for unit="s".
     """
     td = (_sas_origin - _unix_origin).as_unit("s")
+    # SAS's own date range tops out near 6e6 days, so a count this size is not
+    # a date the file could legitimately hold -- it is corrupt bytes, or a
+    # numeric column carrying a date format. Casting it does not overflow, it
+    # saturates: a negative one lands on the NaT sentinel and is read as
+    # missing, and a positive one does raise below, but naming the date the
+    # saturated cast landed on rather than anything the file holds.
+    # A day count is scaled by 86400 below, so its own limit is that much lower.
+    limit = 2.0**63 / 86400 if unit == "d" else 2.0**63
+    too_large = np.abs(sas_datetimes._values) >= limit
+    if too_large.any():
+        value = sas_datetimes._values[too_large][0]
+        what = "date" if unit == "d" else "datetime"
+        raise OutOfBoundsDatetime(
+            f"Out of bounds SAS {what} value: {value}; no SAS {what} can be this "
+            f"large, so the file is corrupt or the column is not a {what}"
+        )
     if unit == "s":
         corrected = sas_datetimes._values + _sas_to_gregorian_correction(
             sas_datetimes._values, unit="s"
@@ -206,8 +221,16 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
         corrected = sas_datetimes._values + _sas_to_gregorian_correction(
             sas_datetimes._values, unit="d"
         )
-        vals = np.array(corrected, dtype="M8[D]") + td
-        return pd.Series(vals, dtype="M8[s]", index=sas_datetimes.index, copy=False)
+        # A date-formatted column is a float64 day count that SAS does not force
+        # whole, so scale the fraction in rather than truncating it with an M8[D]
+        # cast. Round to seconds here instead of scaling from "D" inside
+        # cast_from_unit_vectorized, whose rounding precision is a power of ten:
+        # 1e-4 of a day, coarser than the seconds this returns.
+        secs = cast_from_unit_vectorized(
+            np.round(corrected * 86400.0), unit="s", out_unit="s"
+        )
+        dt64s = secs.view("M8[s]") + td
+        return pd.Series(dt64s, index=sas_datetimes.index, copy=False)
 
 
 class _Column:
@@ -283,7 +306,7 @@ class SAS7BDATReader(SASReader):
         convert_dates: bool = True,
         blank_missing: bool = True,
         chunksize: int | None = None,
-        encoding: str | None | lib.NoDefault = lib.no_default,
+        encoding: str | lib.NoDefault | None = lib.no_default,
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
@@ -347,6 +370,28 @@ class SAS7BDATReader(SASReader):
         except Exception:
             self.close()
             raise
+        self._metadata_at_open = self._metadata_signature()
+
+    def _metadata_signature(self) -> tuple:
+        """
+        Everything the parser and ``_chunk_to_dataframe`` read out of the file's
+        metadata, in one comparable value.
+
+        The column lists are only ever appended to, so their lengths stand in
+        for their contents and this stays O(1) rather than O(ncols). The
+        compression is in here for completeness rather than because a file can
+        change it: only the first column-text subheader is read for it, and a
+        file with none of those cannot be opened at all.
+        """
+        return (
+            self.row_length,
+            self.row_count,
+            self._mix_page_row_count,
+            self.column_count,
+            self.compression,
+            len(self._column_data_offsets),
+            len(self.column_names),
+        )
 
     def _validate_column_data_ranges(self) -> None:
         # The column offsets, lengths and types come straight out of the file's
@@ -631,6 +676,15 @@ class SAS7BDATReader(SASReader):
         )
         mx = const.row_count_on_mix_page_offset_multiplier * int_len
         self._mix_page_row_count = self._read_uint(offset + mx, int_len)
+        # A mix page hands out this many rows, so a count the page cannot hold
+        #  walks off the rows into the padding and the metadata subheaders stored
+        #  behind them. Written as a product so row_length 0 cannot divide by zero.
+        if self._mix_page_row_count * self.row_length > self._page_length:
+            raise ValueError(
+                f"mix page row count ({self._mix_page_row_count}) does not fit in "
+                f"a {self._page_length}-byte page at {self.row_length} bytes per "
+                f"row; the file is corrupt"
+            )
         self._lcs = self._read_uint(lcs_offset, 2)
         self._lcp = self._read_uint(lcp_offset, 2)
 
@@ -833,15 +887,37 @@ class SAS7BDATReader(SASReader):
         self._setup_string_buffers(ns, nrows)
 
         self._current_row_in_chunk_index = 0
-        p = Parser(self)
-        p.read(nrows)
-        if self._str_mode != const.string_mode_object:
-            self._str_values = p.string_values()
-        # Release the growable parse buffers before building the DataFrame, so
-        # that their spare capacity is not held alongside the copies above.
-        del p
+        try:
+            p = Parser(self)
+            p.read(nrows)
+            # A metadata page can follow the data pages, and its subheaders
+            # rewrite the layout the rows just read were parsed with -- and that
+            # the next chunk would be parsed with. The reader cannot reshape
+            # itself mid-file, so a file that redefines its own layout is corrupt
+            # however the redefinition reads: too wide a row and the columns come
+            # from the wrong bytes, too few columns and one comes back all-NaN,
+            # too many and the parser walks off the ends of the offset and length
+            # arrays, and a rewritten row count pads the result with unread rows
+            # or truncates it.
+            if self._metadata_signature() != self._metadata_at_open:
+                raise ValueError(
+                    "The file changes the layout it declared partway through; "
+                    "the file is corrupt"
+                )
+            if self._str_mode != const.string_mode_object:
+                self._str_values = p.string_values()
+            # Release the growable parse buffers before building the DataFrame,
+            # so that their spare capacity is not held alongside the copies above.
+            del p
 
-        rslt = self._chunk_to_dataframe()
+            rslt = self._chunk_to_dataframe()
+        except Exception:
+            # However this chunk failed -- a page that does not hold what it
+            # claims, a layout the file redefined, a cell that cannot be
+            # represented -- the reader is no longer usable, and read_sas only
+            # closes it for the caller when it reads the whole file itself.
+            self.close()
+            raise
         if self.index is not None:
             rslt = rslt.set_index(self.index)
 

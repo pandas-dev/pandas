@@ -1287,7 +1287,7 @@ class IntervalDtype(PandasExtensionDtype):
     )
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
-    _subtype: None | np.dtype
+    _subtype: np.dtype | None
     _closed: IntervalClosedType | None
 
     def __init__(self, subtype=None, closed: IntervalClosedType | None = None) -> None:

@@ -4,11 +4,6 @@ import pytest
 from pandas.core.dtypes.common import is_any_real_numeric_dtype
 
 import pandas as pd
-from pandas import (
-    Index,
-    MultiIndex,
-    Series,
-)
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
 
@@ -23,13 +18,13 @@ def test_equals(idx):
     assert not idx.equals(list(idx))
     assert not idx.equals(np.array(idx))
 
-    same_values = Index(idx, dtype=object)
+    same_values = pd.Index(idx, dtype=object)
     assert idx.equals(same_values)
     assert same_values.equals(idx)
 
     if idx.nlevels == 1:
         # do not test MultiIndex
-        assert not idx.equals(Series(idx))
+        assert not idx.equals(pd.Series(idx))
 
 
 def test_equals_op(idx):
@@ -58,15 +53,15 @@ def test_equals_op(idx):
     tm.assert_numpy_array_equal(index_a == array_c, expected2)
 
     # test comparisons with Series
-    series_a = Series(array_a)
-    series_b = Series(array_b)
-    series_c = Series(array_c)
-    series_d = Series(array_d)
+    series_a = pd.Series(array_a)
+    series_b = pd.Series(array_b)
+    series_c = pd.Series(array_c)
+    series_d = pd.Series(array_d)
     with pytest.raises(ValueError, match="Lengths must match"):
         index_a == series_b
 
-    tm.assert_series_equal(index_a == series_a, Series(expected1))
-    tm.assert_series_equal(index_a == series_c, Series(expected2))
+    tm.assert_series_equal(index_a == series_a, pd.Series(expected1))
+    tm.assert_series_equal(index_a == series_c, pd.Series(expected2))
 
     # cases where length is 1 for one of them
     with pytest.raises(ValueError, match="Lengths must match"):
@@ -85,17 +80,17 @@ def test_equals_op(idx):
     # MultiIndex because in this case each item in the index is a tuple of
     # length 2, and therefore is considered an array of length 2 in the
     # comparison instead of a scalar
-    if not isinstance(index_a, MultiIndex):
+    if not isinstance(index_a, pd.MultiIndex):
         expected3 = np.array([False] * (len(index_a) - 2) + [True, False])
         # assuming the 2nd to last item is unique in the data
         item = index_a[-2]
         tm.assert_numpy_array_equal(index_a == item, expected3)
-        tm.assert_series_equal(series_a == item, Series(expected3))
+        tm.assert_series_equal(series_a == item, pd.Series(expected3))
 
 
 def test_compare_tuple():
     # GH#21517
-    mi = MultiIndex.from_product([[1, 2]] * 2)
+    mi = pd.MultiIndex.from_product([[1, 2]] * 2)
 
     all_false = np.array([False, False, False, False])
 
@@ -122,7 +117,7 @@ def test_compare_tuple():
 def test_compare_tuple_strs():
     # GH#34180
 
-    mi = MultiIndex.from_tuples([("a", "b"), ("b", "c"), ("c", "a")])
+    mi = pd.MultiIndex.from_tuples([("a", "b"), ("b", "c"), ("c", "a")])
 
     result = mi == ("c", "a")
     expected = np.array([False, False, True])
@@ -136,15 +131,19 @@ def test_compare_tuple_strs():
 def test_equals_multi(idx):
     assert idx.equals(idx)
     assert not idx.equals(idx.values)
-    assert idx.equals(Index(idx.values))
+    assert idx.equals(pd.Index(idx.values))
 
     assert idx.equal_levels(idx)
     assert not idx.equals(idx[:-1])
     assert not idx.equals(idx[-1])
 
     # different number of levels
-    index = MultiIndex(
-        levels=[Index(list(range(4))), Index(list(range(4))), Index(list(range(4)))],
+    index = pd.MultiIndex(
+        levels=[
+            pd.Index(list(range(4))),
+            pd.Index(list(range(4))),
+            pd.Index(list(range(4))),
+        ],
         codes=[
             np.array([0, 0, 1, 2, 2, 2, 3, 3]),
             np.array([0, 1, 0, 0, 0, 1, 0, 1]),
@@ -152,31 +151,31 @@ def test_equals_multi(idx):
         ],
     )
 
-    index2 = MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
+    index2 = pd.MultiIndex(levels=index.levels[:-1], codes=index.codes[:-1])
     assert not index.equals(index2)
     assert not index.equal_levels(index2)
 
     # levels are different
-    major_axis = Index(list(range(4)))
-    minor_axis = Index(list(range(2)))
+    major_axis = pd.Index(list(range(4)))
+    minor_axis = pd.Index(list(range(2)))
 
     major_codes = np.array([0, 0, 1, 2, 2, 3])
     minor_codes = np.array([0, 1, 0, 0, 1, 0])
 
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
     )
     assert not idx.equals(index)
     assert not idx.equal_levels(index)
 
     # some of the labels are different
-    major_axis = Index(["foo", "bar", "baz", "qux"])
-    minor_axis = Index(["one", "two"])
+    major_axis = pd.Index(["foo", "bar", "baz", "qux"])
+    minor_axis = pd.Index(["one", "two"])
 
     major_codes = np.array([0, 0, 2, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 0, 1])
 
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
     )
     assert not idx.equals(index)
@@ -194,7 +193,7 @@ def test_identical(idx):
     mi2 = mi2.set_names(["new1", "new2"])
     assert mi.identical(mi2)
 
-    mi4 = Index(mi.tolist(), tupleize_cols=False)
+    mi4 = pd.Index(mi.tolist(), tupleize_cols=False)
     assert not mi.identical(mi4)
     assert mi.equals(mi4)
 
@@ -206,7 +205,7 @@ def test_equals_operator(idx):
 
 def test_equals_missing_values():
     # make sure take is not using -1
-    i = MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
+    i = pd.MultiIndex.from_tuples([(0, pd.NaT), (0, pd.Timestamp("20130101"))])
     result = i[0:1].equals(i[0])
     assert not result
     result = i[1:2].equals(i[1])
@@ -215,16 +214,16 @@ def test_equals_missing_values():
 
 def test_equals_missing_values_differently_sorted():
     # GH#38439
-    mi1 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
-    mi2 = MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
+    mi1 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = pd.MultiIndex.from_tuples([(np.nan, np.nan), (81.0, np.nan)])
     assert not mi1.equals(mi2)
 
-    mi2 = MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
+    mi2 = pd.MultiIndex.from_tuples([(81.0, np.nan), (np.nan, np.nan)])
     assert mi1.equals(mi2)
 
 
 def test_is_():
-    mi = MultiIndex.from_tuples(zip(range(10), range(10), strict=True))
+    mi = pd.MultiIndex.from_tuples(zip(range(10), range(10), strict=True))
     assert mi.is_(mi)
     assert mi.is_(mi.view())
     assert mi.is_(mi.view().view().view().view())
@@ -264,23 +263,23 @@ def test_multiindex_compare():
     # Ensure comparison operations for MultiIndex with nlevels == 1
     # behave consistently with those for MultiIndex with nlevels > 1
 
-    midx = MultiIndex.from_product([[0, 1]])
+    midx = pd.MultiIndex.from_product([[0, 1]])
 
     # Equality self-test: MultiIndex object vs self
-    expected = Series([True, True])
-    result = Series(midx == midx)
+    expected = pd.Series([True, True])
+    result = pd.Series(midx == midx)
     tm.assert_series_equal(result, expected)
 
     # Greater than comparison: MultiIndex object vs self
-    expected = Series([False, False])
-    result = Series(midx > midx)
+    expected = pd.Series([False, False])
+    result = pd.Series(midx > midx)
     tm.assert_series_equal(result, expected)
 
 
 def test_equals_ea_int_regular_int():
     # GH#46026
-    mi1 = MultiIndex.from_arrays([Index([1, 2], dtype="Int64"), [3, 4]])
-    mi2 = MultiIndex.from_arrays([[1, 2], [3, 4]])
+    mi1 = pd.MultiIndex.from_arrays([pd.Index([1, 2], dtype="Int64"), [3, 4]])
+    mi2 = pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
     assert not mi1.equals(mi2)
     assert not mi2.equals(mi1)
 
@@ -289,7 +288,7 @@ def test_multiindex_equals_different_bit_widths():
     # GH#65700 - MultiIndex.equals should be value-based, not byte-based.
     # There is no user-facing way to construct cross-dtype codes naturally;
     # this reproduces the internal regression found in #65192.
-    midx1 = MultiIndex.from_product([["a", "b", "c"], [1, 2]])
-    midx2 = MultiIndex.from_product([["a", "b", "c"], [1, 2]])
+    midx1 = pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]])
+    midx2 = pd.MultiIndex.from_product([["a", "b", "c"], [1, 2]])
     midx2._codes = FrozenList([midx2.codes[0].astype("int64"), midx2.codes[1]])
     assert midx1.equals(midx2)

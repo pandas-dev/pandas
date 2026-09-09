@@ -24,7 +24,8 @@ class TestConvertDtypes:
             }
         )
         with pd.option_context("string_storage", string_storage):
-            with tm.assert_produces_warning(Pandas4Warning):
+            msg = "keyword in DataFrame.convert_dtypes is deprecated"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
                 result = df.convert_dtypes(True, True, convert_integer, False)
         expected = pd.DataFrame(
             {
@@ -170,7 +171,8 @@ class TestConvertDtypes:
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
         expected = df.copy()
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "keyword in DataFrame.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.convert_dtypes(
                 convert_floating=False,
                 convert_integer=False,
@@ -199,7 +201,8 @@ class TestConvertDtypes:
     def test_convert_dtypes_avoid_block_splitting(self):
         # GH#55341
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": "a"})
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "The convert_integer keyword in DataFrame.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.convert_dtypes(convert_integer=False)
         expected = pd.DataFrame(
             {
@@ -254,6 +257,18 @@ class TestConvertDtypes:
             {
                 "col1": pd.array([1, 2], dtype="Int64"),
                 "col2": pd.array(["a", "b"], dtype="string"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_int_out_of_range(self):
+        # GH#66517 only the column that overflows int64/uint64 stays object
+        df = pd.DataFrame({"a": [2**64, 1], "b": [1, 2]}, dtype=object)
+        result = df.convert_dtypes()
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([2**64, 1], dtype=object),
+                "b": pd.Series([1, 2], dtype="Int64"),
             }
         )
         tm.assert_frame_equal(result, expected)

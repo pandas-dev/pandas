@@ -23,11 +23,6 @@ from pandas.errors import (
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-)
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
@@ -85,7 +80,7 @@ from pandas.io.xml import read_xml
 # [X] - ValueError: "Unrecognized compression type"
 # [X] - PermissionError: "Forbidden"
 
-geom_df = DataFrame(
+geom_df = pd.DataFrame(
     {
         "shape": ["square", "circle", "triangle"],
         "degrees": [360, 360, 180],
@@ -134,7 +129,7 @@ xml_prefix_nmsp = """\
 </doc:data>"""
 
 
-df_kml = DataFrame(
+df_kml = pd.DataFrame(
     {
         "id": {
             0: "ID_00001",
@@ -317,7 +312,7 @@ def test_file_like(xml_books, parser, mode):
     with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         df_file = read_xml(f, parser=parser)
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -339,7 +334,7 @@ def test_file_io(xml_books, parser, mode):
         parser=parser,
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -363,7 +358,7 @@ def test_file_buffered_reader_string(xml_books, parser, mode):
 
     df_str = read_xml(xml_obj, parser=parser)
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -388,7 +383,7 @@ def test_file_buffered_reader_no_xml_declaration(xml_books, parser, mode):
 
     df_str = read_xml(xml_obj, parser=parser)
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -406,7 +401,7 @@ def test_string_charset(parser):
 
     df_str = read_xml(StringIO(txt), parser=parser)
 
-    df_expected = DataFrame({"c1": 1, "c2": 2}, index=range(1))
+    df_expected = pd.DataFrame({"c1": 1, "c2": 2}, index=range(1))
 
     tm.assert_frame_equal(df_str, df_expected)
 
@@ -414,7 +409,7 @@ def test_string_charset(parser):
 def test_file_charset(xml_doc_ch_utf, parser):
     df_file = read_xml(xml_doc_ch_utf, parser=parser)
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "問": [
                 "問  若箇是邪而言破邪 何者是正而道(Sorry, this is Big5 only)申正",
@@ -496,7 +491,7 @@ def test_url(httpserver, xml_file):
         httpserver.serve_content(content=f.read())
         df_url = read_xml(httpserver.url, xpath=".//book[count(*)=4]")
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -559,7 +554,7 @@ def test_whitespace(parser, temp_file):
         dtype="string",
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "sides": [" 4 ", " 0 ", " 3 "],
             "shape": [
@@ -617,7 +612,7 @@ def test_default_namespace(parser, temp_file):
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
@@ -643,7 +638,7 @@ def test_prefix_namespace(parser, temp_file):
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "shape": ["square", "circle", "triangle"],
             "degrees": [360, 360, 180],
@@ -737,7 +732,7 @@ def test_file_elems_and_attrs(xml_books, parser):
         parser=parser,
         iterparse={"book": ["category", "title", "author", "year", "price"]},
     )
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -754,7 +749,7 @@ def test_file_elems_and_attrs(xml_books, parser):
 def test_file_only_attrs(xml_books, parser):
     df_file = read_xml(xml_books, attrs_only=True, parser=parser)
     df_iter = read_xml(xml_books, parser=parser, iterparse={"book": ["category"]})
-    df_expected = DataFrame({"category": ["cooking", "children", "web"]})
+    df_expected = pd.DataFrame({"category": ["cooking", "children", "web"]})
 
     tm.assert_frame_equal(df_file, df_expected)
     tm.assert_frame_equal(df_iter, df_expected)
@@ -767,7 +762,7 @@ def test_file_only_elems(xml_books, parser):
         parser=parser,
         iterparse={"book": ["title", "author", "year", "price"]},
     )
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
             "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
@@ -877,7 +872,7 @@ def test_names_option_output(xml_books, parser):
         iterparse={"book": ["category", "title", "author", "year", "price"]},
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "Col1": ["cooking", "children", "web"],
             "Col2": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -918,7 +913,7 @@ def test_repeat_names(parser, temp_file):
         names=["type_dim", "shape", "type_edge"],
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "type_dim": ["2D", "3D"],
             "shape": ["circle", "sphere"],
@@ -962,7 +957,7 @@ def test_repeat_values_new_names(parser, temp_file):
         names=["name", "group"],
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "name": ["rectangle", "square", "ellipse", "circle"],
             "group": ["rectangle", "rectangle", "ellipse", "ellipse"],
@@ -1010,7 +1005,7 @@ def test_repeat_elements(parser, temp_file):
         names=["name", "family", "degrees", "sides"],
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "name": ["circle", "triangle", "square"],
             "family": ["ellipse", "polygon", "polygon"],
@@ -1109,7 +1104,7 @@ def test_none_encoding_etree():
 </data>
 """
     result = read_xml(StringIO(data), parser="etree", encoding=None)
-    expected = DataFrame({"a": ["c"]})
+    expected = pd.DataFrame({"a": ["c"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -1387,7 +1382,7 @@ def test_file_like_iterparse(xml_books, parser, mode):
                 iterparse={"book": ["category", "title", "year", "author", "price"]},
             )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -1429,7 +1424,7 @@ def test_file_io_iterparse(xml_books, parser, mode):
                     },
                 )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "category": ["cooking", "children", "web"],
             "title": ["Everyday Italian", "Harry Potter", "Learning XML"],
@@ -1550,7 +1545,7 @@ def test_comment(parser, temp_file):
         xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "name": ["circle", "sphere"],
             "type": ["2D", "3D"],
@@ -1586,7 +1581,7 @@ def test_dtd(parser, temp_file):
         xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "name": ["circle", "sphere"],
             "type": ["2D", "3D"],
@@ -1622,7 +1617,7 @@ def test_processing_instruction(parser, temp_file):
         xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "name": ["circle", "sphere"],
             "type": ["2D", "3D"],
@@ -1900,7 +1895,7 @@ def test_online_stylesheet():
         stylesheet=StringIO(xsl),
     )
 
-    df_expected = DataFrame(
+    df_expected = pd.DataFrame(
         {
             "title": {
                 0: "Empire Burlesque",
@@ -2031,17 +2026,17 @@ def test_read_xml_nullable_dtypes(
     else:
         string_dtype = pd.StringDtype(string_storage)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
-            "a": Series(["x", "y"], dtype=string_dtype),
-            "b": Series([1, 2], dtype="Int64"),
-            "c": Series([4.0, 5.0], dtype="Float64"),
-            "d": Series(["x", None], dtype=string_dtype),
-            "e": Series([2, NA], dtype="Int64"),
-            "f": Series([4.0, NA], dtype="Float64"),
-            "g": Series([NA, NA], dtype="Int64"),
-            "h": Series([True, False], dtype="boolean"),
-            "i": Series([False, NA], dtype="boolean"),
+            "a": pd.Series(["x", "y"], dtype=string_dtype),
+            "b": pd.Series([1, 2], dtype="Int64"),
+            "c": pd.Series([4.0, 5.0], dtype="Float64"),
+            "d": pd.Series(["x", None], dtype=string_dtype),
+            "e": pd.Series([2, pd.NA], dtype="Int64"),
+            "f": pd.Series([4.0, pd.NA], dtype="Float64"),
+            "g": pd.Series([pd.NA, pd.NA], dtype="Int64"),
+            "h": pd.Series([True, False], dtype="boolean"),
+            "i": pd.Series([False, pd.NA], dtype="boolean"),
         }
     )
 
@@ -2049,7 +2044,7 @@ def test_read_xml_nullable_dtypes(
         pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 col: ArrowExtensionArray(pa.array(expected[col], from_pandas=True))
                 for col in expected.columns

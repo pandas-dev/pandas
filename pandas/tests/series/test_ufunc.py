@@ -172,7 +172,6 @@ def test_binary_ufunc_scalar(ufunc, sparse, flip, arrays_for_binary_ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.divmod])  # TODO: np.modf, np.frexp
 @pytest.mark.parametrize("shuffle", [True, False])
-@pytest.mark.filterwarnings("ignore:divide by zero:RuntimeWarning")
 def test_multiple_output_binary_ufuncs(ufunc, sparse, shuffle, arrays_for_binary_ufunc):
     # Test that
     #  the same conditions from binary_ufunc_scalar apply to
@@ -283,16 +282,12 @@ def values_for_np_reduce(request):
 class TestNumpyReductions:
     # TODO: cases with NAs, axis kwarg for DataFrame
 
-    def test_multiply(self, values_for_np_reduce, box_with_array, request):
+    def test_multiply(self, values_for_np_reduce, box_with_array):
         box = box_with_array
         values = values_for_np_reduce
 
         with tm.assert_produces_warning(None):
             obj = box(values)
-
-        if isinstance(values, pd.core.arrays.SparseArray):
-            mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
-            request.applymarker(mark)
 
         if values.dtype.kind in "iuf":
             result = np.multiply.reduce(obj)
