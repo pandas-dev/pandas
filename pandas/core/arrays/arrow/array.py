@@ -3478,24 +3478,23 @@ class ArrowExtensionArray(
         inverse[group_ids_np] = np.arange(len(group_ids_np))
         indices = pa.array(inverse, mask=inverse < 0)
 
-        try:
-            if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
-                # take carries an out-of-precision decimal through silently
+        if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
+            try:
+                # take would carry an out-of-precision decimal through silently
                 result_values.validate(full=True)
-            pa_result = pc.take(result_values, indices)
-            if default_value.as_py() is not None and min_count == 0:
-                if result_values.null_count == 0:
-                    # every null is a group with no rows
-                    pa_result = _safe_fill_null(pa_result, default_value)
-                else:
-                    # keep the skipna=False nulls, fill only the empty groups
-                    pa_result = pc.if_else(
-                        pc.is_null(indices), default_value, pa_result
-                    )
-        except pa.ArrowInvalid:
-            # e.g. a decimal needing more digits than the maximum precision;
-            # ArrowNotImplementedError needs no branch, groupby routes that one
-            return None
+            except pa.ArrowInvalid:
+                # needs more digits than the maximum precision, so let the
+                # caller fall back to a type that can hold it
+                return None
+
+        pa_result = pc.take(result_values, indices)
+        if default_value.as_py() is not None and min_count == 0:
+            if result_values.null_count == 0:
+                # every null is a group with no rows
+                pa_result = _safe_fill_null(pa_result, default_value)
+            else:
+                # keep the skipna=False nulls, fill only the empty groups
+                pa_result = pc.if_else(pc.is_null(indices), default_value, pa_result)
         return self._from_pyarrow_array(pa_result)
 
     def _to_groupby_compatible(self) -> ExtensionArray:

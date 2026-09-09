@@ -72,7 +72,6 @@ from pandas.api.types import (
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
-pc = pytest.importorskip("pyarrow.compute")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
@@ -4521,61 +4520,6 @@ class TestGroupbyAggPyArrowNative:
         result = getattr(ser.groupby([1] * len(values)), how)()
         assert result.dtype == ArrowDtype(pa.decimal256(39, 0))
         assert result.iloc[0] == expected
-
-    @pytest.mark.parametrize(
-        "dtype, values, how",
-        [
-            (
-                ArrowDtype(pa.decimal128(10, 2)),
-                [Decimal("1"), Decimal("2"), Decimal("3")],
-                "sum",
-            ),
-            (
-                ArrowDtype(pa.decimal128(10, 2)),
-                [Decimal("1"), Decimal("2"), Decimal("3")],
-                "min",
-            ),
-            (ArrowDtype(pa.string()), ["a", "b", "c"], "min"),
-        ],
-        ids=["decimal-sum", "decimal-min", "string-min"],
-    )
-    @pytest.mark.parametrize(
-        "error",
-        [pa.ArrowInvalid, pa.ArrowNotImplementedError],
-        ids=["ArrowInvalid", "ArrowNotImplementedError"],
-    )
-    def test_groupby_take_error_falls_back(
-        self, monkeypatch, dtype, values, how, error
-    ):
-        # GH#66625 a failing placement falls back instead of raising; no
-        # routed type triggers that today, so make take fail. ArrowInvalid is
-        # caught here, ArrowNotImplementedError by groupby (it is one).
-        ser = pd.Series(values, dtype=dtype)
-        expected = getattr(ser.groupby([1, 1, 2]), how)()
-
-        def raise_error(*args, **kwargs):
-            raise error("take cannot take these values")
-
-        monkeypatch.setattr(pc, "take", raise_error)
-        result = getattr(ser.groupby([1, 1, 2]), how)()
-        # the fallback types a decimal sum from the values rather than widening
-        # it to the maximum precision
-        tm.assert_series_equal(result, expected, check_dtype=False)
-
-    def test_groupby_take_other_error_raises(self, monkeypatch):
-        # GH#66625 only the failures that have a fallback are swallowed, so an
-        # unrelated Arrow error still reaches the caller
-        ser = pd.Series(
-            [Decimal("1"), Decimal("2"), Decimal("3")],
-            dtype=ArrowDtype(pa.decimal128(10, 2)),
-        )
-
-        def raise_type_error(*args, **kwargs):
-            raise pa.ArrowTypeError("take got the wrong type")
-
-        monkeypatch.setattr(pc, "take", raise_type_error)
-        with pytest.raises(pa.ArrowTypeError, match="take got the wrong type"):
-            ser.groupby([1, 1, 2]).min()
 
     @pytest.mark.xfail(
         reason="PyArrow's product wraps silently once the result exceeds int256, "
