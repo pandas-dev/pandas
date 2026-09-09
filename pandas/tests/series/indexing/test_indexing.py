@@ -258,8 +258,7 @@ def test_timedelta_assignment():
 def test_underlying_data_conversion():
     # GH 4080
     df = pd.DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
-    return_value = df.set_index(["a", "b", "c"], inplace=True)
-    assert return_value is None
+    df = df.set_index(["a", "b", "c"])
     s = pd.Series([1], index=[(2, 2, 2)])
     df["val"] = 0
     df_original = df.copy()
