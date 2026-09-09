@@ -586,7 +586,7 @@ class Index(IndexOpsMixin, PandasObject):
             raise
         arr = ensure_wrapped_if_datetimelike(arr)  # type: ignore[no-untyped-call]
 
-        arr = ensure_s3_converted_to_obj(arr)  # GH#50127
+        arr = ensure_s3_converted_to_obj(arr)  # type: ignore[no-untyped-call] # GH#50127
 
         klass = cls._dtype_to_subclass(arr.dtype)
 
