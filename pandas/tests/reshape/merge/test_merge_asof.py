@@ -1998,6 +1998,15 @@ class TestAsOfMerge:
                 tolerance=-1,
             )
 
+    def test_tolerance_negative_one_nanosecond(self, trades, quotes):
+        # GH#58517
+        msg = "tolerance must be non-negative"
+
+        with pytest.raises(MergeError, match=msg):
+            pd.merge_asof(
+                trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta(-1)
+            )
+
     def test_tolerance_zero(self):
         # GH#66289 tolerance=0 is valid (exact-match-only) and must not be rejected
         left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})

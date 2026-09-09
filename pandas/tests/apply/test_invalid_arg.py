@@ -232,9 +232,6 @@ def test_agg_raises_series(func, using_infer_string):
     msg = "|".join(
         ["[Cc]ould not convert", "can't multiply sequence by non-int of type"]
     )
-    if func == "median":
-        msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
-
     if using_infer_string and func == "cumprod":
         expected = (TypeError, NotImplementedError)
 

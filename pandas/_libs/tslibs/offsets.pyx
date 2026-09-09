@@ -1283,7 +1283,7 @@ cdef class Tick(SingleConstructorOffset):
     This class should not be instantiated directly. Use one of the specific
     Tick subclasses for a concrete offset.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of units (hours, minutes, etc.) the offset represents.
@@ -1309,6 +1309,14 @@ cdef class Tick(SingleConstructorOffset):
 
     >>> ts + Minute(30)
     Timestamp('2022-12-09 15:30:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _adjust_dst = False
     _prefix = "undefined"
@@ -1515,7 +1523,7 @@ cdef class Day(SingleConstructorOffset):
     datetime-like objects. Addition and subtraction shift the value by
     exactly ``n`` calendar days, with time-of-day preserved.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of days represented.
@@ -1540,6 +1548,14 @@ cdef class Day(SingleConstructorOffset):
 
     >>> ts + Day(-4)
     Timestamp('2022-12-05 15:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _adjust_dst = True
     _attributes = tuple(["n", "normalize"])
@@ -1675,7 +1691,7 @@ cdef class Hour(Tick):
     offsets, the result is deterministic and does not depend on
     timezone or daylight saving.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of hours represented.
@@ -1700,6 +1716,14 @@ cdef class Hour(Tick):
 
     >>> ts + Hour(-4)
     Timestamp('2022-12-09 11:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "h"
@@ -1715,7 +1739,7 @@ cdef class Minute(Tick):
     use in arithmetic with datetime-like objects. Useful for
     time-series alignment at sub-hour resolution.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of minutes represented.
@@ -1740,6 +1764,14 @@ cdef class Minute(Tick):
 
     >>> ts + Minute(n=-10)
     Timestamp('2022-12-09 14:50:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "min"
@@ -1755,7 +1787,7 @@ cdef class Second(Tick):
     with datetime-like objects. The smallest tick offset that does not
     involve fractional seconds.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of seconds represented.
@@ -1780,6 +1812,14 @@ cdef class Second(Tick):
 
     >>> ts + Second(n=-10)
     Timestamp('2022-12-09 14:59:50')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _nanos_inc = 1_000_000_000
     _prefix = "s"
@@ -1795,7 +1835,7 @@ cdef class Milli(Tick):
     second) for use in arithmetic with datetime-like objects. Supports
     sub-second precision in time-series operations.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of milliseconds represented.
@@ -1821,6 +1861,14 @@ cdef class Milli(Tick):
 
     >>> ts + Milli(n=-10)
     Timestamp('2022-12-09 14:59:59.990000')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _nanos_inc = 1_000_000
     _prefix = "ms"
@@ -1836,7 +1884,7 @@ cdef class Micro(Tick):
     second) for use in arithmetic with datetime-like objects. Enables
     microsecond-level precision in time-series operations.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of microseconds represented.
@@ -1862,6 +1910,14 @@ cdef class Micro(Tick):
 
     >>> ts + Micro(n=-1000)
     Timestamp('2022-12-09 14:59:59.999000')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _nanos_inc = 1000
     _prefix = "us"
@@ -1877,7 +1933,7 @@ cdef class Nano(Tick):
     a second) for use in arithmetic with datetime-like objects. The
     finest resolution tick offset, suitable for high-precision timestamps.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of nanoseconds represented.
@@ -1903,6 +1959,14 @@ cdef class Nano(Tick):
 
     >>> ts + Nano(n=-1000)
     Timestamp('2022-12-09 14:59:59.999999')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _nanos_inc = 1
     _prefix = "ns"
@@ -2307,7 +2371,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     Besides, adding a DateOffsets specified by the singular form of the date
     component can be used to replace certain component of the timestamp.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of time periods the offset represents.
@@ -2367,6 +2431,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
 
     See Also
     --------
+    BaseOffset : Base class of all offset types.
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
         to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
@@ -2396,6 +2461,14 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
 
     >>> ts + pd.DateOffset(hour=8)
     Timestamp('2017-01-01 08:10:11')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
@@ -2704,6 +2777,17 @@ cdef class BusinessDay(BusinessMixin):
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts + pd.offsets.BusinessDay(normalize=True)
     Timestamp('2022-12-12 00:00:00')
+
+    Attributes
+    ----------
+    offset
+    holidays
+    calendar
+    weekmask
+
+    Methods
+    -------
+    None
     """
     _period_dtype_code = PeriodDtypeCode.B
     _prefix = "B"
@@ -2945,7 +3029,7 @@ cdef class BusinessHour(BusinessMixin):
     The ``start`` and ``end`` parameters can be used to customize the business
     hours window, and multiple intervals can be specified by passing lists.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of hours represented.
@@ -3004,6 +3088,20 @@ cdef class BusinessHour(BusinessMixin):
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
                    dtype='datetime64[us]', freq='bh')
+
+
+    Attributes
+    ----------
+    offset
+    holidays
+    calendar
+    weekmask
+    start
+    end
+
+    Methods
+    -------
+    None
     """
 
     _prefix = "bh"
@@ -3796,7 +3894,7 @@ cdef class BYearEnd(YearOffset):
     This offset moves dates to the last business day of the specified month
     (default December), skipping weekends.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -3823,6 +3921,14 @@ cdef class BYearEnd(YearOffset):
     Timestamp('2017-12-29 05:01:15')
     >>> ts + BYearEnd(month=11)
     Timestamp('2020-11-30 05:01:15')
+
+    Attributes
+    ----------
+    month
+
+    Methods
+    -------
+    None
     """
 
     _outputName = "BusinessYearEnd"
@@ -3838,7 +3944,7 @@ cdef class BYearBegin(YearOffset):
     This offset moves dates to the first business day of the specified month
     (default January), skipping weekends.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -3865,6 +3971,14 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2022-01-03 05:01:15')
     >>> ts + BYearBegin(month=11)
     Timestamp('2020-11-02 05:01:15')
+
+    Attributes
+    ----------
+    month
+
+    Methods
+    -------
+    None
     """
 
     _outputName = "BusinessYearBegin"
@@ -3928,6 +4042,14 @@ class YearEnd(_YearEnd):
     >>> ts = pd.Timestamp(2022, 12, 31)
     >>> pd.offsets.YearEnd().rollforward(ts)
     Timestamp('2022-12-31 00:00:00')
+
+    Attributes
+    ----------
+    month
+
+    Methods
+    -------
+    None
     """
 
     def __new__(cls, n=1, normalize=False, month=None):
@@ -3940,7 +4062,7 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -3972,6 +4094,14 @@ cdef class YearBegin(YearOffset):
     >>> ts = pd.Timestamp(2023, 1, 1)
     >>> pd.offsets.YearBegin().rollback(ts)
     Timestamp('2023-01-01 00:00:00')
+
+    Attributes
+    ----------
+    month
+
+    Methods
+    -------
+    None
     """
 
     _default_month = 1
@@ -4197,7 +4327,7 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -4222,6 +4352,14 @@ cdef class BQuarterEnd(QuarterOffset):
     Timestamp('2020-05-29 05:01:15')
     >>> ts + BQuarterEnd(startingMonth=2)
     Timestamp('2020-05-29 05:01:15')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _output_name = "BusinessQuarterEnd"
     _default_starting_month = 3
@@ -4238,7 +4376,7 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -4263,6 +4401,14 @@ cdef class BQuarterBegin(QuarterOffset):
     Timestamp('2020-08-03 05:01:15')
     >>> ts + BQuarterBegin(-1)
     Timestamp('2020-03-02 05:01:15')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _output_name = "BusinessQuarterBegin"
     _default_starting_month = 3
@@ -4279,7 +4425,7 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -4297,6 +4443,14 @@ cdef class QuarterEnd(QuarterOffset):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.QuarterEnd()
     Timestamp('2022-03-31 00:00:00')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _default_starting_month = 3
     _prefix = "QE"
@@ -4320,7 +4474,7 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of quarters represented.
@@ -4338,6 +4492,14 @@ cdef class QuarterBegin(QuarterOffset):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.QuarterBegin()
     Timestamp('2022-03-01 00:00:00')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _default_starting_month = 3
     _from_name_starting_month = 1
@@ -4518,7 +4680,7 @@ cdef class BHalfYearEnd(HalfYearOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 8/31/2007, ...
     startingMonth = 6 corresponds to dates like 6/30/2007, 12/31/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of half-years represented.
@@ -4543,6 +4705,14 @@ cdef class BHalfYearEnd(HalfYearOffset):
     Timestamp('2020-08-31 05:01:15')
     >>> ts + BHalfYearEnd(startingMonth=2)
     Timestamp('2020-08-31 05:01:15')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _output_name = "BusinessHalfYearEnd"
     _default_starting_month = 6
@@ -4559,7 +4729,7 @@ cdef class BHalfYearBegin(HalfYearOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 8/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 9/01/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of half-years represented.
@@ -4584,6 +4754,14 @@ cdef class BHalfYearBegin(HalfYearOffset):
     Timestamp('2020-08-03 05:01:15')
     >>> ts + BHalfYearBegin(-1)
     Timestamp('2020-01-01 05:01:15')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _output_name = "BusinessHalfYearBegin"
     _default_starting_month = 1
@@ -4600,7 +4778,7 @@ cdef class HalfYearEnd(HalfYearOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 8/31/2007, ...
     startingMonth = 6 corresponds to dates like 6/30/2007, 12/31/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of half-years represented.
@@ -4618,6 +4796,14 @@ cdef class HalfYearEnd(HalfYearOffset):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.HalfYearEnd()
     Timestamp('2022-06-30 00:00:00')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _default_starting_month = 6
     _from_name_starting_month = 12
@@ -4633,7 +4819,7 @@ cdef class HalfYearBegin(HalfYearOffset):
     startingMonth = 2 corresponds to dates like 2/01/2007, 8/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 9/01/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of half-years represented.
@@ -4651,6 +4837,14 @@ cdef class HalfYearBegin(HalfYearOffset):
     >>> ts = pd.Timestamp(2022, 2, 1)
     >>> ts + pd.offsets.HalfYearBegin()
     Timestamp('2022-07-01 00:00:00')
+
+    Attributes
+    ----------
+    startingMonth
+
+    Methods
+    -------
+    None
     """
     _default_starting_month = 1
     _from_name_starting_month = 1
@@ -4735,7 +4929,7 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -4761,6 +4955,14 @@ cdef class MonthEnd(MonthOffset):
     >>> ts = pd.Timestamp(2022, 1, 31)
     >>> pd.offsets.MonthEnd().rollforward(ts)
     Timestamp('2022-01-31 00:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _period_dtype_code = PeriodDtypeCode.M
     _prefix = "ME"
@@ -4773,7 +4975,7 @@ cdef class MonthBegin(MonthOffset):
 
     MonthBegin goes to the next date which is a start of the month.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -4799,6 +5001,14 @@ cdef class MonthBegin(MonthOffset):
     >>> ts = pd.Timestamp(2022, 12, 1)
     >>> pd.offsets.MonthBegin().rollback(ts)
     Timestamp('2022-12-01 00:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _prefix = "MS"
     _day_opt = "start"
@@ -4810,7 +5020,7 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -4836,6 +5046,14 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> ts = pd.Timestamp(2022, 11, 30)
     >>> pd.offsets.BMonthEnd().rollforward(ts)
     Timestamp('2022-11-30 00:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _prefix = "BME"
     _day_opt = "business_end"
@@ -4848,7 +5066,7 @@ cdef class BusinessMonthBegin(MonthOffset):
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -4874,6 +5092,14 @@ cdef class BusinessMonthBegin(MonthOffset):
     >>> ts = pd.Timestamp(2022, 12, 1)
     >>> pd.offsets.BMonthBegin().rollback(ts)
     Timestamp('2022-12-01 00:00:00')
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
     """
     _prefix = "BMS"
     _day_opt = "business_start"
@@ -5076,7 +5302,7 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     day of the month. It is useful for financial or scheduling applications where
     events occur bi-monthly.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -5111,6 +5337,14 @@ cdef class SemiMonthEnd(SemiMonthOffset):
     >>> ts = pd.Timestamp(2022, 1, 15)
     >>> pd.offsets.SemiMonthEnd().rollforward(ts)
     Timestamp('2022-01-15 00:00:00')
+
+    Attributes
+    ----------
+    day_of_month
+
+    Methods
+    -------
+    None
     """
     _prefix = "SME"
     _min_day_of_month = 1
@@ -5168,7 +5402,7 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     day (typically the 15th by default), useful in scenarios where bi-monthly processing
     occurs on set days.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -5189,6 +5423,14 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.SemiMonthBegin()
     Timestamp('2022-01-15 00:00:00')
+
+    Attributes
+    ----------
+    day_of_month
+
+    Methods
+    -------
+    None
     """
 
     _prefix = "SMS"
@@ -5250,7 +5492,7 @@ cdef class Week(SingleConstructorOffset):
     of the weekly period. For example, ``W-MON`` produces weekly periods that
     end on Monday (and start on Tuesday).
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of weeks represented.
@@ -5284,6 +5526,14 @@ cdef class Week(SingleConstructorOffset):
     >>> date_next_sunday = date_object + pd.tseries.offsets.Week(weekday=6)
     >>> date_next_sunday
     Timestamp('2023-01-15 00:00:00')
+
+    Attributes
+    ----------
+    weekday
+
+    Methods
+    -------
+    None
     """
 
     _inc = timedelta(weeks=1)
@@ -5542,7 +5792,7 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     where 0 corresponds to the first week of the month, and weekday follows
     a Monday=0 convention.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -5573,6 +5823,15 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.WeekOfMonth()
     Timestamp('2022-01-03 00:00:00')
+
+    Attributes
+    ----------
+    week
+    weekday
+
+    Methods
+    -------
+    None
     """
 
     _prefix = "WOM"
@@ -5625,7 +5884,7 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
 
     For example "the last Tuesday of each month".
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of months represented.
@@ -5656,6 +5915,15 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.LastWeekOfMonth()
     Timestamp('2022-01-31 00:00:00')
+
+    Attributes
+    ----------
+    week
+    weekday
+
+    Methods
+    -------
+    None
     """
 
     _prefix = "LWOM"
@@ -5907,7 +6175,7 @@ cdef class FY5253(FY5253Mixin):
     X is a specific day of the week.
     Y is a certain month of the year
 
-    Attributes
+    Parameters
     ----------
     n : int
         The number of fiscal years represented.
@@ -5960,6 +6228,17 @@ cdef class FY5253(FY5253Mixin):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.FY5253(weekday=5, startingMonth=12, variation="last")
     Timestamp('2022-12-31 00:00:00')
+
+    Attributes
+    ----------
+    weekday
+    startingMonth
+    variation
+
+    Methods
+    -------
+    get_rule_code_suffix
+    get_year_end
     """
 
     _prefix = "RE"
@@ -6179,7 +6458,7 @@ cdef class FY5253Quarter(FY5253Mixin):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
-    Attributes
+    Parameters
     ----------
     n : int
         The number of business quarters represented.
@@ -6236,6 +6515,19 @@ cdef class FY5253Quarter(FY5253Mixin):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.FY5253Quarter(weekday=5, startingMonth=12, variation="last")
     Timestamp('2022-04-02 00:00:00')
+
+    Attributes
+    ----------
+    weekday
+    startingMonth
+    qtr_with_extra_week
+    variation
+
+    Methods
+    -------
+    get_rule_code_suffix
+    get_weeks
+    year_has_extra_week
     """
 
     _prefix = "REQ"
@@ -6583,7 +6875,7 @@ cdef class Easter(SingleConstructorOffset):
 
     Right now uses the revised method which is valid in years 1583-4099.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -6605,6 +6897,14 @@ cdef class Easter(SingleConstructorOffset):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.Easter()
     Timestamp('2022-04-17 00:00:00')
+
+    Attributes
+    ----------
+    method
+
+    Methods
+    -------
+    None
     """
 
     _attributes = tuple(["n", "normalize", "method"])
@@ -6767,6 +7067,17 @@ cdef class CustomBusinessDay(BusinessDay):
     >>> ts = pd.Timestamp(2022, 8, 5, 16)
     >>> ts + pd.offsets.CustomBusinessDay(1, offset=dt.timedelta(days=1))
     Timestamp('2022-08-09 16:00:00')
+
+    Attributes
+    ----------
+    weekmask
+    holidays
+    calendar
+    offset
+
+    Methods
+    -------
+    None
     """
 
     _prefix = "C"
@@ -6908,7 +7219,7 @@ cdef class CustomBusinessHour(BusinessHour):
 
     In CustomBusinessHour we can use custom weekmask, holidays, and calendar.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of hours represented.
@@ -7000,6 +7311,19 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-16 10:00:00', '2022-12-16 11:00:00',
                    '2022-12-16 12:00:00'],
                    dtype='datetime64[us]', freq='cbh')
+
+    Attributes
+    ----------
+    weekmask
+    holidays
+    calendar
+    start
+    end
+    offset
+
+    Methods
+    -------
+    None
     """
 
     _prefix = "cbh"
@@ -7195,6 +7519,18 @@ class CustomBusinessMonthEnd(_CustomBusinessMonthEnd):
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
                    dtype='datetime64[us]', freq='CBME')
+
+    Attributes
+    ----------
+    m_offset
+    weekmask
+    holidays
+    calendar
+    offset
+
+    Methods
+    -------
+    None
     """
 
     def __init__(
@@ -7276,6 +7612,18 @@ class CustomBusinessMonthBegin(_CustomBusinessMonthBegin):
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-08-02', '2022-09-01', '2022-10-03', '2022-11-02'],
                    dtype='datetime64[us]', freq='CBMS')
+
+    Attributes
+    ----------
+    m_offset
+    weekmask
+    holidays
+    calendar
+    offset
+
+    Methods
+    -------
+    None
     """
 
     def __init__(

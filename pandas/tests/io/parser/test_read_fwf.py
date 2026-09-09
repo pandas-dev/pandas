@@ -982,6 +982,21 @@ def test_invalid_dtype_backend():
         read_fwf("test", dtype_backend="numpy")
 
 
+def test_dtype_category_infers_numeric_and_bool():
+    # GH#56044 read_fwf shares read_csv's category inference
+    data = """\
+  a      b
+  1   True
+  2  False
+  1   True
+"""
+    expected = pd.DataFrame(
+        {"a": pd.Categorical([1, 2, 1]), "b": pd.Categorical([True, False, True])}
+    )
+    result = read_fwf(StringIO(data), dtype="category")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.network
 @pytest.mark.single_cpu
 def test_url_urlopen(httpserver):

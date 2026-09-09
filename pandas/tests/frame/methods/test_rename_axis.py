@@ -1,11 +1,14 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
 
 class TestDataFrameRenameAxis:
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.rename_axis")
     def test_rename_axis_inplace(self, float_frame):
         # GH#15704
         expected = float_frame.rename_axis("foo")
@@ -117,3 +120,28 @@ class TestDataFrameRenameAxis:
         expected_columns = columns.rename(None) if rename_columns else columns
         expected = pd.DataFrame(data, expected_index, expected_columns)
         tm.assert_frame_equal(result, expected)
+
+
+def test_rename_axis_inplace_depr():
+    msg = "The inplace keyword in DataFrame.rename_axis is deprecated"
+
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index([0, 1, 2], name="idx"))
+    df_orig = df.copy()
+    expected = df.rename_axis("foo")
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = df.rename_axis("foo")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.rename_axis("foo", inplace=False)
+    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.rename_axis("foo", inplace=True)
+    tm.assert_frame_equal(df, expected)

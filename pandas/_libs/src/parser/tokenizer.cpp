@@ -573,6 +573,9 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
 
   if (self->skipset == NULL) {
     self->skipset = (void *)kh_init_int64();
+    if (self->skipset == NULL) {
+      return -1;
+    }
   }
 
   set = (kh_int64_t *)self->skipset;
