@@ -88,6 +88,37 @@ class TestDataFrameClip:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_clip_datetime_threshold_with_duplicate_columns(self):
+        # GH#44785
+        # duplicate column labels must not break the per-column dt_like mask
+        df = pd.DataFrame(
+            {
+                "x": pd.to_datetime(["2020-01-05", "2020-01-01"]),
+                "y": pd.to_datetime(["2020-01-04", "2020-01-02"]),
+            }
+        )
+        df.columns = ["a", "a"]
+        result = df.clip(lower=df.copy())
+        tm.assert_frame_equal(result, df)
+
+        # NaT thresholds on duplicate columns act as no bounds
+        thr = pd.DataFrame(
+            {
+                "x": pd.to_datetime(["2020-01-03", None]),
+                "y": pd.to_datetime(["2020-01-01", None]),
+            }
+        )
+        thr.columns = ["a", "a"]
+        result = df.clip(lower=thr)
+        expected = pd.DataFrame(
+            {
+                "x": pd.to_datetime(["2020-01-05", "2020-01-01"]),
+                "y": pd.to_datetime(["2020-01-04", "2020-01-02"]),
+            }
+        )
+        expected.columns = ["a", "a"]
+        tm.assert_frame_equal(result, expected)
+
     def test_clip_mixed_dtype_threshold_with_missing_values(self):
         # GH#44785
         # datetime columns must not be filled with inf even when other

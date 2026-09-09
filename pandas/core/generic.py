@@ -8743,7 +8743,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # or timedelta values. Fill only the remaining columns
                     # and track the missing positions explicitly, keeping
                     # the original values where the threshold is missing.
-                    non_dt_cols = [col for col in threshold.columns if not dt_like[col]]
+                    non_dt_cols = [col for col, is_dt in dt_like.items() if not is_dt]
                     threshold_inf = threshold.copy() if non_dt_cols else threshold
                     for col in non_dt_cols:
                         threshold_inf[col] = threshold[col].fillna(fill_value)
