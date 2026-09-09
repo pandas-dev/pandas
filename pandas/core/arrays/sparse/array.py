@@ -1624,9 +1624,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             result = method(skipna=skipna, **kwargs)
         else:
             if skipna:
-                arr = self
-            else:
                 arr = self.dropna()
+            else:
+                arr = self
             result = getattr(arr, name)(**kwargs)
 
         if keepdims:
