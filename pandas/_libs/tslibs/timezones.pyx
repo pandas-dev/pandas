@@ -403,7 +403,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
 
     first_offset_seconds = int(tz_py._tti_before.utcoff.total_seconds())
 
-    # Between 2013 and 2018f, zic opened TZif files with a "big bang" transition
+    # Certain older systems (with toolchain from between 2013 and 2018f) have TZif files that start with a "big bang" transition
     #  at -2**59 seconds, which wraps when scaled to nanoseconds and leaves
     #  trans unsorted; the NPY_NAT + 1 sentinel below stands in for it. GH#67066
     if trans_utc and trans_utc[0] < _MIN_TRANS_SECONDS:
