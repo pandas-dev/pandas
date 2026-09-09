@@ -1041,8 +1041,8 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Bug in :func:`array` raising when constructing string or binary :class:`ArrowDtype` arrays from sequences containing ``NaN`` with ``future.distinguish_nan_and_na=False`` (:issue:`64578`)
 - :func:`api.extensions.register_extension_dtype` now raises an informative ``TypeError`` at registration when the :class:`~pandas.api.extensions.ExtensionDtype` subclass does not define a string ``name`` attribute, instead of a bare ``AssertionError`` when the dtype is later used (:issue:`46093`)
+- Bug in :func:`array` raising when constructing string or binary :class:`ArrowDtype` arrays from sequences containing ``NaN`` with ``future.distinguish_nan_and_na=False`` (:issue:`64578`)
 - Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` not propagating ``pd.NA`` on numpy-nullable columns (``boolean``, ``Int*``, ``UInt*``, ``Float*``); ``axis=0`` raised ``ValueError`` and ``axis=1`` returned a concrete ``True``/``False`` (:issue:`65710`)
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
