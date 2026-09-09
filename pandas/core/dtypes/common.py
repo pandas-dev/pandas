@@ -1207,7 +1207,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
     False
     >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ns]"))
     True
-    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8"))
+    >>> is_timedelta64_ns_dtype(np.array([1, 2], dtype="m8[ms]"))
     False
     """
     return _is_dtype(arr_or_dtype, lambda dtype: dtype == TD64NS_DTYPE)

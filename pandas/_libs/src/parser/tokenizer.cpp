@@ -192,6 +192,8 @@ void parser_set_default_options(parser_t *self) {
   self->expected_fields = -1;
   self->on_bad_lines = BLHM_ERROR;
   self->preloaded = 0;
+  self->header_done = 0;
+  self->prev_line_fields = -1;
 
   self->commentchar = '#';
   self->thousands = '\0';
@@ -393,8 +395,11 @@ static inline int end_field(parser_t *self) {
     return PARSER_OUT_OF_MEMORY;
   }
 
-  // null terminate token
-  push_char(self, '\0');
+  // null terminate token; a failure here would otherwise leave word_ends
+  // pointing at the field's last byte, silently truncating it
+  if (push_char(self, '\0') < 0) {
+    return PARSER_OUT_OF_MEMORY;
+  }
 
   // record the NUL's offset; the word's start is the previous word's
   // end + 1 (or 0 for the first word)
@@ -443,16 +448,18 @@ static void parser_append_warningf(parser_t *self, const char *fmt, ...) {
   append_warning(self, self->warn_buf);
 }
 
-static int end_line(parser_t *self) {
+// remaining_input is the number of bytes of the current read buffer that the
+// caller has not consumed yet; see the short-row padding below.
+static int end_line(parser_t *self, int64_t remaining_input) {
   int64_t ex_fields = self->expected_fields;
   int64_t fields = self->line_fields[self->lines];
 
-  if (self->lines > 0) {
-    if (self->expected_fields >= 0) {
-      ex_fields = self->expected_fields;
-    } else {
-      ex_fields = self->line_fields[self->lines - 1];
-    }
+  if (self->expected_fields < 0) {
+    // Width of the preceding line.  Slot 0 has no predecessor left in the
+    // buffer once parser_consume_rows has shifted the chunk down, so fall back
+    // to the count carried over from before the boundary.
+    ex_fields = self->lines > 0 ? self->line_fields[self->lines - 1]
+                                : self->prev_line_fields;
   }
 
   if (self->state == START_FIELD_IN_SKIP_LINE ||
@@ -470,12 +477,18 @@ static int end_line(parser_t *self) {
     return 0;
   }
 
-  /* The first line is normally exempt from the field-count check: it is the
-   * header, or it defines the table width (implicit-index inference).  In
-   * preloaded mode (TextReader.load_buffer) the width was fixed up front and
-   * the first line is plain data, so the exemption must not apply. */
-  if ((self->preloaded || !(self->lines <= self->header_end + 1)) &&
-      (fields > ex_fields) && !(self->usecols)) {
+  /* The first lines are normally exempt from the field-count check: they are
+   * the header, plus the line after it that defines the table width
+   * (implicit-index inference).  Those slots only hold header rows while the
+   * header is being read: once header_done is set the buffer holds nothing but
+   * data rows, and parser_consume_rows keeps shifting them down into slot 0.
+   * In preloaded mode (TextReader.load_buffer) the width was fixed up front
+   * and the first line is plain data, so the exemption never applies. */
+  const int in_header = !self->header_done && !self->preloaded &&
+                        self->lines <= self->header_end + 1;
+
+  if (!in_header && (ex_fields >= 0) && (fields > ex_fields) &&
+      !(self->usecols)) {
     // increment file line count
     self->file_lines++;
 
@@ -503,15 +516,33 @@ static int end_line(parser_t *self) {
     }
   } else {
     // missing trailing delimiters
-    if ((self->lines >= self->header_end + 1) && fields < ex_fields) {
-      // might overrun the buffer when closing fields
-      if (make_stream_space(self, ex_fields - fields) < 0) {
+    if ((self->header_done || self->lines >= self->header_end + 1) &&
+        fields < ex_fields) {
+      // The synthetic terminators take stream and word space but consume no
+      // input, so reserving only for them would eat into tokenize_bytes'
+      // up-front reservation for the input still waiting to be tokenized.
+      // Nothing downstream re-checks that: the bulk copies write field bytes
+      // with no capacity check, and end_field only bails out.  Reserve for the
+      // unconsumed input as well so that reservation survives the padding.
+      const int64_t reserve = (ex_fields - fields) + remaining_input;
+      // Unreachable: every call site is provably non-negative.  Kept because
+      // a future call site computing remaining_input wrongly would otherwise
+      // wrap in make_stream_space's size_t, silently skip the growth, and put
+      // the unchecked bulk copies back on a stale reservation.
+      if (reserve < 0) {
+        parser_set_error_msg(self, "internal error: negative token stream "
+                                   "reservation\n");
+        return -1;
+      }
+      if (make_stream_space(self, (size_t)reserve) < 0) {
         parser_set_error_msg(self, "out of memory");
         return -1;
       }
 
       while (fields < ex_fields) {
-        end_field(self);
+        if (end_field(self) < 0) {
+          return -1;
+        }
         fields++;
       }
     }
@@ -542,6 +573,9 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
 
   if (self->skipset == NULL) {
     self->skipset = (void *)kh_init_int64();
+    if (self->skipset == NULL) {
+      return -1;
+    }
   }
 
   set = (kh_int64_t *)self->skipset;
@@ -610,7 +644,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define END_LINE_STATE(STATE)                                                  \
   self->stream_len = slen;                                                     \
-  if (end_line(self) < 0) {                                                    \
+  if (end_line(self, self->datalen - (i + 1)) < 0) {                           \
     goto parsingerror;                                                         \
   }                                                                            \
   stream = self->stream + self->stream_len;                                    \
@@ -622,7 +656,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 
 #define END_LINE_AND_FIELD_STATE(STATE)                                        \
   self->stream_len = slen;                                                     \
-  if (end_line(self) < 0) {                                                    \
+  if (end_line(self, self->datalen - (i + 1)) < 0) {                           \
     goto parsingerror;                                                         \
   }                                                                            \
   if (end_field(self) < 0) {                                                   \
@@ -953,7 +987,9 @@ block_after_line(parser_t *self, const block_lane_config *config,
     if (self->stream_len + 16 > self->stream_cap) {
       // Not enough slack for the unchecked tail re-copy; hand the rest
       // of the input back to the state machine, whose writes are
-      // capacity-checked.
+      // capacity-checked.  This asks for a flat 16 bytes while the re-copy
+      // below needs 15 - pos - term_extra, which the reservation always
+      // covers, so the deferral is reached but only ever costs speed.
       *exit_i = i + pos + 1 + term_extra;
       return BLOCK_EMIT_DEFER;
     }
@@ -1020,7 +1056,7 @@ block_emit_boundaries(parser_t *self, const block_lane_config *config,
       return BLOCK_EMIT_PARSINGERROR;
     }
     if (is_term) {
-      if (end_line(self) < 0) {
+      if (end_line(self, self->datalen - (i + pos + 1 + term_extra)) < 0) {
         *exit_i = i + pos;
         return BLOCK_EMIT_PARSINGERROR;
       }
@@ -1070,7 +1106,10 @@ static block_lane_status block_fast_lane(parser_t *self,
   // lane's only unchecked stream writes; requiring 32 bytes of slack per
   // block keeps them within stream_cap no matter how end_line moves
   // stream_len (checked writes inside end_field/end_line error out on
-  // their own).
+  // their own).  Every stream write is either 1:1 with the input it consumes
+  // or re-reserves what it spends, so stream_cap - stream_len stays at
+  // 2 * (self->datalen - i) + 1 or better; with datalen - i >= 16 below, the
+  // slack test is a backstop and is not expected to fire.
   while (i + 16 <= self->datalen && self->stream_len + 32 <= self->stream_cap) {
     if (at_line_edge && (*buf == ' ' || *buf == '\t') &&
         *buf != config->delimiter) {
@@ -1221,8 +1260,10 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
 
   // Reserve worst-case stream space up front: the bulk-scan copies below
   // (scalar and SIMD) write input data 1:1 with no per-copy capacity check, so
-  // the stream must already hold all remaining input. Field null-terminators
-  // can exceed 1:1 but go through PUSH_CHAR/END_FIELD, which re-check capacity.
+  // the stream must already hold all remaining input. Only end_line's padding
+  // for a short row writes without consuming input and so erodes this; it
+  // re-reserves what it spends. PUSH_CHAR/END_FIELD do check capacity, but
+  // they can only fail the parse, not restore the reservation.
   if (make_stream_space(self, self->datalen - self->datapos) < 0) {
     parser_set_error_msg(self, "out of memory");
     return -1;
@@ -1543,7 +1584,9 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             size_t skip = fast_scan_simd(buf, remaining, vdelim, vterm, vcr,
                                          vquote, vescape, vcomment);
             if (skip > 0) {
-              // in-bounds; see stream reservation at loop start
+              // in-bounds: the reservation at function entry covers all
+              // remaining input, and end_line restores it when short-row
+              // padding eats into it
               memcpy(stream, buf, skip);
               stream += skip;
               slen += skip;
@@ -1678,7 +1721,8 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
           // UGH. we don't actually want
           // to consume the token. fix this later
           self->stream_len = slen;
-          if (end_line(self) < 0) {
+          // c is pushed back below, so it still counts as unconsumed
+          if (end_line(self, self->datalen - i) < 0) {
             goto parsingerror;
           }
 
@@ -1759,7 +1803,7 @@ static int parser_handle_eof(parser_t *self) {
     break;
   }
 
-  if (end_line(self) < 0)
+  if (end_line(self, 0) < 0)
     return -1;
   else
     return 0;
@@ -1777,6 +1821,11 @@ int parser_consume_rows(parser_t *self, uint64_t nrows) {
   /* cannot guarantee that nrows + 1 has been observed */
   const int64_t word_deletions =
       self->line_start[nrows - 1] + self->line_fields[nrows - 1];
+
+  /* The last line going away is the one end_line will want to compare the
+   * next line against, once the shift below has left it with no predecessor
+   * in the buffer. */
+  self->prev_line_fields = self->line_fields[nrows - 1];
 
   uint64_t char_count;
   if (word_deletions < 1) {
@@ -1985,7 +2034,7 @@ int to_boolean(const char *item, int64_t length, uint8_t *val) {
   return -1;
 }
 
-int infinity_sign(const char *item, int64_t length) {
+int parse_special_float(const char *item, int64_t length, double *out) {
   int sign = 1;
 
   if (length > 0 && (*item == '+' || *item == '-')) {
@@ -1996,10 +2045,11 @@ int infinity_sign(const char *item, int64_t length) {
 
   if ((length == 3 && strncasecmp(item, "inf", 3) == 0) ||
       (length == 8 && strncasecmp(item, "infinity", 8) == 0)) {
-    return sign;
+    *out = sign > 0 ? HUGE_VAL : -HUGE_VAL;
+    return 0;
   }
 
-  return 0;
+  return -1;
 }
 
 // ---------------------------------------------------------------------------
@@ -2162,6 +2212,13 @@ fallback:
   // Accumulate mantissa digits as an integer to avoid per-digit FP rounding.
   // max_digits=17 decimal digits fit safely in uint64_t (max ~9.9e17 < 2^64).
   uint64_t mantissa = 0;
+  // Skip leading zeros so they don't consume the max_digits.
+  bool saw_digit = false;
+  while (*p == '0') {
+    saw_digit = true;
+    p++;
+    p += (tsep != '\0' && *p == tsep);
+  }
 
   // Process string of digits.
   while (isdigit_ascii(*p)) {
@@ -2196,7 +2253,11 @@ fallback:
     exponent -= num_decimals;
   }
 
-  if (num_digits == 0) {
+  // saw_digit covers an all-zero mantissa ("0", "000", "0."), which is a valid
+  // zero rather than an unparsable string. Testing it here instead of seeding
+  // num_digits leaves the full max_digits budget for the fractional part, so
+  // "0.5" and ".5" get the same precision.
+  if (num_digits == 0 && !saw_digit) {
     *error = ERANGE;
     return 0.0;
   }

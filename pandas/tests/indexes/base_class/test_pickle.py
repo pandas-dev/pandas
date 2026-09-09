@@ -1,10 +1,10 @@
-from pandas import Index
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_pickle_preserves_object_dtype(temp_file):
     # GH#43188, GH#43155 don't infer numeric dtype
-    index = Index([1, 2, 3], dtype=object)
+    index = pd.Index([1, 2, 3], dtype=object)
 
     result = tm.round_trip_pickle(index, temp_file)
     assert result.dtype == object

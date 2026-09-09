@@ -2,6 +2,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas.core.indexers import (
     is_scalar_indexer,
     length_of_indexer,
@@ -14,6 +15,12 @@ def test_length_of_indexer():
     arr[0] = 1
     result = length_of_indexer(arr)
     assert result == 1
+
+
+def test_length_of_indexer_boolean_index():
+    # GH#68021 the boolean branch used indexer.sum(), which Index does not have
+    assert length_of_indexer(pd.Index([True, False, True])) == 2
+    assert length_of_indexer(pd.Series([True, False, True])) == 2
 
 
 @pytest.mark.parametrize(

@@ -6,6 +6,9 @@ from pandas.core.frame import DataFrame
 class TestDataFrameValidate:
     """Tests for error handling related to data types of method arguments."""
 
+    @pytest.mark.filterwarnings(
+        "ignore:The inplace keyword:pandas.errors.Pandas4Warning"
+    )
     @pytest.mark.parametrize(
         "func",
         [

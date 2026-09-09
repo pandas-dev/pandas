@@ -45,8 +45,37 @@ if TYPE_CHECKING:
 
 def next_monday(dt: datetime) -> datetime:
     """
-    If holiday falls on Saturday, use following Monday instead;
-    if holiday falls on Sunday, use Monday instead
+    Move Saturday and Sunday to the following Monday.
+
+    A holiday on a weekday keeps its date.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.weekend_to_monday : Move Saturday and Sunday to the
+        following Monday.
+    tseries.holiday.next_monday_or_tuesday : Move Saturday to Monday, and
+        Sunday or Monday to Tuesday.
+    tseries.holiday.Holiday : Class that defines a holiday with start/end
+        dates and rules for observance.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import next_monday
+    >>> next_monday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2022, 1, 3, 0, 0)
+    >>> next_monday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2022, 1, 3, 0, 0)
     """
     if dt.weekday() == 5:
         return dt + timedelta(2)
@@ -57,10 +86,40 @@ def next_monday(dt: datetime) -> datetime:
 
 def next_monday_or_tuesday(dt: datetime) -> datetime:
     """
-    For second holiday of two adjacent ones!
-    If holiday falls on Saturday, use following Monday instead;
-    if holiday falls on Sunday or Monday, use following Tuesday instead
-    (because Monday is already taken by adjacent holiday on the day before)
+    Move Saturday to Monday, and Sunday or Monday to Tuesday.
+
+    Use this for the second of two adjacent holidays, where the Monday is
+    already taken by the holiday of the day before.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.next_monday : Move Saturday and Sunday to the following
+        Monday.
+    tseries.holiday.after_nearest_workday : Move to the workday after the
+        nearest workday.
+    tseries.holiday.Holiday : Class that defines a holiday with start/end
+        dates and rules for observance.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import next_monday_or_tuesday
+    >>> next_monday_or_tuesday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2022, 1, 3, 0, 0)
+    >>> next_monday_or_tuesday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2022, 1, 4, 0, 0)
+    >>> next_monday_or_tuesday(datetime(2022, 1, 3))  # Monday
+    datetime.datetime(2022, 1, 4, 0, 0)
     """
     dow = dt.weekday()
     if dow in (5, 6):
@@ -72,7 +131,36 @@ def next_monday_or_tuesday(dt: datetime) -> datetime:
 
 def previous_friday(dt: datetime) -> datetime:
     """
-    If holiday falls on Saturday or Sunday, use previous Friday instead.
+    Move Saturday and Sunday back to the previous Friday.
+
+    A holiday on a weekday keeps its date.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.next_monday : Move Saturday and Sunday to the following
+        Monday.
+    tseries.holiday.previous_workday : Move to the previous weekday.
+    tseries.holiday.Holiday : Class that defines a holiday with start/end
+        dates and rules for observance.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import previous_friday
+    >>> previous_friday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2021, 12, 31, 0, 0)
+    >>> previous_friday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2021, 12, 31, 0, 0)
     """
     if dt.weekday() == 5:
         return dt - timedelta(1)
@@ -83,7 +171,37 @@ def previous_friday(dt: datetime) -> datetime:
 
 def sunday_to_monday(dt: datetime) -> datetime:
     """
-    If holiday falls on Sunday, use day thereafter (Monday) instead.
+    Move Sunday to the following Monday.
+
+    A holiday on a Saturday stays where it is.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.weekend_to_monday : Move Saturday and Sunday to the
+        following Monday.
+    tseries.holiday.nearest_workday : Move Saturday to Friday and Sunday to
+        Monday.
+    tseries.holiday.Holiday : Class that defines a holiday with start/end
+        dates and rules for observance.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import sunday_to_monday
+    >>> sunday_to_monday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2022, 1, 3, 0, 0)
+    >>> sunday_to_monday(datetime(2022, 1, 1))  # Saturday, unchanged
+    datetime.datetime(2022, 1, 1, 0, 0)
     """
     if dt.weekday() == 6:
         return dt + timedelta(1)
@@ -92,9 +210,37 @@ def sunday_to_monday(dt: datetime) -> datetime:
 
 def weekend_to_monday(dt: datetime) -> datetime:
     """
-    If holiday falls on Sunday or Saturday,
-    use day thereafter (Monday) instead.
-    Needed for holidays such as Christmas observation in Europe
+    Move Saturday and Sunday to the following Monday.
+
+    Same as ``next_monday``. Needed for holidays such as the Christmas
+    observation in Europe.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.next_monday : Move Saturday and Sunday to the following
+        Monday.
+    tseries.holiday.sunday_to_monday : Move Sunday to the following Monday.
+    tseries.holiday.Holiday : Class that defines a holiday with start/end
+        dates and rules for observance.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import weekend_to_monday
+    >>> weekend_to_monday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2022, 1, 3, 0, 0)
+    >>> weekend_to_monday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2022, 1, 3, 0, 0)
     """
     if dt.weekday() == 6:
         return dt + timedelta(1)
@@ -105,8 +251,37 @@ def weekend_to_monday(dt: datetime) -> datetime:
 
 def nearest_workday(dt: datetime) -> datetime:
     """
-    If holiday falls on Saturday, use day before (Friday) instead;
-    if holiday falls on Sunday, use day thereafter (Monday) instead.
+    Move Saturday to Friday and Sunday to Monday.
+
+    Most US federal holidays follow this rule.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.before_nearest_workday : Move to the workday before the
+        nearest workday.
+    tseries.holiday.after_nearest_workday : Move to the workday after the
+        nearest workday.
+    tseries.holiday.USFederalHolidayCalendar : US Federal Government holiday
+        calendar.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import nearest_workday
+    >>> nearest_workday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2021, 12, 31, 0, 0)
+    >>> nearest_workday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2022, 1, 3, 0, 0)
     """
     if dt.weekday() == 5:
         return dt - timedelta(1)
@@ -117,11 +292,38 @@ def nearest_workday(dt: datetime) -> datetime:
 
 def next_workday(dt: datetime) -> datetime:
     """
-    returns next workday used for observances
+    Move to the next weekday.
 
     The date is always advanced by at least one day, even when ``dt`` already
     falls on a weekday. To leave weekdays unchanged and move only weekend
     dates forward, use ``next_monday`` or ``weekend_to_monday``.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date to move forward from.
+
+    Returns
+    -------
+    datetime
+        The next weekday after ``dt``.
+
+    See Also
+    --------
+    tseries.holiday.previous_workday : Move to the previous weekday.
+    tseries.holiday.next_monday : Move Saturday and Sunday to the following
+        Monday.
+    tseries.holiday.after_nearest_workday : Move to the workday after the
+        nearest workday.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import next_workday
+    >>> next_workday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2022, 1, 3, 0, 0)
+    >>> next_workday(datetime(2022, 1, 5))  # Wednesday, still advances
+    datetime.datetime(2022, 1, 6, 0, 0)
     """
     dt += timedelta(days=1)
     while dt.weekday() > 4:
@@ -132,11 +334,38 @@ def next_workday(dt: datetime) -> datetime:
 
 def previous_workday(dt: datetime) -> datetime:
     """
-    returns previous workday used for observances
+    Move to the previous weekday.
 
     The date is always moved back by at least one day, even when ``dt``
     already falls on a weekday. To leave weekdays unchanged and move only
     weekend dates back, use ``previous_friday``.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date to move back from.
+
+    Returns
+    -------
+    datetime
+        The previous weekday before ``dt``.
+
+    See Also
+    --------
+    tseries.holiday.next_workday : Move to the next weekday.
+    tseries.holiday.previous_friday : Move Saturday and Sunday back to the
+        previous Friday.
+    tseries.holiday.before_nearest_workday : Move to the workday before the
+        nearest workday.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import previous_workday
+    >>> previous_workday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2021, 12, 31, 0, 0)
+    >>> previous_workday(datetime(2022, 1, 5))  # Wednesday, still moves back
+    datetime.datetime(2022, 1, 4, 0, 0)
     """
     dt -= timedelta(days=1)
     while dt.weekday() > 4:
@@ -147,15 +376,73 @@ def previous_workday(dt: datetime) -> datetime:
 
 def before_nearest_workday(dt: datetime) -> datetime:
     """
-    returns previous workday before nearest workday
+    Move to the workday before the nearest workday.
+
+    ``nearest_workday`` runs first, so a Saturday holiday ends up on the
+    Thursday before it.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.nearest_workday : Move Saturday to Friday and Sunday to
+        Monday.
+    tseries.holiday.after_nearest_workday : Move to the workday after the
+        nearest workday.
+    tseries.holiday.previous_workday : Move to the previous weekday.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import before_nearest_workday
+    >>> before_nearest_workday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2021, 12, 30, 0, 0)
+    >>> before_nearest_workday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2021, 12, 31, 0, 0)
     """
     return previous_workday(nearest_workday(dt))
 
 
 def after_nearest_workday(dt: datetime) -> datetime:
     """
-    returns next workday after nearest workday
-    needed for Boxing day or multiple holidays in a series
+    Move to the workday after the nearest workday.
+
+    Needed for Boxing Day, or for several holidays in a row.
+
+    Parameters
+    ----------
+    dt : datetime
+        The date the holiday falls on.
+
+    Returns
+    -------
+    datetime
+        The date the holiday is observed on.
+
+    See Also
+    --------
+    tseries.holiday.nearest_workday : Move Saturday to Friday and Sunday to
+        Monday.
+    tseries.holiday.before_nearest_workday : Move to the workday before the
+        nearest workday.
+    tseries.holiday.next_workday : Move to the next weekday.
+
+    Examples
+    --------
+    >>> from datetime import datetime
+    >>> from pandas.tseries.holiday import after_nearest_workday
+    >>> after_nearest_workday(datetime(2022, 1, 1))  # Saturday
+    datetime.datetime(2022, 1, 3, 0, 0)
+    >>> after_nearest_workday(datetime(2022, 1, 2))  # Sunday
+    datetime.datetime(2022, 1, 4, 0, 0)
     """
     return next_workday(nearest_workday(dt))
 
@@ -470,6 +757,39 @@ holiday_calendars: dict[str, type[AbstractHolidayCalendar]] = {}
 
 
 def register(cls) -> None:
+    """
+    Add a holiday calendar class to the registry of named calendars.
+
+    Calendar classes register themselves as soon as they are defined, so this
+    is rarely called directly. A class is registered under its ``name``
+    attribute if it has one and under its class name otherwise, and
+    registering a class under a name that is already taken replaces the
+    earlier one.
+
+    See Also
+    --------
+    tseries.holiday.get_calendar : Return an instance of a calendar based on
+        its name.
+    tseries.holiday.HolidayCalendarFactory : Create a holiday calendar class
+        from two sets of rules.
+    tseries.holiday.AbstractHolidayCalendar : Abstract interface to create
+        holidays following certain rules.
+
+    Examples
+    --------
+    >>> from pandas.tseries.holiday import (
+    ...     AbstractHolidayCalendar,
+    ...     USLaborDay,
+    ...     get_calendar,
+    ...     register,
+    ... )
+    >>> class MyCalendar(AbstractHolidayCalendar):
+    ...     rules = [USLaborDay]
+    >>> MyCalendar.name = "us_labor_only"
+    >>> register(MyCalendar)
+    >>> [rule.name for rule in get_calendar("us_labor_only").rules]
+    ['Labor Day']
+    """
     try:
         name = cls.name
     except AttributeError:
@@ -481,10 +801,46 @@ def get_calendar(name: str) -> AbstractHolidayCalendar:
     """
     Return an instance of a calendar based on its name.
 
+    The calendar class does not have to be kept around, since every calendar
+    class is registered by name as soon as it is defined.
+
     Parameters
     ----------
     name : str
-        Calendar name to return an instance of
+        Calendar name to return an instance of. This is the class name,
+        unless the class sets a ``name`` attribute.
+
+    Returns
+    -------
+    AbstractHolidayCalendar
+        A new instance of the registered calendar class.
+
+    Raises
+    ------
+    KeyError
+        If no calendar is registered under ``name``.
+
+    See Also
+    --------
+    tseries.holiday.register : Add a holiday calendar class to the registry
+        of named calendars.
+    tseries.holiday.HolidayCalendarFactory : Create a holiday calendar class
+        from two sets of rules.
+    tseries.holiday.AbstractHolidayCalendar : Abstract interface to create
+        holidays following certain rules.
+
+    Examples
+    --------
+    >>> from pandas.tseries.holiday import (
+    ...     AbstractHolidayCalendar,
+    ...     USLaborDay,
+    ...     get_calendar,
+    ... )
+    >>> class MyCalendar(AbstractHolidayCalendar):
+    ...     rules = [USLaborDay]
+    >>> cal = get_calendar("MyCalendar")
+    >>> cal.holidays(start="2020-01-01", end="2020-12-31")
+    DatetimeIndex(['2020-09-07'], dtype='datetime64[us]', freq=None)
     """
     return holiday_calendars[name]()
 
@@ -799,8 +1155,38 @@ EasterMonday = Holiday("Easter Monday", month=1, day=1, offset=[Easter(), Day(1)
 
 class USFederalHolidayCalendar(AbstractHolidayCalendar):
     """
-    US Federal Government Holiday Calendar based on rules specified by:
+    US Federal Government holiday calendar.
+
+    The rules follow the federal holiday schedule published by the US Office
+    of Personnel Management:
     https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/
+
+    Holidays that land on a weekend are observed on the nearest weekday.
+    Pass an instance as the ``calendar`` argument of
+    :class:`~pandas.tseries.offsets.CustomBusinessDay` to skip these dates
+    in business day arithmetic.
+
+    Parameters
+    ----------
+    name : str
+        Name of the holiday calendar, defaults to class name.
+    rules : array of Holiday objects
+        A set of rules used to create the holidays.
+
+    See Also
+    --------
+    tseries.holiday.AbstractHolidayCalendar : Abstract interface to create
+        holidays following certain rules.
+    tseries.holiday.nearest_workday : Move Saturday to Friday and Sunday to
+        Monday.
+    tseries.holiday.get_calendar : Return an instance of a calendar based on
+        its name.
+
+    Examples
+    --------
+    >>> from pandas.tseries.holiday import USFederalHolidayCalendar
+    >>> USFederalHolidayCalendar().holidays(start="2024-06-01", end="2024-07-31")
+    DatetimeIndex(['2024-06-19', '2024-07-04'], dtype='datetime64[us]', freq=None)
     """
 
     rules = [
@@ -825,6 +1211,54 @@ class USFederalHolidayCalendar(AbstractHolidayCalendar):
 
 
 def HolidayCalendarFactory(name: str, base, other, base_class=AbstractHolidayCalendar):
+    """
+    Create a holiday calendar class from two sets of rules.
+
+    The rules of ``base`` and ``other`` are merged by holiday name, with
+    ``base`` winning any clash, and the result becomes the ``rules`` of a new
+    calendar class. That class registers itself under ``name``, so
+    :func:`~pandas.tseries.holiday.get_calendar` can find it later.
+
+    Parameters
+    ----------
+    name : str
+        Name of the calendar class to create.
+    base : AbstractHolidayCalendar
+        Instance/subclass or array of Holiday objects whose rules take
+        precedence.
+    other : AbstractHolidayCalendar
+        Instance/subclass or array of Holiday objects to merge into ``base``.
+    base_class : type, default AbstractHolidayCalendar
+        The class the new calendar class inherits from.
+
+    Returns
+    -------
+    type
+        A new subclass of ``base_class`` holding the merged rules.
+
+    See Also
+    --------
+    tseries.holiday.AbstractHolidayCalendar.merge_class : Merge holiday
+        calendars together.
+    tseries.holiday.get_calendar : Return an instance of a calendar based on
+        its name.
+    tseries.holiday.register : Add a holiday calendar class to the registry
+        of named calendars.
+
+    Examples
+    --------
+    >>> from pandas.tseries.holiday import (
+    ...     AbstractHolidayCalendar,
+    ...     HolidayCalendarFactory,
+    ...     USLaborDay,
+    ...     USMemorialDay,
+    ... )
+    >>> class MyCalendar(AbstractHolidayCalendar):
+    ...     rules = [USMemorialDay]
+    >>> NewCalendar = HolidayCalendarFactory("NewCalendar", MyCalendar, USLaborDay)
+    >>> [rule.name for rule in NewCalendar.rules]
+    ['Labor Day', 'Memorial Day']
+    """
     rules = AbstractHolidayCalendar.merge_class(base, other)
     calendar_class = type(name, (base_class,), {"rules": rules, "name": name})
     return calendar_class

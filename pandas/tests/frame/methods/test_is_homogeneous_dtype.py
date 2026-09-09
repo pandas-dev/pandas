@@ -1,22 +1,19 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Categorical,
-    DataFrame,
-)
+import pandas as pd
 
 
 @pytest.mark.parametrize(
     "data, expected",
     [
         # empty
-        (DataFrame(), True),
+        (pd.DataFrame(), True),
         # multi-same
-        (DataFrame({"A": [1, 2], "B": [1, 2]}), True),
+        (pd.DataFrame({"A": [1, 2], "B": [1, 2]}), True),
         # multi-object
         (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "A": np.array([1, 2], dtype=object),
                     "B": np.array(["a", "b"], dtype=object),
@@ -27,14 +24,16 @@ from pandas import (
         ),
         # multi-extension
         (
-            DataFrame({"A": Categorical(["a", "b"]), "B": Categorical(["a", "b"])}),
+            pd.DataFrame(
+                {"A": pd.Categorical(["a", "b"]), "B": pd.Categorical(["a", "b"])}
+            ),
             True,
         ),
         # differ types
-        (DataFrame({"A": [1, 2], "B": [1.0, 2.0]}), False),
+        (pd.DataFrame({"A": [1, 2], "B": [1.0, 2.0]}), False),
         # differ sizes
         (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "A": np.array([1, 2], dtype=np.int32),
                     "B": np.array([1, 2], dtype=np.int64),
@@ -44,7 +43,9 @@ from pandas import (
         ),
         # multi-extension differ
         (
-            DataFrame({"A": Categorical(["a", "b"]), "B": Categorical(["b", "c"])}),
+            pd.DataFrame(
+                {"A": pd.Categorical(["a", "b"]), "B": pd.Categorical(["b", "c"])}
+            ),
             False,
         ),
     ],

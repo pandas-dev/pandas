@@ -2,28 +2,22 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 
 
 @pytest.fixture(
     params=[
-        (Index([0, 2, 4]), Index([1, 3, 5])),
-        (Index([0.0, 1.0, 2.0]), Index([1.0, 2.0, 3.0])),
-        (timedelta_range("0 days", periods=3), timedelta_range("1 day", periods=3)),
-        (date_range("20170101", periods=3), date_range("20170102", periods=3)),
+        (pd.Index([0, 2, 4]), pd.Index([1, 3, 5])),
+        (pd.Index([0.0, 1.0, 2.0]), pd.Index([1.0, 2.0, 3.0])),
         (
-            date_range("20170101", periods=3, tz="US/Eastern"),
-            date_range("20170102", periods=3, tz="US/Eastern"),
+            pd.timedelta_range("0 days", periods=3),
+            pd.timedelta_range("1 day", periods=3),
+        ),
+        (pd.date_range("20170101", periods=3), pd.date_range("20170102", periods=3)),
+        (
+            pd.date_range("20170101", periods=3, tz="US/Eastern"),
+            pd.date_range("20170102", periods=3, tz="US/Eastern"),
         ),
     ],
     ids=lambda x: str(x[0].dtype),
@@ -40,15 +34,15 @@ class TestAttributes:
         "left, right",
         [
             (0, 1),
-            (Timedelta("0 days"), Timedelta("1 day")),
-            (Timestamp("2018-01-01"), Timestamp("2018-01-02")),
+            (pd.Timedelta("0 days"), pd.Timedelta("1 day")),
+            (pd.Timestamp("2018-01-01"), pd.Timestamp("2018-01-02")),
             (
-                Timestamp("2018-01-01", tz="US/Eastern"),
-                Timestamp("2018-01-02", tz="US/Eastern"),
+                pd.Timestamp("2018-01-01", tz="US/Eastern"),
+                pd.Timestamp("2018-01-02", tz="US/Eastern"),
             ),
         ],
     )
-    @pytest.mark.parametrize("constructor", [IntervalArray, IntervalIndex])
+    @pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
     def test_is_empty(self, constructor, left, right, closed):
         # GH27219
         tuples = [(left, left), (left, right), np.nan]
@@ -68,7 +62,7 @@ class TestMethods:
     @pytest.mark.parametrize(
         "other",
         [
-            Interval(0, 1, closed="right"),
+            pd.Interval(0, 1, closed="right"),
             IntervalArray.from_breaks([1, 2, 3, 4], closed="right"),
         ],
     )
@@ -98,7 +92,7 @@ class TestMethods:
 
     def test_shift_datetime(self):
         # GH#31502, GH#31504
-        a = IntervalArray.from_breaks(date_range("2000", periods=4))
+        a = IntervalArray.from_breaks(pd.date_range("2000", periods=4))
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
@@ -113,25 +107,25 @@ class TestMethods:
 
     def test_unique_with_negatives(self):
         # GH#61917
-        idx_pos = IntervalIndex.from_tuples(
+        idx_pos = pd.IntervalIndex.from_tuples(
             [(3, 4), (3, 4), (2, 3), (2, 3), (1, 2), (1, 2)]
         )
         result = idx_pos.unique()
-        expected = IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
+        expected = pd.IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
         tm.assert_index_equal(result, expected)
 
-        idx_neg = IntervalIndex.from_tuples(
+        idx_neg = pd.IntervalIndex.from_tuples(
             [(-4, -3), (-4, -3), (-3, -2), (-3, -2), (-2, -1), (-2, -1)]
         )
         result = idx_neg.unique()
-        expected = IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
+        expected = pd.IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
         tm.assert_index_equal(result, expected)
 
-        idx_mix = IntervalIndex.from_tuples(
+        idx_mix = pd.IntervalIndex.from_tuples(
             [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2), (-3, -2)]
         )
         result = idx_mix.unique()
-        expected = IntervalIndex.from_tuples(
+        expected = pd.IntervalIndex.from_tuples(
             [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2)]
         )
         tm.assert_index_equal(result, expected)
@@ -139,8 +133,8 @@ class TestMethods:
     @pytest.mark.parametrize(
         "data",
         [
-            [Interval(-np.inf, 0), Interval(-np.inf, 1)],
-            [Interval(0, np.inf), Interval(1, np.inf)],
+            [pd.Interval(-np.inf, 0), pd.Interval(-np.inf, 1)],
+            [pd.Interval(0, np.inf), pd.Interval(1, np.inf)],
         ],
     )
     def test_unique_with_infinty(self, data):
@@ -170,8 +164,8 @@ class TestSetitem:
 
         result[0] = np.nan
 
-        expected_left = Index([left._na_value, *list(left[1:])])
-        expected_right = Index([right._na_value, *list(right[1:])])
+        expected_left = pd.Index([left._na_value, *list(left[1:])])
+        expected_right = pd.Index([right._na_value, *list(right[1:])])
         expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         tm.assert_extension_array_equal(result, expected)
@@ -227,7 +221,7 @@ class TestReductions:
 
         # The expected results below are only valid if monotonic
         assert left.is_monotonic_increasing
-        assert Index(arr).is_monotonic_increasing
+        assert pd.Index(arr).is_monotonic_increasing
 
         MIN = arr[0]
         MAX = arr[-1]
@@ -275,11 +269,11 @@ def test_endpoint_dtype_mismatch_raises():
     # GH 66518
     msg = "category, object, and string subtypes are not supported for IntervalArray"
     with pytest.raises(TypeError, match=msg):
-        IntervalArray([Interval(0, 2**64)])
+        IntervalArray([pd.Interval(0, 2**64)])
 
 
 @pytest.mark.parametrize("dtype", [np.float32, np.int32, np.uint32])
-@pytest.mark.parametrize("constructor", [IntervalArray, IntervalIndex])
+@pytest.mark.parametrize("constructor", [IntervalArray, pd.IntervalIndex])
 def test_sub64bit_dtype_preserved(constructor, dtype):
     # GH#45412
     left = np.array([0, 1, 2], dtype=dtype)

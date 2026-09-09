@@ -10,10 +10,6 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-from pandas import (
-    Index,
-    Series,
-)
 
 
 def test_isnull_notnull_docstrings():
@@ -23,9 +19,9 @@ def test_isnull_notnull_docstrings():
     doc = pd.DataFrame.isnull.__doc__
     assert doc.strip().startswith("DataFrame.isnull is an alias for DataFrame.isna.")
 
-    doc = Series.notnull.__doc__
+    doc = pd.Series.notnull.__doc__
     assert doc.strip().startswith("Series.notnull is an alias for Series.notna.")
-    doc = Series.isnull.__doc__
+    doc = pd.Series.isnull.__doc__
     assert doc.strip().startswith("Series.isnull is an alias for Series.isna.")
 
 
@@ -74,15 +70,15 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert obj.ndim == 1
     assert obj.size == len(obj)
 
-    assert Index([1]).item() == 1
-    assert Series([1]).item() == 1
+    assert pd.Index([1]).item() == 1
+    assert pd.Series([1]).item() == 1
 
 
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_memory_obj):
     obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
-    if isinstance(obj, Series):
+    if isinstance(obj, pd.Series):
         is_ser = True
         obj.index._engine.clear_mapping()
     else:
@@ -127,7 +123,7 @@ def test_memory_usage_components_series(series_with_simple_index):
 
 
 def test_memory_usage_components_narrow_series(any_real_numpy_dtype):
-    series = Series(
+    series = pd.Series(
         range(5),
         dtype=any_real_numpy_dtype,
         index=[f"i-{i}" for i in range(5)],
@@ -151,7 +147,7 @@ def test_searchsorted(request, index_or_series_obj_orderable):
                 reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
             )
         )
-    elif obj.dtype.kind == "c" and isinstance(obj, Index):
+    elif obj.dtype.kind == "c" and isinstance(obj, pd.Index):
         # TODO: Should Series cases also raise? Looks like they use numpy
         #  comparison semantics https://github.com/numpy/numpy/issues/15981
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
@@ -171,7 +167,7 @@ def test_access_by_position(index_flat):
     if len(index) == 0:
         pytest.skip("Test doesn't make sense on empty data")
 
-    series = Series(index)
+    series = pd.Series(index)
     assert index[0] == series.iloc[0]
     assert index[5] == series.iloc[5]
     assert index[-1] == series.iloc[-1]

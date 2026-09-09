@@ -3,12 +3,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    Series,
-    option_context,
-)
+import pandas as pd
 
 pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
@@ -23,14 +18,14 @@ from pandas.io.formats.style_render import (
 
 @pytest.fixture
 def df():
-    return DataFrame(
-        {"A": [0, 1], "B": [-0.61, -1.22], "C": Series(["ab", "cd"], dtype=object)}
+    return pd.DataFrame(
+        {"A": [0, 1], "B": [-0.61, -1.22], "C": pd.Series(["ab", "cd"], dtype=object)}
     )
 
 
 @pytest.fixture
 def df_ext():
-    return DataFrame(
+    return pd.DataFrame(
         {"A": [0, 1, 2], "B": [-0.61, -1.22, -2.22], "C": ["ab", "cd", "de"]}
     )
 
@@ -191,7 +186,7 @@ def test_cell_styling(styler):
 
 
 def test_multiindex_columns(df):
-    cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df.columns = cidx
     expected = dedent(
         """\
@@ -222,7 +217,7 @@ def test_multiindex_columns(df):
 
 
 def test_multiindex_row(df_ext):
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df_ext.index = ridx
     expected = dedent(
         """\
@@ -254,7 +249,7 @@ def test_multiindex_row(df_ext):
 
 
 def test_multirow_naive(df_ext):
-    ridx = MultiIndex.from_tuples([("X", "x"), ("X", "y"), ("Y", "z")])
+    ridx = pd.MultiIndex.from_tuples([("X", "x"), ("X", "y"), ("Y", "z")])
     df_ext.index = ridx
     expected = dedent(
         """\
@@ -272,8 +267,8 @@ def test_multirow_naive(df_ext):
 
 
 def test_multiindex_row_and_col(df_ext):
-    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df_ext.index, df_ext.columns = ridx, cidx
     expected = dedent(
         """\
@@ -316,7 +311,7 @@ def test_multiindex_row_and_col(df_ext):
     ],
 )
 def test_multicol_naive(df, multicol_align, siunitx, header):
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")])
     df.columns = ridx
     level1 = " & a & b & c" if not siunitx else "{} & {a} & {b} & {c}"
     col_format = "lrrl" if not siunitx else "lSSl"
@@ -336,8 +331,8 @@ def test_multicol_naive(df, multicol_align, siunitx, header):
 
 
 def test_multi_options(df_ext):
-    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df_ext.index, df_ext.columns = ridx, cidx
     styler = df_ext.style.format(precision=2)
 
@@ -351,16 +346,16 @@ def test_multi_options(df_ext):
     result = styler.to_latex()
     assert expected in result
 
-    with option_context("styler.latex.multicol_align", "l"):
+    with pd.option_context("styler.latex.multicol_align", "l"):
         assert " &  & \\multicolumn{2}{l}{Z} & Y \\\\" in styler.to_latex()
 
-    with option_context("styler.latex.multirow_align", "b"):
+    with pd.option_context("styler.latex.multirow_align", "b"):
         assert "\\multirow[b]{2}{*}{A} & a & 0 & -0.61 & ab \\\\" in styler.to_latex()
 
 
 def test_multiindex_columns_hidden():
-    df = DataFrame([[1, 2, 3, 4]])
-    df.columns = MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
+    df = pd.DataFrame([[1, 2, 3, 4]])
+    df.columns = pd.MultiIndex.from_tuples([("A", 1), ("A", 2), ("A", 3), ("B", 1)])
     s = df.style
     assert "{tabular}{lrrrr}" in s.to_latex()
     s.set_table_styles([])  # reset the position command
@@ -378,13 +373,13 @@ def test_multiindex_columns_hidden():
     ],
 )
 def test_sparse_options(df_ext, option, value):
-    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df_ext.index, df_ext.columns = ridx, cidx
     styler = df_ext.style
 
     latex1 = styler.to_latex()
-    with option_context(option, value):
+    with pd.option_context(option, value):
         latex2 = styler.to_latex()
     assert (latex1 == latex2) is value
 
@@ -406,8 +401,8 @@ def test_hidden_index(styler):
 @pytest.mark.parametrize("environment", ["table", "figure*", None])
 def test_comprehensive(df_ext, environment):
     # test as many low level features simultaneously as possible
-    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df_ext.index, df_ext.columns = ridx, cidx
     stlr = df_ext.style
     stlr.set_caption("mycap")
@@ -453,7 +448,7 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 
 
 def test_environment_option(styler):
-    with option_context("styler.latex.environment", "bar-env"):
+    with pd.option_context("styler.latex.environment", "bar-env"):
         assert "\\begin{bar-env}" in styler.to_latex()
         assert "\\begin{foo-env}" in styler.to_latex(environment="foo-env")
 
@@ -683,7 +678,7 @@ def test_longtable_minimal(styler):
     ],
 )
 def test_longtable_multiindex_columns(df, sparse, exp, siunitx):
-    cidx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df.columns = cidx
     with_si = "{} & {a} & {b} & {c} \\\\"
     without_si = " & a & b & c \\\\"
@@ -739,8 +734,8 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
     ],
 )
 def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
-    cidx = MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
-    ridx = MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
+    cidx = pd.MultiIndex.from_tuples([("Z", "a"), ("Z", "b"), ("Y", "c")])
+    ridx = pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("B", "c")])
     df_ext.index, df_ext.columns = ridx, cidx
     styler = df_ext.style
 
@@ -778,16 +773,16 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
 def test_repr_option(styler):
     assert "<style" in styler._repr_html_()[:6]
     assert styler._repr_latex_() is None
-    with option_context("styler.render.repr", "latex"):
+    with pd.option_context("styler.render.repr", "latex"):
         assert "\\begin{tabular}" in styler._repr_latex_()[:15]
         assert styler._repr_html_() is None
 
 
 @pytest.mark.parametrize("option", ["hrules"])
 def test_bool_options(styler, option):
-    with option_context(f"styler.latex.{option}", False):
+    with pd.option_context(f"styler.latex.{option}", False):
         latex_false = styler.to_latex()
-    with option_context(f"styler.latex.{option}", True):
+    with pd.option_context(f"styler.latex.{option}", True):
         latex_true = styler.to_latex()
     assert latex_false != latex_true  # options are reactive under to_latex(*no_args)
 
@@ -821,13 +816,13 @@ def test_hide_index_latex(styler):
 
 def test_latex_hiding_index_columns_multiindex_alignment():
     # gh 43644
-    midx = MultiIndex.from_product(
+    midx = pd.MultiIndex.from_product(
         [["i0", "j0"], ["i1"], ["i2", "j2"]], names=["i-0", "i-1", "i-2"]
     )
-    cidx = MultiIndex.from_product(
+    cidx = pd.MultiIndex.from_product(
         [["c0"], ["c1", "d1"], ["c2", "d2"]], names=["c-0", "c-1", "c-2"]
     )
-    df = DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
+    df = pd.DataFrame(np.arange(16).reshape(4, 4), index=midx, columns=cidx)
     styler = Styler(df, uuid_len=0)
     styler.hide(level=1, axis=0).hide(level=0, axis=1)
     styler.hide([("i0", "i1", "i2")], axis=0)
@@ -853,17 +848,17 @@ def test_latex_hiding_index_columns_multiindex_alignment():
 def test_rendered_links():
     # note the majority of testing is done in test_html.py: test_rendered_links
     # these test only the alternative latex format is functional
-    df = DataFrame(["text www.domain.com text"])
+    df = pd.DataFrame(["text www.domain.com text"])
     result = df.style.format(hyperlinks="latex").to_latex()
     assert r"text \href{www.domain.com}{www.domain.com} text" in result
 
 
 def test_apply_index_hidden_levels():
     # gh 45156
-    styler = DataFrame(
+    styler = pd.DataFrame(
         [[1]],
-        index=MultiIndex.from_tuples([(0, 1)], names=["l0", "l1"]),
-        columns=MultiIndex.from_tuples([(0, 1)], names=["c0", "c1"]),
+        index=pd.MultiIndex.from_tuples([(0, 1)], names=["l0", "l1"]),
+        columns=pd.MultiIndex.from_tuples([(0, 1)], names=["c0", "c1"]),
     ).style
     styler.hide(level=1)
     styler.map_index(lambda v: "color: red;", level=0, axis=1)
@@ -900,7 +895,7 @@ def test_clines_validation(clines, styler):
 )
 @pytest.mark.parametrize("env", ["table", "longtable"])
 def test_clines_index(clines, exp, env):
-    df = DataFrame([[1], [2], [3], [4]])
+    df = pd.DataFrame([[1], [2], [3], [4]])
     result = df.style.to_latex(clines=clines, environment=env)
     expected = f"""\
 0 & 1 \\\\{exp}
@@ -986,8 +981,8 @@ def test_clines_index(clines, exp, env):
 @pytest.mark.parametrize("env", ["table"])
 def test_clines_multiindex(clines, expected, env):
     # also tests simultaneously with hidden rows and a hidden multiindex level
-    midx = MultiIndex.from_product([["A", "-", "B"], [0], ["X", "Y"]])
-    df = DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
+    midx = pd.MultiIndex.from_product([["A", "-", "B"], [0], ["X", "Y"]])
+    df = pd.DataFrame([[1], [2], [99], [99], [3], [4]], index=midx)
     styler = df.style
     styler.hide([("-", 0, "X"), ("-", 0, "Y")])
     styler.hide(level=1)
@@ -1019,9 +1014,9 @@ def test_concat(styler):
 
 def test_concat_recursion():
     # tests hidden row recursion and applied styles
-    styler1 = DataFrame([[1], [9]]).style.hide([1]).highlight_min(color="red")
-    styler2 = DataFrame([[9], [2]]).style.hide([0]).highlight_min(color="green")
-    styler3 = DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
+    styler1 = pd.DataFrame([[1], [9]]).style.hide([1]).highlight_min(color="red")
+    styler2 = pd.DataFrame([[9], [2]]).style.hide([0]).highlight_min(color="green")
+    styler3 = pd.DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
 
     result = styler1.concat(styler2.concat(styler3)).to_latex(convert_css=True)
     expected = dedent(
@@ -1039,9 +1034,9 @@ def test_concat_recursion():
 
 def test_concat_chain():
     # tests hidden row recursion and applied styles
-    styler1 = DataFrame([[1], [9]]).style.hide([1]).highlight_min(color="red")
-    styler2 = DataFrame([[9], [2]]).style.hide([0]).highlight_min(color="green")
-    styler3 = DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
+    styler1 = pd.DataFrame([[1], [9]]).style.hide([1]).highlight_min(color="red")
+    styler2 = pd.DataFrame([[9], [2]]).style.hide([0]).highlight_min(color="green")
+    styler3 = pd.DataFrame([[3], [9]]).style.hide([1]).highlight_min(color="blue")
 
     result = styler1.concat(styler2).concat(styler3).to_latex(convert_css=True)
     expected = dedent(
@@ -1086,6 +1081,6 @@ def test_concat_chain():
 )
 def test_empty_clines(columns, expected: str, clines: str):
     # GH 47203
-    df = DataFrame(columns=columns)
+    df = pd.DataFrame(columns=columns)
     result = df.style.to_latex(clines=clines)
     assert result == expected

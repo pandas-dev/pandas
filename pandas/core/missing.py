@@ -265,7 +265,7 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
 
     if is_valid.ndim == 2:
         # reduce axis 1
-        is_valid = is_valid.any(axis=1)  # type: ignore[assignment]
+        is_valid = is_valid.any(axis=1)
 
     if how == "first":
         idxpos = is_valid[::].argmax()

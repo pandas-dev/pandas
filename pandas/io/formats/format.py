@@ -1255,13 +1255,13 @@ class _GenericArrayFormatter:
             )
         inferred = lib.map_infer(vals, is_float)
         is_float_type = (
-            inferred
+            inferred  # type: ignore[operator]
             # vals may have 2 or more dimensions
             & np.all(notna(vals), axis=tuple(range(1, len(vals.shape))))
         )
         leading_space = self.leading_space
         if leading_space is None:
-            leading_space = is_float_type.any()
+            leading_space = is_float_type.any()  # type: ignore[assignment]
 
         fmt_values = []
         for i, v in enumerate(vals):
@@ -1749,9 +1749,13 @@ def _make_fixed_width(
     if conf_max is not None and max_len > conf_max:
         max_len = conf_max
 
-    if conf_max is not None and conf_max > 3:
+    if conf_max is not None:
+        # When the column is too narrow to hold any text alongside the "..."
+        # placeholder, show as much of the placeholder as fits (GH#16097).
+        keep = max(max_len - 3, 0)
+        placeholder = "..."[: max_len - keep]
         strings = [
-            x[: max_len - 3] + "..." if adjustment.len(x) > max_len else x
+            x[:keep] + placeholder if adjustment.len(x) > max_len else x
             for x in strings
         ]
 

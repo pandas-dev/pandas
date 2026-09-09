@@ -11,7 +11,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
 
 # We'll probably always skip these for pyarrow
@@ -22,7 +21,6 @@ pytestmark = [
 ]
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_multi_thread_string_io_read_csv(all_parsers):
     # see gh-11786
     parser = all_parsers
@@ -124,7 +122,7 @@ def test_multi_thread_path_multipart_read_csv(tmp_path, all_parsers):
 
     parser = all_parsers
     file_name = "__thread_pool_reader__.csv"
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": np.random.default_rng(2).random(num_rows),
             "b": np.random.default_rng(2).random(num_rows),

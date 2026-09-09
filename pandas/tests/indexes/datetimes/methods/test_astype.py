@@ -5,14 +5,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    NaT,
-    PeriodIndex,
-    Timestamp,
-    date_range,
-)
 import pandas._testing as tm
 
 
@@ -22,7 +14,7 @@ class TestDatetimeIndex:
         # GH#1345
 
         # dates around a dst transition
-        rng = date_range("2/13/2010", "5/6/2010", tz=tzstr)
+        rng = pd.date_range("2/13/2010", "5/6/2010", tz=tzstr)
 
         objs = rng.astype(object)
         for i, x in enumerate(objs):
@@ -38,18 +30,18 @@ class TestDatetimeIndex:
 
     def test_astype(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(
-            ["2016-05-16", "NaT", NaT, np.nan], dtype="M8[ns]", name="idx"
+        idx = pd.DatetimeIndex(
+            ["2016-05-16", "NaT", pd.NaT, np.nan], dtype="M8[ns]", name="idx"
         )
 
         result = idx.astype(object)
-        expected = Index(
-            [Timestamp("2016-05-16")] + [NaT] * 3, dtype=object, name="idx"
+        expected = pd.Index(
+            [pd.Timestamp("2016-05-16")] + [pd.NaT] * 3, dtype=object, name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Index(
+        expected = pd.Index(
             [1463356800000000000] + [-9223372036854775808] * 3,
             dtype=np.int64,
             name="idx",
@@ -57,13 +49,13 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, expected)
 
     def test_astype2(self):
-        rng = date_range("1/1/2000", periods=10, name="idx")
+        rng = pd.date_range("1/1/2000", periods=10, name="idx")
         result = rng.astype("i8")
-        tm.assert_index_equal(result, Index(rng.asi8, name="idx"))
+        tm.assert_index_equal(result, pd.Index(rng.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, rng.asi8)
 
     def test_astype_uint(self):
-        arr = date_range("2000", periods=2, name="idx")
+        arr = pd.date_range("2000", periods=2, name="idx")
 
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
             arr.astype("uint64")
@@ -72,7 +64,7 @@ class TestDatetimeIndex:
 
     def test_astype_with_tz(self):
         # with tz
-        rng = date_range("1/1/2000", periods=10, tz="US/Eastern")
+        rng = pd.date_range("1/1/2000", periods=10, tz="US/Eastern")
         msg = "Cannot use .astype to convert from timezone-aware"
         with pytest.raises(TypeError, match=msg):
             # deprecated
@@ -83,9 +75,9 @@ class TestDatetimeIndex:
 
     def test_astype_tzaware_to_tzaware(self):
         # GH 18951: tz-aware to tz-aware
-        idx = date_range("20170101", periods=4, tz="US/Pacific", unit="ns")
+        idx = pd.date_range("20170101", periods=4, tz="US/Pacific", unit="ns")
         result = idx.astype("datetime64[ns, US/Eastern]")
-        expected = date_range(
+        expected = pd.date_range(
             "20170101 03:00:00", periods=4, tz="US/Eastern", unit="ns"
         )
         tm.assert_index_equal(result, expected)
@@ -93,7 +85,7 @@ class TestDatetimeIndex:
 
     def test_astype_tznaive_to_tzaware(self):
         # GH 18951: tz-naive to tz-aware
-        idx = date_range("20170101", periods=4)
+        idx = pd.date_range("20170101", periods=4)
         idx = idx._with_freq(None)  # tz_localize does not preserve freq
         msg = "Cannot use .astype to convert from timezone-naive"
         with pytest.raises(TypeError, match=msg):
@@ -107,19 +99,19 @@ class TestDatetimeIndex:
         # GH 13149, GH 13209
         # verify that we are returning NaT as a string (and not unicode)
 
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
+        idx = pd.DatetimeIndex(["2016-05-16", "NaT", pd.NaT, np.nan])
         result = idx.astype(str)
         if using_infer_string:
-            expected = Index(["2016-05-16", None, None, None], dtype="str")
+            expected = pd.Index(["2016-05-16", None, None, None], dtype="str")
         else:
-            expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
+            expected = pd.Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_astype_str(self):
         # test astype string - #10442
-        dti = date_range("2012-01-01", periods=4, name="test_name")
+        dti = pd.date_range("2012-01-01", periods=4, name="test_name")
         result = dti.astype(str)
-        expected = Index(
+        expected = pd.Index(
             ["2012-01-01", "2012-01-02", "2012-01-03", "2012-01-04"],
             name="test_name",
             dtype="str",
@@ -128,9 +120,9 @@ class TestDatetimeIndex:
 
     def test_astype_str_tz_and_name(self):
         # test astype string with tz and name
-        dti = date_range("2012-01-01", periods=3, name="test_name", tz="US/Eastern")
+        dti = pd.date_range("2012-01-01", periods=3, name="test_name", tz="US/Eastern")
         result = dti.astype(str)
-        expected = Index(
+        expected = pd.Index(
             [
                 "2012-01-01 00:00:00-05:00",
                 "2012-01-02 00:00:00-05:00",
@@ -143,9 +135,9 @@ class TestDatetimeIndex:
 
     def test_astype_str_freq_and_name(self):
         # test astype string with freqH and name
-        dti = date_range("1/1/2011", periods=3, freq="h", name="test_name")
+        dti = pd.date_range("1/1/2011", periods=3, freq="h", name="test_name")
         result = dti.astype(str)
-        expected = Index(
+        expected = pd.Index(
             ["2011-01-01 00:00:00", "2011-01-01 01:00:00", "2011-01-01 02:00:00"],
             name="test_name",
             dtype="str",
@@ -154,11 +146,11 @@ class TestDatetimeIndex:
 
     def test_astype_str_freq_and_tz(self):
         # test astype string with freqH and timezone
-        dti = date_range(
+        dti = pd.date_range(
             "3/6/2012 00:00", periods=2, freq="h", tz="Europe/London", name="test_name"
         )
         result = dti.astype(str)
-        expected = Index(
+        expected = pd.Index(
             ["2012-03-06 00:00:00+00:00", "2012-03-06 01:00:00+00:00"],
             dtype="str",
             name="test_name",
@@ -167,8 +159,8 @@ class TestDatetimeIndex:
 
     def test_astype_datetime64(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(
-            ["2016-05-16", "NaT", NaT, np.nan], dtype="M8[ns]", name="idx"
+        idx = pd.DatetimeIndex(
+            ["2016-05-16", "NaT", pd.NaT, np.nan], dtype="M8[ns]", name="idx"
         )
 
         result = idx.astype("datetime64[ns]")
@@ -179,47 +171,49 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, idx)
         assert result is idx
 
-        idx_tz = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], tz="EST", name="idx")
+        idx_tz = pd.DatetimeIndex(
+            ["2016-05-16", "NaT", pd.NaT, np.nan], tz="EST", name="idx"
+        )
         msg = "Cannot use .astype to convert from timezone-aware"
         with pytest.raises(TypeError, match=msg):
             # dt64tz->dt64 deprecated
             result = idx_tz.astype("datetime64[ns]")
 
     def test_astype_object(self):
-        rng = date_range("1/1/2000", periods=20)
+        rng = pd.date_range("1/1/2000", periods=20)
 
         casted = rng.astype("O")
         exp_values = list(rng)
 
-        tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
+        tm.assert_index_equal(casted, pd.Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_astype_object_tz(self, tz):
-        idx = date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=tz)
+        idx = pd.date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=tz)
         expected_list = [
-            Timestamp("2013-01-31", tz=tz),
-            Timestamp("2013-02-28", tz=tz),
-            Timestamp("2013-03-31", tz=tz),
-            Timestamp("2013-04-30", tz=tz),
+            pd.Timestamp("2013-01-31", tz=tz),
+            pd.Timestamp("2013-02-28", tz=tz),
+            pd.Timestamp("2013-03-31", tz=tz),
+            pd.Timestamp("2013-04-30", tz=tz),
         ]
-        expected = Index(expected_list, dtype=object, name="idx")
+        expected = pd.Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
 
     def test_astype_object_with_nat(self):
-        idx = DatetimeIndex(
-            [datetime(2013, 1, 1), datetime(2013, 1, 2), NaT, datetime(2013, 1, 4)],
+        idx = pd.DatetimeIndex(
+            [datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT, datetime(2013, 1, 4)],
             name="idx",
         )
         expected_list = [
-            Timestamp("2013-01-01"),
-            Timestamp("2013-01-02"),
-            NaT,
-            Timestamp("2013-01-04"),
+            pd.Timestamp("2013-01-01"),
+            pd.Timestamp("2013-01-02"),
+            pd.NaT,
+            pd.Timestamp("2013-01-04"),
         ]
-        expected = Index(expected_list, dtype=object, name="idx")
+        expected = pd.Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
@@ -230,7 +224,7 @@ class TestDatetimeIndex:
     )
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
+        idx = pd.DatetimeIndex(["2016-05-16", "NaT", pd.NaT, np.nan])
         msg = "Cannot cast DatetimeIndex to dtype"
         if dtype == "datetime64":
             msg = "Casting to unit-less dtype 'datetime64' is not supported"
@@ -246,9 +240,9 @@ class TestDatetimeIndex:
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
 
-        rng = date_range("20090415", "20090519")
-        rng_eastern = date_range("20090415", "20090519", tz="US/Eastern")
-        rng_utc = date_range("20090415", "20090519", tz="utc")
+        rng = pd.date_range("20090415", "20090519")
+        rng_eastern = pd.date_range("20090415", "20090519", tz="US/Eastern")
+        rng_utc = pd.date_range("20090415", "20090519", tz="utc")
 
         _check_rng(rng)
         _check_rng(rng_eastern)
@@ -265,9 +259,11 @@ class TestDatetimeIndex:
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
 
-        rng = date_range("20090415", "20090519")
-        rng_eastern = date_range("20090415", "20090519", tz=pytz.timezone("US/Eastern"))
-        rng_utc = date_range("20090415", "20090519", tz=pytz.utc)
+        rng = pd.date_range("20090415", "20090519")
+        rng_eastern = pd.date_range(
+            "20090415", "20090519", tz=pytz.timezone("US/Eastern")
+        )
+        rng_utc = pd.date_range("20090415", "20090519", tz=pytz.utc)
 
         _check_rng(rng)
         _check_rng(rng_eastern)
@@ -282,9 +278,9 @@ class TestDatetimeIndex:
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
 
-        rng = date_range("20090415", "20090519")
-        rng_eastern = date_range("20090415", "20090519", tz="dateutil/US/Eastern")
-        rng_utc = date_range("20090415", "20090519", tz=dateutil.tz.tzutc())
+        rng = pd.date_range("20090415", "20090519")
+        rng_eastern = pd.date_range("20090415", "20090519", tz="dateutil/US/Eastern")
+        rng_utc = pd.date_range("20090415", "20090519", tz=dateutil.tz.tzutc())
 
         _check_rng(rng)
         _check_rng(rng_eastern)
@@ -296,29 +292,29 @@ class TestDatetimeIndex:
     )
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
-        val = [Timestamp("2018-01-01", tz=tz).as_unit("ns")._value]
-        result = Index(val, name="idx").astype(dtype)
-        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx").as_unit("ns")
+        val = [pd.Timestamp("2018-01-01", tz=tz).as_unit("ns")._value]
+        result = pd.Index(val, name="idx").astype(dtype)
+        expected = pd.DatetimeIndex(["2018-01-01"], tz=tz, name="idx").as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     def test_dti_astype_period(self):
-        idx = DatetimeIndex([NaT, "2011-01-01", "2011-02-01"], name="idx")
+        idx = pd.DatetimeIndex([pd.NaT, "2011-01-01", "2011-02-01"], name="idx")
 
         res = idx.astype("period[M]")
-        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="M", name="idx")
+        exp = pd.PeriodIndex(["NaT", "2011-01", "2011-02"], freq="M", name="idx")
         tm.assert_index_equal(res, exp)
 
         res = idx.astype("period[3M]")
-        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3M", name="idx")
+        exp = pd.PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3M", name="idx")
         tm.assert_index_equal(res, exp)
 
 
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = date_range("2000", periods=2, tz=tz, name="idx", unit="ns")
+        obj = pd.date_range("2000", periods=2, tz=tz, name="idx", unit="ns")
         result = obj.astype("category")
-        dti = DatetimeIndex(["2000-01-01", "2000-01-02"], tz=tz).as_unit("ns")
+        dti = pd.DatetimeIndex(["2000-01-01", "2000-01-02"], tz=tz).as_unit("ns")
         expected = pd.CategoricalIndex(
             dti,
             name="idx",
@@ -331,9 +327,9 @@ class TestAstype:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_array_fallback(self, tz):
-        obj = date_range("2000", periods=2, tz=tz, name="idx")
+        obj = pd.date_range("2000", periods=2, tz=tz, name="idx")
         result = obj.astype(bool)
-        expected = Index(np.array([True, True]), name="idx")
+        expected = pd.Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)

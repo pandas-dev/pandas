@@ -354,7 +354,6 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
@@ -380,7 +379,6 @@ def test_arrow_roundtrip(dtype, string_storage, using_infer_string):
     assert result.loc[2, "a"] is result["a"].dtype.na_value
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_from_string(using_infer_string):
     # not roundtrip,  but starting with pyarrow table without pandas metadata
     pa = pytest.importorskip("pyarrow")
@@ -402,7 +400,6 @@ def test_arrow_from_string(using_infer_string):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_arrow_load_from_zero_chunks(dtype, string_storage, using_infer_string):
     # GH-41040
     pa = pytest.importorskip("pyarrow")

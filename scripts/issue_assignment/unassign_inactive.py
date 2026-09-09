@@ -45,7 +45,7 @@ def free_linked_issues(client: GitHubClient, number: int, author: str | None) ->
 
 
 def run_sweep(client: GitHubClient) -> None:
-    now = datetime.now(UTC)
+    now = datetime.now(UTC)  # noqa: TID251
     window = timedelta(days=core.STALE_ASSIGNEE_DAYS)
     for number in client.list_open_assigned_issue_numbers():
         activity = client.issue_activity(number)
@@ -132,7 +132,7 @@ def _stale_clock_anchor(
 
 def run_pr_stale_sweep(client: GitHubClient) -> None:
     """Mark/clear ``Stale`` and auto-close open PRs based on author inactivity."""
-    now = datetime.now(UTC)
+    now = datetime.now(UTC)  # noqa: TID251
     for pr in client.iter_open_pull_requests_review_state():
         contributors = {pr["author"]} - {None}
         changes_requested_at = core.outstanding_changes_requested_at(pr["reviews"])
