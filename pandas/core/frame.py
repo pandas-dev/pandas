@@ -313,7 +313,8 @@ class DataFrame(NDFrame, OpsMixin):
     Notes
     -----
     Please reference the :ref:`User Guide <basics.dataframe>` for more information.
-
+    If a dict is passed for index or columns, the keys are used to create the corresponding index.
+    
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
