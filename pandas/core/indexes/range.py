@@ -1140,6 +1140,9 @@ class RangeIndex(Index):
         right = other.difference(self)
         result = left.union(right)
 
+        if sort is not False and isinstance(result, RangeIndex) and result.step < 0:
+            result = result[::-1]
+
         if result_name is not None:
             result = result.rename(result_name)
         return result
