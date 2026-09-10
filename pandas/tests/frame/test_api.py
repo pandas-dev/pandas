@@ -11,12 +11,6 @@ from pandas._config.config import option_context
 from pandas.compat import HAS_PYARROW
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-    timedelta_range,
-)
 import pandas._testing as tm
 
 
@@ -69,14 +63,14 @@ class TestDataFrameMisc:
 
     def test_tab_completion(self):
         # DataFrame whose columns are identifiers shall have them in __dir__.
-        df = DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
+        df = pd.DataFrame([list("abcd"), list("efgh")], columns=list("ABCD"))
         for key in list("ABCD"):
             assert key in dir(df)
-        assert isinstance(df.__getitem__("A"), Series)
+        assert isinstance(df.__getitem__("A"), pd.Series)
 
         # DataFrame whose first-level columns are identifiers shall have
         # them in __dir__.
-        df = DataFrame(
+        df = pd.DataFrame(
             [list("abcd"), list("efgh")],
             columns=pd.MultiIndex.from_tuples(list(zip("ABCD", "EFGH", strict=True))),
         )
@@ -84,31 +78,31 @@ class TestDataFrameMisc:
             assert key in dir(df)
         for key in list("EFGH"):
             assert key not in dir(df)
-        assert isinstance(df.__getitem__("A"), DataFrame)
+        assert isinstance(df.__getitem__("A"), pd.DataFrame)
 
     def test_display_max_dir_items(self):
         # display.max_dir_items increases the number of columns that are in __dir__.
         columns = ["a" + str(i) for i in range(420)]
         values = [range(420), range(420)]
-        df = DataFrame(values, columns=columns)
+        df = pd.DataFrame(values, columns=columns)
 
         # The default value for display.max_dir_items is 100
         assert "a99" in dir(df)
         assert "a100" not in dir(df)
 
         with option_context("display.max_dir_items", 300):
-            df = DataFrame(values, columns=columns)
+            df = pd.DataFrame(values, columns=columns)
             assert "a299" in dir(df)
             assert "a300" not in dir(df)
 
         with option_context("display.max_dir_items", None):
-            df = DataFrame(values, columns=columns)
+            df = pd.DataFrame(values, columns=columns)
             assert "a419" in dir(df)
 
     def test_not_hashable(self):
-        empty_frame = DataFrame()
+        empty_frame = pd.DataFrame()
 
-        df = DataFrame([1])
+        df = pd.DataFrame([1])
         msg = "unhashable type: 'DataFrame'"
         with pytest.raises(TypeError, match=msg):
             hash(df)
@@ -121,14 +115,14 @@ class TestDataFrameMisc:
     def test_column_name_contains_unicode_surrogate(self):
         # GH 25509
         colname = "\ud83d"
-        df = DataFrame({colname: []})
+        df = pd.DataFrame({colname: []})
         # this should not crash
         assert colname not in dir(df)
         assert df.columns[0] == colname
 
     def test_new_empty_index(self):
-        df1 = DataFrame(np.random.default_rng(2).standard_normal((0, 3)))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal((0, 3)))
+        df1 = pd.DataFrame(np.random.default_rng(2).standard_normal((0, 3)))
+        df2 = pd.DataFrame(np.random.default_rng(2).standard_normal((0, 3)))
         df1.index.name = "foo"
         assert df2.index.name is None
 
@@ -144,14 +138,16 @@ class TestDataFrameMisc:
             float_frame._get_agg_axis(2)
 
     def test_empty(self, float_frame, float_string_frame):
-        empty_frame = DataFrame()
+        empty_frame = pd.DataFrame()
         assert empty_frame.empty
 
         assert not float_frame.empty
         assert not float_string_frame.empty
 
         # corner case
-        df = DataFrame({"A": [1.0, 2.0, 3.0], "B": ["a", "b", "c"]}, index=np.arange(3))
+        df = pd.DataFrame(
+            {"A": [1.0, 2.0, 3.0], "B": ["a", "b", "c"]}, index=np.arange(3)
+        )
         del df["A"]
         assert not df.empty
 
@@ -178,8 +174,8 @@ class TestDataFrameMisc:
     def test_class_axis(self):
         # GH 18147
         # no exception and no empty docstring
-        assert pydoc.getdoc(DataFrame.index)
-        assert pydoc.getdoc(DataFrame.columns)
+        assert pydoc.getdoc(pd.DataFrame.index)
+        assert pydoc.getdoc(pd.DataFrame.columns)
 
     def test_series_put_names(self, float_string_frame):
         series = float_string_frame._series
@@ -187,21 +183,21 @@ class TestDataFrameMisc:
             assert v.name == k
 
     def test_empty_nonzero(self):
-        df = DataFrame([1, 2, 3])
+        df = pd.DataFrame([1, 2, 3])
         assert not df.empty
-        df = DataFrame(index=[1], columns=[1])
+        df = pd.DataFrame(index=[1], columns=[1])
         assert not df.empty
-        df = DataFrame(index=["a", "b"], columns=["c", "d"]).dropna()
+        df = pd.DataFrame(index=["a", "b"], columns=["c", "d"]).dropna()
         assert df.empty
         assert df.T.empty
 
     @pytest.mark.parametrize(
         "df",
         [
-            DataFrame(),
-            DataFrame(index=[1]),
-            DataFrame(columns=[1]),
-            DataFrame({1: []}),
+            pd.DataFrame(),
+            pd.DataFrame(index=[1]),
+            pd.DataFrame(columns=[1]),
+            pd.DataFrame({1: []}),
         ],
     )
     def test_empty_like(self, df):
@@ -209,16 +205,16 @@ class TestDataFrameMisc:
         assert df.T.empty
 
     def test_with_datetimelikes(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
-                "A": date_range("20130101", periods=10),
-                "B": timedelta_range("1 day", periods=10),
+                "A": pd.date_range("20130101", periods=10),
+                "B": pd.timedelta_range("1 day", periods=10),
             }
         )
         t = df.T
 
         result = t.dtypes.value_counts()
-        expected = Series({np.dtype("object"): 10}, name="count")
+        expected = pd.Series({np.dtype("object"): 10}, name="count")
         tm.assert_series_equal(result, expected)
 
     def test_deepcopy(self, float_frame):
@@ -230,7 +226,7 @@ class TestDataFrameMisc:
     def test_inplace_return_self(self):
         # GH 1893
 
-        data = DataFrame(
+        data = pd.DataFrame(
             {"a": ["foo", "bar", "baz", "qux"], "b": [0, 0, 1, 1], "c": [1, 2, 3, 4]}
         )
 
@@ -300,7 +296,7 @@ class TestDataFrameMisc:
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        if frame_or_series is DataFrame:
+        if frame_or_series is pd.DataFrame:
             code = "from pandas import DataFrame; obj = DataFrame()"
         else:
             code = "from pandas import Series; obj = Series(dtype=object)"
@@ -313,7 +309,7 @@ class TestDataFrameMisc:
                 list(ip.Completer.completions("obj.", 1))
 
     def test_attrs(self):
-        df = DataFrame({"A": [2, 3]})
+        df = pd.DataFrame({"A": [2, 3]})
         assert df.attrs == {}
         df.attrs["version"] = 1
 
@@ -321,7 +317,7 @@ class TestDataFrameMisc:
         assert result.attrs == {"version": 1}
 
     def test_attrs_is_deepcopy(self):
-        df = DataFrame({"A": [2, 3]})
+        df = pd.DataFrame({"A": [2, 3]})
         assert df.attrs == {}
         df.attrs["tags"] = {"spam", "ham"}
 
@@ -331,11 +327,11 @@ class TestDataFrameMisc:
 
     def test_attrs_concat(self):
         # concat propagates attrs if all input attrs are equal
-        df1 = DataFrame({"A": [2, 3]})
+        df1 = pd.DataFrame({"A": [2, 3]})
         df1.attrs = {"a": 1, "b": 2}
-        df2 = DataFrame({"A": [4, 5]})
+        df2 = pd.DataFrame({"A": [4, 5]})
         df2.attrs = df1.attrs.copy()
-        df3 = DataFrame({"A": [6, 7]})
+        df3 = pd.DataFrame({"A": [6, 7]})
         df3.attrs = df1.attrs.copy()
         assert pd.concat([df1, df2, df3]).attrs == df1.attrs
         # concat does not propagate attrs if input attrs are different
@@ -344,9 +340,9 @@ class TestDataFrameMisc:
 
     def test_attrs_merge(self):
         # merge propagates attrs if all input attrs are equal
-        df1 = DataFrame({"key": ["a", "b"], "val1": [1, 2]})
+        df1 = pd.DataFrame({"key": ["a", "b"], "val1": [1, 2]})
         df1.attrs = {"a": 1, "b": 2}
-        df2 = DataFrame({"key": ["a", "b"], "val2": [3, 4]})
+        df2 = pd.DataFrame({"key": ["a", "b"], "val2": [3, 4]})
         df2.attrs = df1.attrs.copy()
         assert pd.merge(df1, df2).attrs == df1.attrs
         # merge does not propagate attrs if input attrs are different
@@ -359,9 +355,9 @@ class TestDataFrameMisc:
         allows_duplicate_labels,
         frame_or_series,
     ):
-        obj = DataFrame({"A": [1, 2]})
+        obj = pd.DataFrame({"A": [1, 2]})
         key = (0, 0)
-        if frame_or_series is Series:
+        if frame_or_series is pd.Series:
             obj = obj["A"]
             key = 0
 
@@ -380,7 +376,7 @@ class TestDataFrameMisc:
         assert obj.flags.allows_duplicate_labels is True
 
         # But we didn't copy data
-        if frame_or_series is Series:
+        if frame_or_series is pd.Series:
             assert np.may_share_memory(obj.values, result.values)
         else:
             assert np.may_share_memory(obj["A"].values, result["A"].values)
@@ -397,7 +393,7 @@ class TestDataFrameMisc:
         # GH#33628 accessing _constructor_expanddim should not raise NotImplementedError
         # GH38782 pandas has no container higher than DataFrame (two-dim), so
         # DataFrame._constructor_expand_dim, doesn't make sense, so is removed.
-        df = DataFrame()
+        df = pd.DataFrame()
 
         msg = "'DataFrame' object has no attribute '_constructor_expanddim'"
         with pytest.raises(AttributeError, match=msg):
@@ -405,5 +401,5 @@ class TestDataFrameMisc:
 
     def test_inspect_getmembers(self):
         # GH38740
-        df = DataFrame()
+        df = pd.DataFrame()
         inspect.getmembers(df)

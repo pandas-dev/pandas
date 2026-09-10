@@ -17,32 +17,33 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import parsers as libparsers
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    is_platform_windows,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
     ParserWarning,
 )
 
-from pandas import (
-    DataFrame,
-    Index,
-    compat,
-)
+import pandas as pd
 import pandas._testing as tm
+
+from pandas.io.parsers.readers import _bool_kwargs as parser_bool_kwargs
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_read_csv_local(all_parsers, csv1):
-    prefix = "file:///" if compat.is_platform_windows() else "file://"
+    prefix = "file:///" if is_platform_windows() else "file://"
     parser = all_parsers
 
     fname = prefix + str(os.path.abspath(csv1))
     result = parser.read_csv(fname, index_col=0, parse_dates=True)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
             [1.047916, -0.041232, -0.16181208307, 0.212549],
@@ -53,7 +54,7 @@ def test_read_csv_local(all_parsers, csv1):
             [-0.157161, 1.340307, 1.1957779562, -1.097007],
         ],
         columns=["A", "B", "C", "D"],
-        index=Index(
+        index=pd.Index(
             [
                 datetime(2000, 1, 3),
                 datetime(2000, 1, 4),
@@ -90,7 +91,7 @@ def test_1000_sep(all_parsers, number_csv, expected_number, request):
 1|{number_csv}|5
 10|13|10.
 """
-    expected = DataFrame({"A": [1, 10], "B": [expected_number, 13], "C": [5, 10.0]})
+    expected = pd.DataFrame({"A": [1, 10], "B": [expected_number, 13], "C": [5, 10.0]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
@@ -111,7 +112,7 @@ def test_1000_sep(all_parsers, number_csv, expected_number, request):
 def test_1000_sep_not_stripped_after_whitespace(all_parsers, value):
     parser = all_parsers
     data = f"a\n{value}\n"
-    expected = DataFrame({"a": [value]})
+    expected = pd.DataFrame({"a": [value]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
@@ -130,7 +131,7 @@ def test_unnamed_columns(all_parsers):
 11,12,13,14,15
 """
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]],
         dtype=np.int64,
         columns=["A", "B", "C", "Unnamed: 3", "Unnamed: 4"],
@@ -146,7 +147,7 @@ b,3,4
 c,4,5
 """
     parser = all_parsers
-    expected = DataFrame({"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]})
+    expected = pd.DataFrame({"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]})
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
 
@@ -171,14 +172,14 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
         return
 
     result = parser.read_csv(StringIO(data), low_memory=True, index_col=0, nrows=0)
-    expected = DataFrame(columns=["A", "B", "C"])
+    expected = pd.DataFrame(columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_read_csv_dataframe(all_parsers, csv1):
     parser = all_parsers
     result = parser.read_csv(csv1, index_col=0, parse_dates=True)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
             [1.047916, -0.041232, -0.16181208307, 0.212549],
@@ -189,7 +190,7 @@ def test_read_csv_dataframe(all_parsers, csv1):
             [-0.157161, 1.340307, 1.1957779562, -1.097007],
         ],
         columns=["A", "B", "C", "D"],
-        index=Index(
+        index=pd.Index(
             [
                 datetime(2000, 1, 3),
                 datetime(2000, 1, 4),
@@ -219,7 +220,7 @@ qux,12,13,14,15
 foo2,12,13,14,15
 bar2,12,13,14,15
 """
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [["foo", 2, 3, 4, 5], ["bar", 7, 8, 9, 10], ["baz", 12, 13, 14, 15]],
         columns=["index", "A", "B", "C", "D"],
     )
@@ -254,6 +255,85 @@ bar2,12,13,14,15
         parser.read_csv(StringIO(data), nrows=nrows)
 
 
+# low_memory is pinned by the all_parsers fixture, so it gets its own test below
+_fixture_bool_kwargs = [
+    "cache_dates",
+    "dayfirst",
+    "doublequote",
+    "iterator",
+    "keep_default_na",
+    "memory_map",
+    "na_filter",
+    "skip_blank_lines",
+    "skipinitialspace",
+]
+
+
+def test_bool_kwargs_covered():
+    # the literal list above must track the set the parser actually checks, in
+    # both directions -- a name added or dropped there should fail here
+    assert set(_fixture_bool_kwargs) | {"low_memory"} == parser_bool_kwargs
+
+
+@pytest.mark.parametrize("kwarg", _fixture_bool_kwargs)
+@pytest.mark.parametrize("value", ["False", None, 1.5])
+def test_bool_kwarg_not_bool(all_parsers, kwarg, value):
+    # GH#68341 these were consumed for their truthiness, so e.g. the string
+    # "False" silently meant the opposite of what the caller asked for
+    parser = all_parsers
+    msg = f'For argument "{kwarg}" expected type bool'
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO("a\n1\n"), **{kwarg: value})
+
+
+@pytest.mark.parametrize("value", ["False", None, 1.5])
+def test_low_memory_not_bool(value):
+    # GH#68341; low_memory is pinned by the all_parsers fixture, so go direct
+    msg = 'For argument "low_memory" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        pd.read_csv(StringIO("a\n1\n"), low_memory=value)
+
+
+@pytest.mark.parametrize("reader", [pd.read_table, pd.read_fwf])
+def test_bool_kwarg_not_bool_other_readers(reader):
+    # GH#68341 read_table and read_fwf share the check with read_csv
+    msg = 'For argument "keep_default_na" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        reader(StringIO("a\n1\n"), keep_default_na="False")
+
+
+@pytest.mark.parametrize("value", [2, -1, np.int64(2)])
+def test_bool_kwarg_int_not_zero_or_one(all_parsers, value):
+    # GH#68341 only 0/1 stand in for the bools -- a larger int is truthy but
+    # not a bool, e.g. memory_map=2 is truthy and mmaps nothing
+    parser = all_parsers
+    msg = 'For argument "keep_default_na" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO("a\n1\n"), keep_default_na=value)
+
+
+def test_bool_kwarg_checked_before_skipfooter(all_parsers):
+    # GH#68341 _validate_skipfooter reads `iterator` for truthiness, so an
+    # unchecked non-bool told the caller iteration was the problem
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        pytest.skip("skipfooter is not supported with the pyarrow engine")
+    msg = 'For argument "iterator" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO("a\n1\n2\n"), skipfooter=1, iterator="False")
+
+
+@pytest.mark.parametrize("value", [0, 1, np.bool_(True), np.bool_(False), np.int64(0)])
+def test_bool_kwarg_boolish(all_parsers, value):
+    # GH#68341 0/1 (numpy ints included) and numpy bools stay acceptable
+    parser = all_parsers
+    result = parser.read_csv(StringIO("a\nNA\n"), keep_default_na=value)
+
+    expected = pd.DataFrame({"a": [np.nan if value else "NA"]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_nrows_skipfooter_errors(all_parsers):
     msg = "'skipfooter' not supported with 'nrows'"
     data = "a\n1\n2\n3\n4\n5\n6"
@@ -272,7 +352,7 @@ def test_missing_trailing_delimiters(all_parsers):
 1,4,5"""
 
     result = parser.read_csv(StringIO(data))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4], [1, 3, 3, np.nan], [1, 4, 5, np.nan]],
         columns=["A", "B", "C", "D"],
     )
@@ -309,7 +389,7 @@ def test_skip_initial_space(all_parsers):
         na_values=["-9999.0"],
         skipinitialspace=True,
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [
                 "09-Apr-2012",
@@ -361,7 +441,7 @@ def test_trailing_delimiters(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=False)
 
-    expected = DataFrame({"A": [1, 4, 7], "B": [2, 5, 8], "C": [3, 6, 9]})
+    expected = pd.DataFrame({"A": [1, 4, 7], "B": [2, 5, 8], "C": [3, 6, 9]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -380,7 +460,7 @@ def test_escapechar(all_parsers):
 
     assert result["SEARCH_TERM"][2] == 'SLAGBORD, "Bergslagen", IKEA:s 1700-tals series'
 
-    tm.assert_index_equal(result.columns, Index(["SEARCH_TERM", "ACTUAL_URL"]))
+    tm.assert_index_equal(result.columns, pd.Index(["SEARCH_TERM", "ACTUAL_URL"]))
 
 
 @skip_pyarrow
@@ -392,7 +472,7 @@ def test_escapechar_quoting_round_trip(all_parsers):
     sep = "|"
 
     sample_data = [i * escape + quote for i in range(1, 11)]
-    initial_df = DataFrame(sample_data, columns=["column"])
+    initial_df = pd.DataFrame(sample_data, columns=["column"])
 
     csv_text = initial_df.to_csv(
         sep=sep,
@@ -413,7 +493,7 @@ def test_escapechar_quoting_round_trip(all_parsers):
         header=None,
         doublequote=False,
     )
-    expected = DataFrame(sample_data)
+    expected = pd.DataFrame(sample_data)
     tm.assert_frame_equal(result, expected)
 
 
@@ -429,7 +509,7 @@ def test_ignore_leading_whitespace(all_parsers):
         return
     result = parser.read_csv(StringIO(data), sep=r"\s+")
 
-    expected = DataFrame({"a": [1, 4, 7], "b": [2, 5, 8], "c": [3, 6, 9]})
+    expected = pd.DataFrame({"a": [1, 4, 7], "b": [2, 5, 8], "c": [3, 6, 9]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -450,7 +530,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data))
     else:
-        expected = DataFrame({"a": [0, 3, 8], "b": [1, 4, 9]})
+        expected = pd.DataFrame({"a": [0, 3, 8], "b": [1, 4, 9]})
 
         result = parser.read_csv(StringIO(data), usecols=usecols)
         tm.assert_frame_equal(result, expected)
@@ -467,12 +547,12 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
         (
             ",,",
             {"names": ["Dummy", "X", "Dummy_2"], "usecols": ["X"]},
-            DataFrame(columns=["X"], index=[0], dtype=np.float64),
+            pd.DataFrame(columns=["X"], index=[0], dtype=np.float64),
         ),
         (
             "",
             {"names": ["Dummy", "X", "Dummy_2"], "usecols": ["X"]},
-            DataFrame(columns=["X"]),
+            pd.DataFrame(columns=["X"]),
         ),
     ],
 )
@@ -522,7 +602,7 @@ def test_trailing_spaces(all_parsers, kwargs, expected_data):
         with pytest.raises(ValueError, match="the 'pyarrow' engine does not support"):
             parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
         return
-    expected = DataFrame(expected_data)
+    expected = pd.DataFrame(expected_data)
     result = parser.read_csv(StringIO(data.replace(",", "  ")), **kwargs)
     tm.assert_frame_equal(result, expected)
 
@@ -553,7 +633,7 @@ b\n"""
                 skipinitialspace=True,
             )
         return
-    expected = DataFrame({"MyColumn": list("abab")})
+    expected = pd.DataFrame({"MyColumn": list("abab")})
     result = parser.read_csv(StringIO(data), skipinitialspace=True, sep=r"\s+")
     tm.assert_frame_equal(result, expected)
 
@@ -601,7 +681,7 @@ A,B,C
             return
 
     result = parser.read_csv(StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines)
-    expected = DataFrame(exp_data, columns=["A", "B", "C"])
+    expected = pd.DataFrame(exp_data, columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -616,7 +696,9 @@ A,B,C
 \t    1,2.,4.
 5.,NaN,10.0
 """
-    expected = DataFrame([[1, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"])
+    expected = pd.DataFrame(
+        [[1, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
+    )
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
 
@@ -630,7 +712,7 @@ a   1   2   3   4
 b   1   2   3   4
 c   1   2   3   4
 """,
-            DataFrame(
+            pd.DataFrame(
                 [[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
                 columns=["A", "B", "C", "D"],
                 index=["a", "b", "c"],
@@ -638,7 +720,7 @@ c   1   2   3   4
         ),
         (
             "    a b c\n1 2 3 \n4 5  6\n 7 8 9",
-            DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"]),
+            pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["a", "b", "c"]),
         ),
     ],
 )
@@ -658,7 +740,7 @@ def test_whitespace_regex_separator(all_parsers, data, expected):
 def test_sub_character(all_parsers, datapath):
     # see gh-16893
     filename = datapath("io", "parser", "data", "sub_char.csv")
-    expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
+    expected = pd.DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
 
     parser = all_parsers
     result = parser.read_csv(filename)
@@ -669,7 +751,7 @@ def test_sub_character(all_parsers, datapath):
 def test_filename_with_special_chars(all_parsers, filename, tmp_path):
     # see gh-15086.
     parser = all_parsers
-    df = DataFrame({"a": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3]})
 
     path = tmp_path / filename
     df.to_csv(path, index=False)
@@ -720,7 +802,7 @@ def test_read_csv_and_table_sys_setprofile(all_parsers, read_func):
     result = getattr(parser, read_func)(StringIO(data))
     sys.setprofile(None)
 
-    expected = DataFrame({"a b": ["0 1"]})
+    expected = pd.DataFrame({"a b": ["0 1"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -731,7 +813,7 @@ def test_first_row_bom(all_parsers):
     data = '''\ufeff"Head1"\t"Head2"\t"Head3"'''
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
-    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    expected = pd.DataFrame(columns=["Head1", "Head2", "Head3"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -742,14 +824,14 @@ def test_first_row_bom_unquoted(all_parsers):
     data = """\ufeffHead1\tHead2\tHead3"""
 
     result = parser.read_csv(StringIO(data), delimiter="\t")
-    expected = DataFrame(columns=["Head1", "Head2", "Head3"])
+    expected = pd.DataFrame(columns=["Head1", "Head2", "Head3"])
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("nrows", range(1, 6))
 def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     # GH 28071
-    ref = DataFrame(
+    ref = pd.DataFrame(
         [[np.nan, np.nan], [np.nan, np.nan], [1, 2], [np.nan, np.nan], [3, 4]],
         columns=list("ab"),
     )
@@ -772,7 +854,7 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
 def test_no_header_two_extra_columns(all_parsers):
     # GH 26218
     column_names = ["one", "two", "three"]
-    ref = DataFrame([["foo", "bar", "baz"]], columns=column_names)
+    ref = pd.DataFrame([["foo", "bar", "baz"]], columns=column_names)
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
     df = parser.read_csv_check_warnings(
@@ -831,7 +913,7 @@ def test_dict_keys_as_names(all_parsers):
     parser = all_parsers
 
     result = parser.read_csv(StringIO(data), names=keys)
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -842,7 +924,7 @@ def test_encoding_surrogatepass(all_parsers, tmp_path):
     parser = all_parsers
     content = b"\xed\xbd\xbf"
     decoded = content.decode("utf-8", errors="surrogatepass")
-    expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
+    expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
     expected.index.name = decoded * 2
 
     path = tmp_path / "test_encoding.csv"
@@ -860,7 +942,7 @@ def test_malformed_second_line(all_parsers):
     parser = all_parsers
     data = "\na\nb\n"
     result = parser.read_csv(StringIO(data), skip_blank_lines=False, header=1)
-    expected = DataFrame({"a": ["b"]})
+    expected = pd.DataFrame({"a": ["b"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -871,7 +953,7 @@ def test_short_single_line(all_parsers):
     columns = ["a", "b", "c"]
     data = "1,2"
     result = parser.read_csv(StringIO(data), header=None, names=columns)
-    expected = DataFrame({"a": [1], "b": [2], "c": [np.nan]})
+    expected = pd.DataFrame({"a": [1], "b": [2], "c": [np.nan]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -882,7 +964,7 @@ def test_short_multi_line(all_parsers):
     columns = ["a", "b", "c"]
     data = "1,2\n1,2"
     result = parser.read_csv(StringIO(data), header=None, names=columns)
-    expected = DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
+    expected = pd.DataFrame({"a": [1, 1], "b": [2, 2], "c": [np.nan, np.nan]})
     tm.assert_frame_equal(result, expected)
 
 

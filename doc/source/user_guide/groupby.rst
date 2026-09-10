@@ -1530,8 +1530,8 @@ You may also use slices or lists of slices.
 
 .. ipython:: python
 
-   df.groupby([df.index.year, df.index.month]).nth[1:]
-   df.groupby([df.index.year, df.index.month]).nth[1:, :-1]
+   df.groupby([df.index.year, df.index.month]).nth(slice(1, None))
+   df.groupby([df.index.year, df.index.month]).nth([slice(1, None), slice(None, -1)])
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~

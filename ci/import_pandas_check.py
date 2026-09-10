@@ -9,7 +9,6 @@ blocklist = {
     "http",
     "ipython",
     "jinja2",
-    "hypothesis",
     "lxml",
     "matplotlib",
     "openpyxl",

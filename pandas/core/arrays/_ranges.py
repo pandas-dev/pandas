@@ -162,7 +162,7 @@ def generate_daily_offset_range(
             # start + end. GH#64790: align end's time-of-day to start's so the
             # last on-offset date isn't dropped when end's is earlier. Mask
             # offsets preserve time-of-day unless ``freq.normalize``; testing
-            # that attribute rather than probing ``freq._apply(start)`` avoids
+            # that attribute rather than probing ``freq._add_datetime(start)`` avoids
             # raising near Timestamp.max (GH#64648).
             tod and not freq.normalize and end >= start  # type: ignore[operator]
         ):

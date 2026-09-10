@@ -1,14 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    NA,
-    DataFrame,
-    Index,
-    NaT,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -379,7 +372,14 @@ def test_assert_almost_equal_inf(a, b):
     _assert_almost_equal_both(a, b)
 
 
-objs = [NA, np.nan, NaT, None, np.datetime64("NaT", "ns"), np.timedelta64("NaT", "ns")]
+objs = [
+    pd.NA,
+    np.nan,
+    pd.NaT,
+    None,
+    np.datetime64("NaT", "ns"),
+    np.timedelta64("NaT", "ns"),
+]
 
 
 @pytest.mark.parametrize("left", objs)
@@ -394,13 +394,13 @@ def test_mismatched_na_assert_almost_equal(left, right):
         _assert_almost_equal_both(left, right, check_dtype=False)
         tm.assert_numpy_array_equal(left_arr, right_arr)
         tm.assert_index_equal(
-            Index(left_arr, dtype=object), Index(right_arr, dtype=object)
+            pd.Index(left_arr, dtype=object), pd.Index(right_arr, dtype=object)
         )
         tm.assert_series_equal(
-            Series(left_arr, dtype=object), Series(right_arr, dtype=object)
+            pd.Series(left_arr, dtype=object), pd.Series(right_arr, dtype=object)
         )
         tm.assert_frame_equal(
-            DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
+            pd.DataFrame(left_arr, dtype=object), pd.DataFrame(right_arr, dtype=object)
         )
 
     else:
@@ -414,11 +414,12 @@ def test_mismatched_na_assert_almost_equal(left, right):
         #  assert_index_equal uses Index.equal which uses array_equivalent.
         with pytest.raises(AssertionError, match="Series are different"):
             tm.assert_series_equal(
-                Series(left_arr, dtype=object), Series(right_arr, dtype=object)
+                pd.Series(left_arr, dtype=object), pd.Series(right_arr, dtype=object)
             )
         with pytest.raises(AssertionError, match="DataFrame.iloc.* are different"):
             tm.assert_frame_equal(
-                DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
+                pd.DataFrame(left_arr, dtype=object),
+                pd.DataFrame(right_arr, dtype=object),
             )
 
 
@@ -429,10 +430,10 @@ def test_assert_not_almost_equal_inf():
 @pytest.mark.parametrize(
     "a,b",
     [
-        (Index([1.0, 1.1]), Index([1.0, 1.100001])),
-        (Series([1.0, 1.1]), Series([1.0, 1.100001])),
+        (pd.Index([1.0, 1.1]), pd.Index([1.0, 1.100001])),
+        (pd.Series([1.0, 1.1]), pd.Series([1.0, 1.100001])),
         (np.array([1.1, 2.000001]), np.array([1.1, 2.0])),
-        (DataFrame({"a": [1.0, 1.1]}), DataFrame({"a": [1.0, 1.100001]})),
+        (pd.DataFrame({"a": [1.0, 1.1]}), pd.DataFrame({"a": [1.0, 1.100001]})),
     ],
 )
 def test_assert_almost_equal_pandas(a, b):
@@ -440,8 +441,8 @@ def test_assert_almost_equal_pandas(a, b):
 
 
 def test_assert_almost_equal_object():
-    a = [Timestamp("2011-01-01"), Timestamp("2011-01-01")]
-    b = [Timestamp("2011-01-01"), Timestamp("2011-01-01")]
+    a = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")]
+    b = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")]
     _assert_almost_equal_both(a, b)
 
 
@@ -536,8 +537,8 @@ numpy array values are different \\(33\\.33333 %\\)
 
 
 def test_assert_almost_equal_timestamp():
-    a = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-01")])
-    b = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-02")])
+    a = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")])
+    b = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")])
 
     msg = """numpy array are different
 

@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -109,7 +108,7 @@ class TestFrameAccessor:
     def test_from_spmatrix(self, format, labels, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        sp_dtype = SparseDtype(dtype)
+        sp_dtype = pd.SparseDtype(dtype)
 
         sp_mat = sp_sparse.eye(10, format=format, dtype=dtype)
         result = pd.DataFrame.sparse.from_spmatrix(sp_mat, index=labels, columns=labels)
@@ -126,7 +125,7 @@ class TestFrameAccessor:
     def test_from_spmatrix_including_explicit_zero(self, format, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        sp_dtype = SparseDtype(dtype)
+        sp_dtype = pd.SparseDtype(dtype)
 
         sp_mat = sp_sparse.random(10, 2, density=0.5, format=format, dtype=dtype)
         sp_mat.data[0] = 0
@@ -144,7 +143,7 @@ class TestFrameAccessor:
     def test_from_spmatrix_columns(self, columns):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        sp_dtype = SparseDtype(np.float64)
+        sp_dtype = pd.SparseDtype(np.float64)
 
         sp_mat = sp_sparse.random(10, 2, density=0.5)
         result = pd.DataFrame.sparse.from_spmatrix(sp_mat, columns=columns)
@@ -162,7 +161,7 @@ class TestFrameAccessor:
     def test_to_coo(self, columns, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        sp_dtype = SparseDtype(dtype)
+        sp_dtype = pd.SparseDtype(dtype)
 
         expected = sp_sparse.random(10, 2, density=0.5, format="coo", dtype=dtype)
         mat = expected.toarray()
@@ -194,9 +193,9 @@ class TestFrameAccessor:
     def test_to_dense(self):
         df = pd.DataFrame(
             {
-                "A": SparseArray([1, 0], dtype=SparseDtype("int64", 0)),
-                "B": SparseArray([1, 0], dtype=SparseDtype("int64", 1)),
-                "C": SparseArray([1.0, 0.0], dtype=SparseDtype("float64", 0.0)),
+                "A": SparseArray([1, 0], dtype=pd.SparseDtype("int64", 0)),
+                "B": SparseArray([1, 0], dtype=pd.SparseDtype("int64", 1)),
+                "C": SparseArray([1.0, 0.0], dtype=pd.SparseDtype("float64", 0.0)),
             },
             index=["b", "a"],
         )

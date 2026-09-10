@@ -51,7 +51,10 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import check_dtype_backend
+from pandas.util._validators import (
+    check_dtype_backend,
+    validate_bool_kwarg,
+)
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -196,6 +199,39 @@ _fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 
+# Documented as `bool` and consumed for their truthiness, so an unvalidated
+# non-bool like "False" silently means the opposite (GH#68341).
+_bool_kwargs = frozenset(
+    {
+        "cache_dates",
+        "dayfirst",
+        "doublequote",
+        "iterator",
+        "keep_default_na",
+        "low_memory",
+        "memory_map",
+        "na_filter",
+        "skip_blank_lines",
+        "skipinitialspace",
+    }
+)
+
+
+def _is_bool_like(value: object) -> bool:
+    # Only 0 and 1 stand in for the bools, numpy ints included; a larger int is
+    # truthy but not a bool, see test_bool_kwarg_int_not_zero_or_one (GH#68341)
+    return lib.is_bool(value) or (is_integer(value) and value in (0, 1))
+
+
+def _validate_bool_kwargs(kwds: Mapping[str, Any]) -> None:
+    # iterate kwds, not the frozenset, so the kwarg named is the first in
+    # signature order rather than whichever one hash randomization picks
+    for kwd, value in kwds.items():
+        if kwd in _bool_kwargs and not _is_bool_like(value):
+            # always raises; validate_bool_kwarg owns the message
+            validate_bool_kwarg(value, kwd, none_allowed=False)
+
+
 # Minimum file size (bytes) to attempt parallel CSV reading.
 # Below this threshold the overhead of splitting and threading outweighs the benefit.
 # Break-even is around 1-2 MB; 5 MB leaves margin for cold-cache reads.
@@ -300,6 +336,9 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
+    # before the `iterator` peek below, which reads it for truthiness
+    _validate_bool_kwargs(kwds)
+
     # if we pass a date_format and parse_dates=False, we should not parse the
     # dates GH#44366
     if kwds.get("parse_dates", None) is None:
@@ -1636,6 +1675,10 @@ def read_csv(
 
     Notes
     -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
+
     Sufficiently large local uncompressed files read with the C engine may be
     parsed by multiple threads in parallel.  Use the ``mode.max_threads``
     option to cap or disable this; see :ref:`io.csv.parallel` for details.
@@ -2230,6 +2273,12 @@ def read_table(
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
+    Notes
+    -----
+    Column labels read from a header row are always strings. To use column
+    labels of another type, pass them explicitly with ``names`` and set
+    ``header=0`` when the file contains a header row.
+
     Examples
     --------
     >>> pd.read_table("data.csv")  # doctest: +SKIP
@@ -2549,6 +2598,8 @@ class TextFileReader(abc.Iterator):
         self.engine = engine
         self._engine_specified = kwds.get("engine_specified", engine_specified)
 
+        # before _validate_skipfooter, which reads `iterator` for truthiness
+        _validate_bool_kwargs(kwds)
         _validate_skipfooter(kwds)
 
         dialect = _extract_dialect(kwds)
@@ -2558,6 +2609,8 @@ class TextFileReader(abc.Iterator):
                     "The 'dialect' option is not supported with the 'pyarrow' engine"
                 )
             kwds = _merge_with_dialect_properties(dialect, kwds)
+            # again, for the values the dialect supplied
+            _validate_bool_kwargs(kwds)
 
         if kwds.get("header", "infer") == "infer":
             kwds["header"] = 0 if kwds.get("names") is None else None
