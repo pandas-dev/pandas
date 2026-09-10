@@ -1305,6 +1305,17 @@ class TestParquetPyArrow(Base):
             read_kwargs={"to_pandas_kwargs": {"self_destruct": True}},
         )
 
+    def test_read_parquet_types_mapper_reserved(self, pa, temp_file):
+        # GH#XXXXX pandas passes its own types_mapper to Table.to_pandas, so
+        # forwarding a user-supplied one collided and raised an opaque
+        # "multiple values for keyword argument" TypeError from pyarrow
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa)
+
+        msg = "The 'types_mapper' key is not supported in 'to_pandas_kwargs'"
+        with pytest.raises(ValueError, match=msg):
+            read_parquet(temp_file, engine=pa, to_pandas_kwargs={"types_mapper": None})
+
     def test_read_parquet_url_still_uses_get_handle(self, pa, monkeypatch):
         # GH#65810 only local paths skip get_handle; non-fsspec URLs must still
         # be routed through it because pyarrow cannot fetch them

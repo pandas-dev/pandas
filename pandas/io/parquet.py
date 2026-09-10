@@ -648,7 +648,8 @@ def read_parquet(
 
     to_pandas_kwargs : dict | None, default None
         Keyword arguments to pass through to :func:`pyarrow.Table.to_pandas`
-        when ``engine="pyarrow"``.
+        when ``engine="pyarrow"``. ``types_mapper`` is reserved: it is derived
+        from ``dtype_backend`` and passing it here raises ``ValueError``.
 
         .. versionadded:: 3.0.0
 
