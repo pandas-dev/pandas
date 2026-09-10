@@ -1198,12 +1198,8 @@ class BaseGrouper:
         zipped = zip(group_keys, splitter, strict=True)
 
         for key, group in zipped:
-            # Pinning name is needed for
-            #  test_group_apply_once_per_group,
-            #  test_inconsistent_return_type, test_set_group_name,
-            #  test_group_name_available_in_inference_pass,
-            #  test_groupby_multi_timezone
-            object.__setattr__(group, "name", key)
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(key)
 
             # group might be modified
             group_axes = group.axes
