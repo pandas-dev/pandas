@@ -2780,7 +2780,7 @@ class ArrowExtensionArray(
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        return self._reduce("sem", skipna=skipna, axis=axis, ddof=ddof, **kwargs)
+        return self._reduce("sem", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
 
     def skew(
         self,
