@@ -1,4 +1,7 @@
-from typing import final
+from typing import (
+    Any,
+    final,
+)
 
 import pytest
 
@@ -138,12 +141,17 @@ class BaseReduceTests:
         op_name = all_reductions
         ser = pd.Series(data)
 
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if op_name in ["any", "all"] and isinstance(ser.array, pd.arrays.SparseArray):
             # SparseArray.any/all do not accept a skipna argument
             pass
         elif op_name != "count":
             kwargs["skipna"] = skipna
+
+        if op_name in ["sum", "prod"]:
+            kwargs["min_count"] = 1
+        elif op_name in ["std", "var", "sem"]:
+            kwargs["ddof"] = 0
 
         if not self._supports_reduction(ser, op_name):
             # TODO: the message being checked here isn't actually checking anything
