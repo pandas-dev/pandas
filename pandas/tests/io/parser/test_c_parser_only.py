@@ -1110,20 +1110,21 @@ def test_pyarrow_string_fast_path_batched_columns(kwargs, low_memory):
             na_values={"c": ["zzz"], "d": ["y"]},
             **kwargs,
         )
-    if kwargs:
-        str_dtype = pd.ArrowDtype(pa.string())
-        int_dtype = "int64[pyarrow]"
-    else:
-        str_dtype = pd.StringDtype("pyarrow", na_value=np.nan)
-        int_dtype = "int64"
-    expected = pd.DataFrame(
-        {
-            "a": ["foo", "bar", "present", "baz"],
-            "b": [1, 2, 3, 4],
-            "c": ["café", "naïve", None, None],
-            "d": ["x", None, None, None],
-        }
-    ).astype({"a": str_dtype, "b": int_dtype, "c": str_dtype, "d": str_dtype})
+        if kwargs:
+            str_dtype = pd.ArrowDtype(pa.string())
+            int_dtype = "int64[pyarrow]"
+        else:
+            str_dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+            int_dtype = "int64"
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", "bar", "present", "baz"],
+                "b": [1, 2, 3, 4],
+                "c": ["café", "naïve", None, None],
+                "d": ["x", None, None, None],
+            }
+        ).astype({"a": str_dtype, "b": int_dtype, "c": str_dtype, "d": str_dtype})
     tm.assert_frame_equal(result, expected)
 
 
@@ -1195,19 +1196,20 @@ def test_pyarrow_string_fast_path_batch_mixed_na_filter(kwargs):
             result = reader.read()
             # all three, so the na_filter=0 column really is in the batch
             assert reader._engine._reader._largest_str_batch == 3
-    str_dtype = (
-        pd.ArrowDtype(pa.string())
-        if kwargs
-        else pd.StringDtype("pyarrow", na_value=np.nan)
-    )
-    expected = pd.DataFrame(
-        {
-            "a": ["foo", None, "bar"],
-            # na_filter is off for this column, so its own "NA" stays a literal
-            "b": ["-1", "18446744073709551615", "NA"],
-            "c": ["zzz", "qq", None],
-        }
-    ).astype(str_dtype)
+        str_dtype = (
+            pd.ArrowDtype(pa.string())
+            if kwargs
+            else pd.StringDtype("pyarrow", na_value=np.nan)
+        )
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", None, "bar"],
+                # na_filter is off here, so this column's own "NA" stays literal
+                "b": ["-1", "18446744073709551615", "NA"],
+                "c": ["zzz", "qq", None],
+            }
+        ).astype(str_dtype)
     tm.assert_frame_equal(result, expected)
 
 
