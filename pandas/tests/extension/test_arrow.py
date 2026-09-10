@@ -1161,6 +1161,10 @@ class TestArrowArray(base.ExtensionTests):
                 err_msg = re.escape(
                     "float() argument must be a string or a real number, not 'NAType'"
                 )
+                # tm.assert_produces_warning raises if the warning is not produced even
+                # if the test is skipped further down in the call stack, so skip here
+                # already to avoid the test failing due to the warning not being raised
+                pytest.importorskip("matplotlib")
                 wrn_cls = UserWarning
                 wrn_msg = "Warning: converting a masked element to nan."
             elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
