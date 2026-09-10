@@ -75,6 +75,8 @@ Top-level evaluation
    :toctree: api/
 
    col
+   api.typing.Expression
+   api.typing.Expression.case_when
    eval
 
 Datetime formats
