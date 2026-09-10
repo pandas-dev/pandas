@@ -604,6 +604,9 @@ def test_multiply_reduce_includes_fill_value():
         ([1.0, np.nan], np.nan),
         ([np.nan, np.nan], np.nan),  # all-NA
         ([0.0, 0.0], 0.0),  # no NA
+        ([0, 1], 0),  # int64: a subtype that cannot hold NA, so masking is skipped
+        # object keeps a falsy None; the only case where `all` changes
+        (np.array([1, None], dtype=object), 0),
     ],
 )
 def test_any_all_skipna(name, skipna, data, fill_value):
@@ -615,6 +618,30 @@ def test_any_all_skipna(name, skipna, data, fill_value):
     assert getattr(arr, name)(skipna=skipna) == expected
     assert arr._reduce(name, skipna=skipna) == expected
     assert getattr(pd.Series(arr), name)(skipna=skipna) == expected
+    assert getattr(pd.DataFrame({"A": arr}), name)(skipna=skipna)["A"] == expected
+
+
+def test_any_all_na_fill_value():
+    # GH#68386 a nullable string Series sparsifies to an object subtype with a
+    #  pd.NA fill, which is what reaches the fill-value gate; dense raises here too
+    arr = SparseArray(pd.array(["", None], dtype="string"))
+    assert arr.fill_value is pd.NA
+
+    assert not arr.any()
+    assert not arr.all()
+
+    msg = "boolean value of NA is ambiguous"
+    with pytest.raises(TypeError, match=msg):
+        arr.any(skipna=False)
+    with pytest.raises(TypeError, match=msg):
+        arr.all(skipna=False)
+
+
+def test_numpy_any_all_skip_na():
+    # GH#68386 these skip NA like np.sum and np.mean. NaN is truthy and None
+    #  falsy, so each entry point needs its own array to be decisive
+    assert not np.any(SparseArray([0.0, np.nan]))
+    assert np.all(SparseArray(np.array([1, None], dtype=object), fill_value=0))
 
 
 def test_numpy_std_var_skip_na():
