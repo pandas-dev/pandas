@@ -14,10 +14,47 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_310.enhancements.enhancement1:
+.. _whatsnew_310.enhancements.select:
 
-enhancement1
-^^^^^^^^^^^^
+New method ``DataFrame.select``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.select` returns a new DataFrame containing the specified
+columns. In addition to existing column labels, columns
+can be computed via :func:`pandas.col` expressions, or callables passed as
+keyword arguments, with the keyword naming the resulting column. As with
+:meth:`DataFrame.assign`, later arguments can refer to columns computed
+earlier in the same call
+(:issue:`61522`, :issue:`40322`).
+
+.. code-block:: pycon
+
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "first_name": ["John", "Alice", "Bob"],
+   ...         "last_name": ["Smith", "Cooper", "Marley"],
+   ...         "age": [61, 22, 35],
+   ...     }
+   ... )
+   >>> df.select("first_name", "last_name")
+     first_name last_name
+   0       John     Smith
+   1      Alice    Cooper
+   2        Bob    Marley
+   >>> df.select("first_name", pd.col("age"), age_months=pd.col("age") * 12)
+     first_name  age  age_months
+   0       John   61         732
+   1      Alice   22         264
+   2        Bob   35         420
+   >>> df.select(
+   ...     "first_name",
+   ...     age_months=pd.col("age") * 12,
+   ...     age_days=pd.col("age_months") * 30,
+   ... )
+     first_name  age_months  age_days
+   0       John         732     21960
+   1      Alice         264      7920
+   2        Bob         420     12600
 
 .. _whatsnew_310.enhancements.enhancement2:
 
@@ -673,6 +710,7 @@ Timezones
 - Bug in :meth:`Series.dt.tz_localize` and :meth:`Series.dt.tz_convert` (and their :class:`DatetimeIndex` counterparts) returning incorrect results for non-nanosecond resolutions (e.g. ``"s"``, ``"ms"``, ``"us"``) on timestamps before roughly 1677 (:issue:`66252`)
 - Bug in :meth:`Timestamp.isoformat`, ``str(Timestamp)``, and the rendering of :class:`Series` and :class:`DatetimeIndex` (including ``repr``, ``astype(str)``, and :meth:`DataFrame.to_csv`) splicing the fractional seconds into the middle of the UTC offset for timestamps in a timezone whose offset is not a whole number of minutes, such as any zone in its pre-standardization era (e.g. ``Asia/Tokyo`` before 1888) (:issue:`66547`)
 - Bug in :meth:`Timestamp.to_julian_date` and :meth:`DatetimeIndex.to_julian_date` returning the Julian date of the local wall clock for timezone-aware inputs instead of the underlying UTC instant (:issue:`54763`)
+- Bug in :meth:`Timestamp.tz_convert` and :meth:`Timestamp.tz_localize` and their :class:`Index` and :class:`Series` counterparts returning a UTC offset a few minutes off for dates before the specified timezone adopted a standard time (typically early 20th century); this only affected older systems whose ``tzdata`` was compiled with a toolchain from between 2013 and 2018, such as Amazon Linux 2 and RHEL 8 and its derivatives (:issue:`67066`)
 - Bug in constructing a :class:`DatetimeIndex` with a ``freq``, or setting ``freq`` on an existing one, incorrectly raising ``ValueError`` for timezone-aware data spanning a DST transition when the frequency preserves wall time (e.g. ``"D"``) (:issue:`55499`)
 - Bug in timezone-aware :class:`DatetimeIndex` and :class:`Series` where a UTC instant near :attr:`Timestamp.min` or :attr:`Timestamp.max` whose local wall time is outside the representable range silently reported a wall time roughly 585 years off, or ``NaT``, instead of raising ``OutOfBoundsDatetime``; this affected ``tz_localize(None)``, field accessors such as ``.year``, ``strftime``, ``round``/``floor``/``ceil``, and conversion to :class:`PeriodIndex` (:issue:`66550`)
 
@@ -923,6 +961,7 @@ I/O
 - Fixed bug in :func:`read_hdf` where reading a fixed-format (default) object with a :class:`MultiIndex` and ``start``/``stop`` returned an index built from the wrong labels, or raised ``ValueError: On level 0, code max ... >= length of level`` (:issue:`68038`)
 - Fixed bug in :func:`read_parquet` crashing the interpreter when called with ``to_pandas_kwargs={"self_destruct": True}`` (:issue:`66509`)
 - Fixed bug in :meth:`DataFrame.to_clipboard` and :func:`read_clipboard` where the Qt clipboard backend (used on Linux when ``xclip``, ``xsel`` and ``wl-clipboard`` are all unavailable) permanently switched the process to the environment's locale, so afterwards e.g. ``to_datetime("March 1, 2018", format="%B %d, %Y")`` raised ``ValueError`` on a machine whose locale is not English (:issue:`44625`)
+- Fixed bug in :meth:`DataFrame.to_excel` which no longer includes the cell content length in the warning message emitted when cell contents exceed Excel's 32767-character limit, so duplicate warnings are no longer emitted (:issue:`67470`)
 - Fixed bug in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.put` where writing an object to a key silently deleted any nested keys stored beneath it (:issue:`17267`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
