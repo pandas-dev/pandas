@@ -896,9 +896,8 @@ def test_grouped_subplots_bar_geometry(kind, align, width, position):
             tuple(patch.get_bbox().extents) for patch in expected_ax.patches
         )
         tm.assert_almost_equal(result, expected)
-
-    plt.close(axes[0].figure)
-    plt.close(expected_axes[0].figure)
+        tm.assert_almost_equal(ax.get_xlim(), expected_ax.get_xlim())
+        tm.assert_almost_equal(ax.get_ylim(), expected_ax.get_ylim())
 
 
 def test_plot_bar_label_count_default():
