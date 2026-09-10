@@ -270,6 +270,20 @@ def _set_attr_if_changed(attrs, name: str, value) -> None:
         setattr(attrs, name, value)
 
 
+def _resolve_row_window(
+    start: int | None, stop: int | None, nrows: int
+) -> tuple[int, int]:
+    """
+    Resolve ``start``/``stop`` row bounds against a table holding ``nrows`` rows.
+
+    Slice semantics count a negative bound back from the end of the table *and*
+    clamp both bounds into ``[0, nrows]``, which is what a plain read does; the
+    row-coordinate paths have to agree with it.
+    """
+    start, stop, _ = slice(start, stop).indices(nrows)
+    return start, stop
+
+
 def _tables():
     global _table_mod
     global _table_file_open_policy_is_strict
@@ -2518,11 +2532,7 @@ class TableIterator:
         if self.s.is_table:
             if nrows is None:
                 nrows = 0
-            if start is None:
-                start = 0
-            if stop is None:
-                stop = nrows
-            stop = min(nrows, stop)
+            start, stop = _resolve_row_window(start, stop, nrows)
 
         self.nrows = nrows
         self.start = start
@@ -2775,6 +2785,12 @@ class IndexCol:
         kwargs = {}
         kwargs["name"] = self.index_name
 
+        if val_kind == "string" and using_string_dtype():
+            # GH#9604: an all-missing string Index -- or an all-missing
+            #  slice/chunk of one -- cannot be inferred back to str, which
+            #  would make the index dtype depend on which rows were read.
+            kwargs["dtype"] = "str"
+
         if self.freq is not None:
             kwargs["freq"] = self.freq
 
@@ -2812,11 +2828,8 @@ class IndexCol:
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
-                new_pd_index = factory(
-                    values,
-                    dtype=StringDtype(storage="python", na_value=np.nan),
-                    **kwargs,
-                )
+                kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
+                new_pd_index = factory(values, **kwargs)
             else:
                 raise
         except ValueError:
@@ -3780,7 +3793,9 @@ class GenericFixed(Fixed):
         for i in range(nlevels):
             level_key = f"{key}_level{i}"
             node = getattr(self.group, level_key)
-            lev = self.read_index_node(node, start=start, stop=stop)
+            # A level holds the unique values, not one entry per row, so it must
+            # be read in full; only the codes are sliced by start/stop.
+            lev = self.read_index_node(node)
             levels.append(lev)
             names.append(lev.name)
 
@@ -3822,6 +3837,13 @@ class GenericFixed(Fixed):
         # GH#9604: per-index string NaN sentinel (absent for old files)
         nan_rep = getattr(node._v_attrs, "nan_rep", None)
 
+        if kind == "string" and using_string_dtype():
+            # GH#9604: once the sentinel is substituted back to NaN, dtype
+            #  inference can only recover str if some non-missing string
+            #  survives, so an all-missing index would silently degrade to
+            #  object. Pin the dtype the values were written with instead.
+            kwargs["dtype"] = "str"
+
         if kind in ("date", "object"):
             index = factory(
                 _unconvert_index(
@@ -3849,6 +3871,7 @@ class GenericFixed(Fixed):
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
+                    kwargs["dtype"] = StringDtype(storage="python", na_value=np.nan)
                     index = factory(
                         _unconvert_index(
                             data,
@@ -3857,7 +3880,6 @@ class GenericFixed(Fixed):
                             errors=self.errors,
                             nan_rep=nan_rep,
                         ),
-                        dtype=StringDtype(storage="python", na_value=np.nan),
                         **kwargs,
                     )
                 else:
@@ -4520,6 +4542,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 nan_rep=nan_rep,
+                ordered=self.info.get(name, {}).get("ordered"),
             )
             _indexables.append(index_col)
 
@@ -4566,6 +4589,7 @@ class Table(Fixed):
                 meta=meta,
                 metadata=md,
                 dtype=dtype,
+                ordered=self.info.get(c, {}).get("ordered"),
             )
             obj.is_mi_level = is_mi_level
             obj.nan_rep = nan_rep
@@ -6405,34 +6429,42 @@ def _get_data_and_dtype_name(data: ArrayLike):
 
 def _or_of_ands_columns(condition) -> set[str]:
     """
-    Look for an OR with at least one multi-column AND operand, e.g.
-    ``(A & B) | (C & D)`` or ``(A & B) | C``, in a pruned PyTables condition
-    tree.
+    Look for an OR with at least one AND operand, e.g. ``(A & B) | (C & D)``
+    or ``(A & B) | C``, in a pruned PyTables condition tree. The AND operand
+    need not span two columns -- ``(A > 1 & A < 5) | B`` counts too.
 
     This is the query shape that can trigger an upstream PyTables bug where
     index-accelerated reads silently drop matching rows (GH#50598). Return the
-    set of column names referenced in ``condition`` if such a pattern is found,
-    otherwise an empty set.
+    set of column names referenced by the AND-ed operands of such an OR, or an
+    empty set if the pattern is not present.
+
+    Only the AND-ed operands matter: the bug needs one of *their* columns to be
+    indexed. Indexing a column that appears solely as a bare OR operand (the
+    ``C`` of ``(A & B) | C``) does not trigger it.
     """
     cols: set[str] = set()
-    found = False
 
-    def visit(node) -> None:
-        nonlocal found
+    def collect(node) -> None:
+        """Add every column name referenced under ``node``."""
         if not isinstance(node, JointConditionBinOp):
             # leaf comparison: lhs.value is the column name
             cols.add(node.lhs.value)
             return
-        if node.op == "|" and (
-            (isinstance(node.lhs, JointConditionBinOp) and node.lhs.op == "&")
-            or (isinstance(node.rhs, JointConditionBinOp) and node.rhs.op == "&")
-        ):
-            found = True
+        collect(node.lhs)
+        collect(node.rhs)
+
+    def visit(node) -> None:
+        if not isinstance(node, JointConditionBinOp):
+            return
+        if node.op == "|":
+            for operand in (node.lhs, node.rhs):
+                if isinstance(operand, JointConditionBinOp) and operand.op == "&":
+                    collect(operand)
         visit(node.lhs)
         visit(node.rhs)
 
     visit(condition)
-    return cols if found else set()
+    return cols
 
 
 class Selection:
@@ -6465,25 +6497,26 @@ class Selection:
 
         if is_list_like(where):
             # see if we have a passed coordinate like
-            with suppress(ValueError):
-                inferred = lib.infer_dtype(where, skipna=False)
-                if inferred in ("integer", "boolean"):
-                    where = np.asarray(where)
-                    if where.dtype == np.bool_:
-                        start, stop = self.start, self.stop
-                        if start is None:
-                            start = 0
-                        if stop is None:
-                            stop = self.table.nrows
-                        self.coordinates = np.arange(start, stop)[where]
-                    elif issubclass(where.dtype.type, np.integer):
-                        if (self.start is not None and (where < self.start).any()) or (
-                            self.stop is not None and (where >= self.stop).any()
-                        ):
-                            raise ValueError(
-                                "where must have index locations >= start and < stop"
-                            )
-                        self.coordinates = where
+            inferred = lib.infer_dtype(where, skipna=False)
+            if inferred in ("integer", "boolean"):
+                where = np.asarray(where)
+                # start/stop are None on the read_coordinates paths, which is how
+                #  an out-of-range coordinate used to reach PyTables unchecked
+                start, stop = _resolve_row_window(
+                    self.start, self.stop, self.table.nrows
+                )
+                if where.dtype == np.bool_:
+                    self.coordinates = np.arange(start, stop)[where]
+                elif issubclass(where.dtype.type, np.integer):
+                    invalid = where[(where < start) | (where >= stop)]
+                    if len(invalid):
+                        raise ValueError(
+                            "where must have index locations >= start and < stop, "
+                            f"but got {invalid[:5].tolist()}"
+                            f"{' ...' if len(invalid) > 5 else ''} "
+                            f"with start={start} and stop={stop}"
+                        )
+                    self.coordinates = where
 
         if self.coordinates is None:
             self.terms = self.generate(where)
@@ -6491,20 +6524,19 @@ class Selection:
             # create the numexpr & the filter
             if self.terms is not None:
                 self.condition, self.filter = self.terms.evaluate()
-                if self.condition is not None:
-                    self._warn_if_unreliable_or()
 
     def _warn_if_unreliable_or(self) -> None:
         """
         Warn for nested-OR queries with AND-ed operands over indexed columns
         (e.g. ``(A & B) | (C & D)``) that can return incorrect results due to
         an upstream PyTables bug (GH#50598).
+
+        Called from the query methods rather than ``__init__``: one read builds
+        several ``Selection`` objects for the same ``where``, and only the one
+        that runs the condition should warn.
         """
         table = getattr(self.table, "table", None)
-        if table is None or table.chunkshape is None:
-            return
-        # the bug only affects tables stored in more than one chunk (row group)
-        if table.chunkshape[0] >= self.table.nrows:
+        if table is None:
             return
         cols = _or_of_ands_columns(self.condition)
         if not any(
@@ -6514,11 +6546,11 @@ class Selection:
         ):
             return
         warnings.warn(
-            "Reading with a nested 'where' that ORs AND-ed conditions over "
-            "indexed columns (e.g. '(A & B) | (C & D)') can return incorrect "
-            "results due to an upstream PyTables bug (GH#50598). To get correct "
-            "results, write the table with 'index=False', or run each OR branch "
-            "as a separate query and concatenate the results.",
+            "Querying with a nested 'where' that ORs AND-ed conditions over "
+            "indexed columns (e.g. '(A & B) | (C & D)') can silently match the "
+            "wrong rows due to an upstream PyTables bug (GH#50598). To get "
+            "correct results, write the table with 'index=False', or split the "
+            "'where' into one operation per OR branch.",
             UserWarning,
             stacklevel=find_stack_level(),
         )
@@ -6557,6 +6589,7 @@ class Selection:
         generate the selection
         """
         if self.condition is not None:
+            self._warn_if_unreliable_or()
             try:
                 return self.table.table.read_where(
                     self.condition.format(), start=self.start, stop=self.stop
@@ -6585,18 +6618,10 @@ class Selection:
         """
         generate the selection
         """
-        start, stop = self.start, self.stop
-        nrows = self.table.nrows
-        if start is None:
-            start = 0
-        elif start < 0:
-            start += nrows
-        if stop is None:
-            stop = nrows
-        elif stop < 0:
-            stop += nrows
+        start, stop = _resolve_row_window(self.start, self.stop, self.table.nrows)
 
         if self.condition is not None:
+            self._warn_if_unreliable_or()
             coords = self.table.table.get_where_list(
                 self.condition.format(), start=start, stop=stop, sort=True
             )

@@ -6,18 +6,14 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
 import pandas._testing as tm
 from pandas.core.indexes.timedeltas import timedelta_range
 
 
 def test_asfreq_bug():
-    df = DataFrame(data=[1, 3], index=[timedelta(), timedelta(minutes=3)])
+    df = pd.DataFrame(data=[1, 3], index=[timedelta(), timedelta(minutes=3)])
     result = df.resample("1min").asfreq()
-    expected = DataFrame(
+    expected = pd.DataFrame(
         data=[1, np.nan, np.nan, 3],
         index=timedelta_range("0 day", periods=4, freq="1min", unit="us"),
     )
@@ -27,8 +23,8 @@ def test_asfreq_bug():
 def test_resample_with_nat():
     # GH 13223
     index = pd.to_timedelta(["0s", pd.NaT, "2s"])
-    result = DataFrame({"value": [2, 3, 5]}, index).resample("1s").mean()
-    expected = DataFrame(
+    result = pd.DataFrame({"value": [2, 3, 5]}, index).resample("1s").mean()
+    expected = pd.DataFrame(
         {"value": [2.5, np.nan, 5.0]},
         index=timedelta_range("0 day", periods=3, freq="1s"),
     )
@@ -38,21 +34,21 @@ def test_resample_with_nat():
 def test_resample_as_freq_with_subperiod():
     # GH 13022
     index = timedelta_range("00:00:00", "00:10:00", freq="5min")
-    df = DataFrame(data={"value": [1, 5, 10]}, index=index)
+    df = pd.DataFrame(data={"value": [1, 5, 10]}, index=index)
     result = df.resample("2min").asfreq()
     expected_data = {"value": [1, np.nan, np.nan, np.nan, np.nan, 10]}
-    expected = DataFrame(
+    expected = pd.DataFrame(
         data=expected_data, index=timedelta_range("00:00:00", "00:10:00", freq="2min")
     )
     tm.assert_frame_equal(result, expected)
 
 
 def test_resample_with_timedeltas():
-    expected = DataFrame({"A": np.arange(1480)})
+    expected = pd.DataFrame({"A": np.arange(1480)})
     expected = expected.groupby(expected.index // 30).sum()
     expected.index = timedelta_range("0 days", freq="30min", periods=50)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         {"A": np.arange(1480)},
         index=pd.to_timedelta(np.arange(1480), unit="min").as_unit("us"),
     )
@@ -66,16 +62,18 @@ def test_resample_with_timedeltas():
 
 
 def test_resample_single_period_timedelta():
-    s = Series(list(range(5)), index=timedelta_range("1 day", freq="s", periods=5))
+    s = pd.Series(list(range(5)), index=timedelta_range("1 day", freq="s", periods=5))
     result = s.resample("2s").sum()
-    expected = Series([1, 5, 4], index=timedelta_range("1 day", freq="2s", periods=3))
+    expected = pd.Series(
+        [1, 5, 4], index=timedelta_range("1 day", freq="2s", periods=3)
+    )
     tm.assert_series_equal(result, expected)
 
 
 def test_resample_timedelta_idempotency():
     # GH 12072
     index = timedelta_range("0", periods=9, freq="10ms")
-    series = Series(range(9), index=index)
+    series = pd.Series(range(9), index=index)
     result = series.resample("10ms").mean()
     expected = series.astype(float)
     tm.assert_series_equal(result, expected)
@@ -84,7 +82,7 @@ def test_resample_timedelta_idempotency():
 def test_resample_offset_with_timedeltaindex():
     # GH 10530 & 31809
     rng = timedelta_range(start="0s", periods=25, freq="s")
-    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+    ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     with_base = ts.resample("2s", offset="5s").mean()
     without_base = ts.resample("2s").mean()
@@ -100,7 +98,7 @@ def test_resample_day_offset_origin_with_timedeltaindex():
     # GH#44996: with a Day freq, offset takes effect (like the equivalent
     # Hour freq, without warning) while origin is ignored with a warning
     rng = timedelta_range(start="0 days", periods=10, freq="12h")
-    ts = Series(np.arange(10), index=rng)
+    ts = pd.Series(np.arange(10), index=rng)
 
     with tm.assert_produces_warning(None):
         result = ts.resample("2D", offset="3h").sum()
@@ -116,11 +114,13 @@ def test_resample_day_offset_origin_with_timedeltaindex():
 
 def test_resample_categorical_data_with_timedeltaindex():
     # GH #12169
-    df = DataFrame({"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s"))
+    df = pd.DataFrame(
+        {"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s")
+    )
     df["Group"] = df["Group_obj"].astype("category")
     result = df.resample("10s").agg(lambda x: x.value_counts().index[0])
     exp_tdi = pd.TimedeltaIndex(np.array([0, 10], dtype="m8[s]"), freq="10s")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"Group_obj": ["A", "A"], "Group": ["A", "A"]},
         index=exp_tdi,
     )
@@ -135,10 +135,10 @@ def test_resample_timedelta_values():
     # introduced by the resampling
 
     times = timedelta_range("1 day", "6 day", freq="4D")
-    df = DataFrame({"time": times}, index=times)
+    df = pd.DataFrame({"time": times}, index=times)
 
     times2 = timedelta_range("1 day", "6 day", freq="2D")
-    exp = Series(times2, index=times2, name="time")
+    exp = pd.Series(times2, index=times2, name="time")
     exp.iloc[1] = pd.NaT
 
     res = df.resample("2D").first()["time"]
@@ -164,7 +164,7 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     # GH 33498
     # check that the timedelta bins does not contains an extra bin
     idx = timedelta_range(start=start, end=end, freq=freq)
-    s = Series(np.arange(len(idx)), index=idx)
+    s = pd.Series(np.arange(len(idx)), index=idx)
     result = s.resample(resample_freq).min()
     expected_index = timedelta_range(freq=resample_freq, start=start, end=end)
     tm.assert_index_equal(result.index, expected_index)
@@ -175,7 +175,7 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
 @pytest.mark.parametrize("duplicates", [True, False])
 def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     # GH 10603
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).normal(size=(10000, 4)),
         index=timedelta_range(start="0s", periods=10000, freq="3906250ns"),
     )
@@ -185,7 +185,7 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
 
     result = df.loc["1s":, :].resample("3s").apply(lambda x: len(x))
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[768] * 4] * 12 + [[528] * 4],
         index=timedelta_range(start="1s", periods=13, freq="3s", unit="ns"),
     )
@@ -196,12 +196,12 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
 def test_resample_quantile_timedelta(unit):
     # GH: 29485
     dtype = np.dtype(f"m8[{unit}]")
-    df = DataFrame(
+    df = pd.DataFrame(
         {"value": pd.to_timedelta(np.arange(4), unit="s").astype(dtype)},
         index=pd.date_range("20200101", periods=4, tz="UTC"),
     )
     result = df.resample("2D").quantile(0.99)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "value": [
                 pd.Timedelta("0 days 00:00:00.990000"),
@@ -216,9 +216,9 @@ def test_resample_quantile_timedelta(unit):
 def test_resample_closed_right():
     # GH#45414
     idx = pd.Index([pd.Timedelta(seconds=120 + i * 30) for i in range(10)])
-    ser = Series(range(10), index=idx)
+    ser = pd.Series(range(10), index=idx)
     result = ser.resample("min", closed="right", label="right").sum()
-    expected = Series(
+    expected = pd.Series(
         [0, 3, 7, 11, 15, 9],
         index=pd.TimedeltaIndex(
             [pd.Timedelta(seconds=120 + i * 60) for i in range(6)], freq="min"
@@ -231,7 +231,7 @@ def test_resample_closed_right():
 def test_arrow_duration_resample():
     # GH 56371
     idx = pd.Index(timedelta_range("1 day", periods=5), dtype="duration[ns][pyarrow]")
-    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    expected = pd.Series(np.arange(5, dtype=np.float64), index=idx)
     result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)
 
@@ -239,7 +239,7 @@ def test_arrow_duration_resample():
 @td.skip_if_no("pyarrow")
 def test_arrow_duration_resample_on_keep_index_name():
     # GH#59823 resampling on a pyarrow-backed duration column should keep its name
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "td": timedelta_range("1 day", periods=5),
             "metric": np.arange(5, dtype=np.int64),

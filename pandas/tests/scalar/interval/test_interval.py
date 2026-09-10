@@ -1,16 +1,12 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Interval,
-    Timedelta,
-    Timestamp,
-)
+import pandas as pd
 
 
 @pytest.fixture
 def interval():
-    return Interval(0, 1)
+    return pd.Interval(0, 1)
 
 
 class TestInterval:
@@ -33,15 +29,15 @@ class TestInterval:
             (10, np.inf, np.inf),
             (-np.inf, -5, np.inf),
             (-np.inf, np.inf, np.inf),
-            (Timedelta("0 days"), Timedelta("5 days"), Timedelta("5 days")),
-            (Timedelta("10 days"), Timedelta("10 days"), Timedelta("0 days")),
-            (Timedelta("1h10min"), Timedelta("5h5min"), Timedelta("3h55min")),
-            (Timedelta("5s"), Timedelta("1h"), Timedelta("59min55s")),
+            (pd.Timedelta("0 days"), pd.Timedelta("5 days"), pd.Timedelta("5 days")),
+            (pd.Timedelta("10 days"), pd.Timedelta("10 days"), pd.Timedelta("0 days")),
+            (pd.Timedelta("1h10min"), pd.Timedelta("5h5min"), pd.Timedelta("3h55min")),
+            (pd.Timedelta("5s"), pd.Timedelta("1h"), pd.Timedelta("59min55s")),
         ],
     )
     def test_length(self, left, right, expected):
         # GH 18789
-        iv = Interval(left, right)
+        iv = pd.Interval(left, right)
         result = iv.length
         assert result == expected
 
@@ -57,31 +53,31 @@ class TestInterval:
     @pytest.mark.parametrize("tz", (None, "UTC", "CET", "US/Eastern"))
     def test_length_timestamp(self, tz, left, right, expected):
         # GH 18789
-        iv = Interval(Timestamp(left, tz=tz), Timestamp(right, tz=tz))
+        iv = pd.Interval(pd.Timestamp(left, tz=tz), pd.Timestamp(right, tz=tz))
         result = iv.length
-        expected = Timedelta(expected)
+        expected = pd.Timedelta(expected)
         assert result == expected
 
     @pytest.mark.parametrize(
         "left, right",
         [
             (0, 1),
-            (Timedelta("0 days"), Timedelta("1 day")),
-            (Timestamp("2018-01-01"), Timestamp("2018-01-02")),
+            (pd.Timedelta("0 days"), pd.Timedelta("1 day")),
+            (pd.Timestamp("2018-01-01"), pd.Timestamp("2018-01-02")),
             (
-                Timestamp("2018-01-01", tz="US/Eastern"),
-                Timestamp("2018-01-02", tz="US/Eastern"),
+                pd.Timestamp("2018-01-01", tz="US/Eastern"),
+                pd.Timestamp("2018-01-02", tz="US/Eastern"),
             ),
         ],
     )
     def test_is_empty(self, left, right, closed):
         # GH27219
         # non-empty always return False
-        iv = Interval(left, right, closed)
+        iv = pd.Interval(left, right, closed)
         assert iv.is_empty is False
 
         # same endpoint is empty except when closed='both' (contains one point)
-        iv = Interval(left, left, closed)
+        iv = pd.Interval(left, left, closed)
         result = iv.is_empty
         expected = closed != "both"
         assert result is expected

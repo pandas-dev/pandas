@@ -5,7 +5,7 @@ from copy import (
 
 import pytest
 
-from pandas import MultiIndex
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -45,7 +45,7 @@ def test_view(idx):
 
 @pytest.mark.parametrize("func", [copy, deepcopy])
 def test_copy_and_deepcopy(func):
-    idx = MultiIndex(
+    idx = pd.MultiIndex(
         levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],
@@ -57,7 +57,7 @@ def test_copy_and_deepcopy(func):
 
 @pytest.mark.parametrize("deep", [True, False])
 def test_copy_method(deep):
-    idx = MultiIndex(
+    idx = pd.MultiIndex(
         levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],
@@ -75,7 +75,7 @@ def test_copy_method(deep):
 )
 def test_copy_method_kwargs(deep, kwarg, value):
     # gh-12309: Check that the "name" argument as well other kwargs are honored
-    idx = MultiIndex(
+    idx = pd.MultiIndex(
         levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],
@@ -86,7 +86,7 @@ def test_copy_method_kwargs(deep, kwarg, value):
 
 def test_copy_deep_false_retains_id():
     # GH#47878
-    idx = MultiIndex(
+    idx = pd.MultiIndex(
         levels=[["foo", "bar"], ["fizz", "buzz"]],
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],

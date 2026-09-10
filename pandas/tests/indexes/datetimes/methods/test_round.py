@@ -3,24 +3,20 @@ import pytest
 from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
 
-from pandas import (
-    DatetimeIndex,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestDatetimeIndexRound:
     def test_round_daily(self):
-        dti = date_range("20130101 09:10:11", periods=5)
+        dti = pd.date_range("20130101 09:10:11", periods=5)
         result = dti.round("D")
-        expected = date_range("20130101", periods=5)
+        expected = pd.date_range("20130101", periods=5)
         tm.assert_index_equal(result, expected, check_freq=False)
 
         dti = dti.tz_localize("UTC").tz_convert("US/Eastern")
         result = dti.round("D")
-        expected = date_range("20130101", periods=5).tz_localize("US/Eastern")
+        expected = pd.date_range("20130101", periods=5).tz_localize("US/Eastern")
         tm.assert_index_equal(result, expected, check_freq=False)
 
         result = dti.round("s")
@@ -35,23 +31,25 @@ class TestDatetimeIndexRound:
         ],
     )
     def test_round_invalid(self, freq, error_msg):
-        dti = date_range("20130101 09:10:11", periods=5)
+        dti = pd.date_range("20130101 09:10:11", periods=5)
         dti = dti.tz_localize("UTC").tz_convert("US/Eastern")
         with pytest.raises(ValueError, match=error_msg):
             dti.round(freq)
 
     def test_round(self, tz_naive_fixture, unit):
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="30Min", tz=tz, unit=unit)
+        rng = pd.date_range(
+            start="2016-01-01", periods=5, freq="30Min", tz=tz, unit=unit
+        )
         elt = rng[1]
 
-        expected_rng = DatetimeIndex(
+        expected_rng = pd.DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 01:00:00", tz=tz),
-                Timestamp("2016-01-01 02:00:00", tz=tz),
-                Timestamp("2016-01-01 02:00:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:00:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:00:00", tz=tz),
+                pd.Timestamp("2016-01-01 01:00:00", tz=tz),
+                pd.Timestamp("2016-01-01 02:00:00", tz=tz),
+                pd.Timestamp("2016-01-01 02:00:00", tz=tz),
             ]
         ).as_unit(unit)
         expected_elt = expected_rng[1]
@@ -75,9 +73,9 @@ class TestDatetimeIndexRound:
     def test_round2(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH#14440 & GH#15578
-        index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz).as_unit("ns")
+        index = pd.DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz).as_unit("ns")
         result = index.round("ms")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.002000"], tz=tz).as_unit("ns")
+        expected = pd.DatetimeIndex(["2016-10-17 12:00:00.002000"], tz=tz).as_unit("ns")
         tm.assert_index_equal(result, expected)
 
         for freq in ["us", "ns"]:
@@ -85,34 +83,72 @@ class TestDatetimeIndexRound:
 
     def test_round3(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        index = DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=tz).as_unit("ns")
+        index = pd.DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=tz).as_unit("ns")
         result = index.round("ms")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=tz).as_unit("ns")
+        expected = pd.DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=tz).as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     def test_round4(self, tz_naive_fixture):
-        index = DatetimeIndex(["2016-10-17 12:00:00.001501031"], dtype="M8[ns]")
+        index = pd.DatetimeIndex(["2016-10-17 12:00:00.001501031"], dtype="M8[ns]")
         result = index.round("10ns")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.001501030"], dtype="M8[ns]")
+        expected = pd.DatetimeIndex(["2016-10-17 12:00:00.001501030"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
         ts = "2016-10-17 12:00:00.001501031"
-        dti = DatetimeIndex([ts], dtype="M8[ns]")
+        dti = pd.DatetimeIndex([ts], dtype="M8[ns]")
         with tm.assert_produces_warning(False):
             dti.round("1010ns")
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq, freq_unit",
+        [
+            ("s", "700ms", "ms"),
+            ("s", "2500ms", "ms"),
+            ("ms", "3us", "us"),
+            ("us", "300ns", "ns"),
+        ],
+    )
+    def test_round_freq_not_multiple_of_resolution(self, method, unit, freq, freq_unit):
+        # GH#67978 freq is neither a multiple nor a divisor of one unit of the
+        #  index resolution, so the result would not be representable.  The
+        #  value is deliberately off the freq grid so the second half below is
+        #  not a no-op for any of the parametrizations.
+        dti = pd.DatetimeIndex(["2020-01-01 00:00:06.500000001"])
+
+        msg = rf"freq=.* is incompatible with unit={unit}"
+        with pytest.raises(ValueError, match=msg):
+            getattr(dti.as_unit(unit), method)(freq)
+
+        finer = dti.as_unit(freq_unit)
+        result = getattr(finer, method)(freq)
+        assert not result.equals(finer)
+        tm.assert_index_equal(
+            result, getattr(finer.as_unit("ns"), method)(freq).as_unit(freq_unit)
+        )
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize("unit, freq", [("s", "250ms"), ("us", "250ns")])
+    def test_round_freq_divides_resolution(self, method, unit, freq):
+        # GH#67978 freq divides one unit of the index resolution evenly, so
+        #  every representable value is already a multiple of freq
+        dti = pd.DatetimeIndex(["2020-01-01 00:00:06"]).as_unit(unit)
+        tm.assert_index_equal(getattr(dti, method)(freq), dti)
 
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=tz, unit="ns")
+        rng = pd.date_range(
+            start="2016-01-01", periods=5, freq="2Min", tz=tz, unit="ns"
+        )
 
-        expected_rng = DatetimeIndex(
+        expected_rng = pd.DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 00:02:00", tz=tz),
-                Timestamp("2016-01-01 00:04:00", tz=tz),
-                Timestamp("2016-01-01 00:06:00", tz=tz),
-                Timestamp("2016-01-01 00:08:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:00:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:02:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:04:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:06:00", tz=tz),
+                pd.Timestamp("2016-01-01 00:08:00", tz=tz),
             ]
         ).as_unit("ns")
 
@@ -157,10 +193,10 @@ class TestDatetimeIndexRound:
         ],
     )
     def test_ceil_floor_edge(self, test_input, rounder, freq, expected):
-        dt = DatetimeIndex(list(test_input))
+        dt = pd.DatetimeIndex(list(test_input))
         func = getattr(dt, rounder)
         result = func(freq)
-        expected = DatetimeIndex(list(expected))
+        expected = pd.DatetimeIndex(list(expected))
         assert expected.equals(result)
 
     @pytest.mark.parametrize(
@@ -192,7 +228,7 @@ class TestDatetimeIndexRound:
         ],
     )
     def test_round_int64(self, start, index_freq, periods, round_freq):
-        dt = date_range(start=start, freq=index_freq, periods=periods, unit="ns")
+        dt = pd.date_range(start=start, freq=index_freq, periods=periods, unit="ns")
         unit = to_offset(round_freq).nanos
 
         # test floor

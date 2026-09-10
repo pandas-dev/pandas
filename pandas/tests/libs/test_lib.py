@@ -10,7 +10,7 @@ from pandas._libs import (
 )
 from pandas.compat import IS64
 
-from pandas import Index
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -54,7 +54,7 @@ class TestMisc:
         mapping1 = {td: 1}
         mapping2 = {td.as_unit("s"): 1}
 
-        oindex = Index([td * n for n in range(3)])._values.astype(object)
+        oindex = pd.Index([td * n for n in range(3)])._values.astype(object)
 
         expected = lib.fast_multiget(mapping1, oindex)
         result = lib.fast_multiget(mapping2, oindex)
@@ -67,7 +67,7 @@ class TestMisc:
         mapping1 = {td: 1}
         mapping2 = {td.as_unit("ms"): 1}
 
-        oindex = Index([td * n for n in range(3)])._values.astype(object)
+        oindex = pd.Index([td * n for n in range(3)])._values.astype(object)
 
         expected = lib.fast_multiget(mapping1, oindex)
         result = lib.fast_multiget(mapping2, oindex)
@@ -312,7 +312,7 @@ def test_has_sentinel_every_position(dtype, n):
 
 def test_cache_readonly_preserve_docstrings():
     # GH18197
-    assert Index.hasnans.__doc__ is not None
+    assert pd.Index.hasnans.__doc__ is not None
 
 
 def test_no_default_pickle(temp_file):

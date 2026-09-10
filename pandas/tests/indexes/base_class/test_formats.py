@@ -3,7 +3,7 @@ import pytest
 
 import pandas._config.config as cf
 
-from pandas import Index
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -11,8 +11,8 @@ class TestIndexRendering:
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather than
         # stylized
-        idx = Index(["a", "b"])
-        res = eval(repr(idx))
+        idx = pd.Index(["a", "b"])
+        res = eval(repr(idx), dict(vars(pd)))
         tm.assert_index_equal(res, idx)
 
     @pytest.mark.parametrize(
@@ -21,12 +21,12 @@ class TestIndexRendering:
             # ASCII
             # short
             (
-                Index(["a", "bb", "ccc"]),
+                pd.Index(["a", "bb", "ccc"]),
                 """Index(['a', 'bb', 'ccc'], dtype='object')""",
             ),
             # multiple lines
             (
-                Index(["a", "bb", "ccc"] * 10),
+                pd.Index(["a", "bb", "ccc"] * 10),
                 "Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', "
                 "'bb', 'ccc', 'a', 'bb', 'ccc',\n"
                 "       'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', "
@@ -36,7 +36,7 @@ class TestIndexRendering:
             ),
             # truncated
             (
-                Index(["a", "bb", "ccc"] * 100),
+                pd.Index(["a", "bb", "ccc"] * 100),
                 "Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',\n"
                 "       ...\n"
                 "       'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc'],\n"
@@ -45,12 +45,12 @@ class TestIndexRendering:
             # Non-ASCII
             # short
             (
-                Index(["あ", "いい", "ううう"]),
+                pd.Index(["あ", "いい", "ううう"]),
                 """Index(['あ', 'いい', 'ううう'], dtype='object')""",
             ),
             # multiple lines
             (
-                Index(["あ", "いい", "ううう"] * 10),
+                pd.Index(["あ", "いい", "ううう"] * 10),
                 (
                     "Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
                     "'あ', 'いい', 'ううう', 'あ', 'いい', 'ううう',\n"
@@ -63,7 +63,7 @@ class TestIndexRendering:
             ),
             # truncated
             (
-                Index(["あ", "いい", "ううう"] * 100),
+                pd.Index(["あ", "いい", "ううう"] * 100),
                 (
                     "Index(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
                     "'あ', 'いい', 'ううう', 'あ',\n"
@@ -87,12 +87,12 @@ class TestIndexRendering:
         [
             # short
             (
-                Index(["あ", "いい", "ううう"]),
+                pd.Index(["あ", "いい", "ううう"]),
                 ("Index(['あ', 'いい', 'ううう'], dtype='object')"),
             ),
             # multiple lines
             (
-                Index(["あ", "いい", "ううう"] * 10),
+                pd.Index(["あ", "いい", "ううう"] * 10),
                 (
                     "Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
                     "'ううう', 'あ', 'いい', 'ううう',\n"
@@ -107,7 +107,7 @@ class TestIndexRendering:
             ),
             # truncated
             (
-                Index(["あ", "いい", "ううう"] * 100),
+                pd.Index(["あ", "いい", "ううう"] * 100),
                 (
                     "Index(['あ', 'いい', 'ううう', 'あ', 'いい', "
                     "'ううう', 'あ', 'いい', 'ううう',\n"
@@ -134,13 +134,13 @@ class TestIndexRendering:
 
     def test_repr_summary(self):
         with cf.option_context("display.max_seq_items", 10):
-            result = repr(Index(np.arange(1000)))
+            result = repr(pd.Index(np.arange(1000)))
             assert len(result) < 200
             assert "..." in result
 
     def test_summary_bug(self):
         # GH#3869
-        ind = Index(["{other}%s", "~:{range}:0"], name="A")
+        ind = pd.Index(["{other}%s", "~:{range}:0"], name="A")
         result = ind._summary()
         # shouldn't be formatted accidentally.
         assert "~:{range}:0" in result
@@ -148,7 +148,7 @@ class TestIndexRendering:
 
     def test_index_repr_bool_nan(self):
         # GH32146
-        arr = Index([True, False, np.nan], dtype=object)
+        arr = pd.Index([True, False, np.nan], dtype=object)
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2

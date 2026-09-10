@@ -16,6 +16,8 @@ from typing import (
 )
 import warnings
 
+from pandas._libs import lib
+
 if TYPE_CHECKING:
     from collections.abc import (
         Generator,
@@ -25,13 +27,13 @@ if TYPE_CHECKING:
 
 @contextmanager
 def assert_produces_warning(
-    expected_warning: type[Warning] | bool | tuple[type[Warning], ...] | None = Warning,
+    expected_warning: type[Warning] | bool | tuple[type[Warning], ...] | None,
     filter_level: Literal[
         "error", "ignore", "always", "default", "module", "once"
     ] = "always",
     check_stacklevel: bool = True,
     raise_on_extra_warnings: bool = True,
-    match: str | tuple[str | None, ...] | None = None,
+    match: str | tuple[str | None, ...] | lib.NoDefault | None = lib.no_default,
     must_find_all_warnings: bool = True,
 ) -> Generator[list[warnings.WarningMessage]]:
     """
@@ -42,7 +44,7 @@ def assert_produces_warning(
 
     Parameters
     ----------
-    expected_warning : {Warning, False, tuple[Warning, ...], None}, default Warning
+    expected_warning : {Warning, False, tuple[Warning, ...], None}
         The type of Exception raised. ``exception.Warning`` is the base
         class for all warnings. To raise multiple types of exceptions,
         pass them as a tuple. To check that no warning is returned,
@@ -68,8 +70,10 @@ def assert_produces_warning(
     raise_on_extra_warnings : bool, default True
         Whether extra warnings not of the type `expected_warning` should
         cause the test to fail.
-    match : {str, tuple[str, ...]}, optional
-        Match warning message. If it's a tuple, it has to be the size of
+    match : {str, tuple[str, ...]} or None
+        Match warning message. Required whenever a warning is expected; pass
+        ``match=None`` to opt out when the message genuinely cannot be
+        asserted. If it's a tuple, it has to be the size of
         `expected_warning`. If additionally `must_find_all_warnings` is
         True, each expected warning's message gets matched with a respective
         match. Otherwise, multiple values get treated as an alternative.
@@ -81,14 +85,14 @@ def assert_produces_warning(
     Examples
     --------
     >>> import warnings
-    >>> with assert_produces_warning():
-    ...     warnings.warn(UserWarning())
+    >>> with assert_produces_warning(UserWarning, match="hello"):
+    ...     warnings.warn(UserWarning("hello"))
     >>> with assert_produces_warning(False):
     ...     warnings.warn(RuntimeWarning())
     Traceback (most recent call last):
         ...
     AssertionError: Caused unexpected warning(s): ['RuntimeWarning'].
-    >>> with assert_produces_warning(UserWarning):
+    >>> with assert_produces_warning(UserWarning, match="hello"):
     ...     warnings.warn(RuntimeWarning())
     Traceback (most recent call last):
         ...
@@ -97,6 +101,15 @@ def assert_produces_warning(
     ..warn:: This is *not* thread-safe.
     """
     __tracebackhide__ = True
+
+    if match is lib.no_default:
+        if expected_warning:
+            raise TypeError(
+                "assert_produces_warning() requires a match argument so the "
+                "warning message is checked and not just its class. Pass "
+                "match=None if the message genuinely cannot be asserted here."
+            )
+        match = None
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter(filter_level)
@@ -143,13 +156,17 @@ def assert_produces_warning(
 
 
 def maybe_produces_warning(
-    warning: type[Warning], condition: bool, **kwargs: Any
+    warning: type[Warning],
+    condition: bool,
+    *,
+    match: str | tuple[str | None, ...] | None,
+    **kwargs: Any,
 ) -> AbstractContextManager:
     """
     Return a context manager that possibly checks a warning based on the condition
     """
     if condition:
-        return assert_produces_warning(warning, **kwargs)
+        return assert_produces_warning(warning, match=match, **kwargs)
     else:
         return nullcontext()
 

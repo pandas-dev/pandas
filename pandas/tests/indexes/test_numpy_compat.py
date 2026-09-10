@@ -1,15 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    BooleanDtype,
-    CategoricalIndex,
-    DatetimeIndex,
-    Index,
-    PeriodIndex,
-    TimedeltaIndex,
-    isna,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
     is_complex_dtype,
@@ -77,7 +69,7 @@ def test_numpy_ufuncs_basic(index, func):
             arr_result = func(index.values)
             if arr_result.dtype == np.float16:
                 arr_result = arr_result.astype(np.float32)
-            exp = Index(arr_result, name=index.name)
+            exp = pd.Index(arr_result, name=index.name)
 
         tm.assert_index_equal(result, exp)
         if isinstance(index.dtype, np.dtype) and is_numeric_dtype(index):
@@ -91,7 +83,7 @@ def test_numpy_ufuncs_basic(index, func):
                 assert result.dtype == "float64"
         else:
             # e.g. np.exp with Int64 -> Float64
-            assert type(result) is Index
+            assert type(result) is pd.Index
     # raise AttributeError or TypeError
     elif len(index) == 0:
         pass
@@ -107,19 +99,19 @@ def test_numpy_ufuncs_basic(index, func):
 def test_numpy_ufuncs_other(index, func):
     # test ufuncs of numpy, see:
     # https://numpy.org/doc/stable/reference/ufuncs.html
-    if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
+    if isinstance(index, (pd.DatetimeIndex, pd.TimedeltaIndex)):
         if func in (np.isfinite, np.isinf, np.isnan):
             # numpy 1.18 changed isinf and isnan to not raise on dt64/td64
             result = func(index)
 
             out = np.empty(index.shape, dtype=bool)
             func(index, out=out)
-            tm.assert_index_equal(Index(out), result)
+            tm.assert_index_equal(pd.Index(out), result)
         else:
             with tm.external_error_raised(TypeError):
                 func(index)
 
-    elif isinstance(index, PeriodIndex):
+    elif isinstance(index, pd.PeriodIndex):
         with tm.external_error_raised(TypeError):
             func(index)
 
@@ -128,10 +120,10 @@ def test_numpy_ufuncs_other(index, func):
     ):
         # Results in bool array
         result = func(index)
-        assert isinstance(result, Index)
+        assert isinstance(result, pd.Index)
         if not isinstance(index.dtype, np.dtype):
             # e.g. Int64 we expect to get BooleanArray back
-            assert isinstance(result.dtype, BooleanDtype)
+            assert isinstance(result.dtype, pd.BooleanDtype)
         else:
             assert isinstance(result.dtype, np.dtype)
 
@@ -139,9 +131,9 @@ def test_numpy_ufuncs_other(index, func):
         func(index, out=out)
 
         if not isinstance(index.dtype, np.dtype):
-            tm.assert_index_equal(result, Index(out, dtype="boolean"))
+            tm.assert_index_equal(result, pd.Index(out, dtype="boolean"))
         else:
-            tm.assert_index_equal(result, Index(out))
+            tm.assert_index_equal(result, pd.Index(out))
 
     elif len(index) == 0:
         pass
@@ -157,7 +149,7 @@ def test_numpy_ufuncs_reductions(index_sortable, func):
     if len(index) == 0:
         pytest.skip("Test doesn't make sense for empty index.")
 
-    if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
+    if isinstance(index, pd.CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):
             func.reduce(index)
         return
@@ -171,8 +163,8 @@ def test_numpy_ufuncs_reductions(index_sortable, func):
         # TODO: do we have cases both with and without NAs?
 
     assert type(result) is type(expected)
-    if isna(result):
-        assert isna(expected)
+    if pd.isna(result):
+        assert pd.isna(expected)
     else:
         assert result == expected
 
@@ -180,11 +172,11 @@ def test_numpy_ufuncs_reductions(index_sortable, func):
 @pytest.mark.parametrize("func", [np.bitwise_and, np.bitwise_or, np.bitwise_xor])
 def test_numpy_ufuncs_bitwise(func):
     # https://github.com/pandas-dev/pandas/issues/46769
-    idx1 = Index([1, 2, 3, 4], dtype="int64")
-    idx2 = Index([3, 4, 5, 6], dtype="int64")
+    idx1 = pd.Index([1, 2, 3, 4], dtype="int64")
+    idx2 = pd.Index([3, 4, 5, 6], dtype="int64")
 
     with tm.assert_produces_warning(None):
         result = func(idx1, idx2)
 
-    expected = Index(func(idx1.values, idx2.values))
+    expected = pd.Index(func(idx1.values, idx2.values))
     tm.assert_index_equal(result, expected)
