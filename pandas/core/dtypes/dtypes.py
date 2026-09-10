@@ -995,14 +995,6 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         return DatetimeIndex
 
-    @classmethod
-    def _get_plot_converter(
-        cls,
-    ) -> list[tuple[type_t, type_t[matplotlib.units.ConversionInterface]]]:
-        from pandas.plotting._matplotlib.converter import DatetimeConverter
-
-        return [(cls.type, DatetimeConverter)]
-
 
 @register_extension_dtype
 @set_module("pandas")

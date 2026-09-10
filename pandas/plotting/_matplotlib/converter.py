@@ -90,6 +90,7 @@ def plottable_types() -> list[type]:
         np.number,
         np.datetime64,
         np.timedelta64,
+        Timestamp,
         pydt.date,
         pydt.datetime,
         pydt.time,
@@ -103,6 +104,7 @@ def plottable_types() -> list[type]:
 def get_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
     """Return a list of (type, converter) pairs for the matplotlib units registry."""
     pairs = [
+        (Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
