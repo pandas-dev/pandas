@@ -32,6 +32,8 @@ from pandas.errors import (
 if TYPE_CHECKING:
     from pathlib import Path
 
+from pandas._libs import parsers as _parsers
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -1799,3 +1801,59 @@ def test_parallel_huge_int_first_line_matches_serial(tmp_path, monkeypatch):
     result = _read_forced_parallel(path, monkeypatch, dtype_backend="pyarrow")
 
     tm.assert_frame_equal(result, pd.read_csv(io.BytesIO(raw), dtype_backend="pyarrow"))
+
+
+# ---------------------------------------------------------------------------
+# Row-blocked column conversion (TextReader._convert_batched)
+# ---------------------------------------------------------------------------
+
+
+def _blocked_frame(n_rows: int = 30_000) -> pd.DataFrame:
+    # >= 16 columns, so numeric columns qualify for row-blocked conversion at
+    # any worker count; the string columns qualify on their own
+    rng = np.random.default_rng(0)
+    data: dict[str, object] = {
+        f"i{k}": rng.integers(-1000, 1000, size=n_rows) for k in range(6)
+    }
+    data.update({f"f{k}": rng.random(n_rows) for k in range(6)})
+    data.update(
+        {f"s{k}": rng.choice(["id1", "id22", "id333"], size=n_rows) for k in range(6)}
+    )
+    data["b0"] = rng.integers(0, 2, size=n_rows).astype(bool)
+    return pd.DataFrame(data)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_matches_python_engine(tmp_path, monkeypatch, threads):
+    path = tmp_path / "blocked.csv"
+    _blocked_frame().to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    # tiny blocks, so every chunk spans many of them
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path)
+    expected = pd.read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
+    # A column whose leading block infers one kind but whose later rows do
+    # not must fall back to the whole-column inference cascade.
+    df = _blocked_frame().astype(object)
+    df.loc[25_000, "i0"] = 1.5  # int -> float
+    df.loc[25_000, "i1"] = 2**63 + 5  # int -> uint64
+    df.loc[25_000, "i2"] = "abc"  # int -> str
+    df.loc[25_000, "f0"] = "oops"  # float -> str
+    df.loc[25_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
+    df.loc[25_100, "i3"] = np.nan  # NA past the leading block
+    path = tmp_path / "late.csv"
+    df.to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path)
+    expected = pd.read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)

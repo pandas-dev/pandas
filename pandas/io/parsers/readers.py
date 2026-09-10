@@ -915,6 +915,9 @@ def _read_csv_chunks(
         # GIL-held pyarrow wrap happens once per column rather than once per
         # chunk in every worker.
         reader._engine.wrap_deferred = False
+        # Row-blocked conversion of numeric columns pays off once enough
+        # workers contend for memory bandwidth (see TextReader.block_workers).
+        reader._engine._reader.block_workers = n_workers
         reader._engine._warning_sink = warning_sink
         reader._engine._reader.warning_sink = warning_sink
         workers_readers.append(reader)
