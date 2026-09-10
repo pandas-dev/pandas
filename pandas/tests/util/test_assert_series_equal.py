@@ -613,6 +613,25 @@ def test_assert_series_equal_large_mixed_integer_float_rtol():
     )
 
 
+@pytest.mark.parametrize(
+    "left_values,right_values,left_dtype,right_dtype",
+    [
+        ([2**60], [float(2**60)], "int64", "float64"),
+        ([2**63], [float(2**63)], "uint64", "float64"),
+    ],
+)
+def test_assert_series_equal_large_mixed_integer_float_equal(
+    left_values, right_values, left_dtype, right_dtype
+):
+    # GH#66699 the same equal-direction guarantee, at Series level
+    left = pd.Series(left_values, dtype=left_dtype)
+    right = pd.Series(right_values, dtype=right_dtype)
+
+    _assert_series_equal_both(
+        left, right, check_dtype=False, check_exact=False, rtol=0, atol=0
+    )
+
+
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_assert_series_equal_large_int_atol(dtype):
     # GH#66400 an explicitly passed atol must be honored above 2**53 too;
