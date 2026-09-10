@@ -404,55 +404,40 @@ Pre-release
 Release
 ```````
 
-1. Create an empty commit and a tag in the last commit of the branch to be released::
+Run ``scripts/push_tag_for_release.sh`` from the root of your pandas clone to initiate the
+release process by locally creating and pushing a tagged commit, triggering the release automation.
+Specify the version and branch to release as arguments.
 
-    git checkout <branch>
-    git pull --ff-only upstream <branch>
-    git clean -xdf
-    git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: <version>"
-    git tag -a v<version> -m "Version <version>"  # NOTE that the tag is v1.5.2 with "v" not 1.5.2
-    git push upstream <branch> --follow-tags
+If the release is a release candidate, specify the ``--rc-branch`` and ``--next-version`` options
+to create the new branch and start the development of the next version.
 
-   The docs for the new version will be built and published automatically with the docs job in the CI,
-   which will be triggered when the tag is pushed.
+.. code-block:: bash
 
-2. Only if the release is a release candidate, we want to create a new branch for it, immediately
-   after creating the tag. For example, if we are releasing pandas 1.4.0rc0, we would like to
-   create the branch 1.4.x to backport commits to the 1.4 versions. As well as create a tag to
-   mark the start of the development of 1.5.0 (assuming it is the next version)::
+   # e.g. A patch release
+   scripts/push_tag_for_release.sh 3.0.5 3.0.x
+   # e.g. A release candidate
+   scripts/push_tag_for_release.sh 3.0.0rc0 main --rc-branch 3.0.x --next-version 3.1.0
 
-    git checkout -b 1.4.x
-    git push upstream 1.4.x
-    git checkout main
-    git commit --allow-empty -m "Start 1.5.0"
-    git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
-    git push upstream main --follow-tags
+The release automation will then:
 
-3. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
+- Create a `GitHub release <https://github.com/pandas-dev/pandas/releases>`_ with the source distribution.
 
-   - Tag: ``v<version>``
-   - Title: ``pandas <version>``
-   - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
-   - Files: ``pandas-<version>.tar.gz`` source distribution just generated
-   - Set as a pre-release: Only check for a release candidate
-   - Set as the latest release: Leave checked, unless releasing a patch release for an older version
-     (e.g. releasing 1.4.5 after 1.5 has been released)
+   .. note::
 
-4. Verify wheels are uploaded automatically by GitHub Actions
-   via `"Trusted Publishing" <https://docs.pypi.org/trusted-publishers/>`__
-   when the GitHub `Release <https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases>`__
-   is published. Do not run ``twine upload`` manually.
+      By default, the new Github release will be marked as the latest release.
+      For patch releases for an older version, unmark it as the latest release on the Github release page.
 
-5. Download the sdist from PyPI, and add it to the GitHub release.
+- Upload the source distribution and wheels to `PyPI <https://pypi.org/project/pandas/#history>`_ via
+  `"Trusted Publishing" <https://docs.pypi.org/trusted-publishers/>`__
 
-6. The GitHub release will after some hours trigger an
-   `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
-   (If you don't want to wait, you can open an issue titled ``@conda-forge-admin, please update version`` to trigger the bot.)
-   Merge it once the CI is green, and it will generate the conda-forge packages.
+- Create an `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_ from the new Github release.
+  This PR will need to be merged manually once its CI is green in order to generate conda-forge packages.
 
-   In case a manual PR needs to be done, the version, sha256 and build fields are the
-   ones that usually need to be changed. If anything else in the recipe has changed since
-   the last release, those changes should be available in ``ci/meta.yaml``.
+   .. tip::
+
+      The automated conda-forge PR usually takes a while to generate. You can manually open
+      an `issue <https://github.com/conda-forge/pandas-feedstock/issues>`_ titled ``@conda-forge-admin, please update version``
+      to manually trigger the conda-forge PR.
 
 Post-Release
 ````````````
