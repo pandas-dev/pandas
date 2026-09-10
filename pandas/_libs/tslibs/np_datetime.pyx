@@ -99,12 +99,24 @@ cdef int64_t get_unit_count_from_dtype(cnp.dtype dtype):
     return meta.num
 
 
+cdef raise_if_unit_multiplier(cnp.dtype dtype):
+    """
+    Reject e.g. "m8[10s]": the multiplier is not part of a pandas resolution,
+    so reading the dtype as "m8[s]" would silently scale every value. GH#25611
+    """
+    if get_unit_count_from_dtype(dtype) != 1:
+        raise ValueError(
+            f"units containing a multiplier are not supported, got dtype {dtype}"
+        )
+
+
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
 
 
 def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    raise_if_unit_multiplier(dtype)
     reso = get_unit_from_dtype(dtype)
     new_reso = get_supported_reso(reso)
     new_unit = npy_unit_to_abbrev(new_reso)
@@ -123,7 +135,7 @@ def is_supported_dtype(dtype: cnp.dtype) -> bool:
         raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
     cdef:
         NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
-    return is_supported_unit(unit)
+    return is_supported_unit(unit) and get_unit_count_from_dtype(dtype) == 1
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
@@ -438,6 +450,9 @@ cpdef ndarray astype_overflowsafe(
             "astype_overflowsafe values.dtype and dtype must be either "
             "both-datetime64 or both-timedelta64."
         )
+
+    raise_if_unit_multiplier(values.dtype)
+    raise_if_unit_multiplier(dtype)
 
     cdef:
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)

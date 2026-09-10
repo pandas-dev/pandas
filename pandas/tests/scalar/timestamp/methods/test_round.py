@@ -81,6 +81,40 @@ class TestTimestampRound:
         with tm.assert_produces_warning(False):
             Timestamp("2016-10-17 12:00:00.001501031").round("1010ns")
 
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize(
+        "unit, freq, freq_unit",
+        [
+            ("s", "700ms", "ms"),
+            ("s", "2500ms", "ms"),
+            ("ms", "3us", "us"),
+            ("us", "300ns", "ns"),
+        ],
+    )
+    def test_round_freq_not_multiple_of_resolution(self, method, unit, freq, freq_unit):
+        # GH#67978 freq is neither a multiple nor a divisor of one unit of
+        #  self's resolution, so the result would not be representable.
+        #  The value is deliberately off the freq grid so the second half
+        #  below is not a no-op for any of the parametrizations.
+        ts = Timestamp("2020-01-01 00:00:06.500000001")
+
+        msg = rf"freq=.* is incompatible with unit={unit}"
+        with pytest.raises(ValueError, match=msg):
+            getattr(ts.as_unit(unit), method)(freq)
+
+        finer = ts.as_unit(freq_unit)
+        result = getattr(finer, method)(freq)
+        assert result != finer
+        assert result == getattr(finer.as_unit("ns"), method)(freq)
+
+    @pytest.mark.parametrize("method", ["round", "floor", "ceil"])
+    @pytest.mark.parametrize("unit, freq", [("s", "250ms"), ("us", "250ns")])
+    def test_round_freq_divides_resolution(self, method, unit, freq):
+        # GH#67978 freq divides one unit of self's resolution evenly, so every
+        #  representable value is already a multiple of freq
+        ts = Timestamp("2020-01-01 00:00:06").as_unit(unit)
+        assert getattr(ts, method)(freq) == ts
+
     def test_round_invalid_arg(self):
         stamp = Timestamp("2000-01-05 05:09:15.13")
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):

@@ -545,20 +545,10 @@ def test_add_length_zero_keeps_dtype(any_string_dtype):
 
 def test_add_length_zero_mixed_storage(any_string_dtype, any_string_dtype2):
     # GH#40624 the length-zero result should keep the dtype the full-length
-    #  operation resolves to rather than raising
+    #  operation resolves to rather than raising.  The object-dtype
+    #  combinations cover the operand boxing to the pyarrow null type.
     left = pd.Series(["a", "b"], dtype=any_string_dtype)
     right = pd.Series(["c", "d"], dtype=any_string_dtype2)
 
     result = left.iloc[:0] + right.iloc[:0]
     tm.assert_series_equal(result, (left + right).iloc[:0])
-
-
-@td.skip_if_no("pyarrow")
-def test_add_length_zero_object_ndarray():
-    # GH#40624 a length-zero object-dtype ndarray boxes to the pyarrow null
-    #  type, which has no binary_join kernel
-    # dtype is specified explicitly so the test exercises the pyarrow-backed
-    #  path regardless of the future.infer_string setting
-    arr = pd.array(["a", "b"], dtype=pd.StringDtype("pyarrow"))
-    result = arr[:0] + np.array([], dtype=object)
-    tm.assert_extension_array_equal(result, arr[:0])

@@ -665,8 +665,95 @@ def test_select_dtypes_datetime64_instance_unit():
     tm.assert_frame_equal(result, df)
 
     # a unit that no column can have still raises
-    with pytest.raises(ValueError, match="is too specific"):
+    with pytest.raises(ValueError, match="is not a supported"):
         df.select_dtypes(include=np.dtype("datetime64[D]"))
+
+
+@pytest.mark.parametrize("kind", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("byteorder", ["<", ">"])
+def test_select_dtypes_dt64_td64_string_byteorder(kind, unit, byteorder):
+    # GH#40234 byteorder is not part of what a string spec selects, matching
+    # how ">i8" selects every int64 column, so a byteswapped string selects
+    # that resolution rather than silently selecting nothing
+    if kind == "datetime64":
+        base = pd.date_range("2020-01-01", periods=3)
+    else:
+        base = pd.timedelta_range("1 day", periods=3)
+    df = pd.DataFrame({other: base.as_unit(other) for other in ["s", "ms", "us", "ns"]})
+
+    result = df.select_dtypes(include=[f"{byteorder}{kind}[{unit}]"])
+    tm.assert_frame_equal(result, df[[unit]])
+
+    result = df.select_dtypes(exclude=[f"{byteorder}{kind}[{unit}]"])
+    tm.assert_frame_equal(result, df.drop(columns=[unit]))
+
+
+@pytest.mark.parametrize("kind", ["datetime64", "timedelta64"])
+def test_select_dtypes_dt64_td64_string_byteorder_unitless(kind):
+    # GH#40234 a byteswapped but unitless string still matches every resolution
+    if kind == "datetime64":
+        base = pd.date_range("2020-01-01", periods=3)
+    else:
+        base = pd.timedelta_range("1 day", periods=3)
+    df = pd.DataFrame({other: base.as_unit(other) for other in ["s", "ms", "us", "ns"]})
+
+    result = df.select_dtypes(include=[f">{kind}"])
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_dtypes_td64_non_native_column():
+    # GH#40234 a string spec matches by resolution, an instance spec stays exact.
+    # Construction no longer yields a non-native column (GH#68342); the fixture
+    # leans on a unit-changing astype, itself a bug, so the assert is a tripwire
+    df = pd.DataFrame(
+        {
+            "be": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
+            "le": pd.Series(np.array([1, 2], dtype="<m8[s]")),
+            "ms": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
+        }
+    ).astype({"be": ">m8[s]"})
+    assert df["be"].dtype.byteorder == ">"
+
+    # a string spec is byteorder-agnostic on both sides
+    for spec in ("timedelta64[s]", ">timedelta64[s]", "<timedelta64[s]"):
+        result = df.select_dtypes(include=[spec])
+        tm.assert_frame_equal(result, df[["be", "le"]])
+
+    result = df.select_dtypes(exclude=["timedelta64[s]"])
+    tm.assert_frame_equal(result, df[["ms"]])
+
+    # an instance spec keeps exact-dtype semantics, so it distinguishes them
+    result = df.select_dtypes(include=[np.dtype(">m8[s]")])
+    tm.assert_frame_equal(result, df[["be"]])
+
+    result = df.select_dtypes(include=[np.dtype("<m8[s]")])
+    tm.assert_frame_equal(result, df[["le"]])
+
+
+def test_select_dtypes_dt64_byteorder_unsupported_unit_raises():
+    # GH#40234 normalizing the spec's byteorder must not let an unsupported
+    # unit slip past the support check
+    df = pd.DataFrame({"a": pd.date_range("2020-01-01", periods=3)})
+    with pytest.raises(ValueError, match="'datetime64\\[D\\]' is not a supported"):
+        df.select_dtypes(include=[">datetime64[D]"])
+
+
+@pytest.mark.parametrize("spec", ["datetime64[10s]", "timedelta64[2ns]"])
+def test_select_dtypes_dt64_td64_unit_multiple_raises(spec):
+    # GH#40234 a multiple of a supported unit (e.g. "10s") is not a resolution
+    # any column can have, so it raises rather than selecting nothing
+    df = pd.DataFrame(
+        {
+            "a": pd.date_range("2020-01-01", periods=3),
+            "b": pd.timedelta_range("1 day", periods=3),
+        }
+    )
+    msg = "is not a supported datetime64/timedelta64 resolution"
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(include=[spec])
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(include=[np.dtype(spec)])
 
 
 def test_select_dtypes_categorical_instance_exact():
@@ -956,6 +1043,58 @@ def test_select_dtypes_arrow_timestamp_string_matches_only_arrow():
     )
     result = df.select_dtypes(include=["timestamp[ns][pyarrow]"])
     tm.assert_frame_equal(result, df[["arrow"]])
+
+
+@pytest.mark.parametrize(
+    "spec", ["datetime64[s]", "datetime64", "datetime", np.datetime64]
+)
+def test_select_dtypes_naive_spec_skips_tz_aware_arrow(spec):
+    # GH#68075: ArrowDtype columns are matched through their numpy_dtype, which
+    # drops the tz, so a naive spec used to select a tz-aware Arrow column --
+    # the tz-aware numpy column it mirrors is correctly not selected
+    pa = pytest.importorskip("pyarrow")
+    dti = pd.date_range("2020-01-01", periods=2, tz="UTC").as_unit("s")
+    df = pd.DataFrame(
+        {
+            "arrow_tz": pd.array(dti, dtype=pd.ArrowDtype(pa.timestamp("s", tz="UTC"))),
+            "np_tz": dti,
+            "arrow_naive": pd.array(
+                dti.tz_localize(None), dtype=pd.ArrowDtype(pa.timestamp("s"))
+            ),
+            "np_naive": dti.tz_localize(None),
+        }
+    )
+    expected = df[["arrow_naive", "np_naive"]]
+    tm.assert_frame_equal(df.select_dtypes(include=[spec]), expected)
+    tm.assert_frame_equal(df.select_dtypes(exclude=[spec]), df[["arrow_tz", "np_tz"]])
+
+
+def test_select_dtypes_tz_aware_arrow_still_matched_by_arrow_spec():
+    # GH#68075: the specs that do name the tz-aware Arrow dtype keep working
+    pa = pytest.importorskip("pyarrow")
+    dti = pd.date_range("2020-01-01", periods=2, tz="UTC").as_unit("s")
+    dtype = pd.ArrowDtype(pa.timestamp("s", tz="UTC"))
+    df = pd.DataFrame({"arrow_tz": pd.array(dti, dtype=dtype), "np_tz": dti})
+    expected = df[["arrow_tz"]]
+    for spec in [dtype, dtype.name, pd.ArrowDtype]:
+        tm.assert_frame_equal(df.select_dtypes(include=[spec]), expected)
+
+
+@pytest.mark.parametrize("pa_type", ["date32", "date64"])
+def test_select_dtypes_arrow_date_no_tz_attribute(pa_type):
+    # GH#68075: the tz guard must not assume every kind "M" ArrowDtype is a
+    # timestamp -- date32/date64 have no tz attribute
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    df = pd.DataFrame({"num": [1, 2], "date": pd.array([1, 2], dtype=dtype)})
+    tm.assert_frame_equal(df.select_dtypes(include="number"), df[["num"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude="number"), df[["date"]])
+    tm.assert_frame_equal(df.select_dtypes(include=dtype), df[["date"]])
+    # the guard must skip these columns, not reject them: their numpy_dtype is
+    # a datetime64, so a naive datetime spec selects them
+    for spec in ["datetime", np.datetime64]:
+        tm.assert_frame_equal(df.select_dtypes(include=spec), df[["date"]])
+        tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[["num"]])
 
 
 @pytest.mark.parametrize("spec", ["interval[int64]", pd.IntervalDtype("int64")])
