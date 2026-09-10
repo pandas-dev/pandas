@@ -77,7 +77,6 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from datetime import tzinfo
 
-    import matplotlib.units
     import pyarrow as pa  # noqa: TC004
 
     from pandas._typing import (
