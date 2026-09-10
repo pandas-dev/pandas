@@ -1763,17 +1763,39 @@ class RangeIndex(Index):
 
         # GH#66263: for small query sets, avoid materializing the full
         # integer array (``self._values``) that algos.isin would allocate. Use
-        # O(1) ``range.__contains__`` membership checks instead.
-        if n_values < len(self):
+        # O(1) arithmetic checks identical to ``range.__contains__`` instead.
+        #
+        # The ``len(self) // 64`` cap guarantees the Python-level loop stays
+        # cheaper than the materializing path below it (the loop costs roughly
+        # 1 microsecond per element while the generic path costs ~15
+        # nanoseconds per index element, so the loop only wins if n_values is
+        # well below len(self) / (1us / 15ns)).
+        if n_values < len(self) // 64:
             start = self.start
+            stop = self.stop
             step = self.step
+            if isinstance(values, np.ndarray) and values.dtype.kind in "iubf":
+                # Iterating numpy scalars in a Python loop is ~3x slower than
+                # iterating Python scalars, so materialize a small Python list.
+                query_values = values.tolist()
+            else:
+                query_values = values
             result = np.zeros(len(self), dtype=bool)
-            for val in values:
+            for val in query_values:
                 try:
-                    if val in self._range:
+                    if step > 0:
+                        if not (start <= val < stop):
+                            continue
+                    elif not (stop < val <= start):
+                        continue
+                    if (val - start) % step == 0:
                         result[int((val - start) // step)] = True
-                except (TypeError, ValueError):
-                    pass
+                except TypeError:
+                    # Non-numeric or non-orderable query values (e.g. complex
+                    # numbers like 1+0j, strings or None) cannot be compared
+                    # with the range bounds; delegate to the generic path so
+                    # they are handled exactly like ``Index.isin``.
+                    return super().isin(values, level=level)
             return result
 
         return super().isin(values, level=level)
