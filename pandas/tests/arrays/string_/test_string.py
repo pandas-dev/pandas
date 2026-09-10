@@ -295,16 +295,28 @@ def test_reduce_empty(skipna, dtype, min_count):
         assert pd.isna(result)
 
 
+@pytest.mark.parametrize("data", [["a", "b", None], []], ids=["nonempty", "empty"])
 @pytest.mark.parametrize(
     "method", ["prod", "mean", "median", "std", "var", "sem", "skew", "kurt"]
 )
-def test_unsupported_reduction_methods_raise(method, skipna, dtype):
-    # GH#68387 the array methods bypassed the type gate in _reduce
-    arr = pd.array(["a", "b", None], dtype=dtype)
+def test_unsupported_reduction_methods_raise(method, data, skipna, dtype):
+    # GH#68387 pre-fix: empty returned a value from all eight, as did prod(skipna=False)
+    arr = pd.array(data, dtype=dtype)
 
     msg = f"Cannot perform reduction '{method}' with string dtype"
     with pytest.raises(TypeError, match=msg):
         getattr(arr, method)(skipna=skipna)
+
+
+@pytest.mark.parametrize("data", [["a", "b", None], []], ids=["nonempty", "empty"])
+@pytest.mark.parametrize("func", [np.prod, np.mean, np.std, np.var])
+def test_unsupported_numpy_reduction_raises(func, data, dtype):
+    # GH#68387 np.prod and friends dispatch to the array method, not to _reduce
+    arr = pd.array(data, dtype=dtype)
+
+    msg = f"Cannot perform reduction '{func.__name__}' with string dtype"
+    with pytest.raises(TypeError, match=msg):
+        func(arr)
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
