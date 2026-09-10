@@ -30,6 +30,8 @@ from pandas.errors import (
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io.parsers.readers import _bool_kwargs as parser_bool_kwargs
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -251,6 +253,85 @@ bar2,12,13,14,15
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), nrows=nrows)
+
+
+# low_memory is pinned by the all_parsers fixture, so it gets its own test below
+_fixture_bool_kwargs = [
+    "cache_dates",
+    "dayfirst",
+    "doublequote",
+    "iterator",
+    "keep_default_na",
+    "memory_map",
+    "na_filter",
+    "skip_blank_lines",
+    "skipinitialspace",
+]
+
+
+def test_bool_kwargs_covered():
+    # the literal list above must track the set the parser actually checks, in
+    # both directions -- a name added or dropped there should fail here
+    assert set(_fixture_bool_kwargs) | {"low_memory"} == parser_bool_kwargs
+
+
+@pytest.mark.parametrize("kwarg", _fixture_bool_kwargs)
+@pytest.mark.parametrize("value", ["False", None, 1.5])
+def test_bool_kwarg_not_bool(all_parsers, kwarg, value):
+    # GH#68341 these were consumed for their truthiness, so e.g. the string
+    # "False" silently meant the opposite of what the caller asked for
+    parser = all_parsers
+    msg = f'For argument "{kwarg}" expected type bool'
+
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO("a\n1\n"), **{kwarg: value})
+
+
+@pytest.mark.parametrize("value", ["False", None, 1.5])
+def test_low_memory_not_bool(value):
+    # GH#68341; low_memory is pinned by the all_parsers fixture, so go direct
+    msg = 'For argument "low_memory" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        pd.read_csv(StringIO("a\n1\n"), low_memory=value)
+
+
+@pytest.mark.parametrize("reader", [pd.read_table, pd.read_fwf])
+def test_bool_kwarg_not_bool_other_readers(reader):
+    # GH#68341 read_table and read_fwf share the check with read_csv
+    msg = 'For argument "keep_default_na" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        reader(StringIO("a\n1\n"), keep_default_na="False")
+
+
+@pytest.mark.parametrize("value", [2, -1, np.int64(2)])
+def test_bool_kwarg_int_not_zero_or_one(all_parsers, value):
+    # GH#68341 only 0/1 stand in for the bools -- a larger int is truthy but
+    # not a bool, e.g. memory_map=2 is truthy and mmaps nothing
+    parser = all_parsers
+    msg = 'For argument "keep_default_na" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO("a\n1\n"), keep_default_na=value)
+
+
+def test_bool_kwarg_checked_before_skipfooter(all_parsers):
+    # GH#68341 _validate_skipfooter reads `iterator` for truthiness, so an
+    # unchecked non-bool told the caller iteration was the problem
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        pytest.skip("skipfooter is not supported with the pyarrow engine")
+    msg = 'For argument "iterator" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO("a\n1\n2\n"), skipfooter=1, iterator="False")
+
+
+@pytest.mark.parametrize("value", [0, 1, np.bool_(True), np.bool_(False), np.int64(0)])
+def test_bool_kwarg_boolish(all_parsers, value):
+    # GH#68341 0/1 (numpy ints included) and numpy bools stay acceptable
+    parser = all_parsers
+    result = parser.read_csv(StringIO("a\nNA\n"), keep_default_na=value)
+
+    expected = pd.DataFrame({"a": [np.nan if value else "NA"]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_nrows_skipfooter_errors(all_parsers):
