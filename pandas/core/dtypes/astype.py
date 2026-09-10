@@ -178,6 +178,29 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
             return values.copy()
         return values
 
+    if isinstance(dtype, CategoricalDtype) and not isinstance(
+        values.dtype, CategoricalDtype
+    ):
+        if dtype.categories is not None:
+            from pandas.core.dtypes.missing import isna
+
+            from pandas import Index
+
+            na_mask = isna(values)
+            converted = Index(values[~na_mask], copy=False).astype(
+                dtype.categories.dtype, copy=False
+            )
+            converted_values = converted._values
+            if na_mask.any():
+                result = np.asarray(values, dtype=object)
+                result[~na_mask] = converted_values
+                values = result
+            else:
+                values = converted_values
+        return dtype.construct_array_type()._from_sequence(
+            values, dtype=dtype, copy=copy
+        )
+
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         values = values.astype(dtype, copy=copy)
