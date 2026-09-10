@@ -55,14 +55,8 @@ def main(argv: list[str] | None = None) -> None:
         client.remove_label(number, core.GATE_LABEL)
         return
 
-    issue = decision["issue"]
-    if decision["variant"] == "unassigned":
-        body = messages.gate_unassigned(author, issue)
-    else:
-        body = messages.gate_assigned_other(author, issue, decision["assignee"])
-
     client.add_labels(number, [core.GATE_LABEL])
-    client.comment(number, body)
+    client.comment(number, messages.gate_flagged(author, decision))
 
 
 if __name__ == "__main__":

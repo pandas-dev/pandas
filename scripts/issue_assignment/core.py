@@ -78,6 +78,8 @@ class OpenPRState(TypedDict):
     is_draft: bool
     author: str | None
     author_association: str | None
+    author_is_bot: bool
+    linked_issues: list[LinkedIssue]
     reviews: list[Review]
     review_requests: list[ReviewRequest]
     has_pending_review_requests: bool
@@ -367,12 +369,16 @@ def pr_stale_action(
 def gate_action(decision: GateDecision, label_present: bool) -> str:
     """What the gate should actually do, given the decision and current labels.
 
-    Returns ``"none"``, ``"clear_label"``, or ``"flag"``. A PR that is no
-    longer flaggable — the author now holds the assignment, or the PR has
-    dropped out of scope — sheds any label it carries. An already-flagged PR
-    that is still invalid is left alone: a reopen (or the daily re-check)
-    without fixing the assignment shouldn't repost the same comment.
+    Returns ``"none"``, ``"clear_label"``, or ``"flag"``. An exempt author's
+    PR is never touched, label or not. Otherwise a PR that is no longer
+    flaggable — the author now holds the assignment, or the PR no longer
+    links an issue — sheds any label it carries, and a PR whose author
+    doesn't hold the linked issue is flagged unless it already is: a reopen
+    (or the daily re-check) without fixing the assignment shouldn't repost
+    the same comment.
     """
+    if decision.get("reason") == "exempt":
+        return "none"
     if decision["outcome"] == "invalid_assignment":
         return "none" if label_present else "flag"
     return "clear_label" if label_present else "none"

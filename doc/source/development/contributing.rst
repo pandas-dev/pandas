@@ -133,7 +133,9 @@ open one linked to an issue you haven't claimed, the bot adds the
 ``Needs Issue Assignment`` label and comments with what to do next: comment
 ``/take`` on the issue to claim it. The pull request stays open, but it is
 unlikely to be reviewed until the issue is assigned to you. Once you hold the
-assignment, the daily job removes the label.
+assignment, the daily job removes the label. If you later lose the assignment
+— for example by commenting ``/untake``, or after it is released for
+inactivity — the daily job applies the label again and the same rules apply.
 
 Review and staleness
 --------------------
