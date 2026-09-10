@@ -112,6 +112,20 @@ numpy array values are different \\(25\\.0 %\\)
         )
 
 
+def test_assert_numpy_array_equal_value_mismatch_2d_percentage():
+    # GH#68364 the percentage counts differing values, not differing rows
+    msg = """numpy array are different
+
+numpy array values are different \\(100\\.0 %\\)
+\\[left\\]:  \\[\\[1, 2\\], \\[3, 4\\]\\]
+\\[right\\]: \\[\\[9, 9\\], \\[9, 9\\]\\]"""
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(
+            np.array([[1, 2], [3, 4]]), np.array([[9, 9], [9, 9]])
+        )
+
+
 def test_assert_numpy_array_equal_shape_mismatch_override():
     msg = """Index are different
 

@@ -163,6 +163,11 @@ cpdef assert_almost_equal(a, b,
                 ):
                     return True
 
+            # flatten so the loop compares values, not rows; see GH#68364 and
+            #  test_assert_almost_equal_2d_large_mixed_integer_float
+            a = a.ravel()
+            b = b.ravel()
+
         else:
             na, nb = len(a), len(b)
 
@@ -179,7 +184,9 @@ cpdef assert_almost_equal(a, b,
 
         for i in range(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], rtol=rtol, atol=atol)
+                assert_almost_equal(
+                    a[i], b[i], check_dtype=check_dtype, rtol=rtol, atol=atol
+                )
             except AssertionError:
                 is_unequal = True
                 diff += 1
