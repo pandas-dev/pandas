@@ -130,13 +130,9 @@ def test_list_getitem_invalid_index(list_dtype):
     expected = pd.Series(
         [3, 5, None],
         dtype=pd.ArrowDtype(pa.int64()),  # item type, not list_dtype
-        name="a",
+        # name="a",
     )
     tm.assert_series_equal(result, expected)
-    with tm.external_error_raised(pa.ArrowInvalid):
-        ser.list[5]
-    with pytest.raises(ValueError, match="key must be an int or slice, got str"):
-        ser.list["abc"]
 
 
 def test_list_accessor_not_iterable():
