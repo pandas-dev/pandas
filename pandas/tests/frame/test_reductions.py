@@ -2148,6 +2148,22 @@ class TestDataFrameReductions:
         expected = pd.Series([winner, pd.NaT], dtype=df["dz1"].dtype)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.date_range("2020-01-01", periods=1),
+            pd.date_range("2020-01-01", periods=1, tz="US/Pacific"),
+            pd.timedelta_range("1 day", periods=1),
+            pd.period_range("2020-01-01", periods=1, freq="D"),
+        ],
+        ids=["dt64", "dt64tz", "td64", "period"],
+    )
+    def test_reduce_axis1_median_single_row_single_col(self, values):
+        # GH#68191: the result held a 0-dim array that repr could not render
+        df = pd.DataFrame({"a": values})
+        result = df.median(axis=1)
+        tm.assert_series_equal(result, df["a"], check_names=False)
+
     def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
         # GH#65500: different tz across blocks must not enter the EA fast
         # path (which would silently produce a wrong-dtype result); fall
