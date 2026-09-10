@@ -55,7 +55,9 @@ class Visitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module is not None and "pandas" in node.module:
-            self.imported_from_pandas.update(name.name for name in node.names)
+            self.imported_from_pandas.update(
+                name.name for name in node.names if name.asname is None
+            )
         self.generic_visit(node)
 
 
@@ -122,13 +124,18 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--replace", action="store_true")
     args = parser.parse_args(argv)
+    print("ARGS: ", args)
 
     for path in args.paths:
+        print("Current path: ", path)
         with open(path, encoding="utf-8") as fd:
             content = fd.read()
+        print("File content:")
+        print(content)
         new_content = check_for_inconsistent_pandas_namespace(
             content, path, replace=args.replace
         )
+        print("New content: ", new_content)
         if not args.replace or new_content is None:
             continue
         with open(path, "w", encoding="utf-8") as fd:
