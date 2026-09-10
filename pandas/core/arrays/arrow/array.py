@@ -336,21 +336,11 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
 
 def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
     """
-    Whether boxing a value of this type can hand back memory the caller owns.
+    Whether ``pa.array`` on this type can return a view on caller-owned memory.
 
-    ``pa.array`` is zero-copy over a numpy or masked array for fixed-width
-    layouts, so a boxed value of such a type can be a view on a buffer the
-    caller is still free to write to. The character layouts are never zero-copy
-    that way -- the characters are always packed into fresh arrow buffers -- so
-    for those a defensive copy buys nothing and costs a full copy of the
-    character data -- which would undo the full-slice fast path GH#64529 added.
-
-    Nested types are treated as borrowing: a caller can build e.g. a struct or
-    list array over a numpy child themselves.
-
-    This reasons about what ``pa.array`` produces, so it is not a guarantee
-    about every possible input: a caller who hands us a character array built
-    over their own buffers with ``pa.Array.from_buffers`` keeps sharing them.
+    Zero-copy over numpy/masked arrays for fixed-width layouts; character
+    layouts always repack, so copying those would cost a full copy of the
+    character data for no safety gain. Nested types may have a zero-copy child.
     """
     return not (
         _is_varbinary_type(pa_type)
@@ -363,16 +353,10 @@ def _copy_pyarrow_buffers(
     pa_array: pa.Array | pa.ChunkedArray,
 ) -> pa.Array | pa.ChunkedArray:
     """
-    Return an equal array that owns its buffers.
-
-    A pyarrow array is immutable as a pyarrow object, but it can be zero-copy
-    over memory that something else still owns and may write to -- most often a
-    numpy array, via ``pa.array(np_arr)``. Callers that are about to adopt an
-    array as their own backing store need the buffers, not just the object, to
-    be theirs (GH#67990).
+    Return an equal array that owns its buffers (GH#67990).
 
     ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
-    so dictionary types are rebuilt from copies of both halves instead.
+    so dictionary types are rebuilt from copies of both halves.
     """
     if isinstance(pa_array, pa.ChunkedArray):
         return pa.chunked_array(
@@ -2959,9 +2943,8 @@ class ArrowExtensionArray(
                 and value.type == self._pa_array.type
                 and len(value) == len(self)
             ):
-                # GH#67990 this adopts ``value`` as our backing array, so for
-                #  any type whose buffers the caller may still own and mutate we
-                #  have to take our own copy first.
+                # GH#67990 this adopts ``value`` as our backing array, so copy
+                #  first if the caller may still own and mutate its buffers.
                 if _boxing_may_borrow_memory(value.type):
                     value = _copy_pyarrow_buffers(value)
                 data = value
