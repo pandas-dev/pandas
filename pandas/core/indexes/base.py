@@ -327,7 +327,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     Parameters
     ----------
-    data : array-like (1-dimensional), iterable (1-dimensional), or dict
+    data : array-like (1-dimensional) or iterable (1-dimensional)
         A 1-dimensional array-like structure containing the data for the
         index. This could be a Python list, a NumPy array, or a pandas Series.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
@@ -348,7 +348,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     Notes
     -----
-    If a dict is provided as `data`, the keys will be used as the index values.
+    The constructor accepts generally any iterable as `data`, with some notes:
+    - If a dict is provided, the keys will be used as the index values, and the values will be discarded.
+    - A string is not accepted, as this is considered as a scalar value and not as a collection of characters.
+    - A set is not accepted, as this is not ordered.
 
     See Also
     --------
