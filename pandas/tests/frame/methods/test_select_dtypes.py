@@ -703,16 +703,16 @@ def test_select_dtypes_dt64_td64_string_byteorder_unitless(kind):
 
 
 def test_select_dtypes_td64_non_native_column():
-    # GH#40234 a td64 column can be stored in non-native byteorder (dt64 is
-    # normalized on construction, td64 is not), so a string spec must match it
-    # by resolution regardless of byteorder, while an instance spec stays exact
+    # GH#40234 a string spec matches by resolution, an instance spec stays exact.
+    # Construction no longer yields a non-native column (GH#68342); the fixture
+    # leans on a unit-changing astype, itself a bug, so the assert is a tripwire
     df = pd.DataFrame(
         {
-            "be": pd.Series(np.array([1, 2], dtype=">m8[s]")),
+            "be": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
             "le": pd.Series(np.array([1, 2], dtype="<m8[s]")),
             "ms": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
         }
-    )
+    ).astype({"be": ">m8[s]"})
     assert df["be"].dtype.byteorder == ">"
 
     # a string spec is byteorder-agnostic on both sides

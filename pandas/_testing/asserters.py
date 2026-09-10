@@ -839,9 +839,10 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0.0
-            for left_arr, right_arr in zip(left, right, strict=True):
+            # ravel so the count is over values, matching the `left.size` total
+            for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
                 # count up differences
-                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
+                if not array_equivalent(left_val, right_val, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size

@@ -6,8 +6,6 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from pandas.compat import IS64
-
 import pandas as pd
 
 from pandas.tseries.offsets import (
@@ -57,19 +55,7 @@ def offset_cases(request):
         datetime(1900, 1, 1, tzinfo=ZoneInfo("Africa/Kinshasa")),
     ],
 )
-def test_on_offset_implementations(dt, offset_cases, request):
-    if (
-        not IS64
-        and dt.tzinfo is not None
-        and offset_cases.is_on_offset(dt)
-        and pd.Timestamp(dt).tz_localize(None) != pd.Timestamp(dt.replace(tzinfo=None))
-    ):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="https://github.com/pandas-dev/pandas/issues/67066"
-            )
-        )
-
+def test_on_offset_implementations(dt, offset_cases):
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt

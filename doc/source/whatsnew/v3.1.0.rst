@@ -14,10 +14,47 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_310.enhancements.enhancement1:
+.. _whatsnew_310.enhancements.select:
 
-enhancement1
-^^^^^^^^^^^^
+New method ``DataFrame.select``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.select` returns a new DataFrame containing the specified
+columns. In addition to existing column labels, columns
+can be computed via :func:`pandas.col` expressions, or callables passed as
+keyword arguments, with the keyword naming the resulting column. As with
+:meth:`DataFrame.assign`, later arguments can refer to columns computed
+earlier in the same call
+(:issue:`61522`, :issue:`40322`).
+
+.. code-block:: pycon
+
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "first_name": ["John", "Alice", "Bob"],
+   ...         "last_name": ["Smith", "Cooper", "Marley"],
+   ...         "age": [61, 22, 35],
+   ...     }
+   ... )
+   >>> df.select("first_name", "last_name")
+     first_name last_name
+   0       John     Smith
+   1      Alice    Cooper
+   2        Bob    Marley
+   >>> df.select("first_name", pd.col("age"), age_months=pd.col("age") * 12)
+     first_name  age  age_months
+   0       John   61         732
+   1      Alice   22         264
+   2        Bob   35         420
+   >>> df.select(
+   ...     "first_name",
+   ...     age_months=pd.col("age") * 12,
+   ...     age_days=pd.col("age_months") * 30,
+   ... )
+     first_name  age_months  age_days
+   0       John         732     21960
+   1      Alice         264      7920
+   2        Bob         420     12600
 
 .. _whatsnew_310.enhancements.enhancement2:
 
@@ -639,6 +676,7 @@ Timedelta
 ^^^^^^^^^
 - Bug in :attr:`TimedeltaIndex.resolution` raising when the index has no frequency (:issue:`65186`)
 - Bug in :class:`DateOffset` where ``DateOffset(1)`` and ``DateOffset(days=1)`` returned different results near daylight saving time transitions (:issue:`61862`)
+- Bug in :class:`Series`, :class:`DataFrame`, :class:`TimedeltaIndex` construction and :func:`to_timedelta` from a big-endian ``timedelta64`` numpy array, where every value was silently read back byteswapped and ``NaT`` became an ordinary duration; such input is now normalized to native byteorder (:issue:`68342`)
 - Bug in :class:`Timedelta` constructor and :func:`to_timedelta` raising a bare ``OverflowError`` instead of ``OutOfBoundsTimedelta`` for infinite or overflowing float input, which also prevented ``errors="coerce"`` from returning ``NaT`` (:issue:`66247`)
 - Bug in :class:`Timedelta` constructor and :func:`to_timedelta` where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Timedelta` constructor where keyword arguments (e.g. ``days=365000``) that exceeded nanosecond int64 bounds raised ``OutOfBoundsTimedelta`` instead of falling back to a coarser resolution (:issue:`46587`)
@@ -672,6 +710,7 @@ Timezones
 - Bug in :meth:`Series.dt.tz_localize` and :meth:`Series.dt.tz_convert` (and their :class:`DatetimeIndex` counterparts) returning incorrect results for non-nanosecond resolutions (e.g. ``"s"``, ``"ms"``, ``"us"``) on timestamps before roughly 1677 (:issue:`66252`)
 - Bug in :meth:`Timestamp.isoformat`, ``str(Timestamp)``, and the rendering of :class:`Series` and :class:`DatetimeIndex` (including ``repr``, ``astype(str)``, and :meth:`DataFrame.to_csv`) splicing the fractional seconds into the middle of the UTC offset for timestamps in a timezone whose offset is not a whole number of minutes, such as any zone in its pre-standardization era (e.g. ``Asia/Tokyo`` before 1888) (:issue:`66547`)
 - Bug in :meth:`Timestamp.to_julian_date` and :meth:`DatetimeIndex.to_julian_date` returning the Julian date of the local wall clock for timezone-aware inputs instead of the underlying UTC instant (:issue:`54763`)
+- Bug in :meth:`Timestamp.tz_convert` and :meth:`Timestamp.tz_localize` and their :class:`Index` and :class:`Series` counterparts returning a UTC offset a few minutes off for dates before the specified timezone adopted a standard time (typically early 20th century); this only affected older systems whose ``tzdata`` was compiled with a toolchain from between 2013 and 2018, such as Amazon Linux 2 and RHEL 8 and its derivatives (:issue:`67066`)
 - Bug in constructing a :class:`DatetimeIndex` with a ``freq``, or setting ``freq`` on an existing one, incorrectly raising ``ValueError`` for timezone-aware data spanning a DST transition when the frequency preserves wall time (e.g. ``"D"``) (:issue:`55499`)
 - Bug in timezone-aware :class:`DatetimeIndex` and :class:`Series` where a UTC instant near :attr:`Timestamp.min` or :attr:`Timestamp.max` whose local wall time is outside the representable range silently reported a wall time roughly 585 years off, or ``NaT``, instead of raising ``OutOfBoundsDatetime``; this affected ``tz_localize(None)``, field accessors such as ``.year``, ``strftime``, ``round``/``floor``/``ceil``, and conversion to :class:`PeriodIndex` (:issue:`66550`)
 
@@ -822,6 +861,7 @@ I/O
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
 - :func:`read_csv`, :func:`read_fwf`, and :func:`read_excel` with a numeric :class:`ArrowDtype` (e.g. ``dtype="double[pyarrow]"``) now raise ``ValueError`` for an empty field that is not treated as missing (e.g. with ``keep_default_na=False``), matching the behavior of numpy dtypes such as ``float64``; previously the value was silently stored as ``NaN`` but was not considered missing by :meth:`Series.isna` and :meth:`Series.fillna` (:issue:`66834`)
+- :func:`read_csv`, :func:`read_fwf`, and :func:`read_table` now raise ``ValueError`` for a non-bool ``cache_dates``, ``dayfirst``, ``doublequote``, ``iterator``, ``keep_default_na``, ``low_memory``, ``memory_map``, ``na_filter``, ``skip_blank_lines`` or ``skipinitialspace``; previously the value was taken for its truthiness, so e.g. ``keep_default_na="False"`` silently did the opposite of what was asked. :func:`read_excel` (for ``keep_default_na`` and ``na_filter``) and :func:`read_html` (for ``keep_default_na``) now raise for the same reason (:issue:`68341`)
 - :func:`read_json` with ``engine="pyarrow"`` now raises ``ValueError`` when passed an option the engine cannot apply -- such as ``typ="series"``, ``convert_dates``, ``keep_default_dates``, ``date_unit``, ``precise_float``, ``convert_axes``, ``encoding``, ``encoding_errors``, ``storage_options``, an explicit ``compression``, or a non-``ArrowDtype`` ``dtype`` -- instead of silently ignoring it and returning an incorrect result (:issue:`66144`)
 - :func:`read_sas` now raises ``OutOfBoundsDatetime`` for a SAS7BDAT date or datetime too far out of range to represent, instead of silently reading it as ``NaT``, and the error names the offending value rather than a date the file does not hold (:issue:`47339`)
 - :func:`read_sas` now raises an informative ``ValueError`` for a SAS7BDAT file that changes the column layout it declared partway through, instead of parsing the rest of the file with metadata that no longer describes it -- reading past the end of a row and returning unrelated memory as data, reading every column from the wrong bytes, silently emptying a column to all-NaN, or padding the result with rows the file does not hold (:issue:`47339`)
@@ -921,6 +961,7 @@ I/O
 - Fixed bug in :func:`read_hdf` where reading a fixed-format (default) object with a :class:`MultiIndex` and ``start``/``stop`` returned an index built from the wrong labels, or raised ``ValueError: On level 0, code max ... >= length of level`` (:issue:`68038`)
 - Fixed bug in :func:`read_parquet` crashing the interpreter when called with ``to_pandas_kwargs={"self_destruct": True}`` (:issue:`66509`)
 - Fixed bug in :meth:`DataFrame.to_clipboard` and :func:`read_clipboard` where the Qt clipboard backend (used on Linux when ``xclip``, ``xsel`` and ``wl-clipboard`` are all unavailable) permanently switched the process to the environment's locale, so afterwards e.g. ``to_datetime("March 1, 2018", format="%B %d, %Y")`` raised ``ValueError`` on a machine whose locale is not English (:issue:`44625`)
+- Fixed bug in :meth:`DataFrame.to_excel` which no longer includes the cell content length in the warning message emitted when cell contents exceed Excel's 32767-character limit, so duplicate warnings are no longer emitted (:issue:`67470`)
 - Fixed bug in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.put` where writing an object to a key silently deleted any nested keys stored beneath it (:issue:`17267`)
 - Fixed bug in :meth:`DataFrame.to_hdf` raising ``TypeError`` when the index had a non-tick :class:`DateOffset` ``freq`` (e.g. ``DateOffset(years=1)``) (:issue:`45790`)
 - Fixed bug in :meth:`DataFrame.to_hdf` with ``format="table"`` where a :class:`TimedeltaIndex` was reconstructed as a :class:`PeriodIndex` (when ``freq`` was set) or an integer :class:`Index` (otherwise) on read-back (:issue:`21466`)
