@@ -161,9 +161,23 @@ cdef class Localizer:
             and self.has_tz_rule
             and utc_val > self.last_trans
         ):
-            delta = _tz_localize_using_tzinfo_api(
-                utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
-            )
+            try:
+                delta = _tz_localize_using_tzinfo_api(
+                    utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
+                )
+            except NotImplementedError:
+                if not self.use_zoneinfo:
+                    raise
+                # GH#68009 utc_val is too far in the future/past for zoneinfo to
+                #  compute an offset via the stdlib datetime API (year out of
+                #  range). Since utc_val is already beyond the last cached
+                #  transition, extrapolate using that transition's offset
+                #  instead of raising, matching the pytz-backed fast path below
+                #  and restoring the pre-3.0 (pytz-default) behavior.
+                pos[0] = self.ntrans - 1
+                if fold is not NULL:
+                    fold[0] = 0
+                delta = self.deltas[pos[0]]
         else:
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             if fold is not NULL:

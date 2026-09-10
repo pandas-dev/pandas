@@ -434,16 +434,28 @@ def test_zoneinfo_utc_to_local_pre_first_transition(key):
 
 
 def test_zoneinfo_conversion_outside_range_stdlib():
-    # GH#65733 - verify that datetimes outside the range of Python's standard
-    # library (year > 9999) raises a proper error message
+    # GH#65733 - verify that localizing a *wall time* outside the range of
+    # Python's standard library (year > 9999) raises a proper error message:
+    # determining which DST rule applies to that wall time requires the
+    # stdlib zoneinfo API, which cannot represent such a large year.
     ts = pd.Timestamp(np.datetime64("10000-01-01T09:00:00", "us"))
 
     msg = "Localizing Timestamps which are outside the range of Python"
     with pytest.raises(NotImplementedError, match=msg):
         ts.tz_localize("Europe/Brussels")
 
-    with pytest.raises(NotImplementedError, match=msg):
-        ts = pd.Timestamp(ts._value, unit="us", tz="Europe/Brussels")
+    # GH#68009 - converting a UTC *instant* outside that range to a real
+    # (non-fixed-offset) timezone no longer raises. pandas 2.x defaulted to
+    # pytz, which always extrapolated using the last known DST offset and
+    # never hit this limitation; restore that behavior for the zoneinfo
+    # backend instead of failing outright.
+    result = pd.Timestamp(ts._value, unit="us", tz="Europe/Brussels")
+    assert result.utcoffset() in (timedelta(hours=1), timedelta(hours=2))
+    # the underlying UTC instant is preserved exactly; only the derived wall
+    # time/offset are approximations
+    assert result.tz_convert("UTC") == ts.tz_localize("UTC")
+    assert "+0" in repr(result)
+    assert "+0" in str(result)
 
 
 def test_normalize_pytz_timezone():
