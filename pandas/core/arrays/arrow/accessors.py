@@ -58,6 +58,14 @@ class ArrowAccessor(metaclass=ABCMeta):
         return self._data.array._pa_array
 
 
+def _list_element_neg(chunk: pa.Array, key: int) -> pa.Array:
+    if pa.types.is_fixed_size_list(chunk.type):
+        chunk = chunk.cast(pa.list_(chunk.type.value_type))
+    indices = pc.add(chunk.offsets[1:], key)
+    if chunk.null_count:
+        indices = pc.if_else(chunk.is_valid(), indices, None)
+    return chunk.values.take(indices)
+
 class ListAccessor(ArrowAccessor):
     """
     Accessor object for list data properties of the Series values.
@@ -168,61 +176,21 @@ class ListAccessor(ArrowAccessor):
             # element index to be an array.
             # if key < 0:
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
-            arr = self._pa_array
+            pa_array = self._pa_array
+            chunks = pa_array.chunks if isinstance(pa_array, pa.ChunkedArray) else [pa_array]
             if key < 0:
-                lengths = pc.list_value_length(arr)
-                abs_key = abs(key)
-                too_short = pc.and_(
-                    pc.is_valid(lengths),
-                    pc.less(lengths, pa.scalar(abs_key, type=lengths.type)),
-                )
-                if pc.any(too_short).as_py():
-                    bad_pos = pc.index(too_short, True).as_py()
-                    bad_length = lengths[bad_pos].as_py()
-                    raise IndexError(
-                        f"list index {key} out of range for list of length "
-                        f"{bad_length} at position {bad_pos}"
-                    )
-
-                chunks = arr.chunks if isinstance(arr, pa.ChunkedArray) else [arr]
-                all_results = []
-                for chunk in chunks:
-                    if len(chunk) == 0:
-                        continue
-                    chunk_lengths = pc.list_value_length(chunk)
-                    if pa.types.is_fixed_size_list(chunk.type):
-                        list_size = chunk.type.list_size
-                        starts = pa.array(
-                            (np.arange(len(chunk), dtype=np.int64) + chunk.offset)
-                            * list_size,
-                            type=pa.int64(),
-                        )
-                        flat_values = chunk.values
-                    else:
-                        starts = chunk.offsets[:-1]
-                        flat_values = chunk.values
-                    indices = pc.add(starts, pc.add(chunk_lengths, key))
-                    all_results.append(flat_values.take(indices))
-
-                result_values = (
-                    pa.concat_arrays(all_results)
-                    if all_results
-                    else pa.array([], type=arr.type.value_type)
-                )
-                return Series(
-                    result_values,
-                    dtype=ArrowDtype(result_values.type),
-                    index=self._data.index,
-                    name=self._data.name,
-                )
+                element = pa.chunked_array(
+                [_list_element_neg(chunk, key) for chunk in chunks],
+                type=pa_array.type.value_type,
+            )
             else:
-                element = pc.list_element(self._pa_array, key)
-                return Series(
-                    element,
-                    dtype=ArrowDtype(element.type),
-                    index=self._data.index,
-                    name=self._data.name,
-                )
+                element = pc.list_element(pa_array, key)
+            return Series(
+                element,
+                dtype=ArrowDtype(element.type),
+                index=self._data.index,
+                name=self._data.name,
+            )
         elif isinstance(key, slice):
             # TODO: Support negative start/stop/step, ideally this would be added
             # upstream in pyarrow.
