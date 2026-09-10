@@ -366,19 +366,29 @@ def pr_stale_action(
     return "close"
 
 
-def gate_action(decision: GateDecision, label_present: bool) -> str:
+def gate_action(
+    decision: GateDecision, label_present: bool, close_assigned_other: bool
+) -> str:
     """What the gate should actually do, given the decision and current labels.
 
-    Returns ``"none"``, ``"clear_label"``, or ``"flag"``. An exempt author's
-    PR is never touched, label or not. Otherwise a PR that is no longer
-    flaggable — the author now holds the assignment, or the PR no longer
-    links an issue — sheds any label it carries, and a PR whose author
-    doesn't hold the linked issue is flagged unless it already is: a reopen
-    (or the daily re-check) without fixing the assignment shouldn't repost
-    the same comment.
+    Returns ``"none"``, ``"clear_label"``, ``"flag"``, or ``"flag_and_close"``.
+    An exempt author's PR is never touched, label or not. Otherwise a PR that
+    is no longer flaggable — the author now holds the assignment, or the PR
+    no longer links an issue — sheds any label it carries, and a PR whose
+    author doesn't hold the linked issue is flagged unless it already is: a
+    reopen (or the daily re-check) without fixing the assignment shouldn't
+    repost the same comment.
+
+    With ``close_assigned_other`` (the open/reopen gate), a PR against an
+    issue *someone else* holds is instead commented on and closed, label or
+    not: silently re-closing a reopened PR would be worse than repeating the
+    explanation. The daily re-check passes ``False`` — an author who held the
+    issue and lost it keeps the PR open and goes through the stale process.
     """
-    if decision.get("reason") == "exempt":
+    if decision["outcome"] == "not_in_scope" and decision["reason"] == "exempt":
         return "none"
     if decision["outcome"] == "invalid_assignment":
+        if close_assigned_other and decision["variant"] == "assigned_other":
+            return "flag_and_close"
         return "none" if label_present else "flag"
     return "clear_label" if label_present else "none"

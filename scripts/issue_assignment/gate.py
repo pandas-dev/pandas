@@ -1,5 +1,8 @@
 """Assignment gate: flag PRs whose author doesn't hold the linked issue.
 
+A PR against an unclaimed issue is labeled and left open; one against an
+issue someone else already holds is labeled, commented on, and closed.
+
 Triggered by ``pull_request_target`` on ``opened`` / ``reopened``.
 """
 
@@ -47,7 +50,7 @@ def main(argv: list[str] | None = None) -> None:
     decision = core.gate_decision(
         author, pr.get("author_association"), author_is_bot, linked_issues
     )
-    action = core.gate_action(decision, label_present)
+    action = core.gate_action(decision, label_present, close_assigned_other=True)
 
     if action == "none":
         return
@@ -55,8 +58,11 @@ def main(argv: list[str] | None = None) -> None:
         client.remove_label(number, core.GATE_LABEL)
         return
 
+    closing = action == "flag_and_close"
     client.add_labels(number, [core.GATE_LABEL])
-    client.comment(number, messages.gate_flagged(author, decision))
+    client.comment(number, messages.gate_flagged(author, decision, closing))
+    if closing:
+        client.close_pull_request(number)
 
 
 if __name__ == "__main__":

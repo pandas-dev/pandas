@@ -313,15 +313,38 @@ INVALID_DECISION: core.GateDecision = {
 }
 
 
-class TestGateAction:
-    def test_not_in_scope_none(self) -> None:
-        decision: core.GateDecision = {"outcome": "not_in_scope", "reason": "exempt"}
-        assert core.gate_action(decision, False) == "none"
+ASSIGNED_OTHER_DECISION: core.GateDecision = {
+    "outcome": "invalid_assignment",
+    "variant": "assigned_other",
+    "issue": 7,
+    "assignee": "bob",
+}
 
-    def test_exempt_with_label_left_alone(self) -> None:
+
+class TestGateMessages:
+    def test_assigned_other_closing_note(self) -> None:
+        open_body = messages.gate_flagged("alice", ASSIGNED_OTHER_DECISION)
+        closed_body = messages.gate_flagged("alice", ASSIGNED_OTHER_DECISION, True)
+        assert "unlikely to be reviewed" in open_body
+        assert "closed" not in open_body
+        assert "I've closed this pull request" in closed_body
+        assert "unlikely to be reviewed" not in closed_body
+
+    def test_unassigned_never_has_closing_note(self) -> None:
+        assert messages.gate_flagged("alice", INVALID_DECISION, True) == (
+            messages.gate_flagged("alice", INVALID_DECISION)
+        )
+
+
+class TestGateAction:
+    @pytest.mark.parametrize("close_assigned_other", [False, True])
+    @pytest.mark.parametrize("label_present", [False, True])
+    def test_exempt_never_touched(
+        self, label_present: bool, close_assigned_other: bool
+    ) -> None:
         # Exempt authors' PRs are never touched, not even to clear a label.
         decision: core.GateDecision = {"outcome": "not_in_scope", "reason": "exempt"}
-        assert core.gate_action(decision, True) == "none"
+        assert core.gate_action(decision, label_present, close_assigned_other) == "none"
 
     def test_no_linked_issue_clears_present_label(self) -> None:
         # e.g. the closing keyword was removed from the description
@@ -329,23 +352,44 @@ class TestGateAction:
             "outcome": "not_in_scope",
             "reason": "no_linked_issue",
         }
-        assert core.gate_action(decision, True) == "clear_label"
+        assert core.gate_action(decision, True, False) == "clear_label"
 
     def test_valid_clears_present_label(self) -> None:
         decision: core.GateDecision = {"outcome": "valid_assignment"}
-        assert core.gate_action(decision, True) == "clear_label"
+        assert core.gate_action(decision, True, False) == "clear_label"
 
     def test_valid_without_label_noop(self) -> None:
         decision: core.GateDecision = {"outcome": "valid_assignment"}
-        assert core.gate_action(decision, False) == "none"
+        assert core.gate_action(decision, False, False) == "none"
 
-    def test_invalid_flags(self) -> None:
-        assert core.gate_action(INVALID_DECISION, False) == "flag"
+    @pytest.mark.parametrize("close_assigned_other", [False, True])
+    def test_unassigned_flags(self, close_assigned_other: bool) -> None:
+        # An unclaimed issue never closes the PR, on open or in the sweep.
+        assert core.gate_action(INVALID_DECISION, False, close_assigned_other) == (
+            "flag"
+        )
 
-    def test_invalid_already_flagged_not_recommented(self) -> None:
-        # Reopening without fixing the assignment mustn't repost the comment,
-        # and the PR is never closed.
-        assert core.gate_action(INVALID_DECISION, True) == "none"
+    @pytest.mark.parametrize("close_assigned_other", [False, True])
+    def test_unassigned_already_flagged_not_recommented(
+        self, close_assigned_other: bool
+    ) -> None:
+        # Reopening without fixing the assignment mustn't repost the comment.
+        assert core.gate_action(INVALID_DECISION, True, close_assigned_other) == (
+            "none"
+        )
+
+    @pytest.mark.parametrize("label_present", [False, True])
+    def test_assigned_other_on_open_closes(self, label_present: bool) -> None:
+        # Someone else holds the issue: comment and close, even on a reopen.
+        assert (
+            core.gate_action(ASSIGNED_OTHER_DECISION, label_present, True)
+            == "flag_and_close"
+        )
+
+    def test_assigned_other_in_sweep_only_flags(self) -> None:
+        # The daily re-check never closes: a lost assignment goes stale instead.
+        assert core.gate_action(ASSIGNED_OTHER_DECISION, False, False) == "flag"
+        assert core.gate_action(ASSIGNED_OTHER_DECISION, True, False) == "none"
 
 
 class TestIssueIsActive:
@@ -1106,6 +1150,7 @@ class TestRunPrStaleSweep:
         assert client.comments == [
             (25, messages.gate_assigned_other("alice", 250, "bob"))
         ]
+        assert client.closed == []
 
     def test_valid_assignment_without_label_untouched(self) -> None:
         client = FakeClient(

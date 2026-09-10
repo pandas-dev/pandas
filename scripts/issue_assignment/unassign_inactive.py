@@ -163,7 +163,7 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
                 pr["author_is_bot"],
                 pr["linked_issues"],
             )
-            gate_action = core.gate_action(decision, gated)
+            gate_action = core.gate_action(decision, gated, close_assigned_other=False)
             if gate_action == "clear_label":
                 client.remove_label(number, core.GATE_LABEL)
                 gated = False

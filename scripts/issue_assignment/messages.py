@@ -32,12 +32,20 @@ def _gate_review_note(issue: int) -> str:
     )
 
 
-def gate_flagged(author: str, decision: GateDecision) -> str:
+def _gate_close_note(issue: int) -> str:
+    return (
+        f"I've closed this pull request for now — **none of your work is "
+        f"lost**. Once #{issue} is assigned to you, ask a maintainer to reopen "
+        f"it."
+    )
+
+
+def gate_flagged(author: str, decision: GateDecision, closing: bool = False) -> str:
     """The gate comment for an ``invalid_assignment`` decision."""
     issue = decision["issue"]
     if decision["variant"] == "unassigned":
         return gate_unassigned(author, issue)
-    return gate_assigned_other(author, issue, decision["assignee"])
+    return gate_assigned_other(author, issue, decision["assignee"], closing)
 
 
 def gate_unassigned(author: str, issue: int) -> str:
@@ -52,7 +60,10 @@ def gate_unassigned(author: str, issue: int) -> str:
     )
 
 
-def gate_assigned_other(author: str, issue: int, assignee: str) -> str:
+def gate_assigned_other(
+    author: str, issue: int, assignee: str, closing: bool = False
+) -> str:
+    note = _gate_close_note(issue) if closing else _gate_review_note(issue)
     return (
         f"Thanks for the pull request, @{author}! It's linked to #{issue}, which "
         f"is currently assigned to @{assignee}, who's already working on it. We "
@@ -61,7 +72,7 @@ def gate_assigned_other(author: str, issue: int, assignee: str) -> str:
         f"issue is released automatically and you'll then be able to claim it "
         f"with `/take` on #{issue} — for now, please coordinate with them on the "
         f"issue. See the [contributing guide]({DOCS_URL}) for details.\n\n"
-        f"{_gate_review_note(issue)}"
+        f"{note}"
     )
 
 

@@ -129,7 +129,7 @@ Link your pull request to the issue it resolves using a closing keyword in the
 description, for example ``closes #1234``.
 
 Your pull request must be linked to an issue that is **assigned to you**. If you
-open one linked to an issue you haven't claimed, the bot adds the
+open one linked to an issue nobody has claimed, the bot adds the
 ``Needs Issue Assignment`` label and comments with what to do next: comment
 ``/take`` on the issue to claim it. The pull request stays open, but it is
 unlikely to be reviewed until the issue is assigned to you. Once you hold the
