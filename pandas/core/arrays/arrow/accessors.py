@@ -11,8 +11,6 @@ from typing import (
     cast,
 )
 
-import numpy as np
-
 from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import is_list_like
@@ -65,6 +63,7 @@ def _list_element_neg(chunk: pa.Array, key: int) -> pa.Array:
     if chunk.null_count:
         indices = pc.if_else(chunk.is_valid(), indices, None)
     return chunk.values.take(indices)
+
 
 class ListAccessor(ArrowAccessor):
     """
@@ -177,12 +176,14 @@ class ListAccessor(ArrowAccessor):
             # if key < 0:
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
             pa_array = self._pa_array
-            chunks = pa_array.chunks if isinstance(pa_array, pa.ChunkedArray) else [pa_array]
+            chunks = (
+                pa_array.chunks if isinstance(pa_array, pa.ChunkedArray) else [pa_array]
+            )
             if key < 0:
                 element = pa.chunked_array(
-                [_list_element_neg(chunk, key) for chunk in chunks],
-                type=pa_array.type.value_type,
-            )
+                    [_list_element_neg(chunk, key) for chunk in chunks],
+                    type=pa_array.type.value_type,
+                )
             else:
                 element = pc.list_element(pa_array, key)
             return Series(
