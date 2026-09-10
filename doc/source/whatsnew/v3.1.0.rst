@@ -14,10 +14,35 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_310.enhancements.enhancement1:
+.. _whatsnew_310.enhancements.select:
 
-enhancement1
-^^^^^^^^^^^^
+New method ``DataFrame.select``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.select` returns a new DataFrame containing the specified
+columns. In addition to existing column labels, columns
+can be computed via :func:`pandas.col` expressions, or callables passed as
+keyword arguments, with the keyword naming the resulting column. As with
+:meth:`DataFrame.assign`, later arguments can refer to columns computed
+earlier in the same call
+(:issue:`61522`, :issue:`40322`).
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {
+            "first_name": ["John", "Alice", "Bob"],
+            "last_name": ["Smith", "Cooper", "Marley"],
+            "age": [61, 22, 35],
+        }
+    )
+    df.select("first_name", "last_name")
+    df.select("first_name", pd.col("age"), age_months=pd.col("age") * 12)
+    df.select(
+        "first_name",
+        age_months=pd.col("age") * 12,
+        age_days=pd.col("age_months") * 30,
+    )
 
 .. _whatsnew_310.enhancements.enhancement2:
 
