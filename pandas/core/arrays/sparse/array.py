@@ -145,7 +145,21 @@ if TYPE_CHECKING:
 
 # Reductions whose SparseArray method takes skipna and must be handed it directly.
 _skipna_aware_reductions = frozenset(
-    {"sum", "prod", "mean", "median", "var", "std", "sem", "skew", "kurt", "min", "max"}
+    {
+        "sum",
+        "prod",
+        "mean",
+        "median",
+        "var",
+        "std",
+        "sem",
+        "skew",
+        "kurt",
+        "min",
+        "max",
+        "any",
+        "all",
+    }
 )
 
 # Reductions of complex input that give a real result.
@@ -1689,9 +1703,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         return getattr(nanops, f"nan{name}")(self._densify(), skipna=skipna, **kwargs)
 
-    def all(self, axis=None, *args, **kwargs):
+    def all(self, axis=None, *args, skipna: bool = True, **kwargs):
         """
         Tests whether all elements evaluate True
+
+        Parameters
+        ----------
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False, NA is evaluated for truthiness
+            like any other value.
 
         Returns
         -------
@@ -1702,17 +1726,34 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         numpy.all
         """
         nv.validate_all(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
 
         values = self.sp_values
+        fill_value = self.fill_value
+        if skipna:
+            # a skipped NA cannot make the result False; see nanops.nanall
+            values = self._valid_sp_values
+            if isna(fill_value):
+                fill_value = True
 
-        if len(values) != len(self) and not np.all(self.fill_value):
+        if self.sp_index.ngaps > 0 and not np.all(fill_value):
             return False
 
         return values.all()
 
-    def any(self, axis: AxisInt = 0, *args, **kwargs) -> bool:
+    def any(self, axis: AxisInt = 0, *args, skipna: bool = True, **kwargs) -> bool:
         """
         Tests whether at least one of elements evaluate True
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False, NA is evaluated for truthiness
+            like any other value.
 
         Returns
         -------
@@ -1723,10 +1764,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         numpy.any
         """
         nv.validate_any(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
 
         values = self.sp_values
+        fill_value = self.fill_value
+        if skipna:
+            # a skipped NA cannot make the result True; see nanops.nanany
+            values = self._valid_sp_values
+            if isna(fill_value):
+                fill_value = False
 
-        if len(values) != len(self) and np.any(self.fill_value):
+        if self.sp_index.ngaps > 0 and np.any(fill_value):
             return True
 
         return values.any().item()

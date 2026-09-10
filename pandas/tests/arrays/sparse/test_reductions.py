@@ -594,6 +594,29 @@ def test_multiply_reduce_includes_fill_value():
     assert np.prod(arr) == np.prod(arr.to_dense())
 
 
+@pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "data,fill_value",
+    [
+        ([0.0, np.nan], np.nan),  # NA is the fill value
+        ([0.0, np.nan], 0.0),  # NA is a stored value
+        ([1.0, np.nan], np.nan),
+        ([np.nan, np.nan], np.nan),  # all-NA
+        ([0.0, 0.0], 0.0),  # no NA
+    ],
+)
+def test_any_all_skipna(name, skipna, data, fill_value):
+    # GH#68386 the methods took no skipna at all, and counted NA as a truthy
+    #  value even under the default skipna=True
+    arr = SparseArray(data, fill_value=fill_value)
+    expected = getattr(pd.Series(arr.to_dense()), name)(skipna=skipna)
+
+    assert getattr(arr, name)(skipna=skipna) == expected
+    assert arr._reduce(name, skipna=skipna) == expected
+    assert getattr(pd.Series(arr), name)(skipna=skipna) == expected
+
+
 def test_numpy_std_var_skip_na():
     # GH#68194 np.sum and np.mean already skipped NA here; with no public std/var
     #  numpy densified instead and propagated it
