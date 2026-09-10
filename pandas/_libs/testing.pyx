@@ -163,7 +163,7 @@ cpdef assert_almost_equal(a, b,
                 ):
                     return True
 
-            # flatten so the loop compares values, not rows; see GH#68364 and
+            # flatten so the loop compares values, not rows; see GH#68366 and
             #  test_assert_almost_equal_2d_large_mixed_integer_float
             a = a.ravel()
             b = b.ravel()

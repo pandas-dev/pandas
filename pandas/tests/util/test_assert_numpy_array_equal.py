@@ -113,7 +113,7 @@ numpy array values are different \\(25\\.0 %\\)
 
 
 def test_assert_numpy_array_equal_value_mismatch_2d_percentage():
-    # GH#68364 the percentage counts differing values, not differing rows
+    # GH#68366 the percentage counts differing values, not differing rows
     msg = """numpy array are different
 
 numpy array values are different \\(100\\.0 %\\)
