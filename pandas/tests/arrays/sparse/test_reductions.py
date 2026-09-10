@@ -107,6 +107,38 @@ class TestReductions:
         with pytest.raises(ValueError, match=msg):
             np.any(SparseArray(data), out=out)
 
+    @pytest.mark.parametrize("method", ["any", "all"])
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [0.0, np.nan],
+            [np.nan, np.nan, 0.0],
+            [1.0, np.nan],
+            [np.nan, 3.0],
+        ],
+    )
+    def test_any_all_skipna_matches_dense(self, method, values):
+        # GH#68354: the non-skipna-aware branch of _reduce had the skipna
+        # branches reversed, so Series.any/all returned the opposite result
+        # of a dense Series for float64 data containing NaN
+        sparse = pd.Series(SparseArray(values, fill_value=0.0))
+        dense = pd.Series(values)
+        for skipna in [True, False]:
+            result = getattr(sparse, method)(skipna=skipna)
+            expected = getattr(dense, method)(skipna=skipna)
+            assert result == expected
+
+    def test_frame_any_skipna_matches_dense(self):
+        # GH#68354: DataFrame.any showed the same reversal in a single
+        # SparseArray-backed column
+        values = [0.0, np.nan]
+        frame = pd.Series(SparseArray(values, fill_value=0.0)).to_frame("a")
+        dense_frame = pd.DataFrame({"a": values})
+        for skipna in [True, False]:
+            result = frame.any(skipna=skipna)["a"]
+            expected = dense_frame.any(skipna=skipna)["a"]
+            assert result == expected
+
     def test_sum(self):
         data = np.arange(10).astype(float)
         out = SparseArray(data).sum()
