@@ -1,6 +1,7 @@
 import codecs
 import locale
 import os
+import platform
 
 import pytest
 
@@ -10,14 +11,14 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas.compat import ISMUSL
+from pandas.compat import (
+    ISMUSL,
+    WASM,
+)
 
 import pandas as pd
 
 _all_locales = get_locales()
-
-# Don't run any of these tests if we have no locales.
-pytestmark = pytest.mark.skipif(not _all_locales, reason="Need locales")
 
 _skip_if_only_one_locale = pytest.mark.skipif(
     len(_all_locales) <= 1, reason="Need multiple locales for meaningful test"
@@ -55,7 +56,8 @@ def test_can_set_locale_valid_set(lc_var):
         pytest.param(
             locale.LC_TIME,
             marks=pytest.mark.skipif(
-                ISMUSL, reason="MUSL allows setting invalid LC_TIME."
+                ISMUSL or WASM,
+                reason="MUSL and Emscripten allow setting invalid LC_TIME.",
             ),
         ),
     ),
@@ -99,8 +101,15 @@ def test_can_set_locale_invalid_get(monkeypatch):
         assert not can_set_locale("")
 
 
+@pytest.mark.skipif(
+    platform.system() not in ("Linux", "Darwin", "Windows"),
+    reason="get_locales does not enumerate on this platform",
+)
 def test_get_locales_at_least_one():
     # see GH#9744
+    # Gated on the platform rather than on _all_locales: where get_locales
+    #  knows how to enumerate, an empty result is the bug, not a reason to
+    #  skip.  Skipping on it is what let Windows return nothing.  GH#46597
     assert len(_all_locales) > 0
 
 
