@@ -610,7 +610,7 @@ def test_multiply_reduce_includes_fill_value():
     ],
 )
 def test_any_all_skipna(name, skipna, data, fill_value):
-    # GH#68386 the methods took no skipna at all, and counted NA as a truthy
+    # GH#68390 the methods took no skipna at all, and counted NA as a truthy
     #  value even under the default skipna=True
     arr = SparseArray(data, fill_value=fill_value)
     expected = getattr(pd.Series(arr.to_dense()), name)(skipna=skipna)
@@ -622,7 +622,7 @@ def test_any_all_skipna(name, skipna, data, fill_value):
 
 
 def test_any_all_na_fill_value():
-    # GH#68386 a nullable string Series sparsifies to an object subtype with a
+    # GH#68390 a nullable string Series sparsifies to an object subtype with a
     #  pd.NA fill, which is what reaches the fill-value gate; dense raises here too
     arr = SparseArray(pd.array(["", None], dtype="string"))
     assert arr.fill_value is pd.NA
@@ -638,7 +638,7 @@ def test_any_all_na_fill_value():
 
 
 def test_numpy_any_all_skip_na():
-    # GH#68386 these skip NA like np.sum and np.mean. NaN is truthy and None
+    # GH#68390 these skip NA like np.sum and np.mean. NaN is truthy and None
     #  falsy, so each entry point needs its own array to be decisive
     assert not np.any(SparseArray([0.0, np.nan]))
     assert np.all(SparseArray(np.array([1, None], dtype=object), fill_value=0))
