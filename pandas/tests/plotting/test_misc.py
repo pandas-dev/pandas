@@ -889,8 +889,10 @@ def test_grouped_subplots_bar_geometry(kind, align, width, position):
     }
     axes = df.plot(subplots=groups, **kwargs)
     _, expected_axes = plt.subplots(len(groups), sharex=True)
-    for ax, expected_ax, columns in zip(axes, expected_axes, groups, strict=True):
+    for expected_ax, columns in zip(expected_axes, groups, strict=True):
         df[list(columns)].plot(ax=expected_ax, **kwargs)
+
+    for ax, expected_ax in zip(axes, expected_axes, strict=True):
         result = sorted(tuple(patch.get_bbox().extents) for patch in ax.patches)
         expected = sorted(
             tuple(patch.get_bbox().extents) for patch in expected_ax.patches
