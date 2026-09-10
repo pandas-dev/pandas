@@ -108,6 +108,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
+from pandas.core.col import Expression
 from pandas.core.construction import extract_array
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
@@ -120,6 +121,10 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import BlockManager
 from pandas.core.methods.describe import describe_ndframe
+from pandas.core.methods.filter import (
+    filter_mask,
+    is_mask,
+)
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
@@ -5587,84 +5592,225 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def filter(
         self,
-        items=None,
+        arg=None,
+        /,
         like: str | None = None,
         regex: str | None = None,
         axis: Axis | None = None,
+        *,
+        items=None,
+        cond=None,
+        na: Literal["raise"] | bool = False,
     ) -> Self:
         """
-        Subset the DataFrame or Series according to the specified index labels.
+        Subset the rows or columns according to a boolean mask or the labels.
 
-        For DataFrame, filter rows or columns depending on ``axis`` argument.
-        Note that this routine does not filter based on content.
-        The filter is applied to the labels of the index.
+        Rows (or columns with ``axis=1``) are kept where a boolean mask is
+        True, or selected by their labels with ``items``, ``like``, or
+        ``regex``.
 
         Parameters
         ----------
-        items : list-like
-            Keep labels from axis which are in items.
+        arg : callable, expression, or list-like, optional
+            Positional-only. A callable or an expression created with
+            :func:`pandas.col` is a boolean mask, see ``cond``. Any other
+            list-like selects labels, see ``items``. A list-like of booleans
+            also selects labels, but since it is likely intended as a mask a
+            warning is issued; pass ``items`` or ``cond`` instead to be
+            explicit.
         like : str
-            Keep labels from axis for which "like in label == True".
+            Keep labels from axis for which "like in label == True". This
+            will be deprecated in a future version; use
+            ``obj.filter(lambda obj: obj.columns.astype(str).str.contains(like,
+            regex=False), axis=1)`` instead.
         regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
+            This will be deprecated in a future version; use
+            ``obj.filter(lambda obj: obj.columns.astype(str).str.contains(regex),
+            axis=1)`` instead.
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
-            or axis name (str). By default this is the info axis, 'columns' for
-            ``DataFrame``. For ``Series`` this parameter is unused and defaults to
-            ``None``.
+            or axis name (str). Defaults to the index for a boolean mask,
+            and to the info axis ('columns' for ``DataFrame``) when
+            selecting labels. For ``Series`` this parameter is unused and
+            defaults to ``None``.
+        items : list-like, optional
+            Keep labels from axis which are in ``items``. This will be
+            deprecated in a future version; use
+            ``obj.loc[:, pd.Index(labels).intersection(obj.columns)]`` (or
+            the equivalent for the index) instead.
+        cond : array-like of bool, callable, or expression, optional
+            A boolean mask selecting the entries to keep. A :class:`Series`
+            is aligned with the labels of the filtered axis; any other
+            array-like must have the same length as that axis. A callable is
+            called with the object and must return a boolean mask. An
+            expression such as ``pd.col("a") > 1`` is evaluated against the
+            DataFrame.
+        na : {"raise", True, False}, default False
+            How to treat missing values in a boolean mask. ``True`` or
+            ``False`` treats missing values as that value, matching
+            ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
+            raises a ``ValueError``. Ignored when selecting labels.
 
         Returns
         -------
         Same type as caller
             The filtered subset of the DataFrame or Series.
 
+        Raises
+        ------
+        TypeError
+            If none or more than one of the positional argument, ``items``,
+            ``cond``, ``like``, and ``regex`` is passed, or if ``cond`` is
+            not a one-dimensional boolean mask.
+        ValueError
+            If a mask contains missing values and ``na="raise"``, or if
+            a boolean array is not one-dimensional.
+        IndexError
+            If a mask that is not a Series has a different length than the
+            filtered axis.
+        IndexingError
+            If a Series mask cannot be aligned with the filtered axis.
+
+        Warns
+        -----
+        UserWarning
+            If a list-like of booleans is passed positionally.
+
         See Also
         --------
         DataFrame.loc : Access a group of rows and columns
             by label(s) or a boolean array.
+        DataFrame.where : Replace values where the condition is False.
 
         Notes
         -----
-        The ``items``, ``like``, and ``regex`` parameters are
-        enforced to be mutually exclusive.
+        The positional argument is a boolean mask only when it is a callable
+        or an expression; any other value, including a list-like of booleans,
+        selects labels. Use ``cond`` to filter with a boolean array or
+        :class:`Series`.
 
-        ``axis`` defaults to the info axis that is used when indexing
-        with ``[]``.
+        Selecting labels with ``items``, ``like``, or ``regex`` will be
+        deprecated in a future version.
 
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     np.array(([1, 2, 3], [4, 5, 6])),
+        ...     {"one": [1, 4], "two": [2, 5], "three": [3, 6]},
         ...     index=["mouse", "rabbit"],
-        ...     columns=["one", "two", "three"],
         ... )
         >>> df
                 one  two  three
         mouse     1    2      3
         rabbit    4    5      6
 
-        >>> # select columns by name
+        Filter rows with a boolean Series.
+
+        >>> df.filter(cond=df["two"] > 2)
+                one  two  three
+        rabbit    4    5      6
+
+        The same using an expression or a callable, which are convenient in
+        method chains and may be passed positionally.
+
+        >>> df.filter(pd.col("two") > 2)
+                one  two  three
+        rabbit    4    5      6
+        >>> df.filter(lambda df: df["two"] > 2)
+                one  two  three
+        rabbit    4    5      6
+
+        Filter columns with a boolean array.
+
+        >>> df.filter(cond=df.columns.str.endswith("e"), axis=1)
+                one  three
+        mouse     1      3
+        rabbit    4      6
+
+        Missing values in the mask are treated as False by default; pass
+        ``na="raise"`` to raise instead, or ``na=True`` to keep them.
+
+        >>> mask = pd.array([True, None], dtype="boolean")
+        >>> df.filter(cond=mask)
+               one  two  three
+        mouse    1    2      3
+        >>> df.filter(cond=mask, na=True)
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
+
+        Select columns by their labels.
+
         >>> df.filter(items=["one", "three"])
-                 one  three
+                one  three
         mouse     1      3
         rabbit    4      6
-
-        >>> # select columns by regular expression
         >>> df.filter(regex="e$", axis=1)
-                 one  three
+                one  three
         mouse     1      3
         rabbit    4      6
-
-        >>> # select rows containing 'bbi'
         >>> df.filter(like="bbi", axis=0)
-                 one  two  three
+                one  two  three
         rabbit    4    5      6
         """
-        nkw = common.count_not_none(items, like, regex)
+        nkw = common.count_not_none(arg, items, cond, like, regex)
         if nkw > 1:
             raise TypeError(
-                "Keyword arguments `items`, `like`, or `regex` are mutually exclusive"
+                "The positional argument and the keyword arguments `items`, "
+                "`cond`, `like`, and `regex` are mutually exclusive"
             )
+        if nkw == 0:
+            raise TypeError(
+                "Must pass a positional argument or one of `items`, `cond`, "
+                "`like`, or `regex`"
+            )
+
+        if na is not True and na is not False and na != "raise":
+            raise ValueError(f"na must be 'raise', True, or False, got {na!r}")
+
+        if arg is not None:
+            # Only a callable or expression is unambiguously a mask when passed
+            # positionally. Anything else selected labels before masks were
+            # supported and keeps doing so, since a boolean list-like is a
+            # valid (if unusual) list of labels.
+            if callable(arg):
+                cond = arg
+            else:
+                if is_mask(arg):
+                    warnings.warn(
+                        "A list-like of booleans passed positionally to "
+                        f"{type(self).__name__}.filter selects labels. Pass "
+                        "cond=... to filter with a boolean mask, or items=... "
+                        "to select labels without this warning.",
+                        UserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                items = arg
+
+        if cond is not None:
+            mask_axis = 0 if axis is None else self._get_axis_number(axis)
+            if isinstance(cond, Expression) and self.ndim != 2:
+                raise TypeError(
+                    "Expressions such as pd.col(...) are only supported by "
+                    "DataFrame.filter"
+                )
+            if callable(cond):
+                # Expression defines __call__, so it enters here too
+                mask = common.apply_if_callable(cond, self)
+                if not is_mask(mask):
+                    kind = "expression" if isinstance(cond, Expression) else "callable"
+                    raise TypeError(
+                        f"The {kind} passed to {type(self).__name__}.filter "
+                        "must evaluate to a one-dimensional boolean mask"
+                    )
+            elif is_mask(cond):
+                mask = cond
+            else:
+                raise TypeError(
+                    f"cond passed to {type(self).__name__}.filter must be a "
+                    "one-dimensional boolean mask"
+                )
+            return filter_mask(self, mask, mask_axis, na)
 
         if axis is None:
             axis = self._info_axis_name
@@ -5694,7 +5840,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         else:
-            raise TypeError("Must pass either `items`, `like`, or `regex`")
+            raise TypeError(
+                "Must pass a positional argument or one of `items`, `cond`, "
+                "`like`, or `regex`"
+            )
 
     @final
     def head(self, n: int = 5) -> Self:
