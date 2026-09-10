@@ -9,6 +9,7 @@
     "reportOperatorIssue": true,
     "reportRedeclaration": true,
     "reportReturnType": true,
+    "reportMissingModuleSource": false,
     "useLibraryCodeForTypes": false,
     "analyzeUnannotatedFunctions": false,
     "disableBytesTypePromotions": true,
