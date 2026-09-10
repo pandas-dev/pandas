@@ -35,24 +35,24 @@ jobs:
         include:
           - name: "Downstream Compat"
             environment: downstream
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
             platform: ubuntu-24.04
           - name: "Minimum Versions"
             environment: minimum-versions
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Freethreading"
             environment: py313-freethreading
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Without PyArrow"
             environment: no-pyarrow
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Locale: it_IT"
             environment: py313
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
             lang: "it_IT.utf8"
@@ -63,7 +63,7 @@ jobs:
             platform: ubuntu-24.04
           - name: "Locale: zh_CN"
             environment: py313
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
             lang: "zh_CN.utf8"
@@ -82,11 +82,11 @@ jobs:
             platform: ubuntu-24.04
           - name: "Numpy Nightly"
             environment: numpy-nightly
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
             environment: pyarrow-nightly
-            pytest_marker_expression: "not slow and not network and not single_cpu and not high_memory"
+            pytest_marker_expression: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
       fail-fast: false
     name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.environment) }}
@@ -180,7 +180,7 @@ jobs:
       with:
         environment: ${{ matrix.environment }}
         numprocesses: 'auto'
-        pytest_marker_expression: ${{ matrix.pytest_marker_expression == '' && 'not single_cpu and not high_memory' || matrix.pytest_marker_expression }}
+        pytest_marker_expression: ${{ matrix.pytest_marker_expression == '' && 'not single_cpu' || matrix.pytest_marker_expression }}
         pytest_target: ${{ matrix.pytest_target || 'pandas' }}
         pandas_future: ${{ matrix.pandas_future || 'default' }}
 
@@ -193,7 +193,7 @@ jobs:
       with:
         environment: ${{ matrix.environment }}
         numprocesses: 0
-        pytest_marker_expression: 'single_cpu and not high_memory'
+        pytest_marker_expression: 'single_cpu'
         pytest_target: ${{ matrix.pytest_target || 'pandas' }}
         pandas_future: ${{ matrix.pandas_future || 'default' }}
       if: ${{ matrix.pytest_marker_expression == '' && (always() && steps.build.outcome == 'success')}}
@@ -257,7 +257,7 @@ jobs:
         with:
           environment: ${{ matrix.environment }}
           numprocesses: 'auto'
-          pytest_marker_expression: 'not slow and not db and not network and not single_cpu and not high_memory'
+          pytest_marker_expression: 'not slow and not db and not network and not single_cpu'
           pytest_target: 'pandas'
 
   Linux-32-bit:
@@ -296,7 +296,7 @@ jobs:
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu and not high_memory' pandas
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
@@ -338,7 +338,7 @@ jobs:
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu and not high_memory' pandas
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
@@ -419,7 +419,7 @@ jobs:
         with:
           environment: sanitizers
           numprocesses: "auto"
-          pytest_marker_expression: "not slow and not db and not network and not single_cpu and not high_memory"
+          pytest_marker_expression: "not slow and not db and not network and not single_cpu"
           pytest_target: "pandas"
 
   python-dev:
@@ -460,7 +460,7 @@ jobs:
 
     env:
       PYTEST_WORKERS: "auto"
-      PATTERN: "not slow and not network and not clipboard and not single_cpu and not high_memory"
+      PATTERN: "not slow and not network and not clipboard and not single_cpu"
       PYTEST_TARGET: pandas
 
     steps:
@@ -487,7 +487,7 @@ jobs:
           python -m pip list
 
       - name: Run Tests
-        run: python -m pytest -m 'not slow and not network and not clipboard and not single_cpu and not high_memory' pandas
+        run: python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
@@ -550,4 +550,4 @@ jobs:
           python -m pip install "pytest>=8.3.4" pytest-cov
           # do not import pandas from the checked out repo
           cd ../..
-          pytest -m 'not slow and not network and not clipboard and not single_cpu and not high_memory' --pyargs pandas
+          pytest -m 'not slow and not network and not clipboard and not single_cpu' --pyargs pandas

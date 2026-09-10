@@ -92,7 +92,7 @@ PANDAS_MARKERS = [
     "db: tests requiring a database (mysql or postgres)",
     "clipboard: mark a pd.read_clipboard test",
     "arm_slow: mark a test as slow for arm64 architecture",
-    "high_memory: mark a test as requiring a lot of memory (>5GB)",
+    "high_memory: mark a test as requiring >5GB of memory",
 ]
 
 
@@ -103,6 +103,11 @@ def pytest_addoption(parser) -> None:
         dest="strict_data_files",
         default=True,
         help="Don't fail if a test is skipped for missing data file.",
+    )
+    parser.addoption(
+        "--run-high-memory",
+        action="store_true",
+        help="Run tests marked high_memory (>5GB of memory).",
     )
 
 
@@ -152,6 +157,12 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
 
 
 def pytest_collection_modifyitems(items, config) -> None:
+    if not config.getoption("--run-high-memory"):
+        skip_high_memory = pytest.mark.skip(reason="need --run-high-memory to run")
+        for item in items:
+            if "high_memory" in item.keywords:
+                item.add_marker(skip_high_memory)
+
     is_doctest = config.getoption("--doctest-modules") or config.getoption(
         "--doctest-cython", default=False
     )
