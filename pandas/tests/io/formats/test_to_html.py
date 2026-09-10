@@ -1071,7 +1071,7 @@ def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
         "int64[pyarrow]",
     ],
 )
-@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", "", "<missing&>"])
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", "", "<missing&>", "缺💡<&>"])
 @pytest.mark.parametrize("notebook", [True, False])
 def test_to_html_na_rep_pd_na(dtype, na_rep, notebook):
     # GH#33950
@@ -1081,31 +1081,53 @@ def test_to_html_na_rep_pd_na(dtype, na_rep, notebook):
     df = pd.DataFrame({"a": pd.Series(values, dtype=dtype)})
 
     result = df.to_html(na_rep=na_rep, notebook=notebook)
-    escaped = escape(na_rep, quote=False)
-    expected = df.to_html(notebook=notebook).replace(
-        "<td>&lt;NA&gt;</td>", f"<td>{escaped}</td>"
-    )
-    assert result == expected
+    if dtype == "boolean":
+        first, last = "True", "False"
+    elif dtype == "Float64":
+        first, last = "1.0", "2.0"
+    else:
+        first, last = "1", "2"
+    expected = [first, escape(na_rep, quote=False), last]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
 
 
-@pytest.mark.parametrize("dtype", ["object", "Int64", "Float64", "string", "boolean"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "object",
+        "Int64",
+        "Float64",
+        "string",
+        "boolean",
+        "string[pyarrow]",
+        "int64[pyarrow]",
+    ],
+)
 @pytest.mark.parametrize("notebook", [True, False])
 def test_to_html_pd_na_default(dtype, notebook):
     # GH#33950: omitting na_rep must preserve the usual pd.NA representation.
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": pd.Series([pd.NA], dtype=dtype)})
     result = df.to_html(notebook=notebook)
-    assert "<td>&lt;NA&gt;</td>" in result
+    assert re.findall(r"<td>(.*?)</td>", result) == ["&lt;NA&gt;"]
 
 
 @pytest.mark.parametrize("escape_html", [True, False])
 @pytest.mark.parametrize("formatter", [None, lambda x: "<NA>"])
-def test_to_html_na_rep_pd_na_literal_and_formatter(escape_html, formatter):
+@pytest.mark.parametrize("literal_first", [True, False])
+@pytest.mark.parametrize("na_rep", ["zzzz", "缺💡<&>"])
+def test_to_html_na_rep_pd_na_literal_and_formatter(
+    escape_html, formatter, literal_first, na_rep
+):
     # GH#33950: replace the missing scalar, not text or formatter output.
-    df = pd.DataFrame({"a": [pd.NA, "<NA>", "value"]}, dtype=object)
-    result = df.to_html(na_rep="zzzz", formatters={"a": formatter}, escape=escape_html)
-    assert result.count("<td>zzzz</td>") == 1
-    expected = "&lt;NA&gt;" if escape_html else "<NA>"
-    assert result.count(f"<td>{expected}</td>") == (2 if formatter else 1)
+    first, last = ("<NA>", "value") if literal_first else ("value", "<NA>")
+    df = pd.DataFrame({"a": [first, pd.NA, last]}, dtype=object)
+    result = df.to_html(na_rep=na_rep, formatters={"a": formatter}, escape=escape_html)
+    expected = ["<NA>", na_rep, "<NA>"] if formatter else [first, na_rep, last]
+    if escape_html:
+        expected = [escape(value, quote=False) for value in expected]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
 
 
 @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])
