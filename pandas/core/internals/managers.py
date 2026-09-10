@@ -1908,10 +1908,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         elif arr.dtype.kind == "f" and passed_nan:
             pass
         else:
-            # GH#56233 skip the assignment when there is no NA to replace --
-            # numpy rejects casting the na_value (e.g. nan into int64) at
-            # assignment time even for an all-False mask, and the assignment
-            # would be a no-op in that case anyway
+            # GH#56233 avoid raising in the case of an all false mask
             mask = isna(arr)
             if mask.any():
                 arr[mask] = na_value
