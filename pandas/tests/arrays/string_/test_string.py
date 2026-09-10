@@ -295,6 +295,18 @@ def test_reduce_empty(skipna, dtype, min_count):
         assert pd.isna(result)
 
 
+@pytest.mark.parametrize(
+    "method", ["prod", "mean", "median", "std", "var", "sem", "skew", "kurt"]
+)
+def test_unsupported_reduction_methods_raise(method, skipna, dtype):
+    # GH#68387 the array methods bypassed the type gate in _reduce
+    arr = pd.array(["a", "b", None], dtype=dtype)
+
+    msg = f"Cannot perform reduction '{method}' with string dtype"
+    with pytest.raises(TypeError, match=msg):
+        getattr(arr, method)(skipna=skipna)
+
+
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_min_max(method, skipna, dtype):
     arr = pd.Series(["a", "b", "c", None], dtype=dtype)

@@ -1077,6 +1077,32 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         nv.validate_all((), kwargs)
         return self._reduce("all", axis=axis, skipna=skipna, **kwargs)
 
+    # Inherited from NumpyExtensionArray, these would otherwise bypass the
+    # _reduce type gate -- prod even returns a value, see GH#68387.
+    def prod(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("prod", skipna=skipna, **kwargs)
+
+    def mean(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("mean", skipna=skipna, **kwargs)
+
+    def median(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("median", skipna=skipna, **kwargs)
+
+    def std(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("std", skipna=skipna, **kwargs)
+
+    def var(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("var", skipna=skipna, **kwargs)
+
+    def sem(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("sem", skipna=skipna, **kwargs)
+
+    def skew(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("skew", skipna=skipna, **kwargs)
+
+    def kurt(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("kurt", skipna=skipna, **kwargs)
+
     def min(
         self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs
     ) -> Scalar:
