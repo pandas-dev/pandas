@@ -74,6 +74,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -408,6 +409,12 @@ def array_to_timedelta64(
 
             elif cnp.is_timedelta64_object(item):
                 # TODO: de-duplicate this with Timedelta.__new__
+                if get_datetime64_unit_count(item) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.timedelta64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 ival = cnp.get_timedelta64_value(item)
                 dt64_reso = get_datetime64_unit(item)
                 if not (
@@ -2679,6 +2686,12 @@ class Timedelta(_Timedelta):
                 new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
             )
         elif cnp.is_timedelta64_object(value):
+            if get_datetime64_unit_count(value) != 1:
+                raise ValueError(
+                    # GH#25611
+                    "np.timedelta64 objects with units containing a multiplier "
+                    "are not supported"
+                )
             # Retain the resolution if possible, otherwise cast to the nearest
             #  supported resolution.
             new_value = cnp.get_timedelta64_value(value)

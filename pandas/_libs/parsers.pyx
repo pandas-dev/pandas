@@ -22,6 +22,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas import (
     ArrowDtype,
+    Index,
     StringDtype,
 )
 from pandas.core.arrays import (
@@ -415,9 +416,14 @@ cdef class TextReader:
         list names   # can be None
         set noconvert  # set[int]
         dict datetime_cols  # dict[int, bool]
+        # NA hashset per column (per reader when na_values is not a dict),
+        # built on first use and freed in _close; see _get_na_set
+        dict na_set_cache  # dict[int, tuple[list, set, uintptr_t]]
         dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
+        bint low_memory_chunking
+        dict deferred_cat_cols  # dict[int, CategoricalDtype]
         str _pa_target  # cached _string_convert target; None = unresolved
         # Let the pyarrow string fast path return raw _PendingStringColumn
         # handles instead of ExtensionArrays; the c_parser_wrapper layer
@@ -606,8 +612,12 @@ cdef class TextReader:
 
         self.noconvert = set()
         self.datetime_cols = {}
+        self.na_set_cache = {}
         self.dt_chunk_states = None
         self.lm_chunk_idx = 0
+
+        self.low_memory_chunking = False
+        self.deferred_cat_cols = {}
 
         self.index_col = index_col
 
@@ -967,6 +977,7 @@ cdef class TextReader:
         """
         self._check_not_closed()
         # Don't care about memory usage
+        self.low_memory_chunking = False
         columns = self._read_rows(rows, self.trim_after_read)
 
         return columns
@@ -983,6 +994,8 @@ cdef class TextReader:
             list chunks = []
 
         self._check_not_closed()
+        self.low_memory_chunking = True
+        self.deferred_cat_cols = {}
 
         if self.datetime_cols:
             # Per-chunk fastpath state keyed by column; see _DatetimeChunkState.
@@ -1049,6 +1062,50 @@ cdef class TextReader:
                         dtype_backend=self.dtype_backend,
                     )
                 chunks[chunk_idx][col] = strs
+
+    cdef tuple _categorical_convert_options(self):
+        """
+        Parser options feeding category inference, shared by the deferred
+        low-memory path and the per-column one so they cannot drift.
+
+        Returns (true_values, false_values, convert_numeric, float_only).
+        ``to_numeric`` is unaware of the thousands/decimal options, so columns
+        read with those set keep string categories rather than mis-parsing.
+        """
+        return (
+            [x.decode() for x in self.true_values],
+            [x.decode() for x in self.false_values],
+            self.parser.thousands == b"\0" and self.parser.decimal == b".",
+            self.parser.quoting == QUOTE_NONNUMERIC,
+        )
+
+    def _maybe_infer_categoricals(self, data: dict) -> None:
+        """
+        Apply category-dtype inference deferred by read_low_memory.
+
+        Per-chunk inference could give chunks with differing category dtypes,
+        breaking union_categoricals, so _convert_with_dtype defers it during
+        low-memory reads. Modifies the concatenated ``data`` in place.
+        """
+        true_values, false_values, convert_numeric, float_only = (
+            self._categorical_convert_options()
+        )
+        for i, dtype in self.deferred_cat_cols.items():
+            cat = data[i]
+            array_type = dtype.construct_array_type()
+            converted = array_type._maybe_convert_categories(
+                cat.categories, true_values=true_values,
+                false_values=false_values, convert_numeric=convert_numeric,
+                convert_bool=True, float_only=float_only,
+                bool_case_insensitive=True)
+            if converted is None:
+                # no conversion applies, but union_categoricals still left the
+                #  categories in chunk order; sorting here is what makes
+                #  low_memory=True agree with low_memory=False
+                converted = cat.categories
+            data[i] = array_type._from_converted_categories(
+                converted, cat._codes, ordered=dtype.ordered)
+        self.deferred_cat_cols = {}
 
     cdef _tokenize_rows(self, uint64_t nrows):
         cdef:
@@ -1196,25 +1253,16 @@ cdef class TextReader:
             na_fset = set()
 
             if self.na_filter:
-                na_list, na_fset = self._get_na_list(i, name)
+                na_fset = self._get_na_set(i, name, &na_hashset)
                 na_filter = 1
-                na_hashset = kset_from_list(na_list)
             else:
                 na_filter = 0
 
             # Attempt to parse tokens and infer dtype of the column.
             # Should return as the desired dtype (inferred or specified).
-            try:
-                col_res, na_count, na_mask = self._convert_tokens(
-                    i, start, end, name, na_filter, na_hashset,
-                    na_fset, col_dtype)
-            finally:
-                # gh-21353
-                #
-                # Cleanup the NaN hash that we generated
-                # to avoid memory leaks.
-                if na_filter:
-                    self._free_na_set(na_hashset)
+            col_res, na_count, na_mask = self._convert_tokens(
+                i, start, end, name, na_filter, na_hashset,
+                na_fset, col_dtype)
 
             # don't try to upcast EAs
             if (
@@ -1382,11 +1430,38 @@ cdef class TextReader:
                 self.parser, i, start, end, na_filter, na_hashset,
                 self.encoding_errors)
 
-            # Method accepts list of strings, not encoded ones.
-            true_values = [x.decode() for x in self.true_values]
             array_type = dtype.construct_array_type()
-            cat = array_type._from_inferred_categories(
-                cats, codes, dtype, true_values=true_values)
+            if self.low_memory_chunking and dtype.categories is None:
+                # GH#56044 chunks could each infer a different category dtype,
+                #  breaking union_categoricals; defer inference to
+                #  _maybe_infer_categoricals on the concatenated result.  dtype
+                #  is dropped for the per-chunk call along with it, since
+                #  union_categoricals rejects ordered inputs whose categories
+                #  differ.  Sorting is deferred too, so the concatenated
+                #  categories arrive in the observation order the non-chunked
+                #  path sees, rather than a per-chunk sorted one.
+                self.deferred_cat_cols[i] = dtype
+                cat = array_type._from_inferred_categories(
+                    cats, codes, None, sort_categories=False)
+                return cat, na_count, None
+
+            true_values, false_values, convert_numeric, float_only = (
+                self._categorical_convert_options()
+            )
+            if dtype.categories is None:
+                # GH#56044 mirror the type inference performed on ordinary
+                #  (non-categorical) columns so that all engines agree
+                cats = Index(cats, copy=False)
+                converted = array_type._maybe_convert_categories(
+                    cats, true_values=true_values, false_values=false_values,
+                    convert_numeric=convert_numeric, convert_bool=True,
+                    float_only=float_only, bool_case_insensitive=True)
+                cat = array_type._from_converted_categories(
+                    cats if converted is None else converted, codes,
+                    ordered=dtype.ordered)
+            else:
+                cat = array_type._from_inferred_categories(
+                    cats, codes, dtype, true_values=true_values)
             return cat, na_count, None
 
         elif isinstance(dtype, ExtensionDtype):
@@ -1794,8 +1869,43 @@ cdef class TextReader:
         else:
             return _ensure_encoded(self.na_values), self.na_fvalues
 
-    cdef _free_na_set(self, kh_str_starts_t *table):
-        kh_destroy_str_starts(table)
+    cdef object _get_na_key(self, Py_ssize_t i, object name):
+        # The na_values entry column i resolves to, mirroring _get_na_list, so
+        # that columns sharing an entry share a hashset. None means "the
+        # defaults", which most columns of a wide file take; keying on i
+        # instead would build and hold one hashset per column.
+        if not isinstance(self.na_values, dict):
+            return None
+        if name is not None and name in self.na_values:
+            return name
+        if i in self.na_values:
+            return i
+        return None
+
+    cdef set _get_na_set(self, Py_ssize_t i, object name,
+                         kh_str_starts_t **table):
+        """
+        The NA hashset and float NA set for column i, built on first use and
+        reused for every later chunk, and for every other column resolving to
+        the same na_values entry, rather than rebuilt per (column, chunk)
+        under the GIL.
+        """
+        cdef:
+            object key = self._get_na_key(i, name)
+            tuple entry = self.na_set_cache.get(key)
+            list na_list
+            set na_fset
+
+        if entry is None:
+            na_list, na_fset = self._get_na_list(i, name)
+            table[0] = kset_from_list(na_list)
+            # na_list stays referenced here: the hashset's keys point into
+            # its bytes objects
+            entry = (na_list, na_fset, <uintptr_t>table[0])
+            self.na_set_cache[key] = entry
+        else:
+            table[0] = <kh_str_starts_t *><uintptr_t>entry[2]
+        return entry[1]
 
     cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
         cdef int64_t j
@@ -1843,6 +1953,10 @@ cdef _close(TextReader reader):
     if reader.false_set:
         kh_destroy_str_starts(reader.false_set)
         reader.false_set = NULL
+    if reader.na_set_cache:
+        for entry in reader.na_set_cache.values():
+            kh_destroy_str_starts(<kh_str_starts_t *><uintptr_t>entry[2])
+        reader.na_set_cache = {}
 
 
 cdef:

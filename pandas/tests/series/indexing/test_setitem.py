@@ -168,15 +168,16 @@ class TestSetitemDT64Values:
 
 
 class TestSetitemScalarIndexer:
-    def test_setitem_bytes_dtype_with_na(self):
+    @pytest.mark.parametrize("dtype", ["S1", "V1"])
+    def test_setitem_cannot_hold_na_dtype(self, dtype):
         # GH#52373
-        ser = pd.Series([b"a", b"b", b"c"], dtype="S1")
+        ser = pd.Series(np.array([b"a", b"b", b"c"], dtype=dtype))
 
         msg = "Invalid value 'nan' for dtype"
         with pytest.raises(TypeError, match=msg):
             ser[1] = np.nan
 
-        expected = pd.Series([b"a", b"b", b"c"], dtype="S1")
+        expected = pd.Series(np.array([b"a", b"b", b"c"], dtype=dtype))
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_negative_out_of_bounds(self):
