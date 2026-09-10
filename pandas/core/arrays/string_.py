@@ -1113,7 +1113,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         )
         return self._wrap_reduction_result(axis, result)
 
-    # Without these, NumpyExtensionArray's methods bypass _reduce's gate, GH#68387
+    # Without these, NumpyExtensionArray's methods bypass _reduce's gate, GH#68389
     def prod(self, *, skipna: bool = True, **kwargs) -> Scalar:
         return self._reduce("prod", skipna=skipna, **kwargs)
 
