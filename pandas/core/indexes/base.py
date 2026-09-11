@@ -1569,7 +1569,10 @@ class Index(IndexOpsMixin, PandasObject):
         elif isinstance(self.dtype, ExtensionDtype):
             if self.dtype.kind == "O":
                 return self._values.to_numpy(na_value=None)
-            return self._values.to_numpy(na_value=np.nan)
+            if self.hasnans:
+                return self._values.to_numpy(na_value=np.nan)
+            else:
+                return self._values.to_numpy()
         return self._values
 
     _default_na_rep = "NaN"
