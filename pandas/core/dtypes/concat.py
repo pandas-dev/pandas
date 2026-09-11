@@ -85,7 +85,9 @@ def concat_compat(
         and len(to_concat)
         and all(isinstance(x.dtype, CategoricalDtype) for x in to_concat)
     ):
-        return union_categories_compat(cast("Sequence[Categorical]", to_concat))
+        unioned = union_categories_compat(cast("Sequence[Categorical]", to_concat))
+        if unioned is not None:
+            return unioned
 
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
@@ -148,14 +150,33 @@ def concat_compat(
     return result
 
 
-def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical:
+def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
+    """
+    Whether unioning these object-dtype categories would merge values that the
+    inputs keep apart, e.g. True and 1, which compare and hash equal.
+    """
+    inferred = {x.categories.inferred_type for x in to_union}
+    if len(inferred) == 1 and not inferred.pop().startswith("mixed"):
+        # one inferred type throughout: categories then meet only where equal,
+        #  unless one subclasses the other's type (e.g. IntEnum vs int)
+        return False
+
+    cats = [cat for obj in to_union for cat in obj.categories]
+    return len(set(cats)) != len({(type(cat), cat) for cat in cats})
+
+
+def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | None:
     """
     union_categoricals for concat(union_categories=True).
 
     Unlike union_categoricals, categories with differing dtypes are cast to a
     common dtype instead of raising, so that an all-categorical concatenation
-    always returns a Categorical.  Orderedness is preserved only if every input
-    shares the same dtype after this cast.
+    returns a Categorical.  Orderedness is preserved only if every input shares
+    the same dtype after this cast.
+
+    Returns None when the union would merge categories that the inputs keep
+    apart, e.g. True and 1 under object dtype; the caller then falls back to
+    the non-categorical result.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
@@ -180,6 +201,14 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical:
                 Categorical._simple_new(codes, CategoricalDtype(cats, obj.ordered))
             )
         to_union = recast
+
+    if (
+        len(to_union) > 1
+        and to_union[0].categories.dtype == object
+        and _categories_would_collide(to_union)
+    ):
+        # GH#68440 an object-dtype Index holds only one of True and 1
+        return None
 
     ignore_order = not lib.dtypes_all_equal([x.dtype for x in to_union])
     return union_categoricals(to_union, ignore_order=ignore_order)

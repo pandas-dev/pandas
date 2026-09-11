@@ -591,3 +591,58 @@ def test_union_categories_dataframe_multiple_categorical_columns():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_bool_and_numeric_categories():
+    # GH#68440 True and 1 cannot both be categories of an object-dtype Index, so
+    #  the result falls back to object rather than losing one of them
+    s1 = pd.Series(pd.Categorical([1, 2, 3]))
+    s2 = pd.Series(pd.Categorical([True, False]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(np.array([1, 2, 3, True, False], dtype=object))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_bool_and_numeric_object_categories():
+    # GH#68440 same conflict, reached with categories that are already object
+    s1 = pd.Series(
+        pd.Categorical([1, 2], dtype=CategoricalDtype(pd.Index([1, 2], dtype=object)))
+    )
+    s2 = pd.Series(
+        pd.Categorical([True], dtype=CategoricalDtype(pd.Index([True], dtype=object)))
+    )
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(np.array([1, 2, True], dtype=object))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_bool_and_numeric_categories_column_missing():
+    # GH#68440 the missing-column route unions the dtypes in _get_empty_dtype,
+    #  so it needs the fallback too
+    df1 = pd.DataFrame({"x": pd.Categorical([1, 2]), "y": [1, 2]})
+    df2 = pd.DataFrame({"x": pd.Categorical([True]), "y": [3]})
+    df3 = pd.DataFrame({"y": [4]})
+    result = pd.concat([df1, df2, df3], ignore_index=True, union_categories=True)
+    expected = pd.DataFrame(
+        {
+            "x": np.array([1, 2, True, np.nan], dtype=object),
+            "y": [1, 2, 3, 4],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_union_categories_int_and_float_object_categories():
+    # GH#68440 1 and 1.0 collide in an object-dtype Index the same way True and
+    #  1 do, even though appending the categories infers them to float64
+    s1 = pd.Series(
+        pd.Categorical(
+            [1.0, 2.0], dtype=CategoricalDtype(pd.Index([1.0, 2.0], dtype=object))
+        )
+    )
+    s2 = pd.Series(
+        pd.Categorical([1], dtype=CategoricalDtype(pd.Index([1], dtype=object)))
+    )
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(np.array([1.0, 2.0, 1], dtype=object))
+    tm.assert_series_equal(result, expected)
