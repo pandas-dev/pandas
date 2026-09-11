@@ -1041,7 +1041,7 @@ with cf.config_prefix("future"):
 
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
-# GH#???
+# GH#68436
 cf.deprecate_option(
     "future.infer_string",
     Pandas4Warning,

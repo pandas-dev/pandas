@@ -502,7 +502,7 @@ def test_no_silent_downcasting_deprecated():
 
 @pytest.mark.parametrize("value", [False, True])
 def test_infer_string_deprecated(value):
-    # GH#???
+    # GH#68436
     msg = "The 'future.infer_string' option is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         cf.get_option("future.infer_string")
