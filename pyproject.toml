@@ -563,6 +563,10 @@ filterwarnings = [
   "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
   # https://github.com/PyTables/PyTables/issues/822
   "ignore:a closed node found in the registry:UserWarning:tables",
+  # NumPy 2.5 DeprecationWarning in fastparquet
+  "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
+  # From gcsfs, via google/auth/transport/grpc.py. Possibly removable in "October 2026" when google bumps grpcio min version.
+  "ignore:.*grpcio.*Post-Quantum Cryptography:FutureWarning",
 ]
 junit_family = "xunit2"
 markers = [
@@ -590,7 +594,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.11"
+python_version = "3.13"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO

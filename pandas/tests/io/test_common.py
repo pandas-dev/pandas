@@ -295,7 +295,7 @@ Look,a snake,🐍"""
             (
                 pd.read_feather,
                 "pyarrow",
-                ("io", "data", "feather", "feather-0_3_1.feather"),
+                ("io", "data", "feather", "simple_dataset.feather"),
             ),
             (
                 pd.read_hdf,

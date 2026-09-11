@@ -1,6 +1,7 @@
 """test feather-format compat"""
 
 from datetime import datetime
+import warnings
 import zoneinfo
 
 import numpy as np
@@ -154,7 +155,9 @@ class TestFeather:
             columns=pd.Index(list("ABCD")),
             index=pd.Index([f"i-{i}" for i in range(30)]),
         ).reset_index()
-        self.check_round_trip(df, temp_file, write_kwargs={"version": 1})
+        self.check_round_trip(
+            df, temp_file, write_kwargs={"compression": "uncompressed"}
+        )
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -268,7 +271,15 @@ class TestFeather:
         from pyarrow import feather
 
         table = pa.table({"a": pa.array([None, "b", "c"], pa.string_view())})
-        feather.write_feather(table, temp_file)
+        # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
+        # suppress until we migrate the implementation (GH#66177)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "pyarrow.feather.write_feather is deprecated",
+                FutureWarning,
+            )
+            feather.write_feather(table, temp_file)
 
         with pd.option_context("future.infer_string", True):
             result = read_feather(temp_file)
