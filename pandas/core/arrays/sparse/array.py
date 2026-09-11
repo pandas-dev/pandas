@@ -2505,6 +2505,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
 
     def _logical_method(self, other, op) -> SparseArray:
+        # GH#68452 before the np.asarray below, which flattens a PeriodArray or a
+        #  tz-aware DatetimeArray to object and hides it from the guard
+        ops.disallow_datetimelike_logical_op(self, other, op)
+
         # GH#32119 the sparse fast path (see _sparse_array_op / splib) only
         #  implements and/or/xor for boolean and integer subtypes. When
         #  alignment upcasts an operand to object/float -- e.g. NA introduced
