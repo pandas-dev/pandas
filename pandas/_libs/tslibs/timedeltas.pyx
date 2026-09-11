@@ -17,7 +17,10 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
-from libc.math cimport nextafter
+from libc.math cimport (
+    isinf,
+    nextafter,
+)
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
@@ -2949,6 +2952,9 @@ class Timedelta(_Timedelta):
     __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, "__rsub__")
 
     def __mul__(self, other):
+        cdef:
+            int64_t new_value
+
         if is_integer_object(other) or is_float_object(other):
             if util.is_nan(other):
                 # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
@@ -2960,11 +2966,26 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            if isinstance(other, float) and isinf(other) and self._value == 0:
+                # i.e. 0 * inf; _mul_numeric_array substitutes NaT for a NaN product
+                # see test_td_mul_zero_by_inf_is_nat
+                return NaT
             other = _exact_if_integral(other)
+
+            try:
+                new_value = <int64_t>(other * self._value)
+            except OverflowError as err:
+                # GH#68393 the int64 cast raises a bare OverflowError; raise what
+                #  _mul_numeric_array raises instead.
+                if is_integer_object(other):
+                    msg = "Overflow in int64 multiplication"
+                else:
+                    msg = "Overflow in timedelta multiplication"
+                raise OutOfBoundsTimedelta(msg) from err
 
             return _timedelta_from_value_and_reso(
                 Timedelta,
-                <int64_t>(other * self._value),
+                new_value,
                 reso=self._creso,
             )
 
@@ -3019,7 +3040,13 @@ class Timedelta(_Timedelta):
                 if value < 0 and self._value % other:
                     value += 1
             else:
-                value = <int64_t>(self._value/ other)
+                try:
+                    value = <int64_t>(self._value/ other)
+                except OverflowError as err:
+                    # GH#68393 see the note in __mul__
+                    raise OutOfBoundsTimedelta(
+                        "Overflow in timedelta division"
+                    ) from err
             return Timedelta._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
@@ -3081,7 +3108,12 @@ class Timedelta(_Timedelta):
             if isinstance(other, cnp.floating):
                 other = float(other)
             other = _exact_if_integral(other)
-            return type(self)._from_value_and_reso(self._value// other, self._creso)
+            try:
+                value = <int64_t>(self._value// other)
+            except OverflowError as err:
+                # GH#68393 see the note in __mul__
+                raise OutOfBoundsTimedelta("Overflow in timedelta division") from err
+            return type(self)._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
             if other.ndim == 0:

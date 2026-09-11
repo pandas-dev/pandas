@@ -139,10 +139,7 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         kwargs = {}
-        if op_name in ["any", "all"] and isinstance(ser.array, pd.arrays.SparseArray):
-            # SparseArray.any/all do not accept a skipna argument
-            pass
-        elif op_name != "count":
+        if op_name != "count":
             kwargs["skipna"] = skipna
 
         if not self._supports_reduction(ser, op_name):

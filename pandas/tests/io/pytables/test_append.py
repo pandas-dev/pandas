@@ -122,7 +122,7 @@ def test_append_series(temp_hdfstore):
     mi["B"] = np.arange(len(mi))
     mi["C"] = "foo"
     mi.loc[3:5, "C"] = "bar"
-    mi.set_index(["C", "B"], inplace=True)
+    mi = mi.set_index(["C", "B"])
     s = mi.stack()
     s.index = s.index.droplevel(2)
     temp_hdfstore.append("mi", s)
@@ -262,7 +262,7 @@ def test_append_with_different_block_ordering(temp_hdfstore):
             a = df.pop("A")
             df["A"] = a
 
-        df.set_index("index", inplace=True)
+        df = df.set_index("index")
 
         temp_hdfstore.append("df", df)
 

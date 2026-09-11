@@ -656,8 +656,7 @@ class TestDataFrameQueryNumExprPandas:
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -671,8 +670,7 @@ class TestDataFrameQueryNumExprPandas:
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -684,8 +682,7 @@ class TestDataFrameQueryNumExprPandas:
         d["dates3"] = pd.date_range("1/1/2014", periods=n)
         df = pd.DataFrame(d)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index.to_series() < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -1034,8 +1031,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query(
             "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -1051,8 +1047,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query(
             "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -1065,8 +1060,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         msg = r"'BoolOp' nodes are not implemented"
         with pytest.raises(NotImplementedError, match=msg):
             df.query("index < 20130101 < dates3", engine=engine, parser=parser)

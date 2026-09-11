@@ -896,7 +896,7 @@ def _get_sample_object(
                 return obj, objs
     elif keys is None and names is None and levels is None and not intersect:
         # filter out the empties if we have not multi-index possibilities
-        # note to keep empty Series as it affect to result columns / name
+        # note to keep empty Series as it affects the result columns / name
         if ndims.pop() == 2:
             non_empties = [obj for obj in objs if sum(obj.shape)]
         else:

@@ -207,7 +207,7 @@ pc_east_asian_width_doc = """
 : boolean
     Whether to use the Unicode East Asian Width to calculate the display text
     width.
-    Enabling this may affect to the performance (default: False)
+    Enabling this may affect performance (default: False)
 """
 
 
