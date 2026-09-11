@@ -1845,7 +1845,7 @@ def test_setitem_numeric_still_accepted():
         pd.NaT,
         np.nan,
         np.datetime64("NaT"),
-        np.timedelta64("NaT"),
+        np.timedelta64("NaT", "ns"),
         [None, None, None],
         pa.array([None] * 3),
         pd.array([None] * 3, dtype=ArrowDtype(pa.null())),
@@ -1967,7 +1967,7 @@ def test_fillna_string_self_agrees_with_limit_path():
     # GH#68419 fillna shares _validate_setitem_value with __setitem__, so the
     #  limit=None and limit=1 paths agree
     for limit in [None, 1]:
-        arr = pd.array(["a", None], dtype="str")
+        arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
         with pytest.raises(TypeError, match="Invalid value for dtype"):
             arr.fillna(np.array([1, 2]), limit=limit)
 
