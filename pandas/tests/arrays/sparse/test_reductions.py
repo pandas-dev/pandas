@@ -334,6 +334,19 @@ class TestArgmaxArgmin:
         assert argmax_result == argmax_expected
         assert argmin_result == argmin_expected
 
+    @pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_skipna_false_with_na_raises(self, method, fill_value):
+        # GH#68387 _reduce reduced self.dropna(), renumbering the elements.  Both
+        #  fill values hit it: the NA is a gap under one, a stored value under the
+        #  other.
+        arr = SparseArray([np.nan, 3.0, 1.0], fill_value=fill_value)
+        msg = "Encountered an NA value with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            getattr(arr, method)(skipna=False)
+        with pytest.raises(ValueError, match=msg):
+            arr._reduce(method, skipna=False)
+
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_empty_array(self, method):
         msg = f"attempt to get {method} of an empty sequence"
@@ -652,3 +665,31 @@ def test_numpy_std_var_skip_na():
     assert np.std(arr) == pytest.approx(np.nanstd(dense))
     assert np.var(arr) == pytest.approx(np.nanvar(dense))
     assert np.std(arr, ddof=1) == pytest.approx(np.nanstd(dense, ddof=1))
+
+
+@pytest.mark.parametrize("sparsify_min", [False, True])
+@pytest.mark.parametrize("order", [[5, 3, 9], [3, 5, 9]])
+@pytest.mark.parametrize("subtype", ["float64", "complex128", "m8[ns]", "M8[ns]"])
+def test_frame_idxmin_idxmax(subtype, order, sparsify_min):
+    # GH#68387 the keepdims wrapper cast the position back to the column's dtype,
+    #  which for a complex column also warned about discarding the imaginary part.
+    #  sparsify_min routes _argmin_argmax through its _first_fill_value_loc branch.
+    values = np.array(order).astype(subtype)
+    arr = SparseArray(values, fill_value=values.min() if sparsify_min else None)
+    assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
+
+    index = pd.Index(list("xyz"))
+    df = pd.DataFrame({"a": arr}, index=index)
+    with tm.assert_produces_warning(None):
+        assert df.idxmin()["a"] == index[values.argmin()]
+        assert df.idxmax()["a"] == index[values.argmax()]
+
+
+@pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+@pytest.mark.parametrize("method", ["idxmin", "idxmax"])
+def test_frame_idxmin_idxmax_skipna_false(method, fill_value):
+    # GH#68387 the position returned indexed the column with its NAs dropped
+    df = pd.DataFrame({"a": SparseArray([np.nan, 3.0, 1.0], fill_value=fill_value)})
+    msg = "Encountered an NA value with skipna=False"
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(skipna=False)
