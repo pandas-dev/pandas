@@ -1751,8 +1751,8 @@ class SparseDtype(ExtensionDtype):
         complex     ``np.nan``
         int         ``0``
         bool        ``False``
-        datetime64  ``pd.NaT``
-        timedelta64 ``pd.NaT``
+        datetime64  ``np.datetime64("NaT")``
+        timedelta64 ``np.timedelta64("NaT")``
         =========== ==========
 
         The default value may be overridden by specifying a ``fill_value``.
@@ -1811,6 +1811,10 @@ class SparseDtype(ExtensionDtype):
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
+        elif fill_value is NaT and dtype.kind in "mM":
+            # GH#68449 store the subtype's own NaT, so that the two spellings
+            #  of the fill value behave identically downstream
+            fill_value = na_value_for_dtype(dtype)
 
         self._dtype = dtype
         self._fill_value = fill_value
@@ -1819,6 +1823,12 @@ class SparseDtype(ExtensionDtype):
     def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
+        if self._is_na_fill_value:
+            # GH#68449 a numpy NA scalar such as np.datetime64("NaT") hashes by
+            #  identity, so hashing _metadata puts equal dtypes in different
+            #  buckets. One token per subtype can only over-collide, never
+            #  split a pair that __eq__ calls equal.
+            return hash((self.subtype, "_is_na_fill_value"))
         return super().__hash__()
 
     def __eq__(self, other: object) -> bool:
