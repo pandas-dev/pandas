@@ -627,7 +627,8 @@ def test_unaliased_ufunc_reduce_includes_fill_value(ufunc, data, fill_value):
     result = ufunc.reduce(arr)
     # reduce the original input, not to_dense(), which floors a sub-microsecond
     #  Timedelta fill value; see test_reduction_keeps_sub_microsecond_fill_value
-    expected = ufunc.reduce(np.asarray(data))
+    # dtype= keeps the comparison off the platform default int width
+    expected = ufunc.reduce(np.asarray(data, dtype=arr.dtype.subtype))
     assert result == expected
     assert result.dtype == expected.dtype
 
