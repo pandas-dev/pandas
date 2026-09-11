@@ -302,6 +302,19 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
+def _as_sparse_operand(values, fill_value, dtype: Dtype | None = None) -> SparseArray:
+    """
+    Wrap a non-sparse operand for _sparse_array_op, reusing the other operand's
+    fill_value where that is a valid value for this operand's subtype.
+    """
+    try:
+        return SparseArray(values, fill_value=fill_value, dtype=dtype)
+    except ValueError:
+        # GH#68422 fill_value need not suit the operand's subtype; falling back
+        #  leaves any real incompatibility for op() to report.
+        return SparseArray(values, dtype=dtype)
+
+
 def _wrap_result(
     name: str, data, sparse_index, fill_value, dtype: Dtype | None = None
 ) -> SparseArray:
@@ -2434,7 +2447,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     )
                 if not isinstance(other, SparseArray):
                     dtype = getattr(other, "dtype", None)
-                    other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
+                    other = _as_sparse_operand(other, self.fill_value, dtype=dtype)
                 return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> SparseArray:
@@ -2457,7 +2470,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(other, np.ndarray):
             # TODO: make this more flexible than just ndarray...
-            other = SparseArray(other, fill_value=self.fill_value)
+            other = _as_sparse_operand(other, self.fill_value)
 
         if isinstance(other, SparseArray):
             if len(self) != len(other):
