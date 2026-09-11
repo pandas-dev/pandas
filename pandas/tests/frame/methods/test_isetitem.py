@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -45,3 +46,20 @@ class TestDataFrameSetItem:
         value = df.copy()
         with pytest.raises(ValueError, match="Got 2 positions but value has 1 columns"):
             df.isetitem([1, 2], value[["a"]])
+
+    @pytest.mark.parametrize(
+        "value, ncols",
+        [
+            (np.array([7, 8, 9]), 1),
+            (np.arange(6).reshape(3, 2), 2),
+            (np.arange(12).reshape(3, 4), 4),
+        ],
+    )
+    def test_isetitem_array_dimension_mismatch(self, value, ncols):
+        # GH#68445 used to corrupt the manager or drop value columns instead
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        expected = df.copy()
+        msg = f"Got 3 positions but value has {ncols} columns"
+        with pytest.raises(ValueError, match=msg):
+            df.isetitem([0, 1, 2], value)
+        tm.assert_frame_equal(df, expected)
