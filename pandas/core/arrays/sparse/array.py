@@ -310,7 +310,7 @@ def _as_sparse_operand(values, fill_value, dtype: Dtype | None = None) -> Sparse
     try:
         return SparseArray(values, fill_value=fill_value, dtype=dtype)
     except ValueError:
-        # GH#68422 fill_value need not suit the operand's subtype; falling back
+        # GH#68466 fill_value need not suit the operand's subtype; falling back
         #  leaves any real incompatibility for op() to report.
         return SparseArray(values, dtype=dtype)
 
