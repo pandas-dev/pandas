@@ -76,6 +76,9 @@ pa = pytest.importorskip("pyarrow")
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
+# GH#62423; matched instead of the leading clause, whose wording differs per warn site
+depr_msg = "In a future version these will be treated as scalar-like"
+
 
 def _require_timezone_database(request):
     if is_platform_windows() and pa_version_under22p0:
@@ -300,10 +303,33 @@ class TestArrowArray(base.ExtensionTests):
             )
 
     def test_compare_range_len(self, data, comparison_op):
-        # GH#63429
+        # GH#63429 a range compares elementwise like the equivalent list.
+        #  Note we can't go through _compare_other here: its pointwise
+        #  expectation uses Series.combine, which treats the range as a scalar
+        #  and so matches an all-False result too.
         ser = pd.Series(data)
-        range_test = range(len(ser))
-        self._compare_other(ser, range_test, comparison_op, range_test)
+        rng = range(len(ser))
+
+        try:
+            expected = comparison_op(ser, list(rng))
+        except Exception as err:
+            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+                with pytest.raises(type(err)):
+                    comparison_op(ser, rng)
+            return
+
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = comparison_op(ser, rng)
+        tm.assert_series_equal(result, expected)
+
+    def test_compare_range_mismatched_len(self, data, comparison_op):
+        # GH#63429 the length check must not be bypassed for a range
+        ser = pd.Series(data)
+        rng = range(len(ser) + 1)
+
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(ValueError, match="Lengths must match to compare"):
+                comparison_op(ser, rng)
 
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -3705,6 +3731,32 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+def test_setitem_null_dtype_replace_with_mask_abort():
+    # GH#66703 pc.replace_with_mask aborts for null dtype (apache/arrow#47447).
+    # Operations routed through _replace_with_mask must not crash the process.
+    ser = pd.Series(
+        pa.array([None, None, None], type=pa.null()), dtype=ArrowDtype(pa.null())
+    )
+    mask = np.array([True, False, False])
+
+    # boolean-mask setitem
+    result = ser.copy()
+    result[mask] = None
+    tm.assert_series_equal(result, ser)
+
+    # where / mask
+    tm.assert_series_equal(ser.where(~mask), ser)
+    tm.assert_series_equal(ser.mask(mask), ser)
+
+    # combine_first
+    tm.assert_series_equal(ser.combine_first(ser), ser)
+
+    # DataFrame.loc setitem
+    df = ser.to_frame("a")
+    df.loc[mask, "a"] = None
+    tm.assert_frame_equal(df, ser.to_frame("a"))
+
+
 def test_setitem_na_chunked_string_if_else():
     # GH#64320
     df = pd.concat(
@@ -3746,8 +3798,8 @@ def test_setitem_na_sliced_chunk_if_else(pa_type, extra_chunk):
 @pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
 @pytest.mark.parametrize("chunked", [True, False])
 def test_from_sequence_of_strings_duration_sliced(chunked, pa_type):
-    # GH#64320: the non-ns duration path routes strings through pc.if_else,
-    # which truncated them when they were read through a non-zero offset
+    # GH#64320: the non-ns duration path used to route strings through pc.if_else,
+    # which silently truncated values at a non-zero array offset
     values = ["11", "22", "33", "444444444", None]
     # seconds, not the nanoseconds to_timedelta would infer from a bare integer
     seconds = [11, 22, 33, 444444444, None]
@@ -3991,6 +4043,28 @@ def test_arithmetic_temporal(pa_type, request):
     result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
     expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index])
+def test_comparison_range_matches_numpy_backed(box, comparison_op):
+    # GH#63429 an arrow-backed box compared to a range must give the same
+    #  elementwise answer as the numpy-backed equivalent, not the all-False
+    #  result that routing through ops.invalid_comparison produces.
+    #  Series and Index gate both the GH#62423 warning and the length check
+    #  separately before reaching the EA, so both need covering.
+    values = [5, 1, 7]
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        expected = comparison_op(box(values), range(3))
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = comparison_op(box(values, dtype="int64[pyarrow]"), range(3))
+
+    tm.assert_numpy_array_equal(np.asarray(result), np.asarray(expected))
+    assert result.dtype == "bool[pyarrow]"
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with pytest.raises(ValueError, match="Lengths must match to compare"):
+            comparison_op(box(values, dtype="int64[pyarrow]"), range(4))
 
 
 @pytest.mark.parametrize(

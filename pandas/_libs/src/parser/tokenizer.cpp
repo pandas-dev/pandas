@@ -573,6 +573,9 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
 
   if (self->skipset == NULL) {
     self->skipset = (void *)kh_init_int64();
+    if (self->skipset == NULL) {
+      return -1;
+    }
   }
 
   set = (kh_int64_t *)self->skipset;
@@ -2235,6 +2238,16 @@ fallback:
     if (maybe_int != NULL)
       *maybe_int = 0;
     p++;
+
+    // With no significant integer digits the fractional leading zeros are not
+    // significant either, see test_precise_xstrtod_fractional_leading_zeros.
+    if (num_digits == 0) {
+      while (*p == '0') {
+        saw_digit = true;
+        p++;
+        num_decimals++;
+      }
+    }
 
     while (num_digits < max_digits && isdigit_ascii(*p)) {
       mantissa = mantissa * 10 + (*p - '0');
