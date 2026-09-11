@@ -17,7 +17,10 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
-from libc.math cimport nextafter
+from libc.math cimport (
+    isinf,
+    nextafter,
+)
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
@@ -2972,6 +2975,10 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            if isinstance(other, float) and isinf(other) and self._value == 0:
+                # i.e. 0 * inf; _mul_numeric_array substitutes NaT for a NaN product
+                # see test_td_mul_zero_by_inf_is_nat
+                return NaT
             other = _exact_if_integral(other)
 
             try:
