@@ -1842,6 +1842,10 @@ class SparseDtype(ExtensionDtype):
 
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
+            if not subtype:
+                # comparing fill values across subtypes cannot change the result
+                # and can warn, e.g. numpy deprecates timedelta64 == int
+                return False
             if self._is_na_fill_value or other._is_na_fill_value:
                 # this case is complicated by two things:
                 # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)

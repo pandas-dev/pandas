@@ -1450,21 +1450,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         dtype = self.dtype.update_dtype(dtype)
 
         # GH#49631: update_dtype resolves the target to the subtype's default
-        # fill_value (e.g. 0 for int64) rather than converting the source
-        # fill_value. For a datetimelike source with an NA (NaT) fill, casting to
-        # int is a view, so match the dense .astype and map NaT -> iNaT instead of
-        # silently using 0. Only fire when the target fill is the subtype default,
-        # so an explicitly-requested non-default fill_value is respected. Skip
-        # when fully dense, since the fill_value is unused.
+        # fill_value (e.g. 0 for int64) instead of converting the source
+        # fill_value. Only fire when the target fill is the subtype default, so
+        # an explicitly-requested non-default fill_value is respected.
         if (
-            self.dtype._is_na_fill_value
-            and not dtype._is_na_fill_value
+            not dtype._is_na_fill_value
             and self.dtype.subtype.kind in "mM"
             and dtype.fill_value == na_value_for_dtype(dtype.subtype)
-            and self.sp_index.npoints != len(self)
         ):
-            fv_arr = np.atleast_1d(np.array(self.fill_value))
-            fv_arr = ensure_wrapped_if_datetimelike(fv_arr)
+            # build from the source subtype so a boxed fill value converts too
+            fv_arr = ensure_wrapped_if_datetimelike(np.zeros(1, self.dtype.subtype))
+            fv_arr[0] = self.fill_value
             converted_fv = np.asarray(astype_array(fv_arr, dtype.subtype))
             dtype = SparseDtype(dtype.subtype, fill_value=converted_fv[0])
 
