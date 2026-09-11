@@ -1196,6 +1196,51 @@ def test_select_dtypes_interval_family_string_and_bare_instance():
     tm.assert_frame_equal(df.select_dtypes(include=pd.IntervalDtype()), expected)
 
 
+def _interval_unit_frame():
+    dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"])
+    tdi = pd.to_timedelta([1, 2, 3, 4], unit="D")
+    return pd.DataFrame(
+        {
+            "dt_ns": pd.arrays.IntervalArray.from_breaks(dti.as_unit("ns")),
+            "dt_us_left": pd.arrays.IntervalArray.from_breaks(
+                dti.as_unit("us"), closed="left"
+            ),
+            "dt_tz": pd.arrays.IntervalArray.from_breaks(dti.tz_localize("UTC")),
+            "td_s": pd.arrays.IntervalArray.from_breaks(tdi.as_unit("s")),
+            "int_right": pd.arrays.IntervalArray.from_breaks([0, 1, 2, 3]),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "spec, unit_cols",
+    [
+        ("interval[datetime64]", ["dt_ns", "dt_us_left"]),
+        (pd.IntervalDtype(np.dtype("M8")), ["dt_ns", "dt_us_left"]),
+        ("interval[timedelta64]", ["td_s"]),
+        (pd.IntervalDtype(np.dtype("m8")), ["td_s"]),
+    ],
+)
+def test_select_dtypes_interval_unitless_subtype_matches_any_unit(spec, unit_cols):
+    # GH#66120: an interval spec whose subtype leaves the resolution open
+    # ("interval[datetime64]") selects every resolution; tz-aware columns are
+    # excluded, as they are for a top-level "datetime64" spec
+    df = _interval_unit_frame()
+    tm.assert_frame_equal(df.select_dtypes(include=spec), df[unit_cols])
+
+    rest = [col for col in df.columns if col not in unit_cols]
+    tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[rest])
+
+
+@pytest.mark.parametrize(
+    "spec", ["interval[datetime64, left]", pd.IntervalDtype(np.dtype("M8"), "left")]
+)
+def test_select_dtypes_interval_unitless_subtype_with_closed(spec):
+    # GH#66120: leaving the subtype's unit open still honors an explicit closed
+    df = _interval_unit_frame()
+    tm.assert_frame_equal(df.select_dtypes(include=spec), df[["dt_us_left"]])
+
+
 @pytest.mark.parametrize("kwarg", ["include", "exclude"])
 def test_select_dtypes_none_in_listlike_deprecated(kwarg):
     # GH#28943: None inside the list-like reaches np.dtype(None) and selects
@@ -1206,4 +1251,21 @@ def test_select_dtypes_none_in_listlike_deprecated(kwarg):
         result = df.select_dtypes(**{kwarg: [None]})
 
     expected = df[["c"]] if kwarg == "include" else df[["a", "b"]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "box",
+    [np.array, pd.Index, pd.Series, iter],
+    ids=["ndarray", "index", "series", "iterator"],
+)
+@pytest.mark.parametrize("kwarg", ["include", "exclude"])
+def test_select_dtypes_listlike_spec_container(box, kwarg):
+    # GH#68448: any list-like is accepted as the spec container. An ndarray/Index/
+    # Series has no usable truthiness for the guards in ``predicate``, and a one-shot
+    # iterator is consumed by the frozensets before ``to_callable`` iterates it.
+    df = pd.DataFrame({"a": [1, 2], "b": [1.0, 2.0], "c": ["x", "y"]})
+    result = df.select_dtypes(**{kwarg: box(["int64", "float64"])})
+
+    expected = df[["a", "b"]] if kwarg == "include" else df[["c"]]
     tm.assert_frame_equal(result, expected)

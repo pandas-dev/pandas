@@ -66,6 +66,32 @@ def test_nans_equal():
     assert b == a
 
 
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_nat_fill_value_normalized(kind, unit):
+    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it is
+    #  interchangeable with the numpy spelling and with the default
+    values = np.array([1], dtype="i8").astype(f"{kind}[{unit}]")
+    values[0] = "NaT"
+
+    dtype = pd.SparseDtype(values.dtype, pd.NaT)
+    assert dtype.fill_value is not pd.NaT
+    assert dtype == pd.SparseDtype(values.dtype, values[0])
+    assert dtype == pd.SparseDtype(values.dtype)
+
+
+@pytest.mark.parametrize("subtype", ["M8[ns]", "m8[s]", "float64"])
+def test_na_fill_value_hashes_equal(subtype):
+    # GH#68449 a numpy NaT hashes by identity, so two equal dtypes would
+    #  otherwise land in different dict buckets; float64 guards the shared
+    #  NA branch against regressing the other subtypes
+    a = pd.SparseDtype(subtype)
+    b = pd.SparseDtype(subtype)
+    assert a == b
+    assert hash(a) == hash(b)
+    assert {a: 1}.get(b) == 1
+
+
 def test_nans_not_equal():
     # GH 54770
     a = pd.SparseDtype(float, 0)

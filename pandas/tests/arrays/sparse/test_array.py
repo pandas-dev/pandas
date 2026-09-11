@@ -611,6 +611,41 @@ def test_array_object_datetimelike(kind, unit):
     tm.assert_numpy_array_equal(np.asarray(no_gaps, dtype=object), expected[::2])
 
 
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimelike_nat_fill_value_normalized(kind, unit):
+    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it
+    #  behaves identically to the np.datetime64("NaT") spelling
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    values[1] = "NaT"
+
+    arr = SparseArray(values, fill_value=pd.NaT)
+    expected = SparseArray(values, fill_value=values[1])
+
+    assert arr.dtype == expected.dtype
+    assert arr.fill_value is not pd.NaT
+    tm.assert_sp_array_equal(arr, expected)
+
+    # these raised TypeError for the pd.NaT spelling, except np.asarray, which
+    #  returned object dtype for a timedelta64 subtype
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_numpy_array_equal(np.asarray(arr), values)
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype=object), pd.array(values).astype(object)
+    )
+    tm.assert_sp_array_equal(arr - arr, expected - expected)
+    tm.assert_sp_array_equal(arr == arr, expected == expected)
+    tm.assert_sp_array_equal(arr.unique(), expected.unique())
+    all_fill = np.full(2, "NaT", dtype=values.dtype)
+    tm.assert_sp_array_equal(
+        SparseArray(all_fill, fill_value=pd.NaT).take([0, 1], allow_fill=True),
+        SparseArray(all_fill, fill_value=values[1]).take([0, 1], allow_fill=True),
+    )
+    tm.assert_sp_array_equal(
+        arr.astype("Sparse[int64]"), expected.astype("Sparse[int64]")
+    )
+
+
 def test_array_interface(arr_data, arr):
     # https://github.com/pandas-dev/pandas/pull/60046
     result = np.asarray(arr)
