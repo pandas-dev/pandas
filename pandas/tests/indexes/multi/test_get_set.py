@@ -285,10 +285,10 @@ def test_set_levels_codes_names_bad_input(idx):
         idx.set_codes(codes, level=0)
 
     # GH#66287 nested value with a scalar level
-    with pytest.raises(TypeError, match="must be list-like, not a list of lists-like"):
+    with pytest.raises(TypeError, match="must be list-like, not a list of list-likes"):
         idx.set_levels([levels[0]], level=0)
 
-    with pytest.raises(TypeError, match="must be list-like, not a list of lists-like"):
+    with pytest.raises(TypeError, match="must be list-like, not a list of list-likes"):
         idx.set_codes([codes[0]], level=0)
 
     # should have equal lengths
