@@ -771,10 +771,6 @@ cdef tzinfo _parse_with_format(
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
             tz = zoneinfo.ZoneInfo(found_dict["Z"])
-        elif parse_code == 19:
-            # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
-            tz = parse_timezone_directive(found_dict["z"])
-        # elif group_key in ('z', 'colon_z'):
         elif parse_code == 19 or parse_code == 24:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
             if found_dict[group_key] is None:
