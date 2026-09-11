@@ -97,6 +97,7 @@ from pandas.core.indexers import (
 )
 from pandas.core.nanops import (
     check_below_min_count,
+    dt64_any_all_msg,
     na_accum_func,
 )
 
@@ -1682,7 +1683,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # _argmin_argmax answered.  See test_frame_idxmin_idxmax
                 dtype = SparseDtype(np.intp)
             elif name in _boolean_reductions:
-                # any/all give a bool, not a value of the array's own dtype;
                 # see test_any_all_keepdims_is_boolean
                 dtype = SparseDtype(bool)
             elif name in _complex_to_real_reductions and dtype.subtype.kind == "c":
@@ -1746,7 +1746,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if self.dtype.subtype.kind == "M":
             # GH#34479: match nanops.nanall on the dense values
-            raise TypeError("datetime64 type does not support operation 'all'")
+            raise TypeError(dt64_any_all_msg("all"))
 
         values = self.sp_values
         fill_value = self.fill_value
@@ -1792,7 +1792,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if self.dtype.subtype.kind == "M":
             # GH#34479: match nanops.nanany on the dense values
-            raise TypeError("datetime64 type does not support operation 'any'")
+            raise TypeError(dt64_any_all_msg("any"))
 
         values = self.sp_values
         fill_value = self.fill_value

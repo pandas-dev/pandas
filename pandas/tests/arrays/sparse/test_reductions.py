@@ -656,7 +656,7 @@ def test_any_all_datetime64_raises(name, unit):
     # GH#68438 sparse answered for a datetime64 subtype where dense raises
     values = np.array(["2020-01-01", "NaT"], dtype=unit)
     arr = SparseArray(values)
-    msg = f"datetime64 type does not support operation '{name}'"
+    msg = f"'{name}' with datetime64 dtypes is not supported"
 
     with pytest.raises(TypeError, match=msg):
         getattr(arr, name)()
