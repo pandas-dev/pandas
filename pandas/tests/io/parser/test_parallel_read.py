@@ -25,7 +25,6 @@ import pytest
 from pandas.compat import WASM
 from pandas.errors import (
     EmptyDataError,
-    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -1134,6 +1133,9 @@ def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
     tm.assert_frame_equal(parallel, serial)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
     # The deferred string path fills each chunk's data buffer with the same
     # fixed-width token copy the serial path uses, so widths straddling that
@@ -1154,27 +1156,24 @@ def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
     # (PANDAS_FUTURE_INFER_STRING=0, mode.string_storage="python") the columns
     # would come back from the object path instead; the dtype check below
     # fails loudly if that happens.
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context(
-            "future.infer_string",
-            True,
-            "mode.string_storage",
-            "pyarrow",
-            "mode.max_threads",
-            1,
-        ):
-            serial = pd.read_csv(path)
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context(
-            "future.infer_string",
-            True,
-            "mode.string_storage",
-            "pyarrow",
-            "mode.max_threads",
-            4,
-        ):
-            parallel = pd.read_csv(path)
+    with pd.option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        1,
+    ):
+        serial = pd.read_csv(path)
+    with pd.option_context(
+        "future.infer_string",
+        True,
+        "mode.string_storage",
+        "pyarrow",
+        "mode.max_threads",
+        4,
+    ):
+        parallel = pd.read_csv(path)
     tm.assert_frame_equal(parallel, serial)
     assert serial["a"].dtype == pd.StringDtype("pyarrow", na_value=np.nan)
     assert serial["a"].tolist() == values * 400

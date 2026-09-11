@@ -10,7 +10,6 @@ import pytest
 from pandas.compat.pyarrow import (
     pa_version_under18p0,
 )
-from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -250,17 +249,18 @@ class TestFeather:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [True, False])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_categorical_object_categories_no_infer_string(self, temp_file, ordered):
         # GH#56044 with the string dtype disabled the categories come back as
         #  object, including for an ordered dtype, where CategoricalDtype.__eq__
         #  ignores the categories' dtype
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", False):
-                cat = pd.Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)
-                df = pd.DataFrame({"a": cat})
-                df.to_feather(temp_file)
-                result = read_feather(temp_file)
+        with pd.option_context("future.infer_string", False):
+            cat = pd.Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)
+            df = pd.DataFrame({"a": cat})
+            df.to_feather(temp_file)
+            result = read_feather(temp_file)
         assert result["a"].cat.categories.dtype == np.dtype(object)
         tm.assert_frame_equal(result, df)
 

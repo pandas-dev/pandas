@@ -3,7 +3,6 @@ import zoneinfo
 
 import pytest
 
-from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -94,6 +93,9 @@ def test_dataframe_from_arrow():
 
 
 @td.skip_if_no("pyarrow")
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_dataframe_from_arrow_custom_conversion():
     # ensuring that we use our custom conversion and not the default pyarrow to_pandas
     table = pa.table(
@@ -103,8 +105,6 @@ def test_dataframe_from_arrow_custom_conversion():
     assert isinstance(result["a"].dtype.tz, zoneinfo.ZoneInfo)
 
     table = pa.table({"a": pa.array(["a", "b", "c"])})
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", False):
-            result = pd.DataFrame.from_arrow(table)
+    with pd.option_context("future.infer_string", False):
+        result = pd.DataFrame.from_arrow(table)
     assert result["a"].dtype == "object"

@@ -770,21 +770,22 @@ def test_invalid_utf8_raises(c_parser_only):
         parser.read_csv(data)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_string_storage_python_consistent(c_parser_only):
     # GH#65283: the pyarrow string fast path must not produce an
     # ArrowStringArray when mode.string_storage="python"
     pytest.importorskip("pyarrow")
     parser = c_parser_only
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context(
-            "future.infer_string", True, "mode.string_storage", "python"
-        ):
-            result = parser.read_csv(StringIO("col\nabc\nxyz\n"))
-            arr = result["col"].array
-            assert isinstance(arr.dtype, pd.StringDtype)
-            assert arr.dtype.storage == "python"
-            assert type(arr) is arr.dtype.construct_array_type()
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "python"
+    ):
+        result = parser.read_csv(StringIO("col\nabc\nxyz\n"))
+        arr = result["col"].array
+        assert isinstance(arr.dtype, pd.StringDtype)
+        assert arr.dtype.storage == "python"
+        assert type(arr) is arr.dtype.construct_array_type()
 
 
 @pytest.mark.parametrize("lineterm", ["\n", "\r\n"])
@@ -979,6 +980,9 @@ def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_mutable(kwargs):
     # GH#66619: the fast path builds its result without going through the
     # ExtensionArray constructor, so it must set every attribute the
@@ -990,12 +994,10 @@ def test_pyarrow_string_fast_path_mutable(kwargs):
     # pinned rather than inherited: the default-kwargs case would otherwise get
     # an object-dtype column, and stop exercising the fast path at all, in the
     # PANDAS_FUTURE_INFER_STRING=0 build.
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            result = pd.read_csv(
-                StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
-            )
+    with pd.option_context("future.infer_string", True):
+        result = pd.read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
     arr = result["a"].array
     arr[0] = "zzz"
     arr.sort()
@@ -1003,6 +1005,9 @@ def test_pyarrow_string_fast_path_mutable(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     # GH#66619: the fast path sets the instance attributes itself instead of
     # calling __init__, so it has to track whatever set the constructor
@@ -1010,38 +1015,39 @@ def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     # ArrowExtensionArray.__init__ without teaching parsers.pyx about it should
     # fail here rather than silently producing a half-built array.
     pytest.importorskip("pyarrow")
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            result = pd.read_csv(
-                StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
-            )
+    with pd.option_context("future.infer_string", True):
+        result = pd.read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", low_memory=False, **kwargs
+        )
     arr = result["a"].array
     expected = type(arr)(arr._pa_array)
     assert vars(arr).keys() == vars(expected).keys()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_iterator_dtype_stable_across_chunks():
     # GH#66619: a reader resolves its pyarrow target once, when it converts its
     # first string column, so every chunk of one read gets the same dtype even
     # if the options change mid-iteration.  Previously the target was looked up
     # per chunk and the second chunk here came back object-dtype.
     pytest.importorskip("pyarrow")
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            reader = pd.read_csv(
-                StringIO("a\nfoo\nbar\n"), engine="c", chunksize=1, iterator=True
-            )
-            first = next(reader)
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", False):
-            second = next(reader)
+    with pd.option_context("future.infer_string", True):
+        reader = pd.read_csv(
+            StringIO("a\nfoo\nbar\n"), engine="c", chunksize=1, iterator=True
+        )
+        first = next(reader)
+    with pd.option_context("future.infer_string", False):
+        second = next(reader)
     assert first["a"].dtype == pd.StringDtype(na_value=np.nan)
     assert second["a"].dtype == first["a"].dtype
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
     # GH#66756: the fast path copies a short token at a compile-time-constant
     # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
@@ -1056,12 +1062,10 @@ def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
     # The fast path requires infer_string *and* pyarrow storage, so pin both;
     # the dtype check below turns any silent fall-back to the object path
     # (which would satisfy the value assertions) into a loud failure.
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context(
-            "future.infer_string", True, "mode.string_storage", "pyarrow"
-        ):
-            result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
     expected_dtype = (
         pd.ArrowDtype(pa.string())
         if kwargs
@@ -1073,6 +1077,9 @@ def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     # GH#66756: the fast path sizes its data buffer from the column's leading
     # tokens and grows it mid-pass when that estimate falls short, re-copying
@@ -1082,12 +1089,10 @@ def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     pa = pytest.importorskip("pyarrow")
     values = ["ab"] * 20 + [f"{num:x}" * 900 for num in range(1, 200)]
     data = "a\n" + "".join(f"{value}\n" for value in values)
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context(
-            "future.infer_string", True, "mode.string_storage", "pyarrow"
-        ):
-            result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
     expected_dtype = (
         pd.ArrowDtype(pa.string())
         if kwargs

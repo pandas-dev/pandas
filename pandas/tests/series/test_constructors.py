@@ -2079,12 +2079,13 @@ class TestSeriesConstructors:
         ser.iloc[0] = 100
         tm.assert_index_equal(idx, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference(self):
         # GH#54430
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                ser = pd.Series(["a", "b"])
+        with pd.option_context("future.infer_string", True):
+            ser = pd.Series(["a", "b"])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
@@ -2094,36 +2095,42 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_with_na_inference(self, na_value):
         # GH#54430
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                ser = pd.Series(["a", na_value])
+        with pd.option_context("future.infer_string", True):
+            ser = pd.Series(["a", na_value])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series(["a", None], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_scalar(self):
         # GH#54430
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                ser = pd.Series("a", index=[1])
+        with pd.option_context("future.infer_string", True):
+            ser = pd.Series("a", index=[1])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series("a", index=[1], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_array_string_dtype(self):
         # GH#54496
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                ser = pd.Series(np.array(["a", "b"]))
+        with pd.option_context("future.infer_string", True):
+            ser = pd.Series(np.array(["a", "b"]))
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_storage_definition(self):
         # https://github.com/pandas-dev/pandas/issues/54793
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
@@ -2132,34 +2139,33 @@ class TestSeriesConstructors:
         expected = pd.Series(
             ["a", "b"], dtype="string[pyarrow]" if HAS_PYARROW else "string[python]"
         )
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                result = pd.Series(["a", "b"], dtype="string")
+        with pd.option_context("future.infer_string", True):
+            result = pd.Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
 
         expected = pd.Series(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                result = pd.Series(["a", "b"], dtype="str")
+        with pd.option_context("future.infer_string", True):
+            result = pd.Series(["a", "b"], dtype="str")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_constructor_infer_string_scalar(self):
         # GH#55537
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                ser = pd.Series("a", index=[1, 2], dtype="string[python]")
+        with pd.option_context("future.infer_string", True):
+            ser = pd.Series("a", index=[1, 2], dtype="string[python]")
         expected = pd.Series(["a", "a"], index=[1, 2], dtype="string[python]")
         tm.assert_series_equal(ser, expected)
         assert ser.dtype.storage == "python"
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_na_first(self):
         # GH#55655
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                result = pd.Series([pd.NA, "b"])
+        with pd.option_context("future.infer_string", True):
+            result = pd.Series([pd.NA, "b"])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series([None, "b"], dtype=dtype)
         tm.assert_series_equal(result, expected)

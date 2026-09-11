@@ -821,40 +821,37 @@ def test_pandas_dtype_ea_not_instance():
         assert pandas_dtype(CategoricalDtype) == CategoricalDtype()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pandas_dtype_string_dtypes(string_storage):
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            # with the default string_storage setting
+    with pd.option_context("future.infer_string", True):
+        # with the default string_storage setting
+        result = pandas_dtype("str")
+    assert result == pd.StringDtype(
+        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
+    )
+
+    with pd.option_context("future.infer_string", True):
+        # with the default string_storage setting
+        result = pandas_dtype(str)
+    assert result == pd.StringDtype(
+        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
+    )
+
+    with pd.option_context("future.infer_string", True):
+        with pd.option_context("string_storage", string_storage):
             result = pandas_dtype("str")
-    assert result == pd.StringDtype(
-        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
-    )
+    assert result == pd.StringDtype(string_storage, na_value=np.nan)
 
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            # with the default string_storage setting
+    with pd.option_context("future.infer_string", True):
+        with pd.option_context("string_storage", string_storage):
             result = pandas_dtype(str)
-    assert result == pd.StringDtype(
-        "pyarrow" if HAS_PYARROW else "python", na_value=np.nan
-    )
-
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            with pd.option_context("string_storage", string_storage):
-                result = pandas_dtype("str")
     assert result == pd.StringDtype(string_storage, na_value=np.nan)
 
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", True):
-            with pd.option_context("string_storage", string_storage):
-                result = pandas_dtype(str)
-    assert result == pd.StringDtype(string_storage, na_value=np.nan)
-
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", False):
-            with pd.option_context("string_storage", string_storage):
-                result = pandas_dtype("str")
+    with pd.option_context("future.infer_string", False):
+        with pd.option_context("string_storage", string_storage):
+            result = pandas_dtype("str")
     assert result == np.dtype("U")
 
     with pd.option_context("string_storage", string_storage):

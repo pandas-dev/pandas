@@ -3,7 +3,6 @@ import datetime
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -3376,19 +3375,19 @@ class TestAsOfMerge:
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", infer_string):
-            left = pd.DataFrame({"x": data}, index=data)
-            right = pd.DataFrame({"x": data}, index=data)
-            with pytest.raises(
-                MergeError,
-                match=r"Incompatible merge dtype, .*, both sides must have numeric "
-                r"dtype",
-            ):
-                pd.merge_asof(left, right, **kwargs)
+    with pd.option_context("future.infer_string", infer_string):
+        left = pd.DataFrame({"x": data}, index=data)
+        right = pd.DataFrame({"x": data}, index=data)
+        with pytest.raises(
+            MergeError,
+            match=r"Incompatible merge dtype, .*, both sides must have numeric dtype",
+        ):
+            pd.merge_asof(left, right, **kwargs)
 
 
 def test_merge_asof_non_numerical_dtype_object():

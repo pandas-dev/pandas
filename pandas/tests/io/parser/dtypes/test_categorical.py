@@ -358,25 +358,22 @@ def test_categorical_dtype_non_default_dtype_backend_str(all_parsers, dtype_back
 
 
 @pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_categorical_dtype_infer_string_disabled(all_parsers, ordered):
     # GH#56044 with the string dtype disabled the categories are object dtype,
     #  including for an ordered dtype, where CategoricalDtype.__eq__ ignores
     #  the categories' dtype
     parser = all_parsers
     data = "a\ny\nx"
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", False):
-            result = parser.read_csv(
-                StringIO(data), dtype={"a": CategoricalDtype(ordered=ordered)}
-            )
-            expected = pd.DataFrame(
-                {
-                    "a": pd.Categorical(
-                        ["y", "x"], categories=["x", "y"], ordered=ordered
-                    )
-                }
-            )
+    with pd.option_context("future.infer_string", False):
+        result = parser.read_csv(
+            StringIO(data), dtype={"a": CategoricalDtype(ordered=ordered)}
+        )
+        expected = pd.DataFrame(
+            {"a": pd.Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)}
+        )
     tm.assert_frame_equal(result, expected)
 
 

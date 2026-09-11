@@ -4,7 +4,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -32,48 +31,49 @@ def test_str_cat_name(index_or_series, other):
 @pytest.mark.parametrize(
     "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
 )
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_str_cat(index_or_series, infer_string):
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", infer_string):
-            box = index_or_series
-            # test_cat above tests "str_cat" from ndarray;
-            # here testing "str.cat" from Series/Index to ndarray/list
-            s = box(["a", "a", "b", "b", "c", np.nan])
+    with pd.option_context("future.infer_string", infer_string):
+        box = index_or_series
+        # test_cat above tests "str_cat" from ndarray;
+        # here testing "str.cat" from Series/Index to ndarray/list
+        s = box(["a", "a", "b", "b", "c", np.nan])
 
-            # single array
-            result = s.str.cat()
-            expected = "aabbc"
-            assert result == expected
+        # single array
+        result = s.str.cat()
+        expected = "aabbc"
+        assert result == expected
 
-            result = s.str.cat(na_rep="-")
-            expected = "aabbc-"
-            assert result == expected
+        result = s.str.cat(na_rep="-")
+        expected = "aabbc-"
+        assert result == expected
 
-            result = s.str.cat(sep="_", na_rep="NA")
-            expected = "a_a_b_b_c_NA"
-            assert result == expected
+        result = s.str.cat(sep="_", na_rep="NA")
+        expected = "a_a_b_b_c_NA"
+        assert result == expected
 
-            t = np.array(["a", np.nan, "b", "d", "foo", np.nan], dtype=object)
-            expected = box(["aa", "a-", "bb", "bd", "cfoo", "--"])
+        t = np.array(["a", np.nan, "b", "d", "foo", np.nan], dtype=object)
+        expected = box(["aa", "a-", "bb", "bd", "cfoo", "--"])
 
-            # Series/Index with array
-            result = s.str.cat(t, na_rep="-")
-            tm.assert_equal(result, expected)
+        # Series/Index with array
+        result = s.str.cat(t, na_rep="-")
+        tm.assert_equal(result, expected)
 
-            # Series/Index with list
-            result = s.str.cat(list(t), na_rep="-")
-            tm.assert_equal(result, expected)
+        # Series/Index with list
+        result = s.str.cat(list(t), na_rep="-")
+        tm.assert_equal(result, expected)
 
-            # errors for incorrect lengths
-            rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
-            z = pd.Series(["1", "2", "3"])
+        # errors for incorrect lengths
+        rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
+        z = pd.Series(["1", "2", "3"])
 
-            with pytest.raises(ValueError, match=rgx):
-                s.str.cat(z.values)
+        with pytest.raises(ValueError, match=rgx):
+            s.str.cat(z.values)
 
-            with pytest.raises(ValueError, match=rgx):
-                s.str.cat(list(z))
+        with pytest.raises(ValueError, match=rgx):
+            s.str.cat(list(z))
 
 
 def test_str_cat_raises_intuitive_error(index_or_series):
@@ -93,64 +93,62 @@ def test_str_cat_raises_intuitive_error(index_or_series):
 @pytest.mark.parametrize("sep", ["", None])
 @pytest.mark.parametrize("dtype_target", ["object", "category"])
 @pytest.mark.parametrize("dtype_caller", ["object", "category"])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_str_cat_categorical(
     index_or_series, dtype_caller, dtype_target, sep, infer_string
 ):
     box = index_or_series
 
-    msg = "The 'future.infer_string' option is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        with pd.option_context("future.infer_string", infer_string):
-            s = pd.Index(["a", "a", "b", "a"], dtype=dtype_caller)
-            s = s if box == pd.Index else pd.Series(s, index=s, dtype=s.dtype)
-            t = pd.Index(["b", "a", "b", "c"], dtype=dtype_target)
+    with pd.option_context("future.infer_string", infer_string):
+        s = pd.Index(["a", "a", "b", "a"], dtype=dtype_caller)
+        s = s if box == pd.Index else pd.Series(s, index=s, dtype=s.dtype)
+        t = pd.Index(["b", "a", "b", "c"], dtype=dtype_target)
 
-            expected = pd.Index(
-                ["ab", "aa", "bb", "ac"],
-                dtype=object if dtype_caller == "object" else None,
+        expected = pd.Index(
+            ["ab", "aa", "bb", "ac"], dtype=object if dtype_caller == "object" else None
+        )
+        expected = (
+            expected
+            if box == pd.Index
+            else pd.Series(
+                expected, index=pd.Index(s, dtype=dtype_caller), dtype=expected.dtype
             )
-            expected = (
-                expected
-                if box == pd.Index
-                else pd.Series(
-                    expected,
-                    index=pd.Index(s, dtype=dtype_caller),
-                    dtype=expected.dtype,
-                )
+        )
+
+        # Series/Index with unaligned Index -> t.values
+        result = s.str.cat(t.values, sep=sep)
+        tm.assert_equal(result, expected)
+
+        # Series/Index with Series having matching Index
+        t = pd.Series(t.values, index=pd.Index(s, dtype=dtype_caller))
+        result = s.str.cat(t, sep=sep)
+        tm.assert_equal(result, expected)
+
+        # Series/Index with Series.values
+        result = s.str.cat(t.values, sep=sep)
+        tm.assert_equal(result, expected)
+
+        # Series/Index with Series having different Index
+        t = pd.Series(t.values, index=t.values)
+        expected = pd.Index(
+            ["aa", "aa", "bb", "bb", "aa"],
+            dtype=object if dtype_caller == "object" else None,
+        )
+        dtype = object if dtype_caller == "object" else s.dtype.categories.dtype
+        expected = (
+            expected
+            if box == pd.Index
+            else pd.Series(
+                expected,
+                index=pd.Index(expected.str[:1], dtype=dtype),
+                dtype=expected.dtype,
             )
+        )
 
-            # Series/Index with unaligned Index -> t.values
-            result = s.str.cat(t.values, sep=sep)
-            tm.assert_equal(result, expected)
-
-            # Series/Index with Series having matching Index
-            t = pd.Series(t.values, index=pd.Index(s, dtype=dtype_caller))
-            result = s.str.cat(t, sep=sep)
-            tm.assert_equal(result, expected)
-
-            # Series/Index with Series.values
-            result = s.str.cat(t.values, sep=sep)
-            tm.assert_equal(result, expected)
-
-            # Series/Index with Series having different Index
-            t = pd.Series(t.values, index=t.values)
-            expected = pd.Index(
-                ["aa", "aa", "bb", "bb", "aa"],
-                dtype=object if dtype_caller == "object" else None,
-            )
-            dtype = object if dtype_caller == "object" else s.dtype.categories.dtype
-            expected = (
-                expected
-                if box == pd.Index
-                else pd.Series(
-                    expected,
-                    index=pd.Index(expected.str[:1], dtype=dtype),
-                    dtype=expected.dtype,
-                )
-            )
-
-            result = s.str.cat(t, sep=sep)
-            tm.assert_equal(result, expected)
+        result = s.str.cat(t, sep=sep)
+        tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(

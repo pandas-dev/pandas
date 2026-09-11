@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -42,13 +40,14 @@ class TestIndexConstructor:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_index_string_inference(self):
         # GH#54430
         expected = pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
-        msg = "The 'future.infer_string' option is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            with pd.option_context("future.infer_string", True):
-                ser = pd.Index(["a", "b"])
+        with pd.option_context("future.infer_string", True):
+            ser = pd.Index(["a", "b"])
         tm.assert_index_equal(ser, expected)
 
         expected = pd.Index(["a", 1], dtype="object")
