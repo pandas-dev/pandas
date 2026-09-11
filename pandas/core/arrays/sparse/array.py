@@ -357,8 +357,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         float       ``np.nan``
         int         ``0``
         bool        False
-        datetime64  ``pd.NaT``
-        timedelta64 ``pd.NaT``
+        datetime64  ``np.datetime64("NaT")``
+        timedelta64 ``np.timedelta64("NaT")``
         =========== ==========
 
         The fill value is potentially specified in three ways. In order of
