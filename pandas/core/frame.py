@@ -5938,17 +5938,26 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
-        # ``str`` (the type) and ``StringDtype`` (from a "str"/"string" spec)
-        # both count as the user explicitly handling string columns.
-        string_specs = {str, StringDtype}
-        if (
-            np.object_ in include_set
-            and string_specs.isdisjoint(include_set)
-            and string_specs.isdisjoint(exclude_set)
-            and any(
-                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
-                for dtype in blk_dtypes
-            )
+
+        def is_handled(dtype: StringDtype) -> bool:
+            # A spec other than ``object`` that matches this column decides
+            # its fate whether or not ``object`` keeps selecting str columns
+            # (GH#61916).
+            for spec in include_set | exclude_set:
+                if spec is str:
+                    return True
+                if isinstance(spec, type):
+                    if issubclass(spec, ExtensionDtype) and isinstance(dtype, spec):
+                        return True
+                elif dtype == spec:
+                    return True
+            return False
+
+        if np.object_ in include_set and any(
+            isinstance(dtype, StringDtype)
+            and dtype.na_value is np.nan
+            and not is_handled(dtype)
+            for dtype in blk_dtypes
         ):
             # GH#61916
             warnings.warn(

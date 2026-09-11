@@ -992,6 +992,79 @@ def test_select_dtypes_ea_class_string_with_object_no_warning():
     tm.assert_frame_equal(result, df[["a"]])
 
 
+@pytest.mark.parametrize(
+    "kwargs, expected",
+    [
+        ({"include": object, "exclude": pd.StringDtype(na_value=np.nan)}, ["o"]),
+        ({"include": object, "exclude": ExtensionDtype}, ["o"]),
+        ({"include": [object, pd.StringDtype(na_value=np.nan)]}, ["s", "o"]),
+        ({"include": [object, ExtensionDtype]}, ["s", "o"]),
+    ],
+)
+def test_select_dtypes_str_dtype_named_by_instance_or_base_no_warning(kwargs, expected):
+    # GH#61916: a StringDtype instance or the ExtensionDtype base class names the
+    # str columns just as str and the StringDtype class do, so nothing to warn about
+    df = pd.DataFrame(
+        {
+            "s": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            "o": np.array([{"k": 1}, None], dtype=object),
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(**kwargs)
+    tm.assert_frame_equal(result, df[expected])
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        # the pd.NA flavor of StringDtype matches no column here
+        {"include": [object, pd.StringDtype()]},
+        # an extension dtype class, but not one the str column is an instance of
+        {"include": [object, pd.CategoricalDtype]},
+        {"include": object, "exclude": pd.CategoricalDtype},
+    ],
+)
+def test_select_dtypes_str_dtype_not_named_still_warns(kwargs):
+    # GH#61916: none of these specs match "s", so 'object' is still the only
+    # thing selecting it and the result will change
+    df = pd.DataFrame(
+        {
+            "s": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            "o": np.array([{"k": 1}, None], dtype=object),
+        }
+    )
+    msg = "For backward compatibility, 'str' dtypes are included"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(**kwargs)
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_dtypes_str_dtype_one_storage_named_still_warns():
+    # GH#61916: the spec names only the python-backed column, so "b" is still
+    # selected by 'object' alone and its fate does change
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {
+            "a": pd.array(
+                ["x", "y"], dtype=pd.StringDtype(storage="python", na_value=np.nan)
+            ),
+            "b": pd.array(
+                ["x", "y"], dtype=pd.StringDtype(storage="pyarrow", na_value=np.nan)
+            ),
+        }
+    )
+    msg = "For backward compatibility, 'str' dtypes are included"
+    spec = pd.StringDtype(storage="python", na_value=np.nan)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=[object, spec])
+    tm.assert_frame_equal(result, df)
+
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=[object, pd.StringDtype])
+    tm.assert_frame_equal(result, df)
+
+
 def test_select_dtypes_ea_base_class():
     # GH#65366: the ExtensionDtype base class matches all extension dtypes
     df = pd.DataFrame(
