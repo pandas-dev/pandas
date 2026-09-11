@@ -75,9 +75,11 @@ cpdef assert_almost_equal(a, b,
     a : object
     b : object
     rtol : float, default 1e-5
-        Relative tolerance.
+        Relative tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance.
+        Absolute tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None

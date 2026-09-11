@@ -27,22 +27,34 @@ keyword arguments, with the keyword naming the resulting column. As with
 earlier in the same call
 (:issue:`61522`, :issue:`40322`).
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame(
-        {
-            "first_name": ["John", "Alice", "Bob"],
-            "last_name": ["Smith", "Cooper", "Marley"],
-            "age": [61, 22, 35],
-        }
-    )
-    df.select("first_name", "last_name")
-    df.select("first_name", pd.col("age"), age_months=pd.col("age") * 12)
-    df.select(
-        "first_name",
-        age_months=pd.col("age") * 12,
-        age_days=pd.col("age_months") * 30,
-    )
+   >>> df = pd.DataFrame(
+   ...     {
+   ...         "first_name": ["John", "Alice", "Bob"],
+   ...         "last_name": ["Smith", "Cooper", "Marley"],
+   ...         "age": [61, 22, 35],
+   ...     }
+   ... )
+   >>> df.select("first_name", "last_name")
+     first_name last_name
+   0       John     Smith
+   1      Alice    Cooper
+   2        Bob    Marley
+   >>> df.select("first_name", pd.col("age"), age_months=pd.col("age") * 12)
+     first_name  age  age_months
+   0       John   61         732
+   1      Alice   22         264
+   2        Bob   35         420
+   >>> df.select(
+   ...     "first_name",
+   ...     age_months=pd.col("age") * 12,
+   ...     age_days=pd.col("age_months") * 30,
+   ... )
+     first_name  age_months  age_days
+   0       John         732     21960
+   1      Alice         264      7920
+   2        Bob         420     12600
 
 .. _whatsnew_310.enhancements.enhancement2:
 
@@ -679,10 +691,12 @@ Timedelta
 - Bug in adding or subtracting two :class:`Timedelta` objects where a result landing exactly on the ``NaT`` sentinel returned ``NaT``, e.g. ``Timedelta.min - Timedelta(1, "ns")``, instead of raising ``OutOfBoundsTimedelta`` as it already did one step further out (:issue:`66552`)
 - Bug in dividing a :class:`Timedelta` by a float :class:`numpy.ndarray` where a quotient outside the ``int64`` range silently saturated instead of raising ``OutOfBoundsTimedelta`` as the equivalent :class:`TimedeltaIndex` operation already did (:issue:`66552`)
 - Bug in dividing a :class:`Timedelta` by an integer, where the quotient was computed in ``float64`` and so was rounded once it exceeded ``2**53``; dividing ``Timedelta.min`` by ``1`` returned ``NaT`` and dividing ``Timedelta.max`` by ``1`` raised ``OverflowError`` instead of returning the original value (:issue:`66551`)
-- Bug in multiplying a :class:`Series` of ``timedelta64`` by an integer or float, or dividing it by a float, where an overflowing result silently wrapped or saturated instead of raising ``OutOfBoundsTimedelta``; multiplying by ``inf`` now raises ``OutOfBoundsTimedelta`` instead of returning ``NaT`` (:issue:`43178`)
+- Bug in multiplying a :class:`Series` of ``timedelta64`` by an integer or float, or dividing it by a float, where an overflowing result silently wrapped or saturated instead of raising ``OutOfBoundsTimedelta``; multiplying a non-zero value by ``inf`` now raises ``OutOfBoundsTimedelta`` instead of returning ``NaT`` (:issue:`43178`)
 - Bug in multiplying a :class:`Timedelta` by a NumPy integer or float scalar, where an overflowing product silently wrapped instead of raising and a ``np.float32`` multiplier lost precision, unlike the equivalent Python ``int`` or ``float`` (:issue:`66551`)
 - Bug in multiplying a :class:`Timedelta` by an integer or float :class:`numpy.ndarray` where an out-of-bounds product silently wrapped or saturated, and one landing exactly on the ``NaT`` sentinel came back as a missing value, instead of raising ``OutOfBoundsTimedelta`` as the equivalent :class:`TimedeltaIndex` operation already did (:issue:`66552`)
+- Bug in multiplying a zero :class:`Timedelta` by ``inf`` raising ``ValueError: cannot convert float NaN to integer`` instead of returning ``NaT`` as the equivalent :class:`TimedeltaIndex` and ``timedelta64`` :class:`Series` operations already did (:issue:`68392`)
 - Bug in multiplying or dividing a :class:`Timedelta` by a numeric scalar where a result landing exactly on the ``NaT`` sentinel raised a message-less ``AssertionError``, or under ``python -O`` returned a :class:`Timedelta` that was not ``NaT`` but read back as ``NaT`` once stored; these now raise ``OutOfBoundsTimedelta`` (:issue:`66551`)
+- Bug in multiplying or dividing a :class:`Timedelta` by a numeric scalar where an out-of-bounds result raised a bare ``OverflowError`` instead of ``OutOfBoundsTimedelta`` as the equivalent :class:`TimedeltaIndex` and ``timedelta64`` :class:`Series` operations already did (:issue:`68393`)
 - Bug in multiplying or dividing a :class:`Timedelta`, :class:`TimedeltaIndex` or ``timedelta64`` :class:`Series` by a whole-numbered ``float`` such as ``1.0``, where the operation was applied in ``float64`` and so was rounded once the result exceeded ``2**53``; ``Timedelta.min * 1.0`` returned ``NaT`` and ``Timedelta.max / 1.0`` raised ``OverflowError`` instead of returning the original value (:issue:`66551`)
 - Bug in the :class:`Series` and :class:`DataFrame` constructors not honoring the unit of a ``timedelta64[unit]`` dtype when constructing from floats or a mix of integers and floats, e.g. ``pd.Series([1.5, 90.0], dtype="timedelta64[s]")`` interpreted the numbers as nanoseconds and silently truncated them to zero instead of interpreting them as seconds (:issue:`63499`)
 
@@ -741,6 +755,7 @@ Conversion
 - Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
 - Fixed bug in :func:`to_numeric` where a string containing an embedded NUL byte was converted using only the bytes before the NUL, so e.g. ``"1.5\x00xyz"`` silently became ``1.5``; such values now raise, or become ``NaN`` with ``errors="coerce"`` (:issue:`66524`)
 - Fixed bug in :func:`to_numeric` where values preceding the first complex number in ``object``-dtype data were replaced with uninitialized memory, so e.g. ``to_numeric(Series(["1.5", 2j]))`` returned ``0j`` in place of ``1.5+0j`` (:issue:`35051`)
+- Fixed bug in :func:`to_numeric`, and the readers built on it such as :func:`read_html`, :func:`read_xml`, :func:`read_excel`, :func:`read_fwf` and :func:`read_csv` with ``engine="python"`` or ``dtype="category"``, where a value written with a leading ``+`` and leading zeros after the decimal point lost significant digits, so e.g. ``"+0.0001234567890123456789"`` kept only 14 of them and ``"+0.0000000000000000000000005"`` became ``0.0`` (:issue:`68311`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 - Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
@@ -842,6 +857,7 @@ MultiIndex
 I/O
 ^^^
 - :func:`read_csv` and :func:`read_table` now raise an informative ``ValueError`` for ``sep="\r"`` or ``delimiter="\r"``, which were silently mis-parsed into a frame of one column plus all-NaN padding, matching the error already raised for ``"\n"``; the error message no longer misattributes the failure to the ``python`` engine (:issue:`43528`, :issue:`51801`)
+- :func:`read_csv` and :func:`read_table` with ``thousands`` no longer lose significant digits from a value with leading zeros after the decimal point; previously ``0.0001234567890123456789`` kept only 14 of them and ``0.0000000000000000000000005`` came back as ``0.0`` (:issue:`68311`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``EmptyDataError`` (matching the ``c`` and ``python`` engines) instead of a cryptic ``ParserError`` reporting ``Empty CSV file or block`` when no columns can be parsed from the input (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``TypeError`` when passed a text-mode file handle (the engine requires a binary buffer) instead of a cryptic ``a bytes-like object is required`` error (:issue:`66065`)
@@ -1057,6 +1073,7 @@ Sparse
 - Bug in :meth:`DataFrame.count`, :meth:`DataFrame.sum`, :meth:`DataFrame.mean`, :meth:`DataFrame.min`, and :meth:`DataFrame.max` on :class:`SparseDtype` columns forcing the result into the column's own dtype: ``count`` returned ``1`` for every sparse column, the sum of a narrow integer column silently wrapped around, the mean of an integer column was truncated to an integer, and a missing result (e.g. from ``min_count`` or an empty column) came back as a fill value or raised (:issue:`55123`)
 - Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` on :class:`SparseDtype` columns returning a wrong label with ``skipna=False`` instead of raising when the column held a missing value, and emitting a spurious ``ComplexWarning`` on complex-valued columns (:issue:`68387`)
 - Bug in :meth:`DataFrame.prod`, :meth:`DataFrame.median`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.sem`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`DataFrame.describe`, and their :class:`Series` counterparts raising ``TypeError: cannot perform <op> with type Sparse[...]`` on :class:`SparseDtype` data; :meth:`SparseArray.prod`, :meth:`SparseArray.median`, :meth:`SparseArray.var`, :meth:`SparseArray.std`, :meth:`SparseArray.sem`, :meth:`SparseArray.skew`, and :meth:`SparseArray.kurt` now exist to match (:issue:`68194`)
+- Bug in :meth:`Series.any`, :meth:`Series.all`, :meth:`DataFrame.any`, :meth:`DataFrame.all`, :meth:`SparseArray.any`, and :meth:`SparseArray.all` mishandling missing values on :class:`SparseDtype` data: with ``skipna=True`` a missing value was reduced for its own truthiness instead of being skipped, and with ``skipna=False`` missing values were dropped instead of reduced; :meth:`SparseArray.any` and :meth:`SparseArray.all` also raised a ``TypeError`` when called with the ``skipna`` argument (:issue:`68390`)
 - Bug in :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin`, :meth:`Series.cummax` and their :class:`DataFrame` counterparts raising ``NotImplementedError`` on :class:`SparseDtype` data (:issue:`68187`)
 - Bug in :meth:`Series.mean` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
 - Bug in :meth:`Series.reindex` and alignment raising when extending a boolean :class:`SparseDtype`-backed :class:`Series`; missing entries now upcast to ``object`` to match the dense behavior (:issue:`32119`)
@@ -1077,6 +1094,7 @@ ExtensionArray
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Bug in the :class:`Series` constructor with an index but no data raising ``RecursionError`` for an :class:`~pandas.api.extensions.ExtensionDtype` whose ``na_value`` is dict-like, e.g. a nested or arrow-backed dtype (:issue:`33900`, :issue:`41377`)
+- Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 - Fixed bug in :meth:`Series.cummax` and :meth:`Series.cummin` (and their :class:`DataFrame` counterparts) with floating-point :class:`ArrowDtype` returning a finite sentinel value instead of the correct running maximum/minimum (:issue:`66257`)

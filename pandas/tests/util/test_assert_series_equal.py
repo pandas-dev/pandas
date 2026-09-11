@@ -631,6 +631,32 @@ def test_assert_series_equal_large_int_atol(dtype):
         )
 
 
+@pytest.mark.parametrize(
+    "left_values,right_values",
+    [
+        (
+            pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)]),
+            pd.arrays.IntervalArray.from_tuples([(1.5, 2.0)]),
+        ),
+        (pd.to_datetime(["2020-01-01"]), pd.to_datetime(["2020-01-02"])),
+        (pd.to_timedelta([1], unit="D"), pd.to_timedelta([2], unit="D")),
+        (
+            pd.period_range("2020-01-01", periods=1, freq="D"),
+            pd.period_range("2020-01-02", periods=1, freq="D"),
+        ),
+        (pd.array(["a"], dtype="str"), pd.array(["b"], dtype="str")),
+    ],
+)
+def test_assert_series_equal_tolerance_numeric_only(left_values, right_values):
+    # GH#43913 rtol/atol are documented as numeric-only; non-numeric dtypes
+    #  compare exactly no matter how large the tolerance
+    left = pd.Series(left_values)
+    right = pd.Series(right_values)
+
+    with pytest.raises(AssertionError, match="are different"):
+        tm.assert_series_equal(left, right, check_exact=False, rtol=10, atol=10)
+
+
 def test_assert_series_equal_check_like_check_freq():
     # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
     #  the freq check is skipped with check_like=True
