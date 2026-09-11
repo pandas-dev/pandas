@@ -848,9 +848,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        np.int64(2)
+        2
         >>> s.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -923,9 +923,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        np.int64(2)
+        2
         >>> s.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -1619,7 +1619,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: int64
 
         >>> ser.searchsorted(4)
-        np.int64(3)
+        3
 
         >>> ser.searchsorted([0, 4])
         array([0, 3])
@@ -1638,7 +1638,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: datetime64[us]
 
         >>> ser.searchsorted("3/14/2000")
-        np.int64(3)
+        3
 
         >>> ser = pd.Categorical(
         ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
