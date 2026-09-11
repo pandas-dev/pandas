@@ -346,13 +346,6 @@ class Index(IndexOpsMixin, PandasObject):
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible.
 
-    Notes
-    -----
-    The constructor accepts generally any iterable as `data`, with some notes:
-    - If a dict is provided, the keys will be used as the index values, and the values will be discarded.
-    - A string is not accepted, as this is considered as a scalar value and not as a collection of characters.
-    - A set is not accepted, as this is not ordered.
-
     See Also
     --------
     RangeIndex : Index implementing a monotonic integer range.
@@ -373,6 +366,11 @@ class Index(IndexOpsMixin, PandasObject):
     Python strings) instead of preserving NumPy object dtype. Values that
     NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
     not altered in the same way. To force object dtype, pass ``dtype=object``.
+
+    If a dict is provided as `data`, the keys will be used as the index values,
+    and the values will be discarded.
+    A string is not accepted, as this is considered as a scalar value and not
+    as a collection of characters.
 
     Examples
     --------
