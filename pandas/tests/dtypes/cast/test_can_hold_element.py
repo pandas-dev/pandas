@@ -174,3 +174,13 @@ def test_can_hold_element_ea_no_na_lossy_values(wrapper, backend):
     assert not can_hold_element(
         f32_arr, wrapper(pd.array([1e300, 2.0], dtype=float_dtype))
     )
+
+
+@pytest.mark.parametrize("wrapper", [lambda values: values, pd.Series, pd.Index])
+def test_can_hold_element_sparse_int(wrapper):
+    # SparseDtype has no itemsize, so these raised AttributeError
+    element = wrapper(pd.arrays.SparseArray([4, 0, 6]))
+
+    assert can_hold_element(np.array([], dtype=np.int64), element)
+    # int64 values are not held by a narrower dtype, same as for Int64
+    assert not can_hold_element(np.array([], dtype=np.int8), element)
