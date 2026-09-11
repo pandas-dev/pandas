@@ -961,7 +961,7 @@ class IntervalIndex(ExtensionIndex):
                     locs = np.array(locs, ndmin=1)
                 else:
                     # otherwise we have ndarray[bool]
-                    locs = np.where(locs)[0]  # type: ignore[arg-type]
+                    locs = np.where(locs)[0]
             except KeyError:
                 missing.append(i)
                 locs = np.array([-1])
