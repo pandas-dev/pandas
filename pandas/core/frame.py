@@ -5589,7 +5589,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             def matches_categorical_ordered(dtype_obj: DtypeObj) -> bool:
-                # GH#66119: an ordered CategoricalDtype with no categories
+                # GH#40234: an ordered CategoricalDtype with no categories
                 # names the ordered-categorical family, not one exact dtype
                 return isinstance(dtype_obj, CategoricalDtype) and bool(
                     dtype_obj.ordered
@@ -5732,8 +5732,7 @@ class DataFrame(NDFrame, OpsMixin):
                         else:
                             # a bare CategoricalDtype() is not a specific dtype,
                             # so match all categorical columns, as with the
-                            # "category" string. ordered=False lands here too,
-                            # being the constructor default.
+                            # "category" string
                             resolved.add(dtype.type)
                             funcs.append(matches_type(dtype.type))
                         continue
