@@ -23,6 +23,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    TypeGuard,
     cast,
     overload,
 )
@@ -5480,7 +5481,9 @@ class DataFrame(NDFrame, OpsMixin):
           of dtypes. Under-specified instances like a unitless
           ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
           ``pd.IntervalDtype("int64")`` without a ``closed`` select their
-          whole family
+          whole family; for intervals this holds per component, so
+          ``pd.IntervalDtype(np.dtype("M8"))`` matches every resolution and
+          every ``closed``
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5607,19 +5610,40 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
-            def matches_interval_subtype(
+            def is_unitless_datetimelike(dtype_obj: DtypeObj) -> bool:
+                return (
+                    lib.is_np_dtype(dtype_obj, "mM")
+                    and np.datetime_data(dtype_obj)[0] == "generic"
+                )
+
+            def is_partial_interval(target: DtypeObj) -> TypeGuard[IntervalDtype]:
+                # GH#66119, GH#66120: an interval spec that gives a subtype but
+                # leaves ``closed`` ("interval[int64]") or the subtype's unit
+                # ("interval[datetime64]") open describes no dtype a column can
+                # have, so ``==`` matches nothing.
+                return (
+                    isinstance(target, IntervalDtype)
+                    and target.subtype is not None
+                    and (
+                        target.closed is None
+                        or is_unitless_datetimelike(target.subtype)
+                    )
+                )
+
+            def matches_partial_interval(
                 target: IntervalDtype,
             ) -> Callable[[DtypeObj], bool]:
-                # GH#66119, GH#66120: an interval spec with a subtype but no
-                # ``closed`` (e.g. the string "interval[int64]" or the instance
-                # IntervalDtype("int64")) has closed=None, which ``==`` never
-                # matches since no column has closed=None. Treat it as naming
-                # the subtype family, matching that subtype for any closed.
+                # Each component the spec leaves open matches any value.
+                generic_unit = is_unitless_datetimelike(target.subtype)
+
                 def func(dtype_obj: DtypeObj) -> bool:
-                    return (
-                        isinstance(dtype_obj, IntervalDtype)
-                        and dtype_obj.subtype == target.subtype
-                    )
+                    if not isinstance(dtype_obj, IntervalDtype):
+                        return False
+                    if target.closed is not None and dtype_obj.closed != target.closed:
+                        return False
+                    if generic_unit:
+                        return dtype_obj.subtype.type is target.subtype.type
+                    return dtype_obj.subtype == target.subtype
 
                 return func
 
@@ -5699,16 +5723,10 @@ class DataFrame(NDFrame, OpsMixin):
                         resolved.add(dtype.type)
                         funcs.append(matches_type(dtype.type))
                         continue
-                    elif (
-                        isinstance(dtype, IntervalDtype)
-                        and dtype.subtype is not None
-                        and dtype.closed is None
-                    ):
-                        # GH#66119: a partially-specified IntervalDtype instance
-                        # (subtype but no closed, e.g. IntervalDtype("int64"))
-                        # names the subtype family, matching any closed value
+                    elif is_partial_interval(dtype):
+                        # GH#66119
                         resolved.add(dtype)
-                        ea_funcs.append(matches_interval_subtype(dtype))
+                        ea_funcs.append(matches_partial_interval(dtype))
                         continue
                     resolved.add(dtype)
                     instances.append(dtype)
@@ -5805,15 +5823,11 @@ class DataFrame(NDFrame, OpsMixin):
                                 # a bare name (e.g. "Int64", "category") names
                                 # the dtype's class and matches any instance.
                                 if "[" in dtype:
-                                    if (
-                                        isinstance(pdtype, IntervalDtype)
-                                        and pdtype.closed is None
-                                    ):
-                                        # GH#66120: "interval[int64]" resolves to
-                                        # closed=None; match the subtype family
+                                    if is_partial_interval(pdtype):
+                                        # GH#66120
                                         resolved.add(pdtype)
                                         ea_funcs.append(
-                                            matches_interval_subtype(pdtype)
+                                            matches_partial_interval(pdtype)
                                         )
                                     else:
                                         resolved.add(pdtype)
