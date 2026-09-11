@@ -347,6 +347,50 @@ class TestArgmaxArgmin:
         with pytest.raises(ValueError, match=msg):
             arr._reduce(method, skipna=False)
 
+    @pytest.mark.parametrize(
+        "data,fill_value,argmax_expected,argmin_expected",
+        [
+            ([np.nan, 0.0, 0.0], 0.0, 1, 1),
+            ([0.0, np.nan, 0.0], 0.0, 0, 0),
+            ([0.0, 0.0, np.nan], 0.0, 0, 0),
+            ([np.nan, 2.0, np.nan], 2.0, 1, 1),
+            ([np.nan, 3.0, np.nan, 3.0], 3.0, 1, 1),
+        ],
+    )
+    def test_argmax_argmin_all_stored_values_na(
+        self, data, fill_value, argmax_expected, argmin_expected
+    ):
+        # GH#68462 the fill value is the extremum when every stored value is NA
+        arr = SparseArray(data, fill_value=fill_value)
+        assert arr.argmax() == argmax_expected
+        assert arr.argmin() == argmin_expected
+
+        ser = pd.Series(data)
+        assert arr.argmax() == ser.argmax()
+        assert arr.argmin() == ser.argmin()
+
+    def test_argmax_argmin_only_fill_value(self):
+        # GH#68462 the argmin/argmax analogue of test_only_fill_value: nothing is
+        #  stored at all, so the fill value is the answer at position 0
+        fv = 100
+        arr = SparseArray(np.array([fv, fv, fv]), dtype=pd.SparseDtype("int", fv))
+        assert arr.sp_index.npoints == 0
+
+        assert arr.argmax() == 0
+        assert arr.argmin() == 0
+        assert arr.argmax(skipna=False) == 0
+        assert arr.argmin(skipna=False) == 0
+
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    @pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+    def test_all_na_still_raises(self, method, fill_value):
+        # GH#68462 the two ways the fill value fails to be a candidate: it is NA,
+        #  or every position is stored so it holds none
+        msg = f"attempt to get {method} of an empty sequence"
+        arr = SparseArray([np.nan, np.nan], fill_value=fill_value)
+        with pytest.raises(ValueError, match=msg):
+            getattr(arr, method)()
+
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_empty_array(self, method):
         msg = f"attempt to get {method} of an empty sequence"
@@ -749,3 +793,12 @@ def test_frame_idxmin_idxmax_skipna_false(method, fill_value):
     msg = "Encountered an NA value with skipna=False"
     with pytest.raises(ValueError, match=msg):
         getattr(df, method)(skipna=False)
+
+
+@pytest.mark.parametrize("method", ["idxmax", "idxmin"])
+def test_frame_idxmax_idxmin_all_stored_values_na(method):
+    # GH#68462 the fill value is the extremum when no stored value is non-NA
+    arr = SparseArray([np.nan, 0.0, 0.0], fill_value=0.0)
+    result = getattr(pd.DataFrame({"a": arr}), method)()
+    expected = pd.Series([1], index=["a"])
+    tm.assert_series_equal(result, expected)
