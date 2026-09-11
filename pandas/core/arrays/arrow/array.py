@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import (
     date,
     datetime,
+    time,
 )
 import functools
 import operator
@@ -62,10 +63,12 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
     is_string_dtype,
+    needs_i8_conversion,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    CategoricalDtype,
     DatetimeTZDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -272,6 +275,7 @@ if TYPE_CHECKING:
         ArrayLike,
         AxisInt,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         Iterator,
@@ -332,6 +336,91 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
         or pa.types.is_binary(pa_type)
         or pa.types.is_large_binary(pa_type)
     )
+
+
+def _is_temporal_pa_type(pa_type: pa.DataType) -> bool | None:
+    """
+    Whether `pa_type` is temporal, or None if it does not settle that.
+    """
+    if pa.types.is_dictionary(pa_type):
+        return _is_temporal_pa_type(pa_type.value_type)
+    if pa.types.is_temporal(pa_type):
+        return True
+    if (
+        pa.types.is_integer(pa_type)
+        or pa.types.is_floating(pa_type)
+        or pa.types.is_boolean(pa_type)
+        or pa.types.is_decimal(pa_type)
+    ):
+        return False
+    # null (all-NA), string (parseable to a timestamp), binary, list, struct
+    return None
+
+
+def _is_temporal_dtype(dtype: DtypeObj) -> bool | None:
+    """
+    Whether `dtype` is temporal, or None if it does not settle that.
+    """
+    if isinstance(dtype, ArrowDtype):
+        return _is_temporal_pa_type(dtype.pyarrow_dtype)
+    if isinstance(dtype, CategoricalDtype):
+        return _is_temporal_dtype(dtype.categories.dtype)
+    if dtype.kind in "mM" or needs_i8_conversion(dtype):
+        # kind catches wrappers such as SparseDtype("M8[ns]"); needs_i8_conversion
+        #  catches PeriodDtype, whose kind is "O"
+        return True
+    if dtype.kind in "iufbc":
+        return False
+    # str/bytes, object, and EA dtypes that do not pin a scalar type down.
+    #  Anything unrecognized has to land here: a wrong False would reject a
+    #  valid assignment, see test_setitem_temporal_still_accepted
+    return None
+
+
+def _is_all_na(value) -> bool:
+    """
+    Whether every entry of `value` is NA.
+    """
+    if isinstance(value, (pa.Array, pa.ChunkedArray)):
+        # pyarrow keeps NaN distinct from null, so a float NaN built as an arrow
+        #  value is a value here, unlike the numpy spelling below
+        return value.null_count == len(value)
+    if isinstance(value, pa.Scalar):
+        return False
+    return bool(np.asarray(isna(value)).all())
+
+
+def _is_temporal_value(value) -> bool | None:
+    """
+    Whether `value` is temporal, or None if its type does not settle that.
+
+    pyarrow converts a temporal value into an integer array without complaint
+    (`pa.array(dta, type=pa.int64())` succeeds), so a setitem has to reject the
+    reinterpretation before handing the value to `_box_pa` (GH#68419).
+    """
+    if is_scalar(value) and isna(value):
+        # NA of any flavor is settable into any dtype; a NaT scalar carries
+        #  an M8/m8 dtype, so this has to come before the dtype lookup
+        return None
+
+    value = extract_array(value, extract_numpy=True)
+    if isinstance(value, pa.Scalar):
+        # a typed null scalar is just "assign NA"; isna() does not recognize
+        #  pa.Scalar, so the guard above does not catch it
+        return None if not value.is_valid else _is_temporal_pa_type(value.type)
+    if isinstance(value, (pa.Array, pa.ChunkedArray)):
+        return _is_temporal_pa_type(value.type)
+
+    dtype = getattr(value, "dtype", None)
+    if dtype is None:
+        if is_list_like(value):
+            return None
+        if isinstance(value, (date, time)):
+            # infer_dtype_from_scalar maps both to object, which would leave the
+            #  scalar disagreeing with the date32/time64 array forms
+            return True
+        dtype = infer_dtype_from_scalar(value)[0]
+    return _is_temporal_dtype(dtype)
 
 
 @set_module("pandas.arrays")
@@ -1745,11 +1834,7 @@ class ArrowExtensionArray(
                     f" expected {len(self)}"
                 )
 
-        try:
-            fill_value = self._box_pa(value, pa_type=self._pa_array.type)
-        except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
-            raise TypeError(msg) from err
+        fill_value = self._validate_setitem_value(value)
 
         try:
             return self._from_pyarrow_array(
@@ -3159,6 +3244,16 @@ class ArrowExtensionArray(
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
+        self_temporal = _is_temporal_pa_type(self._pa_array.type)
+        if self_temporal is not None:
+            value_temporal = _is_temporal_value(value)
+            if value_temporal is not None and value_temporal != self_temporal:
+                # an all-NA value carries nothing to reinterpret; only the
+                #  temporal direction is rejected, matching int64/Int64, see
+                #  test_setitem_all_na_temporal_array_still_raises
+                if value_temporal or not _is_all_na(value):
+                    msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+                    raise TypeError(msg)
         try:
             value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:
