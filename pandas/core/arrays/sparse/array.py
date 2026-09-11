@@ -2376,6 +2376,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return result
 
         if len(inputs) == 1:
+            if method == "reduce":
+                # GH#68453 reducing sp_values alone would drop the gaps
+                return ufunc.reduce(self._densify(), **kwargs)
+
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
@@ -2389,9 +2393,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     for sp_value, fv in zip(sp_values, fill_value, strict=True)
                 )
                 return arrays
-            elif method == "reduce":
-                # e.g. reductions
-                return sp_values
 
             return self._simple_new(
                 sp_values, self.sp_index, SparseDtype(sp_values.dtype, fill_value)
