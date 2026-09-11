@@ -398,6 +398,13 @@ def test_loc_non_monotonic_index_with_a_missing_label():
         ser.loc[4:7]
 
 
+def test_setitem_sparse_int_into_int(indexer_sli):
+    # SparseDtype has no itemsize, so this raised AttributeError
+    ser = pd.Series([1, 2, 3])
+    indexer_sli(ser)[:] = pd.arrays.SparseArray([4, 0, 6])
+    tm.assert_series_equal(ser, pd.Series([4, 0, 6]))
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
