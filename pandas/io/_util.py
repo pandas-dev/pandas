@@ -17,6 +17,7 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     pa_version_under18p0,
     pa_version_under19p0,
+    pa_version_under25p0,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -332,13 +333,13 @@ def _normalize_timezone_index(index: pd.Index) -> pd.Index:
 
 def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     """
-    PyArrow uses pytz by default for timezones, but pandas uses
+    PyArrow below version 25 uses pytz by default for timezones, but pandas uses
     zoneinfo / datetime.timezone since pandas 3.0.
 
-    TODO: Starting with pyarrow 25, it will use zoneinfo by default, and then
-    this normalization can be skipped (https://github.com/apache/arrow/pull/49694).
+    Can be dropped once the minimum supported pyarrow is 25, which uses zoneinfo
+    itself (https://github.com/apache/arrow/pull/49694).
     """
-    if pytz is not None:
+    if pytz is not None and pa_version_under25p0:
         # Convert any pytz timezones to zoneinfo / fixed offset timezones
         if any(
             isinstance(dtype, pd.DatetimeTZDtype)

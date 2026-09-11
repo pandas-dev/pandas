@@ -142,10 +142,7 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         kwargs: dict[str, Any] = {}
-        if op_name in ["any", "all"] and isinstance(ser.array, pd.arrays.SparseArray):
-            # SparseArray.any/all do not accept a skipna argument
-            pass
-        elif op_name != "count":
+        if op_name != "count":
             kwargs["skipna"] = skipna
 
         # Non-default values, so a method that drops a kwarg mismatches _reduce.

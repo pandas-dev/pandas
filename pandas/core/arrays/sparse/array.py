@@ -145,8 +145,27 @@ if TYPE_CHECKING:
 
 # Reductions whose SparseArray method takes skipna and must be handed it directly.
 _skipna_aware_reductions = frozenset(
-    {"sum", "prod", "mean", "median", "var", "std", "sem", "skew", "kurt", "min", "max"}
+    {
+        "sum",
+        "prod",
+        "mean",
+        "median",
+        "var",
+        "std",
+        "sem",
+        "skew",
+        "kurt",
+        "min",
+        "max",
+        "any",
+        "all",
+        "argmin",
+        "argmax",
+    }
 )
+
+# Reductions whose result is a position in the array, not one of its values.
+_positional_reductions = frozenset({"argmin", "argmax"})
 
 # Reductions of complex input that give a real result.
 _complex_to_real_reductions = frozenset({"var", "std", "sem", "skew", "kurt"})
@@ -343,8 +362,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         float       ``np.nan``
         int         ``0``
         bool        False
-        datetime64  ``pd.NaT``
-        timedelta64 ``pd.NaT``
+        datetime64  ``np.datetime64("NaT")``
+        timedelta64 ``np.timedelta64("NaT")``
         =========== ==========
 
         The fill value is potentially specified in three ways. In order of
@@ -1655,7 +1674,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if keepdims:
             dtype = self.dtype
             result_dtype = np.asarray(result).dtype
-            if name in _complex_to_real_reductions and dtype.subtype.kind == "c":
+            if name in _positional_reductions:
+                # intp over result_dtype, which varies with which branch of
+                # _argmin_argmax answered.  See test_frame_idxmin_idxmax
+                dtype = SparseDtype(np.intp)
+            elif name in _complex_to_real_reductions and dtype.subtype.kind == "c":
                 # np.result_type below would widen the real result straight back to
                 # complex, and a complex fill value has no real counterpart. Gated on
                 # the reduction, not the result dtype; see
@@ -1689,9 +1712,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         return getattr(nanops, f"nan{name}")(self._densify(), skipna=skipna, **kwargs)
 
-    def all(self, axis=None, *args, **kwargs):
+    def all(self, axis=None, *args, skipna: bool = True, **kwargs) -> bool:
         """
         Tests whether all elements evaluate True
+
+        Parameters
+        ----------
+        axis : int, default None
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False, NA is evaluated for truthiness
+            like any other value.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------
@@ -1702,17 +1735,38 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         numpy.all
         """
         nv.validate_all(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
 
         values = self.sp_values
+        fill_value = self.fill_value
+        if skipna:
+            # NaN and NaT are truthy, which is already what skipping them means for
+            #  all() (see nanops.nanall); only a falsy object None needs the mask
+            if values.dtype.kind == "O":
+                values = self._valid_sp_values
+            if isna(fill_value):
+                fill_value = True
 
-        if len(values) != len(self) and not np.all(self.fill_value):
+        # not np.all(): an object pd.NA fill then raises like dense; see
+        #  test_any_all_na_fill_value
+        if self.sp_index.ngaps > 0 and not fill_value:
             return False
 
-        return values.all()
+        return values.all().item()
 
-    def any(self, axis: AxisInt = 0, *args, **kwargs) -> bool:
+    def any(self, axis: AxisInt = 0, *args, skipna: bool = True, **kwargs) -> bool:
         """
         Tests whether at least one of elements evaluate True
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Not Used. NumPy compatibility.
+        skipna : bool, default True
+            Exclude NA/null values. If False, NA is evaluated for truthiness
+            like any other value.
+        *args, **kwargs
+            Not Used. NumPy compatibility.
 
         Returns
         -------
@@ -1723,10 +1777,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         numpy.any
         """
         nv.validate_any(args, kwargs)
+        skipna = validate_bool_kwarg(skipna, "skipna")
 
         values = self.sp_values
+        fill_value = self.fill_value
+        if skipna:
+            # unlike all(), a truthy NaN does change the answer (see nanops.nanany),
+            #  so every subtype that can hold NA needs the mask
+            if values.dtype.kind not in "biu":
+                values = self._valid_sp_values
+            if isna(fill_value):
+                fill_value = False
 
-        if len(values) != len(self) and np.any(self.fill_value):
+        # not np.any(); see the note in all()
+        if self.sp_index.ngaps > 0 and fill_value:
             return True
 
         return values.any().item()
