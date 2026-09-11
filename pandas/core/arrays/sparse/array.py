@@ -48,6 +48,7 @@ from pandas.util._validators import (
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
+    can_hold_element,
     construct_1d_object_array_from_listlike,
     find_common_type,
     maybe_box_datetimelike,
@@ -336,6 +337,28 @@ def _wrap_result(
 
 _BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
 _BOOL_SPARSE_DTYPE_TRUE_FILL = SparseDtype(bool, True)
+
+
+def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
+    """
+    Dense dtype wide enough to hold ``fill_value``, and ``fill_value`` unboxed.
+
+    ``maybe_promote`` is no good on its own: its datetime64 arm widens to ``M8[ns]``
+    whenever the fill value's unit differs, so a ``Timestamp`` would pull a
+    ``Sparse[M8[s]]`` up to nanoseconds.  A ``Timestamp``/``Timedelta`` is unboxed
+    because ``np.full`` would otherwise truncate it to microseconds.
+    """
+    dummy = ensure_wrapped_if_datetimelike(np.empty(0, dtype=dtype))
+    if can_hold_element(dummy, fill_value):
+        if dtype.kind in "mM":
+            # an object dtype holds these as-is; only a datetimelike array needs
+            #  the numpy scalar, and only it rejects np.nan in place of NaT
+            if isna(fill_value):
+                fill_value = dtype.type("NaT")
+            elif isinstance(fill_value, (Timestamp, Timedelta)):
+                fill_value = fill_value.asm8
+        return dtype, fill_value
+    return maybe_promote(dtype, fill_value)
 
 
 @set_module("pandas.arrays")
@@ -1233,9 +1256,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(self) == 0:
             # Empty... Allow taking only if all empty
             if (indices == -1).all():
-                dtype = np.result_type(self.sp_values, type(fill_value))
+                dtype, new_fill = _promote_for_fill(self.sp_values.dtype, fill_value)
                 taken = np.empty_like(indices, dtype=dtype)
-                taken.fill(fill_value)
+                taken.fill(new_fill)
                 return taken
             else:
                 raise IndexError("cannot do a non-empty take from an empty axes.")
@@ -1249,19 +1272,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if self.sp_index.npoints == 0 and old_fill_indices.all():
             # We've looked up all valid points on an all-sparse array.
-            taken = np.full(
-                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
-            )
+            _dtype, old_fill = _promote_for_fill(self.dtype.subtype, self.fill_value)
+            taken = np.full(sp_indexer.shape, old_fill, dtype=_dtype)
 
         elif self.sp_index.npoints == 0:
             # Use the old fill_value unless we took for an index of -1
-            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
-            if self.dtype.subtype.kind == "b" and _dtype.kind != "b":
-                # GH#32119 numpy bool can't hold a non-bool (e.g. NA) fill;
-                #  match the dense reindex behavior and upcast to object
-                _dtype = np.dtype(object)
-            taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
-            taken[old_fill_indices] = self.fill_value
+            _dtype, new_fill = _promote_for_fill(self.dtype.subtype, fill_value)
+            _dtype, old_fill = _promote_for_fill(_dtype, self.fill_value)
+            taken = np.full(sp_indexer.shape, new_fill, dtype=_dtype)
+            taken[old_fill_indices] = old_fill
         else:
             taken = self.sp_values.take(sp_indexer)
 
@@ -1276,18 +1295,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             result_type = taken.dtype
 
             if m0.any():
-                result_type = np.result_type(result_type, type(self.fill_value))
-                taken = taken.astype(result_type)
-                taken[old_fill_indices] = self.fill_value
+                result_type, old_fill = _promote_for_fill(result_type, self.fill_value)
+                taken = taken.astype(result_type, copy=False)
+                taken[old_fill_indices] = old_fill
 
             if m1.any():
-                result_type = np.result_type(result_type, type(fill_value))
-                if taken.dtype.kind == "b" and result_type.kind != "b":
-                    # GH#32119 numpy bool can't hold a non-bool (e.g. NA)
-                    #  fill; match the dense reindex behavior (bool -> object)
-                    result_type = np.dtype(object)
-                taken = taken.astype(result_type)
-                taken[new_fill_indices] = fill_value
+                result_type, new_fill = _promote_for_fill(result_type, fill_value)
+                taken = taken.astype(result_type, copy=False)
+                taken[new_fill_indices] = new_fill
 
         return taken
 
