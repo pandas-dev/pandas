@@ -269,6 +269,107 @@ if TYPE_CHECKING:
     from pandas.io.formats.style import Styler
 
 
+# Rows-per-block threshold below which the fused prod/min/max path in
+# DataFrame._reduce_axis1 is skipped: for short blocks the eligibility
+# checks can cost more than the temporaries and passes they avoid.
+# Sum also skips per-block nanops overhead and is not gated.
+_AXIS1_FUSE_MIN_ROWS = 32_768
+
+_AXIS1_FUSE_DTYPES = ("int64", "uint64", "float32", "float64")
+
+
+def _can_fuse_axis1_block(values: ArrayLike, ufunc: np.ufunc) -> TypeGuard[np.ndarray]:
+    """
+    Check whether ``values`` is a block eligible for the in-place axis=1
+    reduction fast path in DataFrame._reduce_axis1: a C-contiguous,
+    native-byte-order, 2D numpy block whose dtype ``ufunc`` handles
+    without casting.
+    """
+    if not isinstance(values, np.ndarray):
+        return False
+    dtype = values.dtype
+    if (
+        values.ndim != 2
+        or values.shape[0] < 1
+        or not values.flags.c_contiguous
+        or not dtype.isnative
+        or dtype not in _AXIS1_FUSE_DTYPES
+    ):
+        return False
+    resolved_dtypes = ufunc.resolve_dtypes((dtype, dtype, None))
+    return resolved_dtypes == (dtype, dtype, dtype)
+
+
+def _can_fuse_axis1_into(
+    values: ArrayLike, result: ArrayLike, ufunc: np.ufunc
+) -> TypeGuard[np.ndarray]:
+    """
+    Check whether an eligible block can be folded into ``result`` in
+    place: directly when dtypes match; by casting the block's folded rows
+    during the combine when ``result``'s dtype dominates numpy promotion;
+    or after promoting ``result`` once when the block's dtype dominates.
+    Promotions that would change both operands (e.g. int64 + uint64 ->
+    float64) are left to the generic path.
+    """
+    if not isinstance(result, np.ndarray):
+        return False
+    if not (
+        _can_fuse_axis1_block(values, ufunc)
+        and values.shape[1:] == result.shape
+        and result.flags.owndata
+        and result.flags.writeable
+        and not np.shares_memory(values, result)
+    ):
+        return False
+    if result.dtype == values.dtype:
+        return True
+    promoted = np.promote_types(result.dtype, values.dtype)
+    if promoted == values.dtype:
+        # caller promotes ``result`` via astype, then folds natively
+        return True
+    if promoted != result.dtype or result.dtype not in _AXIS1_FUSE_DTYPES:
+        return False
+    resolved_dtypes = ufunc.resolve_dtypes((result.dtype, result.dtype, None))
+    return resolved_dtypes == (result.dtype, result.dtype, result.dtype)
+
+
+def _fold_axis1_block(
+    vals: np.ndarray, out: np.ndarray, name: str, skipna: bool, ufunc: np.ufunc
+) -> None:
+    """
+    Accumulate the rows of a (k, n) block into ``out`` (pre-allocated with
+    shape (n,) and the block's dtype), reproducing bitwise what the
+    block-wise reduction loop in DataFrame._reduce_axis1 computes for the
+    block.  Float sums with skipna and a single output element delegate
+    to nanops to retain NumPy's pairwise summation along the contiguous
+    reduction axis.  Other float sum/prod reductions with skipna start
+    from the operation's identity and accumulate rows in order, replacing
+    NaN with that identity.  The identity seed preserves exact-zero signs
+    ((+0.0) + (-0.0) is +0.0).  Everything else is a single ufunc
+    reduction written into ``out``.
+    """
+    if name in ("sum", "prod") and skipna and vals.dtype.kind == "f":
+        if name == "sum" and vals.shape[1] == 1:
+            out[:] = nanops.nansum(vals, axis=0, skipna=True)
+            return
+        fill = 0 if name == "sum" else 1
+        out[:] = fill
+        rowbuf = None
+        for i in range(vals.shape[0]):
+            row = vals[i]
+            mask = isna(row)
+            if mask.any():
+                if rowbuf is None:
+                    rowbuf = np.empty_like(out)
+                np.copyto(rowbuf, row)
+                rowbuf[mask] = fill
+                ufunc(out, rowbuf, out=out)
+            else:
+                ufunc(out, row, out=out)
+    else:
+        ufunc.reduce(vals, axis=0, out=out)
+
+
 # -----------------------------------------------------------------------
 # DataFrame class
 
@@ -17220,8 +17321,58 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             raise NotImplementedError(name)
 
+        scratch = None
         for block in self._mgr.blocks:
             vals = block.values
+            if name == "sum" or (
+                name in ("prod", "min", "max")
+                and vals.ndim == 2
+                and vals.shape[1] >= _AXIS1_FUSE_MIN_ROWS
+            ):
+                # For eligible numpy blocks, accumulate rows into the
+                # running result in place.  This avoids the per-block
+                # ``middle`` temporary, the combine temporary, and (for
+                # sum/prod) the nanops mask/copy/fill passes, while
+                # remaining bitwise-identical to the reduction below.
+                if result is None:
+                    if _can_fuse_axis1_block(vals, ufunc):
+                        result = np.empty(vals.shape[1], dtype=vals.dtype)
+                        _fold_axis1_block(vals, result, name, skipna, ufunc)
+                        continue
+                elif _can_fuse_axis1_into(vals, result, ufunc):
+                    if result.dtype != vals.dtype and (
+                        np.promote_types(result.dtype, vals.dtype) == vals.dtype
+                    ):
+                        # the block's dtype dominates promotion: promote
+                        # the accumulator once (bitwise-identical to the
+                        # element-wise cast the promoting combine below
+                        # would perform), then fold natively in place
+                        result = result.astype(vals.dtype)
+                    if (
+                        vals.shape[0] == 1
+                        and result.dtype == vals.dtype
+                        and (name in ("min", "max") or vals.dtype.kind != "f")
+                    ):
+                        # singleton block whose per-block reduction is
+                        # exactly its row (min/max of one row, or integer
+                        # sum/prod where the identity seed is invisible):
+                        # fold the row in directly with no temporary.
+                        # Float sum/prod singletons go through the fold
+                        # below instead, because numpy's identity-seeded
+                        # reduction can flip the sign of exact-zero
+                        # results relative to a raw add of the row.
+                        ufunc(result, vals[0], out=result)
+                    else:
+                        # fold the block in its own dtype, then combine
+                        # into ``result`` in place; when dtypes differ the
+                        # combine casts the folded rows exactly as the
+                        # promoting combine below would
+                        if scratch is None or scratch.dtype != vals.dtype:
+                            scratch = np.empty_like(result, dtype=vals.dtype)
+                        _fold_axis1_block(vals, scratch, name, skipna, ufunc)
+                        ufunc(result, scratch, out=result)
+                    continue
+
             if name in ("min", "max"):
                 middle = ufunc.reduce(vals, axis=0)  # type: ignore[arg-type]
             elif name == "mean":

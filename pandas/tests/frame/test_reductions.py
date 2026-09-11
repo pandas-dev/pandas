@@ -22,6 +22,7 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+import pandas.core.frame as frame_module
 from pandas.tests.extension.decimal import DecimalArray
 
 is_windows_np2_or_is32 = not IS64
@@ -2096,6 +2097,157 @@ class TestDataFrameReductions:
                     check_names=False,
                 )
 
+    @pytest.mark.parametrize("method", ["sum", "prod", "min", "max"])
+    @pytest.mark.parametrize("dtype", ["int64", "uint64", "float32", "float64"])
+    def test_reduce_axis1_fused_matches_fallback(
+        self, monkeypatch, method, dtype, skipna
+    ):
+        nrows = 4096 if method == "sum" else 32_768
+        df = pd.DataFrame(index=range(nrows))
+        dtype_obj = np.dtype(dtype)
+        for i in range(4):
+            if dtype_obj.kind == "f":
+                values = (((np.arange(nrows) + i) % 7) - 3).astype(dtype) / 4
+                values[0] = np.nan
+                if i == 0:
+                    values[1] = np.nan
+                values[2] = np.inf
+                values[3] = -np.inf
+                values[4] = -0.0 if i == 0 else 0.0
+            elif dtype_obj.kind == "u":
+                values = ((np.arange(nrows) + i) % 4).astype(dtype)
+                values[0] = np.iinfo(dtype_obj).max
+            else:
+                values = (((np.arange(nrows) + i) % 5) - 2).astype(dtype)
+                values[0] = np.iinfo(dtype_obj).max
+            df[f"column-{i}"] = values
+
+        assert len(df._mgr.blocks) == 4
+        with monkeypatch.context() as context:
+            context.setattr(
+                frame_module, "_can_fuse_axis1_block", lambda values, ufunc: False
+            )
+            expected = getattr(df, method)(axis=1, skipna=skipna)
+
+        result = getattr(df, method)(axis=1, skipna=skipna)
+
+        tm.assert_series_equal(result, expected, check_exact=True)
+        if dtype_obj.kind == "f":
+            valid = ~(result.isna() | expected.isna())
+            tm.assert_numpy_array_equal(
+                np.signbit(result[valid].to_numpy()),
+                np.signbit(expected[valid].to_numpy()),
+            )
+
+    @pytest.mark.parametrize("method", ["sum", "prod", "min", "max"])
+    @pytest.mark.parametrize(
+        "dtypes",
+        [
+            ("float64", "float32"),
+            ("float32", "float64"),
+            ("int64", "uint64"),
+        ],
+        ids=["accumulator-dominates", "block-dominates", "two-sided-promotion"],
+    )
+    def test_reduce_axis1_fused_promotion_matches_fallback(
+        self, monkeypatch, method, dtypes, skipna
+    ):
+        nrows = 4096 if method == "sum" else 32_768
+        df = pd.DataFrame(index=range(nrows))
+        for i, dtype in enumerate(dtypes):
+            values = ((np.arange(nrows) + i) % 3).astype(dtype)
+            if np.dtype(dtype).kind == "f":
+                values[::997] = np.nan
+            df[f"column-{i}"] = values
+
+        assert len(df._mgr.blocks) == 2
+        with monkeypatch.context() as context:
+            context.setattr(
+                frame_module, "_can_fuse_axis1_block", lambda values, ufunc: False
+            )
+            expected = getattr(df, method)(axis=1, skipna=skipna)
+
+        result = getattr(df, method)(axis=1, skipna=skipna)
+
+        tm.assert_series_equal(result, expected, check_exact=True)
+
+    @pytest.mark.parametrize(
+        "method,nrows,uses_fused_path",
+        [
+            ("sum", 1, True),
+            ("prod", 32_767, False),
+            ("min", 32_767, False),
+            ("max", 32_767, False),
+            ("prod", 32_768, True),
+            ("min", 32_768, True),
+            ("max", 32_768, True),
+        ],
+    )
+    def test_reduce_axis1_fused_routing(
+        self, monkeypatch, method, nrows, uses_fused_path
+    ):
+        df = pd.DataFrame(index=range(nrows))
+        df["a"] = np.arange(nrows, dtype="float64")
+        df["b"] = np.arange(nrows, dtype="float64")
+        assert len(df._mgr.blocks) == 2
+
+        calls = []
+        original = frame_module._fold_axis1_block
+
+        def wrapped(*args, **kwargs):
+            calls.append(args[0])
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(frame_module, "_fold_axis1_block", wrapped)
+
+        getattr(df, method)(axis=1)
+
+        assert bool(calls) is uses_fused_path
+
+    def test_reduce_axis1_fused_block_eligibility(self):
+        valid = np.empty((2, 4), dtype="float64")
+        assert frame_module._can_fuse_axis1_block(valid, np.add)
+
+        non_native = np.empty((2, 4), dtype=np.dtype("float64").newbyteorder("S"))
+        rejected = [
+            np.empty(4, dtype="float64"),
+            np.empty((0, 4), dtype="float64"),
+            np.empty((2, 4), dtype="int32"),
+            np.asfortranarray(valid),
+            non_native,
+            pd.array([1, 2, 3, 4], dtype="Int64"),
+        ]
+        for values in rejected:
+            assert not frame_module._can_fuse_axis1_block(values, np.add)
+
+    @pytest.mark.parametrize(
+        "values_dtype,result_dtype,expected",
+        [
+            ("float64", "float64", True),
+            ("float32", "float64", True),
+            ("float64", "float32", True),
+            ("uint64", "int64", False),
+        ],
+    )
+    def test_reduce_axis1_fused_result_eligibility(
+        self, values_dtype, result_dtype, expected
+    ):
+        values = np.arange(8, dtype=values_dtype).reshape(2, 4)
+        result = np.empty(4, dtype=result_dtype)
+
+        assert frame_module._can_fuse_axis1_into(values, result, np.add) is expected
+
+        if expected:
+            readonly = result.copy()
+            readonly.flags.writeable = False
+            assert not frame_module._can_fuse_axis1_into(values, readonly, np.add)
+
+            view = np.empty(8, dtype=result_dtype)[::2]
+            assert not frame_module._can_fuse_axis1_into(values, view, np.add)
+
+            aliased = values[0]
+            assert not frame_module._can_fuse_axis1_into(values, aliased, np.add)
+
     @pytest.mark.parametrize("method", ["min", "max"])
     def test_reduce_axis1_dt64tz_with_nat(self, method):
         # GH#65500: axis=1 min/max on multi-block dt64tz frames with NaT
@@ -3157,3 +3309,21 @@ def test_numeric_only_validates_bool():
     df_num.mean(numeric_only=False)
     df_num.sum(numeric_only=True)
     df_num.std(numeric_only=True)
+
+
+@pytest.mark.parametrize("dtype", ["float32", "float64"])
+@pytest.mark.parametrize("ncols", [8, 128])
+@pytest.mark.parametrize("has_na", [False, True])
+def test_reduce_axis1_float_sum_pairwise(dtype, ncols, has_na, skipna):
+    # A one-row float block has a contiguous reduction axis. Preserve NumPy's
+    # pairwise summation order when another dtype adds a second block.
+    large = 1e8 if dtype == "float32" else 1e16
+    values = np.array([large, 1, -large, 1] * (ncols // 4), dtype=dtype)
+    if has_na:
+        values = np.append(values, np.array([np.nan], dtype=dtype))
+    df = pd.DataFrame(values.reshape(1, -1))
+    df["integer"] = np.array([0], dtype="int64")
+
+    result = df.sum(axis=1, skipna=skipna)
+    expected = pd.Series([np.nan if has_na and not skipna else 0.0])
+    tm.assert_series_equal(result, expected, check_exact=True)
