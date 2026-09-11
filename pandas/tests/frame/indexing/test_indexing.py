@@ -1981,7 +1981,7 @@ def test_error_raised_from_custom_hash_method():
         def __repr__(self):
             return f"testkey({self.value})"
 
-    df = DataFrame({"i": map(testkey, range(10))}).set_index("i")
+    df = pd.DataFrame({"i": map(testkey, range(10))}).set_index("i")
     for i in range(len(df.index)):
         key = testkey(i)
         with pytest.raises(
