@@ -226,19 +226,14 @@ def _maybe_get_mask(
     """
     Compute a mask if and only if necessary.
 
-    This function will compute a mask iff it is necessary. Otherwise,
-    return the provided mask (potentially None) when a mask does not need to be
-    computed.
+    An explicit `mask` is returned unchanged; the values it marks need not be
+    NaN (a masked array stores fill values there).  Otherwise one is computed
+    with isna(), but only where it is needed: never for boolean or integer
+    values, which cannot store NaN, and under skipna=False only for
+    datetime64/timedelta64, whose NaT stops being detectable once `_get_values`
+    views it as i8 (GH#37392).
 
-    A mask is never necessary if the values array is of boolean or integer
-    dtypes, as these are incapable of storing NaNs. If passing a NaN-capable
-    dtype that is interpretable as either boolean or integer data (eg,
-    timedelta64), a mask must be provided.
-
-    If the skipna parameter is False, a new mask will not be computed.
-
-    The mask is computed using isna() by default. Setting invert=True selects
-    notna() as the masking function.
+    A caller that already holds that i8 view must pass its own mask.
 
     Parameters
     ----------
@@ -1221,7 +1216,7 @@ def nanstd(
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
         where N represents the number of elements.
     mask : ndarray[bool], optional
-        nan-mask if known
+        NA-mask if known
 
     Returns
     -------
@@ -1274,7 +1269,7 @@ def nanvar(
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
         where N represents the number of elements.
     mask : ndarray[bool], optional
-        nan-mask if known
+        NA-mask if known
 
     Returns
     -------
@@ -1294,10 +1289,9 @@ def nanvar(
         return cast("float", _na_for_min_count(values, axis))
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
-    if dtype.kind in "iu":
+    if dtype.kind in "biu":
+        # bool: the np.nan putmask below would write True into a bool array
         values = values.astype("f8")
-        if mask is not None:
-            values[mask] = np.nan
     elif dtype.kind == "c":
         # https://en.wikipedia.org/wiki/Complex_random_variable#Variance_and_pseudo-variance
         # The variance is equal to the sum of
@@ -1311,9 +1305,10 @@ def nanvar(
     else:
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
 
-    if skipna and mask is not None:
+    if mask is not None:
         values = values.copy()
-        np.putmask(values, mask, 0)
+        # GH#65373 an explicit mask marks NA, so skipna=False propagates
+        np.putmask(values, mask, 0 if skipna else np.nan)
 
     # xref GH10242
     # Compute variance via two-pass algorithm, which is stable against
@@ -1364,7 +1359,7 @@ def nansem(
         Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
         where N represents the number of elements.
     mask : ndarray[bool], optional
-        nan-mask if known
+        NA-mask if known
 
     Returns
     -------
@@ -1387,12 +1382,6 @@ def nansem(
     # Convert to bottleneck return a float
     if values.dtype.kind not in "fc":
         values = values.astype("f8")
-
-    if not skipna and mask is not None:
-        # For masked arrays, the values underneath `mask` are fill values
-        # rather than NaN, so NaN would not otherwise propagate. GH#65373
-        values = values.copy()
-        np.putmask(values, mask, np.nan)
 
     dtype_count = np.dtype(np.float64)
     if values.dtype.kind == "f":
