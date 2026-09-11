@@ -220,40 +220,6 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-// GH#57052
-// this function assumes PyErr_Occurred is checked further up the call stack
-static inline bool pandas_is_NA(PyTypeObject *t) {
-  PyObject *module = NULL;
-  PyObject *na_type = NULL;
-  static PyTypeObject *pandas_na_type = NULL;
-  bool is_na = false;
-
-  if (pandas_na_type == NULL) {
-    if ((module = PyImport_ImportModule("pandas._libs.missing")) == NULL) {
-      goto end;
-    }
-    if ((na_type = PyObject_GetAttrString(module, "NAType")) == NULL) {
-      goto end;
-    }
-    if (PyType_Check(na_type) == 0) {
-      goto end;
-    }
-    // keep a reference to NAType forever (until the interpreter exits) to
-    // ensure pandas_na_type never points to an invalid address.
-    // this is a hack and should be cleaned up, possibly by generating NAType
-    // in this header or upstream of whatever compilation unit this header gets
-    // pulled into
-    Py_INCREF(na_type);
-    pandas_na_type = (PyTypeObject *)na_type;
-  }
-
-end:
-  is_na = t == pandas_na_type;
-  Py_XDECREF(na_type);
-  Py_XDECREF(module);
-  return is_na;
-}
-
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (PyErr_Occurred() != NULL) {
     return 0;
@@ -262,9 +228,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     return 1;
   }
 
-  PyTypeObject *a_type = Py_TYPE(a);
-  PyTypeObject *b_type = Py_TYPE(b);
-  if (a_type == b_type) {
+  if (Py_TYPE(a) == Py_TYPE(b)) {
     // special handling for some built-in types which could have NaNs
     // as we would like to have them equivalent, but the usual
     // PyObject_RichCompareBool would return False
@@ -280,16 +244,28 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     }
     // frozenset isn't yet supported
   }
-  if (pandas_is_NA(a_type) || pandas_is_NA(b_type)) {
-    // GH#57052: PyObject_RichCompareBool would raise
-    // because comparing anything to pd.NA returns pd.NA
+
+  // a.__eq__(b)
+  PyObject *cmp_result = PyObject_RichCompare(a, b, Py_EQ);
+  if (cmp_result == NULL) {
     return 0;
   }
 
-  int result = PyObject_RichCompareBool(a, b, Py_EQ);
-  if (result < 0) {
-    return 0;
+  int result = 0;
+  if (PyBool_Check(cmp_result)) {
+    // __eq__ returned a python bool, check if it is True
+    result = cmp_result == Py_True;
+  } else {
+    // __eq__ did not return a bool, check if it is truthy
+    result = PyObject_IsTrue(cmp_result);
+    if (result < 0) {
+      // converting the result to a bool failed,
+      // assume false and clear exception
+      PyErr_Clear();
+      result = 0;
+    }
   }
+  Py_XDECREF(cmp_result);
   return result;
 }
 
