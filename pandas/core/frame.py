@@ -3228,8 +3228,8 @@ class DataFrame(NDFrame, OpsMixin):
         index : bool, optional, default True
             Whether to print index (row) labels.
         na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` and ``pd.NA`` to use.
-            If not specified, ``pd.NA`` is displayed as ``<NA>``.
+            String representation of missing values to use. If not specified,
+            each type of missing value uses its default representation.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -3379,7 +3379,7 @@ class DataFrame(NDFrame, OpsMixin):
             columns=columns,
             col_space=col_space,
             na_rep="NaN" if na_rep is lib.no_default else na_rep,
-            pd_na_rep=None if na_rep is lib.no_default else na_rep,
+            missing_rep=None if na_rep is lib.no_default else na_rep,
             header=header,
             index=index,
             formatters=formatters,

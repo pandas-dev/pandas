@@ -1091,6 +1091,65 @@ def test_to_html_na_rep_pd_na(dtype, na_rep, notebook):
     assert re.findall(r"<td>(.*?)</td>", result) == expected
 
 
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", ""])
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_na_rep_missing_scalars(na_rep, notebook):
+    # GH#33950
+    df = pd.DataFrame(
+        {"a": [float("nan"), pd.NA, pd.NaT, None]},
+        dtype=object,
+    )
+
+    result = df.to_html(na_rep=na_rep, notebook=notebook)
+
+    assert re.findall(r"<td>(.*?)</td>", result) == [na_rep] * 4
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "datetime64[ns]",
+        "timedelta64[ns]",
+        "datetime64[ns, UTC]",
+        "timestamp[ns][pyarrow]",
+    ],
+)
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", ""])
+def test_to_html_na_rep_temporal_missing(dtype, na_rep):
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.Series([pd.NaT], dtype=dtype)})
+
+    result = df.to_html(na_rep=na_rep)
+
+    assert re.findall(r"<td>(.*?)</td>", result) == [na_rep]
+
+
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_missing_scalars_default(notebook):
+    df = pd.DataFrame(
+        {"a": [float("nan"), pd.NA, pd.NaT, None]},
+        dtype=object,
+    )
+
+    result = df.to_html(notebook=notebook)
+
+    expected = ["NaN", "&lt;NA&gt;", "NaT", "None"]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
+
+
+def test_repr_html_missing_scalars_default():
+    df = pd.DataFrame(
+        {"a": [float("nan"), pd.NA, pd.NaT, None]},
+        dtype=object,
+    )
+
+    result = df._repr_html_()
+
+    expected = ["NaN", "&lt;NA&gt;", "NaT", "None"]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
+
+
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -1114,17 +1173,37 @@ def test_to_html_pd_na_default(dtype, notebook):
 
 
 @pytest.mark.parametrize("escape_html", [True, False])
-@pytest.mark.parametrize("formatter", [None, lambda x: "<NA>"])
+@pytest.mark.parametrize("use_formatter", [True, False])
+@pytest.mark.parametrize("rendered_text", ["<NA>", "NaT", "None", "NaN"])
 @pytest.mark.parametrize("literal_first", [True, False])
 @pytest.mark.parametrize("na_rep", ["zzzz", "缺💡<&>"])
-def test_to_html_na_rep_pd_na_literal_and_formatter(
-    escape_html, formatter, literal_first, na_rep
+@pytest.mark.parametrize(
+    "missing_value",
+    [
+        float("nan"),
+        pd.NA,
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        None,
+    ],
+    ids=["nan", "pd_na", "pd_nat", "np_datetime_nat", "np_timedelta_nat", "none"],
+)
+def test_to_html_na_rep_literal_and_formatter(
+    escape_html, use_formatter, rendered_text, literal_first, na_rep, missing_value
 ):
     # GH#33950: replace the missing scalar, not text or formatter output.
-    first, last = ("<NA>", "value") if literal_first else ("value", "<NA>")
-    df = pd.DataFrame({"a": [first, pd.NA, last]}, dtype=object)
+    formatter = (lambda value: rendered_text) if use_formatter else None
+    first, last = (
+        (rendered_text, "value") if literal_first else ("value", rendered_text)
+    )
+    df = pd.DataFrame({"a": [first, missing_value, last]}, dtype=object)
     result = df.to_html(na_rep=na_rep, formatters={"a": formatter}, escape=escape_html)
-    expected = ["<NA>", na_rep, "<NA>"] if formatter else [first, na_rep, last]
+    expected = (
+        [rendered_text, na_rep, rendered_text]
+        if use_formatter
+        else [first, na_rep, last]
+    )
     if escape_html:
         expected = [escape(value, quote=False) for value in expected]
     assert re.findall(r"<td>(.*?)</td>", result) == expected
