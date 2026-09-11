@@ -1167,3 +1167,20 @@ def test_select_dtypes_none_in_listlike_deprecated(kwarg):
 
     expected = df[["c"]] if kwarg == "include" else df[["a", "b"]]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "box",
+    [np.array, pd.Index, pd.Series, iter],
+    ids=["ndarray", "index", "series", "iterator"],
+)
+@pytest.mark.parametrize("kwarg", ["include", "exclude"])
+def test_select_dtypes_listlike_spec_container(box, kwarg):
+    # GH#68448: any list-like is accepted as the spec container. An ndarray/Index/
+    # Series has no usable truthiness for the guards in ``predicate``, and a one-shot
+    # iterator is consumed by the frozensets before ``to_callable`` iterates it.
+    df = pd.DataFrame({"a": [1, 2], "b": [1.0, 2.0], "c": ["x", "y"]})
+    result = df.select_dtypes(**{kwarg: box(["int64", "float64"])})
+
+    expected = df[["a", "b"]] if kwarg == "include" else df[["c"]]
+    tm.assert_frame_equal(result, expected)
