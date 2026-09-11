@@ -8,6 +8,7 @@ import operator
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -33,20 +34,22 @@ class TestObjectComparisons:
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
     def test_object_comparisons(self, infer_string):
-        with pd.option_context("future.infer_string", infer_string):
-            ser = pd.Series(["a", "b", np.nan, "c", "a"])
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", infer_string):
+                ser = pd.Series(["a", "b", np.nan, "c", "a"])
 
-            result = ser == "a"
-            expected = pd.Series([True, False, False, False, True])
-            tm.assert_series_equal(result, expected)
+                result = ser == "a"
+                expected = pd.Series([True, False, False, False, True])
+                tm.assert_series_equal(result, expected)
 
-            result = ser < "a"
-            expected = pd.Series([False, False, False, False, False])
-            tm.assert_series_equal(result, expected)
+                result = ser < "a"
+                expected = pd.Series([False, False, False, False, False])
+                tm.assert_series_equal(result, expected)
 
-            result = ser != "a"
-            expected = -(ser == "a")
-            tm.assert_series_equal(result, expected)
+                result = ser != "a"
+                expected = -(ser == "a")
+                tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_more_na_comparisons(self, dtype):

@@ -168,8 +168,10 @@ class TestResetIndex:
         # GH#56160
         pytest.importorskip("pyarrow")
         ser = pd.Series(["a", "b", "c"], dtype=object)
-        with pd.option_context("future.infer_string", True):
-            result = ser.reset_index(drop=True)
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                result = ser.reset_index(drop=True)
         tm.assert_series_equal(result, ser)
 
 

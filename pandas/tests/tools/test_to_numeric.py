@@ -5,6 +5,7 @@ import numpy as np
 from numpy import iinfo
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -78,9 +79,11 @@ def test_empty(input_kwargs, result_kwargs):
 )
 @pytest.mark.parametrize("last_val", ["7", 7])
 def test_series(last_val, infer_string):
-    with pd.option_context("future.infer_string", infer_string):
-        ser = pd.Series(["1", "-3.14", last_val])
-        result = pd.to_numeric(ser)
+    msg = "The 'future.infer_string' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pd.option_context("future.infer_string", infer_string):
+            ser = pd.Series(["1", "-3.14", last_val])
+            result = pd.to_numeric(ser)
 
     expected = pd.Series([1, -3.14, 7])
     tm.assert_series_equal(result, expected)

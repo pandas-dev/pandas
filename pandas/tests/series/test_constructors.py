@@ -2081,8 +2081,10 @@ class TestSeriesConstructors:
 
     def test_series_string_inference(self):
         # GH#54430
-        with pd.option_context("future.infer_string", True):
-            ser = pd.Series(["a", "b"])
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                ser = pd.Series(["a", "b"])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
@@ -2094,24 +2096,30 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
     def test_series_string_with_na_inference(self, na_value):
         # GH#54430
-        with pd.option_context("future.infer_string", True):
-            ser = pd.Series(["a", na_value])
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                ser = pd.Series(["a", na_value])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series(["a", None], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
     def test_series_string_inference_scalar(self):
         # GH#54430
-        with pd.option_context("future.infer_string", True):
-            ser = pd.Series("a", index=[1])
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                ser = pd.Series("a", index=[1])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series("a", index=[1], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
     def test_series_string_inference_array_string_dtype(self):
         # GH#54496
-        with pd.option_context("future.infer_string", True):
-            ser = pd.Series(np.array(["a", "b"]))
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                ser = pd.Series(np.array(["a", "b"]))
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
@@ -2124,27 +2132,34 @@ class TestSeriesConstructors:
         expected = pd.Series(
             ["a", "b"], dtype="string[pyarrow]" if HAS_PYARROW else "string[python]"
         )
-        with pd.option_context("future.infer_string", True):
-            result = pd.Series(["a", "b"], dtype="string")
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                result = pd.Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
 
         expected = pd.Series(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))
-        with pd.option_context("future.infer_string", True):
-            result = pd.Series(["a", "b"], dtype="str")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                result = pd.Series(["a", "b"], dtype="str")
         tm.assert_series_equal(result, expected)
 
     def test_series_constructor_infer_string_scalar(self):
         # GH#55537
-        with pd.option_context("future.infer_string", True):
-            ser = pd.Series("a", index=[1, 2], dtype="string[python]")
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                ser = pd.Series("a", index=[1, 2], dtype="string[python]")
         expected = pd.Series(["a", "a"], index=[1, 2], dtype="string[python]")
         tm.assert_series_equal(ser, expected)
         assert ser.dtype.storage == "python"
 
     def test_series_string_inference_na_first(self):
         # GH#55655
-        with pd.option_context("future.infer_string", True):
-            result = pd.Series([pd.NA, "b"])
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                result = pd.Series([pd.NA, "b"])
         dtype = pd.StringDtype("pyarrow" if HAS_PYARROW else "python", na_value=np.nan)
         expected = pd.Series([None, "b"], dtype=dtype)
         tm.assert_series_equal(result, expected)

@@ -11,6 +11,7 @@ import string
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.api import is_list_like
@@ -870,10 +871,12 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("b_col", [[2, 3, 4], ["a", "b", "c"]])
     def test_scatterplot_object_data(self, b_col, x, y, infer_string):
         # GH 18755
-        with pd.option_context("future.infer_string", infer_string):
-            df = pd.DataFrame({"a": ["A", "B", "C"], "b": b_col})
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", infer_string):
+                df = pd.DataFrame({"a": ["A", "B", "C"], "b": b_col})
 
-            _check_plot_works(df.plot.scatter, x=x, y=y)
+                _check_plot_works(df.plot.scatter, x=x, y=y)
 
     @pytest.mark.parametrize("ordered", [True, False])
     @pytest.mark.parametrize(

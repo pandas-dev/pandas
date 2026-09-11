@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -440,37 +441,43 @@ class TestCategoricalIndex:
     )
     def test_ix_categorical_index_non_unique(self, infer_string):
         # non-unique
-        with pd.option_context("future.infer_string", infer_string):
-            df = pd.DataFrame(
-                np.random.default_rng(2).standard_normal((3, 3)),
-                index=list("ABA"),
-                columns=list("XYX"),
-            )
-            cdf = df.copy()
-            cdf.index = pd.CategoricalIndex(df.index)
-            cdf.columns = pd.CategoricalIndex(df.columns)
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", infer_string):
+                df = pd.DataFrame(
+                    np.random.default_rng(2).standard_normal((3, 3)),
+                    index=list("ABA"),
+                    columns=list("XYX"),
+                )
+                cdf = df.copy()
+                cdf.index = pd.CategoricalIndex(df.index)
+                cdf.columns = pd.CategoricalIndex(df.columns)
 
-            exp_index = pd.CategoricalIndex(list("AA"), categories=["A", "B"])
-            expect = pd.DataFrame(df.loc["A", :], columns=cdf.columns, index=exp_index)
-            tm.assert_frame_equal(cdf.loc["A", :], expect)
+                exp_index = pd.CategoricalIndex(list("AA"), categories=["A", "B"])
+                expect = pd.DataFrame(
+                    df.loc["A", :], columns=cdf.columns, index=exp_index
+                )
+                tm.assert_frame_equal(cdf.loc["A", :], expect)
 
-            exp_columns = pd.CategoricalIndex(list("XX"), categories=["X", "Y"])
-            expect = pd.DataFrame(df.loc[:, "X"], index=cdf.index, columns=exp_columns)
-            tm.assert_frame_equal(cdf.loc[:, "X"], expect)
+                exp_columns = pd.CategoricalIndex(list("XX"), categories=["X", "Y"])
+                expect = pd.DataFrame(
+                    df.loc[:, "X"], index=cdf.index, columns=exp_columns
+                )
+                tm.assert_frame_equal(cdf.loc[:, "X"], expect)
 
-            expect = pd.DataFrame(
-                df.loc[["A", "B"], :],
-                columns=cdf.columns,
-                index=pd.CategoricalIndex(list("AAB")),
-            )
-            tm.assert_frame_equal(cdf.loc[["A", "B"], :], expect)
+                expect = pd.DataFrame(
+                    df.loc[["A", "B"], :],
+                    columns=cdf.columns,
+                    index=pd.CategoricalIndex(list("AAB")),
+                )
+                tm.assert_frame_equal(cdf.loc[["A", "B"], :], expect)
 
-            expect = pd.DataFrame(
-                df.loc[:, ["X", "Y"]],
-                index=cdf.index,
-                columns=pd.CategoricalIndex(list("XXY")),
-            )
-            tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
+                expect = pd.DataFrame(
+                    df.loc[:, ["X", "Y"]],
+                    index=cdf.index,
+                    columns=pd.CategoricalIndex(list("XXY")),
+                )
+                tm.assert_frame_equal(cdf.loc[:, ["X", "Y"]], expect)
 
     def test_loc_slice(self, df):
         # GH9748

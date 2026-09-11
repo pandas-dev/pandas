@@ -364,13 +364,19 @@ def test_categorical_dtype_infer_string_disabled(all_parsers, ordered):
     #  the categories' dtype
     parser = all_parsers
     data = "a\ny\nx"
-    with pd.option_context("future.infer_string", False):
-        result = parser.read_csv(
-            StringIO(data), dtype={"a": CategoricalDtype(ordered=ordered)}
-        )
-        expected = pd.DataFrame(
-            {"a": pd.Categorical(["y", "x"], categories=["x", "y"], ordered=ordered)}
-        )
+    msg = "The 'future.infer_string' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pd.option_context("future.infer_string", False):
+            result = parser.read_csv(
+                StringIO(data), dtype={"a": CategoricalDtype(ordered=ordered)}
+            )
+            expected = pd.DataFrame(
+                {
+                    "a": pd.Categorical(
+                        ["y", "x"], categories=["x", "y"], ordered=ordered
+                    )
+                }
+            )
     tm.assert_frame_equal(result, expected)
 
 

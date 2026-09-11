@@ -2889,8 +2889,10 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=pd.Index(["a"], dtype=dtype)
         )
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame({"a": ["a", "b"]})
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame({"a": ["a", "b"]})
         tm.assert_frame_equal(df, expected)
 
         expected = pd.DataFrame(
@@ -2899,22 +2901,25 @@ class TestDataFrameConstructors:
             columns=pd.Index(["a"], dtype=dtype),
             index=pd.Index(["x", "y"], dtype=dtype),
         )
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame({"a": ["a", "b"]}, index=["x", "y"])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame({"a": ["a", "b"]}, index=["x", "y"])
         tm.assert_frame_equal(df, expected)
 
         expected = pd.DataFrame(
             {"a": ["a", 1]}, dtype="object", columns=pd.Index(["a"], dtype=dtype)
         )
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame({"a": ["a", 1]})
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame({"a": ["a", 1]})
         tm.assert_frame_equal(df, expected)
 
         expected = pd.DataFrame(
             {"a": ["a", "b"]}, dtype="object", columns=pd.Index(["a"], dtype=dtype)
         )
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame({"a": ["a", "b"]}, dtype="object")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame({"a": ["a", "b"]}, dtype="object")
         tm.assert_frame_equal(df, expected)
 
     def test_frame_string_inference_array_string_dtype(self):
@@ -2923,13 +2928,16 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=pd.Index(["a"], dtype=dtype)
         )
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame({"a": np.array(["a", "b"])})
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame({"a": np.array(["a", "b"])})
         tm.assert_frame_equal(df, expected)
 
         expected = pd.DataFrame({0: ["a", "b"], 1: ["c", "d"]}, dtype=dtype)
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame(np.array([["a", "c"], ["b", "d"]]))
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame(np.array([["a", "c"], ["b", "d"]]))
         tm.assert_frame_equal(df, expected)
 
         expected = pd.DataFrame(
@@ -2937,14 +2945,19 @@ class TestDataFrameConstructors:
             dtype=dtype,
             columns=pd.Index(["a", "b"], dtype=dtype),
         )
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame(
+                    np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"]
+                )
         tm.assert_frame_equal(df, expected)
 
     def test_frame_string_inference_block_dim(self):
         # GH#55363
-        with pd.option_context("future.infer_string", True):
-            df = pd.DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
+        msg = "The 'future.infer_string' option is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            with pd.option_context("future.infer_string", True):
+                df = pd.DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
 
     @pytest.mark.parametrize("klass", [pd.Series, pd.Index])

@@ -46,6 +46,8 @@ from dateutil.tz import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -2075,7 +2077,7 @@ def using_infer_string() -> bool:
     """
     Fixture to check if infer string option is enabled.
     """
-    return pd.options.future.infer_string is True
+    return using_string_dtype()
 
 
 @pytest.fixture

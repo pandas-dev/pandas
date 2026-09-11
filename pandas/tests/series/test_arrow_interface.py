@@ -3,6 +3,8 @@ import zoneinfo
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -130,6 +132,8 @@ def test_series_from_arrow_custom_conversion():
     assert isinstance(result.dtype.tz, zoneinfo.ZoneInfo)
 
     arr = pa.array(["a", "b", "c"])
-    with pd.option_context("future.infer_string", False):
-        result = pd.Series.from_arrow(arr)
+    msg = "The 'future.infer_string' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pd.option_context("future.infer_string", False):
+            result = pd.Series.from_arrow(arr)
     assert result.dtype == "object"

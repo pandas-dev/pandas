@@ -981,9 +981,10 @@ with cf.config_prefix("future"):
         legacy=False,
         default=True,
         upcoming=True,
-        doc="Whether to infer sequence of str objects as pyarrow string "
-        "dtype, which will be the default in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        doc="Whether to infer a sequence of str objects as str dtype rather "
+        "than object dtype. This has been the default since pandas 3.0. This "
+        "option is deprecated and will be removed in pandas 4.0, at which "
+        "point str dtype will always be inferred.",
         validator=is_one_of_factory([True, False]),
     )
 
@@ -1040,6 +1041,16 @@ with cf.config_prefix("future"):
 
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
+# GH#???
+cf.deprecate_option(
+    "future.infer_string",
+    Pandas4Warning,
+    msg=(
+        "The 'future.infer_string' option is deprecated and will be removed in "
+        "pandas 4.0. Inferring str dtype for string data has been the default "
+        "since pandas 3.0, and it will no longer be possible to disable it."
+    ),
+)
 cf.deprecate_option(
     "mode.copy_on_write",
     Pandas4Warning,
