@@ -607,6 +607,31 @@ def test_multiply_reduce_includes_fill_value():
     assert np.prod(arr) == np.prod(arr.to_dense())
 
 
+@pytest.mark.parametrize(
+    "ufunc, data, fill_value",
+    [
+        (np.logaddexp, [1.0, 0.0, 2.0, 0.0, 3.0], 0.0),
+        (np.bitwise_or, [1, 4, 0, 0], 4),
+        (np.gcd, [12, 15, 8], 15),
+        # subtypes np.asarray would widen or objectify; see SparseArray._densify
+        (np.bitwise_or, np.array([1, 4, 0, 0], dtype="uint64"), 4),
+        (np.left_shift, np.array([1, 3, 4, 4], dtype="int8"), 4),
+        (np.fmax, np.array([1000, 2500, 2500, 4000], "m8[ns]"), pd.Timedelta("2500ns")),
+    ],
+)
+def test_unaliased_ufunc_reduce_includes_fill_value(ufunc, data, fill_value):
+    # GH#68453 a ufunc outside arraylike.REDUCTION_ALIASES has no named method
+    #  to dispatch to, and __array_ufunc__ reduced the stored values alone
+    arr = SparseArray(data, fill_value=fill_value)
+    assert arr.sp_index.ngaps
+    result = ufunc.reduce(arr)
+    # reduce the original input, not to_dense(), which floors a sub-microsecond
+    #  Timedelta fill value; see test_reduction_keeps_sub_microsecond_fill_value
+    expected = ufunc.reduce(np.asarray(data))
+    assert result == expected
+    assert result.dtype == expected.dtype
+
+
 @pytest.mark.parametrize("name", ["any", "all"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
