@@ -399,8 +399,8 @@ def _is_temporal_value(value) -> bool | None:
     reinterpretation before handing the value to `_box_pa` (GH#68419).
     """
     if is_scalar(value) and isna(value):
-        # NA of any flavor is settable into any dtype; np.datetime64("NaT")
-        #  carries an M8 dtype, so this has to come before the dtype lookup
+        # NA of any flavor is settable into any dtype; a NaT scalar carries
+        #  an M8/m8 dtype, so this has to come before the dtype lookup
         return None
 
     value = extract_array(value, extract_numpy=True)

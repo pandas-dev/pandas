@@ -1844,7 +1844,7 @@ def test_setitem_numeric_still_accepted():
         pd.NA,
         pd.NaT,
         np.nan,
-        np.datetime64("NaT"),
+        np.datetime64("NaT", "ns"),
         np.timedelta64("NaT", "ns"),
         [None, None, None],
         pa.array([None] * 3),
