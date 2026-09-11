@@ -159,8 +159,13 @@ _skipna_aware_reductions = frozenset(
         "max",
         "any",
         "all",
+        "argmin",
+        "argmax",
     }
 )
+
+# Reductions whose result is a position in the array, not one of its values.
+_positional_reductions = frozenset({"argmin", "argmax"})
 
 # Reductions of complex input that give a real result.
 _complex_to_real_reductions = frozenset({"var", "std", "sem", "skew", "kurt"})
@@ -1672,7 +1677,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if keepdims:
             dtype = self.dtype
             result_dtype = np.asarray(result).dtype
-            if name in _boolean_reductions:
+            if name in _positional_reductions:
+                # intp over result_dtype, which varies with which branch of
+                # _argmin_argmax answered.  See test_frame_idxmin_idxmax
+                dtype = SparseDtype(np.intp)
+            elif name in _boolean_reductions:
                 # any/all give a bool, not a value of the array's own dtype;
                 # see test_any_all_keepdims_is_boolean
                 dtype = SparseDtype(bool)
