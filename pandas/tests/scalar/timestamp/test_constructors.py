@@ -17,7 +17,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import PY314
+from pandas.compat import (
+    PY314,
+    PY315,
+)
 from pandas.errors import (
     OutOfBoundsDatetime,
     Pandas4Warning,
@@ -239,7 +242,13 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
 
     def test_constructor_keyword(self):
         # GH#10758
-        msg = "function missing required argument 'day'|Required argument 'day'"
+        msg = "|".join(
+            [
+                r"datetime\(\) missing required argument 'day'",  # PY315
+                "function missing required argument 'day'",
+                "Required argument 'day'",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             Timestamp(year=2000, month=1)
 
@@ -298,7 +307,15 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         # GH#31200
 
         # The exact error message of datetime() depends on its version
-        msg1 = r"function missing required argument '(year|month|day)' \(pos [123]\)"
+        if PY315:
+            msg1 = (
+                r"datetime\(\) missing required argument "
+                r"'(year|month|day)' \(pos [123]\)"
+            )
+        else:
+            msg1 = (
+                r"function missing required argument '(year|month|day)' \(pos [123]\)"
+            )
         msg2 = r"Required argument '(year|month|day)' \(pos [123]\) not found"
         msg = "|".join([msg1, msg2])
 

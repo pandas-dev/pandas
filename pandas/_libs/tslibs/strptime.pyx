@@ -169,7 +169,8 @@ cdef dict _parse_code_table = {"y": 0,
                                "z": 19,
                                "G": 20,
                                "V": 21,
-                               "u": 22}
+                               "u": 22,
+                               "colon_z": 24}
 
 
 cdef _validate_fmt(str fmt):
@@ -618,9 +619,19 @@ cdef tzinfo _parse_with_format(
                 f"time data \"{val}\" doesn't match format \"{fmt}\""
             )
         if len(val) != found.end():
+            rest = val[found.end():]
+            # Specific check for '%:z' directive
+            if (
+                "colon_z" in found.re.groupindex
+                and found.group("colon_z") is not None
+                and rest[0] != ":"
+            ):
+                raise ValueError(
+                    f"Missing colon in %:z before '{rest}', got '{val}'"
+                )
             raise ValueError(
                 "unconverted data remains when parsing with "
-                f"format \"{fmt}\": \"{val[found.end():]}\""
+                f"format \"{fmt}\": \"{rest}\""
             )
 
     else:
@@ -760,9 +771,14 @@ cdef tzinfo _parse_with_format(
         elif parse_code == 17:
             # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
             tz = zoneinfo.ZoneInfo(found_dict["Z"])
-        elif parse_code == 19:
+        elif parse_code == 19 or parse_code == 24:
             # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
-            tz = parse_timezone_directive(found_dict["z"])
+            if found_dict[group_key] is None:
+                raise ValueError(
+                    f"time data \"{val}\" doesn't match format \"{fmt}\""
+                )
+
+            tz = parse_timezone_directive(found_dict[group_key])
         elif parse_code == 20:
             # e.g. val='2015-1-7'; fmt='%G-%V-%u'
             iso_year = int(found_dict["G"])
