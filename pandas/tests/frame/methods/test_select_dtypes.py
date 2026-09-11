@@ -1,3 +1,6 @@
+import datetime
+import decimal
+
 import numpy as np
 import pytest
 
@@ -1325,6 +1328,21 @@ def test_select_dtypes_none_in_listlike_deprecated(kwarg):
 
     expected = df[["c"]] if kwarg == "include" else df[["a", "b"]]
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "spec", [decimal.Decimal, datetime.date, datetime.timedelta, pd.Timestamp, list]
+)
+@pytest.mark.parametrize("kwarg", ["include", "exclude"])
+def test_select_dtypes_non_dtype_class_raises(spec, kwarg):
+    # GH#68443 these resolved to object before 3.1, selecting every object column
+    df = pd.DataFrame({"a": [decimal.Decimal("1")], "b": [1]})
+    msg = (
+        f"select_dtypes does not support the class {spec.__name__}; "
+        "pass 'object' to select all object-dtype columns"
+    )
+    with pytest.raises(TypeError, match=msg):
+        df.select_dtypes(**{kwarg: [spec]})
 
 
 @pytest.mark.parametrize(
