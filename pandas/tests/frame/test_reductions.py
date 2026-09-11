@@ -3245,7 +3245,7 @@ def _axis1_expected(df, how, skipna, min_count=0):
     return pd.Series(pd.array(out, dtype=dtype), index=df.index)
 
 
-@pytest.mark.parametrize("dtype", _AXIS1_MASKED_DTYPES + _AXIS1_ARROW_DTYPES)
+@pytest.mark.parametrize("dtype", [*_AXIS1_MASKED_DTYPES, *_AXIS1_ARROW_DTYPES])
 @pytest.mark.parametrize("how", ["sum", "prod", "min", "max"])
 def test_reduce_axis1_ea_kernel_fastpath(dtype, how, skipna):
     df = _axis1_frame(dtype)
