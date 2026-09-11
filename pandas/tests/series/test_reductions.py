@@ -238,19 +238,13 @@ def test_mean_with_convertible_string_raises(using_infer_string):
     msg = (
         "Cannot perform reduction 'mean' with string dtype"
         if using_infer_string
-        else "Could not convert string '12' to numeric"
+        else "Could not convert '1' to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
-    df = ser.to_frame()
-    msg = (
-        "Cannot perform reduction 'mean' with string dtype"
-        if using_infer_string
-        else r"Could not convert \['12'\] to numeric"
-    )
     with pytest.raises(TypeError, match=msg):
-        df.mean()
+        ser.to_frame().mean()
 
 
 def test_mean_dont_convert_j_to_complex(using_infer_string):
@@ -261,7 +255,7 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     msg = (
         "Cannot perform reduction 'mean' with string dtype"
         if using_infer_string
-        else r"Could not convert \['J'\] to numeric"
+        else "Could not convert 'J' to numeric"
     )
     with pytest.raises(TypeError, match=msg):
         df.mean()
@@ -277,21 +271,15 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     else:
         msg = "|".join(
             [
-                "Could not convert string 'J' to numeric",
+                "Could not convert 'J' to numeric",
                 "Cannot perform reduction 'mean' with string dtype",
             ]
         )
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
 
-    # .astype("string") forces str dtype regardless of the infer_string setting,
-    # but the storage (hence the message) still follows pyarrow availability: the
-    # python-backed array converts instead of raising the string-dtype error
-    msg = (
-        "Cannot perform reduction 'mean' with string dtype"
-        if HAS_PYARROW
-        else "Could not convert string 'J' to numeric"
-    )
+    # .astype("string") forces str dtype regardless of the infer_string setting
+    msg = "Cannot perform reduction 'mean' with string dtype"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
@@ -303,17 +291,11 @@ def test_median_with_convertible_string_raises(using_infer_string):
     msg = (
         "Cannot perform reduction 'median' with string dtype"
         if using_infer_string
-        else r"Cannot convert \['1' '2' '3'\] to numeric"
+        else "Could not convert '1' to numeric"
     )
     ser = pd.Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    msg = (
-        "Cannot perform reduction 'median' with string dtype"
-        if using_infer_string
-        else r"Cannot convert \[\['1' '2' '3'\]\] to numeric"
-    )
-    df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
-        df.median()
+        ser.to_frame().median()

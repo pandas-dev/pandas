@@ -722,7 +722,7 @@ def test_apply_groupby_datetimeindex():
     result = df.groupby("Name").sum()
 
     expected = pd.DataFrame({"Name": ["A", "B", "C"], "Value": [10, 50, 90]})
-    expected.set_index("Name", inplace=True)
+    expected = expected.set_index("Name")
 
     tm.assert_frame_equal(result, expected)
 

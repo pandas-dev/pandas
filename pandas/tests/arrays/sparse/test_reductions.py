@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
 
@@ -333,9 +334,362 @@ class TestArgmaxArgmin:
         assert argmax_result == argmax_expected
         assert argmin_result == argmin_expected
 
+    @pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+    @pytest.mark.parametrize("method", ["argmax", "argmin"])
+    def test_skipna_false_with_na_raises(self, method, fill_value):
+        # GH#68387 _reduce reduced self.dropna(), renumbering the elements.  Both
+        #  fill values hit it: the NA is a gap under one, a stored value under the
+        #  other.
+        arr = SparseArray([np.nan, 3.0, 1.0], fill_value=fill_value)
+        msg = "Encountered an NA value with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            getattr(arr, method)(skipna=False)
+        with pytest.raises(ValueError, match=msg):
+            arr._reduce(method, skipna=False)
+
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_empty_array(self, method):
         msg = f"attempt to get {method} of an empty sequence"
         arr = SparseArray([])
         with pytest.raises(ValueError, match=msg):
             getattr(arr, method)()
+
+
+@pytest.mark.parametrize("values, expected", [([1, 2, 4], 7 / 3), ([1, 2, 3], 2.0)])
+def test_frame_mean_int_column_not_truncated(values, expected):
+    # GH#55123 the DataFrame path cast the reduction back to the column's
+    #  dtype, truncating the mean of an integer column
+    df = pd.DataFrame({"a": SparseArray(np.array(values), fill_value=0)})
+    result = df.mean()
+    expected = pd.Series([expected], index=["a"], dtype=pd.SparseDtype("float64", 0.0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_sum_bool_column_not_cast_back():
+    # GH#55123 summing a bool column gave True instead of the count
+    df = pd.DataFrame({"a": SparseArray([True, False, False], fill_value=False)})
+    result = df.sum()
+    expected = pd.Series([1], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_sum_narrow_int_column_does_not_overflow():
+    # GH#55123 casting the sum back to a narrow subtype wrapped around
+    df = pd.DataFrame({"a": SparseArray(np.array([100, 100, 100], dtype="int8"))})
+    result = df.sum()
+    expected = pd.Series([300], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_count_sparse_columns():
+    # GH#55123 count went through the same cast and collapsed every sparse
+    #  column to 1
+    df = pd.DataFrame(
+        {"a": SparseArray([1.0, 2.0, 3.0]), "b": SparseArray([1.0, np.nan, 3.0])}
+    )
+    result = df.count()
+    expected = pd.Series([3, 2], index=["a", "b"], dtype="int64")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize("subtype", ["int64", "bool"])
+def test_frame_min_max_empty_column(method, subtype):
+    # GH#55123 reducing an empty column gives NaN, which these subtypes cannot
+    #  hold; casting back gave True for bool and raised for int64
+    df = pd.DataFrame({"a": SparseArray(np.array([], dtype=subtype))})
+    result = getattr(df, method)()
+    expected = pd.Series([np.nan], index=["a"], dtype=pd.SparseDtype("float64", 0.0))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "arr, subtype",
+    [
+        (SparseArray([True, False, False], fill_value=False), "float64"),
+        (SparseArray(np.array([1, 2, 4]), fill_value=0), "float64"),
+        # a float32 subtype already holds the missing value, so it is retained
+        (SparseArray(np.array([1, 2, 4], dtype="float32"), fill_value=0), "float32"),
+    ],
+)
+def test_frame_sum_min_count_not_cast_to_column_dtype(arr, subtype):
+    # GH#55123 the missing value produced by min_count was swallowed by the
+    #  cast back to the column's dtype
+    df = pd.DataFrame({"a": arr})
+    result = df.sum(min_count=4)
+    expected = pd.Series([np.nan], index=["a"], dtype=pd.SparseDtype(subtype, 0.0))
+    tm.assert_series_equal(result, expected)
+
+
+def test_frame_reduction_keeps_datetime64_dtype():
+    # the widening must not kick in for a datetime64 subtype
+    arr = SparseArray(np.array(["2020-01-01", "2020-01-03"], dtype="M8[ns]"))
+    result = pd.DataFrame({"a": arr}).max()
+    expected = pd.Series([pd.Timestamp("2020-01-03")], index=["a"], dtype=arr.dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "name, kwargs",
+    [
+        ("prod", {}),
+        # 4 is satisfied by the 5 valid values, 6 is not
+        ("prod", {"min_count": 4}),
+        ("prod", {"min_count": 6}),
+        ("median", {}),
+        ("var", {}),
+        ("var", {"ddof": 0}),
+        ("std", {}),
+        ("std", {"ddof": 0}),
+        ("sem", {}),
+        ("sem", {"ddof": 0}),
+        ("skew", {}),
+        ("kurt", {}),
+    ],
+)
+@pytest.mark.parametrize("fill_value", [0, np.nan])
+def test_reductions_without_sparse_kernel_match_dense(name, kwargs, skipna, fill_value):
+    # GH#68194 these raised "cannot perform <name> with type Sparse[...]"
+    values = [0.0, 1.0, np.nan, -2.0, 4.0, 0.0]
+    arr = SparseArray(np.array(values), fill_value=fill_value)
+    expected = getattr(pd.Series(values), name)(skipna=skipna, **kwargs)
+
+    assert getattr(arr, name)(skipna=skipna, **kwargs) == pytest.approx(
+        expected, nan_ok=True
+    )
+    result = getattr(pd.Series(arr), name)(skipna=skipna, **kwargs)
+    assert result == pytest.approx(expected, nan_ok=True)
+
+
+def test_frame_prod():
+    # GH#68194 DataFrame.prod raised for every SparseDtype column
+    df = pd.DataFrame({"a": SparseArray(np.array([1, 2, 3]), fill_value=0)})
+    result = df.prod()
+    expected = pd.Series([6], index=["a"], dtype=pd.SparseDtype(np.int_, 0))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("name", ["median", "std"])
+@pytest.mark.parametrize("unit", ["M8[us]", "m8[us]"])
+def test_datetimelike_reductions_match_dense(name, unit, skipna):
+    # GH#68194 median and std are the only two of the newly-routed reductions
+    #  nanops accepts for a datetimelike subtype
+    values = np.array([1, 3, "NaT", 5], dtype=unit)
+    arr = SparseArray(values)
+
+    result = getattr(pd.Series(arr), name)(skipna=skipna)
+    expected = getattr(pd.Series(values), name)(skipna=skipna)
+    if pd.isna(expected):
+        assert pd.isna(result)
+    else:
+        assert result == expected
+
+    frame_result = getattr(pd.DataFrame({"a": arr}), name)(skipna=skipna)
+    frame_expected = getattr(pd.DataFrame({"a": values}), name)(skipna=skipna)
+    tm.assert_series_equal(
+        frame_result, frame_expected.astype(pd.SparseDtype(frame_expected.dtype))
+    )
+
+
+def test_frame_std_datetime64_widens_to_timedelta64():
+    # GH#68194 the keepdims widening skips datetimelike subtypes because
+    #  min/max/median stay closed over them; std does not
+    arr = SparseArray(
+        np.array(["2020-01-01", "2020-01-03", "2020-01-05"], dtype="M8[s]")
+    )
+    result = pd.DataFrame({"a": arr}).std()
+    expected = pd.Series(
+        [pd.Timedelta("2 days")], index=["a"], dtype=pd.SparseDtype("m8[s]")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+# skew/kurt cast to float64 inside nanops, on the dense path too
+@pytest.mark.filterwarnings(
+    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
+)
+@pytest.mark.parametrize("fill_value", [np.nan, 1 + 1j])
+@pytest.mark.parametrize("name", ["var", "std", "sem", "skew", "kurt"])
+def test_frame_complex_reduction_narrows_to_real(name, fill_value):
+    # GH#68194 these map complex to real, which np.result_type widens straight back
+    values = np.array([1 + 2j, 3 - 1j, 5 + 0j])
+    arr = SparseArray(values, dtype=pd.SparseDtype("complex128", fill_value))
+
+    result = getattr(pd.DataFrame({"a": arr}), name)()
+    expected = getattr(pd.DataFrame({"a": values}), name)()
+    tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
+
+
+@pytest.mark.parametrize("kwargs", [{"skipna": False}, {"min_count": 10}])
+@pytest.mark.parametrize("name", ["sum", "prod", "mean", "min", "max"])
+def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
+    # GH#68194 these are closed over complex, so the real NaN that min_count and
+    #  skipna=False produce must not narrow the column to float64
+    if name in ("mean", "min", "max") and "min_count" in kwargs:
+        pytest.skip(f"{name} takes no min_count")
+
+    values = np.array([1 + 2j, 3 - 1j, np.nan])
+    arr = SparseArray(values, dtype=pd.SparseDtype("complex128", np.nan))
+
+    result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
+    expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
+    tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
+
+
+def test_describe():
+    # GH#68194 describe computes std, so it raised for every SparseDtype Series.
+    #  check_dtype=False: describe gives every EA-backed Series a non-numpy dtype
+    values = np.array([1.0, 2.0, 3.0, 4.0])
+    result = pd.Series(SparseArray(values)).describe()
+    tm.assert_series_equal(result, pd.Series(values).describe(), check_dtype=False)
+
+    frame_result = pd.DataFrame({"a": SparseArray(values)}).describe()
+    tm.assert_frame_equal(
+        frame_result, pd.DataFrame({"a": values}).describe(), check_dtype=False
+    )
+
+
+@pytest.mark.filterwarnings(
+    "ignore:Casting complex values:numpy.exceptions.ComplexWarning"
+)
+@pytest.mark.parametrize(
+    "subtype,fill_value,dense_dtype",
+    [
+        ("int64", np.nan, "float64"),
+        ("uint8", np.nan, "float64"),
+        ("bool", np.nan, "float64"),
+        # pd.NA fits no numpy subtype at all, not even a float one
+        ("float64", pd.NA, "float64"),
+        ("float32", pd.NA, "float32"),
+        ("complex128", pd.NA, "complex128"),
+    ],
+)
+@pytest.mark.parametrize(
+    "name", ["prod", "median", "var", "std", "sem", "skew", "kurt"]
+)
+@pytest.mark.parametrize("skipna", [True, False])
+def test_reductions_with_na_fill_value_match_dense(
+    subtype, fill_value, dense_dtype, name, skipna
+):
+    # GH#68194 densifying to the subtype read the NA gaps back as 0/False, or
+    #  raised outright for a fill value the subtype cannot hold at all
+    arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
+        pd.SparseDtype(subtype, fill_value)
+    )
+    dense = pd.Series(
+        [np.nan if pd.isna(value) else value for value in arr], dtype=dense_dtype
+    )
+
+    expected = getattr(dense, name)(skipna=skipna)
+    assert getattr(arr, name)(skipna=skipna) == pytest.approx(expected, nan_ok=True)
+    assert getattr(pd.Series(arr), name)(skipna=skipna) == pytest.approx(
+        expected, nan_ok=True
+    )
+
+
+@pytest.mark.parametrize("name", ["median", "std"])
+def test_reduction_keeps_sub_microsecond_fill_value(name):
+    # GH#68194 np.full routes a Timedelta fill value through the stdlib datetime
+    #  protocol, which floors it to microseconds
+    values = np.array([1000, 2500, 2500, 4000], dtype="m8[ns]")
+    arr = SparseArray(values, fill_value=pd.Timedelta("2500ns"))
+    assert arr.sp_index.ngaps == 2
+    assert getattr(pd.Series(arr), name)() == getattr(pd.Series(values), name)()
+
+
+def test_multiply_reduce_includes_fill_value():
+    # GH#68194 with no public prod, np.multiply.reduce fell through to
+    #  __array_ufunc__, which reduced the stored values and dropped the gaps
+    arr = SparseArray([1, 0, 2, 0, 3], fill_value=0)
+    assert np.multiply.reduce(arr) == np.multiply.reduce(arr.to_dense())
+    assert np.prod(arr) == np.prod(arr.to_dense())
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize(
+    "data,fill_value",
+    [
+        ([0.0, np.nan], np.nan),  # NA is the fill value
+        ([0.0, np.nan], 0.0),  # NA is a stored value
+        ([1.0, np.nan], np.nan),
+        ([np.nan, np.nan], np.nan),  # all-NA
+        ([0.0, 0.0], 0.0),  # no NA
+        ([0, 1], 0),  # int64: a subtype that cannot hold NA, so masking is skipped
+        # object keeps a falsy None; the only case where `all` changes
+        (np.array([1, None], dtype=object), 0),
+    ],
+)
+def test_any_all_skipna(name, skipna, data, fill_value):
+    # GH#68390 the methods took no skipna at all, and counted NA as a truthy
+    #  value even under the default skipna=True
+    arr = SparseArray(data, fill_value=fill_value)
+    expected = getattr(pd.Series(arr.to_dense()), name)(skipna=skipna)
+
+    assert getattr(arr, name)(skipna=skipna) == expected
+    assert arr._reduce(name, skipna=skipna) == expected
+    assert getattr(pd.Series(arr), name)(skipna=skipna) == expected
+    assert getattr(pd.DataFrame({"A": arr}), name)(skipna=skipna)["A"] == expected
+
+
+def test_any_all_na_fill_value():
+    # GH#68390 a nullable string Series sparsifies to an object subtype with a
+    #  pd.NA fill, which is what reaches the fill-value gate; dense raises here too
+    arr = SparseArray(pd.array(["", None], dtype="string"))
+    assert arr.fill_value is pd.NA
+
+    assert not arr.any()
+    assert not arr.all()
+
+    msg = "boolean value of NA is ambiguous"
+    with pytest.raises(TypeError, match=msg):
+        arr.any(skipna=False)
+    with pytest.raises(TypeError, match=msg):
+        arr.all(skipna=False)
+
+
+def test_numpy_any_all_skip_na():
+    # GH#68390 these skip NA like np.sum and np.mean. NaN is truthy and None
+    #  falsy, so each entry point needs its own array to be decisive
+    assert not np.any(SparseArray([0.0, np.nan]))
+    assert np.all(SparseArray(np.array([1, None], dtype=object), fill_value=0))
+
+
+def test_numpy_std_var_skip_na():
+    # GH#68194 np.sum and np.mean already skipped NA here; with no public std/var
+    #  numpy densified instead and propagated it
+    arr = SparseArray(np.array([1.0, 2.0, np.nan, 4.0]))
+    dense = np.asarray(arr)
+    assert np.std(arr) == pytest.approx(np.nanstd(dense))
+    assert np.var(arr) == pytest.approx(np.nanvar(dense))
+    assert np.std(arr, ddof=1) == pytest.approx(np.nanstd(dense, ddof=1))
+
+
+@pytest.mark.parametrize("sparsify_min", [False, True])
+@pytest.mark.parametrize("order", [[5, 3, 9], [3, 5, 9]])
+@pytest.mark.parametrize("subtype", ["float64", "complex128", "m8[ns]", "M8[ns]"])
+def test_frame_idxmin_idxmax(subtype, order, sparsify_min):
+    # GH#68387 the keepdims wrapper cast the position back to the column's dtype,
+    #  which for a complex column also warned about discarding the imaginary part.
+    #  sparsify_min routes _argmin_argmax through its _first_fill_value_loc branch.
+    values = np.array(order).astype(subtype)
+    arr = SparseArray(values, fill_value=values.min() if sparsify_min else None)
+    assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
+
+    index = pd.Index(list("xyz"))
+    df = pd.DataFrame({"a": arr}, index=index)
+    with tm.assert_produces_warning(None):
+        assert df.idxmin()["a"] == index[values.argmin()]
+        assert df.idxmax()["a"] == index[values.argmax()]
+
+
+@pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+@pytest.mark.parametrize("method", ["idxmin", "idxmax"])
+def test_frame_idxmin_idxmax_skipna_false(method, fill_value):
+    # GH#68387 the position returned indexed the column with its NAs dropped
+    df = pd.DataFrame({"a": SparseArray([np.nan, 3.0, 1.0], fill_value=fill_value)})
+    msg = "Encountered an NA value with skipna=False"
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, method)(skipna=False)

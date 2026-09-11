@@ -746,6 +746,19 @@ def test_read_csv_auto_parallel(tmp_path, monkeypatch):
     tm.assert_frame_equal(result, expected)
 
 
+def test_read_csv_parallel_non_bool_memory_map(tmp_path, monkeypatch):
+    # GH#68341 a non-bool must be rejected whatever the file size, i.e. the
+    # parallel path must not swallow it
+    path = tmp_path / "big.csv"
+    _make_large_csv(path)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+    msg = 'For argument "memory_map" expected type bool'
+    with pd.option_context("mode.max_threads", 4):
+        with pytest.raises(ValueError, match=msg):
+            pd.read_csv(path, memory_map="False")
+
+
 def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     """
     For a file that exceeds the threshold, the parallel result equals the
