@@ -623,8 +623,33 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
     return ppd, ppm, ppy
 
 
+def _finder_view_bounds(
+    vmin: float, vmax: float, freq: BaseOffset, anchor: int | None
+) -> tuple[int, int]:
+    """
+    Integer view bounds for a finder's tick grid.
+
+    The grid runs from the lower bound in steps of ``freq.n``, so that bound
+    fixes its phase.  ``anchor`` is an ordinal the caller needs the grid to
+    fall on: a bar plot pads its limits by half a period either side, which
+    puts ``vmin`` below the first bar and would otherwise put every tick of a
+    multiplied frequency between the bars.  Callers that do not care -- line
+    plots, whose limits already sit on the data -- pass None and get the
+    unshifted grid.
+    """
+    lo, hi = int(vmin), int(vmax)
+    if anchor is not None:
+        n = freq.n
+        # the largest ordinal <= vmin that is congruent to anchor modulo n,
+        # so the grid keeps covering the view but lands on the caller's data
+        lo = anchor + int(np.floor((vmin - anchor) / n)) * n
+    return lo, hi
+
+
 @functools.cache
-def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
+def _daily_finder(
+    vmin: float, vmax: float, freq: BaseOffset, anchor: int | None = None
+) -> np.ndarray:
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     freq_group = FreqGroup.from_period_dtype_code(dtype_code)
@@ -647,7 +672,7 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
 
     # save this for later usage
     vmin_orig = vmin
-    (vmin, vmax) = (int(vmin), int(vmax))
+    (vmin, vmax) = _finder_view_bounds(vmin, vmax, freq, anchor)
 
     dates_: DatetimeIndex | PeriodIndex
     if freq_group == FreqGroup.FR_BUS:
@@ -844,11 +869,13 @@ def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
 
 
 @functools.cache
-def _monthly_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
+def _monthly_finder(
+    vmin: float, vmax: float, freq: BaseOffset, anchor: int | None = None
+) -> np.ndarray:
     _, _, periodsperyear = _get_periods_per_ymd(freq)
 
     vmin_orig = vmin
-    (vmin, vmax) = (int(vmin), int(vmax))
+    (vmin, vmax) = _finder_view_bounds(vmin, vmax, freq, anchor)
     span = vmax - vmin + 1
 
     # Initialize the output
@@ -916,10 +943,12 @@ def _monthly_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
 
 
 @functools.cache
-def _quarterly_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
+def _quarterly_finder(
+    vmin: float, vmax: float, freq: BaseOffset, anchor: int | None = None
+) -> np.ndarray:
     _, _, periodsperyear = _get_periods_per_ymd(freq)
     vmin_orig = vmin
-    (vmin, vmax) = (int(vmin), int(vmax))
+    (vmin, vmax) = _finder_view_bounds(vmin, vmax, freq, anchor)
     span = vmax - vmin + 1
 
     info = np.zeros(
@@ -964,9 +993,11 @@ def _quarterly_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
 
 
 @functools.cache
-def _annual_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
+def _annual_finder(
+    vmin: float, vmax: float, freq: BaseOffset, anchor: int | None = None
+) -> np.ndarray:
     # Note: small difference here vs other finders in adding 1 to vmax
-    (vmin, vmax) = (int(vmin), int(vmax + 1))
+    (vmin, vmax) = _finder_view_bounds(vmin, vmax + 1, freq, anchor)
     span = vmax - vmin + 1
 
     info = np.zeros(
@@ -1025,16 +1056,18 @@ class TimeSeries_DateLocator(mpl.ticker.Locator):  # pyright: ignore[reportAttri
         minor_locator: bool = False,
         dynamic_mode: bool = True,
         plot_obj=None,
+        anchor: int | None = None,
     ) -> None:
         freq = to_offset(freq, is_period=True)
         self.freq = freq
         self.isminor = minor_locator
         self.plot_obj = plot_obj
+        self.anchor = anchor
         self.finder = get_finder(freq)
 
     def _get_default_locs(self, vmin, vmax):
         """Returns the default locations of ticks."""
-        locator = self.finder(vmin, vmax, self.freq)
+        locator = self.finder(vmin, vmax, self.freq, self.anchor)
 
         if self.isminor:
             return np.compress(locator["min"], locator["val"])
@@ -1091,17 +1124,19 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
         minor_locator: bool = False,
         dynamic_mode: bool = True,
         plot_obj=None,
+        anchor: int | None = None,
     ) -> None:
         freq = to_offset(freq, is_period=True)
         self.freq = freq
         self.formatdict: dict[Any, Any] | None = None
         self.isminor = minor_locator
         self.plot_obj = plot_obj
+        self.anchor = anchor
         self.finder = get_finder(freq)
 
     def _set_default_format(self, vmin, vmax):
         """Returns the default ticks spacing."""
-        info = self.finder(vmin, vmax, self.freq)
+        info = self.finder(vmin, vmax, self.freq, self.anchor)
 
         if self.isminor:
             format = np.compress(info["min"] & np.logical_not(info["maj"]), info)

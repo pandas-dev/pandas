@@ -198,6 +198,61 @@ class TestIndex:
 
         assert result.name == "test"
 
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            pd.date_range("2020-01-01", periods=3),
+            pd.date_range("2020-01-01", periods=3, tz="US/Pacific"),
+            pd.timedelta_range("1 day", periods=3),
+            pd.period_range("2020-01-01", periods=3, freq="D"),
+            pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+        ],
+    )
+    def test_index_replace_widening_to_object(self, idx):
+        # GH#65099 replacement that widens to object used to raise AssertionError
+        result = idx.replace(idx[1], "foo")
+
+        expected = Index([idx[0], "foo", idx[2]], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx, value, expected",
+        [
+            (
+                pd.date_range("2020-01-01", periods=3, unit="s"),
+                pd.Timestamp("2020-01-02 00:00:00.000001"),
+                pd.DatetimeIndex(
+                    ["2020-01-01", "2020-01-02 00:00:00.000001", "2020-01-03"],
+                    dtype="datetime64[us]",
+                ),
+            ),
+            (
+                pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+                pd.Interval(0.5, 1.5),
+                pd.IntervalIndex.from_tuples([(0.0, 1.0), (0.5, 1.5), (2.0, 3.0)]),
+            ),
+        ],
+    )
+    def test_index_replace_changing_dtype_keeps_subclass(self, idx, value, expected):
+        # guard against over-correcting GH#65099: these already worked before the fix
+        result = idx.replace(idx[1], value)
+
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx, expected",
+        [
+            (pd.RangeIndex(5), Index([0, 1, 2, 3, 4], dtype="int64")),
+            (Index(["a", "b"], dtype=object), Index(["a", "b"], dtype=object)),
+        ],
+    )
+    def test_index_replace_no_op_dtype(self, idx, expected):
+        # GH#65099 a no-op replace demotes RangeIndex and preserves object rather than
+        # re-inferring it, both matching Series.replace
+        result = idx.replace(999, -1)
+
+        tm.assert_index_equal(result, expected, exact=True)
+
     def test_index_replace_regex(self):
         idx = Index(["foo", "bar", "baz"])
         result = idx.replace("^ba", "x", regex=True)
