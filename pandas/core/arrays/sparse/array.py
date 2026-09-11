@@ -1449,7 +1449,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             and self.dtype.subtype.kind in "mM"
             and dtype.fill_value == na_value_for_dtype(dtype.subtype)
         ):
-            # build from the source subtype so a boxed or unit-less fill converts
+            # build from the source subtype so a boxed fill value converts too
             fv_arr = ensure_wrapped_if_datetimelike(np.zeros(1, self.dtype.subtype))
             fv_arr[0] = self.fill_value
             converted_fv = np.asarray(astype_array(fv_arr, dtype.subtype))

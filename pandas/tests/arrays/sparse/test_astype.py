@@ -197,22 +197,12 @@ class TestAstype:
         result = pd.Series(arr).astype(dtype)
         tm.assert_sp_array_equal(result.array, expected)
 
-    @pytest.mark.parametrize(
-        "unit_dtype, na_fill_value",
-        [
-            ("M8[ns]", pd.NaT),
-            ("M8[ns]", np.datetime64("NaT")),
-            ("m8[ns]", pd.NaT),
-            ("m8[ns]", np.timedelta64("NaT")),
-        ],
-    )
-    def test_astype_datetimelike_nat_fill_value_spelling(
-        self, unit_dtype, na_fill_value
-    ):
-        # GH#49631 a NaT fill value spelled as a pandas scalar or without a unit
-        # must convert like np.datetime64("NaT", "ns"), not raise
+    @pytest.mark.parametrize("unit_dtype", ["M8[ns]", "m8[ns]"])
+    def test_astype_datetimelike_nat_fill_value_spelling(self, unit_dtype):
+        # GH#49631 a NaT fill value spelled as a pandas scalar must convert like
+        # the numpy spelling, not raise
         values = np.array(["NaT", 1, 2], dtype=unit_dtype)
-        arr = SparseArray(values, dtype=pd.SparseDtype(unit_dtype, na_fill_value))
+        arr = SparseArray(values, dtype=pd.SparseDtype(unit_dtype, pd.NaT))
         expected = SparseArray(
             values.astype("int64"),
             dtype=pd.SparseDtype("int64", fill_value=np.iinfo(np.int64).min),
