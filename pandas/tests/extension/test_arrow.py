@@ -1489,6 +1489,58 @@ def test_arrow_string_addition_mixed_with_binary_raises(string_type):
 
 
 @pytest.mark.parametrize(
+    "other", [np.array([1]), [1], pd.array([1], dtype="int64[pyarrow]")]
+)
+def test_cmp_length_mismatch_raises(other):
+    # GH#62682 pyarrow otherwise raises "Array arguments must all be the
+    #  same length"
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    with pytest.raises(ValueError, match="Lengths must match to compare"):
+        arr == other
+
+
+@pytest.mark.parametrize("op", [operator.add, operator.eq, operator.and_])
+@pytest.mark.parametrize(
+    "pa_type, values", [(pa.int64(), [1, 2]), (pa.string(), ["a", "b"])]
+)
+def test_op_2d_ndarray_raises(op, pa_type, values):
+    # GH#62682 match BaseMaskedArray instead of raising an opaque ArrowInvalid
+    arr = pd.array(values, dtype=ArrowDtype(pa_type))
+    other = np.array([[1, 2], [3, 4]])
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(arr, other)
+
+
+@pytest.mark.parametrize("op", [operator.add, operator.eq, operator.and_])
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.array([1, 2], dtype="Int64").reshape(2, 1),
+        pd.date_range("2020", periods=2)._data.reshape(2, 1),
+    ],
+    ids=["masked", "datetimelike"],
+)
+def test_op_2d_extension_array_raises(other, op):
+    # GH#62682 a reshaped EA operand leaked "Mask must be 1D array" for the
+    #  masked case, and `==` silently compared all-False for the datetimelike one
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(arr, other)
+
+
+@pytest.mark.parametrize("op", [operator.or_, operator.and_, operator.xor])
+@pytest.mark.parametrize("dtype", [ArrowDtype(pa.string()), pd.StringDtype("pyarrow")])
+def test_logical_2d_ndarray_bool_raises(dtype, op):
+    # GH#62682 the GH#60234 string-vs-bool arm of _logical_method returns before
+    #  _evaluate_op_method, so it needs the 1-d check of its own; StringDtype
+    #  returned a (2, 2) ndarray, ArrowDtype raised ArrowInvalid
+    arr = pd.array(["a", "b"], dtype=dtype)
+    other = np.array([[True, False], [True, False]])
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(other, arr)
+
+
+@pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )
 @pytest.mark.parametrize("quantile", [0.5, [0.5, 0.5]])
