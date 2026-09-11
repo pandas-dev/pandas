@@ -238,11 +238,20 @@ def test_add_2d(any_string_dtype, request):
 
     a = pd.array(["a", "b", "c"], dtype=dtype)
     b = np.array([["a", "b", "c"]], dtype=object)
-    with pytest.raises(ValueError, match="3 != 1"):
+    if dtype != object and dtype.storage == "pyarrow":
+        # GH#62682 arrow-backed arrays reject 2D operands up front, matching
+        #  BaseMaskedArray; the python storage has no such guard
+        err = NotImplementedError
+        msg = "can only perform ops with 1-d structures"
+    else:
+        err = ValueError
+        msg = "3 != 1"
+
+    with pytest.raises(err, match=msg):
         a + b
 
     s = pd.Series(a)
-    with pytest.raises(ValueError, match="3 != 1"):
+    with pytest.raises(err, match=msg):
         s + b
 
 
