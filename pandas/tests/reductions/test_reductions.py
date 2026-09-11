@@ -1876,3 +1876,14 @@ class TestSeriesMode:
         result = pd.Series(array, dtype=dtype).mode()
         expected = pd.Series(expected, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op_name", ["var", "std", "sem"])
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof):
+    # GH#68391 the sem method rejected ddof instead of forwarding it
+    arr = pd.array([1, 2, None, 4], dtype=any_numeric_ea_and_arrow_dtype)
+    expected = getattr(pd.Series([1.0, 2.0, 4.0]), op_name)(ddof=ddof)
+
+    tm.assert_almost_equal(getattr(arr, op_name)(ddof=ddof), expected)
+    assert pd.isna(getattr(arr, op_name)(skipna=False, ddof=ddof))
