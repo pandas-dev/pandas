@@ -391,7 +391,7 @@ directly. Additionally, with the introduction of Copy-on-Write in pandas 3.0,
 users don't need the ``inplace`` keyword to avoid a copy of the data.
 
 For those reasons, the ``inplace`` keyword is deprecated for those methods
-which do not work inplace. In practice, this are the DataFrame and Series
+which do not work inplace. In practice, these are the DataFrame and Series
 methods :meth:`~DataFrame.drop`, :meth:`~DataFrame.rename`,
 :meth:`~DataFrame.rename_axis`, :meth:`~DataFrame.reset_index`,
 :meth:`~DataFrame.set_index`, :meth:`~DataFrame.dropna`,
