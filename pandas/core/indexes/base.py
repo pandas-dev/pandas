@@ -7970,9 +7970,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -8034,9 +8034,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
