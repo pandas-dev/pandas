@@ -340,7 +340,7 @@ class TestSparseArrayAnalytics:
         assert arr.density == 0.5
 
     def test_density_empty(self):
-        # GH#68422
+        # GH#68468
         arr = SparseArray(np.array([], dtype="float64"))
         assert np.isnan(arr.density)
 

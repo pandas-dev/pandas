@@ -91,7 +91,7 @@ class TestSeriesAccessor:
         assert cols == expected_cols
 
     def test_density_empty(self):
-        # GH#68422
+        # GH#68468
         ser = pd.Series(SparseArray(np.array([], dtype="float64")))
         assert np.isnan(ser.sparse.density)
 
@@ -222,7 +222,7 @@ class TestFrameAccessor:
         assert res == expected
 
     def test_density_empty(self):
-        # GH#68422
+        # GH#68468
         df = pd.DataFrame({"A": SparseArray(np.array([], dtype="float64"))})
         assert np.isnan(df.sparse.density)
 
