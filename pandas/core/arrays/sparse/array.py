@@ -2312,6 +2312,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         non_nans = values[~mask]
         non_nan_idx = idx[~mask]
 
+        if len(non_nans) == 0 and not self._null_fill_value and self.sp_index.ngaps:
+            # No stored value survives the mask, so the fill value is the only
+            # candidate; if it is NA or holds no position, func() raises. GH#68462
+            return self._first_fill_value_loc()
+
         _candidate = non_nan_idx[func(non_nans)]
         candidate = index[_candidate]
 
