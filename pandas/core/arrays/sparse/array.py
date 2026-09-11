@@ -159,8 +159,13 @@ _skipna_aware_reductions = frozenset(
         "max",
         "any",
         "all",
+        "argmin",
+        "argmax",
     }
 )
+
+# Reductions whose result is a position in the array, not one of its values.
+_positional_reductions = frozenset({"argmin", "argmax"})
 
 # Reductions of complex input that give a real result.
 _complex_to_real_reductions = frozenset({"var", "std", "sem", "skew", "kurt"})
@@ -1669,7 +1674,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if keepdims:
             dtype = self.dtype
             result_dtype = np.asarray(result).dtype
-            if name in _complex_to_real_reductions and dtype.subtype.kind == "c":
+            if name in _positional_reductions:
+                # intp over result_dtype, which varies with which branch of
+                # _argmin_argmax answered.  See test_frame_idxmin_idxmax
+                dtype = SparseDtype(np.intp)
+            elif name in _complex_to_real_reductions and dtype.subtype.kind == "c":
                 # np.result_type below would widen the real result straight back to
                 # complex, and a complex fill value has no real counterpart. Gated on
                 # the reduction, not the result dtype; see
