@@ -354,7 +354,8 @@ def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
             # an object dtype holds these as-is; only a datetimelike array needs
             #  the numpy scalar, and only it rejects np.nan in place of NaT
             if isna(fill_value):
-                fill_value = dtype.type("NaT")
+                # a unitless NaT is deprecated as of numpy 2.5
+                fill_value = dtype.type("NaT", np.datetime_data(dtype)[0])
             elif isinstance(fill_value, (Timestamp, Timedelta)):
                 fill_value = fill_value.asm8
         return dtype, fill_value
