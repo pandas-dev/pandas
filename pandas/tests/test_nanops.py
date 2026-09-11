@@ -1456,17 +1456,55 @@ def test_nanops_reductions_dont_skip_nan_with_mask(nanops_operation, skipna, axi
     tm.assert_equal(result, expected)
 
 
-def test_nansem_partial_mask_no_skipna_is_per_slice():
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("nanops_operation", ["nanvar", "nanstd", "nansem"])
+def test_partial_mask_no_skipna_is_per_slice(nanops_operation, axis):
     # GH#65373 masked entries propagate NaN only into the slices containing them
     values = np.arange(25, dtype=np.float64).reshape(5, 5)
     mask = np.zeros((5, 5), dtype=bool)
     mask[0, 0] = True
 
-    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
-    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=0)
+    result = getattr(nanops, nanops_operation)(
+        values, mask=mask, skipna=False, axis=axis
+    )
+    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=axis)
     tm.assert_numpy_array_equal(np.isnan(result), np.isnan(expected))
     assert np.isnan(result[0])
     assert not np.isnan(result[1:]).any()
+
+
+@pytest.mark.parametrize("axis", [None, 0])
+@pytest.mark.parametrize("dtype", ["f8", "f4", "i8", "u8", "bool", "c16", "O"])
+@pytest.mark.parametrize("nanops_operation", ["nanvar", "nanstd", "nansem"])
+def test_masked_non_nan_value_no_skipna_propagates(nanops_operation, dtype, axis):
+    # GH#65373 the entry under an explicit mask is a fill value; skipna=False
+    #  propagates NaN, and only into the slice holding it
+    values = np.array([[1, 1], [5, 2], [3, 0]], dtype=dtype)
+    mask = np.array([[False, False], [True, False], [False, False]])
+
+    operation = getattr(nanops, nanops_operation)
+    result = operation(values, mask=mask, skipna=False, axis=axis)
+    if axis is None:
+        assert np.isnan(result)
+    else:
+        assert np.isnan(result[0])
+        assert not np.isnan(result[1])
+
+
+@pytest.mark.parametrize("axis", [None, 0])
+@pytest.mark.parametrize("dtype", ["f8", "f4", "i8", "u8", "bool", "c16", "O"])
+@pytest.mark.parametrize("nanops_operation", ["nanvar", "nanstd", "nansem"])
+def test_masked_non_nan_value_skipna_is_excluded(nanops_operation, dtype, axis):
+    # GH#65373 with skipna=True the masked entry drops out of both the numerator
+    #  and the denominator
+    values = np.array([[1, 1], [5, 2], [3, 0]], dtype=dtype)
+    mask = np.array([[False, False], [True, True], [False, False]])
+
+    result = getattr(nanops, nanops_operation)(
+        values, mask=mask, skipna=True, axis=axis
+    )
+    expected = getattr(nanops, nanops_operation)(values[[0, 2]], skipna=True, axis=axis)
+    tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])
