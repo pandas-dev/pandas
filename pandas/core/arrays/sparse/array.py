@@ -2288,6 +2288,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         non_nans = values[~mask]
         non_nan_idx = idx[~mask]
 
+        if not len(non_nans) and len(self) and self.isna().all():
+            # mask covers sp_values only, which is empty when every value is
+            # an NA fill value, so the all-NA check has to look at the array
+            raise ValueError("Encountered all NA values")
+
         _candidate = non_nan_idx[func(non_nans)]
         candidate = index[_candidate]
 

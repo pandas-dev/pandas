@@ -526,6 +526,11 @@ def _nanargminmax(
     """
     See nanargminmax.__doc__.
     """
+    if mask.size and mask.all():
+        # func would raise "empty sequence" for an array that is not empty;
+        # match the message nanops raises for the numpy-backed dtypes
+        raise ValueError("Encountered all NA values")
+
     idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
