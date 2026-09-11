@@ -5757,6 +5757,14 @@ class DataFrame(NDFrame, OpsMixin):
                             pdtype = pandas_dtype(dtype)
                         except TypeError:
                             if not isinstance(dtype, str):
+                                if isinstance(dtype, type):
+                                    # until 3.1 these resolved to object, i.e.
+                                    # selected every object column, see GH#68443
+                                    raise TypeError(
+                                        "select_dtypes does not support the class "
+                                        f"{dtype.__name__}; pass 'object' to select "
+                                        "all object-dtype columns"
+                                    ) from None
                                 raise
                             # strings accepted here but not by pandas_dtype
                             if dtype in ("datetimetz", "datetime64tz"):
