@@ -1345,9 +1345,8 @@ def test_select_dtypes_listlike_spec_container(box, kwarg):
 
 
 def _object_str_frame():
-    # both dtypes are spelled explicitly so these tests hold under the default
-    # and the legacy (infer_string=False) string config alike; a bare
-    # np.array(..., dtype=object) of strings would be inferred to str dtype
+    # both dtypes are spelled explicitly so these tests hold under the legacy
+    # string config too; a plain list of strings would be inferred to str dtype
     return pd.DataFrame(
         {
             "a": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
@@ -1372,9 +1371,12 @@ def test_select_dtypes_exclude_object_str_backcompat_deprecated(object_spec):
 @pytest.mark.parametrize(
     "str_spec", ["str", str, pd.StringDtype, pd.StringDtype(na_value=np.nan)]
 )
-def test_select_dtypes_explicit_str_not_matched_by_object(str_spec):
+def test_select_dtypes_explicit_str_not_matched_by_object(str_spec, using_infer_string):
     # GH#62718: naming str explicitly means the caller is handling string
     # columns, so an "object" spec on the other side must not claim them
+    if not using_infer_string and (str_spec is str or isinstance(str_spec, str)):
+        # a StringDtype instance compares equal to "str", so don't use ==
+        pytest.skip("'str' is a numpy string dtype under the legacy string config")
     df = _object_str_frame()
     with tm.assert_produces_warning(None):
         result = df.select_dtypes(include=[str_spec, "number"], exclude="object")
@@ -1384,9 +1386,14 @@ def test_select_dtypes_explicit_str_not_matched_by_object(str_spec):
 @pytest.mark.parametrize(
     "str_spec", ["str", str, pd.StringDtype, pd.StringDtype(na_value=np.nan)]
 )
-def test_select_dtypes_include_object_with_explicit_str_no_warning(str_spec):
-    # GH#62718: every spelling of an explicit str spec silences the GH#61916
-    # deprecation warning, not just the StringDtype class
+def test_select_dtypes_include_object_with_explicit_str_no_warning(
+    str_spec, using_infer_string
+):
+    # GH#62718: "str" and the builtin str count as naming the string columns,
+    # like the StringDtype class and instance spellings, so nothing to warn about
+    if not using_infer_string and (str_spec is str or isinstance(str_spec, str)):
+        # a StringDtype instance compares equal to "str", so don't use ==
+        pytest.skip("'str' is a numpy string dtype under the legacy string config")
     df = _object_str_frame()
     with tm.assert_produces_warning(None):
         result = df.select_dtypes(include=["object", str_spec])
