@@ -86,6 +86,15 @@ cdef inline float64_t calc_skew(
 
 
 @cython.cdivision(True)
+cdef inline float64_t calc_var(
+    int64_t nobs, float64_t m2, int64_t ddof,
+) noexcept nogil:
+    if nobs <= ddof:
+        return NAN
+    return m2 / <float64_t>(nobs - ddof)
+
+
+@cython.cdivision(True)
 cdef inline float64_t calc_kurt(
     int64_t nobs, float64_t m2, float64_t m4
 ) noexcept nogil:
