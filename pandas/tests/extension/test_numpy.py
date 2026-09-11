@@ -200,9 +200,9 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             super().test_is_not_object_type(dtype)
 
     @skip_nested
-    def test_getitem_scalar(self, data):
+    def test_getitem_scalar(self, data, using_python_scalars):
         # AssertionError
-        super().test_getitem_scalar(data)
+        super().test_getitem_scalar(data, using_python_scalars)
 
     @skip_nested
     def test_shift_fill_value(self, data):
