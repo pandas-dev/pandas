@@ -59,10 +59,13 @@ if TYPE_CHECKING:
         JoinHow,
         NaPosition,
         NumpySorter,
+        NumpyValueArrayLike,
+        ScalarLike_co,
         npt,
     )
 
     from pandas import Series
+    from pandas.core.arrays import ExtensionArray
 
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
@@ -1547,9 +1550,25 @@ class RangeIndex(Index):
             data = data / len(self)
         return Series(data, index=self.copy(), name=name)
 
-    def searchsorted(  # type: ignore[override]
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]  # pyright: ignore[reportOverlappingOverload]
         self,
-        value,
+        value: ScalarLike_co,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> np.intp: ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> npt.NDArray[np.intp]: ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:

@@ -104,8 +104,7 @@ def _inherit_from_data(
                 return Index(result, name=self.name, dtype=result.dtype, copy=False)
             return result
 
-        # error: "property" has no attribute "__name__"
-        method.__name__ = name  # type: ignore[attr-defined]
+        method.__name__ = name
         method.__doc__ = attr.__doc__
         method.__signature__ = signature(attr)  # type: ignore[attr-defined]
     return method
