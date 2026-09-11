@@ -1488,6 +1488,164 @@ def test_arrow_string_addition_mixed_with_binary_raises(string_type):
         right + left
 
 
+@pytest.fixture(
+    params=[
+        pd.Categorical(["test"]),
+        pd.offsets.Minute(3),
+        pd.Interval(0, 1),
+        object(),
+    ],
+    ids=["categorical", "dateoffset", "interval", "object"],
+)
+def unconvertible_object(request):
+    """An object that pyarrow cannot convert to one of its own types."""
+    return request.param
+
+
+def object_array_of(value, length=2):
+    # np.array([value] * length) would give a 2D array for array-like values
+    #  such as Categorical
+    result = np.empty(length, dtype=object)
+    result.fill(value)
+    return result
+
+
+@pytest.mark.parametrize(
+    "op", [operator.add, operator.sub, operator.mul, operator.and_, operator.or_]
+)
+def test_op_unconvertible_object_raises(unconvertible_object, op):
+    # GH#62682 pyarrow cannot convert the operand, so we raise our own
+    # TypeError instead of letting an ArrowInvalid/ArrowTypeError escape
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+
+    msg = f"operation '{op.__name__}' not supported for dtype 'int64[pyarrow]'"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        op(arr, other)
+
+
+def test_cmp_unconvertible_object(unconvertible_object):
+    # GH#62682 comparisons fall back to elementwise ops rather than raising
+    # an ArrowInvalid/ArrowTypeError
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+
+    result = arr == other
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    msg = "|".join(
+        ["not supported between", "Unordered Categoricals can only compare equality"]
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr < other
+
+
+@pytest.mark.parametrize("other", [pd.offsets.Minute(3), pd.Interval(0, 1)])
+def test_op_unconvertible_scalar(other):
+    # GH#62682 the scalar path has its own _box_pa call; pyarrow raises
+    #  ArrowTypeError for a DateOffset and ArrowInvalid for an Interval.
+    #  Two non-NA entries are needed, or the reflected __ne__ below gets a
+    #  length-1 array that its `not` accepts.
+    arr = pd.array([1, 2, None], dtype=ArrowDtype(pa.int64()))
+
+    msg = "operation 'add' not supported for dtype 'int64[pyarrow]'"
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        arr + other
+
+    result = arr == other
+    expected = pd.array([False, False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr != other
+    expected = pd.array([True, True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        arr < other
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.ge])
+def test_cmp_duration_offset_scalar(op):
+    # GH#62682 pyarrow raises ArrowTypeError on a Tick, so before this fix only
+    #  the reflected Tick.__eq__ direction worked
+    # length 2 with differing values: `not` accepts a length-1 array, hiding the bug
+    arr = pd.array([pd.Timedelta("1h"), pd.Timedelta("2h")])
+
+    result = op(arr.astype("duration[ns][pyarrow]"), pd.offsets.Hour(1))
+    tm.assert_numpy_array_equal(
+        np.asarray(result, dtype=bool), np.asarray(op(arr, pd.offsets.Hour(1)))
+    )
+
+
+def test_cmp_partly_unconvertible_object(unconvertible_object):
+    # GH#62682 the pointwise fallback still gives a convertible entry a real answer
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+    other[0] = 1
+
+    result = arr == other
+    expected = pd.array([True, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr != other
+    expected = pd.array([False, True], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_array_valued_pointwise_result():
+    # GH#62682 a scalar compared to a length-1 Categorical gives a length-1 bool
+    #  array holding a real answer, which must not be discarded; a longer one is
+    #  genuinely ambiguous and raises, both matching Int64
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+
+    result = arr == object_array_of(pd.Categorical([1]))
+    expected = pd.array([True, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    msg = "truth value of an array with more than one element is ambiguous"
+    with pytest.raises(ValueError, match=msg):
+        arr == object_array_of(pd.Categorical([1, 2]))
+
+
+def test_cmp_unconvertible_object_keeps_na():
+    # GH#62682 an NA entry stays NA rather than becoming a concrete bool,
+    #  on whichever side it appears
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(pd.Categorical(["test"]))
+
+    result = arr == other
+    expected = pd.array([False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    other[0] = np.nan
+    result = pd.array([1, 2], dtype=ArrowDtype(pa.int64())) == other
+    expected = pd.array([None, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_mixed_object_keeps_na():
+    # GH#60228 / GH#62682 the pointwise fallback must not turn an NA entry into
+    #  a concrete bool
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.int64()))
+    result = arr == np.array([1, "b"], dtype=object)
+    expected = pd.array([True, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, values", [(ArrowDtype(pa.int64()), [1, None]), (None, ["a", None])]
+)
+def test_arith_dataframe_of_unconvertible_objects(unconvertible_object, dtype, values):
+    # GH#62682 the operand reaches ArrowExtensionArray as a DataFrame column,
+    #  as in the issue; dtype=None gives the arrow-backed str dtype
+    arr = pd.array(values, dtype=dtype)
+    df = pd.DataFrame([[unconvertible_object, unconvertible_object]])
+    msg = "|".join(["can only concatenate str", "not supported"])
+    with pytest.raises(TypeError, match=msg):
+        arr + df
+
+
 @pytest.mark.parametrize(
     "interpolation", ["linear", "lower", "higher", "nearest", "midpoint"]
 )
