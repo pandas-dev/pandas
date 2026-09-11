@@ -5549,6 +5549,8 @@ class DataFrame(NDFrame, OpsMixin):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
             exclude = (exclude,) if exclude is not None else ()
+        # GH#68448: see test_select_dtypes_listlike_spec_container
+        include, exclude = tuple(include), tuple(exclude)
 
         selection = (frozenset(include), frozenset(exclude))
 
