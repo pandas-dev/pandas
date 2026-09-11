@@ -1515,13 +1515,13 @@ def test_op_2d_ndarray_raises(op, pa_type, values):
 @pytest.mark.parametrize(
     "other",
     [
-        pd.array([1, 2], dtype="Int64").reshape(2, 1),
+        pd.arrays.IntegerArray(np.array([[1], [2]]), np.zeros((2, 1), dtype=bool)),
         pd.date_range("2020", periods=2)._data.reshape(2, 1),
     ],
     ids=["masked", "datetimelike"],
 )
 def test_op_2d_extension_array_raises(other, op):
-    # GH#62682 a reshaped EA operand leaked "Mask must be 1D array" for the
+    # GH#62682 a 2-D EA operand leaked "Mask must be 1D array" for the
     #  masked case, and `==` silently compared all-False for the datetimelike one
     arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
     with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
