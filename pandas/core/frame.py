@@ -5478,12 +5478,12 @@ class DataFrame(NDFrame, OpsMixin):
         * A dtype instance (e.g. ``np.dtype("int32")`` or
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
-          of dtypes. Under-specified instances like a unitless
-          ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
-          ``pd.IntervalDtype("int64")`` without a ``closed`` select their
-          whole family; for intervals this holds per component, so
-          ``pd.IntervalDtype(np.dtype("M8"))`` matches every resolution and
-          every ``closed``
+          of dtypes. An under-specified instance, such as a unitless
+          ``np.dtype("datetime64")``, a ``pd.CategoricalDtype(ordered=True)``
+          with no categories, or a ``pd.IntervalDtype("int64")`` with no
+          ``closed``, selects the family its given attributes name; a bare
+          ``pd.CategoricalDtype()`` names none, so it selects every
+          categorical column, as does the equivalent ``ordered=False``
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5588,6 +5588,13 @@ class DataFrame(NDFrame, OpsMixin):
                     or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
                 )
 
+            def matches_categorical_ordered(dtype_obj: DtypeObj) -> bool:
+                # GH#40234: an ordered CategoricalDtype with no categories
+                # names the ordered-categorical family, not one exact dtype
+                return isinstance(dtype_obj, CategoricalDtype) and bool(
+                    dtype_obj.ordered
+                )
+
             def matches_type(
                 dtype_type: type | tuple[type, ...],
             ) -> Callable[[DtypeObj], bool]:
@@ -5665,7 +5672,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
-            # Matchers for string specs that name a specific ExtensionDtype are
+            # Matchers for specs that name a specific ExtensionDtype are
             # collected separately: they are checked against the column dtype
             # as-is, before the ArrowDtype -> numpy_dtype normalization that the
             # remaining (numpy-oriented) matchers rely on.
@@ -5719,11 +5726,15 @@ class DataFrame(NDFrame, OpsMixin):
                     elif isinstance(dtype, CategoricalDtype) and (
                         dtype.categories is None
                     ):
-                        # a bare CategoricalDtype() is not a specific dtype,
-                        # so match all categorical columns, as with the
-                        # "category" string
-                        resolved.add(dtype.type)
-                        funcs.append(matches_type(dtype.type))
+                        if dtype.ordered:
+                            resolved.add(dtype)
+                            ea_funcs.append(matches_categorical_ordered)
+                        else:
+                            # a bare CategoricalDtype() is not a specific dtype,
+                            # so match all categorical columns, as with the
+                            # "category" string
+                            resolved.add(dtype.type)
+                            funcs.append(matches_type(dtype.type))
                         continue
                     elif is_partial_interval(dtype):
                         # GH#66119
