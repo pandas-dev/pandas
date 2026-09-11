@@ -165,6 +165,9 @@ _skipna_aware_reductions = frozenset(
 # Reductions of complex input that give a real result.
 _complex_to_real_reductions = frozenset({"var", "std", "sem", "skew", "kurt"})
 
+# Reductions that give a bool rather than a value of the array's own dtype.
+_boolean_reductions = frozenset({"any", "all"})
+
 
 # ----------------------------------------------------------------------------
 # Array
@@ -1669,7 +1672,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if keepdims:
             dtype = self.dtype
             result_dtype = np.asarray(result).dtype
-            if name in _complex_to_real_reductions and dtype.subtype.kind == "c":
+            if name in _boolean_reductions:
+                # any/all give a bool, not a value of the array's own dtype;
+                # see test_any_all_keepdims_is_boolean
+                dtype = SparseDtype(bool)
+            elif name in _complex_to_real_reductions and dtype.subtype.kind == "c":
                 # np.result_type below would widen the real result straight back to
                 # complex, and a complex fill value has no real counterpart. Gated on
                 # the reduction, not the result dtype; see
@@ -1728,6 +1735,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_all(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
 
+        if self.dtype.subtype.kind == "M":
+            # GH#34479: match nanops.nanall on the dense values
+            raise TypeError("datetime64 type does not support operation 'all'")
+
         values = self.sp_values
         fill_value = self.fill_value
         if skipna:
@@ -1769,6 +1780,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_any(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+
+        if self.dtype.subtype.kind == "M":
+            # GH#34479: match nanops.nanany on the dense values
+            raise TypeError("datetime64 type does not support operation 'any'")
 
         values = self.sp_values
         fill_value = self.fill_value
