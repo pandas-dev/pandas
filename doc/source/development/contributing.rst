@@ -119,6 +119,11 @@ An issue is available to claim if it is:
   reporter before work begins, and ``/take`` will be declined; and
 * **not** already assigned to someone else.
 
+To keep issues available for everyone, you can hold at most **2** open issues
+at a time. ``/take`` on a further issue will be declined until one of your
+current issues is closed or you release it with ``/untake``. pandas maintainers
+are exempt from this limit.
+
 If you change your mind, comment ``/untake`` to release the issue so others can
 pick it up.
 
