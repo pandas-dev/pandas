@@ -339,6 +339,11 @@ class TestSparseArrayAnalytics:
         arr = SparseArray([0, 1])
         assert arr.density == 0.5
 
+    def test_density_empty(self):
+        # GH#68422
+        arr = SparseArray(np.array([], dtype="float64"))
+        assert np.isnan(arr.density)
+
     def test_npoints(self):
         arr = SparseArray([0, 1])
         assert arr.npoints == 1

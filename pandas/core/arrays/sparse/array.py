@@ -811,7 +811,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         This is calculated as the number of non-fill-value points divided by
         the total length of the array. A density of 1.0 means no values are
-        the fill value, while 0.0 means all values are the fill value.
+        the fill value, while 0.0 means all values are the fill value. An
+        empty array has no density and returns ``nan``.
 
         See Also
         --------
@@ -825,6 +826,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> s.density
         0.6
         """
+        if self.sp_index.length == 0:
+            # 0 / 0 is undefined
+            return np.nan
         return self.sp_index.npoints / self.sp_index.length
 
     @property
