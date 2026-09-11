@@ -23,6 +23,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    TypeGuard,
     cast,
     overload,
 )
@@ -5477,10 +5478,12 @@ class DataFrame(NDFrame, OpsMixin):
         * A dtype instance (e.g. ``np.dtype("int32")`` or
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
-          of dtypes. Under-specified instances like a unitless
-          ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
-          ``pd.IntervalDtype("int64")`` without a ``closed`` select their
-          whole family
+          of dtypes. An under-specified instance, such as a unitless
+          ``np.dtype("datetime64")``, a ``pd.CategoricalDtype(ordered=True)``
+          with no categories, or a ``pd.IntervalDtype("int64")`` with no
+          ``closed``, selects the family its given attributes name; a bare
+          ``pd.CategoricalDtype()`` names none, so it selects every
+          categorical column, as does the equivalent ``ordered=False``
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5549,6 +5552,8 @@ class DataFrame(NDFrame, OpsMixin):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
             exclude = (exclude,) if exclude is not None else ()
+        # GH#68448: see test_select_dtypes_listlike_spec_container
+        include, exclude = tuple(include), tuple(exclude)
 
         selection = (frozenset(include), frozenset(exclude))
 
@@ -5583,6 +5588,13 @@ class DataFrame(NDFrame, OpsMixin):
                     or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
                 )
 
+            def matches_categorical_ordered(dtype_obj: DtypeObj) -> bool:
+                # GH#40234: an ordered CategoricalDtype with no categories
+                # names the ordered-categorical family, not one exact dtype
+                return isinstance(dtype_obj, CategoricalDtype) and bool(
+                    dtype_obj.ordered
+                )
+
             def matches_type(
                 dtype_type: type | tuple[type, ...],
             ) -> Callable[[DtypeObj], bool]:
@@ -5607,19 +5619,40 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
-            def matches_interval_subtype(
+            def is_unitless_datetimelike(dtype_obj: DtypeObj) -> bool:
+                return (
+                    lib.is_np_dtype(dtype_obj, "mM")
+                    and np.datetime_data(dtype_obj)[0] == "generic"
+                )
+
+            def is_partial_interval(target: DtypeObj) -> TypeGuard[IntervalDtype]:
+                # GH#66119, GH#66120: an interval spec that gives a subtype but
+                # leaves ``closed`` ("interval[int64]") or the subtype's unit
+                # ("interval[datetime64]") open describes no dtype a column can
+                # have, so ``==`` matches nothing.
+                return (
+                    isinstance(target, IntervalDtype)
+                    and target.subtype is not None
+                    and (
+                        target.closed is None
+                        or is_unitless_datetimelike(target.subtype)
+                    )
+                )
+
+            def matches_partial_interval(
                 target: IntervalDtype,
             ) -> Callable[[DtypeObj], bool]:
-                # GH#66119, GH#66120: an interval spec with a subtype but no
-                # ``closed`` (e.g. the string "interval[int64]" or the instance
-                # IntervalDtype("int64")) has closed=None, which ``==`` never
-                # matches since no column has closed=None. Treat it as naming
-                # the subtype family, matching that subtype for any closed.
+                # Each component the spec leaves open matches any value.
+                generic_unit = is_unitless_datetimelike(target.subtype)
+
                 def func(dtype_obj: DtypeObj) -> bool:
-                    return (
-                        isinstance(dtype_obj, IntervalDtype)
-                        and dtype_obj.subtype == target.subtype
-                    )
+                    if not isinstance(dtype_obj, IntervalDtype):
+                        return False
+                    if target.closed is not None and dtype_obj.closed != target.closed:
+                        return False
+                    if generic_unit:
+                        return dtype_obj.subtype.type is target.subtype.type
+                    return dtype_obj.subtype == target.subtype
 
                 return func
 
@@ -5639,7 +5672,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
-            # Matchers for string specs that name a specific ExtensionDtype are
+            # Matchers for specs that name a specific ExtensionDtype are
             # collected separately: they are checked against the column dtype
             # as-is, before the ArrowDtype -> numpy_dtype normalization that the
             # remaining (numpy-oriented) matchers rely on.
@@ -5693,22 +5726,20 @@ class DataFrame(NDFrame, OpsMixin):
                     elif isinstance(dtype, CategoricalDtype) and (
                         dtype.categories is None
                     ):
-                        # a bare CategoricalDtype() is not a specific dtype,
-                        # so match all categorical columns, as with the
-                        # "category" string
-                        resolved.add(dtype.type)
-                        funcs.append(matches_type(dtype.type))
+                        if dtype.ordered:
+                            resolved.add(dtype)
+                            ea_funcs.append(matches_categorical_ordered)
+                        else:
+                            # a bare CategoricalDtype() is not a specific dtype,
+                            # so match all categorical columns, as with the
+                            # "category" string
+                            resolved.add(dtype.type)
+                            funcs.append(matches_type(dtype.type))
                         continue
-                    elif (
-                        isinstance(dtype, IntervalDtype)
-                        and dtype.subtype is not None
-                        and dtype.closed is None
-                    ):
-                        # GH#66119: a partially-specified IntervalDtype instance
-                        # (subtype but no closed, e.g. IntervalDtype("int64"))
-                        # names the subtype family, matching any closed value
+                    elif is_partial_interval(dtype):
+                        # GH#66119
                         resolved.add(dtype)
-                        ea_funcs.append(matches_interval_subtype(dtype))
+                        ea_funcs.append(matches_partial_interval(dtype))
                         continue
                     resolved.add(dtype)
                     instances.append(dtype)
@@ -5805,15 +5836,11 @@ class DataFrame(NDFrame, OpsMixin):
                                 # a bare name (e.g. "Int64", "category") names
                                 # the dtype's class and matches any instance.
                                 if "[" in dtype:
-                                    if (
-                                        isinstance(pdtype, IntervalDtype)
-                                        and pdtype.closed is None
-                                    ):
-                                        # GH#66120: "interval[int64]" resolves to
-                                        # closed=None; match the subtype family
+                                    if is_partial_interval(pdtype):
+                                        # GH#66120
                                         resolved.add(pdtype)
                                         ea_funcs.append(
-                                            matches_interval_subtype(pdtype)
+                                            matches_partial_interval(pdtype)
                                         )
                                     else:
                                         resolved.add(pdtype)
@@ -5911,17 +5938,26 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
-        # ``str`` (the type) and ``StringDtype`` (from a "str"/"string" spec)
-        # both count as the user explicitly handling string columns.
-        string_specs = {str, StringDtype}
-        if (
-            np.object_ in include_set
-            and string_specs.isdisjoint(include_set)
-            and string_specs.isdisjoint(exclude_set)
-            and any(
-                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
-                for dtype in blk_dtypes
-            )
+
+        def is_handled(dtype: StringDtype) -> bool:
+            # A spec other than ``object`` that matches this column decides
+            # its fate whether or not ``object`` keeps selecting str columns
+            # (GH#61916).
+            for spec in include_set | exclude_set:
+                if spec is str:
+                    return True
+                if isinstance(spec, type):
+                    if issubclass(spec, ExtensionDtype) and isinstance(dtype, spec):
+                        return True
+                elif dtype == spec:
+                    return True
+            return False
+
+        if np.object_ in include_set and any(
+            isinstance(dtype, StringDtype)
+            and dtype.na_value is np.nan
+            and not is_handled(dtype)
+            for dtype in blk_dtypes
         ):
             # GH#61916
             warnings.warn(
@@ -7656,13 +7692,24 @@ class DataFrame(NDFrame, OpsMixin):
         verify_integrity: bool | lib.NoDefault = ...,
     ) -> None: ...
 
+    @overload
+    def set_index(
+        self,
+        keys,
+        *,
+        drop: bool = ...,
+        append: bool = ...,
+        inplace: bool | lib.NoDefault = lib.no_default,
+        verify_integrity: bool | lib.NoDefault = ...,
+    ) -> DataFrame | None: ...
+
     def set_index(
         self,
         keys,
         *,
         drop: bool = True,
         append: bool = False,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
@@ -7688,6 +7735,14 @@ class DataFrame(NDFrame, OpsMixin):
             When set to False, the current index will be dropped from the DataFrame.
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         verify_integrity : bool, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
@@ -7785,6 +7840,20 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in DataFrame.set_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         if verify_integrity is not lib.no_default:
             # GH#62919
             warnings.warn(
