@@ -1260,20 +1260,20 @@ def test_comparison_between_arraylike_preserve_na(left, right):
     data_1 = [0, 1, 2]
     data_2 = [1, 1, pd.NA]
     data_3 = [pd.NA, pd.NA, pd.NA]
-    expected_1 = np.array([False, True, pd.NA], dtype="object")
-    expected_2 = np.array([pd.NA, pd.NA, pd.NA], dtype="object")
+    expected_1 = pd.Series([False, True, pd.NA], dtype="object")
+    expected_2 = pd.Series([pd.NA, pd.NA, pd.NA], dtype="object")
 
     if left is np.array and right is np.array:
         # TypeError is raised when both sides are NumPy arrays and
         # either side contains NA
         return None
 
-    result_1 = np.asarray(left(data_1) == right(data_2))
-    tm.assert_numpy_array_equal(result_1, expected_1)
-    result_1 = np.asarray(left(data_2) == right(data_1))
-    tm.assert_numpy_array_equal(result_1, expected_1)
+    result_1 = pd.Series(left(data_1) == right(data_2), dtype="object")
+    tm.assert_series_equal(result_1, expected_1)
+    result_1 = pd.Series(left(data_2) == right(data_1), dtype="object")
+    tm.assert_series_equal(result_1, expected_1)
 
-    result_2 = np.asarray(left(data_2) == right(data_3))
-    tm.assert_numpy_array_equal(result_2, expected_2)
-    result_2 = np.asarray(left(data_3) == right(data_2))
-    tm.assert_numpy_array_equal(result_2, expected_2)
+    result_2 = pd.Series(left(data_2) == right(data_3), dtype="object")
+    tm.assert_series_equal(result_2, expected_2)
+    result_2 = pd.Series(left(data_3) == right(data_2), dtype="object")
+    tm.assert_series_equal(result_2, expected_2)
