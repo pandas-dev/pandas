@@ -97,6 +97,7 @@ from pandas.core.indexers import (
 )
 from pandas.core.nanops import (
     check_below_min_count,
+    dt64_any_all_msg,
     na_accum_func,
 )
 
@@ -159,11 +160,19 @@ _skipna_aware_reductions = frozenset(
         "max",
         "any",
         "all",
+        "argmin",
+        "argmax",
     }
 )
 
+# Reductions whose result is a position in the array, not one of its values.
+_positional_reductions = frozenset({"argmin", "argmax"})
+
 # Reductions of complex input that give a real result.
 _complex_to_real_reductions = frozenset({"var", "std", "sem", "skew", "kurt"})
+
+# Reductions that give a bool rather than a value of the array's own dtype.
+_boolean_reductions = frozenset({"any", "all"})
 
 
 # ----------------------------------------------------------------------------
@@ -357,8 +366,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         float       ``np.nan``
         int         ``0``
         bool        False
-        datetime64  ``pd.NaT``
-        timedelta64 ``pd.NaT``
+        datetime64  ``np.datetime64("NaT")``
+        timedelta64 ``np.timedelta64("NaT")``
         =========== ==========
 
         The fill value is potentially specified in three ways. In order of
@@ -1669,7 +1678,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if keepdims:
             dtype = self.dtype
             result_dtype = np.asarray(result).dtype
-            if name in _complex_to_real_reductions and dtype.subtype.kind == "c":
+            if name in _positional_reductions:
+                # intp over result_dtype, which varies with which branch of
+                # _argmin_argmax answered.  See test_frame_idxmin_idxmax
+                dtype = SparseDtype(np.intp)
+            elif name in _boolean_reductions:
+                # see test_any_all_keepdims_is_boolean
+                dtype = SparseDtype(bool)
+            elif name in _complex_to_real_reductions and dtype.subtype.kind == "c":
                 # np.result_type below would widen the real result straight back to
                 # complex, and a complex fill value has no real counterpart. Gated on
                 # the reduction, not the result dtype; see
@@ -1728,6 +1744,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         nv.validate_all(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
 
+        if self.dtype.subtype.kind == "M":
+            # GH#34479: match nanops.nanall on the dense values
+            raise TypeError(dt64_any_all_msg("all"))
+
         values = self.sp_values
         fill_value = self.fill_value
         if skipna:
@@ -1769,6 +1789,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_any(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+
+        if self.dtype.subtype.kind == "M":
+            # GH#34479: match nanops.nanany on the dense values
+            raise TypeError(dt64_any_all_msg("any"))
 
         values = self.sp_values
         fill_value = self.fill_value

@@ -82,7 +82,13 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
-            msg = "|".join(["[Cc]annot perform", "does not support operation"])
+            msg = "|".join(
+                [
+                    "[Cc]annot perform",
+                    "does not support operation",
+                    "is not supported",
+                ]
+            )
 
             with pytest.raises(TypeError, match=msg):
                 getattr(ser, op_name)(skipna=skipna)
@@ -148,6 +154,7 @@ class BaseReduceTests:
                 [
                     f"object has no attribute '{op_name}'",
                     "does not support operation",
+                    "is not supported",
                     f"{op_name} is not implemented for",
                     f"Cannot perform reduction '{op_name}'",
                     "[Cc]ould not convert",
