@@ -774,6 +774,46 @@ def test_select_dtypes_categorical_instance_exact():
     tm.assert_frame_equal(result, df[["a", "b"]])
 
 
+def test_select_dtypes_categorical_ordered_instance():
+    # GH#40234: a CategoricalDtype with no categories but ordered=True names
+    # the ordered-categorical family instead of one exact dtype
+    df = pd.DataFrame(
+        {
+            "unord": pd.Categorical(["a", "b"]),
+            "ord_ab": pd.Categorical(["a", "b"], ordered=True),
+            "ord_xy": pd.Categorical(["x", "y"], ordered=True),
+            "i": [1, 2],
+        }
+    )
+    result = df.select_dtypes(include=pd.CategoricalDtype(ordered=True))
+    tm.assert_frame_equal(result, df[["ord_ab", "ord_xy"]])
+
+    result = df.select_dtypes(exclude=pd.CategoricalDtype(ordered=True))
+    tm.assert_frame_equal(result, df[["unord", "i"]])
+
+    # both attributes given -> exact match, as for any specific instance
+    result = df.select_dtypes(include=pd.CategoricalDtype(["a", "b"], ordered=True))
+    tm.assert_frame_equal(result, df[["ord_ab"]])
+
+    # ordered=False is the constructor default, so it cannot be told apart
+    # from a bare CategoricalDtype() and still matches every categorical
+    result = df.select_dtypes(include=pd.CategoricalDtype(ordered=False))
+    tm.assert_frame_equal(result, df[["unord", "ord_ab", "ord_xy"]])
+
+    # pairing the family spec with the ordered one does not trip the overlap
+    # check, as for a unit-specific datetime64 include/exclude
+    result = df.select_dtypes(
+        include=pd.CategoricalDtype(), exclude=pd.CategoricalDtype(ordered=True)
+    )
+    tm.assert_frame_equal(result, df[["unord"]])
+
+    with pytest.raises(ValueError, match="include and exclude overlap"):
+        df.select_dtypes(
+            include=pd.CategoricalDtype(ordered=True),
+            exclude=pd.CategoricalDtype(ordered=True),
+        )
+
+
 def test_select_dtypes_period_instance_exact():
     # GH#40234: a PeriodDtype instance matches only its own freq, whereas
     # the PeriodDtype class matches every period column
