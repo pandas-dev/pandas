@@ -1562,7 +1562,15 @@ class Index(IndexOpsMixin, PandasObject):
         # how to represent ourselves to matplotlib
         if isinstance(self.dtype, np.dtype) and self.dtype.kind == "M":
             return self.astype(object, copy=False)._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
-        return np.asarray(self.values)
+        elif self.dtype.kind in "mM":
+            # e.g. ArrowDtype - relying on default of NaT for those dtypes
+            # (explicitly specifying NaT raises an error)
+            return self._values.to_numpy()
+        elif isinstance(self.dtype, ExtensionDtype):
+            if self.dtype.kind == "O":
+                return self._values.to_numpy(na_value=None)
+            return self._values.to_numpy(na_value=np.nan)
+        return self._values
 
     _default_na_rep = "NaN"
 

@@ -52,7 +52,11 @@ def _check_plot_data(
 
     from pandas.plotting._matplotlib.converter import pandas_converters
 
-    if munits._is_natively_supported(ser) or is_bool_dtype(ser.dtype):
+    if (
+        munits._is_natively_supported(ser)
+        or is_bool_dtype(ser.dtype)
+        or (isinstance(ser.dtype, pd.ArrowDtype) and ser.dtype.kind == "m")
+    ):
         # Convert natively or boolean just to float
         converted_data = ser.to_numpy(np.float64, na_value=np.nan)
     else:
