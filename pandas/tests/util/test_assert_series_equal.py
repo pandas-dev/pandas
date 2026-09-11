@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -629,6 +631,32 @@ def test_assert_series_equal_large_int_atol(dtype):
         )
 
 
+@pytest.mark.parametrize(
+    "left_values,right_values",
+    [
+        (
+            pd.arrays.IntervalArray.from_tuples([(1.0, 2.0)]),
+            pd.arrays.IntervalArray.from_tuples([(1.5, 2.0)]),
+        ),
+        (pd.to_datetime(["2020-01-01"]), pd.to_datetime(["2020-01-02"])),
+        (pd.to_timedelta([1], unit="D"), pd.to_timedelta([2], unit="D")),
+        (
+            pd.period_range("2020-01-01", periods=1, freq="D"),
+            pd.period_range("2020-01-02", periods=1, freq="D"),
+        ),
+        (pd.array(["a"], dtype="str"), pd.array(["b"], dtype="str")),
+    ],
+)
+def test_assert_series_equal_tolerance_numeric_only(left_values, right_values):
+    # GH#43913 rtol/atol are documented as numeric-only; non-numeric dtypes
+    #  compare exactly no matter how large the tolerance
+    left = pd.Series(left_values)
+    right = pd.Series(right_values)
+
+    with pytest.raises(AssertionError, match="are different"):
+        tm.assert_series_equal(left, right, check_exact=False, rtol=10, atol=10)
+
+
 def test_assert_series_equal_check_like_check_freq():
     # GH#51920 sorting a shuffled DatetimeIndex does not restore its freq, so
     #  the freq check is skipped with check_like=True
@@ -646,6 +674,50 @@ def test_assert_series_equal_check_index_false_ignores_freq():
     right = pd.Series([1, 2, 3], index=idx._with_freq(None))
     with tm.assert_produces_warning(None):
         tm.assert_series_equal(left, right, check_index=False)
+
+
+def test_assert_series_equal_check_freq_multiindex_level():
+    # GH#66761 a freq mismatch in a MultiIndex level was not checked before
+    #  the check_freq deprecation, so it warns rather than raising
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = pd.Series([1, 2, 3], index=pd.MultiIndex.from_arrays([dates, [1, 2, 3]]))
+    right = pd.Series(
+        [1, 2, 3],
+        index=pd.MultiIndex.from_arrays([dates._with_freq(None), [1, 2, 3]]),
+    )
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_series_equal(left, right)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_series_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_series_equal(left, right, check_freq=False)
+
+
+def test_assert_series_equal_check_freq_categorical_values():
+    # GH#66761 the freq of datetimelike Categorical categories was not checked
+    #  before the check_freq deprecation, and check_freq has to reach it so the
+    #  warning can be silenced
+    dates = pd.date_range("2012-01-01", periods=3)
+    left = pd.Series(pd.Categorical(dates, categories=dates))
+    right = pd.Series(
+        pd.Categorical(dates._with_freq(None), categories=dates._with_freq(None))
+    )
+
+    warn_msg = "will check the 'freq' attribute"
+    with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
+        tm.assert_series_equal(left, right)
+
+    raise_msg = 'Attribute "freq" are different'
+    with pytest.raises(AssertionError, match=raise_msg):
+        tm.assert_series_equal(left, right, check_freq=True)
+
+    with tm.assert_produces_warning(None):
+        tm.assert_series_equal(left, right, check_freq=False)
 
 
 def test_assert_series_equal_category_order_with_na():

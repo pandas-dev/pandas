@@ -37,6 +37,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -470,6 +471,12 @@ cpdef array_to_datetime(
                 state.found_other = True
 
             elif cnp.is_datetime64_object(val):
+                if get_datetime64_unit_count(val) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.datetime64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:
