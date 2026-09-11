@@ -1646,7 +1646,7 @@ def test_td_mul_scalar_overflow_float(factor):
 @pytest.mark.parametrize("divisor", [1e-30, np.float32(1e-30), 0.5])
 def test_td_div_scalar_overflow(unit, divisor):
     # GH#68393 scalar counterpart of test_td_div_float_ndarray_overflow
-    td = pd.Timedelta(np.iinfo(np.int64).max, unit)
+    td = pd.Timedelta(np.timedelta64(np.iinfo(np.int64).max, unit))
 
     msg = "Overflow in timedelta division"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
@@ -1661,7 +1661,7 @@ def test_td_mul_zero_by_inf_is_nat(unit, factor):
     # GH#68392 a zero timedelta times an infinity is the one product that comes
     #  out NaN; the cast used to leak "cannot convert float NaN to integer",
     #  where every vectorized form gives NaT
-    td = pd.Timedelta(0, unit)
+    td = pd.Timedelta(0).as_unit(unit)
 
     assert td * factor is pd.NaT
     assert factor * td is pd.NaT
@@ -1673,7 +1673,8 @@ def test_td_mul_zero_by_inf_is_nat(unit, factor):
     #  which it does not suppress the way the TimedeltaIndex path does
     expected = np.array([np.timedelta64("NaT", unit)])
     with np.errstate(invalid="ignore"):
-        tm.assert_numpy_array_equal(td * np.array([factor]), expected)
+        result = td * np.array([factor])
+    tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
