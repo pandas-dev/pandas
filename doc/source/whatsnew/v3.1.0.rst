@@ -1088,6 +1088,7 @@ Sparse
 - Bug in ``np.std`` and ``np.var`` on a :class:`SparseArray` returning ``NaN`` when the array held missing values, inconsistently with ``np.sum`` and ``np.mean``, which skip them (:issue:`68194`)
 - Bug in indexing a :class:`SparseArray` with an out-of-bounds integer with the value of the length of the array returning the fill value instead of raising an ``IndexError`` (:issue:`64183`).
 - Bug in logical operators (``&``, ``|``, ``^``) between a :class:`SparseDtype`-backed :class:`Series` and a differently-indexed :class:`Series` raising an uninformative error instead of aligning and returning the expected result (:issue:`32119`)
+- Bug in the :class:`SparseArray` constructor raising ``TypeError: boolean value of NA is ambiguous`` for object-dtype data holding ``pd.NA`` unless the fill value was itself missing (:issue:`68439`)
 - Bug in the repr of a datetime64 or timedelta64 :class:`SparseDtype`-backed :class:`Series`, and in casting such an array to ``object`` dtype, showing raw integers such as ``1577836800000000000`` instead of :class:`Timestamp`/:class:`Timedelta` values (:issue:`68073`)
 
 ExtensionArray
