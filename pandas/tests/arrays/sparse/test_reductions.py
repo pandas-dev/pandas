@@ -650,6 +650,36 @@ def test_any_all_na_fill_value():
         arr.all(skipna=False)
 
 
+@pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]"])
+def test_any_all_datetime64_raises(name, unit):
+    # GH#68438 sparse answered for a datetime64 subtype where dense raises
+    values = np.array(["2020-01-01", "NaT"], dtype=unit)
+    arr = SparseArray(values)
+    msg = f"'{name}' with datetime64 dtypes is not supported"
+
+    with pytest.raises(TypeError, match=msg):
+        getattr(arr, name)()
+    with pytest.raises(TypeError, match=msg):
+        arr._reduce(name, keepdims=True)
+    with pytest.raises(TypeError, match=msg):
+        getattr(pd.Series(arr), name)()
+    with pytest.raises(TypeError, match=msg):
+        getattr(pd.DataFrame({"a": arr}), name)()
+
+
+@pytest.mark.parametrize("name,value", [("any", True), ("all", False)])
+@pytest.mark.parametrize("subtype", ["m8[s]", "int64", "float64", "bool"])
+def test_any_all_keepdims_is_boolean(name, value, subtype):
+    # GH#68438 the keepdims wrapper boxed the bool in self.dtype, so a timedelta64
+    #  column came back as a 1ns Timedelta rather than True
+    arr = SparseArray(np.array([1, 0], dtype=subtype))
+
+    result = arr._reduce(name, keepdims=True)
+    expected = SparseArray([value], dtype=pd.SparseDtype(bool))
+    tm.assert_sp_array_equal(result, expected)
+
+
 def test_numpy_any_all_skip_na():
     # GH#68390 these skip NA like np.sum and np.mean. NaN is truthy and None
     #  falsy, so each entry point needs its own array to be decisive

@@ -1635,10 +1635,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise TypeError(f"datetime64 type does not support operation '{how}'")
             if how in ["any", "all"]:
                 # GH#34479
-                raise TypeError(
-                    f"'{how}' with datetime64 dtypes is no longer supported. "
-                    f"Use (obj != pd.Timestamp(0)).{how}() instead."
-                )
+                raise TypeError(nanops.dt64_any_all_msg(how))
 
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid

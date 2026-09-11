@@ -650,6 +650,18 @@ def _ensure_numeric_input(func: F) -> F:
     return cast("F", new_func)
 
 
+def dt64_any_all_msg(how: str) -> str:
+    """
+    Message for the GH#34479 removal of any/all on datetime64 data.
+
+    Shared so that the reduction, groupby and sparse paths cannot drift apart.
+    """
+    return (
+        f"'{how}' with datetime64 dtypes is not supported. "
+        f"Use (obj != pd.Timestamp(0)).{how}() instead."
+    )
+
+
 def nanany(
     values: np.ndarray,
     *,
@@ -692,7 +704,7 @@ def nanany(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation 'any'")
+        raise TypeError(dt64_any_all_msg("any"))
 
     values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
 
@@ -748,7 +760,7 @@ def nanall(
 
     if values.dtype.kind == "M":
         # GH#34479
-        raise TypeError("datetime64 type does not support operation 'all'")
+        raise TypeError(dt64_any_all_msg("all"))
 
     values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
 
