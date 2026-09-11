@@ -1346,7 +1346,7 @@ class DataFrame(NDFrame, OpsMixin):
         int      1.0
         float    1.5
         Name: 0, dtype: float64
-        >>> print(row["int"].dtype)
+        >>> print(row.dtype)
         float64
         >>> print(df["int"].dtype)
         int64
@@ -4447,7 +4447,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  results if our categories are integers that dont match our codes
             # IntervalIndex: IntervalTree has no get_loc
             row = self.index.get_loc(index)
-            return series._ixs(row)
+            values = series._values
+            return maybe_unbox_numpy_scalar(values[row], object_with_dtype=values)
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing

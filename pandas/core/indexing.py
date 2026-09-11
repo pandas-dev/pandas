@@ -305,7 +305,7 @@ class IndexingMixin:
         With scalar integers.
 
         >>> df.iloc[0, 1]
-        np.int64(2)
+        2
 
         With lists of integers.
 
@@ -433,7 +433,7 @@ class IndexingMixin:
         Single label for row and column
 
         >>> df.loc["cobra", "shield"]
-        np.int64(2)
+        2
 
         Slice with labels for row and single label for column. As mentioned
         above, note that both the start and stop of the slice are included.
@@ -651,7 +651,7 @@ class IndexingMixin:
         Single tuple for the index with a single label for the column
 
         >>> df.loc[("cobra", "mark i"), "shield"]
-        np.int64(2)
+        2
 
         Slice from index tuple to single label
 
@@ -748,18 +748,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.at[4, "B"]
-        np.int64(2)
+        2
 
         Set value at specified row/column pair
 
         >>> df.at[4, "B"] = 10
         >>> df.at[4, "B"]
-        np.int64(10)
+        10
 
         Get value within a Series
 
         >>> df.loc[5].at["B"]
-        np.int64(4)
+        4
         """
         return _AtIndexer("at", self)
 
@@ -797,18 +797,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.iat[1, 2]
-        np.int64(1)
+        1
 
         Set value at specified row/column pair
 
         >>> df.iat[1, 2] = 10
         >>> df.iat[1, 2]
-        np.int64(10)
+        10
 
         Get value within a series
 
         >>> df.loc[0].iat[1]
-        np.int64(2)
+        2
         """
         return _iAtIndexer("iat", self)
 
@@ -1453,7 +1453,7 @@ class _LocIndexer(_LocationIndexer):
     Single label for row and column
 
     >>> df.loc["cobra", "shield"]
-    np.int64(2)
+    2
 
     Slice with labels for row and single label for column. As mentioned
     above, note that both the start and stop of the slice are included.
@@ -1653,7 +1653,7 @@ class _LocIndexer(_LocationIndexer):
     Single tuple for the index with a single label for the column
 
     >>> df.loc[("cobra", "mark i"), "shield"]
-    np.int64(2)
+    2
 
     Slice from index tuple to single label
 
@@ -2206,7 +2206,7 @@ class _iLocIndexer(_LocationIndexer):
     With scalar integers.
 
     >>> df.iloc[0, 1]
-    np.int64(2)
+    2
 
     With lists of integers.
 
@@ -3370,18 +3370,18 @@ class _AtIndexer(_ScalarAccessIndexer):
     Get value at specified row/column pair
 
     >>> df.at[4, "B"]
-    np.int64(2)
+    2
 
     Set value at specified row/column pair
 
     >>> df.at[4, "B"] = 10
     >>> df.at[4, "B"]
-    np.int64(10)
+    10
 
     Get value within a Series
 
     >>> df.loc[5].at["B"]
-    np.int64(4)
+    4
     """
 
     _takeable = False
@@ -3504,18 +3504,18 @@ class _iAtIndexer(_ScalarAccessIndexer):
     Get value at specified row/column pair
 
     >>> df.iat[1, 2]
-    np.int64(1)
+    1
 
     Set value at specified row/column pair
 
     >>> df.iat[1, 2] = 10
     >>> df.iat[1, 2]
-    np.int64(10)
+    10
 
     Get value within a series
 
     >>> df.loc[0].iat[1]
-    np.int64(2)
+    2
     """
 
     _takeable = True

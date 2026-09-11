@@ -1023,7 +1023,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
+    def _ixs(self, i: int | np.integer, axis: AxisInt = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
