@@ -351,6 +351,13 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     else:
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes, strict=True))
 
+    if "where" in kwargs:
+        # GH#60611 if `where` is a Series/DataFrame/Index/ExtensionArray,
+        # leaving it in kwargs means it gets passed straight through to the
+        # ufunc, which re-triggers our __array_ufunc__ on it and recurses
+        # infinitely (eventually raising RecursionError or segfaulting).
+        kwargs["where"] = _extract_where(self, kwargs["where"], reconstruct_axes)
+
     if self.ndim == 1:
         names = {x.name for x in inputs if hasattr(x, "name")}
         name = names.pop() if len(names) == 1 else None
@@ -452,6 +459,29 @@ def _standardize_out_kwarg(**kwargs) -> dict:
     return kwargs
 
 
+def _extract_where(self, where, reconstruct_axes: dict):
+    """
+    Convert a ufunc `where` argument into something that can be handed
+    straight to the ufunc without being handed back into our own
+    __array_ufunc__ (which would recurse infinitely, GH#60611).
+
+    If `where` has the same dimensionality as `self`, it is first aligned
+    to `reconstruct_axes` (the axes the result will be reconstructed with),
+    filling any misaligned labels with False. This mirrors the alignment
+    semantics documented for NDFrame.where/mask, so a `where` argument with
+    different index/column labels (or ordering) than the operands doesn't
+    silently mask the wrong positions.
+    """
+    if isinstance(where, ABCNDFrame):
+        if where.ndim == self.ndim:
+            where = where.reindex(**reconstruct_axes, fill_value=False)
+        if where.ndim > 1:
+            # extract_array does not unbox DataFrames; np.asarray mirrors
+            # how DataFrame *inputs* are unboxed elsewhere in this module.
+            return np.asarray(where)
+    return extract_array(where, extract_numpy=True)
+
+
 def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     If we have an `out` keyword, then call the ufunc without `out` and then
@@ -494,8 +524,20 @@ def _assign_where(out, result, where) -> None:
     if where is None:
         # no 'where' arg passed to ufunc
         out[:] = result
-    else:
+    elif isinstance(out, np.ndarray):
         np.putmask(out, where, result)
+    else:
+        # GH#60611 np.putmask requires `out` to be an ndarray, but `out` may
+        # instead be a Series/DataFrame passed by the user. Boolean-key
+        # __setitem__ isn't a stand-in for putmask here: on a DataFrame a
+        # 2D boolean key selects via .where (which requires same-shaped
+        # `other`), and on a Series it would align `result` by position
+        # only coincidentally. Do the masking on the raw values instead,
+        # then write the whole thing back with plain positional assignment
+        # (already relied on above for the unmasked case).
+        values = np.asarray(out).copy()
+        np.putmask(values, where, result)
+        out[:] = values
 
 
 def default_array_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
