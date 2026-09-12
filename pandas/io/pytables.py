@@ -1398,8 +1398,12 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str, default 'nan'
-            Str to use as str nan representation.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns
+            (``format="table"`` only).
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
@@ -1627,8 +1631,13 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str, default 'nan'
-            Str to use as str nan representation.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns.
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
+            Only used when the table is created; ignored on later appends,
+            which reuse whatever the table already stores.
         chunksize : int, default 100000
             Number of rows to write in each chunk.
         expectedrows : int
@@ -2625,10 +2634,10 @@ class IndexCol:
 
     is_an_indexable: bool = True
     is_data_indexable: bool = True
-    # GH#9604: True for a data column that stores a string MultiIndex level, so
-    # it round-trips missing values like a string Index rather than via the
-    # global data-column nan_rep default.
-    is_mi_level: bool = False
+    # GH#9604: set on a DataCol whose missing values use the sentinel in
+    # ``nan_rep`` rather than a table-wide one (an old file, or a table written
+    # with an explicit nan_rep).
+    uses_col_nan_rep: bool = False
     _info_fields = ["freq", "tz", "index_name", "ordered"]
 
     def __init__(
@@ -2666,8 +2675,8 @@ class IndexCol:
         self.table = table
         self.meta = meta
         self.metadata = metadata
-        # GH#9604: for a string Index, the sentinel used on write to encode
-        # missing values (None when the index had no missing values).
+        # GH#9604: the sentinel used on write to encode this column's missing
+        # values (None when it had none).
         self.nan_rep = nan_rep
 
         if pos is not None:
@@ -3341,15 +3350,12 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
-            if self.is_mi_level:
-                # GH#9604: a string MultiIndex level round-trips like a string
-                # Index. self.nan_rep is the per-level sentinel (None when the
-                # level had no missing value), and a literal "nan" is left
-                # untouched instead of being read back as a missing value.
+            if self.uses_col_nan_rep:
+                # GH#9604: None when the column had no missing value, in which
+                # case a literal "nan" is left untouched
                 col_nan_rep = self.nan_rep
             else:
-                # Old files may have been written without nan_rep persisted; the
-                # writer (write_data) defaulted None to "nan", so do the same.
+                # the table-wide nan_rep, which the writer defaulted to "nan"
                 col_nan_rep = nan_rep if nan_rep is not None else "nan"
             converted = _unconvert_string_array(
                 converted,
@@ -3367,7 +3373,7 @@ class DataCol(IndexCol):
         assert self.dtype is not None
         _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
         if self.nan_rep is not None:
-            # GH#9604: per-level string MultiIndex NaN sentinel (see convert).
+            # GH#9604: this column's own NaN sentinel (see convert).
             _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
 
 
@@ -4480,6 +4486,10 @@ class Table(Fixed):
         # per-level NaN sentinel (older files lack it and read back as before).
         # self.levels is the int default 1 for non-MI tables, a list for MI.
         self.attrs.mi_level_nan_rep = isinstance(self.levels, list)
+        # GH#9604: every string data column is stored with its own NaN
+        # sentinel, superseding mi_level_nan_rep. A caller-supplied nan_rep
+        # keeps its documented table-wide meaning, so such a table opts out.
+        self.attrs.data_col_nan_rep = self.nan_rep is None
         self.attrs.info = self.info
 
     def get_attrs(self) -> None:
@@ -4527,6 +4537,7 @@ class Table(Fixed):
         levels_attr = getattr(self.attrs, "levels", None)
         levels = levels_attr if isinstance(levels_attr, list) else []
         mi_level_marker = getattr(self.attrs, "mi_level_nan_rep", False)
+        data_col_marker = getattr(self.attrs, "data_col_nan_rep", False)
 
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
@@ -4588,12 +4599,12 @@ class Table(Fixed):
             #  meta = "category" if md is not None else None
             meta = getattr(table_attrs, f"{c}_meta", None)
 
-            # GH#9604: a string MultiIndex level stored as a data column carries
-            # a per-level NaN sentinel and round-trips missing values like a
-            # string Index; older files lack the marker and read back as before.
-            is_mi_level = c in levels and mi_level_marker
+            # GH#9604: mi_level_nan_rep predates data_col_nan_rep and covers
+            # only the MultiIndex levels, which keep a sentinel even when the
+            # caller supplied a nan_rep for the data columns.
+            uses_col_nan_rep = data_col_marker or (c in levels and mi_level_marker)
             nan_rep = (
-                getattr(table_attrs, f"{c}_nan_rep", None) if is_mi_level else None
+                getattr(table_attrs, f"{c}_nan_rep", None) if uses_col_nan_rep else None
             )
 
             obj = klass(
@@ -4609,7 +4620,7 @@ class Table(Fixed):
                 dtype=dtype,
                 ordered=self.info.get(c, {}).get("ordered"),
             )
-            obj.is_mi_level = is_mi_level
+            obj.uses_col_nan_rep = uses_col_nan_rep
             obj.nan_rep = nan_rep
             return obj
 
@@ -4846,12 +4857,19 @@ class Table(Fixed):
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
 
+        # GH#9604: None means no nan_rep was requested, so each string column
+        # mints a collision-free sentinel instead. A caller-supplied one keeps
+        # its documented table-wide meaning and is persisted, so a later append
+        # to the same table keeps it.
+        user_nan_rep = nan_rep
+
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
             table_exists = True
             axes = [a.axis for a in self.index_axes]
             data_columns = list(self.data_columns)
-            nan_rep = self.nan_rep
+            # an existing table's nan_rep supersedes whatever this append passed
+            nan_rep = user_nan_rep = self.nan_rep
             # TODO: do we always have validate=True here?
         else:
             table_exists = False
@@ -4932,7 +4950,7 @@ class Table(Fixed):
                 and existing_index_col.kind == "string"
                 and np.asarray(a.isna()).any()
             ):
-                existing_values = _read_stored_index_values(
+                existing_values = _read_stored_column_values(
                     self.table, existing_index_col.cname, self.encoding, self.errors
                 )
         new_index = _convert_index(
@@ -5015,32 +5033,33 @@ class Table(Fixed):
 
             new_name = name or f"values_block_{i}"
 
-            # GH#9604: a string MultiIndex level (stored as a data column)
-            # encodes its missing values with a per-level sentinel rather than
-            # the global nan_rep, so a literal "nan" in a level survives the
-            # round-trip like it does for a string Index.
-            # The read path honors the per-level sentinel only when the table
-            # carries the marker attribute, which set_attrs writes when the
-            # table is created and an append cannot add retroactively. So when
-            # appending to a table written before the marker existed, keep
-            # encoding missing values with the global nan_rep, otherwise the
-            # sentinel would be read back as a literal string.
+            # GH#9604: the read path honors a per-column sentinel only when
+            # the table carries the marker attribute, which set_attrs writes at
+            # creation and an append cannot add retroactively. So when appending
+            # to a table written before the marker existed, keep encoding
+            # missing values with the table-wide nan_rep, otherwise the sentinel
+            # would be read back as a literal string.
             level_names = self.levels if isinstance(self.levels, list) else []
             is_level = name is not None and name in level_names
-            if is_level and table_exists:
-                is_level = bool(getattr(self.attrs, "mi_level_nan_rep", False))
-            level_nan_rep = None
-            if is_level:
-                assert name is not None  # for mypy, implied by is_level
-                level_nan_rep = _make_level_nan_rep(
+            if table_exists:
+                uses_col_nan_rep = bool(
+                    getattr(self.attrs, "data_col_nan_rep", False)
+                ) or (is_level and bool(getattr(self.attrs, "mi_level_nan_rep", False)))
+            else:
+                # a MultiIndex level is part of the index rather than of the
+                # data, so a caller-supplied nan_rep does not govern it
+                uses_col_nan_rep = user_nan_rep is None or is_level
+            col_nan_rep = None
+            if uses_col_nan_rep:
+                col_nan_rep = _make_data_col_nan_rep(
                     blk.values,
-                    name,
+                    b_items,
                     existing_col,
                     self.table,
                     self.encoding,
                     self.errors,
                 )
-            block_nan_rep = level_nan_rep if level_nan_rep is not None else nan_rep
+            block_nan_rep = col_nan_rep if col_nan_rep is not None else nan_rep
 
             data_converted = _maybe_convert_for_string_atom(
                 new_name,
@@ -5083,8 +5102,8 @@ class Table(Fixed):
                 dtype=dtype_name,
                 data=data,
             )
-            col.is_mi_level = is_level
-            col.nan_rep = level_nan_rep
+            col.uses_col_nan_rep = uses_col_nan_rep
+            col.nan_rep = col_nan_rep
             col.update_info(new_info)
 
             vaxes.append(col)
@@ -5103,7 +5122,7 @@ class Table(Fixed):
             values_axes=vaxes,
             data_columns=dcs,
             info=new_info,
-            nan_rep=nan_rep,
+            nan_rep=user_nan_rep,
         )
         if hasattr(self, "levels"):
             # TODO: get this into constructor, only for appropriate subclass
@@ -5986,11 +6005,11 @@ def _read_index_nan_rep(attrs, name: str = "nan_rep") -> str | None:
     return nan_rep or None
 
 
-def _make_index_nan_rep(
+def _make_nan_rep(
     values: np.ndarray, mask: np.ndarray, existing: set | None = None
 ) -> str:
     """
-    Choose a string NaN sentinel for a string Index that does not collide with
+    Choose a string NaN sentinel for a string column that does not collide with
     any non-missing value, so genuine missing values round-trip without being
     confused with a literal string such as ``"nan"`` (GH#9604).
 
@@ -5998,63 +6017,85 @@ def _make_index_nan_rep(
     ``table``-format append; the sentinel must avoid those too, since a single
     sentinel is persisted for the whole column.
     """
-    seen = set(values[~mask])
-    if existing is not None:
-        seen |= existing
+    non_missing = values[~mask]
+    if lib.infer_dtype(non_missing, skipna=True) != "string":
+        # Only a str can equal the sentinel, and an elementwise == against a
+        # list or ndarray element is not a bool. Dropping the rest also keeps an
+        # unhashable element from raising here, ahead of the "Cannot serialize
+        # the column" message it deserves.
+        non_missing = np.array(
+            [val for val in non_missing if isinstance(val, str)], dtype=object
+        )
     nan_rep = "nan"
-    while nan_rep in seen:
+    while (non_missing == nan_rep).any() or (
+        existing is not None and nan_rep in existing
+    ):
         nan_rep = f"_{nan_rep}_"
     return nan_rep
 
 
-def _read_stored_index_values(table, cname: str, encoding: str, errors: str) -> set:
+def _read_stored_column_values(table, cname: str, encoding: str, errors: str) -> set:
     """
-    Read the values already stored for a string Index column (GH#9604), so a
-    NaN sentinel chosen for a later append cannot collide with them.
+    Read the values already stored for a string column (GH#9604), so a NaN
+    sentinel chosen for a later append cannot collide with them.
     """
     raw = getattr(table.cols, cname)[:]
     decoded = _unconvert_string_array(
         raw, nan_rep=None, encoding=encoding, errors=errors
     )
-    return set(decoded)
+    # a multi-column data block stores a 2-D array; one sentinel covers it all
+    return set(decoded.ravel())
 
 
-def _make_level_nan_rep(
+def _make_data_col_nan_rep(
     blk_values,
-    name: str,
+    columns: list,
     existing_col,
     table,
     encoding: str,
     errors: str,
 ) -> str | None:
     """
-    Choose the NaN sentinel for a string MultiIndex level stored as a data
-    column, mirroring the string-Index handling (GH#9604): reuse the sentinel
-    already persisted for the column, otherwise mint a collision-free one only
-    when the level actually has a missing value. Returns None when no sentinel
-    is needed (a literal "nan" then round-trips because the level read path
-    skips substitution when the sentinel is absent).
+    Choose the NaN sentinel for a string data column, mirroring the string-Index
+    handling (GH#9604): reuse the sentinel already persisted for the column,
+    otherwise mint a collision-free one, and only when the column actually has a
+    missing value. Returns None when no sentinel is needed (a literal "nan" then
+    round-trips because the read path skips substitution when the sentinel is
+    absent).
     """
     if isinstance(blk_values.dtype, StringDtype):
         blk_values = blk_values.to_numpy()
     if blk_values.dtype != object:
         return None
 
-    flat = np.asarray(blk_values).reshape(-1)
+    values = np.asarray(blk_values)
+    flat = values.reshape(-1)
     mask = isna(flat)
     nan_rep = existing_col.nan_rep if existing_col is not None else None
     if mask.any() and nan_rep is None:
         existing_values = None
         if existing_col is not None and existing_col.kind == "string":
-            existing_values = _read_stored_index_values(
+            existing_values = _read_stored_column_values(
                 table, existing_col.cname, encoding, errors
             )
-        nan_rep = _make_index_nan_rep(flat, mask, existing_values)
-    if nan_rep is not None and (flat[~mask] == nan_rep).any():
+        nan_rep = _make_nan_rep(flat, mask, existing_values)
+    if (
+        nan_rep is not None
+        # an elementwise == against a list/ndarray element is not a bool, and a
+        # non-string column has _maybe_convert_for_string_atom's much better
+        # "Cannot serialize the column" error waiting for it anyway
+        and lib.infer_dtype(flat, skipna=True) == "string"
+        and (flat[~mask] == nan_rep).any()
+    ):
+        # A real value equal to the sentinel is indistinguishable from a
+        # missing value on read; refuse rather than silently corrupt it.
+        collides = (values == nan_rep) & ~isna(values)
+        # a block is (n_columns, n_rows), so the first axis picks the label
+        pos = int(np.argmax(collides.any(axis=1))) if collides.ndim == 2 else 0
+        label = columns[pos]
         raise ValueError(
-            f"Cannot store the string {str(nan_rep)!r} in MultiIndex level "
-            f"[{name}]: it collides with the sentinel used to encode missing "
-            "values in this column"
+            f"Cannot store the string {str(nan_rep)!r} in column [{label}]: it "
+            "collides with the sentinel used to encode missing values on disk"
         )
     return nan_rep
 
@@ -6160,7 +6201,7 @@ def _convert_index(
         # as well as the ones in this chunk.
         nan_rep = existing_nan_rep
         if mask.any() and nan_rep is None:
-            nan_rep = _make_index_nan_rep(values, mask, existing_values)
+            nan_rep = _make_nan_rep(values, mask, existing_values)
         if nan_rep is not None:
             if (values[~mask] == nan_rep).any():
                 # A real value equal to the sentinel is indistinguishable from a
@@ -6267,7 +6308,13 @@ def _maybe_convert_for_string_atom(
     data[mask] = nan_rep
 
     if existing_col and mask.any() and len(nan_rep) > existing_col.itemsize:
-        raise ValueError("NaN representation is too large for existing column size")
+        raise ValueError(
+            "NaN representation is too large for existing column size: "
+            f"{str(nan_rep)!r} has length {len(nan_rep)} but this column has a "
+            f"limit of {existing_col.itemsize}!\n"
+            "It can be longer than the values themselves. Recreate the table "
+            "passing min_itemsize to reserve room for it."
+        )
 
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
