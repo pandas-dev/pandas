@@ -1213,6 +1213,25 @@ def test_select_dtypes_arrow_date_no_tz_attribute(pa_type):
         tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[["num"]])
 
 
+@pytest.mark.parametrize("pa_type", ["date32", "date64"])
+def test_select_dtypes_arrow_date_skipped_by_unit_spec(pa_type):
+    # GH#68488: a date column is day-resolution, but numpy_dtype reports a
+    # datetime64 of whatever unit pyarrow picks, so a unit-qualified spec used
+    # to select it at a resolution it does not have
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    df = pd.DataFrame(
+        {
+            "date": pd.array([1, 2], dtype=dtype),
+            "ts": pd.array([1, 2], dtype=pd.ArrowDtype(pa.timestamp("ms"))),
+        }
+    )
+    for spec in ["datetime64[s]", "datetime64[ms]", "datetime64[us]", "datetime64[ns]"]:
+        result = df.select_dtypes(include=spec)
+        expected = df[["ts"]] if spec == "datetime64[ms]" else df[[]]
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("spec", ["interval[int64]", pd.IntervalDtype("int64")])
 def test_select_dtypes_interval_subtype_matches_any_closed(spec):
     # GH#66119, GH#66120: an interval spec with a subtype but no ``closed``
