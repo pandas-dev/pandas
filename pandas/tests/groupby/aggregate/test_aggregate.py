@@ -2095,6 +2095,56 @@ def test_agg_relabel_with_name_match_and_namedagg():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_relabel_with_name_match_listlike_aggfunc():
+    # GH#63743 a list-like aggfunc takes the same path whether or not the output
+    #  name matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    with pytest.raises(TypeError, match="unhashable"):
+        df.groupby("A").agg(B=("B", ["sum", "max"]))
+
+    with pytest.raises(TypeError, match="unhashable"):
+        df.groupby("A").agg(x=("B", ["sum", "max"]))
+
+    # a tuple aggfunc is read as a single (name, func) pair, not two aggfuncs
+    result = df.groupby("A").agg(B=("B", ("sum", "max")))
+    expected = df.groupby("A").agg(x=("B", ("sum", "max")))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("aggfunc", ["describe", "ohlc"])
+def test_agg_relabel_with_name_match_non_reduction(aggfunc):
+    # GH#63743 a string aggfunc that is not a reduction gives a frame per group,
+    #  so it must still produce one output column per keyword when the output
+    #  name matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    result = df.groupby("A").agg(B=("B", aggfunc))
+    expected = df.groupby("A").agg(z=("B", aggfunc))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", aggfunc))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_duplicate_columns():
+    # GH#63743 named aggregation gives one output column per keyword even when
+    #  the source label is duplicated and the output name matches it
+    df = pd.DataFrame(
+        [[0, 1, 2], [0, 3, 4], [1, 5, 6], [1, 7, 8]], columns=["A", "B", "B"]
+    )
+
+    result = df.groupby("A").agg(B=("B", "sum"))
+    expected = df.groupby("A").agg(x=("B", "sum"))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiple_partial_functions_same_name():
     # GH#28570
     quant50 = partial(np.percentile, q=50)

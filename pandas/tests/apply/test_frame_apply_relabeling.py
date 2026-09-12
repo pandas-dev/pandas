@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -103,3 +104,56 @@ def test_reconstruct_func():
     result = pd.core.apply.reconstruct_func("min")
     expected = (False, "min", None, None)
     tm.assert_equal(result, expected)
+
+
+def test_reconstruct_func_allow_skip_normalization():
+    # GH#63743 the normalization fast path is opt-in: only callers that pass
+    #  allow_skip_normalization can receive the un-normalized {column: aggfunc}
+    #  form, and only when every output name equals its source column name
+    kwargs = {"B": ("B", "sum")}
+
+    result = pd.core.apply.reconstruct_func(None, True, **kwargs)
+    assert result == (False, {"B": "sum"}, None, None)
+
+    # default (every caller other than DataFrameGroupBy.aggregate) normalizes
+    relabeling, func, columns, order = pd.core.apply.reconstruct_func(None, **kwargs)
+    assert relabeling
+    assert func == {"B": ["sum"]}
+    assert columns == ("B",)
+    tm.assert_numpy_array_equal(order, np.array([0], dtype=np.intp))
+
+    # a renamed output still normalizes even when the fast path is allowed
+    relabeling, _, columns, _ = pd.core.apply.reconstruct_func(
+        None, True, x=("B", "sum")
+    )
+    assert relabeling
+    assert columns == ("x",)
+
+
+def test_agg_relabel_output_name_matches_column():
+    # GH#63743 named aggregation returns a DataFrame indexed by the output
+    #  names even when those names match the source column names
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+    result = df.agg(A=("A", "min"))
+    expected = pd.DataFrame({"A": [1]}, index=pd.Index(["A"]))
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg(A=("A", "min"), B=("B", "max"))
+    expected = pd.DataFrame(
+        {"A": [1.0, np.nan], "B": [np.nan, 6.0]}, index=pd.Index(["A", "B"])
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_output_name_matches_column_axis_1():
+    # GH#63743 named aggregation with axis=1 raises regardless of whether the
+    #  output name matches the column name
+    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["A", "B", "C"])
+    msg = "Named aggregation is not supported when axis=1."
+
+    with pytest.raises(NotImplementedError, match=msg):
+        df.agg(A=("A", "min"), axis=1)
+
+    with pytest.raises(NotImplementedError, match=msg):
+        df.agg(x=("A", "min"), axis=1)
