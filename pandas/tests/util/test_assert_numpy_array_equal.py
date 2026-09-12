@@ -234,3 +234,16 @@ numpy array values are different \\(100.0 %\\)
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_numpy_array_equal(a, b)
+
+
+def test_assert_numpy_array_equal_nat_different_unit():
+    # GH#68459
+    arr1 = np.array(["NaT"], dtype="timedelta64[s]")
+    arr2 = np.array(["NaT"], dtype="timedelta64[us]")
+    msg = """numpy array are different
+
+numpy array dtypes are different
+\\[left\\]:  timedelta64\\[s\\]
+\\[right\\]: timedelta64\\[us\\]"""
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(arr1, arr2)

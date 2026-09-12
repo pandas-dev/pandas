@@ -844,6 +844,15 @@ def assert_numpy_array_equal(
                     obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
+            if (
+                left.dtype.kind in "mM"
+                and right.dtype.kind in "mM"
+                and left.dtype != right.dtype
+            ):
+                raise_assert_detail(
+                    obj, f"{obj} dtypes are different", left.dtype, right.dtype
+                )
+
             diff = 0.0
             # ravel so the count is over values, matching the `left.size` total
             for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
