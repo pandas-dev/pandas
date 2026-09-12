@@ -358,8 +358,8 @@ class StylerRenderer:
         self.cellstyle_map_index: defaultdict[tuple[CSSPair, ...], list[str]] = (
             defaultdict(list)
         )
-        body: list = self._translate_body(idx_lengths, max_rows, max_cols)
-        d.update({"body": body})
+        body, body_row_indices = self._translate_body(idx_lengths, max_rows, max_cols)
+        d.update({"body": body, "body_row_indices": body_row_indices})
 
         ctx_maps = {
             "cellstyle": "cellstyle_map",
@@ -373,12 +373,22 @@ class StylerRenderer:
             ]
             d.update({k: map})
 
+        body_row_indices = d["body_row_indices"]
+        ctx_len = len(self.index)
         for dx in dxs:  # self.concatenated is not empty
             d["body"].extend(dx["body"])  # type: ignore[union-attr]
             d["cellstyle"].extend(dx["cellstyle"])  # type: ignore[union-attr]
             d["cellstyle_index"].extend(  # type: ignore[union-attr]
                 dx["cellstyle_index"]
             )
+            # Extend body_row_indices with concatenated styler's row indices
+            # Apply the same offset as used for ctx
+            if "body_row_indices" in dx:
+                body_row_indices.extend(
+                    [r + ctx_len if r != -1 else -1 for r in dx["body_row_indices"]]
+                )
+            ctx_len += len(dx.get("index", self.concatenated[0].index))  # approximate
+        d["body_row_indices"] = body_row_indices
 
         table_attr = self.table_attributes
         if not config["styler"]["html"]["mathjax"]:
@@ -640,12 +650,16 @@ class StylerRenderer:
         -------
         body : list
             The associated HTML elements needed for template rendering.
+        body_row_indices : list[int]
+            The original data row indices for each row in body
+            (including trim row as -1).
         """
         rlabels = self.data.index.tolist()
         if not isinstance(self.data.index, MultiIndex):
             rlabels = [[x] for x in rlabels]
 
         body: list = []
+        body_row_indices: list[int] = []
         visible_row_count: int = 0
         for r, row_tup in [
             z for z in enumerate(self.data.itertuples()) if z[0] not in self.hidden_rows
@@ -657,13 +671,15 @@ class StylerRenderer:
                 body,
                 "row",
             ):
+                body_row_indices.append(-1)  # trim row marker
                 break
 
             body_row = self._generate_body_row(
                 (r, row_tup, rlabels), max_cols, idx_lengths
             )
             body.append(body_row)
-        return body
+            body_row_indices.append(r)
+        return body, body_row_indices
 
     def _check_trim(
         self,
@@ -903,18 +919,11 @@ class StylerRenderer:
                 n = _concatenated_visible_rows(concatenated, n, row_indices)
             return n
 
-        def concatenated_visible_rows(obj):
-            row_indices: list[int] = []
-            _concatenated_visible_rows(obj, 0, row_indices)
-            # TODO try to consolidate the concat visible rows
-            # methods to a single function / recursion for simplicity
-            return row_indices
-
         body = []
-        for r, row in zip(concatenated_visible_rows(self), d["body"], strict=True):
-            # note: cannot enumerate d["body"] because rows were dropped if hidden
-            # during _translate_body so must zip to acquire the true r-index associated
-            # with the ctx obj which contains the cell styles.
+        # Use body_row_indices from the render dict which matches the trimmed body rows
+        for r, row in zip(d["body_row_indices"], d["body"], strict=True):
+            # note: r is the original data row index for regular rows, -1 for trim row
+            # For trim row (r == -1), there is no ctx entry, so skip cellstyle
             if all(self.hide_index_):
                 row_body_headers = []
             else:
@@ -924,14 +933,14 @@ class StylerRenderer:
                         "display_value": (
                             col["display_value"] if col["is_visible"] else ""
                         ),
-                        "cellstyle": self.ctx_index[r, c],
+                        "cellstyle": self.ctx_index[r, c] if r != -1 else "",
                     }
                     for c, col in enumerate(row[:index_levels])
                     if (col["type"] == "th" and not self.hide_index_[c])
                 ]
 
             row_body_cells = [
-                {**col, "cellstyle": self.ctx[r, c]}
+                {**col, "cellstyle": self.ctx[r, c] if r != -1 else ""}
                 for c, col in enumerate(row[index_levels:])
                 if (col["is_visible"] and col["type"] == "td")
             ]
