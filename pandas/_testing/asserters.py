@@ -858,12 +858,13 @@ def assert_numpy_array_equal(
         raise AssertionError(err_msg)
 
     # compare shape and values
-    if not array_equivalent(left, right, strict_nan=strict_nan):
-        _raise(left, right, err_msg)
-
     if check_dtype:
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
             assert_attr_equal("dtype", left, right, obj=obj)
+    
+    if not array_equivalent(left, right, strict_nan=strict_nan):
+        _raise(left, right, err_msg)
+
 
 
 @set_module("pandas.testing")
