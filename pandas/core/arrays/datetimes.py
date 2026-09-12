@@ -670,6 +670,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
 
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+            if lib.is_np_dtype(dtype, "M") and is_unitless(dtype):
+                dtype = self._ndarray.dtype
+
+        return super().to_numpy(dtype=dtype, copy=copy, na_value=na_value)
+
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         if dtype is None and self.tz:
             # The default for tz-aware is object, to preserve tz info
