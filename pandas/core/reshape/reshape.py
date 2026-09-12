@@ -156,7 +156,13 @@ class _Unstacker:
                 self.unique_nan_index = np.flatnonzero(nan_mask)[0]
 
             self.removed_level = self.removed_level.take(unique_codes)
-            self.removed_level_full = self.removed_level_full.take(unique_codes)
+            # unique_codes indexes into self.removed_level (already reduced to
+            # used entries by index.remove_unused_levels() above), not into
+            # self.removed_level_full, which may still contain entries removed
+            # from self.removed_level (GH#66673); re-derive positions by label.
+            self.removed_level_full = self.removed_level_full.take(
+                self.removed_level_full.get_indexer(self.removed_level)
+            )
 
         if config["mode"]["performance_warnings"]:
             # Bug fix GH 20601
