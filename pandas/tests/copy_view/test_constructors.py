@@ -110,6 +110,7 @@ def test_series_from_array_different_dtype(copy):
     "idx",
     [
         pd.Index([1, 2]),
+        pd.RangeIndex(2),
         pd.DatetimeIndex([pd.Timestamp("2019-12-31"), pd.Timestamp("2020-12-31")]),
         pd.PeriodIndex([pd.Period("2019-12-31"), pd.Period("2020-12-31")]),
         pd.TimedeltaIndex([pd.Timedelta("1 days"), pd.Timedelta("2 days")]),
@@ -122,6 +123,7 @@ def test_series_from_index(idx):
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+    tm.assert_numpy_array_equal(get_array(idx), get_array(expected))
 
     # forcing copy=False still gives a CoW shallow copy
     ser = pd.Series(idx, copy=False)
@@ -129,6 +131,7 @@ def test_series_from_index(idx):
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+    tm.assert_numpy_array_equal(get_array(idx), get_array(expected))
 
     # forcing copy=True still results in a copy
     ser = pd.Series(idx, copy=True)
