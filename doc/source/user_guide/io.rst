@@ -5681,7 +5681,7 @@ documentation.
 
 Where an ADBC driver is not available or may be missing functionality,
 users should opt for installing SQLAlchemy alongside their database driver library.
-Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+Examples of such drivers are `psycopg 3 <https://www.psycopg.org/psycopg3/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -6124,8 +6124,9 @@ Specifying this will return an iterator through chunks of the query result:
    usage. Most database drivers fetch the complete result set into client
    memory before the first chunk is produced. Actually streaming the result
    requires a server-side cursor, which with SQLAlchemy is requested with the
-   ``stream_results`` execution option (supported by, e.g., the psycopg2 and
-   pymysql drivers; drivers without server-side cursor support ignore it):
+   ``stream_results`` execution option (supported by, e.g., the psycopg2,
+   psycopg 3 and pymysql drivers; drivers without server-side cursor support
+   ignore it):
 
    .. code-block:: python
 
@@ -6145,7 +6146,11 @@ connecting to.
 
    from sqlalchemy import create_engine
 
-   engine = create_engine("postgresql://scott:tiger@localhost:5432/mydatabase")
+   # PostgreSQL using the psycopg 3 driver:
+   engine = create_engine("postgresql+psycopg://scott:tiger@localhost:5432/mydatabase")
+
+   # or using the legacy psycopg2 driver:
+   engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
 
    engine = create_engine("mysql+mysqldb://scott:tiger@localhost/foo")
 
