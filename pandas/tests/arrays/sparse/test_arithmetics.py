@@ -536,3 +536,22 @@ def test_binary_operators(op, fill_value):
         else:
             tm.assert_almost_equal(res4.fill_value, exp_fv)
             tm.assert_almost_equal(res4.to_dense(), exp)
+
+
+@pytest.mark.parametrize("values", [[1, 2, 3], [True, False, True]])
+@pytest.mark.parametrize("op", [operator.add, operator.gt])
+def test_datetimelike_operand_raises_typeerror(values, op):
+    # GH#68466 the operand was coerced to self.fill_value first, so SparseDtype
+    #  rejected the fill_value before the op could reject the operand
+    other = np.asarray(pd.date_range("2016", periods=3))
+    with pytest.raises(TypeError):
+        op(SparseArray(values), other)
+
+
+def test_mul_timedelta64_operand():
+    # GH#68466 valid densely, but the fill_value coercion raised
+    tda = np.asarray(pd.timedelta_range("1 Day", periods=3))
+    result = SparseArray([1, 2, 3]) * tda
+    tm.assert_numpy_array_equal(
+        result.to_dense(), (np.arange(1, 4) * tda).astype(object)
+    )

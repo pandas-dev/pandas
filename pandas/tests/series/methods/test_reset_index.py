@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -26,6 +28,7 @@ class TestResetIndex:
         assert df.index[0] == stamp
         assert df.reset_index()["Date"].iloc[0] == stamp
 
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in Series.reset_index")
     def test_reset_index(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -154,12 +157,12 @@ class TestResetIndex:
         assert isinstance(deleveled, pd.Series)
         assert deleveled.index.name == ser.index.name
 
-    def test_reset_index_inplace_and_drop_ignore_name(self):
+    def test_reset_index_drop_ignore_name(self):
         # GH#44575
         ser = pd.Series(range(2), name="old")
-        ser.reset_index(name="new", drop=True, inplace=True)
+        result = ser.reset_index(name="new", drop=True)
         expected = pd.Series(range(2), name="old")
-        tm.assert_series_equal(ser, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_reset_index_drop_infer_string(self):
         # GH#56160
@@ -216,3 +219,28 @@ def test_column_name_duplicates(names, expected_names, allow_duplicates):
     else:
         with pytest.raises(ValueError, match="cannot insert"):
             s.reset_index()
+
+
+def test_reset_index_inplace_depr():
+    msg = "The inplace keyword in Series.reset_index is deprecated"
+
+    ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    ser_orig = ser.copy()
+    expected = pd.Series([1, 2, 3])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.reset_index(drop=True)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.reset_index(drop=True, inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.reset_index(drop=True, inplace=True)
+    tm.assert_series_equal(ser, expected)

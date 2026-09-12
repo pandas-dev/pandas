@@ -14,6 +14,18 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
 
+skip_if_no_numexpr = pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
+
+
+def skip_if_no_numexpr_fixture():
+    # Applied inside the engine fixture rather than as a class-level mark: the
+    #  python-engine subclasses override that fixture, but pytest collects marks
+    #  from the whole MRO, so a class mark would skip them too.
+    if not NUMEXPR_INSTALLED:
+        pytest.skip("numexpr not installed or an unsupported version")
+
 
 @pytest.fixture(params=["python", "pandas"], ids=lambda x: x)
 def parser(request):
@@ -21,7 +33,7 @@ def parser(request):
 
 
 @pytest.fixture(
-    params=["python", pytest.param("numexpr", marks=td.skip_if_no("numexpr"))],
+    params=["python", pytest.param("numexpr", marks=skip_if_no_numexpr)],
     ids=lambda x: x,
 )
 def engine(request):
@@ -179,6 +191,92 @@ class TestDataFrameEval:
 
         tm.assert_frame_equal(res, expect)
 
+    def test_query_duplicate_column_name_referenced(self, engine, parser):
+        # GH#65588 the eval fix made a duplicated label resolve to a DataFrame;
+        # query cannot use that as a row mask, so it raises instead of masking.
+        df = pd.DataFrame({"A": range(3), "B": range(10, 13), "C": range(3)}).rename(
+            columns={"B": "A"}
+        )
+
+        msg = "expr referenced a duplicated column label"
+        with pytest.raises(ValueError, match=msg):
+            df.query("A == 1", engine=engine, parser=parser)
+
+        # every column duplicated -> the mask needs no reindexing, so nothing
+        # but this check stops query from silently returning a NaN-masked frame
+        df2 = pd.DataFrame({"A": range(3), "B": range(10, 13)}).rename(
+            columns={"B": "A"}
+        )
+        with pytest.raises(ValueError, match=msg):
+            df2.query("A == 1", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_local_not_shadowed(self, engine, parser):
+        # GH#65588 the duplicate-label recorder must not capture an @local whose
+        # name matches a duplicated column: Scope.swapkey rewrites the local by
+        # writing into the first resolver that *contains* the name
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["AA", "AA", "B"])
+        AA = 4  # noqa: F841
+
+        result = df.query("B > @AA", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[[1]])
+
+    @pytest.mark.parametrize("name", ["Timestamp", "datetime", "list", "tuple"])
+    def test_query_index_name_shadowing_default_global(self, name, engine, parser):
+        # GH#34958, GH#35595 an index level wins over the type-valued
+        #  DEFAULT_GLOBALS; test_eval.py::test_eval_no_support_column_name
+        #  covers the column side
+        df = pd.DataFrame({"b": [3, 4]}, index=pd.Index([1, 20], name=name))
+
+        result = df.query(f"{name} < 10", engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df.iloc[[0]])
+
+    def test_query_duplicate_column_name_cleaned_name_collision(self, engine, parser):
+        # GH#65588 clean_column_name is not injective, so the recorder has to
+        # ask which label the cleaned name actually resolves to (the last one
+        # wins) rather than whether any label sharing it is duplicated
+        skip_if_no_pandas_parser(parser)
+
+        # `1` resolves to the unique str column, so this is not ambiguous
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, 1, "1"])
+        result = df.query("`1` == 3", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[0]])
+
+        # reversed, `1` resolves to the duplicated int label instead
+        df2 = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=[1, "1", 1])
+        with pytest.raises(ValueError, match="referenced a duplicated column label"):
+            df2.query("`1` == 3", engine=engine, parser=parser)
+
+    def test_query_duplicate_column_name_reduced_to_mask(self, engine, parser):
+        # GH#65588 a duplicated label is only a problem when the expression
+        # leaves the result 2-D; reducing it back to a row mask is valid and
+        # worked before this guard existed
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        df.columns = ["a", "a", "c"]
+
+        result = df.query("(a == 1).any(axis=1)", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[0]])
+
+        result = df.query("a.max(axis=1) > 4", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[1, 2]])
+
+    def test_query_duplicate_column_name_whole_frame_mask(self, engine, parser):
+        # GH#65588 a 2-D mask that does not come from a duplicated label is
+        # still a valid query, whether or not it references a unique label
+        skip_if_no_pandas_parser(parser)
+        df = pd.DataFrame(np.arange(-3, 3).reshape(2, 3), columns=["a", "a", "b"])
+
+        result = df.query("@df > 0", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df[df > 0])
+
+        # referencing the unique label exercises the recorder's negative branch
+        expected = df[df > df["b"].min()]
+        assert expected.notna().any().any()  # not vacuously all-NaN
+        result = df.query("@df > b.min()", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, expected)
+
     def test_query_duplicate_index_label(self, engine, parser):
         # GH#51815 aligning the terms against a frame whose index has duplicate
         # labels raised "cannot reindex on an axis with duplicate labels"
@@ -267,6 +365,16 @@ class TestDataFrameEval:
         res = df.eval("@np.floor(a)", engine=engine, parser=parser)
         expected = np.floor(df["a"])
         tm.assert_series_equal(expected, res)
+
+    def test_using_local_function_with_scalar_arg(self, engine, parser):
+        # GH#22649 the bare-name branch of visit_Call; test_using_numpy covers
+        #  the same fix through the attribute branch
+        skip_if_no_pandas_parser(parser)
+        around = np.around  # noqa: F841
+        df = pd.Series([1.12, 2.76], name="a").to_frame()
+        result = df.eval("@around(a, 1)", engine=engine, parser=parser)
+        expected = np.around(df["a"], 1)
+        tm.assert_series_equal(result, expected)
 
     def test_eval_simple(self, engine, parser):
         df = pd.Series([0.2, 1.5, 2.8], name="a").to_frame()
@@ -521,10 +629,10 @@ class TestDataFrameQueryWithMultiIndex:
                 raise AssertionError("object must be a Series or Index")
 
 
-@td.skip_if_no("numexpr")
 class TestDataFrameQueryNumExprPandas:
     @pytest.fixture
     def engine(self):
+        skip_if_no_numexpr_fixture()
         return "numexpr"
 
     @pytest.fixture
@@ -569,8 +677,7 @@ class TestDataFrameQueryNumExprPandas:
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -584,8 +691,7 @@ class TestDataFrameQueryNumExprPandas:
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query("index < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -597,8 +703,7 @@ class TestDataFrameQueryNumExprPandas:
         d["dates3"] = pd.date_range("1/1/2014", periods=n)
         df = pd.DataFrame(d)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.index.to_series() < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -803,8 +908,7 @@ class TestDataFrameQueryNumExprPandas:
         expected = df[df.a == "@c"]
         tm.assert_frame_equal(result, expected)
 
-    def test_query_undefined_local(self):
-        engine, parser = self.engine, self.parser
+    def test_query_undefined_local(self, engine, parser):
         skip_if_no_pandas_parser(parser)
 
         df = pd.DataFrame(np.random.default_rng(2).random((10, 2)), columns=list("ab"))
@@ -861,7 +965,7 @@ class TestDataFrameQueryNumExprPandas:
         result = df.query(q, engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
 
-    def test_check_tz_aware_index_query(self, tz_aware_fixture):
+    def test_check_tz_aware_index_query(self, tz_aware_fixture, engine, parser):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
         df_index = pd.date_range(
@@ -869,11 +973,15 @@ class TestDataFrameQueryNumExprPandas:
         )
         expected = pd.DataFrame(index=df_index)
         df = pd.DataFrame(index=df_index)
-        result = df.query('"2018-01-03 00:00:00+00" < time')
+        result = df.query(
+            '"2018-01-03 00:00:00+00" < time', engine=engine, parser=parser
+        )
         tm.assert_frame_equal(result, expected)
 
         expected = pd.DataFrame(df_index)
-        result = df.reset_index().query('"2018-01-03 00:00:00+00" < time')
+        result = df.reset_index().query(
+            '"2018-01-03 00:00:00+00" < time', engine=engine, parser=parser
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_method_calls_in_query(self, engine, parser):
@@ -904,10 +1012,10 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numexpr")
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     @pytest.fixture
     def engine(self):
+        skip_if_no_numexpr_fixture()
         return "numexpr"
 
     @pytest.fixture
@@ -944,8 +1052,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query(
             "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -961,8 +1068,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.iloc[0, 0] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         res = df.query(
             "(index < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -975,8 +1081,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = pd.date_range("1/1/2012", periods=n)
         df["dates3"] = pd.date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
-        return_value = df.set_index("dates1", inplace=True, drop=True)
-        assert return_value is None
+        df = df.set_index("dates1")
         msg = r"'BoolOp' nodes are not implemented"
         with pytest.raises(NotImplementedError, match=msg):
             df.query("index < 20130101 < dates3", engine=engine, parser=parser)
@@ -1008,6 +1113,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         )
         tm.assert_frame_equal(expected, result)
 
+    @skip_if_no_numexpr
     def test_query_numexpr_with_min_and_max_columns(self):
         df = pd.DataFrame({"min": [1, 2, 3], "max": [4, 5, 6]})
         regex_to_match = (
@@ -1157,6 +1263,42 @@ class TestDataFrameQueryStrings:
 
             res = df.query('["a", "b"] != strings', engine=engine, parser=parser)
             tm.assert_frame_equal(res, expect)
+
+    def test_query_str_accessor_method(self, parser, engine):
+        # GH#26549
+        df = pd.DataFrame({"colA": list("0123456789")})
+
+        result = df.query('colA.str.contains("0")', engine=engine, parser=parser)
+
+        tm.assert_frame_equal(result, df[df["colA"].str.contains("0")])
+
+    def test_query_str_contains_word_boundary(self, parser, engine):
+        # GH#32589 was a non-raw outer string, not a pandas bug; this pins that
+        #  _preparse leaves a backslash escape inside a string literal alone
+        df = pd.DataFrame({"A": ["A test case", "Another Testing Case"]})
+        pat = r"\btest\b"
+
+        result = df.query(
+            f"A.str.contains(r'{pat}', regex=True, case=False)",
+            engine=engine,
+            parser=parser,
+        )
+
+        expected = df[df["A"].str.contains(pat, regex=True, case=False)]
+        tm.assert_frame_equal(result, expected)
+
+    def test_query_str_slice_negative_index(self, parser, engine):
+        # GH#49905 visit_Call's unary argument, as in
+        #  test_eval.py::test_unary_in_function; the a.str[-1:] spelling in the
+        #  same issue still raises, see visit_Slice
+        df = pd.DataFrame({"a": ["example", "zzz"]})
+
+        result = df.query(
+            'a.str.slice(0, -1).str.contains("e")', engine=engine, parser=parser
+        )
+
+        expected = df[df["a"].str.slice(0, -1).str.contains("e")]
+        tm.assert_frame_equal(result, expected)
 
     def test_query_with_string_columns(self, parser, engine):
         df = pd.DataFrame(
@@ -1694,6 +1836,22 @@ class TestDataFrameQueryBacktickQuoting:
         expected = pd.DataFrame({"a": [2]}, index=range(1, 2), dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
+    def test_query_ea_dtype_scalar_comparison(self, any_numeric_ea_and_arrow_dtype):
+        # GH#25369
+        df = pd.DataFrame(
+            {"col_test": [4, None, 6]}, dtype=any_numeric_ea_and_arrow_dtype
+        )
+        warning = RuntimeWarning if NUMEXPR_INSTALLED else None
+        msg = (
+            "Engine has switched to 'python' because numexpr does not "
+            "support extension array dtypes. Please set your engine "
+            "to python manually."
+        )
+        with tm.assert_produces_warning(warning, match=msg):
+            result = df.query("col_test != 6")
+
+        tm.assert_frame_equal(result, df.iloc[:1])
+
     @pytest.mark.parametrize("engine", ["python", "numexpr"])
     @pytest.mark.parametrize("dtype", ["int64", "Int64", "int64[pyarrow]"])
     def test_query_ea_equality_comparison(self, dtype, engine):
@@ -1811,3 +1969,39 @@ class TestDataFrameQueryInWithColumnRefs:
         result = df.query("a in (2, 3)", engine=engine, parser=parser)
         expected = df[df["a"].isin([2, 3])]
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, values",
+    [
+        ("datetime64[ns]", ["2020-01-01", "2020-01-02"]),
+        ("timedelta64[ns]", ["5 days", "3 days"]),
+        ("period[D]", ["2020-01-01", "2020-01-02"]),
+    ],
+)
+@pytest.mark.xfail(
+    reason="GH#23420, GH#35595 _rewrite_membership_op turns == into isin, "
+    "which does not parse the string"
+)
+def test_query_datetimelike_eq_string(dtype, values, engine, parser):
+    skip_if_no_pandas_parser(parser)
+    df = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+
+    result = df.query(f'a == "{values[0]}"', engine=engine, parser=parser)
+
+    tm.assert_frame_equal(result, df.iloc[[0]])
+
+
+@pytest.mark.parametrize(
+    "op, func",
+    [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
+)
+def test_query_timedelta_compared_to_string(op, func, engine, parser):
+    # GH#23420 the ordered comparisons raised ValueError on timedelta;
+    #  == is still wrong, see test_query_datetimelike_eq_string
+    df = pd.DataFrame({"dt": pd.to_timedelta(["5 days", "3 days"])})
+
+    result = df.query(f'dt {op} "4 days"', engine=engine, parser=parser)
+
+    expected = df[func(df["dt"], pd.Timedelta("4 days"))]
+    tm.assert_frame_equal(result, expected)

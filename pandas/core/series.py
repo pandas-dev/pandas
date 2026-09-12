@@ -1406,7 +1406,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         drop: bool = False,
         name: Level = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         allow_duplicates: bool = False,
     ) -> DataFrame | Series | None:
         """
@@ -1430,6 +1430,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
@@ -1513,6 +1521,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2  baz  one    2
         3  baz  two    3
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
             new_index = default_index(len(self))
@@ -3669,7 +3690,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
         `fill_value` is assumed when value is not present at some index
-        from one of the two Series being combined.
+        from one of the two Series being combined. The result index is the
+        union of the two indexes. If a label is duplicated, its occurrences
+        are paired in order: the first occurrence in the Series with the first
+        in `other`, the second with the second, and so on; an occurrence with
+        no counterpart is paired with `fill_value`.
 
         Parameters
         ----------
@@ -3680,7 +3705,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value : scalar, optional
             The value to assume when an index is missing from
             one Series or the other. The default specifies to use the
-            appropriate NaN value for the underlying dtype of the Series.
+            appropriate NA value for the underlying dtype of the Series.
 
         Returns
         -------
@@ -3728,20 +3753,51 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         eagle     200.0
         falcon    345.0
         dtype: float64
+
+        Occurrences of a duplicated label are paired in order. Below, the
+        first ``"a"`` in ``s3`` is combined with the ``"a"`` in ``s4``,
+        while the second has no counterpart and is paired with
+        ``fill_value``.
+
+        >>> s3 = pd.Series([1, 2, 3], index=["a", "a", "b"])
+        >>> s4 = pd.Series([10, 20], index=["a", "b"])
+        >>> s3.combine(s4, lambda x, y: x + y, fill_value=0)
+        a    11
+        a     2
+        b    23
+        dtype: int64
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
-            # If other is a Series, result is based on union of Series,
-            # so do this element by element
+            if (
+                isinstance(self.index, MultiIndex)
+                and isinstance(other.index, MultiIndex)
+                and self.index.nlevels != other.index.nlevels
+            ):
+                raise ValueError(
+                    "Cannot combine Series whose MultiIndexes have different "
+                    f"numbers of levels: {self.index.nlevels} and "
+                    f"{other.index.nlevels}"
+                )
             new_index = self.index.union(other.index)
+            if self.index.equals(new_index) and other.index.equals(new_index):
+                lindexer = rindexer = range(len(new_index))
+            elif self.index._index_as_unique and other.index._index_as_unique:
+                lindexer = self.index.get_indexer(new_index).tolist()
+                rindexer = other.index.get_indexer(new_index).tolist()
+            else:
+                lindexer = self.index._pairwise_indexer(new_index).tolist()
+                rindexer = other.index._pairwise_indexer(new_index).tolist()
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
+            lvalues = self._values
+            rvalues = other._values
             with np.errstate(all="ignore"):
-                for i, idx in enumerate(new_index):
-                    lv = self.get(idx, fill_value)
-                    rv = other.get(idx, fill_value)
+                for i, (li, ri) in enumerate(zip(lindexer, rindexer, strict=True)):
+                    lv = lvalues[li] if li != -1 else fill_value
+                    rv = rvalues[ri] if ri != -1 else fill_value
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
