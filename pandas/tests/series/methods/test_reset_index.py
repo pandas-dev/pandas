@@ -164,6 +164,9 @@ class TestResetIndex:
         expected = pd.Series(range(2), name="old")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_reset_index_drop_infer_string(self):
         # GH#56160
         pytest.importorskip("pyarrow")

@@ -770,6 +770,9 @@ def test_invalid_utf8_raises(c_parser_only):
         parser.read_csv(data)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_string_storage_python_consistent(c_parser_only):
     # GH#65283: the pyarrow string fast path must not produce an
     # ArrowStringArray when mode.string_storage="python"
@@ -977,6 +980,9 @@ def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_mutable(kwargs):
     # GH#66619: the fast path builds its result without going through the
     # ExtensionArray constructor, so it must set every attribute the
@@ -999,6 +1005,9 @@ def test_pyarrow_string_fast_path_mutable(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     # GH#66619: the fast path sets the instance attributes itself instead of
     # calling __init__, so it has to track whatever set the constructor
@@ -1015,6 +1024,9 @@ def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     assert vars(arr).keys() == vars(expected).keys()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_iterator_dtype_stable_across_chunks():
     # GH#66619: a reader resolves its pyarrow target once, when it converts its
     # first string column, so every chunk of one read gets the same dtype even
@@ -1033,6 +1045,9 @@ def test_pyarrow_string_iterator_dtype_stable_across_chunks():
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
     # GH#66756: the fast path copies a short token at a compile-time-constant
     # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
@@ -1062,6 +1077,9 @@ def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     # GH#66756: the fast path sizes its data buffer from the column's leading
     # tokens and grows it mid-pass when that estimate falls short, re-copying

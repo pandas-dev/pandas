@@ -77,6 +77,9 @@ def test_empty(input_kwargs, result_kwargs):
     "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
 )
 @pytest.mark.parametrize("last_val", ["7", 7])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_series(last_val, infer_string):
     with pd.option_context("future.infer_string", infer_string):
         ser = pd.Series(["1", "-3.14", last_val])

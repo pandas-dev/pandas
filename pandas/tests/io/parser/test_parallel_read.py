@@ -1134,6 +1134,9 @@ def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
     tm.assert_frame_equal(parallel, serial)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
     # The deferred string path fills each chunk's data buffer with the same
     # fixed-width token copy the serial path uses, so widths straddling that
