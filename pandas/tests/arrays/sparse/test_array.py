@@ -335,7 +335,7 @@ class TestSparseArrayAnalytics:
 
     @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
     def test_memory_usage_object_subtype(self):
-        # GH#68471 deep introspection raised TypeError on an object subtype
+        # GH#68490 deep introspection raised TypeError on an object subtype
         values = np.array(["aaaa"] * 1000 + ["b"], dtype=object)
         arr = SparseArray(values, fill_value="aaaa")
         ser = pd.Series(arr)
