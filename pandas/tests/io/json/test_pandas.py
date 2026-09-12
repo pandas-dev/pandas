@@ -145,8 +145,6 @@ class TestPandasContainer:
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
-            if expected["x"].dtype.kind == "M":
-                expected["x"] = expected["x"].astype("M8[ms]")
 
         tm.assert_frame_equal(result, expected)
 
@@ -286,8 +284,6 @@ class TestPandasContainer:
                 idx = idx.astype(str)
 
             expected.index = idx
-        else:
-            expected.index = expected.index.as_unit("ms")
 
         assert_json_roundtrip_equal(result, expected, orient)
 
@@ -738,8 +734,6 @@ class TestPandasContainer:
 
         if orient in ("values", "records"):
             expected = expected.reset_index(drop=True)
-        else:
-            expected.index = expected.index.as_unit("ms")
         if orient != "split":
             expected.name = None
 
@@ -781,7 +775,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "dtype,expected",
         [
-            (True, pd.Series(["2000-01-01"], dtype="datetime64[ms]")),
+            (True, pd.Series(["2000-01-01"], dtype="datetime64[us]")),
             (False, pd.Series([946684800000])),
         ],
     )
@@ -829,7 +823,6 @@ class TestPandasContainer:
             json = StringIO(datetime_frame.to_json())
         result = pd.read_json(json)
         expected = datetime_frame.copy()
-        expected.index = expected.index.as_unit("ms")
         tm.assert_frame_equal(result, expected)
 
         # series
@@ -837,7 +830,6 @@ class TestPandasContainer:
             json = StringIO(datetime_series.to_json())
         result = pd.read_json(json, typ="series")
         expected = datetime_series.copy()
-        expected.index = expected.index.as_unit("ms")
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name is None
 
@@ -851,8 +843,6 @@ class TestPandasContainer:
             json = StringIO(df.to_json())
         result = pd.read_json(json)
         expected = df.copy()
-        expected["date"] = expected["date"].dt.as_unit("ms")
-        expected.index = expected.index.as_unit("ms")
         tm.assert_frame_equal(result, expected)
 
         df["foo"] = 1.0
@@ -873,8 +863,7 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = StringIO(ts.to_json())
         result = pd.read_json(json, typ="series")
-        expected = ts.dt.as_unit("ms")
-        expected.index = expected.index.as_unit("ms")
+        expected = ts.copy()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("date_format", ["epoch", "iso"])
@@ -929,7 +918,6 @@ class TestPandasContainer:
         expected = pd.DataFrame(
             [[1, pd.Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
         )
-        expected[infer_word] = expected[infer_word].astype("M8[ms]")
 
         result = pd.read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
@@ -1030,8 +1018,9 @@ class TestPandasContainer:
         # force date unit
         result = pd.read_json(StringIO(json), date_unit=unit)
         expected = df.copy()
-        expected["date"] = expected["date"].dt.as_unit(unit)
-        expected.index = expected.index.as_unit(unit)
+        out_unit = unit if unit == "ns" else "us"
+        expected["date"] = expected["date"].dt.as_unit(out_unit)
+        expected.index = expected.index.as_unit(out_unit)
         tm.assert_frame_equal(result, expected)
 
         # detect date unit
@@ -1155,11 +1144,14 @@ class TestPandasContainer:
         assert [int(key) for key in parsed] == i8
         assert list(parsed.values()) == i8
 
-        # and the frame round-trips, preserving the original resolution (GH#55827)
+        # and the frame round-trips (GH#55827), except for exact unit
         depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             roundtripped = pd.read_json(StringIO(result), convert_dates=["date"])
-        tm.assert_frame_equal(roundtripped, df)
+        out_unit = unit if unit == "ns" else "us"
+        expected = df.astype(f"datetime64[{out_unit}]")
+        expected.index = expected.index.as_unit(out_unit)
+        tm.assert_frame_equal(roundtripped, expected)
 
     @pytest.mark.parametrize("date_unit", ["s", "ms", "us", "ns"])
     @pytest.mark.parametrize("wrapper", ["category", "sparse"])
@@ -1869,7 +1861,7 @@ class TestPandasContainer:
                 "Bool": pd.Series([True, False, True], dtype="bool"),
                 "Category": pd.Series(["a", "b", None], dtype="category"),
                 "Datetime": pd.Series(
-                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[ms]"
+                    ["2020-01-01", None, "2020-01-03"], dtype="datetime64[us]"
                 ),
             }
         )

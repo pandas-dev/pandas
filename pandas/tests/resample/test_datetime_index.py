@@ -2211,6 +2211,23 @@ def test_resample_unit_second_large_years():
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_unit_second_large_dates():
+    # https://github.com/pandas-dev/pandas/pull/65845
+    index = date_range(start="1970-01-01", periods=10, freq="D").as_unit("s")
+    # create values that would be out of bounds for micro (year > 294_241)
+    index = index + np.timedelta64(10**13, "s")
+
+    ser = pd.Series(1, index=index)
+    result = ser.resample("D").sum()
+    expected = pd.Series(
+        1,
+        index=date_range(
+            pd.Timestamp(np.datetime64(10**13, "s")).normalize(), periods=10
+        ),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("freq", ["1A", "2A-MAR"])
 def test_resample_A_raises(freq):
     msg = f"Invalid frequency: {freq[1:]}"

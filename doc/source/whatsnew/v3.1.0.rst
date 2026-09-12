@@ -266,6 +266,47 @@ still raises ``ValueError`` for a ``fold=1`` (DST-ambiguous) timestamp
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Datetime/timedelta resolution for numeric input
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In pandas 3.0, the default ``unit`` when creating ``datetime64`` or
+``timedelta64`` data was changed from nanoseconds to microseconds for many
+cases (e.g. constructing from strings or stdlib ``datetime`` objects). But for
+numeric input, it was changed to take the resolution used to interpret the
+input value as the resulting resolution. See
+:ref:`whatsnew_300.api_breaking.datetime_resolution_inference` in the 3.0
+release notes for more details.
+
+This means that, for example, ``pd.to_timedelta([1], unit="s")`` now had ``s``
+resolution instead of ``ns``. An unintended side effect of this change is that
+doing arithmetic with such ``timedelta64[s]`` data, which preserves the ``s``
+resolution, could lead to unexpected (rounded) results (see :issue:`65608`).
+
+To ensure a more consistent use of resolution, construction with numeric input
+will now also default to microseconds (or nanoseconds if the precision of the
+input requires it).
+
+Specifically, :func:`to_datetime`, :func:`to_timedelta`, :class:`Timestamp`,
+and :class:`Timedelta` constructors will still use the ``unit`` argument to
+convert numeric input, but not use that resolution for the resulting ``dtype``.
+For example, the following cases now all default to microseconds:
+
+.. code-block:: pycon
+
+   >>> print(pd.to_datetime([1, 2], unit="s").dtype)
+   datetime64[us]
+   >>> print(pd.to_timedelta([1, 2], unit="s").dtype)
+   timedelta64[us]
+   >>> pd.Timestamp(1, unit="s").unit
+   'us'
+   >>> pd.Timedelta(1, unit="s").unit
+   'us'
+
+Compared to the behaviour in pandas 2.x, this means that those cases now give
+microsecond resolution instead of nanoseconds. Except for the ``pd.Timestamp(1,
+unit="s")`` case, which already used the input ``unit`` before pandas 3.0.
+
+
 .. _whatsnew_310.api_breaking.deps:
 
 Increased minimum versions for dependencies
