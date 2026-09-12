@@ -867,6 +867,7 @@ Reshaping
 - Bug in :meth:`DataFrame.select_dtypes` where the string form of an Arrow dtype such as ``"int64[pyarrow]"`` selected no columns and ``"float64[pyarrow]"`` selected numpy float columns; an Arrow dtype string now selects only columns of that exact dtype (:issue:`59888`)
 - Bug in :meth:`DataFrame.stack` raising a bare ``AssertionError`` or an ``IndexError`` when ``level`` contained duplicate entries, including duplicates produced by resolving level names or negative level numbers; it now raises an informative ``ValueError`` (:issue:`66588`)
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` with ``sort=False`` placing values under the wrong row labels, or collapsing distinct index combinations into a single row (:issue:`62816`)
+- Bug in :meth:`DataFrame.unstack`, :meth:`Series.unstack`, :meth:`DataFrame.pivot`, :meth:`DataFrame.pivot_table`, and :func:`crosstab` where the ``PerformanceWarning`` about the size of the reshaped result was not raised, or reported too few cells, for a :class:`MultiIndex` with more than one level left after unstacking or with missing values in any level (:issue:`10582`)
 - Bug in :meth:`Index.union` where the result could be unsorted when both inputs were monotonic increasing but disjoint, when ``sort`` was not ``False`` (:issue:`54646`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)
 - In :func:`pivot_table`, when ``values`` is empty, the aggregation will be computed on a Series of all NA values (:issue:`46475`)
