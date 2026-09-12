@@ -1107,11 +1107,14 @@ class DataFrame(NDFrame, OpsMixin):
             name.
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
-        float_format : one-parameter function, optional, default None
-            Formatter function to apply to columns' elements if they are
-            floats. This function must return a unicode string and will be
-            applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``.
+        float_format : str or callable, optional, default None
+            Formatter to apply to columns' elements if they are floats. A
+            string can use printf-style formatting, e.g.
+            ``float_format="%.2f"``. A callable, e.g.
+            ``float_format="{:.2f}".format``, must accept one positional
+            argument and return a unicode string. The formatter is applied
+            only to the non-``NaN`` elements, with ``NaN`` being handled by
+            ``na_rep``.
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.

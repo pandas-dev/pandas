@@ -1588,7 +1588,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: None = ...,
         *,
         na_rep: str = ...,
-        float_format: str | None = ...,
+        float_format: fmt.FloatFormatType | None = ...,
         header: bool = ...,
         index: bool = ...,
         length: bool = ...,
@@ -1604,7 +1604,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: FilePath | WriteBuffer[str],
         *,
         na_rep: str = ...,
-        float_format: str | None = ...,
+        float_format: fmt.FloatFormatType | None = ...,
         header: bool = ...,
         index: bool = ...,
         length: bool = ...,
@@ -1621,7 +1621,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         na_rep: str = "NaN",
-        float_format: str | None = None,
+        float_format: fmt.FloatFormatType | None = None,
         header: bool = True,
         index: bool = True,
         length: bool = False,
@@ -1643,9 +1643,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Buffer to write to.
         na_rep : str, default 'NaN'
             String representation of NaN to use.
-        float_format : one-parameter function, optional
-            Formatter function to apply to columns' elements if they are
-            floats, default None.
+        float_format : str or callable, optional
+            Formatter to apply to floating-point values. A string can use
+            printf-style formatting, e.g. ``float_format="%.2f"``. A
+            callable, e.g. ``float_format="{:.2f}".format``, must accept one
+            positional argument and return a string. The formatter is applied
+            only to non-missing values.
         header : bool, default True
             Add the Series header (index name).
         index : bool, default True
