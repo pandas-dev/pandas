@@ -1085,6 +1085,135 @@ def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("low_memory", [True, False])
+def test_pyarrow_string_fast_path_batched_columns(kwargs, low_memory):
+    # GH#68379: string columns are converted together in one sweep, so this
+    # mixes what each still handles on its own within it: per-column na_values,
+    # an NA-free column (validity buffer dropped, unlike its neighbours'),
+    # non-ASCII bytes, a numeric column between them, a short row and usecols.
+    pa = pytest.importorskip("pyarrow")
+    data = (
+        "a,b,c,d,e\n"
+        "foo,1,café,x,skip\n"
+        "bar,2,naïve,y,skip\n"
+        "present,3,\n"
+        "baz,4,zzz,,skip\n"
+    )
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(
+            StringIO(data),
+            engine="c",
+            low_memory=low_memory,
+            usecols=["a", "b", "c", "d"],
+            na_values={"c": ["zzz"], "d": ["y"]},
+            **kwargs,
+        )
+        if kwargs:
+            str_dtype = pd.ArrowDtype(pa.string())
+            int_dtype = "int64[pyarrow]"
+        else:
+            str_dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+            int_dtype = "int64"
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", "bar", "present", "baz"],
+                "b": [1, 2, 3, 4],
+                "c": ["café", "naïve", None, None],
+                "d": ["x", None, None, None],
+            }
+        ).astype({"a": str_dtype, "b": int_dtype, "c": str_dtype, "d": str_dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("chunksize", [None, 10])
+def test_pyarrow_string_fast_path_batches_columns_together(chunksize, kwargs):
+    # GH#68379: the batched sweep and the per-column path produce identical
+    # output, so nothing else here notices if the queue in _convert_column_data
+    # stops being wired up and every column silently goes back to its own pass.
+    # The chunked read also pins that the queue is re-armed for every chunk.
+    pytest.importorskip("pyarrow")
+    data = "a,b,c,d\n" + "".join(f"p{num},q{num},{num},r{num}\n" for num in range(50))
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        reader = pd.read_csv(
+            StringIO(data), engine="c", iterator=True, chunksize=chunksize, **kwargs
+        )
+        with reader:
+            for _ in reader if chunksize else [reader.read()]:
+                pass
+            # the three string columns, converted in one sweep; "c" is numeric
+            assert reader._engine._reader._largest_str_batch == 3
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_batch_spans_row_blocks(kwargs):
+    # GH#68379: the sweep fills every queued column a block of rows at a time,
+    # carrying each column's buffer pointer, capacity and running byte count
+    # across blocks.  Here "b" outgrows its size estimate mid-sweep while two
+    # other columns are interleaved with it, so a pointer left stale by the
+    # grow, or a count reloaded from the wrong column, corrupts a neighbour
+    # rather than itself.
+    pa = pytest.importorskip("pyarrow")
+    lead = [f"n{num}" for num in range(500)]
+    # first rows far narrower than the rest, so the estimate falls short
+    grows = ["s"] * 20 + [f"{num:x}" * 400 for num in range(20, 500)]
+    trail = [f"t{num}" for num in range(500)]
+    rows = zip(lead, grows, trail, strict=True)
+    data = "a,b,c\n" + "".join(f"{one},{two},{three}\n" for one, two, three in rows)
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        pd.ArrowDtype(pa.string())
+        if kwargs
+        else pd.StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert list(result.dtypes) == [expected_dtype] * 3
+    assert result["a"].tolist() == lead
+    assert result["b"].tolist() == grows
+    assert result["c"].tolist() == trail
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_batch_mixed_na_filter(kwargs):
+    # GH#68379: "b" reaches the string path from the uint64-overflow fallback,
+    # which passes na_filter=0, so it is queued alongside "a" and "c" with no
+    # validity buffer where theirs have one -- the case where a column's state
+    # leaking across the sweep would dereference NULL rather than corrupt data.
+    pa = pytest.importorskip("pyarrow")
+    data = "a,b,c\nfoo,-1,zzz\nNA,18446744073709551615,qq\nbar,NA,\n"
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        reader = pd.read_csv(StringIO(data), engine="c", iterator=True, **kwargs)
+        with reader:
+            result = reader.read()
+            # all three, so the na_filter=0 column really is in the batch
+            assert reader._engine._reader._largest_str_batch == 3
+        str_dtype = (
+            pd.ArrowDtype(pa.string())
+            if kwargs
+            else pd.StringDtype("pyarrow", na_value=np.nan)
+        )
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", None, "bar"],
+                # na_filter is off here, so this column's own "NA" stays literal
+                "b": ["-1", "18446744073709551615", "NA"],
+                "c": ["zzz", "qq", None],
+            }
+        ).astype(str_dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("prefix_len", [1, 200])
 def test_embedded_nul_byte_roundtrip(c_parser_only, kwargs, prefix_len):
     # GH#66415: the pyarrow string fast path computed token lengths with
