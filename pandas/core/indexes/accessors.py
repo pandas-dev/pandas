@@ -317,6 +317,79 @@ class DatetimeProperties(Properties):
     Raises TypeError if the Series does not contain datetimelike values.
     """
 
+    def tz_convert(self, tz) -> Series:
+        """
+        Convert tz-aware Datetime Array/Index from one time zone to another.
+
+        This method converts datetime values from their current timezone to a
+        different timezone. The underlying UTC time remains the same, only the
+        local time representation changes to reflect the target timezone.
+
+        Parameters
+        ----------
+        tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
+            Time zone for time. Corresponding timestamps would be converted
+            to this time zone of the Datetime Array/Index. A `tz` of None will
+            convert to UTC and remove the timezone information.
+
+        Returns
+        -------
+        Array or Index
+            Datetime Array/Index with target `tz`.
+
+        Raises
+        ------
+        TypeError
+            If Datetime Array/Index is tz-naive.
+
+        See Also
+        --------
+        Series.dt.tz : A timezone that has a variable offset from UTC.
+        Series.dt.tz_localize : Localize tz-naive Series datetimes to a given
+            time zone, or remove timezone from tz-aware Series datetimes.
+
+        Examples
+        --------
+        With the `tz` parameter, we can change the DatetimeIndex
+        to other time zones:
+
+        >>> dti = pd.date_range(
+        ...     start="2014-08-01 09:00", freq="h", periods=3, tz="Europe/Berlin"
+        ... )
+
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Berlin]', freq='h')
+
+        >>> dti.tz_convert("US/Central")
+        DatetimeIndex(['2014-08-01 02:00:00-05:00',
+                       '2014-08-01 03:00:00-05:00',
+                       '2014-08-01 04:00:00-05:00'],
+                      dtype='datetime64[us, US/Central]', freq='h')
+
+        With the ``tz=None``, we can remove the timezone (after converting
+        to UTC if necessary):
+
+        >>> dti = pd.date_range(
+        ...     start="2014-08-01 09:00", freq="h", periods=3, tz="Europe/Berlin"
+        ... )
+
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                        dtype='datetime64[us, Europe/Berlin]', freq='h')
+
+        >>> dti.tz_convert(None)
+        DatetimeIndex(['2014-08-01 07:00:00',
+                       '2014-08-01 08:00:00',
+                       '2014-08-01 09:00:00'],
+                        dtype='datetime64[us]', freq='h')
+        """  # noqa: E501
+        return self._delegate_method("tz_convert", tz)
+
     def to_pydatetime(self) -> Series:
         """
         Return the data as a Series of :class:`datetime.datetime` objects.
