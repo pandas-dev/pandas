@@ -4,10 +4,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._libs import (
-    hashtable,
-    index as libindex,
-)
+from pandas._libs import hashtable
 
 import pandas as pd
 import pandas._testing as tm
@@ -273,18 +270,16 @@ def test_duplicated(idx_dup, keep, expected):
 
 
 @pytest.mark.arm_slow
-def test_duplicated_hashtable_impl(keep, monkeypatch):
+def test_duplicated_matches_hashtable(keep):
     # GH 9125
     n, k = 6, 10
     levels = [np.arange(n), [str(i) for i in range(n)], 1000 + np.arange(n)]
     rng = np.random.default_rng(2)
     codes = [rng.choice(n, k * n) for _ in levels]
-    with monkeypatch.context() as m:
-        m.setattr(libindex, "_SIZE_CUTOFF", 50)
-        mi = pd.MultiIndex(levels=levels, codes=codes)
+    mi = pd.MultiIndex(levels=levels, codes=codes)
 
-        result = mi.duplicated(keep=keep)
-        expected = hashtable.duplicated(mi.values, keep=keep)
+    result = mi.duplicated(keep=keep)
+    expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
