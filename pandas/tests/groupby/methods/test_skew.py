@@ -44,3 +44,82 @@ def test_skew_kwargs_deprecated(klass):
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         with pytest.raises(TypeError, match="got an unexpected keyword argument"):
             gb.skew(foo=1)
+
+
+@pytest.mark.parametrize("bias", [True, False])
+def test_groupby_skew_bias(bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    df = pd.DataFrame({"g": ["a", "a", "a", "a", "a"], "v": [1.0, 2.0, 2.0, 3.0, 10.0]})
+    result = df.groupby("g")["v"].skew(bias=bias)
+    expected = sp_stats.skew(df["v"], bias=bias)
+    tm.assert_almost_equal(result.iloc[0], expected)
+
+
+@pytest.mark.parametrize("bias", [True, False])
+def test_groupby_skew_bias_mixed_group_sizes(bias):
+    # GH#54556, GH#66659: each group is reduced independently. With bias=False a
+    # group with fewer than 3 observations is NaN; with bias=True the nobs-based
+    # NaN gate in calc_skew no longer applies, so a small non-degenerate group
+    # computes a real value while a zero-variance group is still NaN.
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    df = pd.DataFrame(
+        {
+            "g": ["small"] * 2 + ["const"] * 2 + ["big"] * 5,
+            "v": [1.0, 2.0, 4.0, 4.0, 1.0, 2.0, 2.0, 3.0, 10.0],
+        }
+    )
+    result = df.groupby("g")["v"].skew(bias=bias)
+
+    small = sp_stats.skew([1.0, 2.0], bias=True) if bias else np.nan
+    expected = pd.Series(
+        [sp_stats.skew([1.0, 2.0, 2.0, 3.0, 10.0], bias=bias), np.nan, small],
+        index=pd.Index(["big", "const", "small"], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Float64", "Int64"])
+@pytest.mark.parametrize("group", ["allna", "one", "const"])
+@pytest.mark.parametrize("bias", [True, False])
+def test_groupby_skew_bias_degenerate_group_is_na(bias, group, dtype, using_nan_is_na):
+    # GH#54556, GH#66659: a group with zero second moment has undefined skew
+    #  for either bias, so a nullable result reports NA, not a bare NaN.
+    values = {
+        "allna": [pd.NA] * 4,
+        "one": [5, pd.NA, pd.NA, pd.NA],
+        "const": [4, 4, 4, 4],
+    }[group]
+    df = pd.DataFrame({"g": [group] * 4, "v": pd.array(values, dtype=dtype)})
+
+    result = df.groupby("g")["v"].skew(bias=bias)
+
+    expected = pd.Series(
+        pd.array([pd.NA], dtype="Float64"),
+        index=pd.Index([group], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("bias", [True, False])
+def test_groupby_skew_bias_unmasked_nan_stays_nan(bias, using_nan_is_na):
+    # GH#66659: a NaN the mask marks as not-NA is a value, not missingness,
+    #  so it propagates unmasked instead of becoming NA.
+    values = np.array([1.0, 2.0, 3.0, 4.0, np.nan], dtype="float64")
+    mask = np.zeros(5, dtype="bool")
+    ser = pd.Series(pd.arrays.FloatingArray(values, mask))
+    df = pd.DataFrame({"g": [1] * 5, "v": ser})
+
+    result = df.groupby("g")["v"].skew(bias=bias)
+
+    expected = pd.Series(
+        pd.arrays.FloatingArray(
+            np.array([np.nan]), np.array([using_nan_is_na], dtype="bool")
+        ),
+        index=pd.Index([1], name="g"),
+        name="v",
+    )
+    tm.assert_series_equal(result, expected)

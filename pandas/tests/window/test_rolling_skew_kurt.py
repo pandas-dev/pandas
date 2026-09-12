@@ -10,11 +10,12 @@ from pandas.tseries import offsets
 
 
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
-def test_series(series, sp_func, roll_func):
+@pytest.mark.parametrize("bias", [True, False])
+def test_series(series, sp_func, roll_func, bias):
     sp_stats = pytest.importorskip("scipy.stats")
 
-    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
-    result = getattr(series.rolling(50), roll_func)()
+    compare_func = partial(getattr(sp_stats, sp_func), bias=bias)
+    result = getattr(series.rolling(50), roll_func)(bias=bias)
     assert isinstance(result, pd.Series)
     tm.assert_almost_equal(result.iloc[-1], compare_func(series[-50:]))
 
@@ -228,3 +229,30 @@ def test_skew_kurt_is_scale_invariant(roll_func, scale_factor):
     result = getattr(obj.rolling(20), roll_func)()
     result_scaled = getattr(obj_scaled.rolling(20), roll_func)()
     tm.assert_series_equal(result, result_scaled)
+
+
+@pytest.mark.parametrize(
+    "sp_func, roll_func, window", [["kurtosis", "kurt", 3], ["skew", "skew", 2]]
+)
+@pytest.mark.parametrize("bias", [True, False])
+def test_small_window_bias(sp_func, roll_func, window, bias):
+    # GH#66659: a window below the nobs threshold is NaN for the bias-corrected
+    #  statistic, while the biased one computes over the same window.
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    obj = pd.Series([1.0, 2.0, 4.0, 7.0, 11.0])
+    result = getattr(obj.rolling(window), roll_func)(bias=bias)
+
+    if bias:
+        compare_func = partial(getattr(sp_stats, sp_func), bias=True)
+        expected = pd.Series(
+            [
+                compare_func(obj.iloc[i + 1 - window : i + 1])
+                if i + 1 >= window
+                else np.nan
+                for i in range(len(obj))
+            ]
+        )
+    else:
+        expected = pd.Series([np.nan] * len(obj))
+    tm.assert_series_equal(result, expected)
