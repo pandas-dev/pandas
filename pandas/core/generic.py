@@ -8733,11 +8733,69 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Treat missing thresholds as no bounds, not clipping the values
         if is_list_like(threshold):
             fill_value = np.inf if method.__name__ == "le" else -np.inf
-            threshold_inf = threshold.fillna(fill_value)
+            if isinstance(threshold, ABCDataFrame):
+                dt_like = threshold.dtypes.map(lambda dt: dt.kind in "mM")
+                if not dt_like.any():
+                    threshold_inf = threshold.fillna(fill_value)
+                    no_bound_mask = None
+                else:
+                    # GH 44785: +/-np.inf cannot be compared against datetime
+                    # or timedelta values. Fill only the remaining columns
+                    # and track the missing positions explicitly, keeping
+                    # the original values where the threshold is missing.
+                    non_dt_cols = [col for col in threshold.columns if not dt_like[col]]
+                    threshold_inf = threshold.copy() if non_dt_cols else threshold
+                    for col in non_dt_cols:
+                        threshold_inf[col] = threshold[col].fillna(fill_value)
+                    no_bound_mask = threshold.isna()
+            else:
+                dtype = getattr(threshold, "dtype", None)
+                if dtype is not None and dtype.kind in "mM":
+                    # GH 44785: +/-np.inf cannot be compared against datetime
+                    # or timedelta values, so track the missing positions
+                    # explicitly and keep the original values there.
+                    threshold_inf = threshold
+                    no_bound_mask = threshold.isna()
+                else:
+                    threshold_inf = threshold.fillna(fill_value)
+                    no_bound_mask = None
         else:
             threshold_inf = threshold
+            no_bound_mask = None
 
         subset = method(threshold_inf, axis=axis) | isna(self)
+        if no_bound_mask is not None:
+            if isinstance(no_bound_mask, ABCSeries):
+                # Align the missing-threshold positions to the shape of
+                # the comparison result along the axis the threshold
+                # was applied on.
+                if isinstance(subset, ABCSeries):
+                    no_bound_mask = no_bound_mask.reindex(subset.index, fill_value=True)
+                elif axis in (0, None):
+                    values = no_bound_mask.reindex(
+                        subset.index, fill_value=True
+                    ).to_numpy()
+                    no_bound_mask = self._constructor(
+                        np.tile(values[:, None], (1, len(subset.columns))),
+                        index=subset.index,
+                        columns=subset.columns,
+                    )
+                else:
+                    values = no_bound_mask.reindex(
+                        subset.columns, fill_value=True
+                    ).to_numpy()
+                    no_bound_mask = self._constructor(
+                        np.tile(values, (len(subset.index), 1)),
+                        index=subset.index,
+                        columns=subset.columns,
+                    )
+            elif no_bound_mask.shape != subset.shape:
+                no_bound_mask = no_bound_mask.reindex(
+                    index=subset.index,
+                    columns=subset.columns,
+                    fill_value=True,
+                )
+            subset = subset | no_bound_mask
 
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
