@@ -88,7 +88,8 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
     return meta.base
 
 
-cdef int get_unit_count_from_dtype(cnp.dtype dtype):
+cdef int64_t get_unit_count_from_dtype(cnp.dtype dtype):
+    # The unit multiplier, e.g. 10 for m8[10s]; see np.datetime_data.
     # NB: caller is responsible for ensuring this is *some* datetime64 or
     #  timedelta64 dtype, otherwise we can segfault
     cdef:

@@ -97,6 +97,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     convert_reso,
     dts_to_iso_string,
     get_datetime64_unit,
+    get_unit_count_from_dtype,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -246,9 +247,18 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic timedelta64 in the other operand's unit
         other_reso = reso
-    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
-        # year/month, which numpy itself refuses to add to a time unit, and
-        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+
+    if (
+        not cnp.PyArray_CheckExact(other)
+        or get_unit_count_from_dtype(other.dtype) != 1
+        or other_reso < NPY_FR_W
+        or other_reso > NPY_FR_ns
+    ):
+        # an ndarray subclass, whose semantics would be dropped by the i8 view
+        #  below (e.g. a MaskedArray's mask); a unit multiplier such as m8[10s],
+        #  which our resolutions cannot express; year/month, which numpy
+        #  itself refuses to add to a time unit; or sub-nanosecond units,
+        #  which we have no reso for. Leave all of them to numpy.
         return (ts.asm8 - other) if subtract else (ts.asm8 + other)
 
     if reso < other_reso:
