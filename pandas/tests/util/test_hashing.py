@@ -39,6 +39,11 @@ def index(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def columns(request):
+    return request.param
+
+
 def test_consistency():
     # Check that our hash doesn't change because of a mistake
     # in the actual code; this is the ground truth.
@@ -49,6 +54,45 @@ def test_consistency():
             dtype="uint64",
         ),
         index=["foo", "bar", "baz"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ["include_index", "include_columns", "expected_df_hash"],
+    [
+        (
+            False,
+            False,
+            [14044658390916132862, 15596537767538735900, 15509556586900297459],
+        ),
+        (
+            False,
+            True,
+            [5398689368383275782, 8007796912116148716, 17469523491891444549],
+        ),
+        (
+            True,
+            False,
+            [11901433715327447884, 7397622904228082688, 184449134805678281],
+        ),
+        (
+            True,
+            True,
+            [12481916229108247612, 16637851979641684552, 1284242298065986487],
+        ),
+    ],
+)
+def test_consistency_dataframe(include_index, include_columns, expected_df_hash):
+    index = ["foo", "bar", "baz"]
+    result = hash_pandas_object(
+        pd.DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}, index=index),
+        index=include_index,
+        columns=include_columns,
+    )
+    expected = pd.Series(
+        np.array(expected_df_hash, dtype="uint64"),
+        index=index,
     )
     tm.assert_series_equal(result, expected)
 
@@ -180,9 +224,9 @@ def test_multiindex_objects():
         pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")),
     ],
 )
-def test_hash_pandas_object(obj, index):
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+def test_hash_pandas_object(obj, index, columns):
+    a = hash_pandas_object(obj, index=index, columns=columns)
+    b = hash_pandas_object(obj, index=index, columns=columns)
     tm.assert_series_equal(a, b)
 
 
@@ -553,3 +597,77 @@ def test_hash_complex_negative_zero(dtype):
 
     result = hash_array(arr)
     assert result[0] == result[1]
+
+
+@pytest.mark.parametrize(
+    ["df1", "df2"],
+    [
+        [
+            pd.DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
+            pd.DataFrame({"X": ["a", "b", "c"], "Y": [1, 2, 3]}),
+        ],
+        [
+            pd.DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
+            pd.DataFrame({"y": ["a", "b", "c"], "x": [1, 2, 3]}),
+        ],
+        [
+            pd.DataFrame({("x1", "x2"): ["a", "b", "c"], ("y1", "y2"): [1, 2, 3]}),
+            pd.DataFrame({("X1", "X2"): ["a", "b", "c"], ("Y1", "Y2"): [1, 2, 3]}),
+        ],
+        [
+            pd.DataFrame(np.full((10, 4), np.nan)),
+            pd.DataFrame(np.full((10, 4), np.nan)).rename(columns=lambda c: f"{c}B"),
+        ],
+        [
+            pd.DataFrame(
+                {
+                    "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+                    "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+                    "C": pd.Index(
+                        ["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object
+                    ),
+                    "D": pd.date_range("20130101", periods=5),
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "x1": [0.0, 1.0, 2.0, 3.0, 4.0],
+                    "x2": [0.0, 1.0, 0.0, 1.0, 0.0],
+                    "i": pd.Index(
+                        ["foo1", "foo2", "foo3", "foo4", "foo5"], dtype=object
+                    ),
+                    "d": pd.date_range("20130101", periods=5),
+                }
+            ),
+        ],
+        [
+            pd.DataFrame(range(5), index=pd.date_range("2020-01-01", periods=5)),
+            pd.DataFrame(
+                {"col1": range(5)}, index=pd.date_range("2020-01-01", periods=5)
+            ),
+        ],
+    ],
+)
+def test_hash_df_same_values_different_columns(df1, df2, index):
+    # GH#46705
+    h1 = hash_pandas_object(df1, index=index, columns=True)
+    h2 = hash_pandas_object(df2, index=index, columns=True)
+    assert (h1 != h2).all()
+    h1 = hash_pandas_object(df1, index=index, columns=False)
+    h2 = hash_pandas_object(df2, index=index, columns=False)
+    tm.assert_series_equal(h1, h2)
+
+
+def test_hash_df_columns(index):
+    # GH#46705
+    import hashlib
+
+    df = pd.DataFrame(
+        {"s": ["a", "b", "c", "d"], "d": ["b", "c", "d", "e"], "i": [0, 2, 4, 6]}
+    )
+    df_renamed = df.rename(columns={"s": "ss"})
+    hash_df = pd.util.hash_pandas_object(df, index=index, columns=True)
+    hash_df = hashlib.sha256(hash_df.values).hexdigest()
+    hash_df_renamed = pd.util.hash_pandas_object(df_renamed, index=index, columns=True)
+    hash_df_renamed = hashlib.sha256(hash_df_renamed.values).hexdigest()
+    assert hash_df != hash_df_renamed

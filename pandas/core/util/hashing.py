@@ -87,12 +87,16 @@ def hash_pandas_object(
     encoding: str = "utf8",
     hash_key: str | None = _default_hash_key,
     categorize: bool = True,
+    columns: bool = False,
 ) -> Series:
     """
     Return a data hash of the Index/Series/DataFrame.
 
-    The hash is computed element-wise using the underlying data values,
-    and optionally includes the index when hashing a Series or DataFrame.
+    The hash is computed element-wise using the underlying data values.
+    Optionally includes:
+
+        - the index when hashing a Series or DataFrame,
+        - column labels when hashing a DataFrame.
 
     Parameters
     ----------
@@ -110,6 +114,8 @@ def hash_pandas_object(
     categorize : bool, default True
         Whether to first categorize object arrays before hashing. This is more
         efficient when the array contains duplicate values.
+    columns : bool, default False
+        Include the column labels in the hash (if DataFrame).
 
     Returns
     -------
@@ -157,6 +163,22 @@ def hash_pandas_object(
     0     2797248057711234736
     1     5694802365760992243
     2    18202460376300699891
+    dtype: uint64
+
+    By default, the hash does not include column labels.
+    Set ``columns=True`` to include columns in the hash.
+
+    >>> df1 = pd.DataFrame({"a": ["a", "b", "c"]})
+    >>> df2 = pd.DataFrame({"b": ["a", "b", "c"]})
+    >>> pd.util.hash_pandas_object(df1, columns=True)
+    0    12696480571787789274
+    1    13127076343748907282
+    2     5516422954201801784
+    dtype: uint64
+    >>> pd.util.hash_pandas_object(df2, columns=True)
+    0     9826334570047059747
+    1     9590998335807423067
+    2    18138263840730133237
     dtype: uint64
     """
     from pandas import Series
@@ -215,6 +237,29 @@ def hash_pandas_object(
             # keep `hashes` specifically a generator to keep mypy happy
             _hashes = itertools.chain(hashes, index_hash_generator)
             hashes = (x for x in _hashes)
+
+        if columns and len(obj.columns):
+
+            def get_column_hashes() -> Iterator[npt.NDArray[np.uint64]]:
+                column_hashes = hash_pandas_object(
+                    obj.columns,
+                    index=False,
+                    encoding=encoding,
+                    hash_key=hash_key,
+                    categorize=categorize,
+                )
+                # reshape into 1-len arrays and combine into a single value
+                combined_hash = combine_hash_arrays(
+                    iter(column_hashes._values.reshape(-1, 1)),
+                    len(obj.columns),
+                )
+                yield np.full(len(obj), combined_hash[0], dtype="uint64")
+
+            num_items += 1
+
+            _hashes = itertools.chain(hashes, get_column_hashes())
+            hashes = (x for x in _hashes)
+
         h = combine_hash_arrays(hashes, num_items)
 
         ser = Series(h, index=obj.index, dtype="uint64", copy=False)
