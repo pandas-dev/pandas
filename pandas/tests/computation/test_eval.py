@@ -1958,6 +1958,14 @@ def test_eval_float_div_numexpr():
     assert result == expected
 
 
+def test_call_with_binop_argument():
+    # GH#24670 a compound call argument has no .value to read off, as the
+    #  unary case in test_unary_in_function
+    floor = np.floor  # noqa: F841
+    result = pd.eval("floor(1.5 + 2)")
+    assert result == 3.0
+
+
 def test_method_calls_on_binop():
     # GH 61175
     x = pd.Series([1, 2, 3, 5])

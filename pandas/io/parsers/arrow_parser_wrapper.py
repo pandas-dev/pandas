@@ -440,7 +440,7 @@ class ArrowParserWrapper(ParserBase):
                         frame[key] = new_values
                         frame[key] = frame[key].infer_objects()
 
-            frame.set_index(index_to_set, drop=True, inplace=True)
+            frame = frame.set_index(index_to_set, drop=True)
             # Clear names if no name given for the padded leading columns
             if not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
