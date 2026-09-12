@@ -1555,3 +1555,31 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
     )
     with pytest.raises(ValueError, match=msg):
         df[select_df] = [3, 3]
+
+
+@pytest.mark.parametrize(
+    "value, ncols",
+    [
+        (pd.Series(pd.date_range("2030", periods=3, tz="UTC")), 1),
+        (pd.Series(pd.period_range("2030", periods=3, freq="D")), 1),
+        (np.arange(3).reshape(3, 1), 1),
+        (np.arange(9).reshape(3, 3), 3),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, columns):
+    # GH#68445 the broadcast in _set_item skips these, so they used to leave a block
+    #  narrower than its placement, or drop columns of value, rather than raise
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    expected = df.copy()
+    msg = f"Got 2 positions but value has {ncols} columns"
+    with pytest.raises(ValueError, match=msg):
+        df["a"] = value
+    tm.assert_frame_equal(df, expected)
