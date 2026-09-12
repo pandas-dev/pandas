@@ -1,9 +1,11 @@
 import re
+import sys
 
 import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat import PYPY
 
 import pandas as pd
 import pandas._testing as tm
@@ -330,6 +332,36 @@ class TestSparseArrayAnalytics:
         # (2 * 8) + 4 + 4
         # sp_values, blocs, blengths
         assert result == 24
+
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
+    def test_memory_usage_object_subtype(self):
+        # GH#68471 deep introspection raised TypeError on an object subtype
+        values = np.array(["aaaa"] * 1000 + ["b"], dtype=object)
+        arr = SparseArray(values, fill_value="aaaa")
+        ser = pd.Series(arr)
+        assert arr.memory_usage() == ser.memory_usage(index=False) == arr.nbytes
+
+        # only the stored values are introspected, not the dense expansion
+        expected = arr.nbytes + sum(sys.getsizeof(val) for val in arr.sp_values)
+        assert arr.memory_usage(deep=True) == expected
+        assert ser.memory_usage(index=False, deep=True) == expected
+        assert pd.Index(arr).memory_usage(deep=True) == expected
+        df = pd.DataFrame({"a": arr})
+        assert df.memory_usage(index=False, deep=True).iloc[0] == expected
+        assert sys.getsizeof(ser) > expected
+
+    def test_memory_usage_pypy_compat(self, monkeypatch):
+        # GH#46176 deep introspection uses sys.getsizeof, which always raises
+        # TypeError on PyPy; deep=True should fall back to the shallow result
+        arr = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="a")
+
+        monkeypatch.setattr("pandas.core.arrays.sparse.array.PYPY", True)
+        assert arr.memory_usage(deep=True) == arr.memory_usage()
+
+    def test_memory_usage_matches_nbytes(self):
+        # non-object subtypes have nothing to introspect
+        arr = SparseArray([1, 0, 0, 0, 2])
+        assert arr.memory_usage() == arr.memory_usage(deep=True) == arr.nbytes
 
     def test_asarray_datetime64(self):
         s = SparseArray(pd.to_datetime(["2012", None, None, "2013"]))

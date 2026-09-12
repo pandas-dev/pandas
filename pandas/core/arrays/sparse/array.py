@@ -33,6 +33,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     Pandas4Warning,
@@ -844,6 +845,44 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     @property
     def nbytes(self) -> int:
         return self.sp_values.nbytes + self.sp_index.nbytes
+
+    def memory_usage(self, deep: bool = False) -> int:
+        """
+        Memory usage of the stored values and the sparse index, in bytes.
+
+        Positions holding ``fill_value`` are not stored.
+
+        Parameters
+        ----------
+        deep : bool, default False
+            Introspect the data deeply by interrogating an ``object`` subtype
+            for system-level memory consumption. Has no effect on PyPy.
+
+        Returns
+        -------
+        int
+            Bytes consumed.
+
+        See Also
+        --------
+        SparseArray.nbytes : Memory usage without deep introspection.
+        Series.memory_usage : Memory usage of a Series.
+        DataFrame.memory_usage : Memory usage of each column in a DataFrame.
+
+        Examples
+        --------
+        >>> arr = pd.arrays.SparseArray(["a", "a", "b"], fill_value="a")
+        >>> arr.memory_usage()
+        12
+        >>> arr.memory_usage(deep=True) > arr.memory_usage()
+        True
+        """
+        result = self.nbytes
+        if deep and not PYPY and self.sp_values.dtype == object:
+            # deep introspection relies on sys.getsizeof, which always
+            # raises TypeError on PyPy (GH#46176)
+            return result + lib.memory_usage_of_objects(self.sp_values)
+        return result
 
     @property
     def density(self) -> float:
