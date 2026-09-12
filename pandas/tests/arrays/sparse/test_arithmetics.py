@@ -485,7 +485,7 @@ def test_logical_op_uneven_length_series(op):
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 @pytest.mark.parametrize("subtype", [bool, object])
 def test_logical_op_masked_other(op, subtype):
-    # GH#68422 a masked operand keeps its own Kleene semantics; densifying it
+    # GH#68483 a masked operand keeps its own Kleene semantics; densifying it
     #  lost them -- raising on the NA for a bool subtype, silently resolving it
     #  to False for an object one
     values = np.array([True, True, False, False], dtype=subtype)
@@ -498,7 +498,7 @@ def test_logical_op_masked_other(op, subtype):
 
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 def test_logical_op_masked_other_without_na(op):
-    # GH#68422 the operand's dtype decides, not whether it holds NA, so the
+    # GH#68483 the operand's dtype decides, not whether it holds NA, so the
     #  result is the masked dtype either way -- as it is for the dense operand
     values = np.array([True, True, False, False])
     other = pd.array([True, False, True, False], dtype="boolean")
@@ -511,7 +511,7 @@ def test_logical_op_masked_other_without_na(op):
 
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 def test_logical_op_non_boolean_masked_other(op):
-    # GH#68422 only a masked *boolean* operand is deferred to; the other masked
+    # GH#68483 only a masked *boolean* operand is deferred to; the other masked
     #  dtypes reach _arith_method, which cannot consume a SparseArray
     values = np.array([1, 0, 3, 0])
     other = pd.array([1, 2, 3, 4], dtype="Int64")
@@ -525,7 +525,7 @@ def test_logical_op_non_boolean_masked_other(op):
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 @pytest.mark.parametrize("n_sparse, n_other", [(11, 10), (10, 11)])
 def test_logical_op_masked_other_uneven_length_series(op, n_sparse, n_other):
-    # GH#68422 the alignment path onto the above; either operand can be the one
+    # GH#68483 the alignment path onto the above; either operand can be the one
     #  that gains the NA, and only the shorter-sparse case upcasts it to object
     sparse = pd.Series(SparseArray(np.arange(n_sparse)))
     other = pd.Series(np.arange(n_other) == 5, dtype="boolean")

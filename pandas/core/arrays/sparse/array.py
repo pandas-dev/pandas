@@ -2499,7 +2499,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _logical_method(self, other, op):
         other_dtype = getattr(other, "dtype", None)
         if isinstance(other_dtype, BaseMaskedDtype) and other_dtype.kind == "b":
-            # GH#68422 defer to the masked operand's reflected op, which keeps
+            # GH#68483 defer to the masked operand's reflected op, which keeps
             #  its Kleene NA semantics; densifying here loses them.
             #  Boolean only -- the other masked dtypes reach _arith_method,
             #  which cannot consume a SparseArray.
