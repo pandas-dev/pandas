@@ -20,7 +20,7 @@ import pandas.core.common as com
 def test_repr():
     # GH18203
     result = repr(pd.Grouper(key="A", level="B"))
-    expected = "Grouper(key='A', level='B', sort=False, dropna=True)"
+    expected = "Grouper(key='A', level='B', sort=True, dropna=True)"
     assert result == expected
 
 

@@ -2615,7 +2615,11 @@ class TimeGrouper(Grouper):
         )
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True, observed: bool = True
+        self,
+        obj: NDFrameT,
+        validate: bool = True,
+        observed: bool = True,
+        sort: bool | None = None,
     ) -> tuple[BinGrouper, NDFrameT]:
         """
         Parameters
@@ -2625,6 +2629,8 @@ class TimeGrouper(Grouper):
         validate : bool, default True
             Unused. Only for compatibility with ``Grouper._get_grouper``.
         observed : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+        sort : bool or None, default None
             Unused. Only for compatibility with ``Grouper._get_grouper``.
 
         Returns
