@@ -1,15 +1,13 @@
 import re
+import sys
 
 import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat import PYPY
 
 import pandas as pd
-from pandas import (
-    SparseDtype,
-    isna,
-)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -38,7 +36,7 @@ class TestSparseArray:
         # GH #24128
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]), fill_value=8.0)
         res = sparse.shift(1, fill_value=fill_value)
-        if isna(fill_value):
+        if pd.isna(fill_value):
             fill_value = res.dtype.na_value
         exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]), fill_value=8.0)
         tm.assert_sp_array_equal(res, exp)
@@ -183,13 +181,13 @@ class TestSparseArray:
 
         # int dtype shouldn't have missing. No changes.
         s = SparseArray([0, 0, 0, 0])
-        assert s.dtype == SparseDtype(np.int64)
+        assert s.dtype == pd.SparseDtype(np.int64)
         assert s.fill_value == 0
         res = s.fillna(-1)
         tm.assert_sp_array_equal(res, s)
 
         s = SparseArray([0, 0, 0, 0], fill_value=0)
-        assert s.dtype == SparseDtype(np.int64)
+        assert s.dtype == pd.SparseDtype(np.int64)
         assert s.fill_value == 0
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=0)
@@ -198,7 +196,7 @@ class TestSparseArray:
         # fill_value can be nan if there is no missing hole.
         # only fill_value will be changed
         s = SparseArray([0, 0, 0, 0], fill_value=np.nan)
-        assert s.dtype == SparseDtype(np.int64, fill_value=np.nan)
+        assert s.dtype == pd.SparseDtype(np.int64, fill_value=np.nan)
         assert np.isnan(s.fill_value)
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=-1)
@@ -335,6 +333,36 @@ class TestSparseArrayAnalytics:
         # sp_values, blocs, blengths
         assert result == 24
 
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
+    def test_memory_usage_object_subtype(self):
+        # GH#68490 deep introspection raised TypeError on an object subtype
+        values = np.array(["aaaa"] * 1000 + ["b"], dtype=object)
+        arr = SparseArray(values, fill_value="aaaa")
+        ser = pd.Series(arr)
+        assert arr.memory_usage() == ser.memory_usage(index=False) == arr.nbytes
+
+        # only the stored values are introspected, not the dense expansion
+        expected = arr.nbytes + sum(sys.getsizeof(val) for val in arr.sp_values)
+        assert arr.memory_usage(deep=True) == expected
+        assert ser.memory_usage(index=False, deep=True) == expected
+        assert pd.Index(arr).memory_usage(deep=True) == expected
+        df = pd.DataFrame({"a": arr})
+        assert df.memory_usage(index=False, deep=True).iloc[0] == expected
+        assert sys.getsizeof(ser) > expected
+
+    def test_memory_usage_pypy_compat(self, monkeypatch):
+        # GH#46176 deep introspection uses sys.getsizeof, which always raises
+        # TypeError on PyPy; deep=True should fall back to the shallow result
+        arr = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="a")
+
+        monkeypatch.setattr("pandas.core.arrays.sparse.array.PYPY", True)
+        assert arr.memory_usage(deep=True) == arr.memory_usage()
+
+    def test_memory_usage_matches_nbytes(self):
+        # non-object subtypes have nothing to introspect
+        arr = SparseArray([1, 0, 0, 0, 2])
+        assert arr.memory_usage() == arr.memory_usage(deep=True) == arr.nbytes
+
     def test_asarray_datetime64(self):
         s = SparseArray(pd.to_datetime(["2012", None, None, "2013"]))
         np.asarray(s)
@@ -342,6 +370,11 @@ class TestSparseArrayAnalytics:
     def test_density(self):
         arr = SparseArray([0, 1])
         assert arr.density == 0.5
+
+    def test_density_empty(self):
+        # GH#68468
+        arr = SparseArray(np.array([], dtype="float64"))
+        assert np.isnan(arr.density)
 
     def test_npoints(self):
         arr = SparseArray([0, 1])
@@ -355,7 +388,7 @@ class TestIsna:
         # Common case: non-null fill value, no NAs in sp_values
         arr = SparseArray([0, 1, 0, 2, 0], fill_value=0, kind=kind)
         result = arr.isna()
-        assert result.dtype == SparseDtype(bool, False)
+        assert result.dtype == pd.SparseDtype(bool, False)
         expected_dense = np.array([False, False, False, False, False])
         tm.assert_numpy_array_equal(np.asarray(result), expected_dense)
         assert result.sp_values.size == 0
@@ -428,6 +461,47 @@ def test_cumsum_float_fill_value_zero():
     tm.assert_sp_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("op_name", ["cumsum", "cumprod", "cummin", "cummax"])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("fill_value", [np.nan, 0.0])
+def test_accumulate_matches_dense(op_name, skipna, fill_value):
+    # GH#68187 these raised NotImplementedError from Series/DataFrame
+    values = np.array([1.0, 2.0, np.nan, 3.0])
+    ser = pd.Series(SparseArray(values, fill_value=fill_value))
+
+    result = getattr(ser, op_name)(skipna=skipna)
+    expected = getattr(pd.Series(values), op_name)(skipna=skipna)
+
+    assert result.dtype == pd.SparseDtype("float64", np.nan)
+    tm.assert_series_equal(result.sparse.to_dense(), expected)
+
+    frame_result = getattr(pd.DataFrame({"a": ser}), op_name)(skipna=skipna)
+    tm.assert_series_equal(
+        frame_result["a"].sparse.to_dense(), expected, check_names=False
+    )
+
+
+def test_accumulate_integer_subtype():
+    # GH#68187 the fill value widens to NaN, as it does for cumsum
+    arr = SparseArray([1, 0, 2], fill_value=0)
+    result = pd.Series(arr).cumprod()
+    expected = pd.Series(SparseArray([1, 0, 0], fill_value=np.nan))
+    tm.assert_series_equal(result, expected)
+
+
+def test_accumulate_datetime64():
+    # GH#68187 a datetimelike subtype accumulates through its own array
+    dti = pd.to_datetime(["2020-01-02", "NaT", "2020-01-01"])
+    ser = pd.Series(SparseArray(dti))
+
+    result = ser.cummax()
+    tm.assert_series_equal(result.sparse.to_dense(), pd.Series(dti).cummax())
+
+    msg = "Accumulation cumsum not supported"
+    with pytest.raises(TypeError, match=msg):
+        ser.cumsum()
+
+
 def test_setting_fill_value_updates():
     arr = SparseArray([0.0, np.nan], fill_value=0)
     arr.fill_value = np.nan
@@ -436,7 +510,7 @@ def test_setting_fill_value_updates():
     expected = SparseArray._simple_new(
         sparse_array=np.array([np.nan]),
         sparse_index=IntIndex(2, [1]),
-        dtype=SparseDtype(float, np.nan),
+        dtype=pd.SparseDtype(float, np.nan),
     )
     tm.assert_sp_array_equal(arr, expected)
 
@@ -548,6 +622,65 @@ def test_zero_sparse_column():
 
     expected = pd.DataFrame({"A": SparseArray([0, 0]), "B": [1, 3]}, index=[0, 2])
     tm.assert_frame_equal(result, expected)
+
+
+def test_series_repr_datetime64():
+    # GH#68073 printed the raw i8 value
+    arr = SparseArray(np.array(["2020-01-01", "NaT"], dtype="M8[ns]"))
+    expected = "0    2020-01-01 00:00:00\n1                    NaT"
+    assert pd.Series(arr).to_string() == expected
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_array_object_datetimelike(kind, unit):
+    # GH#68073 numpy renders datetime64/timedelta64 as ints when casting to
+    # object, so we have to box these ourselves
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    values[1] = "NaT"
+    expected = pd.array(values).astype(object)
+
+    arr = SparseArray(values)
+    tm.assert_numpy_array_equal(np.asarray(arr, dtype=object), expected)
+
+    # no gaps, so __array__ takes the sp_values shortcut
+    no_gaps = SparseArray(values[::2])
+    tm.assert_numpy_array_equal(np.asarray(no_gaps, dtype=object), expected[::2])
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimelike_nat_fill_value_normalized(kind, unit):
+    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it
+    #  behaves identically to the np.datetime64("NaT") spelling
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    values[1] = "NaT"
+
+    arr = SparseArray(values, fill_value=pd.NaT)
+    expected = SparseArray(values, fill_value=values[1])
+
+    assert arr.dtype == expected.dtype
+    assert arr.fill_value is not pd.NaT
+    tm.assert_sp_array_equal(arr, expected)
+
+    # these raised TypeError for the pd.NaT spelling, except np.asarray, which
+    #  returned object dtype for a timedelta64 subtype
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_numpy_array_equal(np.asarray(arr), values)
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype=object), pd.array(values).astype(object)
+    )
+    tm.assert_sp_array_equal(arr - arr, expected - expected)
+    tm.assert_sp_array_equal(arr == arr, expected == expected)
+    tm.assert_sp_array_equal(arr.unique(), expected.unique())
+    all_fill = np.full(2, "NaT", dtype=values.dtype)
+    tm.assert_sp_array_equal(
+        SparseArray(all_fill, fill_value=pd.NaT).take([0, 1], allow_fill=True),
+        SparseArray(all_fill, fill_value=values[1]).take([0, 1], allow_fill=True),
+    )
+    tm.assert_sp_array_equal(
+        arr.astype("Sparse[int64]"), expected.astype("Sparse[int64]")
+    )
 
 
 def test_array_interface(arr_data, arr):

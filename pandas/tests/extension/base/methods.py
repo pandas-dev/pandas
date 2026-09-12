@@ -207,8 +207,9 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
     def test_argmin_argmax_all_na(self, method, data, na_value):
-        # all missing with skipna=True is the same as empty
-        err_msg = "attempt to get"
+        # GH#68467 all-NA is distinguished from empty, as it is for
+        #  the numpy-backed dtypes
+        err_msg = "Encountered all NA values"
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
@@ -261,6 +262,7 @@ class BaseMethodsTests:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("sort_by_key", [None, lambda x: x])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
         result = ser.sort_values(ascending=ascending, key=sort_by_key)
@@ -275,6 +277,7 @@ class BaseMethodsTests:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("sort_by_key", [None, lambda x: x])
     def test_sort_values_missing(
         self, data_missing_for_sorting, ascending, sort_by_key
     ):

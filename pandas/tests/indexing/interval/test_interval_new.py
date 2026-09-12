@@ -3,12 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import (
-    Index,
-    Interval,
-    IntervalIndex,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -18,7 +13,7 @@ class TestIntervalIndex:
         """
         Fixture providing a Series with an IntervalIndex.
         """
-        return Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
+        return pd.Series(np.arange(5), pd.IntervalIndex.from_breaks(np.arange(6)))
 
     def test_loc_with_interval(self, series_with_interval_index, indexer_sl):
         # loc with single label / list of labels:
@@ -28,27 +23,27 @@ class TestIntervalIndex:
         ser = series_with_interval_index.copy()
 
         expected = 0
-        result = indexer_sl(ser)[Interval(0, 1)]
+        result = indexer_sl(ser)[pd.Interval(0, 1)]
         assert result == expected
 
         expected = ser.iloc[3:5]
-        result = indexer_sl(ser)[[Interval(3, 4), Interval(4, 5)]]
+        result = indexer_sl(ser)[[pd.Interval(3, 4), pd.Interval(4, 5)]]
         tm.assert_series_equal(expected, result)
 
         # missing or not exact
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='left')")):
-            indexer_sl(ser)[Interval(3, 5, closed="left")]
+            indexer_sl(ser)[pd.Interval(3, 5, closed="left")]
 
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            indexer_sl(ser)[Interval(3, 5)]
+            indexer_sl(ser)[pd.Interval(3, 5)]
 
         with pytest.raises(
             KeyError, match=re.escape("Interval(-2, 0, closed='right')")
         ):
-            indexer_sl(ser)[Interval(-2, 0)]
+            indexer_sl(ser)[pd.Interval(-2, 0)]
 
         with pytest.raises(KeyError, match=re.escape("Interval(5, 6, closed='right')")):
-            indexer_sl(ser)[Interval(5, 6)]
+            indexer_sl(ser)[pd.Interval(5, 6)]
 
     def test_loc_with_scalar(self, series_with_interval_index, indexer_sl):
         # loc with single label / list of labels:
@@ -85,19 +80,19 @@ class TestIntervalIndex:
         # slice of interval
 
         expected = ser.iloc[:3]
-        result = indexer_sl(ser)[Interval(0, 1) : Interval(2, 3)]
+        result = indexer_sl(ser)[pd.Interval(0, 1) : pd.Interval(2, 3)]
         tm.assert_series_equal(expected, result)
 
         expected = ser.iloc[3:]
-        result = indexer_sl(ser)[Interval(3, 4) :]
+        result = indexer_sl(ser)[pd.Interval(3, 4) :]
         tm.assert_series_equal(expected, result)
 
         msg = "Interval objects are not currently supported"
         with pytest.raises(NotImplementedError, match=msg):
-            indexer_sl(ser)[Interval(3, 6) :]
+            indexer_sl(ser)[pd.Interval(3, 6) :]
 
         with pytest.raises(NotImplementedError, match=msg):
-            indexer_sl(ser)[Interval(3, 4, closed="left") :]
+            indexer_sl(ser)[pd.Interval(3, 4, closed="left") :]
 
     def test_slice_step_ne1(self, series_with_interval_index):
         # GH#31658 slice of scalar with step != 1
@@ -124,11 +119,11 @@ class TestIntervalIndex:
         ser = series_with_interval_index.copy()
         msg = "label-based slicing with step!=1 is not supported for IntervalIndex"
         with pytest.raises(ValueError, match=msg):
-            ser[0 : 4 : Interval(0, 1)]
+            ser[0 : 4 : pd.Interval(0, 1)]
 
     def test_loc_with_overlap(self, indexer_sl):
-        idx = IntervalIndex.from_tuples([(1, 5), (3, 7)])
-        ser = Series(range(len(idx)), index=idx)
+        idx = pd.IntervalIndex.from_tuples([(1, 5), (3, 7)])
+        ser = pd.Series(range(len(idx)), index=idx)
 
         # scalar
         expected = ser
@@ -140,26 +135,26 @@ class TestIntervalIndex:
 
         # interval
         expected = 0
-        result = indexer_sl(ser)[Interval(1, 5)]
+        result = indexer_sl(ser)[pd.Interval(1, 5)]
         assert expected == result
 
         expected = ser
-        result = indexer_sl(ser)[[Interval(1, 5), Interval(3, 7)]]
+        result = indexer_sl(ser)[[pd.Interval(1, 5), pd.Interval(3, 7)]]
         tm.assert_series_equal(expected, result)
 
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
-            indexer_sl(ser)[Interval(3, 5)]
+            indexer_sl(ser)[pd.Interval(3, 5)]
 
         msg = (
             r"None of \[IntervalIndex\(\[\(3, 5\]\], "
             r"dtype='interval\[int64, right\]'\)\] are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
-            indexer_sl(ser)[[Interval(3, 5)]]
+            indexer_sl(ser)[[pd.Interval(3, 5)]]
 
         # slices with interval (only exact matches)
         expected = ser
-        result = indexer_sl(ser)[Interval(1, 5) : Interval(3, 7)]
+        result = indexer_sl(ser)[pd.Interval(1, 5) : pd.Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
         msg = (
@@ -167,7 +162,7 @@ class TestIntervalIndex:
             "non-overlapping and all monotonic increasing or decreasing'"
         )
         with pytest.raises(KeyError, match=msg):
-            indexer_sl(ser)[Interval(1, 6) : Interval(3, 8)]
+            indexer_sl(ser)[pd.Interval(1, 6) : pd.Interval(3, 8)]
 
         if indexer_sl is tm.loc:
             # slices with scalar raise for overlapping intervals
@@ -176,30 +171,30 @@ class TestIntervalIndex:
                 ser.loc[1:4]
 
     def test_non_unique(self, indexer_sl):
-        idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
-        ser = Series(range(len(idx)), index=idx)
+        idx = pd.IntervalIndex.from_tuples([(1, 3), (3, 7)])
+        ser = pd.Series(range(len(idx)), index=idx)
 
-        result = indexer_sl(ser)[Interval(1, 3)]
+        result = indexer_sl(ser)[pd.Interval(1, 3)]
         assert result == 0
 
-        result = indexer_sl(ser)[[Interval(1, 3)]]
+        result = indexer_sl(ser)[[pd.Interval(1, 3)]]
         expected = ser.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
     def test_non_unique_moar(self, indexer_sl):
-        idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
-        ser = Series(range(len(idx)), index=idx)
+        idx = pd.IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
+        ser = pd.Series(range(len(idx)), index=idx)
 
         expected = ser.iloc[[0, 1]]
-        result = indexer_sl(ser)[Interval(1, 3)]
+        result = indexer_sl(ser)[pd.Interval(1, 3)]
         tm.assert_series_equal(expected, result)
 
         expected = ser
-        result = indexer_sl(ser)[Interval(1, 3) :]
+        result = indexer_sl(ser)[pd.Interval(1, 3) :]
         tm.assert_series_equal(expected, result)
 
         expected = ser.iloc[[0, 1]]
-        result = indexer_sl(ser)[[Interval(1, 3)]]
+        result = indexer_sl(ser)[[pd.Interval(1, 3)]]
         tm.assert_series_equal(expected, result)
 
     def test_loc_getitem_missing_key_error_message(
@@ -215,16 +210,16 @@ class TestIntervalIndex:
 @pytest.mark.parametrize(
     "intervals",
     [
-        ([Interval(-np.inf, 0.0), Interval(0.0, 1.0)]),
-        ([Interval(-np.inf, -2.0), Interval(-2.0, -1.0)]),
-        ([Interval(-1.0, 0.0), Interval(0.0, np.inf)]),
-        ([Interval(1.0, 2.0), Interval(2.0, np.inf)]),
+        ([pd.Interval(-np.inf, 0.0), pd.Interval(0.0, 1.0)]),
+        ([pd.Interval(-np.inf, -2.0), pd.Interval(-2.0, -1.0)]),
+        ([pd.Interval(-1.0, 0.0), pd.Interval(0.0, np.inf)]),
+        ([pd.Interval(1.0, 2.0), pd.Interval(2.0, np.inf)]),
     ],
 )
 def test_repeating_interval_index_with_infs(intervals):
     # GH 46658
 
-    interval_index = Index(intervals * 51)
+    interval_index = pd.Index(intervals * 51)
 
     expected = np.arange(1, 102, 2, dtype=np.intp)
     result = interval_index.get_indexer_for([intervals[1]])

@@ -12,10 +12,7 @@ import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
 
-from pandas import (
-    Timedelta,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.tseries.offsets.common import assert_offset_equal
 
@@ -50,7 +47,7 @@ def test_delta_to_tick():
     tick = delta_to_tick(delta)
     assert tick == offsets.Hour(72)
 
-    td = Timedelta(nanoseconds=5)
+    td = pd.Timedelta(nanoseconds=5)
     tick = delta_to_tick(td)
     assert tick == Nano(5)
 
@@ -174,10 +171,10 @@ def test_Millisecond():
 
 def test_MillisecondTimestampArithmetic():
     assert_offset_equal(
-        Milli(), Timestamp("2010-01-01"), Timestamp("2010-01-01 00:00:00.001")
+        Milli(), pd.Timestamp("2010-01-01"), pd.Timestamp("2010-01-01 00:00:00.001")
     )
     assert_offset_equal(
-        Milli(-1), Timestamp("2010-01-01 00:00:00.001"), Timestamp("2010-01-01")
+        Milli(-1), pd.Timestamp("2010-01-01 00:00:00.001"), pd.Timestamp("2010-01-01")
     )
 
 
@@ -199,7 +196,7 @@ def test_Microsecond():
 
 
 def test_NanosecondGeneric():
-    timestamp = Timestamp(datetime(2010, 1, 1))
+    timestamp = pd.Timestamp(datetime(2010, 1, 1))
     assert timestamp.nanosecond == 0
 
     result = timestamp + Nano(10)
@@ -210,7 +207,7 @@ def test_NanosecondGeneric():
 
 
 def test_Nanosecond():
-    timestamp = Timestamp(datetime(2010, 1, 1))
+    timestamp = pd.Timestamp(datetime(2010, 1, 1))
     assert_offset_equal(Nano(), timestamp, timestamp + np.timedelta64(1, "ns"))
     assert_offset_equal(Nano(-1), timestamp + np.timedelta64(1, "ns"), timestamp)
     assert_offset_equal(2 * Nano(), timestamp, timestamp + np.timedelta64(2, "ns"))
@@ -228,25 +225,25 @@ def test_Nanosecond():
 @pytest.mark.parametrize(
     "kls, expected",
     [
-        (Hour, Timedelta(hours=5)),
-        (Minute, Timedelta(hours=2, minutes=3)),
-        (Second, Timedelta(hours=2, seconds=3)),
-        (Milli, Timedelta(hours=2, milliseconds=3)),
-        (Micro, Timedelta(hours=2, microseconds=3)),
-        (Nano, Timedelta(hours=2, nanoseconds=3)),
+        (Hour, pd.Timedelta(hours=5)),
+        (Minute, pd.Timedelta(hours=2, minutes=3)),
+        (Second, pd.Timedelta(hours=2, seconds=3)),
+        (Milli, pd.Timedelta(hours=2, milliseconds=3)),
+        (Micro, pd.Timedelta(hours=2, microseconds=3)),
+        (Nano, pd.Timedelta(hours=2, nanoseconds=3)),
     ],
 )
 def test_tick_addition(kls, expected):
     offset = kls(3)
-    td = Timedelta(hours=2)
+    td = pd.Timedelta(hours=2)
 
     for other in [td, td.to_pytimedelta(), td.to_timedelta64()]:
         result = offset + other
-        assert isinstance(result, Timedelta)
+        assert isinstance(result, pd.Timedelta)
         assert result == expected
 
         result = other + offset
-        assert isinstance(result, Timedelta)
+        assert isinstance(result, pd.Timedelta)
         assert result == expected
 
 
@@ -270,7 +267,7 @@ def test_tick_division(cls):
         assert not isinstance(result, cls)
         assert result._as_pd_timedelta == off._as_pd_timedelta / 1000
 
-    if cls._nanos_inc < Timedelta(seconds=1)._value:
+    if cls._nanos_inc < pd.Timedelta(seconds=1)._value:
         # Case where we end up with a bigger class
         result = off / 0.001
         assert isinstance(result, offsets.Tick)

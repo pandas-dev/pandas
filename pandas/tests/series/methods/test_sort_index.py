@@ -3,12 +3,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DatetimeIndex,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -83,8 +78,8 @@ class TestSeriesSortIndex:
         tm.assert_series_equal(random_order, expected)
 
     def test_sort_index_level(self):
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
-        s = Series([1, 2], mi)
+        mi = pd.MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = pd.Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
         res = s.sort_index(level="A")
@@ -101,8 +96,8 @@ class TestSeriesSortIndex:
 
     @pytest.mark.parametrize("level", ["A", 0])  # GH#21052
     def test_sort_index_multiindex(self, level):
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
-        s = Series([1, 2], mi)
+        mi = pd.MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = pd.Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
         # implicit sort_remaining=True
@@ -116,27 +111,27 @@ class TestSeriesSortIndex:
 
     def test_sort_index_kind(self, sort_kind):
         # GH#14444 & GH#13589:  Add support for sort algo choosing
-        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
-        expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
+        series = pd.Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = pd.Series(index=[1, 2, 3, 3, 4], dtype=object)
 
         index_sorted_series = series.sort_index(kind=sort_kind)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position(self):
-        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
-        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
+        series = pd.Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
+        expected_series_first = pd.Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
 
         index_sorted_series = series.sort_index(na_position="first")
         tm.assert_series_equal(expected_series_first, index_sorted_series)
 
-        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
+        expected_series_last = pd.Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
 
         index_sorted_series = series.sort_index(na_position="last")
         tm.assert_series_equal(expected_series_last, index_sorted_series)
 
     def test_sort_index_intervals(self):
-        s = Series(
-            [np.nan, 1, 2, 3], IntervalIndex.from_arrays([0, 1, 2, 3], [1, 2, 3, 4])
+        s = pd.Series(
+            [np.nan, 1, 2, 3], pd.IntervalIndex.from_arrays([0, 1, 2, 3], [1, 2, 3, 4])
         )
 
         result = s.sort_index()
@@ -144,8 +139,8 @@ class TestSeriesSortIndex:
         tm.assert_series_equal(result, expected)
 
         result = s.sort_index(ascending=False)
-        expected = Series(
-            [3, 2, 1, np.nan], IntervalIndex.from_arrays([3, 2, 1, 0], [4, 3, 2, 1])
+        expected = pd.Series(
+            [3, 2, 1, np.nan], pd.IntervalIndex.from_arrays([3, 2, 1, 0], [4, 3, 2, 1])
         )
         tm.assert_series_equal(result, expected)
 
@@ -164,8 +159,8 @@ class TestSeriesSortIndex:
         self, inplace, original_list, sorted_list, ascending, ignore_index, output_index
     ):
         # GH 30114
-        ser = Series(original_list)
-        expected = Series(sorted_list, index=output_index)
+        ser = pd.Series(original_list)
+        expected = pd.Series(sorted_list, index=output_index)
         kwargs = {
             "ascending": ascending,
             "ignore_index": ignore_index,
@@ -179,7 +174,7 @@ class TestSeriesSortIndex:
             result_ser = ser.sort_index(**kwargs)
 
         tm.assert_series_equal(result_ser, expected)
-        tm.assert_series_equal(ser, Series(original_list))
+        tm.assert_series_equal(ser, pd.Series(original_list))
 
     def test_sort_index_ascending_list(self):
         # GH#16934
@@ -191,8 +186,8 @@ class TestSeriesSortIndex:
             [4, 3, 2, 1, 4, 3, 2, 1],
         ]
         tuples = zip(*arrays, strict=True)
-        mi = MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
-        ser = Series(range(8), index=mi)
+        mi = pd.MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
+        ser = pd.Series(range(8), index=mi)
 
         # Sort with boolean ascending
         result = ser.sort_index(level=["third", "first"], ascending=False)
@@ -213,7 +208,7 @@ class TestSeriesSortIndex:
         ],
     )
     def test_sort_index_ascending_bad_value_raises(self, ascending):
-        ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
+        ser = pd.Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
         match = 'For argument "ascending" expected type bool'
         with pytest.raises(ValueError, match=match):
             ser.sort_index(ascending=ascending)
@@ -221,8 +216,8 @@ class TestSeriesSortIndex:
 
 class TestSeriesSortIndexKey:
     def test_sort_index_multiindex_key(self):
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
-        s = Series([1, 2], mi)
+        mi = pd.MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = pd.Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
         result = s.sort_index(level="C", key=lambda x: -x)
@@ -232,8 +227,8 @@ class TestSeriesSortIndexKey:
         tm.assert_series_equal(backwards, result)
 
     def test_sort_index_multiindex_key_multi_level(self):
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
-        s = Series([1, 2], mi)
+        mi = pd.MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+        s = pd.Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
         result = s.sort_index(level=["A", "C"], key=lambda x: -x)
@@ -243,7 +238,7 @@ class TestSeriesSortIndexKey:
         tm.assert_series_equal(backwards, result)
 
     def test_sort_index_key(self):
-        series = Series(np.arange(6, dtype="int64"), index=list("aaBBca"))
+        series = pd.Series(np.arange(6, dtype="int64"), index=list("aaBBca"))
 
         result = series.sort_index()
         expected = series.iloc[[2, 3, 0, 1, 5, 4]]
@@ -258,7 +253,9 @@ class TestSeriesSortIndexKey:
         tm.assert_series_equal(result, expected)
 
     def test_sort_index_key_int(self):
-        series = Series(np.arange(6, dtype="int64"), index=np.arange(6, dtype="int64"))
+        series = pd.Series(
+            np.arange(6, dtype="int64"), index=np.arange(6, dtype="int64")
+        )
 
         result = series.sort_index()
         tm.assert_series_equal(result, series)
@@ -272,39 +269,41 @@ class TestSeriesSortIndexKey:
 
     def test_sort_index_kind_key(self, sort_kind, sort_by_key):
         # GH #14444 & #13589:  Add support for sort algo choosing
-        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
-        expected_series = Series(index=[1, 2, 3, 3, 4], dtype=object)
+        series = pd.Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = pd.Series(index=[1, 2, 3, 3, 4], dtype=object)
 
         index_sorted_series = series.sort_index(kind=sort_kind, key=sort_by_key)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_kind_neg_key(self, sort_kind):
         # GH #14444 & #13589:  Add support for sort algo choosing
-        series = Series(index=[3, 2, 1, 4, 3], dtype=object)
-        expected_series = Series(index=[4, 3, 3, 2, 1], dtype=object)
+        series = pd.Series(index=[3, 2, 1, 4, 3], dtype=object)
+        expected_series = pd.Series(index=[4, 3, 3, 2, 1], dtype=object)
 
         index_sorted_series = series.sort_index(kind=sort_kind, key=lambda x: -x)
         tm.assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position_key(self, sort_by_key):
-        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
-        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
+        series = pd.Series(index=[3, 2, 1, 4, 3, np.nan], dtype=object)
+        expected_series_first = pd.Series(index=[np.nan, 1, 2, 3, 3, 4], dtype=object)
 
         index_sorted_series = series.sort_index(na_position="first", key=sort_by_key)
         tm.assert_series_equal(expected_series_first, index_sorted_series)
 
-        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
+        expected_series_last = pd.Series(index=[1, 2, 3, 3, 4, np.nan], dtype=object)
 
         index_sorted_series = series.sort_index(na_position="last", key=sort_by_key)
         tm.assert_series_equal(expected_series_last, index_sorted_series)
 
     def test_changes_length_raises(self):
-        s = Series([1, 2, 3])
+        s = pd.Series([1, 2, 3])
         with pytest.raises(ValueError, match="change the shape"):
             s.sort_index(key=lambda x: x[:1])
 
     def test_sort_values_key_type(self):
-        s = Series([1, 2, 3], DatetimeIndex(["2008-10-24", "2008-11-23", "2007-12-22"]))
+        s = pd.Series(
+            [1, 2, 3], pd.DatetimeIndex(["2008-10-24", "2008-11-23", "2007-12-22"])
+        )
 
         result = s.sort_index(key=lambda x: x.month)
         expected = s.iloc[[0, 1, 2]]
@@ -331,8 +330,8 @@ class TestSeriesSortIndexKey:
     )
     def test_sort_index_multi_already_monotonic(self, ascending):
         # GH 56049
-        mi = MultiIndex.from_product([[1, 2], [3, 4]])
-        ser = Series(range(len(mi)), index=mi)
+        mi = pd.MultiIndex.from_product([[1, 2], [3, 4]])
+        ser = pd.Series(range(len(mi)), index=mi)
         result = ser.sort_index(ascending=ascending)
         if ascending == [True, False]:
             expected = ser.take([1, 0, 3, 2])
@@ -344,9 +343,9 @@ class TestSeriesSortIndexKey:
 def test_sort_index_inplace_depr():
     msg = "The inplace keyword in Series.sort_index is deprecated"
 
-    ser = Series([3, 1, 2], index=[2, 0, 1])
+    ser = pd.Series([3, 1, 2], index=[2, 0, 1])
     ser_orig = ser.copy()
-    expected = Series([1, 2, 3], index=[0, 1, 2])
+    expected = pd.Series([1, 2, 3], index=[0, 1, 2])
 
     # does not use keyword, no warning
     with tm.assert_produces_warning(False):

@@ -2,11 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    IntervalIndex,
-    Series,
-    period_range,
-)
 import pandas._testing as tm
 
 
@@ -14,15 +9,15 @@ class TestValues:
     @pytest.mark.parametrize(
         "data",
         [
-            period_range("2000", periods=4),
-            IntervalIndex.from_breaks([1, 2, 3, 4]),
+            pd.period_range("2000", periods=4),
+            pd.IntervalIndex.from_breaks([1, 2, 3, 4]),
         ],
     )
     def test_values_object_extension_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/23995
         msg = "Series.values returning an object-dtype ndarray"
         with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
-            result = Series(data).values
+            result = pd.Series(data).values
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
 

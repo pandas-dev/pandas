@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Timestamp
 import pandas._testing as tm
 
 
@@ -113,6 +112,20 @@ numpy array values are different \\(25\\.0 %\\)
         )
 
 
+def test_assert_numpy_array_equal_value_mismatch_2d_percentage():
+    # GH#68366 the percentage counts differing values, not differing rows
+    msg = """numpy array are different
+
+numpy array values are different \\(100\\.0 %\\)
+\\[left\\]:  \\[\\[1, 2\\], \\[3, 4\\]\\]
+\\[right\\]: \\[\\[9, 9\\], \\[9, 9\\]\\]"""
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(
+            np.array([[1, 2], [3, 4]]), np.array([[9, 9], [9, 9]])
+        )
+
+
 def test_assert_numpy_array_equal_shape_mismatch_override():
     msg = """Index are different
 
@@ -142,8 +155,8 @@ numpy array values are different \\(33\\.33333 %\\)
 
 
 def test_numpy_array_equal_object():
-    a = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-01")])
-    b = np.array([Timestamp("2011-01-01"), Timestamp("2011-01-02")])
+    a = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-01")])
+    b = np.array([pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")])
 
     msg = """numpy array are different
 

@@ -4,18 +4,13 @@ import pytest
 from pandas._libs import index as libindex
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    IntervalIndex,
-    Series,
-)
 import pandas._testing as tm
 
 
 class TestIntervalIndex:
     @pytest.fixture
     def series_with_interval_index(self):
-        return Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
+        return pd.Series(np.arange(5), pd.IntervalIndex.from_breaks(np.arange(6)))
 
     def test_getitem_with_scalar(self, series_with_interval_index, indexer_sl):
         ser = series_with_interval_index.copy()
@@ -41,8 +36,8 @@ class TestIntervalIndex:
         if direction == "decreasing":
             tpls = tpls[::-1]
 
-        idx = IntervalIndex.from_tuples(tpls, closed=closed)
-        ser = Series(list("abc"), idx)
+        idx = pd.IntervalIndex.from_tuples(tpls, closed=closed)
+        ser = pd.Series(list("abc"), idx)
 
         for key, expected in zip(idx.left, ser, strict=True):
             if idx.closed_left:
@@ -76,9 +71,9 @@ class TestIntervalIndex:
         size_cutoff = 20
         with monkeypatch.context():
             monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            ser = Series(
+            ser = pd.Series(
                 np.arange(size_cutoff),
-                index=IntervalIndex.from_breaks(np.arange(size_cutoff + 1)),
+                index=pd.IntervalIndex.from_breaks(np.arange(size_cutoff + 1)),
             )
 
             result1 = ser.loc[:8]
@@ -89,7 +84,7 @@ class TestIntervalIndex:
 
     def test_loc_getitem_frame(self):
         # CategoricalIndex with IntervalIndex categories
-        df = DataFrame({"A": range(10)})
+        df = pd.DataFrame({"A": range(10)})
         ser = pd.cut(df.A, 5)
         df["B"] = ser
         df = df.set_index("B")
@@ -125,11 +120,11 @@ class TestIntervalIndex:
     def test_getitem_interval_with_nans(self, frame_or_series, indexer_sl):
         # GH#41831
 
-        index = IntervalIndex([np.nan, np.nan])
+        index = pd.IntervalIndex([np.nan, np.nan])
         key = index[:-1]
 
         obj = frame_or_series(range(2), index=index)
-        if frame_or_series is DataFrame and indexer_sl is tm.setitem:
+        if frame_or_series is pd.DataFrame and indexer_sl is tm.setitem:
             obj = obj.T
 
         result = indexer_sl(obj)[key]
@@ -139,8 +134,8 @@ class TestIntervalIndex:
 
     def test_setitem_interval_with_slice(self):
         # GH#54722
-        ii = IntervalIndex.from_breaks(range(4, 15))
-        ser = Series(range(10), index=ii)
+        ii = pd.IntervalIndex.from_breaks(range(4, 15))
+        ser = pd.Series(range(10), index=ii)
 
         orig = ser.copy()
 
@@ -152,7 +147,7 @@ class TestIntervalIndex:
         orig.iloc[1:4] = 19
         tm.assert_series_equal(ser, orig)
 
-        ser2 = Series(range(5), index=ii[::2])
+        ser2 = pd.Series(range(5), index=ii[::2])
         orig2 = ser2.copy()
 
         # this used to raise
@@ -168,7 +163,7 @@ class TestIntervalIndex:
 class TestIntervalIndexInsideMultiIndex:
     def test_mi_intervalindex_slicing_with_scalar(self):
         # GH#27456
-        ii = IntervalIndex.from_arrays(
+        ii = pd.IntervalIndex.from_arrays(
             [0, 1, 10, 11, 0, 1, 10, 11], [1, 2, 11, 12, 1, 2, 11, 12], name="MP"
         )
         idx = pd.MultiIndex.from_arrays(
@@ -182,10 +177,10 @@ class TestIntervalIndexInsideMultiIndex:
         )
 
         idx.names = ["Item", "RID", "MP"]
-        df = DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
+        df = pd.DataFrame({"value": [1, 2, 3, 4, 5, 6, 7, 8]})
         df.index = idx
 
-        query_df = DataFrame(
+        query_df = pd.DataFrame(
             {
                 "Item": ["FC", "OWNER", "FC", "OWNER", "OWNER"],
                 "RID": ["RID1", "RID1", "RID1", "RID2", "RID2"],
@@ -206,29 +201,29 @@ class TestIntervalIndexInsideMultiIndex:
         expected_index = pd.MultiIndex.from_arrays(
             [idx.get_level_values(0), idx.get_level_values(1), sliced_level]
         )
-        expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
+        expected = pd.Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("base", [101, 1010])
     def test_reindex_behavior_with_interval_index(self, base):
         # GH 51826
 
-        ser = Series(
+        ser = pd.Series(
             range(base),
-            index=IntervalIndex.from_arrays(range(base), range(1, base + 1)),
+            index=pd.IntervalIndex.from_arrays(range(base), range(1, base + 1)),
         )
-        expected_result = Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)
+        expected_result = pd.Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)
         result = ser.reindex(index=[np.nan, 1.0])
         tm.assert_series_equal(result, expected_result)
 
     def test_multiindex_with_interval_index(self):
         # for GH#25298
-        intIndex = IntervalIndex.from_arrays([1, 5, 8, 13, 16], [4, 9, 12, 17, 20])
+        intIndex = pd.IntervalIndex.from_arrays([1, 5, 8, 13, 16], [4, 9, 12, 17, 20])
         multiIndex = pd.MultiIndex.from_arrays([["a", "a", "b", "b", "c"], intIndex])
         data = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
-        df = DataFrame(data, index=multiIndex)
+        df = pd.DataFrame(data, index=multiIndex)
         result = df.loc[("b", 16)]
-        expected = Series([7, 8], name=("b", pd.Interval(13, 17, closed="right")))
+        expected = pd.Series([7, 8], name=("b", pd.Interval(13, 17, closed="right")))
         tm.assert_series_equal(result, expected)
 
 
@@ -236,9 +231,9 @@ def test_categorical_interval_index_getitem_scalar():
     # GH#27437
     # Scalar indexing on Series with CategoricalIndex of Intervals
     # should use interval membership (point-in-interval lookup)
-    ser = Series(
+    ser = pd.Series(
         ["a", "b", "c", "d", "e"],
-        index=pd.CategoricalIndex(IntervalIndex.from_breaks(range(6))),
+        index=pd.CategoricalIndex(pd.IntervalIndex.from_breaks(range(6))),
     )
     # 0.5 is in (0, 1], 1.5 is in (1, 2], etc.
     assert ser[0.5] == "a"

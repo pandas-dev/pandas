@@ -1,22 +1,12 @@
+import operator
+
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    HDFStore,
-    Index,
-    MultiIndex,
-    Series,
-    _testing as tm,
-    bdate_range,
-    concat,
-    date_range,
-    isna,
-    read_hdf,
-)
+import pandas._testing as tm
 
 from pandas.io.pytables import Term
 
@@ -27,14 +17,14 @@ def test_select_columns_in_where(temp_hdfstore):
     # GH 6169
     # recreate multi-indexes when columns is passed
     # in the `where` argument
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
         codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
         names=["foo_name", "bar_name"],
     )
 
     # With a DataFrame
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 3)),
         index=index,
         columns=["A", "B", "C"],
@@ -48,7 +38,7 @@ def test_select_columns_in_where(temp_hdfstore):
     tm.assert_frame_equal(temp_hdfstore.select("df", where="columns=['A']"), expected)
 
     # With a Series
-    s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
+    s = pd.Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
     temp_hdfstore.put("s", s, format="table", track_times=False)
     tm.assert_series_equal(temp_hdfstore.select("s", where="columns=['A']"), s)
 
@@ -62,10 +52,10 @@ def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwar
     # GH#12953 a column selection in the `where` argument is a projection, not a
     # row filter, so it cannot be applied per-chunk; raise a clear error
     # pointing to the `columns` argument instead of a cryptic KeyError.
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df", df, data_columns=True)
 
@@ -74,7 +64,7 @@ def test_select_iterator_columns_in_where_raises(temp_hdfstore, where, iter_kwar
         temp_hdfstore.select("df", where=where, **iter_kwargs)
 
     # a plain row filter must keep working
-    result = concat(list(temp_hdfstore.select("df", where="A>0", **iter_kwargs)))
+    result = pd.concat(list(temp_hdfstore.select("df", where="A>0", **iter_kwargs)))
     tm.assert_frame_equal(result, temp_hdfstore.select("df", where="A>0"))
 
 
@@ -84,10 +74,10 @@ def test_select_as_coordinates_columns_in_where_raises(temp_hdfstore):
     # coordinate-based read -- select_as_coordinates and select_as_multiple --
     # raises the same clear error as the iterator path, rather than the cryptic
     # KeyError that read_coordinates used to produce.
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df1", df, data_columns=True)
     temp_hdfstore.append("df2", df.rename(columns="{}_2".format), data_columns=True)
@@ -113,9 +103,9 @@ def test_select_iterator_condition_and_big_selector(temp_hdfstore, iter_kwargs):
     # a post-read filter. The chunked/iterator path reads by row coordinates, so
     # the filter must be applied when computing those coordinates -- otherwise it
     # is silently dropped and extra rows leak through.
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
+            "ts": pd.bdate_range("2012-01-01", periods=300, unit="ns"),
             "users": ["a"] * 50
             + ["b"] * 50
             + ["c"] * 100
@@ -128,7 +118,7 @@ def test_select_iterator_condition_and_big_selector(temp_hdfstore, iter_kwargs):
     where = "ts>=Timestamp('2012-02-01') and users=selector"
 
     expected = df[(df["ts"] >= Timestamp("2012-02-01")) & df["users"].isin(selector)]
-    result = concat(list(temp_hdfstore.select("df", where=where, **iter_kwargs)))
+    result = pd.concat(list(temp_hdfstore.select("df", where=where, **iter_kwargs)))
     tm.assert_frame_equal(result, expected)
     tm.assert_frame_equal(result, temp_hdfstore.select("df", where=where))
 
@@ -141,8 +131,8 @@ def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
     # tz-aware selector, so a plain read silently returned the wrong rows
     # (nothing for ==, everything for !=) while the coordinate/iterator path
     # returned the right rows.
-    ts = date_range("2020-01-01", periods=300, freq="h", tz="US/Eastern", unit="ns")
-    df = DataFrame({"ts": ts, "other": np.arange(300)})
+    ts = pd.date_range("2020-01-01", periods=300, freq="h", tz="US/Eastern", unit="ns")
+    df = pd.DataFrame({"ts": ts, "other": np.arange(300)})
     temp_hdfstore.append("df", df, data_columns=["ts", "other"])
 
     selector = list(ts[:60])
@@ -155,16 +145,56 @@ def test_select_big_selector_datetimetz_column(temp_hdfstore, op):
     tm.assert_frame_equal(result, expected)
 
     # a plain read must match the iterator/coordinate path
-    iter_result = concat(list(temp_hdfstore.select("df", where=where, chunksize=50)))
+    iter_result = pd.concat(list(temp_hdfstore.select("df", where=where, chunksize=50)))
     tm.assert_frame_equal(result, iter_result)
+
+
+@pytest.mark.parametrize("column", ["num", "text", "ts"])
+def test_select_ne_list_of_values(temp_hdfstore, column):
+    # GH#68030 "col != [a, b]" OR-joined the per-value comparisons, and
+    # "(col != a) | (col != b)" is true for every row, so the query silently
+    # degraded to no filter at all. A single-element list was fine.
+    df = pd.DataFrame(
+        {
+            "num": np.arange(40),
+            "text": [f"s{i:02d}" for i in range(40)],
+            "ts": pd.date_range("2020-01-01", periods=40, unit="ns"),
+        }
+    )
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    selector = list(df[column][10:13])
+    where = f"{column} != selector"
+    expected = df[~df[column].isin(selector)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=where), expected)
+
+    # the coordinate path must agree with a plain read
+    coords = temp_hdfstore.select_as_coordinates("df", where=where)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=coords), expected)
+
+
+def test_select_ne_list_matches_post_read_filter(temp_hdfstore):
+    # GH#68030 a >31-value "!=" list is realized as a post-read filter instead
+    # of a numexpr condition; padding the list with values that are not in the
+    # column must not change which rows come back
+    df = pd.DataFrame({"num": np.arange(40)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    small = [10, 11, 12]
+    big = small + list(range(100, 135))
+    expected = df[~df["num"].isin(small)]
+
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {small}"), expected)
+    tm.assert_frame_equal(temp_hdfstore.select("df", where=f"num != {big}"), expected)
 
 
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "A", "B", "B"]
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
+    df.index = pd.date_range("20130101 9:30", periods=10, freq="min", unit="ns")
 
     temp_hdfstore.append("df", df)
 
@@ -182,20 +212,20 @@ def test_select_with_dups(temp_hdfstore):
 
 
 def test_select_with_dups_across_dtypes(temp_hdfstore):
-    df = concat(
+    df = pd.concat(
         [
-            DataFrame(
+            pd.DataFrame(
                 np.random.default_rng(2).standard_normal((10, 4)),
                 columns=["A", "A", "B", "B"],
             ),
-            DataFrame(
+            pd.DataFrame(
                 np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
                 columns=["A", "C"],
             ),
         ],
         axis=1,
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
+    df.index = pd.date_range("20130101 9:30", periods=10, freq="min", unit="ns")
 
     temp_hdfstore.append("df", df)
 
@@ -217,35 +247,35 @@ def test_select_with_dups_across_dtypes(temp_hdfstore):
 
 
 def test_select_with_dups_across_index_and_columns(temp_hdfstore):
-    df = concat(
+    df = pd.concat(
         [
-            DataFrame(
+            pd.DataFrame(
                 np.random.default_rng(2).standard_normal((10, 4)),
                 columns=["A", "A", "B", "B"],
             ),
-            DataFrame(
+            pd.DataFrame(
                 np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
                 columns=["A", "C"],
             ),
         ],
         axis=1,
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
+    df.index = pd.date_range("20130101 9:30", periods=10, freq="min", unit="ns")
     temp_hdfstore.append("df", df)
     temp_hdfstore.append("df", df)
 
     expected = df.loc[:, ["B", "A"]]
-    expected = concat([expected, expected])
+    expected = pd.concat([expected, expected])
     result = temp_hdfstore.select("df", columns=["B", "A"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_select(temp_hdfstore):
     # select with columns=
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df", df)
     result = temp_hdfstore.select("df", columns=["A", "B"])
@@ -281,9 +311,9 @@ def test_select(temp_hdfstore):
 
 def test_select_dtypes_timestamp(temp_hdfstore):
     # with a Timestamp data column (GH #2637)
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
+            "ts": pd.bdate_range("2012-01-01", periods=300, unit="ns"),
             "A": np.random.default_rng(2).standard_normal(300),
         }
     )
@@ -296,7 +326,9 @@ def test_select_dtypes_timestamp(temp_hdfstore):
 
 def test_select_dtypes_bools(temp_hdfstore):
     # bool columns (GH #2849)
-    df = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), columns=["A", "B"])
+    df = pd.DataFrame(
+        np.random.default_rng(2).standard_normal((5, 2)), columns=["A", "B"]
+    )
     df["object"] = "foo"
     df.loc[4:5, "object"] = "bar"
     df["boolv"] = df["A"] > 0
@@ -314,7 +346,7 @@ def test_select_dtypes_bools(temp_hdfstore):
 
 
 def test_select_dtypes_integer_index(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": np.random.default_rng(2).random(20),
             "B": np.random.default_rng(2).random(20),
@@ -327,7 +359,7 @@ def test_select_dtypes_integer_index(temp_hdfstore):
 
 
 def test_select_dtypes_float_index(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": np.random.default_rng(2).random(20),
             "B": np.random.default_rng(2).random(20),
@@ -341,7 +373,7 @@ def test_select_dtypes_float_index(temp_hdfstore):
 
 
 def test_select_dtypes_floats_without_nan(temp_hdfstore):
-    df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
+    df = pd.DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
     df["cols"] = (df["cols"] + 10).apply(str)
 
     temp_hdfstore.append("df1", df, data_columns=True)
@@ -351,7 +383,7 @@ def test_select_dtypes_floats_without_nan(temp_hdfstore):
 
 
 def test_select_dtypes_floats_with_nan(temp_hdfstore):
-    df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
+    df = pd.DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
     df["cols"] = (df["cols"] + 10).apply(str)
     df.iloc[0] = np.nan
     expected = df[df["values"] > 2.0]
@@ -362,7 +394,7 @@ def test_select_dtypes_floats_with_nan(temp_hdfstore):
 
 
 def test_select_dtypes_floats_with_nan_not_first_position(temp_hdfstore):
-    df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
+    df = pd.DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
     df["cols"] = (df["cols"] + 10).apply(str)
 
     df.iloc[1] = np.nan
@@ -375,10 +407,10 @@ def test_select_dtypes_floats_with_nan_not_first_position(temp_hdfstore):
 
 def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore):
     # GH 11283
-    df = DataFrame(
+    df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD")),
-        index=Index([f"i-{i}" for i in range(30)]),
+        columns=pd.Index(list("ABCD")),
+        index=pd.Index([f"i-{i}" for i in range(30)]),
     )
 
     expected = df[df["A"] > 0]
@@ -402,7 +434,7 @@ def test_select_dtypes_comparison_with_numpy_scalar(temp_hdfstore):
 def test_select_arithmetic_where_not_supported(temp_hdfstore, where):
     # GH#41100 arithmetic operators inside a where clause are not supported;
     # raise an informative error instead of an opaque PyTables one
-    df = DataFrame({"A": np.arange(0, 10), "B": np.arange(10, 20)})
+    df = pd.DataFrame({"A": np.arange(0, 10), "B": np.arange(10, 20)})
     temp_hdfstore.append("df", df, data_columns=["A", "B"])
 
     msg = "arithmetic operations are not supported"
@@ -411,9 +443,9 @@ def test_select_arithmetic_where_not_supported(temp_hdfstore, where):
 
 
 def test_select_with_many_inputs(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
-            "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
+            "ts": pd.bdate_range("2012-01-01", periods=300, unit="ns"),
             "A": np.random.default_rng(2).standard_normal(300),
             "B": range(300),
             "users": ["a"] * 50
@@ -451,7 +483,7 @@ def test_select_with_many_inputs(temp_hdfstore):
     assert len(result) == 100
 
     # big selector along the index
-    selector = Index(df.ts[0:100].values)
+    selector = pd.Index(df.ts[0:100].values)
     result = temp_hdfstore.select("df", "ts=selector")
     expected = df[df.ts.isin(selector.values)]
     tm.assert_frame_equal(expected, result)
@@ -460,26 +492,26 @@ def test_select_with_many_inputs(temp_hdfstore):
 
 def test_select_iterator(temp_hdfstore):
     # single table
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df", df)
 
     expected = temp_hdfstore.select("df")
 
     results = list(temp_hdfstore.select("df", iterator=True))
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
     results = list(temp_hdfstore.select("df", chunksize=2))
     assert len(results) == 5
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
     results = list(temp_hdfstore.select("df", chunksize=2))
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(result, expected)
 
 
@@ -487,10 +519,10 @@ def test_select_iterator_no_where_skips_coordinates(temp_hdfstore):
     # GH#15937 chunked iteration without a `where` filter should not
     # materialize an np.arange(0, nrows) coordinate array, which can
     # exhaust memory on very large tables.
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df", df)
 
@@ -505,42 +537,42 @@ def test_select_iterator_no_where_skips_coordinates(temp_hdfstore):
 
 
 def test_select_iterator2(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.to_hdf(temp_h5_path, key="df_non_table")
 
     msg = "can only use an iterator or chunksize on a table"
     with pytest.raises(TypeError, match=msg):
-        read_hdf(temp_h5_path, "df_non_table", chunksize=2)
+        pd.read_hdf(temp_h5_path, "df_non_table", chunksize=2)
 
     with pytest.raises(TypeError, match=msg):
-        read_hdf(temp_h5_path, "df_non_table", iterator=True)
+        pd.read_hdf(temp_h5_path, "df_non_table", iterator=True)
 
 
 def test_select_iterator3(temp_h5_path):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.to_hdf(temp_h5_path, key="df", format="table")
 
-    results = list(read_hdf(temp_h5_path, "df", chunksize=2))
-    result = concat(results)
+    results = list(pd.read_hdf(temp_h5_path, "df", chunksize=2))
+    result = pd.concat(results)
 
     assert len(results) == 5
     tm.assert_frame_equal(result, df)
-    tm.assert_frame_equal(result, read_hdf(temp_h5_path, "df"))
+    tm.assert_frame_equal(result, pd.read_hdf(temp_h5_path, "df"))
 
 
 def test_select_iterator_multiple(temp_hdfstore):
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df1", df1, data_columns=True)
     df2 = df1.copy().rename(columns="{}_2".format)
@@ -552,7 +584,7 @@ def test_select_iterator_multiple(temp_hdfstore):
     results = list(
         temp_hdfstore.select_as_multiple(["df1", "df2"], selector="df1", chunksize=2)
     )
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
 
@@ -560,10 +592,10 @@ def test_select_iterator_complete_8014(temp_hdfstore):
     # GH 8014
     # using iterator and where clause
     # no iterator
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.random.default_rng(2).standard_normal((100064, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
     )
     temp_hdfstore.append("df", expected)
 
@@ -596,10 +628,10 @@ def test_select_iterator_complete_8014(temp_hdfstore):
 def test_select_iterator_complete_8014_full_range(temp_hdfstore):
     # GH 8014
     chunksize = 1e4
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.random.default_rng(2).standard_normal((100064, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
     )
     temp_hdfstore.append("df", expected)
 
@@ -608,25 +640,25 @@ def test_select_iterator_complete_8014_full_range(temp_hdfstore):
 
     # select w/iterator and no where clause works
     results = list(temp_hdfstore.select("df", chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
     # select w/iterator and where clause, single term, begin of range
     where = f"index >= '{beg_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
     # select w/iterator and where clause, single term, end of range
     where = f"index <= '{end_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
     # select w/iterator and where clause, inclusive range
     where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     tm.assert_frame_equal(expected, result)
 
 
@@ -636,10 +668,10 @@ def test_select_iterator_non_complete_8014(temp_hdfstore):
     chunksize = 1e4
 
     # with iterator, non complete range
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.random.default_rng(2).standard_normal((100064, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
     )
     temp_hdfstore.append("df", expected)
 
@@ -649,31 +681,31 @@ def test_select_iterator_non_complete_8014(temp_hdfstore):
     # select w/iterator and where clause, single term, begin of range
     where = f"index >= '{beg_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     rexpected = expected[expected.index >= beg_dt]
     tm.assert_frame_equal(rexpected, result)
 
     # select w/iterator and where clause, single term, end of range
     where = f"index <= '{end_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     rexpected = expected[expected.index <= end_dt]
     tm.assert_frame_equal(rexpected, result)
 
     # select w/iterator and where clause, inclusive range
     where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     rexpected = expected[(expected.index >= beg_dt) & (expected.index <= end_dt)]
     tm.assert_frame_equal(rexpected, result)
 
 
 def test_select_iterator_non_complete_8014_empty_where(temp_hdfstore):
     chunksize = 1e4
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.random.default_rng(2).standard_normal((100064, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
     )
     temp_hdfstore.append("df", expected)
 
@@ -692,10 +724,10 @@ def test_select_iterator_many_empty_frames(temp_hdfstore):
     chunksize = 10_000
 
     # with iterator, range limited to the first chunk
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.random.default_rng(2).standard_normal((100064, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
     )
     temp_hdfstore.append("df", expected)
 
@@ -705,7 +737,7 @@ def test_select_iterator_many_empty_frames(temp_hdfstore):
     # select w/iterator and where clause, single term, begin of range
     where = f"index >= '{beg_dt}'"
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
-    result = concat(results)
+    result = pd.concat(results)
     rexpected = expected[expected.index >= beg_dt]
     tm.assert_frame_equal(rexpected, result)
 
@@ -714,7 +746,7 @@ def test_select_iterator_many_empty_frames(temp_hdfstore):
     results = list(temp_hdfstore.select("df", where=where, chunksize=chunksize))
 
     assert len(results) == 1
-    result = concat(results)
+    result = pd.concat(results)
     rexpected = expected[expected.index <= end_dt]
     tm.assert_frame_equal(rexpected, result)
 
@@ -724,7 +756,7 @@ def test_select_iterator_many_empty_frames(temp_hdfstore):
 
     # should be 1, is 10
     assert len(results) == 1
-    result = concat(results)
+    result = pd.concat(results)
     rexpected = expected[(expected.index >= beg_dt) & (expected.index <= end_dt)]
     tm.assert_frame_equal(rexpected, result)
 
@@ -743,10 +775,10 @@ def test_select_iterator_many_empty_frames(temp_hdfstore):
 
 
 def test_frame_select(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     temp_hdfstore.put("frame", df, format="table", track_times=False)
@@ -767,10 +799,10 @@ def test_frame_select(temp_hdfstore):
     tm.assert_frame_equal(result, expected)
 
     # invalid terms
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     temp_hdfstore.append("df_time", df)
     msg = "day (is out of range for month|0 must be in range)"
@@ -786,10 +818,10 @@ def test_frame_select(temp_hdfstore):
 def test_frame_select_complex(temp_hdfstore):
     # select via complex criteria
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
@@ -812,9 +844,12 @@ def test_frame_select_complex(temp_hdfstore):
     expected = df.loc[(df.index > df.index[3]) | (df.string == "bar")]
     tm.assert_frame_equal(result, expected)
 
-    result = temp_hdfstore.select(
-        "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
-    )
+    # OR-ing an AND-ed condition over indexed columns warns about GH#50598,
+    # even though this particular query does return the right rows
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        result = temp_hdfstore.select(
+            "df", '(index>df.index[3] & index<=df.index[6]) | string="bar"'
+        )
     expected = df.loc[
         ((df.index > df.index[3]) & (df.index <= df.index[6])) | (df.string == "bar")
     ]
@@ -846,47 +881,47 @@ def test_frame_select_complex2(tmp_path):
     hh = tmp_path / "hist.hdf"
 
     # use non-trivial selection criteria
-    params = DataFrame({"A": [1, 1, 2, 2, 3]})
+    params = pd.DataFrame({"A": [1, 1, 2, 2, 3]})
     params.to_hdf(pp, key="df", mode="w", format="table", data_columns=["A"])
 
-    selection = read_hdf(pp, "df", where="A=[2,3]")
-    hist = DataFrame(
+    selection = pd.read_hdf(pp, "df", where="A=[2,3]")
+    hist = pd.DataFrame(
         np.random.default_rng(2).standard_normal((25, 1)),
         columns=["data"],
-        index=MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_tuples(
             [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]
         ),
     )
 
     hist.to_hdf(hh, key="df", mode="w", format="table")
 
-    expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
+    expected = pd.read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
     # scope with list like
     l0 = selection.index.tolist()  # noqa: F841
-    with HDFStore(hh) as store:
+    with pd.HDFStore(hh) as store:
         result = store.select("df", where="l1=l0")
         tm.assert_frame_equal(result, expected)
 
-    result = read_hdf(hh, "df", where="l1=l0")
+    result = pd.read_hdf(hh, "df", where="l1=l0")
     tm.assert_frame_equal(result, expected)
 
     # index
     index = selection.index  # noqa: F841
-    result = read_hdf(hh, "df", where="l1=index")
+    result = pd.read_hdf(hh, "df", where="l1=index")
     tm.assert_frame_equal(result, expected)
 
-    result = read_hdf(hh, "df", where="l1=selection.index")
+    result = pd.read_hdf(hh, "df", where="l1=selection.index")
     tm.assert_frame_equal(result, expected)
 
-    result = read_hdf(hh, "df", where="l1=selection.index.tolist()")
+    result = pd.read_hdf(hh, "df", where="l1=selection.index.tolist()")
     tm.assert_frame_equal(result, expected)
 
-    result = read_hdf(hh, "df", where="l1=list(selection.index)")
+    result = pd.read_hdf(hh, "df", where="l1=list(selection.index)")
     tm.assert_frame_equal(result, expected)
 
     # scope with index
-    with HDFStore(hh) as store:
+    with pd.HDFStore(hh) as store:
         result = store.select("df", where="l1=index")
         tm.assert_frame_equal(result, expected)
 
@@ -903,10 +938,10 @@ def test_frame_select_complex2(tmp_path):
 def test_invalid_filtering(temp_hdfstore):
     # can't use more than one filter (atm)
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     temp_hdfstore.put("df", df, format="table", track_times=False)
@@ -923,10 +958,10 @@ def test_invalid_filtering(temp_hdfstore):
 
 def test_string_select(temp_hdfstore):
     # GH 2973
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     # test string ==/!=
@@ -948,7 +983,7 @@ def test_string_select(temp_hdfstore):
 
     temp_hdfstore.append("df2", df2, data_columns=["x"])
     result = temp_hdfstore.select("df2", "x!=none")
-    expected = df2[isna(df2.x)]
+    expected = df2[pd.isna(df2.x)]
     tm.assert_frame_equal(result, expected)
 
     # int ==/!=
@@ -967,10 +1002,10 @@ def test_string_select(temp_hdfstore):
 
 
 def test_select_as_multiple(temp_hdfstore):
-    df1 = DataFrame(
+    df1 = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
-        columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
+        columns=pd.Index(list("ABCD")),
+        index=pd.date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
@@ -1019,7 +1054,7 @@ def test_select_as_multiple(temp_hdfstore):
     result = temp_hdfstore.select_as_multiple(
         ["df1", "df2"], where=["A>0", "B>0"], selector="df1"
     )
-    expected = concat([df1, df2], axis=1)
+    expected = pd.concat([df1, df2], axis=1)
     expected = expected[(expected.A > 0) & (expected.B > 0)]
     tm.assert_frame_equal(result, expected)
 
@@ -1027,7 +1062,7 @@ def test_select_as_multiple(temp_hdfstore):
     result = temp_hdfstore.select_as_multiple(
         ["df1", "df2"], where="index>df2.index[4]", selector="df2"
     )
-    expected = concat([df1, df2], axis=1)
+    expected = pd.concat([df1, df2], axis=1)
     expected = expected[5:]
     tm.assert_frame_equal(result, expected)
 
@@ -1042,11 +1077,11 @@ def test_select_as_multiple(temp_hdfstore):
 
 
 def test_nan_selection_bug_4858(temp_hdfstore):
-    df = DataFrame({"cols": range(6), "values": range(6)}, dtype="float64")
+    df = pd.DataFrame({"cols": range(6), "values": range(6)}, dtype="float64")
     df["cols"] = (df["cols"] + 10).apply(str)
     df.iloc[0] = np.nan
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"cols": ["13.0", "14.0", "15.0"], "values": [3.0, 4.0, 5.0]},
         index=[3, 4, 5],
     )
@@ -1058,7 +1093,7 @@ def test_nan_selection_bug_4858(temp_hdfstore):
 
 
 def test_query_with_nested_special_character(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": ["a", "a", "c", "b", "test & test", "c", "b", "e"],
             "b": [1, 2, 3, 4, 5, 6, 7, 8],
@@ -1072,7 +1107,7 @@ def test_query_with_nested_special_character(temp_hdfstore):
 
 def test_query_long_float_literal(temp_hdfstore):
     # GH 14241
-    df = DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
+    df = pd.DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
 
     temp_hdfstore.append("test", df, format="table", data_columns=True)
 
@@ -1093,10 +1128,10 @@ def test_query_long_float_literal(temp_hdfstore):
 
 def test_query_compare_column_type(temp_hdfstore):
     # GH 15492
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "date": ["2014-01-01", "2014-01-02"],
-            "real_date": date_range("2014-01-01", periods=2, unit="ns"),
+            "real_date": pd.date_range("2014-01-01", periods=2, unit="ns"),
             "float": [1.1, 1.2],
             "int": [1, 2],
         },
@@ -1148,14 +1183,46 @@ def test_query_compare_column_type(temp_hdfstore):
 def test_select_empty_where(temp_hdfstore, where):
     # GH26610
 
-    df = DataFrame([1, 2, 3])
+    df = pd.DataFrame([1, 2, 3])
     temp_hdfstore.put("df", df, "t", track_times=False)
-    result = read_hdf(temp_hdfstore, "df", where=where)
+    result = pd.read_hdf(temp_hdfstore, "df", where=where)
     tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.parametrize("value", [1.5, 2.5, -1.5, -0.5])
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+@pytest.mark.parametrize("indexed", [True, False])
+def test_select_integer_column_non_integer_value(temp_hdfstore, op, value, indexed):
+    # GH#68032 a value that is not a whole number equals no row of an integer
+    # column, so the query must not compare against a rounded value
+    df = pd.DataFrame({"i": [-3, -2, -1, 0, 1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=indexed)
+
+    result = temp_hdfstore.select("t", where=f"i {op} {value}")
+    expected = df.query(f"i {op} {value}")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_select_integer_column_non_integer_value_in_list(temp_hdfstore):
+    # GH#68032 only the whole-number members of the list can match
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i == [1.5, 2]")
+    tm.assert_frame_equal(result, df.loc[[1]])
+
+
+def test_select_integer_column_non_integer_string_value(temp_hdfstore):
+    # GH#68032 the value can also reach convert_value as a string literal
+    df = pd.DataFrame({"i": [1, 2, 3]})
+    temp_hdfstore.append("t", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("t", where="i > '1.5'")
+    tm.assert_frame_equal(result, df.loc[[1, 2]])
+
+
 def test_select_large_integer(temp_hdfstore):
-    df = DataFrame(
+    df = pd.DataFrame(
         zip(
             ["a", "b", "c", "d"],
             [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
@@ -1172,11 +1239,52 @@ def test_select_large_integer(temp_hdfstore):
     assert expected == result
 
 
+@pytest.mark.parametrize(
+    "op, func",
+    [("<", operator.lt), ("<=", operator.le), (">", operator.gt), (">=", operator.ge)],
+)
+@pytest.mark.parametrize(
+    "values, rhs",
+    [
+        (pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]), "2020-01-02"),
+        (
+            pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]).as_unit("s"),
+            "2020-01-02",
+        ),
+        (
+            pd.to_datetime(["2020-01-01", "2020-01-03", pd.NaT]).tz_localize("UTC"),
+            "2020-01-02 00:00:00+00:00",
+        ),
+        (pd.to_timedelta(["1s", "3s", pd.NaT]), "2s"),
+    ],
+)
+def test_select_ordering_comparison_skips_nat(temp_hdfstore, values, rhs, op, func):
+    # datetime64/timedelta64 columns are stored as int64 with NaT as iNaT, which
+    # sorts below every real value, so "<"/"<=" used to match the NaT rows
+    df = pd.DataFrame({"col": values, "pos": range(3)})
+    temp_hdfstore.append("df", df, data_columns=True, index=False)
+
+    result = temp_hdfstore.select("df", where=f"col {op} '{rhs}'")
+    expected = df[func(df["col"], rhs)]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", ["<", "<="])
+def test_select_ordering_comparison_skips_nat_on_index(temp_hdfstore, op):
+    idx = pd.DatetimeIndex(["2020-01-01", "2020-01-03", pd.NaT])
+    df = pd.DataFrame({"pos": range(3)}, index=idx)
+    temp_hdfstore.append("df", df, index=False)
+
+    result = temp_hdfstore.select("df", where=f"index {op} '2020-01-02'")
+    expected = df.iloc[:1]
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("unit", ["us", "ns", "ms", "s"])
 def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit):
     # GH#64310
-    idx = date_range("2020-01-01", periods=10, freq="h", unit=unit)
-    df = DataFrame({"value": range(10)}, index=idx)
+    idx = pd.date_range("2020-01-01", periods=10, freq="h", unit=unit)
+    df = pd.DataFrame({"value": range(10)}, index=idx)
 
     temp_hdfstore.append("df", df)
 
@@ -1187,31 +1295,31 @@ def test_select_where_datetime_index_with_non_ns_resolution(temp_hdfstore, unit)
     tm.assert_frame_equal(result, expected)
 
 
-def _multichunk_indexed_frame(n=200):
-    # wide "pad" column forces the table to span more than one chunk (row group),
-    # a precondition for the PyTables bug in GH#50598. PyTables picks chunkshape
-    # heuristically, so pad generously to keep rows-per-chunk well below n across
-    # PyTables versions/platforms (the same string object is reused, so it's cheap)
-    return DataFrame(
-        {
-            "a": np.arange(n) % 5,
-            "b": np.arange(n) % 7,
-            "pad": ["x" * 20000] * n,
-        }
-    )
+def _indexed_frame(pad):
+    # the GH#50598 bug hits tables that span more than one chunk (row group) and
+    # tables that fit in a single one, so both regimes are exercised. PyTables
+    # picks chunkshape from the row width, so a wide "pad" column is what forces
+    # several chunks at this row count; without it 200 rows fit in one. Padding
+    # is cheap -- the same string object is reused for every row.
+    num_rows = 200
+    data = {"a": np.arange(num_rows) % 5, "b": np.arange(num_rows) % 7}
+    if pad:
+        data["pad"] = ["x" * 20000] * num_rows
+    return pd.DataFrame(data)
 
 
-def test_select_nested_or_query_warns(temp_hdfstore):
+@pytest.mark.parametrize("pad", [True, False], ids=["multi_chunk", "single_chunk"])
+def test_select_nested_or_query_warns(temp_hdfstore, pad):
     # GH#50598 nested queries that OR together AND-ed conditions over indexed
-    # columns on a multi-chunk table can return incorrect results due to an
-    # upstream PyTables bug, so warn the user.
-    n = 200
-    df = _multichunk_indexed_frame(n)
+    # columns can return incorrect results due to an upstream PyTables bug,
+    # so warn the user.
+    df = _indexed_frame(pad)
     temp_hdfstore.put(
         "df", df, format="table", data_columns=["a", "b"], track_times=False
     )
-    # sanity check: the table really does span more than one chunk
-    assert temp_hdfstore.get_storer("df").table.chunkshape[0] < n
+    # the padding is only worth carrying if it really does span several chunks
+    table = temp_hdfstore.get_storer("df").table
+    assert bool(table.chunkshape[0] < table.nrows) is pad
 
     # both the symmetric and asymmetric shapes can hit the bug, so both warn
     for where in [
@@ -1231,11 +1339,37 @@ def test_select_nested_or_query_warns(temp_hdfstore):
             temp_hdfstore.select("df", where=where)
 
 
+def test_select_nested_or_query_wrong_rows_single_chunk(temp_hdfstore):
+    # GH#50598 the bug is not gated on the table spanning more than one chunk:
+    # a table small enough to fit in a single chunk silently drops matching
+    # rows too, so it must warn as well.
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    table = temp_hdfstore.get_storer("df").table
+    assert table.chunkshape[0] >= table.nrows
+
+    # one AND branch matching nothing is what makes the upstream bug bite; with
+    # both branches matching rows the same table answers correctly
+    where = "(a > 100 & b > 100) | (a < 5 & b < 5)"
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        result = temp_hdfstore.select("df", where=where)
+
+    # TODO(GH#50598): the correct answer is df.iloc[:5]; PyTables returns
+    # nothing. This pins the premise of the warning, so it is deliberately
+    # asserted rather than left implicit -- if a future PyTables starts
+    # answering correctly, this is the test that should say so.
+    assert len(result) == 0, (
+        "PyTables now answers this query correctly -- GH#50598 looks fixed "
+        "upstream, so this test and the warning it covers should be revisited"
+    )
+
+
 def test_select_nested_or_query_no_warn_without_index(temp_hdfstore):
     # GH#50598 the bug requires column indexes; writing with index=False is the
     # recommended workaround and must not trigger the warning
-    n = 200
-    df = _multichunk_indexed_frame(n)
+    df = _indexed_frame(pad=False)
     temp_hdfstore.put(
         "df",
         df,
@@ -1246,3 +1380,170 @@ def test_select_nested_or_query_no_warn_without_index(temp_hdfstore):
     )
     with tm.assert_produces_warning(None):
         temp_hdfstore.select("df", where="(a >= 0 & b <= 3) | (a <= 4 & b >= 2)")
+
+
+@pytest.mark.parametrize(
+    "where, indexed, warns",
+    [
+        # flat: "c" is a bare OR operand, "a"/"b" are the AND-ed ones
+        ("(a > 100 & b > 100) | c < 5", ["c"], False),
+        ("(a > 100 & b > 100) | c < 5", ["a"], True),
+        # the AND-ed operands sit one OR deeper on the left, and the right-hand
+        # AND contributes "e" -- both must still be found through the nesting.
+        # Indexing "b" and "c" together is the one combination here that really
+        # does trip the upstream bug (it returns nothing), so this where is what
+        # makes the no-warn rows below a claim about safety rather than about a
+        # fixture that happens to be immune.
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["b", "c"], True),
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["c"], False),
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["a"], True),
+        ("((a > 100 & b > 100) | c < 5) | (e > 100 & b > 100)", ["e"], True),
+        # "c" and "e" appear only as bare operands of the nested OR
+        ("(a > 100 & b > 100) | (c < 5 | e > 100)", ["c"], False),
+        ("(a > 100 & b > 100) | (c < 5 | e > 100)", ["e"], False),
+        ("(a > 100 & b > 100) | (c < 5 | e > 100)", ["b"], True),
+    ],
+)
+def test_select_nested_or_query_warns_only_for_and_operand_columns(
+    temp_hdfstore, where, indexed, warns
+):
+    # GH#50598 the AND-ed operands can sit at any depth, so the walk has to find
+    # them through nesting -- and must still ignore purely OR-ed columns
+    num_rows = 12
+    df = pd.DataFrame(
+        {
+            "a": np.arange(num_rows),
+            "b": np.arange(num_rows),
+            "c": np.arange(num_rows),
+            "e": np.arange(num_rows),
+        }
+    )
+    temp_hdfstore.put(
+        "df",
+        df,
+        format="table",
+        data_columns=["a", "b", "c", "e"],
+        index=False,
+        track_times=False,
+    )
+    temp_hdfstore.create_table_index("df", columns=indexed)
+
+    if warns:
+        with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+            temp_hdfstore.select("df", where=where)
+    else:
+        # staying silent is only correct if the query really is unaffected, so
+        # the rows are checked too -- otherwise this would pass just as happily
+        # on a detector that had stopped warning altogether
+        with tm.assert_produces_warning(None):
+            result = temp_hdfstore.select("df", where=where)
+        tm.assert_frame_equal(result, df.iloc[:5])
+
+
+def test_remove_nested_or_query_warns(temp_hdfstore):
+    # GH#50598 the warning must also reach HDFStore.remove, which runs the same
+    # index-accelerated query -- here it matches nothing and so silently fails
+    # to delete the five rows the caller asked for, rather than deleting others
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    with tm.assert_produces_warning(UserWarning, match="GH#50598"):
+        removed = temp_hdfstore.remove(
+            "df", where="(a > 100 & b > 100) | (a < 5 & b < 5)"
+        )
+
+    # TODO(GH#50598): five rows should have gone; see the note in
+    # test_select_nested_or_query_wrong_rows_single_chunk
+    assert removed == 0
+    assert temp_hdfstore.get_storer("df").nrows == len(df)
+
+
+@pytest.mark.parametrize(
+    "start, stop",
+    [(-20, None), (-5, None), (None, -20), (None, 50), (-20, 50), (50, None)],
+)
+def test_select_as_coordinates_out_of_range_window(temp_hdfstore, start, stop):
+    # GH#68033 an out-of-range or negative start/stop was not resolved against
+    # the length of the table, so the coordinates named rows that do not exist
+    # -- negative ones silently wrapped around to the front of the table when
+    # they were passed back in.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=start, stop=stop)
+    assert coords.tolist() == np.arange(len(df))[start:stop].tolist()
+
+
+def test_select_as_coordinates_negative_start_round_trip(temp_hdfstore):
+    # GH#68033 coordinates that name no row wrapped silently when they were fed
+    # back to select, so the caller got rows the window never covered
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", start=-20)
+    result = temp_hdfstore.select("df", where=np.asarray(coords))
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_as_coordinates_negative_start_with_condition(temp_hdfstore):
+    # GH#68033 the same window applies to a condition query
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    coords = temp_hdfstore.select_as_coordinates("df", where="A>=5", start=-20)
+    tm.assert_index_equal(coords, pd.Index([5, 6, 7, 8, 9]))
+
+
+@pytest.mark.parametrize("start", [-20, -5])
+def test_select_boolean_mask_negative_start(temp_hdfstore, start):
+    # GH#68033 the mask is aligned to the rows in the [start, stop) window, so
+    # a negative start has to be resolved before the window is built -- it used
+    # to build an oversized window and raise IndexError on the mask.
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    expected = temp_hdfstore.select("df", start=start)
+    mask = np.zeros(len(expected), dtype=bool)
+    mask[[0, -1]] = True
+
+    result = temp_hdfstore.select("df", where=mask, start=start)
+    tm.assert_frame_equal(result, expected.iloc[[0, -1]])
+
+
+@pytest.mark.parametrize("iter_kwargs", [{"chunksize": 2}, {"iterator": True}])
+def test_select_iterator_negative_start(temp_hdfstore, iter_kwargs):
+    # GH#68033 a negative start was carried into the per-chunk row slicing, so
+    # the iterator walked off the front of the table and yielded rows twice
+    df = pd.DataFrame({"A": np.arange(10)})
+    temp_hdfstore.append("df", df, data_columns=True)
+
+    result = pd.concat(list(temp_hdfstore.select("df", start=-5, **iter_kwargs)))
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+    result = pd.concat(
+        list(temp_hdfstore.select("df", where="A>=0", start=-5, **iter_kwargs))
+    )
+    tm.assert_frame_equal(result, df.iloc[-5:])
+
+
+@pytest.mark.parametrize(
+    "read",
+    [
+        lambda store, where: store.select("df", where=where),
+        lambda store, where: list(store.select("df", where=where, chunksize=5)),
+        lambda store, where: store.select_as_coordinates("df", where=where),
+    ],
+    ids=["select", "iterator", "select_as_coordinates"],
+)
+def test_select_nested_or_query_warns_once(temp_hdfstore, read):
+    # GH#50598 one read builds several Selection objects for the same "where",
+    # so the warning has to come from the query rather than from every parse
+    df = pd.DataFrame({"a": np.arange(10), "b": np.arange(10)})
+    temp_hdfstore.put(
+        "df", df, format="table", data_columns=["a", "b"], track_times=False
+    )
+    with tm.assert_produces_warning(UserWarning, match="GH#50598") as record:
+        read(temp_hdfstore, "(a > 100 & b > 100) | (a < 5 & b < 5)")
+
+    assert sum("GH#50598" in str(warning.message) for warning in record) == 1

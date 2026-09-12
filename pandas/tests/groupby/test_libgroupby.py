@@ -12,7 +12,7 @@ from pandas._libs.groupby import (
 
 from pandas.core.dtypes.common import ensure_platform_int
 
-from pandas import isna
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -130,7 +130,7 @@ def test_group_ohlc(dtype):
     func(out, counts, obj[:, None], labels)
 
     def _ohlc(group):
-        if isna(group).all():
+        if pd.isna(group).all():
             return np.repeat(np.nan, 4)
         return [group[0], group.max(), group.min(), group[-1]]
 
