@@ -613,6 +613,23 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
+@pytest.mark.parametrize(
+    "name, kwargs",
+    [("median", {"skipna": False}), ("sem", {"ddof": 5}), ("std", {"ddof": 5})],
+)
+@pytest.mark.parametrize("subtype", ["float32", "complex128"])
+def test_frame_nan_result_dtype_matches_dense(name, kwargs, subtype):
+    # GH#68487 the keepdims widening follows whatever scalar nanops hands back,
+    #  so a NaN that did not carry the column's own dtype made this disagree
+    #  with dense, in either direction
+    values = np.array([1, np.nan, 3], dtype=subtype)
+    arr = SparseArray(values, dtype=pd.SparseDtype(subtype, np.nan))
+
+    result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
+    expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
+    tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
+
+
 def test_describe():
     # GH#68194 describe computes std, so it raised for every SparseDtype Series.
     #  check_dtype=False: describe gives every EA-backed Series a non-numpy dtype
