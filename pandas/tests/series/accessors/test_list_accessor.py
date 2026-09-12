@@ -126,12 +126,13 @@ def test_list_getitem_invalid_index(list_dtype):
         [[1, 2, 3], [4, None, 5], None],
         dtype=pd.ArrowDtype(list_dtype),
     )
-    with tm.external_error_raised(pa.ArrowInvalid):
-        ser.list[-1]
-    with tm.external_error_raised(pa.ArrowInvalid):
-        ser.list[5]
-    with pytest.raises(ValueError, match="key must be an int or slice, got str"):
-        ser.list["abc"]
+    result = ser.list[-1]
+    expected = pd.Series(
+        [3, 5, None],
+        dtype=pd.ArrowDtype(pa.int64()),  # item type, not list_dtype
+        # name="a",
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_list_accessor_not_iterable():
@@ -141,3 +142,14 @@ def test_list_accessor_not_iterable():
     )
     with pytest.raises(TypeError, match="'ListAccessor' object is not iterable"):
         iter(ser.list)
+
+
+def test_list_get_negative_index():
+    ser = pd.Series(["A-B", "C-D"], dtype=pd.ArrowDtype(pa.string()), name="a")
+    result = ser.str.split("-").list[-1]
+    expected = pd.Series(
+        ["B", "D"],
+        dtype=pd.ArrowDtype(pa.string()),  # item type, not list_dtype
+        name="a",
+    )
+    tm.assert_series_equal(result, expected)

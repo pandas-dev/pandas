@@ -56,6 +56,15 @@ class ArrowAccessor(metaclass=ABCMeta):
         return self._data.array._pa_array
 
 
+def _list_element_neg(chunk: pa.Array, key: int) -> pa.Array:
+    if pa.types.is_fixed_size_list(chunk.type):
+        chunk = chunk.cast(pa.list_(chunk.type.value_type))
+    indices = pc.add(chunk.offsets[1:], key)
+    if chunk.null_count:
+        indices = pc.if_else(chunk.is_valid(), indices, None)
+    return chunk.values.take(indices)
+
+
 class ListAccessor(ArrowAccessor):
     """
     Accessor object for list data properties of the Series values.
@@ -166,7 +175,17 @@ class ListAccessor(ArrowAccessor):
             # element index to be an array.
             # if key < 0:
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
-            element = pc.list_element(self._pa_array, key)
+            pa_array = self._pa_array
+            chunks = (
+                pa_array.chunks if isinstance(pa_array, pa.ChunkedArray) else [pa_array]
+            )
+            if key < 0:
+                element = pa.chunked_array(
+                    [_list_element_neg(chunk, key) for chunk in chunks],
+                    type=pa_array.type.value_type,
+                )
+            else:
+                element = pc.list_element(pa_array, key)
             return Series(
                 element,
                 dtype=ArrowDtype(element.type),
