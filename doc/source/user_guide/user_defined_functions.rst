@@ -383,7 +383,7 @@ By annotating your UDFs with ``@numba.jit``, you can achieve performance closer 
 especially for computationally heavy tasks.
 
 .. note::
-    You may also refer to the user guide on `Enhancing performance <https://pandas.pydata.org/pandas-docs/dev/user_guide/enhancingperf.html#numba-jit-compilation>`_
+    You may also refer to the user guide on :ref:`Enhancing performance <enhancingperf.numba>`
     for a more detailed guide to using **Numba**.
 
 Using :meth:`DataFrame.pipe` for Composable Logic

@@ -6270,8 +6270,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         "Pandas doesn't allow columns to be "
                         "created via a new attribute name - see "
-                        "https://pandas.pydata.org/pandas-docs/"
-                        "stable/indexing.html#attribute-access",
+                        "https://pandas.pydata.org/docs/dev/user_guide/"
+                        "indexing.html#attribute-access",
                         stacklevel=find_stack_level(),
                     )
                 object.__setattr__(self, name, value)
