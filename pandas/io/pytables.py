@@ -2918,9 +2918,24 @@ class IndexCol:
         # check for backwards incompatibility
         if append:
             existing_kind = getattr(self.attrs, self.kind_attr, None)
-            if existing_kind is not None and existing_kind != self.kind:
+            if existing_kind is None:
+                # brand new table, nothing to be incompatible with
+                return
+            if existing_kind != self.kind:
                 raise TypeError(
                     f"incompatible kind in col [{existing_kind} - {self.kind}]"
+                )
+            existing_meta = getattr(self.attrs, self.meta_attr, None)
+            if existing_meta != self.meta:
+                # A CategoricalIndex stores its codes, so both sides are kind
+                # "integer" and the check above passes; without this the append
+                # silently reinterprets codes as labels or vice versa. GH#65576
+                if self.meta == "category":
+                    raise TypeError(
+                        "cannot append a categorical index to a non-categorical index"
+                    )
+                raise TypeError(
+                    "cannot append a non-categorical index to a categorical index"
                 )
 
     def update_info(self, info) -> None:

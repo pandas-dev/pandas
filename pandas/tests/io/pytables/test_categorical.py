@@ -479,3 +479,32 @@ def test_categorical_where_ordering_op_unrecorded_ordered(temp_h5_path):
 
     result = pd.read_hdf(temp_h5_path, "df", where='col < "b"')
     tm.assert_frame_equal(result, df.iloc[:1])
+
+
+@pytest.mark.parametrize(
+    "first, second, msg",
+    [
+        (
+            pd.Index([0, 1]),
+            pd.CategoricalIndex(["a", "b"]),
+            "cannot append a categorical index to a non-categorical index",
+        ),
+        (
+            pd.CategoricalIndex(["a", "b"]),
+            pd.Index([0, 1]),
+            "cannot append a non-categorical index to a categorical index",
+        ),
+    ],
+)
+def test_categorical_index_append_mismatch_raises(first, second, msg, temp_h5_path):
+    # GH#65576 - the append used to be accepted, silently reinterpreting the
+    # already-stored index values on read.
+    df = pd.DataFrame({"v": [1.0, 2.0]}, index=first)
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    other = pd.DataFrame({"v": [3.0, 4.0]}, index=second)
+    with pytest.raises(TypeError, match=msg):
+        other.to_hdf(temp_h5_path, key="df", format="table", append=True)
+
+    # the rejected append leaves the stored rows intact and readable
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, key="df"), df)
