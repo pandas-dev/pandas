@@ -166,6 +166,76 @@ class TestAstype:
         result = pd.Series(arr).astype(dtype)
         tm.assert_sp_array_equal(result.array, expected)
 
+    @pytest.mark.parametrize("dtype", ["Sparse[int64]", pd.SparseDtype("int64")])
+    @pytest.mark.parametrize(
+        "unit_dtype, fill_type",
+        [
+            ("M8[ns]", np.datetime64),
+            ("M8[ns]", pd.Timestamp),
+            ("M8[us]", pd.Timestamp),
+            ("m8[ns]", np.timedelta64),
+            ("m8[ns]", pd.Timedelta),
+            ("m8[s]", np.timedelta64),
+        ],
+    )
+    def test_astype_datetimelike_to_sparse_int64_non_na_fill_value(
+        self, dtype, unit_dtype, fill_type
+    ):
+        # GH#49631 a non-NA datetimelike fill_value must be converted too, not
+        # silently replaced with 0; the boxed pandas spelling of that fill value
+        # must work as well as the numpy one
+        values = np.array([1, 1, 2], dtype=unit_dtype)
+        arr = SparseArray(values, fill_value=fill_type(values[0]))
+        expected = SparseArray(
+            values.astype("int64"),
+            dtype=pd.SparseDtype("int64", fill_value=values[0].astype("int64")),
+        )
+
+        result = arr.astype(dtype)
+        tm.assert_sp_array_equal(result, expected)
+
+        result = pd.Series(arr).astype(dtype)
+        tm.assert_sp_array_equal(result.array, expected)
+
+    @pytest.mark.parametrize("unit_dtype", ["M8[ns]", "m8[ns]"])
+    def test_astype_datetimelike_nat_fill_value_spelling(self, unit_dtype):
+        # GH#49631 a NaT fill value spelled as a pandas scalar must convert like
+        # the numpy spelling, not raise
+        values = np.array(["NaT", 1, 2], dtype=unit_dtype)
+        arr = SparseArray(values, dtype=pd.SparseDtype(unit_dtype, pd.NaT))
+        expected = SparseArray(
+            values.astype("int64"),
+            dtype=pd.SparseDtype("int64", fill_value=np.iinfo(np.int64).min),
+        )
+
+        result = arr.astype("Sparse[int64]")
+        tm.assert_sp_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "unit_dtype, fill_type", [("M8[ns]", np.datetime64), ("m8[ns]", np.timedelta64)]
+    )
+    def test_astype_datetimelike_fully_dense_fill_value(self, unit_dtype, fill_type):
+        # GH#49631 the fill_value belongs to the dtype whether or not it happens
+        # to occur in the data, so a fully dense array converts it too
+        values = np.array([1, 2, 3], dtype=unit_dtype)
+        arr = SparseArray(values, fill_value=fill_type(5, "ns"))
+        assert arr.sp_index.npoints == len(arr)  # fill_value absent from the data
+
+        result = arr.astype("Sparse[int64]")
+        assert result.dtype == pd.SparseDtype("int64", fill_value=5)
+        tm.assert_numpy_array_equal(result.to_dense(), values.astype("int64"))
+
+    @pytest.mark.parametrize("unit_dtype", ["M8[ns]", "m8[ns]"])
+    def test_astype_datetimelike_to_sparse_bool_fill_value(self, unit_dtype):
+        # GH#49631 the fill_value conversion is not int-specific: a bool target
+        # must get the fill value's truthiness rather than False
+        values = np.array([1, 1, 2], dtype=unit_dtype)
+        arr = SparseArray(values, fill_value=values[0])
+
+        result = arr.astype("Sparse[bool]")
+        assert result.dtype == pd.SparseDtype(bool, fill_value=True)
+        tm.assert_numpy_array_equal(result.to_dense(), values.astype(bool))
+
     def test_astype_fully_dense_na_fill_to_int_no_raise(self):
         # GH#49631 a fully dense float SparseArray whose (unused) NaN fill_value
         # cannot be represented as an integer must not raise on astype to int

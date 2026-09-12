@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    time,
+)
 import operator
 
 import numpy as np
@@ -512,3 +515,189 @@ class TestSeriesLogicalOps:
 
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("box", [np.asarray, pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+@pytest.mark.parametrize("left_dtype", ["bool", "boolean", "int64", "Sparse[bool]"])
+def test_logical_op_datetimelike_raises(op, box, dtype, left_dtype):
+    # GH#68452 the operand used to be cast to bool, making every entry -- NaT
+    #  included -- True.  Which forms escaped depended on the left dtype, so the
+    #  matrix is the point: bool/int64 leaked only through a raw ndarray, boolean
+    #  and Sparse leaked through every box
+    left = pd.Series([True, False, True], dtype=left_dtype)
+    right = box(np.array(["NaT", 1, 2], dtype=dtype))
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize("dtype", ["period[D]", "datetime64[ns, US/Pacific]"])
+@pytest.mark.parametrize("left_dtype", ["bool", "boolean", "int64", "Sparse[bool]"])
+def test_logical_op_ea_datetimelike_raises(op, box, dtype, left_dtype):
+    # GH#68452 Period has no truth value either, and tz-aware data only ever reaches
+    #  the guard as an EA.  np.asarray is not a box here: it gives object dtype,
+    #  which keeps the generic truthiness of any object
+    left = pd.Series([True, False, True], dtype=left_dtype)
+    right = box(pd.array(["NaT", "2016-01-01", "2016-01-02"], dtype=dtype))
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+def test_logical_op_sparse_datetimelike_operand_raises(op, dtype):
+    # GH#68452 SparseDtype wraps only the numpy spellings, and it hid them from the
+    #  pre-fix cast as well as any other container did
+    left = pd.Series([True, True, True], dtype="boolean")
+    right = pd.Series(np.array(["NaT", 1, 2], dtype=dtype)).astype(
+        pd.SparseDtype(dtype)
+    )
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("dtype", ["period[D]", "datetime64[ns, US/Pacific]"])
+def test_logical_op_sparse_ea_datetimelike_raises(op, dtype):
+    # GH#68452 SparseArray._logical_method np.asarray()s the operand before handing it
+    #  to logical_op, which flattens these two to object; only the Series wrapper
+    #  catches them, so the raw array needs its own guard
+    left = pd.array([True, False, True], dtype="Sparse[bool]")
+    right = pd.array(["NaT", "2016-01-01", "2016-01-02"], dtype=dtype)
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        (["NaT", "2016-01-01", "2016-01-02"], "datetime64[ns]"),
+        (["NaT", "1D", "2D"], "timedelta64[ns]"),
+        (["NaT", "2016-01-01", "2016-01-02"], "period[D]"),
+    ],
+)
+@pytest.mark.parametrize("left_dtype", ["bool", "boolean", "int64", "Sparse[bool]"])
+def test_logical_op_categorical_datetimelike_raises(op, values, dtype, left_dtype):
+    # GH#68452 a Categorical hides its categories' dtype behind kind "O", so the masked
+    #  path read the categories' own truthiness, NaT included
+    left = pd.Series([True, False, True], dtype=left_dtype)
+    right = pd.Series(pd.Categorical(pd.array(values, dtype=dtype)))
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+def test_logical_op_object_dtype_still_truthy():
+    # GH#68452 the datetimelike guard stops at object dtype on purpose: an object
+    #  container keeps the truthiness of whatever it holds.  The two boolean spellings
+    #  disagree about NaT in there, which this pins rather than endorses
+    right = np.array([pd.Timestamp("2016-01-01"), pd.NaT, "a"], dtype=object)
+
+    result = pd.Series([True, True, True]) & right
+    tm.assert_series_equal(result, pd.Series([True, False, True]))
+
+    result = pd.Series([True, True, True], dtype="boolean") & right
+    tm.assert_series_equal(result, pd.Series([True, True, True], dtype="boolean"))
+
+
+@pytest.mark.skipif(not HAS_PYARROW, reason="pyarrow not installed")
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        (pd.date_range("2016-01-01", periods=3), "timestamp[ns][pyarrow]"),
+        (pd.timedelta_range("1D", periods=3), "duration[ns][pyarrow]"),
+        (pd.date_range("2016-01-01", periods=3), "date32[day][pyarrow]"),
+        ([time(0, 0), time(1, 0), time(2, 0)], "time64[ns][pyarrow]"),
+    ],
+)
+def test_logical_op_arrow_datetimelike_raises(op, values, dtype):
+    # GH#68452 BooleanArray casts the operand with np.asarray(other, dtype="bool");
+    #  the ArrowDtype spellings need their own check, since time64 reports kind "O"
+    left = pd.Series([True, False, True], dtype="boolean")
+    right = pd.Series(values, dtype=dtype)
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("encoding", ["dictionary", "run_end_encoded"])
+def test_logical_op_arrow_encoded_datetimelike_raises(op, encoding):
+    # GH#68452 these two hide the temporal type one level down, the arrow spelling of
+    #  the Categorical case
+    pa = pytest.importorskip("pyarrow")
+
+    values = pa.array(pd.date_range("2016-01-01", periods=3))
+    if encoding == "dictionary":
+        arr = values.dictionary_encode()
+    else:
+        arr = pa.RunEndEncodedArray.from_arrays(
+            pa.array([1, 2, 3], type=pa.int32()), values
+        )
+    left = pd.Series([True, False, True], dtype="boolean")
+    right = pd.Series(pd.array(arr, dtype=pd.ArrowDtype(arr.type)))
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize(
+    "scalar",
+    [
+        pd.Timestamp("2016-01-01"),
+        pd.Timedelta(days=1),
+        pd.NaT,
+        np.datetime64("2016-01-01"),
+        np.timedelta64(1, "D"),
+        datetime(2016, 1, 1),
+    ],
+)
+@pytest.mark.parametrize("left_dtype", ["bool", "boolean", "int64"])
+def test_logical_op_datetimelike_scalar_raises(op, scalar, left_dtype):
+    # GH#68452 the array-operand guard leaves scalars to the paths that already
+    #  reject them, so pin that they do
+    left = pd.Series([True, False, True], dtype=left_dtype)
+
+    # each path that rejects these has its own message
+    msg = "|".join(
+        [
+            r"Cannot perform '.+' with a dtyped \[.+\] array and scalar of type",
+            "'other' should be pandas.NA or a bool",
+            r"operand type\(s\) all returned NotImplemented",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        op(left, scalar)
+    with pytest.raises(TypeError, match=msg):
+        op(scalar, left)

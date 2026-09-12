@@ -31,7 +31,7 @@ def test_insert(idx):
         idx.insert(0, ("foo2",))
 
     left = pd.DataFrame([["a", "b", 0], ["b", "d", 1]], columns=["1st", "2nd", "3rd"])
-    left.set_index(["1st", "2nd"], inplace=True)
+    left = left.set_index(["1st", "2nd"])
     ts = left["3rd"].copy(deep=True)
 
     left.loc[("b", "x"), "3rd"] = 2
@@ -61,7 +61,7 @@ def test_insert(idx):
         ],
         columns=["1st", "2nd", "3rd"],
     )
-    right.set_index(["1st", "2nd"], inplace=True)
+    right = right.set_index(["1st", "2nd"])
     tm.assert_frame_equal(left, right)
     tm.assert_series_equal(ts, right["3rd"])
 

@@ -396,6 +396,16 @@ class TestDataFrameDescribe:
         with pytest.raises(ValueError, match=msg):
             df.describe(include=["datetime"])
 
+    @pytest.mark.parametrize("box", [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize("kwarg", ["include", "exclude"])
+    def test_describe_array_like_dtype_spec(self, box, kwarg):
+        # GH#68470
+        df = pd.DataFrame({"a": [1, 2], "b": [0.5, 1.5], "c": ["x", "y"]})
+        spec = ["int64", "float64"]
+        result = df.describe(**{kwarg: box(spec)})
+        expected = df.describe(**{kwarg: spec})
+        tm.assert_frame_equal(result, expected)
+
     def test_describe_with_duplicate_columns(self):
         df = pd.DataFrame(
             [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
