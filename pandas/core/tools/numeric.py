@@ -259,7 +259,8 @@ def to_numeric(
             or (
                 isinstance(values_dtype, StringDtype)
                 and values_dtype.na_value is libmissing.NA
-            ),
+            )
+            or isinstance(values_dtype, ArrowDtype),
         )
 
     if new_mask is not None:
@@ -307,6 +308,14 @@ def to_numeric(
         if mask is None or (new_mask is not None and new_mask.shape == mask.shape):
             # GH 52588
             mask = new_mask
+        elif new_mask is not None:
+            # `new_mask` was computed over the entries not already known
+            # missing via `mask` (e.g. ArrowDtype input dropped its nulls
+            # before parsing), so it is shorter than `mask`; scatter it back
+            # into the full-length positions before combining (GH#67949).
+            full_new_mask = np.zeros(mask.shape, dtype=np.bool_)
+            full_new_mask[~mask] = new_mask
+            mask = mask | full_new_mask
         else:
             mask = mask.copy()
         assert isinstance(mask, np.ndarray)
