@@ -119,7 +119,10 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCTimedeltaIndex,
 )
-from pandas.core.dtypes.inference import is_dict_like
+from pandas.core.dtypes.inference import (
+    is_bool,
+    is_dict_like,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -6902,6 +6905,46 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = new_values.dtype
         return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
+    def _replace_retry_dtype(
+        self, to_replace: Any, value: Any, regex: Any
+    ) -> tuple[DtypeObj, list[Any]]:
+        """
+        Common dtype to retry replace() on after self.dtype refused a value.
+
+        A literal `to_replace` that matches nothing is left out: Block.replace
+        skips those rather than widening for them, so the retry has to agree.
+        Also returns those literals that did match, for the caller to re-check
+        against the widened dtype.
+        """
+        if is_dict_like(to_replace):
+            pairs = list(to_replace.items())
+        elif is_dict_like(regex):
+            pairs = list(regex.items())
+        elif not is_list_like(to_replace):
+            pairs = [(to_replace, value)]
+        elif is_list_like(value):
+            # strict=False so a length mismatch cannot mask the original TypeError
+            pairs = list(zip(to_replace, value, strict=False))
+        else:
+            pairs = [(to_rep, value) for to_rep in to_replace]
+
+        repl = [val for _, val in pairs]
+        keys: list[Any] = []
+        if is_bool(regex) and not regex:
+            # a pattern is matched rather than compared, so only filter literals
+            matched = []
+            for to_rep, val in pairs:
+                # `in` misses NA on some dtypes, so an NA to_replace can be read
+                #  as matching nothing; see
+                #  test_index_replace_na_to_replace_mixed_with_literal_raises
+                if is_hashable(to_rep) and to_rep in self:
+                    matched.append(val)
+                    keys.append(to_rep)
+            repl = matched or repl
+
+        # a bare list infers as object; an Index resolves its own dtype
+        return self._find_common_type_compat(Index(repl)), keys
+
     def replace(
         self, to_replace: Any = None, value: Any = lib.no_default, regex: Any = False
     ) -> Index:
@@ -6944,7 +6987,28 @@ class Index(IndexOpsMixin, PandasObject):
         # Pass pandas objects (not their underlying arrays) so that CoW
         #  references are tracked in the no-copy cases (GH#65265).
         ser = Series(self, copy=False)
-        replaced = ser.replace(to_replace, value, regex=regex)
+        try:
+            replaced = ser.replace(to_replace, value, regex=regex)
+        except TypeError:
+            # e.g. Categorical with a value not in categories; find a common
+            #  dtype and retry, as Index.where and Index.insert do.  ValueError
+            #  is left uncaught because replace's argument validation raises it.
+            if value is lib.no_default and not (
+                is_dict_like(to_replace) or is_dict_like(regex)
+            ):
+                # to_replace failed its own type check; the retry re-raises this
+                #  unchanged, so skip the astype rather than distinguish it
+                raise
+            dtype, keys = self._replace_retry_dtype(to_replace, value, regex)
+            if dtype == self.dtype:
+                raise
+            widened = self.astype(dtype)
+            if any(key not in widened for key in keys):
+                # widening changed how to_replace compares, e.g. a str against
+                #  datetime categories; re-raise rather than hand back data with
+                #  the replacement silently dropped
+                raise
+            return widened.replace(to_replace, value, regex=regex)
 
         return Index(replaced, dtype=replaced.dtype, name=self.name, copy=False)
 
