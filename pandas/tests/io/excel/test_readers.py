@@ -739,6 +739,24 @@ class TestReaders:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_dtype_backend_parse_dates_index(self, read_ext, dtype_backend, tmp_excel):
+        # GH#65524
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        df = pd.DataFrame(
+            {"A": [1, 2, 3]}, index=pd.date_range("2026-01-01", periods=3)
+        )
+        df.to_excel(tmp_excel)
+
+        result = pd.read_excel(
+            tmp_excel, index_col=0, parse_dates=True, dtype_backend=dtype_backend
+        )
+
+        assert isinstance(result.index, pd.DatetimeIndex)
+        expected = df.index.as_unit("us")
+        tm.assert_index_equal(result.index, expected, check_freq=False)
+
     def test_dtype_backend_and_dtype(self, read_ext, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
