@@ -43,6 +43,16 @@ class TestSearchsorted:
         result = pidx._data.searchsorted(listlike_box(pidx))
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_searchsorted_base2_53(self):
+        # test for #GH63938
+        base = 2**53
+        s = Series(np.array([base, base + 1, base + 2, base + 3], dtype=np.int64))
+        value = array([base + 1, NA], dtype="Int64")
+
+        result = s.searchsorted(value, side="left")
+        expected = np.array([1, 4], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_searchsorted_invalid(self):
         pidx = pd.PeriodIndex(
             ["2014-01-01", "2014-01-02", "2014-01-03", "2014-01-04", "2014-01-05"],
