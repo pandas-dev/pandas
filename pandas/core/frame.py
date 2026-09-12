@@ -1347,7 +1347,7 @@ class DataFrame(NDFrame, OpsMixin):
         int      1.0
         float    1.5
         Name: 0, dtype: float64
-        >>> print(row["int"].dtype)
+        >>> print(row.dtype)
         float64
         >>> print(df["int"].dtype)
         int64
@@ -4438,8 +4438,8 @@ class DataFrame(NDFrame, OpsMixin):
         `self.columns._index_as_unique`; Caller is responsible for checking.
         """
         if takeable:
-            series = self._ixs(col, axis=1)
-            return series._values[index]
+            values = self._get_column_array(col)
+            return maybe_unbox_numpy_scalar(values[index], object_with_dtype=values)
 
         series = self._get_item(col)
 
@@ -4448,7 +4448,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  results if our categories are integers that dont match our codes
             # IntervalIndex: IntervalTree has no get_loc
             row = self.index.get_loc(index)
-            return series._values[row]
+            values = series._values
+            return maybe_unbox_numpy_scalar(values[row], object_with_dtype=values)
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
@@ -4458,7 +4459,7 @@ class DataFrame(NDFrame, OpsMixin):
             # e.g. partial string slicing on DatetimeIndex level;
             #  see GH#43395
             loc = self.index.get_loc(index)
-        return series._values[loc]
+        return series._ixs(loc)
 
     def isetitem(self, loc, value) -> None:
         """

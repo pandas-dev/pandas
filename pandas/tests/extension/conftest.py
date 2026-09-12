@@ -273,3 +273,8 @@ def comparison_op(request):
 def using_nan_is_na(request):
     with pd.option_context("future.distinguish_nan_and_na", not request.param):
         yield request.param
+
+
+@pytest.fixture
+def using_python_scalars() -> bool:
+    return pd.options.future.python_scalars is True

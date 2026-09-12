@@ -560,7 +560,7 @@ def test_bool_agg_dtype(op):
 )
 @pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
 def test_callable_result_dtype_frame(
-    keys, agg_index, input_dtype, result_dtype, method
+    keys, agg_index, input_dtype, result_dtype, method, using_python_scalars
 ):
     # GH 21240
     df = pd.DataFrame({"a": [1], "b": [2], "c": [True]})
@@ -569,12 +569,20 @@ def test_callable_result_dtype_frame(
     result = op(lambda x: x.astype(result_dtype).iloc[0])
     expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
 
-    if method == "aggregate":
-        # _cast_pointwise_result retains the input's dtype where feasible
-        if input_dtype == "float32" and result_dtype == "float64":
-            result_dtype = "float32"
-        if input_dtype == "int32" and result_dtype == "int64":
-            result_dtype = "int32"
+    if method != "apply":
+        if using_python_scalars:
+            # iloc in the callable returns Python scalars, which infer at
+            # the default width
+            if result_dtype in ("int32", "int64"):
+                result_dtype = "int64"
+            elif result_dtype in ("float32", "float64"):
+                result_dtype = "float64"
+        if method == "aggregate":
+            # _cast_pointwise_result retains the input's dtype where feasible
+            if input_dtype == "float32" and result_dtype == "float64":
+                result_dtype = "float32"
+            if input_dtype == "int32" and result_dtype == "int64":
+                result_dtype = "int32"
 
     expected = pd.DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
         result_dtype

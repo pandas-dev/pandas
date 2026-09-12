@@ -245,7 +245,7 @@ class TestLoc:
                 pd.IndexSlice[:, False],
                 pd.Series([1], name=False),
             ),
-            (pd.Series([1], index=pd.Index([False])), False, [1]),
+            (pd.Series([1], index=pd.Index([False])), False, 1),
             (
                 pd.DataFrame([[1]], index=pd.Index([False])),
                 False,

@@ -1583,7 +1583,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         >>> arr.map(pd.Series([10, 11, 12], index=[0, 1, 2]))
         <SparseArray>
         [10, 11, 12]
-        Length: 3, dtype: Sparse[int64, np.int64(10)]
+        Length: 3, dtype: Sparse[int64, 10]
         """
         is_map = isinstance(mapper, (abc.Mapping, ABCSeries))
 

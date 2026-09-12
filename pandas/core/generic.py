@@ -885,7 +885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -4283,7 +4283,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # if we encounter an array-like and we only have 1 dim
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
-                return self._values[loc]
+                return self._ixs(loc, axis=0)
 
             if not drop_level and isinstance(index, MultiIndex):
                 # GH#6507 - honor drop_level=False for fully specified keys
