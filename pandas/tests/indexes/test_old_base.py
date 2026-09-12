@@ -210,7 +210,10 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "does not support operation '(any|all)'"
+            if idx.dtype.kind == "M":
+                msg = "'(any|all)' with datetime64 dtypes is not supported"
+            else:
+                msg = "does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):

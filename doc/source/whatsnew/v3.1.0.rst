@@ -80,6 +80,7 @@ Other enhancements
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)
+- Added :meth:`ExtensionDtype._get_plot_converter` allowing :class:`ExtensionDtype` to register their own :class:`matplotlib.units.ConversionInterface` to support plotting for non-numeric :class:`ExtensionArray` (:issue:`64300`)
 - Added :meth:`Index.replace` method to support value replacement functionality similar to :meth:`Series.replace` (:issue:`19495`)
 - Added ``union_categories`` parameter to :func:`concat` to preserve categorical dtype by unioning categories when concatenating categoricals with different categories (:issue:`14177`)
 - Added reduction methods as public API on pandas-implemented extension arrays where applicable (:issue:`63512`)
@@ -351,6 +352,7 @@ Other API changes
 - :func:`to_numeric`, and the readers built on it such as :func:`read_csv` and :func:`read_xml`, now report an unparsable value in the ``"Unable to parse string"`` message using its :func:`repr`, e.g. ``Unable to parse string 'apple' at position 2`` rather than ``Unable to parse string "apple" at position 2``. Previously the value was interpolated as a C string, so it was truncated at an embedded NUL byte, e.g. ``"abc\x00def"`` was reported as ``abc`` (:issue:`66524`)
 - :meth:`.DataFrameGroupBy.sum` and :meth:`.DataFrameGroupBy.mean` on float dtypes with sorted grouping keys may differ from prior versions in the last few floating-point digits, due to a faster summation algorithm that does not use Kahan compensation (:issue:`65103`)
 - :meth:`.GroupBy.sum` and :meth:`.GroupBy.prod` on :class:`ArrowDtype` decimal columns now return the maximum decimal precision (``decimal128(38, scale)`` or ``decimal256(76, scale)``) instead of a precision inferred from the group results; a result needing more digits than the maximum precision still falls back to a wider inferred type (:issue:`63416`)
+- :meth:`DataFrame.select_dtypes` now raises ``TypeError`` when a Python class that does not name a dtype, such as ``decimal.Decimal``, ``datetime.date`` or :class:`Timestamp`, is passed to ``include`` or ``exclude``. Previously such a class selected every object-dtype column, not only the columns holding that class; pass ``object`` to keep that behavior (:issue:`68443`)
 - :meth:`DataFrame.select_dtypes` now raises ``TypeError`` with an informative message when ``"period"`` is passed to ``include`` or ``exclude``, instead of a bare ``NotImplementedError``. Pass :class:`PeriodDtype` to select all period columns, or a string such as ``"period[D]"`` to select a single frequency (:issue:`24558`)
 - :meth:`DataFrame.select_dtypes` now selects only columns with exactly the given dtype when a dtype instance is passed to ``include`` or ``exclude``. Previously an instance selected all columns with a matching ``dtype.type``, e.g. ``pd.DatetimeTZDtype(tz="UTC")`` also selected other timezones, ``np.dtype("int64")`` also selected ``Int64`` and Arrow ``int64`` columns, and ``pd.CategoricalDtype(["a", "b"])`` selected every categorical column (:issue:`40234`)
 - :meth:`DataFrame.select_dtypes` now treats the string specs ``"datetime64[ns]"`` and ``"timedelta64[ns]"`` as naming the nanosecond resolution specifically, so they select only ``ns`` columns; previously they selected every datetime64/timedelta64 column regardless of resolution. Pass the unitless ``"datetime64"``/``"timedelta64"`` to keep that behavior. A spec giving a multiple of a unit, such as ``"timedelta64[2ns]"``, now raises instead of selecting every column (:issue:`40234`)
@@ -373,6 +375,58 @@ Build
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. _deprecation-inplace:
+
+Deprecated ``inplace`` keyword for various methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+PDEP-8: https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html
+
+The ``inplace`` keyword is deprecated (and will eventually be removed) for all
+methods that do not actually work "inplace".
+
+The ``inplace`` keyword has been used in various methods throughout pandas, but
+often, it is essentially syntactic sugar for reassigning the result to the
+calling DataFrame or Series, because it never modifies the underlying values
+directly. Additionally, with the introduction of Copy-on-Write in pandas 3.0,
+users don't need the ``inplace`` keyword to avoid a copy of the data.
+
+For those reasons, the ``inplace`` keyword is deprecated for those methods
+which do not work inplace. In practice, these are the DataFrame and Series
+methods :meth:`~DataFrame.drop`, :meth:`~DataFrame.rename`,
+:meth:`~DataFrame.rename_axis`, :meth:`~DataFrame.reset_index`,
+:meth:`~DataFrame.set_index`, :meth:`~DataFrame.dropna`,
+:meth:`~DataFrame.drop_duplicates`, :meth:`~DataFrame.sort_values`,
+:meth:`~DataFrame.sort_index`, :meth:`~DataFrame.eval`,
+:meth:`~DataFrame.query`.
+
+If you have code that uses a deprecated instance of ``inplace``, such as:
+
+.. code-block:: python
+
+    >>> df = pd.DataFrame({"foo": [1, 2, 3]})
+    >>> df.reset_index(inplace=True)
+
+Then you can update that call to re-assign the result:
+
+.. code-block:: python
+
+    >>> df = pd.DataFrame({"foo": [1, 2, 3]})
+    >>> df = df.reset_index()
+
+In practice, this is also what happened under the hood (i.e. it is not less efficient),
+and this is more friendly to method chaining.
+
+Other methods, such as :meth:`~DataFrame.fillna` and :meth:`~DataFrame.replace`,
+which can actually update the underlying values, keep the keyword (with a
+default of ``False``, and since pandas 3.0 those also return the updated object).
+
+For more background about the change, see the motivation section in `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__.
+
+Other deprecations
+^^^^^^^^^^^^^^^^^^
+
 - Added ``check_freq`` keyword to :func:`testing.assert_index_equal` with a deprecated default: currently a ``freq`` mismatch on a :class:`DatetimeIndex` or :class:`TimedeltaIndex` only warns; in a future version ``check_freq=True`` will be the default and mismatches will raise. The same deprecation applies in :func:`testing.assert_frame_equal` and :func:`testing.assert_series_equal` to freqs that were previously never checked: those of :class:`DatetimeIndex`/:class:`TimedeltaIndex` columns, :class:`MultiIndex` levels, and :class:`Categorical` categories. Pass ``check_freq`` explicitly to silence the warning (:issue:`51920`, :issue:`66761`)
 - Deprecated :attr:`PeriodIndex.is_full`; use ``index.empty or len(index.unique()) == len(period_range(index.min(), index.max(), freq=index.freq))`` instead. Unlike ``is_full``, this is also correct for frequencies with a multiple (e.g. ``"2D"``) and does not raise on a non-monotonic index (:issue:`64938`)
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
@@ -380,6 +434,7 @@ Deprecations
 - Deprecated :func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`, :attr:`TimedeltaIndex.inferred_freq`, and :attr:`Series.dt.freq` returning a string; in a future version these will return a :class:`BaseOffset` instead. Use ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in to the future behavior (:issue:`55504`)
 - Deprecated :func:`set_eng_float_format`. Use ``pd.set_option("display.precision", N)`` to control decimal precision, or pass a custom callable to ``pd.set_option("display.float_format", func)`` (:issue:`64460`)
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
+- Deprecated :meth:`DataFrame.select_dtypes` matching the default ``str`` dtype when ``object`` is passed to ``exclude``, mirroring the existing deprecation for ``include``. Pass ``"str"`` to ``exclude`` to drop those columns as well, or to ``include`` to keep them (:issue:`68454`)
 - Deprecated :meth:`ExcelFile.parse`, use :func:`read_excel` instead (:issue:`58247`)
 - Deprecated :meth:`Series.fillna`, :meth:`DataFrame.fillna`, and :meth:`Index.fillna` with an incompatible value that requires dtype casting. In a future version, this will raise instead. Explicitly cast to a common dtype before filling (:issue:`45153`)
 - Deprecated ``engine="fastparquet"`` and ``engine="auto"`` in :func:`read_parquet` and :meth:`DataFrame.to_parquet`. The ``fastparquet`` library has been retired; use ``engine="pyarrow"`` or do not pass ``engine`` to use the default. (:issue:`64597`)
@@ -428,7 +483,6 @@ Deprecations
   :meth:`DataFrame.prod` (and their :class:`Series` equivalents); this will raise in
   a future version of pandas (:issue:`53098`)
 - Deprecated passing integers to :class:`Period`, :class:`PeriodIndex`, :func:`period_range`, :func:`period_array`, and :meth:`PeriodArray._from_sequence`. In a future version, integers will be treated as period ordinals instead of calendar years. To get the future behavior now, use ``Period(ordinal=...)`` or :meth:`PeriodIndex.from_ordinals`; to keep the current behavior, pass strings, e.g. ``Period(str(value), freq=...)`` or ``data.astype(str)`` (:issue:`64227`)
-- Deprecated ``inplace`` keyword for :meth:`DataFrame.rename`, :meth:`DataFrame.drop`, :meth:`DataFrame.dropna`, :meth:`DataFrame.drop_duplicates`, :meth:`DataFrame.sort_values`, :meth:`DataFrame.sort_index`, :meth:`DataFrame.eval`, :meth:`DataFrame.query`, :meth:`DataFrame.rename_axis`, :meth:`DataFrame.reset_index` (and the ``Series`` equivalents). This keyword will be removed in a future version (:issue:`63207`); see also `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`_
 - Deprecated the ``infer_objects``, ``convert_string``, ``convert_integer``, ``convert_boolean``, and ``convert_floating`` keywords in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` (:issue:`62022`)
 - Deprecated using ``isinstance(obj, DateOffset)`` and ``issubclass(cls, DateOffset)`` to check for offset types that are not :class:`DateOffset`; these will return ``False`` in a future version. Use ``pd.offsets.BaseOffset`` instead (:issue:`48262`)
 - Deprecated passing tuple keys to :meth:`Resampler.__getitem__` and other
@@ -487,6 +541,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`, :issue:`66459`, :issue:`66487`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading in parallel: closing a parser no longer blocks the other parser threads while its buffers are freed (:issue:`66272`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` when reading large files in parallel: the number of pieces the file is split into now scales with its size rather than only the thread count, so a large file is no longer read as coarsely as a small one (:issue:`66798`)
 - Performance improvement in :func:`read_csv` with ``engine="c"``, especially for large files and parallel reads (:issue:`66271`)
 - Performance improvement in :func:`read_csv` with ``engine="c"``, most visibly for integer columns, wide frames, and parallel reads (:issue:`66276`)
 - Performance improvement in :func:`read_csv` with ``engine="c"``: runs of unquoted fields are now tokenized 16 bytes at a time with SIMD, improving throughput on most inputs, string-heavy ones in particular (:issue:`66274`)
@@ -667,7 +722,9 @@ Datetimelike
 - Bug in adding or subtracting a :class:`Timedelta` and a :class:`Timestamp` where a result landing exactly on the ``NaT`` sentinel, e.g. ``Timestamp.min + Timedelta(-1, "ns")``, returned ``NaT`` instead of raising ``OutOfBoundsDatetime`` as it already did one step further out (:issue:`66549`)
 - Bug in adding or subtracting a :class:`Timedelta` and a ``datetime64`` :class:`numpy.ndarray` where the promotion to the finer of the two resolutions, or the addition itself, silently wrapped to an unrelated date, and a result landing exactly on the ``NaT`` sentinel came back as a missing value, instead of raising ``OutOfBoundsDatetime`` or ``OutOfBoundsTimedelta`` as the equivalent :class:`Timestamp` operation already did (:issue:`66552`)
 - Bug in adding or subtracting a ``timedelta64`` NumPy array and a timezone-naive :class:`Timestamp` where the promotion to the finer of the two resolutions, or the addition itself, silently wrapped to an unrelated date instead of raising ``OutOfBoundsDatetime``, unlike the timezone-aware and scalar equivalents (:issue:`66552`)
+- Bug in adding or subtracting a boolean array and ``datetime64`` or ``timedelta64`` data silently treating ``True`` as one unit of the data's resolution instead of raising ``TypeError`` as integer data does; ``datetime64`` with a :class:`BooleanDtype` operand instead raised ``ValueError: Could not convert object to NumPy datetime`` (:issue:`68452`)
 - Bug in arithmetic on :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex` and the corresponding :class:`Series` where a result landing exactly on the ``NaT`` sentinel came back as a missing value instead of raising ``OverflowError`` as it already did one step further out (:issue:`66549`)
+- Bug in logical operations (``&``, ``|``, ``^``) between a pandas object and any datetime-like operand -- ``datetime64`` (including timezone-aware), ``timedelta64``, :class:`PeriodDtype`, any temporal :class:`ArrowDtype`, their :class:`SparseDtype` spellings, and a :class:`Categorical` of any of them -- silently treating every value, ``NaT`` included, as ``True`` instead of raising ``TypeError`` (:issue:`68452`)
 - Bug in subtracting :class:`BusinessHour` (or :class:`CustomBusinessHour`) from a :class:`Timestamp` giving incorrect results when the subtraction would land exactly on the business-hour opening time (:issue:`33682`)
 - Bug in subtracting two :class:`Timestamp` objects whose difference lands exactly on the ``NaT`` sentinel raising ``AssertionError``, or with ``python -O`` returning a corrupt :class:`Timedelta` for which :func:`isna` was ``False``, instead of raising ``OutOfBoundsDatetime`` (:issue:`66552`)
 
@@ -1006,6 +1063,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot.bar` and :meth:`DataFrame.plot.barh` raising ``AttributeError`` for a regularly-spaced :class:`DatetimeIndex` whose ``freq`` attribute is unset (:issue:`66771`)
 - Bug in :meth:`DataFrame.plot.hexbin` ignoring ``rcParams["image.cmap"]`` and always defaulting to ``"BuGn"`` when no colormap was specified (:issue:`31871`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``secondary_y`` hiding the primary y-axis when the data already on the axes was drawn as a collection rather than as lines, e.g. by :meth:`DataFrame.plot.scatter` (:issue:`66789`)
+- Bug in :meth:`DataFrame.plot` with ``kind="bar"`` or ``kind="barh"`` and grouped ``subplots`` incorrectly overlaying columns when ``stacked=False`` (:issue:`67727`)
 - Bug in :meth:`Series.plot`, :meth:`DataFrame.plot`, :meth:`DataFrame.plot.scatter`, :meth:`Series.hist`, :meth:`DataFrame.hist`, :func:`plotting.lag_plot` and :func:`plotting.parallel_coordinates` with timezone-aware data labelling the axis in UTC instead of in the data's own timezone (:issue:`64613`)
 -
 
@@ -1023,6 +1081,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` on ``timedelta64`` data where a group total that left the representable range silently wrapped to an unrelated value, or landed on the ``NaT`` sentinel and came back as a missing value, instead of raising ``OutOfBoundsTimedelta`` (:issue:`66551`)
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with ``skipna=False`` returning ``NaT`` for a ``timedelta64`` group containing no missing values, when its running total happened to pass through the ``NaT`` sentinel (:issue:`66551`)
 - Bug in :meth:`.GroupBy.any` and :meth:`.GroupBy.all` returning ``NaN`` with ``float64`` dtype for unobserved categorical groups on NumPy ``bool`` data instead of the boolean identity value with ``bool`` dtype (:issue:`65100`)
+- Bug in :meth:`.GroupBy.indices` and :meth:`.GroupBy.get_group` returning the wrong group's rows for a multi-key groupby with a :class:`Categorical` key, ``sort=False``, and ``observed=False`` when the data's first-appearance order differed from the category order (:issue:`66893`)
 - Bug in :meth:`.GroupBy.min` and :meth:`.GroupBy.max` on Arrow-backed string columns, i.e. :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"``, ignoring ``skipna=False`` and ``min_count``, returning a value instead of ``NA`` for groups containing ``NA`` or holding fewer non-``NA`` values than ``min_count`` (:issue:`63416`)
 - Bug in :meth:`.GroupBy.quantile` returning incorrect results for groups containing a non-null ``NaN`` value (e.g. from a pyarrow or masked float array), and returning the Unix epoch instead of ``NaT`` for all-``NaT`` datetime-like groups on some platforms (:issue:`64330`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` raising ``NotImplementedError`` on :class:`ArrowDtype` decimal columns (:issue:`63416`)
@@ -1050,11 +1109,14 @@ Reshaping
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :func:`merge` where the join key column was not upcast to the highest ``datetime64`` resolution, keeping the lower resolution for ``how="inner"`` and ``how="left"`` when the left frame had lower resolution, and for ``how="inner"`` and ``how="right"`` when the join key came from a lower-resolution right frame (:issue:`55212`)
 - Bug in :meth:`DataFrame.combine` raising ``OverflowError`` when the combining function returned a value too large for the columns' common integer dtype (e.g. ``2**64``) instead of keeping the result (:issue:`66394`)
+- Bug in :meth:`DataFrame.describe` raising ``ValueError: The truth value of an array with more than one element is ambiguous`` when ``include`` was an :class:`Index`, :class:`Series`, or ndarray holding more than one dtype spec (:issue:`68470`)
 - Bug in :meth:`DataFrame.melt` where ``var_name`` colliding with an ``id_vars`` column or ``value_name`` silently overwrote the affected column data instead of raising (:issue:`65654`)
 - Bug in :meth:`DataFrame.pivot_table` with ``margins=True`` raising ``TypeError`` when ``values`` has an :class:`ExtensionDtype` that cannot hold ``NA`` (e.g. :class:`IntervalDtype` with an integer subtype) and no ``columns`` were specified (:issue:`55484`)
+- Bug in :meth:`DataFrame.select_dtypes` where ``pd.CategoricalDtype(ordered=True)`` selected every categorical column instead of only the ordered ones, and excluding it dropped unordered categorical columns (:issue:`40234`)
 - Bug in :meth:`DataFrame.select_dtypes` where a nullable extension dtype name such as ``"Int64"`` or ``"boolean"`` also selected numpy columns sharing the same scalar type; it now selects only columns of that extension dtype (:issue:`40234`)
 - Bug in :meth:`DataFrame.select_dtypes` where a timezone-naive spec such as ``"datetime64[s]"`` or ``np.datetime64`` selected timezone-aware pyarrow-backed timestamp columns; these are now skipped, as timezone-aware numpy columns already were (:issue:`68075`)
-- Bug in :meth:`DataFrame.select_dtypes` where an interval spec giving a subtype but no ``closed`` keyword, such as ``"interval[int64]"`` or ``pd.IntervalDtype("int64")``, selected no columns; it now selects every interval column with that subtype, for any ``closed`` value (:issue:`40234`)
+- Bug in :meth:`DataFrame.select_dtypes` where an interval spec that left ``closed`` or the subtype's resolution open, such as ``"interval[int64]"``, ``"interval[datetime64]"`` or ``pd.IntervalDtype("int64")``, selected no columns; it now selects every interval column matching the components the spec does give (:issue:`40234`)
+- Bug in :meth:`DataFrame.select_dtypes` where explicitly naming the ``str`` dtype did not stop an ``object`` spec from also matching string columns, so ``include=["str", "number"]`` with ``exclude="object"`` dropped the string columns; excluding ``object`` alone now also emits the ``object``/``str`` deprecation warning that including it already did (:issue:`68454`)
 - Bug in :meth:`DataFrame.select_dtypes` where the string form of an Arrow dtype such as ``"int64[pyarrow]"`` selected no columns and ``"float64[pyarrow]"`` selected numpy float columns; an Arrow dtype string now selects only columns of that exact dtype (:issue:`59888`)
 - Bug in :meth:`DataFrame.stack` raising a bare ``AssertionError`` or an ``IndexError`` when ``level`` contained duplicate entries, including duplicates produced by resolving level names or negative level numbers; it now raises an informative ``ValueError`` (:issue:`66588`)
 - Bug in :meth:`DataFrame.unstack` and :meth:`Series.unstack` with ``sort=False`` placing values under the wrong row labels, or collapsing distinct index combinations into a single row (:issue:`62816`)
@@ -1070,21 +1132,33 @@ Reshaping
 
 Sparse
 ^^^^^^
+- Bug in :attr:`Series.sparse.density`, :attr:`DataFrame.sparse.density`, and :attr:`SparseArray.density` raising ``ZeroDivisionError`` on empty data instead of returning ``nan`` (:issue:`68468`)
+- Bug in :class:`SparseArray` with a datetime64 or timedelta64 subtype where a ``pd.NaT`` ``fill_value`` raised ``TypeError`` from :meth:`SparseArray.to_dense`, :meth:`SparseArray.unique`, :meth:`SparseArray.astype`, :meth:`SparseArray.take`, and arithmetic and comparison operations, and made ``np.asarray`` on a timedelta64 subtype return ``object`` dtype; all of these behaved correctly for an equivalent ``np.datetime64("NaT")`` fill value (:issue:`68449`)
+- Bug in :class:`SparseDtype` where two equal instances with an NA ``fill_value`` could hash differently, so a datetime64 or timedelta64 :class:`SparseDtype` could not be used as a dict key and identical sparse columns were counted separately by :meth:`Series.value_counts` on :attr:`DataFrame.dtypes` (:issue:`68449`)
 - Bug in :meth:`DataFrame.count`, :meth:`DataFrame.sum`, :meth:`DataFrame.mean`, :meth:`DataFrame.min`, and :meth:`DataFrame.max` on :class:`SparseDtype` columns forcing the result into the column's own dtype: ``count`` returned ``1`` for every sparse column, the sum of a narrow integer column silently wrapped around, the mean of an integer column was truncated to an integer, and a missing result (e.g. from ``min_count`` or an empty column) came back as a fill value or raised (:issue:`55123`)
+- Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` on :class:`SparseDtype` columns returning a wrong label with ``skipna=False`` instead of raising when the column held a missing value, and emitting a spurious ``ComplexWarning`` on complex-valued columns (:issue:`68387`)
 - Bug in :meth:`DataFrame.prod`, :meth:`DataFrame.median`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.sem`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`DataFrame.describe`, and their :class:`Series` counterparts raising ``TypeError: cannot perform <op> with type Sparse[...]`` on :class:`SparseDtype` data; :meth:`SparseArray.prod`, :meth:`SparseArray.median`, :meth:`SparseArray.var`, :meth:`SparseArray.std`, :meth:`SparseArray.sem`, :meth:`SparseArray.skew`, and :meth:`SparseArray.kurt` now exist to match (:issue:`68194`)
 - Bug in :meth:`Series.any`, :meth:`Series.all`, :meth:`DataFrame.any`, :meth:`DataFrame.all`, :meth:`SparseArray.any`, and :meth:`SparseArray.all` mishandling missing values on :class:`SparseDtype` data: with ``skipna=True`` a missing value was reduced for its own truthiness instead of being skipped, and with ``skipna=False`` missing values were dropped instead of reduced; :meth:`SparseArray.any` and :meth:`SparseArray.all` also raised a ``TypeError`` when called with the ``skipna`` argument (:issue:`68390`)
+- Bug in :meth:`Series.any`, :meth:`Series.all`, :meth:`DataFrame.any`, :meth:`DataFrame.all`, :meth:`SparseArray.any`, and :meth:`SparseArray.all` returning a result on datetime64 :class:`SparseDtype` data instead of raising ``TypeError`` the way the dense equivalents do (:issue:`68438`)
+- Bug in :meth:`Series.argmin`, :meth:`Series.argmax`, :meth:`Series.idxmin`, :meth:`Series.idxmax`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax`, :meth:`SparseArray.argmin`, and :meth:`SparseArray.argmax` raising ``ValueError: attempt to get argmin of an empty sequence`` on :class:`SparseDtype` data with no non-missing stored values, when the non-missing ``fill_value`` occupies at least one position, instead of returning the first such position (:issue:`68462`)
 - Bug in :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin`, :meth:`Series.cummax` and their :class:`DataFrame` counterparts raising ``NotImplementedError`` on :class:`SparseDtype` data (:issue:`68187`)
 - Bug in :meth:`Series.mean` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
+- Bug in :meth:`Series.memory_usage`, :meth:`DataFrame.memory_usage`, and :meth:`Index.memory_usage` with ``deep=True``, :meth:`DataFrame.info` with ``memory_usage="deep"``, and ``sys.getsizeof`` raising ``TypeError`` on an object subtype :class:`SparseDtype`; :meth:`SparseArray.memory_usage` is new (:issue:`68490`)
+- Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` raising ``AttributeError: 'SparseDtype' object has no attribute 'itemsize'`` on a float :class:`SparseDtype` column (:issue:`68421`)
 - Bug in :meth:`Series.reindex` and alignment raising when extending a boolean :class:`SparseDtype`-backed :class:`Series`; missing entries now upcast to ``object`` to match the dense behavior (:issue:`32119`)
+- Bug in :meth:`Series.reindex`, :meth:`DataFrame.reindex`, :meth:`GroupBy.first`, :meth:`GroupBy.last`, and :meth:`SparseArray.take` returning the wrong subtype for :class:`SparseDtype` data: ``uint64`` values above ``2**53`` were silently rounded, and a datetime64 or timedelta64 subtype changed unit, became ``object`` holding raw integers, or raised ``DTypePromotionError`` (:issue:`68469`)
 - Bug in :meth:`Series.sum`, :meth:`Series.min`, and :meth:`Series.max` with ``skipna=False`` ignoring missing values for :class:`SparseDtype`-backed :class:`Series` (:issue:`65478`)
-- Bug in :meth:`SparseArray.astype` where converting a datetime64 :class:`SparseArray` with ``NaT`` fill value to ``"Sparse[int64]"`` silently replaced the fill value with ``0`` instead of ``iNaT`` (:issue:`49631`)
+- Bug in :meth:`SparseArray.astype` where converting a datetime64 or timedelta64 :class:`SparseArray` to an integer or boolean ``Sparse`` dtype silently replaced the fill value with the target's default (``0``/``False``) instead of converting it (:issue:`49631`)
 - Bug in :meth:`SparseArray.mean` raising a ``TypeError`` when called with the ``skipna`` argument (:issue:`65478`)
 - Bug in :meth:`SparseArray.sum` with ``skipna=False`` returning ``NA`` for a non-null ``fill_value`` and ignoring missing values under a null ``fill_value`` (:issue:`65478`)
+- Bug in NumPy ufunc reductions such as ``np.logaddexp.reduce``, ``np.bitwise_or.reduce``, and ``np.gcd.reduce`` on a :class:`SparseArray` reducing only the stored values, ignoring the entries equal to ``fill_value`` (:issue:`68453`)
 - Bug in ``np.prod`` and ``np.multiply.reduce`` on a :class:`SparseArray` silently returning the product of only the stored values, ignoring the entries equal to ``fill_value`` (:issue:`68194`)
 - Bug in ``np.std`` and ``np.var`` on a :class:`SparseArray` returning ``NaN`` when the array held missing values, inconsistently with ``np.sum`` and ``np.mean``, which skip them (:issue:`68194`)
+- Bug in arithmetic and comparison ops between :class:`SparseDtype` data and a datetime64 or timedelta64 operand raising ``ValueError``; invalid ops now raise ``TypeError`` as the dense equivalents do, and valid ops such as multiplying integers by timedeltas now return a result instead of raising (:issue:`68466`)
 - Bug in indexing a :class:`SparseArray` with an out-of-bounds integer with the value of the length of the array returning the fill value instead of raising an ``IndexError`` (:issue:`64183`).
 - Bug in logical operators (``&``, ``|``, ``^``) between a :class:`SparseDtype`-backed :class:`Series` and a differently-indexed :class:`Series` raising an uninformative error instead of aligning and returning the expected result (:issue:`32119`)
 - Bug in logical operators (``&``, ``|``, ``^``) between a :class:`SparseDtype`-backed :class:`Series` and a nullable ``boolean`` :class:`Series` raising ``TypeError: boolean value of NA is ambiguous``, or silently resolving the missing values to ``False``; the result now matches the non-sparse equivalent and has ``boolean`` dtype (:issue:`68483`)
+- Bug in the :class:`SparseArray` constructor raising ``TypeError: boolean value of NA is ambiguous`` for object-dtype data holding ``pd.NA`` unless the fill value was itself missing (:issue:`68439`)
 - Bug in the repr of a datetime64 or timedelta64 :class:`SparseDtype`-backed :class:`Series`, and in casting such an array to ``object`` dtype, showing raw integers such as ``1577836800000000000`` instead of :class:`Timestamp`/:class:`Timedelta` values (:issue:`68073`)
 
 ExtensionArray

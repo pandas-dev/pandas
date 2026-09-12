@@ -343,9 +343,13 @@ class BaseBlockManager(PandasObject):
     def get_dtypes(self) -> npt.NDArray[np.object_]:
         cache = self._dtypes_cache
         if cache is None:
-            dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
+            blocks = self.blocks
+            dtypes = np.array([blk.dtype for blk in blocks], dtype=object)
             cache = dtypes.take(self.blknos)
-            self._dtypes_cache = cache
+            # An invalidating write that landed while we computed has already
+            # cleared the cache, so storing now would leave the stale array for good.
+            if blocks is self.blocks:
+                self._dtypes_cache = cache
         return cache.copy()
 
     @property
@@ -1435,8 +1439,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            # Invalidate cache before mutating blocks so that a concurrent
-            # reader never sees stale cache + new blocks.
+            # Invalidate the caches before swapping blocks; see get_dtypes
+            # for the window this ordering leaves open.
             self._interleaved_dtype = None
             self._dtypes_cache = None
             self._known_consolidated = False
@@ -1522,8 +1526,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
-        # Invalidate cache before mutating blocks so that a concurrent
-        # reader never sees stale cache + new blocks.
+        # Invalidate the caches before swapping blocks; see get_dtypes
+        # for the window this ordering leaves open.
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self.blocks = new_blocks
@@ -1595,8 +1599,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        # Invalidate cache before mutating blocks so that a concurrent
-        # reader never sees stale cache + new blocks.
+        # Invalidate the caches before swapping blocks; see get_dtypes
+        # for the window this ordering leaves open.
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self._known_consolidated = False

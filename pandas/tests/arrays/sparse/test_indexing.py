@@ -244,6 +244,97 @@ class TestTake:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "subtype", ["int8", "int32", "uint16", "uint64", "float32"]
+    )
+    def test_take_fill_preserves_subtype(self, subtype):
+        # GH#68469 an old fill position holds self.fill_value, which
+        #  SparseDtype._check_fill_value guarantees fits the subtype, so it must
+        #  not promote; widening uint64 to float64 would round above 2**53
+        big = 2**63 + 12345 if subtype == "uint64" else 3
+        sparse = SparseArray(np.array([1, 0, big], dtype=subtype), fill_value=0)
+        result = sparse.take(np.array([0, 1, 2]), allow_fill=True)
+        tm.assert_sp_array_equal(result, sparse)
+
+    def test_take_fill_all_fill_preserves_subtype(self):
+        # GH#68469 same for the all-fill (sp_index.npoints == 0) path, which
+        #  promoted whenever an index of -1 came along
+        sparse = SparseArray(np.array([0, 0, 0], dtype="int8"), fill_value=0)
+        result = sparse.take(np.array([0, 1, -1]), allow_fill=True, fill_value=0)
+        assert result.dtype == pd.SparseDtype("int8", 0)
+        tm.assert_sp_array_equal(result, sparse)
+
+    @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
+    def test_take_fill_datetimelike_subtype(self, unit):
+        # GH#68469 a datetimelike subtype was promoted on type(fill_value):
+        #  to object for a nanosecond unit, which numpy renders as raw
+        #  integers, and to microseconds for a coarser one
+        data = np.array([1, 3, 5], dtype=unit)
+        fill = pd.Timestamp(data[1]) if unit[0] == "M" else pd.Timedelta(data[1])
+        sparse = SparseArray(data, fill_value=fill)
+        result = sparse.take(np.array([0, 1, 2]), allow_fill=True)
+        tm.assert_sp_array_equal(result, sparse)
+
+    @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
+    def test_take_fill_datetimelike_new_fill_is_nat(self, unit):
+        # GH#68469 a new fill position takes NaT in the subtype, as dense
+        #  reindex does, rather than promoting the array
+        data = np.array([1, 3, 5], dtype=unit)
+        fill = pd.Timestamp(data[1]) if unit[0] == "M" else pd.Timedelta(data[1])
+        sparse = SparseArray(data, fill_value=fill)
+        result = sparse.take(np.array([0, 1, -1]), allow_fill=True)
+        expected = SparseArray(np.array([1, 3, "NaT"], dtype=unit), fill_value=fill)
+        tm.assert_sp_array_equal(result, expected)
+
+    @pytest.mark.parametrize("subtype", ["int8", "uint64", "float32"])
+    def test_take_fill_empty_preserves_subtype(self, subtype):
+        # GH#68469 the len(self) == 0 arm promoted on type(fill_value) too, so an
+        #  empty array disagreed with a non-empty one on the same input
+        sparse = SparseArray(np.array([], dtype=subtype), fill_value=0)
+        result = sparse.take(np.array([-1, -1]), allow_fill=True, fill_value=0)
+        assert result.dtype == pd.SparseDtype(subtype, 0)
+
+    @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
+    def test_take_fill_empty_datetimelike(self, unit):
+        # GH#68469 the same arm raised DTypePromotionError for a datetimelike
+        #  subtype, since it promoted against type(np.nan)
+        sparse = SparseArray(np.array([], dtype=unit), fill_value=pd.NaT)
+        result = sparse.take(np.array([-1, -1]), allow_fill=True)
+        assert result.dtype.subtype == np.dtype(unit)
+
+    def test_take_fill_all_fill_all_new(self):
+        # an all-fill array taken entirely at -1 has no old fill position at
+        #  all; pins that the promotion stays well defined, see GH#68469
+        sparse = SparseArray(np.array([0, 0, 0], dtype="int8"), fill_value=0)
+        result = sparse.take(np.array([-1, -1]), allow_fill=True)
+        expected = SparseArray(np.array([np.nan, np.nan]), fill_value=0)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_object_subtype_keeps_boxed_scalar(self):
+        # only a datetimelike subtype needs the numpy scalar; pins that an
+        #  object subtype keeps the Timestamp boxed, cf GH#68073
+        sparse = SparseArray(np.array(["a", "x", "b"], dtype=object), fill_value="x")
+        ts = pd.Timestamp("2000-01-01")
+        result = sparse.take(np.array([0, -1]), allow_fill=True, fill_value=ts)
+        assert result.dtype == pd.SparseDtype(object, "x")
+        assert result[1] == ts and isinstance(result[1], pd.Timestamp)
+
+    @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
+    def test_take_fill_datetimelike_no_gaps(self, unit):
+        # GH#68469 with no gaps only the new fill promotes, and promoting a
+        #  datetimelike subtype against type(np.nan) raised outright
+        data = np.array([1, 3, 5], dtype=unit)
+        fill = (
+            pd.Timestamp(99, unit=unit[3:-1])
+            if unit[0] == "M"
+            else pd.Timedelta(99, unit[3:-1])
+        )
+        sparse = SparseArray(data, fill_value=fill)
+        assert sparse.sp_index.ngaps == 0
+        result = sparse.take(np.array([0, 1, 2, -1]), allow_fill=True)
+        assert result.dtype.subtype == np.dtype(unit)
+        assert result[3] is pd.NaT
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)
