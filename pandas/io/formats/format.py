@@ -418,6 +418,9 @@ class DataFrameFormatter:
         Display DataFrame dimensions (number of rows by number of columns).
     decimal : str, default '.'
         Character recognized as decimal separator, e.g. ',' in Europe.
+    missing_rep : str or None, default None
+        String representation of missing values. If None, use the default
+        representation for each missing value type.
 
     Returns
     -------
@@ -446,6 +449,7 @@ class DataFrameFormatter:
         decimal: str = ".",
         bold_rows: bool = False,
         escape: bool = True,
+        missing_rep: str | None = None,
     ) -> None:
         self.frame = frame
         self.columns = self._initialize_columns(columns)
@@ -453,6 +457,7 @@ class DataFrameFormatter:
         self.header = header
         self.index = index
         self.na_rep = na_rep
+        self.missing_rep = missing_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
         self.float_format = self._validate_float_format(float_format)
@@ -759,6 +764,7 @@ class DataFrameFormatter:
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
+            missing_rep=self.missing_rep,
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
             leading_space=self.index,
@@ -1102,6 +1108,7 @@ def format_array(
     leading_space: bool | None = True,
     quoting: int | None = None,
     fallback_formatter: Callable | None = None,
+    missing_rep: str | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1125,6 +1132,9 @@ def format_array(
         (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
+    missing_rep : str or None, default None
+        String representation of missing values. If None, use the default
+        representation for each missing value type.
 
     Returns
     -------
@@ -1134,12 +1144,12 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-        if na_rep == "NaN":
+        if na_rep == "NaN" and missing_rep is None:
             na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
-        if na_rep == "NaN":
+        if na_rep == "NaN" and missing_rep is None:
             na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
@@ -1163,6 +1173,7 @@ def format_array(
         values,
         digits=digits,
         na_rep=na_rep,
+        missing_rep=missing_rep,
         float_format=float_format,
         formatter=formatter,
         space=space,
@@ -1191,10 +1202,12 @@ class _GenericArrayFormatter:
         fixed_width: bool = True,
         leading_space: bool | None = True,
         fallback_formatter: Callable | None = None,
+        missing_rep: str | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
+        self.missing_rep = missing_rep
         self.space = space
         self.formatter = formatter
         self.float_format = float_format
@@ -1235,7 +1248,9 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
+                if self.missing_rep is not None:
+                    return self.missing_rep
+                elif x is None:
                     return "None"
                 elif x is NA:
                     return str(NA)
@@ -1544,6 +1559,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             float_format=self.float_format,
             na_rep=self.na_rep,
             digits=self.digits,
+            missing_rep=self.missing_rep,
             space=self.space,
             justify=self.justify,
             decimal=self.decimal,
