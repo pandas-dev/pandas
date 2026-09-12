@@ -134,6 +134,116 @@ def test_string_index_real_na_roundtrips_table(temp_hdfstore):
     not using_string_dtype(),
     reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
 )
+def test_string_index_na_read_from_file_without_sentinel_fixed(temp_hdfstore):
+    # GH#9604 — pandas 3.0 stored a NaN in a string Index as the bare string
+    # "nan" and read it back as missing. Those files carry no sentinel
+    # attribute, so the reader has to keep substituting "nan" for them.
+    ser = pd.Series(range(3), index=pd.Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    temp_hdfstore.put("s", ser, track_times=False)
+    assert temp_hdfstore.get_storer("s").group.index[:].tolist() == [
+        b"aaa",
+        b"nan",
+        b"bbb",
+    ]
+    del temp_hdfstore.get_storer("s").group.index._v_attrs.nan_rep
+
+    tm.assert_series_equal(temp_hdfstore.get("s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_na_read_from_file_without_sentinel_table(temp_hdfstore):
+    # GH#9604 — same, table format.
+    ser = pd.Series(range(3), index=pd.Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    temp_hdfstore.append("s", ser)
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    tm.assert_series_equal(temp_hdfstore.select("s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_to_file_without_sentinel(temp_hdfstore):
+    # GH#9604 — appending to such a file adopts "nan" as the sentinel, so the
+    # rows already stored and the appended missing values agree.
+    ser1 = pd.Series(range(2), index=pd.Index(["aaa", np.nan], dtype=str))
+    temp_hdfstore.append("s", ser1)
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    ser2 = pd.Series(range(2, 4), index=pd.Index(["bbb", np.nan], dtype=str))
+    temp_hdfstore.append("s", ser2)
+
+    expected = pd.Series(
+        range(4), index=pd.Index(["aaa", np.nan, "bbb", np.nan], dtype=str)
+    )
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_literal_nan_to_file_without_sentinel_raises(temp_hdfstore):
+    # GH#9604 — a file written before the sentinel was persisted stores a NaN
+    # as "nan", so a row labelled "nan" can no longer be appended to one: it
+    # would be indistinguishable from those.
+    temp_hdfstore.append(
+        "s", pd.Series([0, 1], index=pd.Index(["aaa", np.nan], dtype=str))
+    )
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    ser2 = pd.Series([2], index=pd.Index(["nan"], dtype=str))
+    with pytest.raises(ValueError, match="collides with the sentinel"):
+        temp_hdfstore.append("s", ser2)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_na_to_file_without_missing_values(temp_hdfstore):
+    # GH#9604 — the sentinel minted for the first missing value appended to such
+    # a file has to dodge the values already stored, not just the ones in the
+    # appended chunk: here "nan" and "_nan_" are both taken.
+    temp_hdfstore.append(
+        "s", pd.Series([0, 1], index=pd.Index(["_nan_", "bbbbbbbbbb"], dtype=str))
+    )
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    ser2 = pd.Series([2, 3], index=pd.Index(["nan", np.nan], dtype=str))
+    temp_hdfstore.append("s", ser2)
+
+    expected = pd.Series(
+        range(4),
+        index=pd.Index(["_nan_", "bbbbbbbbbb", "nan", np.nan], dtype=str),
+    )
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+def test_string_index_append_literal_nan_to_file_without_missing_values(temp_hdfstore):
+    # GH#9604 — but a pre-sentinel file that stores no "nan" at all has no
+    # sentinel to protect, so appending that label still works as it did.
+    temp_hdfstore.append(
+        "s", pd.Series([0, 1], index=pd.Index(["aaa", "bbb"], dtype=str))
+    )
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    temp_hdfstore.append("s", pd.Series([2], index=pd.Index(["nan"], dtype=str)))
+
+    expected = pd.Series(range(3), index=pd.Index(["aaa", "bbb", "nan"], dtype=str))
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
     # GH#9604 — a real NA and the literal string "nan" coexist in one string
     # Index and both round-trip: the NaN sentinel is chosen to avoid colliding
@@ -315,16 +425,17 @@ def test_string_index_literal_nan_multichunk_append_no_na(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("s"), expected)
 
 
-def test_string_multiindex_level_literal_nan(temp_h5_path):
-    # GH#9604 — a literal "nan" string in a MultiIndex level round-trips in the
-    # table format. Levels are stored as data columns, which previously read a
-    # literal "nan" back as a missing value via the global NaN sentinel.
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_string_multiindex_level_literal_nan(temp_h5_path, fmt):
+    # GH#9604 — a literal "nan" in a MultiIndex level round-trips in both
+    # formats. In the fixed format the empty sentinel attribute is what keeps it
+    # a string: an absent one marks a pre-3.1 file and means substitute.
     mi = pd.MultiIndex.from_arrays(
         [pd.Index(["nan", "a", "b"], dtype=str), [1, 2, 3]], names=["s", "i"]
     )
     ser = pd.Series(range(3), index=mi)
 
-    ser.to_hdf(temp_h5_path, key="t", format="table")
+    ser.to_hdf(temp_h5_path, key="t", format=fmt)
     tm.assert_series_equal(pd.read_hdf(temp_h5_path, "t"), ser)
 
 
