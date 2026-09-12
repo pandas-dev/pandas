@@ -4154,6 +4154,10 @@ class TestShouldCacheEarlyBail:
                 pd.date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
                 {},
             ),
+            # ISO 8601 format, handled by the vectorized C parser
+            (["2020-01-01"] * 100, {"format": "%Y-%m-%d"}),
+            (["20200101"] * 100, {"format": "%Y%m%d"}),
+            (["2020-01-01T00:00:00-0800"] * 100, {"format": "%Y-%m-%dT%H:%M:%S%z"}),
         ],
     )
     def test_should_cache_returns_false(self, arg, kwargs):
@@ -4173,12 +4177,19 @@ class TestShouldCacheEarlyBail:
         idx = pd.Index(arr)
         assert tools.should_cache(idx) is False
 
-    def test_should_cache_explicit_format_not_skipped(self):
-        # GH#65380, asv-runner#137: an explicit ``format`` must NOT disable
-        # caching. Highly-duplicated strings still benefit from caching even
-        # with a (slow-parsing) strptime format, so should_cache returns True.
-        arg = pd.Index(["19MAY11"] * 100)
-        assert tools.should_cache(arg) is True
+    @pytest.mark.parametrize(
+        "arg, fmt",
+        [
+            (["19MAY11"] * 100, "%d%b%y"),
+            (["10/11/2018 00:00:00.045-07:00"] * 100, "%m/%d/%Y %H:%M:%S.%f%z"),
+            (["2020-01-01", "01/02/2020"] * 50, "mixed"),
+        ],
+    )
+    def test_should_cache_non_iso_format_not_skipped(self, arg, fmt):
+        # GH#65380, asv-runner#137: a non-ISO ``format`` must NOT disable
+        # caching. Highly-duplicated strings still benefit from caching with
+        # a (slow-parsing) strptime format, so should_cache returns True.
+        assert tools.should_cache(pd.Index(arg), format=fmt) is True
 
 
 def test_nullable_integer_to_datetime():

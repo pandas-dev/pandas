@@ -558,7 +558,7 @@ Performance improvements
 - Performance improvement in :func:`read_sql` with ADBC connections by requesting only table metadata when checking whether an input string names a table (:issue:`65652`)
 - Performance improvement in :func:`to_datetime` and the :class:`Timestamp` constructor when parsing strings with timezone offsets (:issue:`66123`)
 - Performance improvement in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns (:issue:`65195`)
-- Performance improvement in :func:`to_datetime` with the default ``cache=True`` for inputs that are already datetime-typed or use a ``unit`` (:issue:`65380`)
+- Performance improvement in :func:`to_datetime` with the default ``cache=True`` for inputs that are already datetime-typed, use a ``unit``, or use an ISO 8601 ``format`` (:issue:`65380`)
 - Performance improvement in :func:`tseries.frequencies.to_offset` parsing of frequency strings, especially for tick-resolution offsets (e.g. ``"h"``, ``"5min"``, ``"3s"``) and compound expressions (e.g. ``"1D1h"``) (:issue:`65395`)
 - Performance improvement in :func:`util.hash_pandas_object` for PyArrow-backed string and binary types by using PyArrow's ``dictionary_encode`` instead of converting to NumPy for factorization (:issue:`48964`)
 - Performance improvement in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with user-defined functions (:issue:`46505`)
