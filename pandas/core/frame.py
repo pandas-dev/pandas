@@ -5904,7 +5904,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # and EA-subclass specs (GH#65366) are all checked against the
                 # raw dtype before the ArrowDtype -> numpy_dtype normalization
                 # below.
-                # GH#??? - dont use generators for these checks; too much overhead.
+                # GH#68501 - dont use generators for these checks; too much overhead.
                 for instance in instances:
                     if dtype_obj == instance:
                         return True
