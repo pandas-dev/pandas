@@ -26,7 +26,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 
 from __future__ import annotations
 
-from datetime import datetime
+import locale
 import sys
 from typing import TYPE_CHECKING
 
@@ -35,6 +35,8 @@ import pytest
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pandas._typing import F
+
+from pandas._config.localization import can_set_locale
 
 from pandas.compat import (
     IS64,
@@ -113,23 +115,9 @@ skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 
 
-def _has_english_lc_time() -> bool:
-    """
-    Whether LC_TIME yields English month/day names and AM/PM markers.
-
-    Only LC_TIME matters for strftime/strptime, and CPython sets just LC_CTYPE
-    from the environment at startup, so this is normally True no matter what
-    LANG or LC_ALL are set to. It is False only when something in the process
-    has called ``setlocale`` for LC_TIME.
-    """
-    # 2020-01-01 was a Wednesday
-    stamp = datetime(2020, 1, 1, 13)
-    return stamp.strftime("%b|%B|%a|%A|%p") == "Jan|January|Wed|Wednesday|PM"
-
-
 skip_if_not_english_lc_time = pytest.mark.skipif(
-    not _has_english_lc_time(),
-    reason="LC_TIME does not use English month names and AM/PM markers",
+    not can_set_locale("C", locale.LC_TIME),
+    reason="LC_TIME cannot be set to an English locale",
 )
 
 skip_if_wasm = pytest.mark.skipif(

@@ -2,9 +2,12 @@ from datetime import (
     datetime,
     time,
 )
+import locale
 
 import numpy as np
 import pytest
+
+from pandas._config.localization import set_locale
 
 from pandas._libs.tslibs import timezones
 import pandas.util._test_decorators as td
@@ -17,26 +20,27 @@ class TestBetweenTime:
     @td.skip_if_not_english_lc_time
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
-        rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
-        )
-        ts = tm.get_obj(ts, frame_or_series)
+        with set_locale("C", locale.LC_TIME):
+            rng = pd.date_range("1/1/2000", "1/5/2000", freq="5min")
+            ts = pd.DataFrame(
+                np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+            )
+            ts = tm.get_obj(ts, frame_or_series)
 
-        strings = [
-            ("2:00", "2:30"),
-            ("0200", "0230"),
-            ("2:00am", "2:30am"),
-            ("0200am", "0230am"),
-            ("2:00:00", "2:30:00"),
-            ("020000", "023000"),
-            ("2:00:00am", "2:30:00am"),
-            ("020000am", "023000am"),
-        ]
-        expected_length = 28
+            strings = [
+                ("2:00", "2:30"),
+                ("0200", "0230"),
+                ("2:00am", "2:30am"),
+                ("0200am", "0230am"),
+                ("2:00:00", "2:30:00"),
+                ("020000", "023000"),
+                ("2:00:00am", "2:30:00am"),
+                ("020000am", "023000am"),
+            ]
+            expected_length = 28
 
-        for time_string in strings:
-            assert len(ts.between_time(*time_string)) == expected_length
+            for time_string in strings:
+                assert len(ts.between_time(*time_string)) == expected_length
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_localized_between_time(self, tzstr, frame_or_series):
@@ -228,9 +232,10 @@ class TestBetweenTime:
 @td.skip_if_not_english_lc_time
 def test_between_time_space_before_meridiem():
     # GH#18793 the space before AM/PM used to make these unparsable
-    index = pd.date_range("2012-01-01", periods=48, freq="h")
-    df = pd.DataFrame({"A": range(len(index))}, index=index)
+    with set_locale("C", locale.LC_TIME):
+        index = pd.date_range("2012-01-01", periods=48, freq="h")
+        df = pd.DataFrame({"A": range(len(index))}, index=index)
 
-    result = df.between_time("3:00 PM", "5:00 PM")
-    expected = df.between_time(time(15, 0), time(17, 0))
-    tm.assert_frame_equal(result, expected)
+        result = df.between_time("3:00 PM", "5:00 PM")
+        expected = df.between_time(time(15, 0), time(17, 0))
+        tm.assert_frame_equal(result, expected)
