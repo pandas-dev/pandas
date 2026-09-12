@@ -159,15 +159,11 @@ class _Unstacker:
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
         if config["mode"]["performance_warnings"]:
-            # Bug fix GH 20601
-            # If the data frame is too big, the number of unique index combination
-            # will cause int32 overflow on windows environments.
-            # We want to check and raise a warning before this happens
-            num_rows = max(index_level.size for index_level in self.new_index_levels)
-            num_columns = self.removed_level.size
-
-            # GH20601: This forces an overflow if the number of cells is too high.
-            # GH 26314: Previous ValueError raised was too restrictive for many users.
+            # GH#20601: warn when the mask built in _make_selectors would have
+            #  more cells than int32 can index. GH#26314: warn, don't raise.
+            # num_rows, num_columns are that mask's full_shape (GH#10582).
+            num_rows = self._comp_index_and_ngroups[1]
+            num_columns = self.index.levshape[self.level] + self.has_nan
             num_cells = num_rows * num_columns
             if num_cells > np.iinfo(np.int32).max:
                 warnings.warn(

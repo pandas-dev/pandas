@@ -18,6 +18,21 @@ def future_stack(request):
     return request.param
 
 
+@pytest.fixture
+def mock_unstacker(monkeypatch):
+    """Stop _Unstacker as soon as __init__ has emitted the size warning."""
+
+    class MockUnstacker(reshape_lib._Unstacker):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            raise Exception("Don't compute final result.")
+
+        def _make_selectors(self) -> None:
+            pass
+
+    monkeypatch.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+
+
 class TestDataFrameReshape:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
@@ -2477,32 +2492,64 @@ class TestStackUnstackMultiLevel:
         recons = result.stack(future_stack=future_stack)
         tm.assert_frame_equal(recons, df)
 
-    @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32_warns(
-        self, performance_warning, monkeypatch
+        self, performance_warning, mock_unstacker
     ):
         # GH#20601
-        # GH 26314: Change ValueError to PerformanceWarning
+        # GH#26314: Change ValueError to PerformanceWarning
+        df = pd.DataFrame(
+            np.zeros((2**16, 1)),
+            index=[np.arange(2**16), np.arange(2**16)],
+        )
+        msg = f"may generate {2**32} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
-        class MockUnstacker(reshape_lib._Unstacker):
-            def __init__(self, *args, **kwargs) -> None:
-                # __init__ will raise the warning
-                super().__init__(*args, **kwargs)
-                raise Exception("Don't compute final result.")
+    def test_unstack_number_of_levels_larger_than_int32_warns_multi_level(
+        self, performance_warning, mock_unstacker
+    ):
+        # GH#10582 the rows are the observed combinations of the remaining
+        #  levels, not the size of the largest of them
+        # 16 two-valued levels, so 2**16 combinations, times 2**16 columns
+        codes = np.arange(2**16)
+        bits = (codes[:, None] >> np.arange(16)) & 1
+        index = pd.MultiIndex.from_arrays([*bits.T, codes])
+        df = pd.DataFrame(np.zeros((2**16, 1)), index=index)
+        msg = f"may generate {2**32} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
-            def _make_selectors(self) -> None:
-                pass
+    def test_unstack_number_of_levels_larger_than_int32_warns_nan_column(
+        self, performance_warning, mock_unstacker
+    ):
+        # GH#10582 the NaN in the unstacked level gets a column of its own,
+        #  which is what tips this just over the threshold
+        rows = np.arange(2**16 - 1)
+        columns = (rows % 2**15).astype(float)
+        columns[0] = np.nan
+        index = pd.MultiIndex.from_arrays([rows, columns])
+        df = pd.DataFrame(np.zeros((2**16 - 1, 1)), index=index)
+        msg = f"may generate {(2**16 - 1) * (2**15 + 1)} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
-        with monkeypatch.context() as m:
-            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
-            df = pd.DataFrame(
-                np.zeros((2**16, 2)),
-                index=[np.arange(2**16), np.arange(2**16)],
-            )
-            msg = "The following operation may generate"
-            with tm.assert_produces_warning(performance_warning, match=msg):
-                with pytest.raises(Exception, match="Don't compute final result."):
-                    df.unstack()
+    def test_unstack_number_of_levels_larger_than_int32_warns_nan_row(
+        self, performance_warning, mock_unstacker
+    ):
+        # GH#10582 the NaN in a level that is kept gets a row of its own,
+        #  which is what tips this just over the threshold
+        columns = np.arange(2**16 - 1)
+        rows = (columns % 2**15).astype(float)
+        rows[0] = np.nan
+        index = pd.MultiIndex.from_arrays([rows, columns])
+        df = pd.DataFrame(np.zeros((2**16 - 1, 1)), index=index)
+        msg = f"may generate {(2**15 + 1) * (2**16 - 1)} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
