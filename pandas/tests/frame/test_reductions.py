@@ -3161,7 +3161,7 @@ def test_numeric_only_validates_bool():
 
 @pytest.mark.parametrize("na_first", [True, False])
 def test_median_skipna_false_keeps_complex(na_first):
-    # GH#68422 the NaN propagated for a column holding an NA was real, so
+    # GH#68487 the NaN propagated for a column holding an NA was real, so
     #  whenever that column was reduced first the others were cast down to it
     #  and lost their imaginary part
     cols = {"a": [1 + 2j, np.nan], "b": [1 + 2j, 3 + 4j]}

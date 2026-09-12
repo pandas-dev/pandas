@@ -531,7 +531,7 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
 )
 @pytest.mark.parametrize("subtype", ["float32", "complex128"])
 def test_frame_nan_result_dtype_matches_dense(name, kwargs, subtype):
-    # GH#68422 the keepdims widening follows whatever scalar nanops hands back,
+    # GH#68487 the keepdims widening follows whatever scalar nanops hands back,
     #  so a NaN that did not carry the column's own dtype made this disagree
     #  with dense, in either direction
     values = np.array([1, np.nan, 3], dtype=subtype)
