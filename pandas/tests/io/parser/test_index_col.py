@@ -402,6 +402,26 @@ def test_scalar_numeric_dtype_for_index_col(all_parsers, dtype, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "string"])
+def test_index_col_dtype_dict_missing_index_col_pyarrow(pyarrow_parser_only, dtype):
+    # GH#68041 an index_col given by name that is missing from a dict dtype
+    #  must not look the column up (indexing Arrow-backed columns by label
+    #  raised IndexError); the remaining dtype keys are applied afterwards
+    parser = pyarrow_parser_only
+    data = "a,b\n1,2\n3,4"
+    result = parser.read_csv(
+        StringIO(data),
+        index_col="a",
+        dtype={"b": dtype},
+        dtype_backend="pyarrow",
+    )
+    expected = pd.DataFrame(
+        {"b": pd.array([2, 4], dtype=dtype)},
+        index=pd.Index([1, 3], name="a", dtype="int64[pyarrow]"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_multiindex_columns_not_leading_index_col(all_parsers):
     # GH#38549
     parser = all_parsers
