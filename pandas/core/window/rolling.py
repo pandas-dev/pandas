@@ -2482,6 +2482,81 @@ class Rolling(RollingAndExpandingMixin):
             engine_kwargs=engine_kwargs,
         )
 
+    def prod(
+        self,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the rolling product.
+
+        This is equivalent to applying ``numpy.prod`` over each rolling window.
+        Missing values (NaN) are excluded from the calculation.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or
+              globally setting ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}``.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.rolling : Calling rolling with Series data.
+        DataFrame.rolling : Calling rolling with DataFrames.
+        Series.prod : Aggregating product for Series.
+        DataFrame.prod : Aggregating product for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba`
+        for extended documentation and performance considerations
+        for the Numba engine.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5])
+        >>> s.rolling(3).prod()
+        0     NaN
+        1     NaN
+        2     6.0
+        3    24.0
+        4    60.0
+        dtype: float64
+        """
+        if maybe_use_numba(engine):
+            if self.method == "table":
+                func = generate_manual_numpy_nan_agg_with_axis(np.nanprod)
+            else:
+                func = np.nanprod
+
+            return self.apply(
+                func,
+                raw=True,
+                engine=engine,
+                engine_kwargs=engine_kwargs,
+            )
+
+        window_func = window_aggregations.roll_prod
+        return self._apply(window_func, name="prod", numeric_only=numeric_only)
+
     def max(
         self,
         numeric_only: bool = False,
