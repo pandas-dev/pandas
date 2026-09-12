@@ -826,6 +826,26 @@ def test_bar_2_subplot_1_double_stacked(df_bar_data, df_bar_df, columns_used):
 
 
 @pytest.mark.parametrize(
+    "columns_used", [["A", "B", "C"], ["A", "C", "B"], ["D", "A", "C"]]
+)
+def test_bar_2_subplot_single_column_first_stacked(
+    df_bar_data, df_bar_df, columns_used
+):
+    # GH#67726 a single-column group ahead of a stacked group used to raise IndexError,
+    # because the offsets list only gains an entry for groups that are actually stacked.
+    df_bar_df_trimmed = df_bar_df[columns_used]
+    subplot_division = [(columns_used[0],), (columns_used[1], columns_used[2])]
+    ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind="bar", stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df_trimmed, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize(
     "subplot_division",
     [
         [("A", "B"), ("C", "D")],
