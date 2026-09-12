@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    Pandas4Warning,
+    PandasFutureWarning,
+)
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
@@ -202,7 +205,7 @@ def test_is_object():
 )
 def test_is_sparse(check_scipy):
     msg = "is_sparse is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+    with tm.assert_produces_warning(PandasFutureWarning, match=msg):
         assert com.is_sparse(SparseArray([1, 2, 3]))
 
         assert not com.is_sparse(np.array([1, 2, 3]))
