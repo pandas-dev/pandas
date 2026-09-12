@@ -465,7 +465,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Ratio of non-sparse points to total (dense) data points.
 
         This property returns the proportion of the data that is not sparse
-        (i.e., not equal to the fill value), as a value between 0 and 1.
+        (i.e., not equal to the fill value), as a value between 0 and 1. An
+        empty DataFrame has no density and returns ``nan``.
 
         See Also
         --------

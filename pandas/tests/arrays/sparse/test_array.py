@@ -1,9 +1,11 @@
 import re
+import sys
 
 import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.compat import PYPY
 
 import pandas as pd
 import pandas._testing as tm
@@ -331,6 +333,36 @@ class TestSparseArrayAnalytics:
         # sp_values, blocs, blengths
         assert result == 24
 
+    @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
+    def test_memory_usage_object_subtype(self):
+        # GH#68490 deep introspection raised TypeError on an object subtype
+        values = np.array(["aaaa"] * 1000 + ["b"], dtype=object)
+        arr = SparseArray(values, fill_value="aaaa")
+        ser = pd.Series(arr)
+        assert arr.memory_usage() == ser.memory_usage(index=False) == arr.nbytes
+
+        # only the stored values are introspected, not the dense expansion
+        expected = arr.nbytes + sum(sys.getsizeof(val) for val in arr.sp_values)
+        assert arr.memory_usage(deep=True) == expected
+        assert ser.memory_usage(index=False, deep=True) == expected
+        assert pd.Index(arr).memory_usage(deep=True) == expected
+        df = pd.DataFrame({"a": arr})
+        assert df.memory_usage(index=False, deep=True).iloc[0] == expected
+        assert sys.getsizeof(ser) > expected
+
+    def test_memory_usage_pypy_compat(self, monkeypatch):
+        # GH#46176 deep introspection uses sys.getsizeof, which always raises
+        # TypeError on PyPy; deep=True should fall back to the shallow result
+        arr = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="a")
+
+        monkeypatch.setattr("pandas.core.arrays.sparse.array.PYPY", True)
+        assert arr.memory_usage(deep=True) == arr.memory_usage()
+
+    def test_memory_usage_matches_nbytes(self):
+        # non-object subtypes have nothing to introspect
+        arr = SparseArray([1, 0, 0, 0, 2])
+        assert arr.memory_usage() == arr.memory_usage(deep=True) == arr.nbytes
+
     def test_asarray_datetime64(self):
         s = SparseArray(pd.to_datetime(["2012", None, None, "2013"]))
         np.asarray(s)
@@ -338,6 +370,11 @@ class TestSparseArrayAnalytics:
     def test_density(self):
         arr = SparseArray([0, 1])
         assert arr.density == 0.5
+
+    def test_density_empty(self):
+        # GH#68468
+        arr = SparseArray(np.array([], dtype="float64"))
+        assert np.isnan(arr.density)
 
     def test_npoints(self):
         arr = SparseArray([0, 1])
@@ -609,6 +646,41 @@ def test_array_object_datetimelike(kind, unit):
     # no gaps, so __array__ takes the sp_values shortcut
     no_gaps = SparseArray(values[::2])
     tm.assert_numpy_array_equal(np.asarray(no_gaps, dtype=object), expected[::2])
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimelike_nat_fill_value_normalized(kind, unit):
+    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it
+    #  behaves identically to the np.datetime64("NaT") spelling
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    values[1] = "NaT"
+
+    arr = SparseArray(values, fill_value=pd.NaT)
+    expected = SparseArray(values, fill_value=values[1])
+
+    assert arr.dtype == expected.dtype
+    assert arr.fill_value is not pd.NaT
+    tm.assert_sp_array_equal(arr, expected)
+
+    # these raised TypeError for the pd.NaT spelling, except np.asarray, which
+    #  returned object dtype for a timedelta64 subtype
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_numpy_array_equal(np.asarray(arr), values)
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype=object), pd.array(values).astype(object)
+    )
+    tm.assert_sp_array_equal(arr - arr, expected - expected)
+    tm.assert_sp_array_equal(arr == arr, expected == expected)
+    tm.assert_sp_array_equal(arr.unique(), expected.unique())
+    all_fill = np.full(2, "NaT", dtype=values.dtype)
+    tm.assert_sp_array_equal(
+        SparseArray(all_fill, fill_value=pd.NaT).take([0, 1], allow_fill=True),
+        SparseArray(all_fill, fill_value=values[1]).take([0, 1], allow_fill=True),
+    )
+    tm.assert_sp_array_equal(
+        arr.astype("Sparse[int64]"), expected.astype("Sparse[int64]")
+    )
 
 
 def test_array_interface(arr_data, arr):

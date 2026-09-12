@@ -1255,6 +1255,8 @@ class TestTimedeltaArraylikeAddSubOps:
 
         msg = "Addition/subtraction of integers"
         assert_invalid_addsub_type(tdarr, one, msg)
+        # GH#68452 np.bool_ is not caught by lib.is_integer
+        assert_invalid_addsub_type(tdarr, np.bool_(True), msg)
 
         # TODO: get inplace ops into assert_invalid_addsub_type
         with pytest.raises(TypeError, match=msg):
@@ -1262,16 +1264,30 @@ class TestTimedeltaArraylikeAddSubOps:
         with pytest.raises(TypeError, match=msg):
             tdarr -= one
 
-    def test_td64arr_add_sub_integer_array(self, box_with_array):
+    @pytest.mark.parametrize(
+        "values, dtype", [([4, 3, 2], "int64"), ([True, False, True], "bool")]
+    )
+    def test_td64arr_add_sub_integer_array(self, box_with_array, values, dtype):
         # GH#19959, deprecated GH#22535
         # GH#22696 for DataFrame case, check that we don't dispatch to numpy
         #  implementation, which treats int64 as m8[ns]
+        # GH#68452 bool is rejected like the other integer dtypes
         box = box_with_array
         xbox = np.ndarray if box is pd.array else box
 
         rng = pd.timedelta_range("1 days 09:00:00", freq="h", periods=3)
         tdarr = tm.box_expected(rng, box)
-        other = tm.box_expected([4, 3, 2], xbox)
+        other = tm.box_expected(np.array(values, dtype=dtype), xbox)
+
+        msg = "Addition/subtraction of integers and integer-arrays"
+        assert_invalid_addsub_type(tdarr, other, msg)
+
+    def test_td64arr_add_sub_masked_bool_array(self, index_or_series_or_array):
+        # GH#68452 the masked path reached _maybe_mask_result with a td64 result and
+        #  handed it back; only the dt64 case raised there
+        rng = pd.timedelta_range("1 days 09:00:00", freq="h", periods=3)
+        tdarr = index_or_series_or_array(rng)
+        other = pd.array([True, False, True], dtype="boolean")
 
         msg = "Addition/subtraction of integers and integer-arrays"
         assert_invalid_addsub_type(tdarr, other, msg)

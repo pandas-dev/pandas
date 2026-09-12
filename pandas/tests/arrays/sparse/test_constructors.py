@@ -245,6 +245,20 @@ class TestConstructors:
         assert dense.dtype == bool
         tm.assert_numpy_array_equal(dense, data)
 
+    @pytest.mark.parametrize("fill_value", [0, "A", False])
+    def test_constructor_object_dtype_na_stored(self, fill_value):
+        # GH#68439 gap detection compared pd.NA against the fill value and took
+        # the truth of the result, raising "boolean value of NA is ambiguous"
+        data = np.array([1, pd.NA], dtype=object)
+
+        arr = SparseArray(data, fill_value=fill_value)
+        assert arr.dtype == pd.SparseDtype(object, fill_value)
+        tm.assert_numpy_array_equal(
+            arr.sp_index.indices, np.array([0, 1], dtype=np.int32)
+        )
+        tm.assert_numpy_array_equal(np.asarray(arr), data)
+        tm.assert_numpy_array_equal(np.asarray(arr.isna()), np.array([False, True]))
+
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
         assert arr.dtype == pd.SparseDtype(np.bool_)
