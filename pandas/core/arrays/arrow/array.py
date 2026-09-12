@@ -1042,6 +1042,10 @@ class ArrowExtensionArray(
         return self._pa_array
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # the GH#62506 branch below returns without reaching
+        #  ExtensionArray.__array_ufunc__
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         if (
             not is_nan_na()
             and type(self) is ArrowExtensionArray

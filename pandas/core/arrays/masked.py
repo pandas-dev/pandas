@@ -848,6 +848,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if not isinstance(x, (*self._HANDLED_TYPES, BaseMaskedArray)):
                 return NotImplemented
 
+        # this path never reaches ExtensionArray.__array_ufunc__
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         # for binary ops, use our custom dunder methods
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs

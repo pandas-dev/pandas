@@ -1,4 +1,10 @@
 from collections import deque
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
 import re
 import string
 
@@ -6,6 +12,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -499,3 +506,122 @@ def test_np_trunc():
     result = np.trunc(ser)
     expected = pd.Series([-1.0, -0.0, 0.0, 1.0])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "datetime64[ns]",
+        "timedelta64[ns]",
+        "datetime64[ns, US/Pacific]",
+        "period[D]",
+        "Sparse[datetime64[ns]]",
+        pytest.param("timestamp[ns][pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_binary_logical_ufunc_datetimelike_raises(func, box, dtype):
+    # GH#68524 the ufunc spelling of &, |, ^, which GH#68452 made raise.  The
+    #  numpy-dtype operands used to be truthiness-tested on their i8 values; the
+    #  ones np.asarray flattens to object leaked the scalar itself into the result
+    left = pd.Series([True, False], dtype="bool")
+    values = ["1D", "2D"] if "timedelta" in dtype else ["2016-01-01", "2016-01-02"]
+    right = box(pd.array(values, dtype=dtype))
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, right)
+    with pytest.raises(TypeError, match=msg):
+        func(right, left)
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize(
+    "dtype", ["datetime64[ns]", "datetime64[ns, US/Pacific]", "period[D]"]
+)
+def test_logical_not_ufunc_datetimelike_raises(box, dtype):
+    # GH#68524 the unary one.  numpy already raised for datetime64; the dtypes it
+    #  flattens to object returned all-False
+    obj = box(pd.array(["2016-01-01", "2016-01-02"], dtype=dtype))
+
+    with pytest.raises(TypeError, match="cannot perform the numpy op logical_not"):
+        np.logical_not(obj)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize(
+    "scalar",
+    [
+        pd.Timestamp("2016-01-01"),
+        pd.Timestamp("2016-01-01", tz="US/Pacific"),
+        pd.Timedelta(days=1),
+        pd.Period("2016-01-01", "D"),
+        pd.NaT,
+        np.datetime64("2016-01-01"),
+        np.timedelta64(1, "D"),
+        pd.offsets.Day(),
+        datetime(2016, 1, 1),
+        date(2016, 1, 1),
+        time(12, 0),
+        timedelta(days=1),
+    ],
+    ids=lambda x: type(x).__name__,
+)
+def test_binary_logical_ufunc_datetimelike_scalar_raises(func, scalar):
+    # GH#68524 -- GH#68452 left scalar operands to the paths that already rejected
+    #  them for &/|/^, and the ufuncs have no such path
+    left = pd.Series([True, False])
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, scalar)
+    with pytest.raises(TypeError, match=msg):
+        func(scalar, left)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("left_dtype", ["bool", "boolean", "Int64", "Sparse[bool]"])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+def test_binary_logical_ufunc_datetimelike_left_operand_boxes(func, left_dtype, box):
+    # GH#68524 an M8 ndarray has no __array_ufunc__ override to raise first, so
+    #  it is what makes each box fall back on its own guard
+    left = box(pd.array([True, False], dtype=left_dtype))
+    right = np.array(["2016-01-01", "2016-01-02"], dtype="M8[ns]")
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, right)
+    with pytest.raises(TypeError, match=msg):
+        func(right, left)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("left_dtype", ["double[pyarrow]", "int64[pyarrow]"])
+@td.skip_if_no("pyarrow")
+def test_binary_logical_ufunc_datetimelike_arrow_nan_na(func, left_dtype):
+    # GH#68524 the numeric fast path added by GH#62506 returns without reaching
+    #  ExtensionArray.__array_ufunc__, so it needs a guard of its own
+    left = pd.array([1, 2], dtype=left_dtype)
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        with pytest.raises(TypeError, match=msg):
+            func(left, pd.Timestamp("2016-01-01"))
+        with pytest.raises(TypeError, match=msg):
+            func(left, np.array(["2016-01-01", "2016-01-02"], dtype="M8[ns]"))
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize(
+    "dtype",
+    ["datetime64[ns]", "timedelta64[ns]", "datetime64[ns, US/Pacific]", "period[D]"],
+)
+def test_binary_logical_ufunc_reduce_datetimelike_raises(func, dtype):
+    # GH#68524 the reduce method took the same fallback as __call__
+    values = ["1D", "2D"] if "timedelta" in dtype else ["2016-01-01", "2016-01-02"]
+    ser = pd.Series(pd.array(values, dtype=dtype))
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func.reduce(ser)

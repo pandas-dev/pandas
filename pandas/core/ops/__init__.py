@@ -23,6 +23,7 @@ from pandas.core.ops.common import (
 )
 from pandas.core.ops.invalid import (
     disallow_datetimelike_logical_op,
+    disallow_datetimelike_logical_ufunc,
     invalid_comparison,
 )
 from pandas.core.ops.mask_ops import (
@@ -73,6 +74,7 @@ __all__ = [
     "comp_method_OBJECT_ARRAY",
     "comparison_op",
     "disallow_datetimelike_logical_op",
+    "disallow_datetimelike_logical_ufunc",
     "fill_binop",
     "get_array_op",
     "get_op_result_name",
