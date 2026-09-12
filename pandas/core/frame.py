@@ -23,7 +23,6 @@ from typing import (
     Any,
     Literal,
     Self,
-    TypeGuard,
     cast,
     overload,
 )
@@ -5480,12 +5479,12 @@ class DataFrame(NDFrame, OpsMixin):
         * A dtype instance (e.g. ``np.dtype("int32")`` or
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
-          of dtypes. An under-specified instance, such as a unitless
-          ``np.dtype("datetime64")``, a ``pd.CategoricalDtype(ordered=True)``
-          with no categories, or a ``pd.IntervalDtype("int64")`` with no
-          ``closed``, selects the family its given attributes name; a bare
-          ``pd.CategoricalDtype()`` names none, so it selects every
-          categorical column, as does the equivalent ``ordered=False``
+          of dtypes. An instance must therefore pin every attribute down:
+          ``pd.CategoricalDtype()`` with no categories or
+          ``pd.IntervalDtype("int64")`` with no ``closed`` raises, since no
+          column has such a dtype. Pass the class or the bare string --
+          ``pd.CategoricalDtype`` or ``"category"``, ``pd.IntervalDtype`` or
+          ``"interval"`` -- to select the whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5578,13 +5577,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         def to_callable(
             dtypes,
-        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj | str]]:
+        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
             # We convert the user-provided dtypes (which may be dtype instances,
             # dtype classes, dtype.types, or strings) into our dtype predicate,
             # along with the set of objects they resolve to -- dtype instances,
-            # dtype.type-style objects, ExtensionDtype classes/instances for
-            # EA-name strings, or an ``interval_spec_key`` string (used for
-            # validation below).
+            # dtype.type-style objects, or ExtensionDtype classes/instances
+            # for EA-name strings (used for validation below).
 
             def matches_number(dtype_obj: DtypeObj) -> bool:
                 # All numeric dtypes, excluding bool dtypes
@@ -5596,13 +5594,6 @@ class DataFrame(NDFrame, OpsMixin):
                         and issubclass(dtype_obj.type, np.number)
                     )
                     or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
-                )
-
-            def matches_categorical_ordered(dtype_obj: DtypeObj) -> bool:
-                # GH#40234: an ordered CategoricalDtype with no categories
-                # names the ordered-categorical family, not one exact dtype
-                return isinstance(dtype_obj, CategoricalDtype) and bool(
-                    dtype_obj.ordered
                 )
 
             def matches_type(
@@ -5648,58 +5639,35 @@ class DataFrame(NDFrame, OpsMixin):
                         f"'s', 'ms', 'us', 'ns', or {unitless_spec!r}"
                     )
 
-            def is_partial_interval(target: DtypeObj) -> TypeGuard[IntervalDtype]:
-                # GH#66119, GH#66120, GH#68491: an interval spec that leaves
-                # ``closed`` ("interval[int64]"), the subtype's unit
-                # ("interval[datetime64]") or the subtype itself open describes
-                # no dtype a column can have, so ``==`` matches nothing -- or,
-                # with the subtype omitted, every interval column.
-                if not isinstance(target, IntervalDtype):
-                    return False
-                if target.subtype is None:
-                    # a bare IntervalDtype() does name the whole family
-                    return target.closed is not None
-                return target.closed is None or is_unitless_datetimelike(target.subtype)
-
-            def interval_spec_key(target: IntervalDtype) -> DtypeObj | str:
-                # An interval spec hashes and compares by its ``str``, which
-                # collapses to plain "interval" once the subtype is None -- so
-                # any two subtype-less specs collide in ``resolved`` and read as
-                # an include/exclude overlap.
-                if target.subtype is None:
-                    return f"IntervalDtype(closed={target.closed!r})"
-                return target
-
-            def matches_partial_interval(
-                target: IntervalDtype,
-            ) -> Callable[[DtypeObj], bool]:
-                # Each component the spec leaves open matches any value.
-                generic_unit = target.subtype is not None and is_unitless_datetimelike(
-                    target.subtype
-                )
-
-                def func(dtype_obj: DtypeObj) -> bool:
-                    if not isinstance(dtype_obj, IntervalDtype):
-                        return False
-                    if target.closed is not None and dtype_obj.closed != target.closed:
-                        return False
-                    if target.subtype is None:
-                        return True
-                    if generic_unit:
-                        return dtype_obj.subtype.type is target.subtype.type
-                    return dtype_obj.subtype == target.subtype
-
-                return func
-
-            def check_interval_subtype(target: IntervalDtype) -> None:
-                # An interval subtype names a resolution the same way a
-                # top-level spec does, so reject the impossible ones here too.
+            def check_interval_spec(target: IntervalDtype) -> None:
+                # GH#40234: an instance selects one exact dtype, so every
+                # attribute must be pinned down; no column ever has a None
+                # subtype or ``closed``.
                 subtype = target.subtype
-                if lib.is_np_dtype(subtype, "mM") and not is_unitless_datetimelike(
-                    subtype
-                ):
-                    unitless = IntervalDtype(np.dtype(subtype.type), target.closed)
-                    check_resolution(subtype, str(target), str(unitless))
+                if subtype is None:
+                    raise ValueError(
+                        "an interval spec must give a subtype and 'closed', "
+                        "e.g. pd.IntervalDtype('int64', 'left'); pass "
+                        "pd.IntervalDtype or 'interval' to select every "
+                        "interval column"
+                    )
+                if lib.is_np_dtype(subtype, "mM"):
+                    if is_unitless_datetimelike(subtype):
+                        raise ValueError(
+                            f"{target!r} does not name a specific dtype; give "
+                            "the subtype a resolution, e.g. "
+                            f"'interval[{subtype.type.__name__}[us], right]', "
+                            "or pass 'interval' to select every interval column"
+                        )
+                    # a subtype names a resolution the same way a top-level
+                    # spec does, so reject the impossible ones here too
+                    check_resolution(subtype, str(target), "interval")
+                if target.closed is None:
+                    raise ValueError(
+                        f"{target!r} does not name a specific dtype; pass "
+                        f"'closed' too, e.g. 'interval[{subtype}, right]', or "
+                        "'interval' to select every interval column"
+                    )
 
             def matches_np_dtype(
                 np_dtype: np.dtype,
@@ -5725,7 +5693,7 @@ class DataFrame(NDFrame, OpsMixin):
             instances: list[DtypeObj] = []
             ea_funcs: list[Callable[[DtypeObj], bool]] = []
             klasses: list[type[ExtensionDtype]] = []
-            resolved: set[type | DtypeObj | str] = set()
+            resolved: set[type | DtypeObj] = set()
             for dtype in dtypes:
                 if dtype is None:
                     # GH#28943: a bare include=None means "not specified", but a
@@ -5753,7 +5721,19 @@ class DataFrame(NDFrame, OpsMixin):
                             "use 'str' or 'object' instead"
                         )
                     if isinstance(dtype, IntervalDtype):
-                        check_interval_subtype(dtype)
+                        check_interval_spec(dtype)
+                    elif isinstance(dtype, CategoricalDtype) and (
+                        dtype.categories is None
+                    ):
+                        # GH#40234: no column has categories=None, and
+                        # ordered=False is the constructor default, so an
+                        # ordered=False spec cannot be read as "unordered only"
+                        raise ValueError(
+                            "a CategoricalDtype spec must give categories, "
+                            "e.g. pd.CategoricalDtype(['a', 'b']); pass "
+                            "pd.CategoricalDtype or 'category' to select every "
+                            "categorical column"
+                        )
                     if lib.is_np_dtype(dtype, "mM"):
                         if is_unitless_datetimelike(dtype):
                             # unitless np.dtype("datetime64") is not a specific
@@ -5762,24 +5742,6 @@ class DataFrame(NDFrame, OpsMixin):
                             funcs.append(matches_type(dtype.type))
                             continue
                         check_resolution(dtype, dtype.name, dtype.type.__name__)
-                    elif isinstance(dtype, CategoricalDtype) and (
-                        dtype.categories is None
-                    ):
-                        if dtype.ordered:
-                            resolved.add(dtype)
-                            ea_funcs.append(matches_categorical_ordered)
-                        else:
-                            # a bare CategoricalDtype() is not a specific dtype,
-                            # so match all categorical columns, as with the
-                            # "category" string
-                            resolved.add(dtype.type)
-                            funcs.append(matches_type(dtype.type))
-                        continue
-                    elif is_partial_interval(dtype):
-                        # GH#66119
-                        resolved.add(interval_spec_key(dtype))
-                        ea_funcs.append(matches_partial_interval(dtype))
-                        continue
                     resolved.add(dtype)
                     instances.append(dtype)
 
@@ -5876,8 +5838,6 @@ class DataFrame(NDFrame, OpsMixin):
                             if isinstance(dtype, str) and isinstance(
                                 pdtype, ExtensionDtype
                             ):
-                                if isinstance(pdtype, IntervalDtype):
-                                    check_interval_subtype(pdtype)
                                 # GH#40234, GH#59888: a string naming a specific
                                 # ExtensionDtype selects that exact dtype rather
                                 # than anything sharing its ``dtype.type``. A
@@ -5886,15 +5846,10 @@ class DataFrame(NDFrame, OpsMixin):
                                 # a bare name (e.g. "Int64", "category") names
                                 # the dtype's class and matches any instance.
                                 if "[" in dtype:
-                                    if is_partial_interval(pdtype):
-                                        # GH#66120
-                                        resolved.add(interval_spec_key(pdtype))
-                                        ea_funcs.append(
-                                            matches_partial_interval(pdtype)
-                                        )
-                                    else:
-                                        resolved.add(pdtype)
-                                        ea_funcs.append(matches_ea_instance(pdtype))
+                                    if isinstance(pdtype, IntervalDtype):
+                                        check_interval_spec(pdtype)
+                                    resolved.add(pdtype)
+                                    ea_funcs.append(matches_ea_instance(pdtype))
                                 else:
                                     resolved.add(type(pdtype))
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
