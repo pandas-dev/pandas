@@ -64,7 +64,6 @@ if TYPE_CHECKING:
         "categories",
         "ordered",
         "_reverse_indexer",
-        "searchsorted",
         "min",
         "max",
     ],

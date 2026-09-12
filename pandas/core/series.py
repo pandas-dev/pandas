@@ -3524,7 +3524,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         >>> ser.searchsorted(4)
-        np.int64(3)
+        3
         >>> ser.searchsorted([0, 4])
         array([0, 3])
         >>> ser.searchsorted([1, 3], side="left")
@@ -3538,7 +3538,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2   2000-03-13
         dtype: datetime64[us]
         >>> ser.searchsorted("3/14/2000")
-        np.int64(3)
+        3
         >>> ser = pd.Categorical(
         ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
         ... )
