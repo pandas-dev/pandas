@@ -386,7 +386,7 @@ class TestArgmaxArgmin:
     def test_all_na_still_raises(self, method, fill_value):
         # GH#68462 the two ways the fill value fails to be a candidate: it is NA,
         #  or every position is stored so it holds none
-        msg = f"attempt to get {method} of an empty sequence"
+        msg = "Encountered all NA values"
         arr = SparseArray([np.nan, np.nan], fill_value=fill_value)
         with pytest.raises(ValueError, match=msg):
             getattr(arr, method)()

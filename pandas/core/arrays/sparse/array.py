@@ -2386,8 +2386,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if len(non_nans) == 0 and not self._null_fill_value and self.sp_index.ngaps:
             # No stored value survives the mask, so the fill value is the only
-            # candidate; if it is NA or holds no position, func() raises. GH#68462
+            # candidate; if it is NA or holds no position, the all-NA check
+            # below raises. GH#68462
             return self._first_fill_value_loc()
+
+        if not len(non_nans) and len(self) and self.isna().all():
+            # mask covers sp_values only, which is empty when every value is
+            # an NA fill value, so the all-NA check has to look at the array
+            raise ValueError("Encountered all NA values")
 
         _candidate = non_nan_idx[func(non_nans)]
         candidate = index[_candidate]
