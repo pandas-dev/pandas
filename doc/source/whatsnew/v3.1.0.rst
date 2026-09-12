@@ -1193,6 +1193,7 @@ Other
 ^^^^^
 
 - Bug in :class:`DataFrame` constructor where passing the same :class:`Index` object as both ``index`` and ``columns`` shared a single object between the two axes, so mutating metadata such as ``names`` on one would also change the other (:issue:`42934`)
+- Bug in :class:`PyObjectHashTable` that would silently suppress exceptions raised from ``__hash__`` and ``__eq__`` methods defined in custom classes used as index keys (:issue:`57052`)
 - Bug in :func:`eval` and :meth:`DataFrame.eval` where passing a :class:`Series` or :class:`DataFrame` as ``expr`` silently parsed its (possibly truncated) repr instead of raising, producing a confusing error (:issue:`16289`)
 - Bug in :func:`option_context` where deprecation warnings pointed to ``contextlib.__enter__`` instead of user code (:issue:`63235`)
 - Bug in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_index_equal` where the ``first diff`` line of the failure message did not quote strings, so a string-vs-number mismatch such as ``"1"`` against ``1`` was reported as ``1 != 1`` (:issue:`37488`)
