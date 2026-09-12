@@ -1790,7 +1790,7 @@ class EABackedBlock(Block):
             if not isinstance(indexer, tuple):
                 indexer = (indexer, slice(None))
             if len(indexer) == 2:
-                # GH#68503 the swap transposes the selection only when the
+                # GH#68521 the swap transposes the selection only when the
                 #  entries index separate axes: an integer entry drops one, and
                 #  two advanced indexers broadcast against each other.
                 transposed = any(isinstance(x, slice) for x in indexer) and not any(
@@ -1799,7 +1799,7 @@ class EABackedBlock(Block):
                 indexer = indexer[::-1]
             if transposed:
                 if is_list_like(value) and not isinstance(value, np.ndarray):
-                    # GH#68503 the reorientation below needs a reshape. Not
+                    # GH#68521 the reorientation below needs a reshape. Not
                     #  _validate_setitem_value: it unboxes, so the assignment
                     #  would re-validate i8 ordinals against PeriodDtype.
                     try:
@@ -1824,7 +1824,7 @@ class EABackedBlock(Block):
                 self, NDArrayBackedExtensionBlock
             ):
                 if values.ndim == 2:
-                    # GH#68503 a 1D block leaks the same misleading report, but
+                    # GH#68521 a 1D block leaks the same misleading report, but
                     #  giving it this one would change the exception type of
                     #  Series setitem for four dtypes, so it is left alone here.
                     target_shape = _unbroadcastable_shape(values, indexer, value)

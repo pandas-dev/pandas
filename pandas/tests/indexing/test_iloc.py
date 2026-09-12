@@ -2239,7 +2239,7 @@ def test_iloc_setitem_series_boolean_index_row_key():
 
 @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
 def test_iloc_setitem_2d_ea_block_1d_value_broadcasts(dtype):
-    # GH#68503 the 2D datetimelike block stores columns first, so a 1-D value
+    # GH#68521 the 2D datetimelike block stores columns first, so a 1-D value
     #  was broadcast down rows instead of across the selected columns
     arr = np.arange(12).reshape(4, 3).astype("i8")
     df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
@@ -2253,7 +2253,7 @@ def test_iloc_setitem_2d_ea_block_1d_value_broadcasts(dtype):
 
 @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
 def test_iloc_setitem_2d_ea_block_1d_value_strided_columns(dtype):
-    # GH#68503 when the value's length matched the selected row count the
+    # GH#68521 when the value's length matched the selected row count the
     #  wrong broadcast wrote silently, putting each value in the wrong cells
     arr = np.arange(12).reshape(4, 3).astype("i8")
     df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
@@ -2339,7 +2339,7 @@ def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
     ],
 )
 def test_iloc_setitem_2d_ea_block_1d_value_not_ndarray(box):
-    # GH#68503 the reorientation has to reach a value that is not an ndarray;
+    # GH#68521 the reorientation has to reach a value that is not an ndarray;
     #  these spellings wrote the wrong cells silently
     arr = np.arange(12).reshape(4, 3).astype("i8")
     df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
@@ -2352,7 +2352,7 @@ def test_iloc_setitem_2d_ea_block_1d_value_not_ndarray(box):
 
 
 def test_iloc_setitem_2d_ea_block_2d_value_two_list_keys():
-    # GH#68503 two list keys go through np.ix_, and swapping them to the block's
+    # GH#68521 two list keys go through np.ix_, and swapping them to the block's
     #  layout leaves the selection alone -- the value must not be transposed
     arr = np.arange(12).reshape(4, 3).astype("i8")
     df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
@@ -2367,7 +2367,7 @@ def test_iloc_setitem_2d_ea_block_2d_value_two_list_keys():
 
 @pytest.mark.parametrize("col_key", [slice(None, None, -1), [2, 1, 0]])
 def test_iloc_setitem_2d_ea_block_shape_mismatch_message(col_key):
-    # GH#68503 a value that cannot be broadcast is a shape problem; the upcast
+    # GH#68521 a value that cannot be broadcast is a shape problem; the upcast
     #  fallback reported it as a datetime resolution one. The two column keys
     #  reach the message through the transposing and non-transposing swaps.
     arr = np.arange(12).reshape(4, 3).astype("i8")
@@ -2379,7 +2379,7 @@ def test_iloc_setitem_2d_ea_block_shape_mismatch_message(col_key):
 
 
 def test_iloc_setitem_2d_ea_block_length_one_value_is_not_a_shape_error():
-    # GH#68503 assignment drops a leading length-1 axis that broadcasting alone
+    # GH#68521 assignment drops a leading length-1 axis that broadcasting alone
     #  does not, so a length-1 value into one cell is not a shape failure. The
     #  raise it does get is a separate bug.
     df = pd.DataFrame(
@@ -2391,7 +2391,7 @@ def test_iloc_setitem_2d_ea_block_length_one_value_is_not_a_shape_error():
 
 
 def test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message():
-    # GH#68503 only a 2D block adapts the indexer to its layout, so the new
+    # GH#68521 only a 2D block adapts the indexer to its layout, so the new
     #  broadcast message must not displace the dtype one on a Series
     ser = pd.Series(np.arange(4).astype("i8").view("M8[s]"))
 
