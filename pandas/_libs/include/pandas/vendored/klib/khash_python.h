@@ -350,7 +350,8 @@ static inline bool is_hashable(PyObject *o) {
     return false;
   }
   PyTypeObject *tp = Py_TYPE(o);
-  return tp->tp_hash != NULL && tp->tp_hash != PyObject_HashNotImplemented;
+  hashfunc tp_hash_slot = (hashfunc)PyType_GetSlot(tp, Py_tp_hash);
+  return tp_hash_slot != NULL && tp_hash_slot != PyObject_HashNotImplemented;
 }
 
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
