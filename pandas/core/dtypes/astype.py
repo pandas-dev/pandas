@@ -31,6 +31,7 @@ from pandas.core.dtypes.dtypes import (
     NumpyEADtype,
     PeriodDtype,
 )
+from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -177,6 +178,24 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
         if copy:
             return values.copy()
         return values
+
+    if (
+        isinstance(dtype, CategoricalDtype)
+        and dtype.categories is not None
+        and not isinstance(values.dtype, CategoricalDtype)
+    ):
+        null_mask = np.asarray(isna(values))
+        values = values[~null_mask]
+        if len(values):
+            values = astype_array(values, dtype.categories.dtype, copy=False)
+
+        cls = dtype.construct_array_type()
+        result = cls._from_sequence(values, dtype=dtype, copy=copy)
+        if null_mask.any():
+            codes = -np.ones(null_mask.shape, dtype=result.codes.dtype)
+            codes[~null_mask] = result.codes
+            result = cls.from_codes(codes, dtype=dtype, validate=False)
+        return result
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
