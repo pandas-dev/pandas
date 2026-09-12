@@ -303,13 +303,8 @@ def test_mul(any_string_dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_add_strings(any_string_dtype, request, using_infer_string):
+def test_add_strings(any_string_dtype):
     dtype = any_string_dtype
-    if dtype == object and using_infer_string:
-        # Only fails on objects while using infer_string
-        mark = pytest.mark.xfail(reason="object addition returns StringDtype")
-        request.applymarker(mark)
-
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
     assert arr.__add__(df) is NotImplemented
@@ -323,7 +318,7 @@ def test_add_strings(any_string_dtype, request, using_infer_string):
     tm.assert_frame_equal(result, expected)
 
 
-def test_add_frame(any_string_dtype, request, using_infer_string):
+def test_add_frame(any_string_dtype, using_infer_string):
     if not using_infer_string:
         pytest.skip(
             "This doesn't fail on this build, but this build is going away, "
@@ -331,9 +326,6 @@ def test_add_frame(any_string_dtype, request, using_infer_string):
         )
 
     dtype = any_string_dtype
-    if dtype == object:
-        marker = pytest.mark.xfail(reason="processed as NumpyEADtype, separate issue")
-        request.applymarker(marker)
 
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]], dtype=dtype)
