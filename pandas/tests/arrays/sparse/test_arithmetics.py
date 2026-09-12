@@ -513,11 +513,12 @@ def test_logical_op_masked_other_without_na(op):
 def test_logical_op_non_boolean_masked_other(op):
     # GH#68483 only a masked *boolean* operand is deferred to; the other masked
     #  dtypes reach _arith_method, which cannot consume a SparseArray
-    values = np.array([1, 0, 3, 0])
+    # int64 explicitly: on 32-bit the default int would not match the int64 result
+    values = np.array([1, 0, 3, 0], dtype="int64")
     other = pd.array([1, 2, 3, 4], dtype="Int64")
 
     result = op(SparseArray(values), other)
-    expected = op(values, np.array([1, 2, 3, 4]))
+    expected = op(values, other.to_numpy(dtype="int64"))
     assert isinstance(result.dtype, pd.SparseDtype)
     tm.assert_numpy_array_equal(result.to_dense(), expected)
 
