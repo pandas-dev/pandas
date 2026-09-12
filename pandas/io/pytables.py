@@ -2968,10 +2968,11 @@ class IndexCol:
             # empty categories cannot be written as metadata, still round-trips
             # as categorical rather than as raw integer codes. GH#65576
             _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
-        if self.nan_rep is not None:
-            # GH#9604: persist the string-Index NaN sentinel so select() can
-            # restore missing values on read (see IndexCol.convert).
-            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
+        if self.kind == "string":
+            # GH#9604: the NaN sentinel, empty when the index has no missing
+            # value, so that its absence marks an older file. Table.indexables
+            # reads it back through _read_index_nan_rep.
+            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep or "")
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -3738,10 +3739,9 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
 
-            if converted.nan_rep is not None:
-                # GH#9604: persist the string-Index NaN sentinel so read_index
-                # can restore missing values (see read_index_node).
-                node._v_attrs.nan_rep = converted.nan_rep
+            if converted.kind == "string":
+                # GH#9604: the NaN sentinel, as in IndexCol.set_attr
+                node._v_attrs.nan_rep = converted.nan_rep or ""
 
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
@@ -3772,8 +3772,9 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
 
-            if conv_level.nan_rep is not None:
-                node._v_attrs.nan_rep = conv_level.nan_rep
+            if conv_level.kind == "string":
+                # GH#9604: the NaN sentinel, as in IndexCol.set_attr
+                node._v_attrs.nan_rep = conv_level.nan_rep or ""
 
             # write the name
             setattr(node._v_attrs, f"{key}_name{name}", name)
@@ -3834,8 +3835,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        # GH#9604: per-index string NaN sentinel (absent for old files)
-        nan_rep = getattr(node._v_attrs, "nan_rep", None)
+        nan_rep = _read_index_nan_rep(attrs) if kind == "string" else None
 
         if kind == "string" and using_string_dtype():
             # GH#9604: once the sentinel is substituted back to NaN, dtype
@@ -4529,8 +4529,11 @@ class Table(Fixed):
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
-            # GH#9604: per-index string NaN sentinel (absent for old files)
-            nan_rep = getattr(table_attrs, f"{name}_nan_rep", None)
+            nan_rep = (
+                _read_index_nan_rep(table_attrs, f"{name}_nan_rep")
+                if kind == "string"
+                else None
+            )
 
             index_col = IndexCol(
                 name=name,
@@ -4898,6 +4901,17 @@ class Table(Fixed):
         if table_exists:
             existing_index_col = self.index_axes[0]
             existing_nan_rep = existing_index_col.nan_rep
+            if existing_index_col.kind == "string" and not hasattr(
+                self.table.attrs, existing_index_col.nan_rep_attr
+            ):
+                # _read_index_nan_rep assumes "nan" is the sentinel of a file
+                # written before one was persisted, which only holds if such a
+                # value is stored. Without one the column has no sentinel to
+                # protect, so a literal "nan" may still be appended to it. Test
+                # the raw bytes rather than decoding a possibly large column.
+                stored = getattr(self.table.cols, existing_index_col.cname)[:]
+                if not (stored == existing_nan_rep.encode(self.encoding)).any():
+                    existing_nan_rep = None
             if (
                 existing_nan_rep is None
                 and existing_index_col.kind == "string"
@@ -5942,6 +5956,19 @@ def _set_tz(
     dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
+
+
+def _read_index_nan_rep(attrs, name: str = "nan_rep") -> str | None:
+    """
+    Read back the NaN sentinel persisted for a string Index column (GH#9604).
+
+    The writer records the attribute for every string Index, empty when the
+    index had no missing value, so its absence means the file predates the
+    sentinel. Such a file stored a NaN as the bare string "nan", which is how
+    pandas read it back before the sentinel existed.
+    """
+    nan_rep = getattr(attrs, name, "nan")
+    return nan_rep or None
 
 
 def _make_index_nan_rep(
