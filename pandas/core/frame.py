@@ -5459,6 +5459,8 @@ class DataFrame(NDFrame, OpsMixin):
         ValueError
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
+            * If a datetime64/timedelta64 spec, or an interval spec's subtype,
+              names a resolution no column can have, e.g. ``'datetime64[10s]'``
         TypeError
             * If any kind of string dtype is passed in.
 
@@ -5630,6 +5632,19 @@ class DataFrame(NDFrame, OpsMixin):
                     and np.datetime_data(dtype_obj)[0] == "generic"
                 )
 
+            def check_resolution(
+                np_dtype: np.dtype, spec: str, unitless_spec: str
+            ) -> None:
+                # A multiple of a unit ("10s") or a resolution pandas does not
+                # support ("Y") is not a dtype any column can have (GH#40234).
+                # Callers handle the unitless case first.
+                if not is_supported_dtype(np_dtype):
+                    raise ValueError(
+                        f"{spec!r} is not a supported "
+                        "datetime64/timedelta64 resolution; pass "
+                        f"'s', 'ms', 'us', 'ns', or {unitless_spec!r}"
+                    )
+
             def is_partial_interval(target: DtypeObj) -> TypeGuard[IntervalDtype]:
                 # GH#66119, GH#66120: an interval spec that gives a subtype but
                 # leaves ``closed`` ("interval[int64]") or the subtype's unit
@@ -5660,6 +5675,16 @@ class DataFrame(NDFrame, OpsMixin):
                     return dtype_obj.subtype == target.subtype
 
                 return func
+
+            def check_interval_subtype(target: IntervalDtype) -> None:
+                # An interval subtype names a resolution the same way a
+                # top-level spec does, so reject the impossible ones here too.
+                subtype = target.subtype
+                if lib.is_np_dtype(subtype, "mM") and not is_unitless_datetimelike(
+                    subtype
+                ):
+                    unitless = IntervalDtype(np.dtype(subtype.type), target.closed)
+                    check_resolution(subtype, str(target), str(unitless))
 
             def matches_np_dtype(
                 np_dtype: np.dtype,
@@ -5712,22 +5737,16 @@ class DataFrame(NDFrame, OpsMixin):
                             "numpy string dtypes are not allowed, "
                             "use 'str' or 'object' instead"
                         )
+                    if isinstance(dtype, IntervalDtype):
+                        check_interval_subtype(dtype)
                     if lib.is_np_dtype(dtype, "mM"):
-                        unit, count = np.datetime_data(dtype)
-                        if unit == "generic":
+                        if is_unitless_datetimelike(dtype):
                             # unitless np.dtype("datetime64") is not a specific
                             # dtype, so match the family, as with np.datetime64
                             resolved.add(dtype.type)
                             funcs.append(matches_type(dtype.type))
                             continue
-                        if count != 1 or unit not in ("s", "ms", "us", "ns"):
-                            # no column can ever have this dtype
-                            raise ValueError(
-                                f"{dtype.name!r} is not a supported "
-                                "datetime64/timedelta64 resolution; pass "
-                                "'s', 'ms', 'us', 'ns', or "
-                                f"{dtype.type.__name__!r}"
-                            )
+                        check_resolution(dtype, dtype.name, dtype.type.__name__)
                     elif isinstance(dtype, CategoricalDtype) and (
                         dtype.categories is None
                     ):
@@ -5841,6 +5860,8 @@ class DataFrame(NDFrame, OpsMixin):
                             if isinstance(dtype, str) and isinstance(
                                 pdtype, ExtensionDtype
                             ):
+                                if isinstance(pdtype, IntervalDtype):
+                                    check_interval_subtype(pdtype)
                                 # GH#40234, GH#59888: a string naming a specific
                                 # ExtensionDtype selects that exact dtype rather
                                 # than anything sharing its ``dtype.type``. A
@@ -5863,25 +5884,18 @@ class DataFrame(NDFrame, OpsMixin):
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
                                 continue
                             if lib.is_np_dtype(pdtype, "mM"):
-                                unit, count = np.datetime_data(pdtype)
                                 # a unitless datetime64/timedelta64 falls
                                 # through to a family match on pdtype.type
-                                if unit != "generic":
+                                if not is_unitless_datetimelike(pdtype):
                                     # byteorder is not part of what a string
                                     # spec selects: ">i8" selects every int64
                                     # column through the pdtype.type path below,
                                     # so canonicalize the spec here and let
                                     # matches_np_dtype normalize the column
                                     pdtype = pdtype.newbyteorder("=")
-                                    if count != 1 or not is_supported_dtype(pdtype):
-                                        # a multiple of a unit (e.g. "10s") is
-                                        # not a resolution any column can have
-                                        raise ValueError(
-                                            f"{pdtype.name!r} is not a supported "
-                                            "datetime64/timedelta64 resolution; "
-                                            "pass 's', 'ms', 'us', 'ns', or "
-                                            f"{pdtype.type.__name__!r}"
-                                        )
+                                    check_resolution(
+                                        pdtype, pdtype.name, pdtype.type.__name__
+                                    )
                                     # a specific unit (s, ms, us, ns) matches
                                     # only that exact resolution (GH#40234)
                                     resolved.add(pdtype)
