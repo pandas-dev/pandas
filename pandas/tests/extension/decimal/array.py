@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import decimal
 import numbers
+import operator
 import sys
 from typing import TYPE_CHECKING
 
@@ -24,7 +25,10 @@ from pandas.api.types import (
     is_list_like,
     is_scalar,
 )
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    roperator,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -304,6 +308,28 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     #  keyword in its fillna method.
     def fillna(self, value=None, limit=None):
         return super().fillna(value=value, limit=limit, copy=True)
+
+    @classmethod
+    def _add_arithmetic_ops(cls):
+        for op_name, op_func in [
+            ("__add__", operator.add),
+            ("__radd__", roperator.radd),
+            ("__sub__", operator.sub),
+            ("__rsub__", roperator.rsub),
+            ("__mul__", operator.mul),
+            ("__rmul__", roperator.rmul),
+            ("__pow__", operator.pow),
+            ("__rpow__", roperator.rpow),
+            ("__mod__", operator.mod),
+            ("__rmod__", roperator.rmod),
+            ("__floordiv__", operator.floordiv),
+            ("__rfloordiv__", roperator.rfloordiv),
+            ("__truediv__", operator.truediv),
+            ("__rtruediv__", roperator.rtruediv),
+            ("__divmod__", divmod),
+            ("__rdivmod__", roperator.rdivmod),
+        ]:
+            setattr(cls, op_name, cls._create_arithmetic_method(op_func))
 
 
 def to_decimal(values, context=None):
