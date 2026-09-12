@@ -482,6 +482,60 @@ def test_logical_op_uneven_length_series(op):
     tm.assert_series_equal(result.astype(bool), expected)
 
 
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("subtype", [bool, object])
+def test_logical_op_masked_other(op, subtype):
+    # GH#68483 a masked operand keeps its own Kleene semantics; densifying it
+    #  lost them -- raising on the NA for a bool subtype, silently resolving it
+    #  to False for an object one
+    values = np.array([True, True, False, False], dtype=subtype)
+    other = pd.array([True, pd.NA, True, False], dtype="boolean")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_masked_other_without_na(op):
+    # GH#68483 the operand's dtype decides, not whether it holds NA, so the
+    #  result is the masked dtype either way -- as it is for the dense operand
+    values = np.array([True, True, False, False])
+    other = pd.array([True, False, True, False], dtype="boolean")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    assert result.dtype == pd.BooleanDtype()
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_non_boolean_masked_other(op):
+    # GH#68483 only a masked *boolean* operand is deferred to; the other masked
+    #  dtypes reach _arith_method, which cannot consume a SparseArray
+    # int64 explicitly: on 32-bit the default int would not match the int64 result
+    values = np.array([1, 0, 3, 0], dtype="int64")
+    other = pd.array([1, 2, 3, 4], dtype="Int64")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other.to_numpy(dtype="int64"))
+    assert isinstance(result.dtype, pd.SparseDtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("n_sparse, n_other", [(11, 10), (10, 11)])
+def test_logical_op_masked_other_uneven_length_series(op, n_sparse, n_other):
+    # GH#68483 the alignment path onto the above; either operand can be the one
+    #  that gains the NA, and only the shorter-sparse case upcasts it to object
+    sparse = pd.Series(SparseArray(np.arange(n_sparse)))
+    other = pd.Series(np.arange(n_other) == 5, dtype="boolean")
+
+    result = op(sparse == 5, other)
+    expected = op(pd.Series(np.arange(n_sparse)) == 5, other)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "a, b",
     [

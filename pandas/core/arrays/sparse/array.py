@@ -65,6 +65,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     DatetimeTZDtype,
     SparseDtype,
 )
@@ -2593,10 +2594,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype=np.bool_,
             )
 
-    def _logical_method(self, other, op) -> SparseArray:
+    def _logical_method(self, other, op):
         # GH#68452 before the np.asarray below, which flattens a PeriodArray or a
         #  tz-aware DatetimeArray to object and hides it from the guard
         ops.disallow_datetimelike_logical_op(self, other, op)
+        other_dtype = getattr(other, "dtype", None)
+        if isinstance(other_dtype, BaseMaskedDtype) and other_dtype.kind == "b":
+            # GH#68483 defer to the masked operand's reflected op, which keeps
+            #  its Kleene NA semantics; densifying here loses them.
+            #  Boolean only -- the other masked dtypes reach _arith_method,
+            #  which cannot consume a SparseArray.
+            return NotImplemented
 
         # GH#32119 the sparse fast path (see _sparse_array_op / splib) only
         #  implements and/or/xor for boolean and integer subtypes. When
