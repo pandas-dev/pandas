@@ -2033,6 +2033,20 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
     return i8result.view(dt64arr.dtype)
 
 
+# relativedelta keywords the vectorized _apply_array path supports
+_relativedelta_fast = frozenset({
+    "years",
+    "months",
+    "weeks",
+    "days",
+    "hours",
+    "minutes",
+    "seconds",
+    "microseconds",
+    "milliseconds",
+})
+
+
 cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
@@ -2121,33 +2135,48 @@ cdef class RelativeDeltaOffset(BaseOffset):
         # Coerce to that resolution when lossless so the scalar result
         # matches the vectorized DatetimeIndex/Series path; apply_wraps
         # then narrows back to ``other``'s unit where that is also lossless.
-        try:
-            offset_unit = self._pd_timedelta.unit
-        except NotImplementedError:
+        # There is nothing to do when the offset has no Timedelta
+        # representation (unit None, e.g. ``weekday``), or when its unit is
+        # "s": Timestamp(other) is never coarser than "us", so apply_wraps
+        # would undo that coercion anyway.
+        offset_unit = self._pd_timedelta_unit
+        if offset_unit is None or offset_unit == "s":
             return result
         result2 = result.as_unit(offset_unit)
         if result == result2:
             result = result2
         return result
 
+    @property
+    def _pd_timedelta_unit(self) -> str | None:
+        """
+        The unit _pd_timedelta has, None if it would raise NotImplementedError.
+
+        Determined from the keyword names alone, so it is cheap even when
+        the _pd_timedelta cache is cold.
+        """
+        kwds = self.kwds
+        if self._use_relativedelta:
+            if not set(kwds).issubset(_relativedelta_fast):
+                return None
+        elif not hasattr(self, "_offset"):
+            return None
+
+        if getattr(self, "nanoseconds", 0) != 0:
+            return "ns"
+        elif "microseconds" in kwds:
+            return "us"
+        elif "milliseconds" in kwds:
+            return "ms"
+        return "s"
+
     @cache_readonly
     def _pd_timedelta(self) -> Timedelta:
         # components of _offset that can be cast to pd.Timedelta
 
         kwds = self.kwds
-        relativedelta_fast = {
-            "years",
-            "months",
-            "weeks",
-            "days",
-            "hours",
-            "minutes",
-            "seconds",
-            "microseconds",
-            "milliseconds",
-        }
         # relativedelta/_offset path only valid for base DateOffset
-        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+        if self._use_relativedelta and set(kwds).issubset(_relativedelta_fast):
             td_args = {
                 "days",
                 "hours",
@@ -2166,13 +2195,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 td_kwds["days"] = days + 7 * kwds["weeks"]
 
             if td_kwds:
-                delta = Timedelta(**td_kwds)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
+                delta = Timedelta(**td_kwds).as_unit(self._pd_timedelta_unit)
             elif not kwds:
                 # GH#61870: bare DateOffset(n) with no keywords defaults to
                 # n days (matching the scalar path); without this branch it
@@ -2191,17 +2214,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self._n)
             else:
                 delta = Timedelta(self._offset * self._n)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
+                delta = delta.as_unit(self._pd_timedelta_unit)
             return delta
 
         else:
             # relativedelta with other keywords
-            kwd = set(kwds) - relativedelta_fast
+            kwd = set(kwds) - _relativedelta_fast
             raise NotImplementedError(
                 "DateOffset with relativedelta "
                 f"keyword(s) {kwd} not able to be "
