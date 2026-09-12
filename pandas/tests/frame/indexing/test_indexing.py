@@ -505,6 +505,32 @@ class TestDataFrameIndexing:
         )
         tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [f"x{i}" for i in range(60)],
+            pd.array([f"x{i}" for i in range(60)], dtype="string"),
+            pd.array(range(60), dtype="Int64"),
+        ],
+    )
+    def test_setitem_single_column_boolean_column_indexer(self, data):
+        # GH#66527 boolean [True] column indexer on a single-column
+        # DataFrame used to raise NotImplementedError for 1D-only
+        # EA-backed blocks (e.g. object/string/Int64 dtype).
+        df = DataFrame({"A": data})
+        expected = df.copy()
+
+        df.loc[:, [True]] = df.loc[:, [True]]
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_single_column_false_column_indexer(self):
+        # GH#66579 a [False] mask selects no column, so this is a no-op
+        df = DataFrame({"A": pd.array([1, 2, 3], dtype="Int64")})
+        expected = df.copy()
+
+        df.loc[:, [False]] = 9
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
         df = pd.DataFrame(
