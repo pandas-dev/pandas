@@ -434,8 +434,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("precision", [10, 3])
     def test_to_json_double_precision_deprecated(self, precision):
-        # GH#62464 - warns even when the current default value is passed
-        # explicitly, and the output is unchanged while deprecated
+        # GH#62464
         df = pd.DataFrame({"a": [1 / 3]})
         depr_msg = "The 'double_precision' keyword in DataFrame.to_json is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
@@ -828,8 +827,7 @@ class TestPandasContainer:
 
     @pytest.mark.parametrize("precise_float", [False, True])
     def test_read_json_precise_float_deprecated(self, precise_float):
-        # GH#62464 - warns even when the current default value is passed
-        # explicitly, and the result is unchanged while deprecated
+        # GH#62464
         df = pd.DataFrame({"a": [4.56, 1.5]})
         json = df.to_json()
         depr_msg = "The 'precise_float' keyword in read_json is deprecated"
