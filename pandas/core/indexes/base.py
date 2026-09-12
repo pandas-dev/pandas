@@ -327,9 +327,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     Parameters
     ----------
-    data : array-like (1-dimensional)
-        An array-like structure containing the data for the index. This could be a
-        Python list, a NumPy array, or a pandas Series.
+    data : array-like (1-dimensional) or iterable (1-dimensional)
+        A 1-dimensional array-like structure containing the data for the
+        index. This could be a Python list, a NumPy array, or a pandas Series.
     dtype : str, numpy.dtype, or ExtensionDtype, optional
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
@@ -366,6 +366,11 @@ class Index(IndexOpsMixin, PandasObject):
     Python strings) instead of preserving NumPy object dtype. Values that
     NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
     not altered in the same way. To force object dtype, pass ``dtype=object``.
+
+    If a dict is provided as `data`, the keys will be used as the index values,
+    and the values will be discarded.
+    A string is not accepted, as this is considered as a scalar value and not
+    as a collection of characters.
 
     Examples
     --------
