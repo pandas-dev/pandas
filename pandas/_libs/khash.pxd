@@ -136,11 +136,9 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 cdef int raise_if_errors() except -1
 cdef kh_pymap_t* kh_init_pymap_checked()
 cdef void kh_destroy_pymap_checked(kh_pymap_t*)
-cdef void kh_clear_pymap_checked(kh_pymap_t*)
 cdef khuint_t kh_get_pymap_checked(kh_pymap_t*, PyObject*)
 cdef void kh_resize_pymap_checked(kh_pymap_t*, khuint_t)
 cdef khuint_t kh_put_pymap_checked(kh_pymap_t*, PyObject*, int*)
-cdef void kh_del_pymap_checked(kh_pymap_t*, khuint_t)
 cdef bint kh_exist_pymap_checked(kh_pymap_t*, khiter_t)
 
 include "khash_for_primitive_helper.pxi"
