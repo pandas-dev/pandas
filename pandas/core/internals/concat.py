@@ -416,7 +416,9 @@ def _get_empty_dtype(
             #  categorical dtype so that concat_compat sees all-categorical
             #  inputs and unions instead of falling back to the common dtype.
             empties = [Categorical([], dtype=dt) for dt in dtypes]
-            return union_categories_compat(empties).dtype
+            unioned = union_categories_compat(empties)
+            if unioned is not None:
+                return unioned.dtype
 
     dtype = find_common_type(dtypes)
     if has_none_blocks:
