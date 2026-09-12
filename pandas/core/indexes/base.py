@@ -2120,6 +2120,17 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not is_list_like(names):
             names = [names]  # type: ignore[assignment]
+        elif (
+            not isinstance(self, ABCMultiIndex)
+            and level is None
+            and is_hashable(names)
+            and not isinstance(names, list)
+        ):
+            # e.g. a tuple, frozenset, or range name for a 1D Index -- treat
+            # as a single scalar name rather than a sequence of per-level
+            # names (a plain/Frozen list still means the latter, even though
+            # FrozenList happens to be hashable)
+            names = [names]
         if level is not None and not is_list_like(level):
             level = [level]
 
