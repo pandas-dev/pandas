@@ -253,8 +253,7 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 
   int result = 0;
   if (PyBool_Check(cmp_result)) {
-    // __eq__ returned a python bool, check if it is True
-    result = cmp_result == Py_True;
+    result = Py_IsTrue(cmp_result);
   } else {
     // __eq__ did not return a bool, check if it is truthy
     result = PyObject_IsTrue(cmp_result);
