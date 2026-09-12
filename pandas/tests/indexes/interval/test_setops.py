@@ -203,3 +203,27 @@ class TestIntervalIndex:
             expected = index
         result = set_op(other, sort=sort)
         tm.assert_index_equal(result, expected)
+
+
+class TestSetopEmptyRangeIndex:
+    def test_union_empty_rangeindex(self, closed, sort):
+        # GH#68343
+        index = monotonic_index(0, 5, closed=closed)
+        other = pd.RangeIndex(0)
+
+        result = index.union(other, sort=sort)
+        tm.assert_index_equal(result, index)
+
+        result = other.union(index, sort=sort)
+        tm.assert_index_equal(result, index)
+
+    def test_symmetric_difference_empty_rangeindex(self, closed, sort):
+        # GH#68343
+        index = monotonic_index(0, 5, closed=closed)
+        other = pd.RangeIndex(0)
+
+        result = index.symmetric_difference(other, sort=sort)
+        tm.assert_index_equal(result, index)
+
+        result = other.symmetric_difference(index, sort=sort)
+        tm.assert_index_equal(result, index)

@@ -643,6 +643,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`Index.union`, :meth:`Index.symmetric_difference` and other set operations of :class:`IntervalIndex` raising ``TypeError`` when passed an empty :class:`RangeIndex`; constructing an :class:`IntervalIndex` (or calling ``astype`` to interval dtype) from a :class:`RangeIndex` also no longer raises a confusing ``TypeError`` (:issue:`68343`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal` incorrectly raising when equivalent :class:`MultiIndex` column labels contained missing values (:issue:`54521`)
