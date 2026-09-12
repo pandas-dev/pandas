@@ -839,6 +839,20 @@ class TestDataFrameSelectReindex:
         with pytest.raises(ValueError, match=msg):
             df.reindex(index=list(range(len(df))))
 
+    def test_reindex_dups_noop_when_target_matches_index(self):
+        # GH#8849 reindexing a duplicate-labeled axis to a target that
+        # differs from the current index is ambiguous and raises, but
+        # reindexing to a target identical to the current index is a no-op
+        # and is still allowed even though the labels are duplicated.
+        ser = pd.Series([1, 2, 3], index=["a", "b", "b"])
+
+        msg = "cannot reindex on an axis with duplicate labels"
+        with pytest.raises(ValueError, match=msg):
+            ser.reindex(["a", "b"])
+
+        result = ser.reindex(["a", "b", "b"])
+        tm.assert_series_equal(result, ser)
+
     def test_reindex_with_duplicate_columns(self):
         # reindex is invalid!
         df = pd.DataFrame(
