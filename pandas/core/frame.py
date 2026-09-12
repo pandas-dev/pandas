@@ -5922,7 +5922,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
                     if dtype_obj.kind in "mM" and not hasattr(pa_type, "unit"):
-                        # GH#68484: numpy_dtype invents a resolution for a date
+                        # GH#68488: numpy_dtype invents a resolution for a date
                         # column (date32 is day-resolution, and which one it
                         # invents varies by pyarrow version), so only a unitless
                         # spec may match it

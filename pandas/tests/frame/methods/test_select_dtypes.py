@@ -1215,7 +1215,7 @@ def test_select_dtypes_arrow_date_no_tz_attribute(pa_type):
 
 @pytest.mark.parametrize("pa_type", ["date32", "date64"])
 def test_select_dtypes_arrow_date_skipped_by_unit_spec(pa_type):
-    # GH#68484: a date column is day-resolution, but numpy_dtype reports a
+    # GH#68488: a date column is day-resolution, but numpy_dtype reports a
     # datetime64 of whatever unit pyarrow picks, so a unit-qualified spec used
     # to select it at a resolution it does not have
     pa = pytest.importorskip("pyarrow")
