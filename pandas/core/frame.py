@@ -5825,9 +5825,10 @@ class DataFrame(NDFrame, OpsMixin):
                                 raise
                             # strings accepted here but not by pandas_dtype
                             if dtype in ("datetimetz", "datetime64tz"):
-                                # GH#24558
+                                # GH#24558; str() so an ndarray spec reprs as
+                                # 'datetimetz', not np.str_('datetimetz')
                                 warnings.warn(
-                                    f"Passing {dtype!r} to select_dtypes is "
+                                    f"Passing {str(dtype)!r} to select_dtypes is "
                                     "deprecated and will raise in a future "
                                     "version. Pass pd.DatetimeTZDtype instead.",
                                     Pandas4Warning,

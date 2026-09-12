@@ -943,6 +943,17 @@ def test_select_dtypes_datetimetz_string_deprecated(spec, arg):
     tm.assert_frame_equal(alt, expected)
 
 
+@pytest.mark.parametrize("spec", ["datetimetz", "datetime64tz"])
+def test_select_dtypes_datetimetz_string_deprecated_ndarray_message(spec):
+    # GH#24558: an ndarray spec yields np.str_ elements, which must not reach
+    # the warning as np.str_('datetimetz')
+    df = pd.DataFrame({"a": pd.date_range("2016-01-01", periods=2, tz="UTC")})
+    msg = f"Passing {spec!r} to select_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=np.array([spec]))
+    tm.assert_frame_equal(result, df)
+
+
 def test_select_dtypes_datetimetz_string_overlaps_class():
     # GH#24558: the deprecated string and its replacement resolve to the same
     # spec, so contradictory include/exclude is caught rather than silently
