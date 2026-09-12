@@ -1291,6 +1291,57 @@ def test_select_dtypes_interval_family_string_and_bare_instance():
     tm.assert_frame_equal(df.select_dtypes(include=pd.IntervalDtype()), expected)
 
 
+def _interval_closed_frame():
+    return pd.DataFrame(
+        {
+            "int_left": pd.arrays.IntervalArray.from_breaks([0, 1, 2], closed="left"),
+            "float_right": pd.arrays.IntervalArray.from_breaks([0.0, 1.0, 2.0]),
+            "other": [1, 2],
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "closed, matched", [("left", ["int_left"]), ("right", ["float_right"])]
+)
+def test_select_dtypes_interval_closed_only_instance(closed, matched):
+    # GH#68491: IntervalDtype(closed=...) names one closed value but leaves the
+    # subtype open; it used to select every interval column, because
+    # IntervalDtype.__eq__ treats a None subtype on either side as a wildcard
+    df = _interval_closed_frame()
+    spec = pd.IntervalDtype(closed=closed)
+    tm.assert_frame_equal(df.select_dtypes(include=spec), df[matched])
+
+    rest = [col for col in df.columns if col not in matched]
+    tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[rest])
+
+
+def test_select_dtypes_interval_closed_only_include_and_exclude():
+    # GH#68491: any two subtype-less specs str() to "interval", so they used to
+    # compare equal and trip the include/exclude overlap check
+    df = _interval_closed_frame()
+    result = df.select_dtypes(
+        include=pd.IntervalDtype(closed="left"),
+        exclude=pd.IntervalDtype(closed="right"),
+    )
+    tm.assert_frame_equal(result, df[["int_left"]])
+
+    result = df.select_dtypes(
+        include=pd.IntervalDtype(), exclude=pd.IntervalDtype(closed="left")
+    )
+    tm.assert_frame_equal(result, df[["float_right"]])
+
+    msg = (
+        r"include and exclude overlap on "
+        r"""frozenset\(\{"IntervalDtype\(closed='left'\)"\}\)"""
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(
+            include=pd.IntervalDtype(closed="left"),
+            exclude=pd.IntervalDtype(closed="left"),
+        )
+
+
 def _interval_unit_frame():
     dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"])
     tdi = pd.to_timedelta([1, 2, 3, 4], unit="D")
