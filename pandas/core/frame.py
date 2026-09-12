@@ -5904,11 +5904,17 @@ class DataFrame(NDFrame, OpsMixin):
                 # and EA-subclass specs (GH#65366) are all checked against the
                 # raw dtype before the ArrowDtype -> numpy_dtype normalization
                 # below.
-                if any(dtype_obj == instance for instance in instances):
-                    return True
-                if any(func(dtype_obj) for func in ea_funcs):
-                    return True
-                if isinstance(dtype_obj, klass_tuple):
+                # This runs once per block, so plain loops are used instead of
+                # any(...) over a generator: most calls have only one or two
+                # non-empty lists, and constructing a generator for each empty
+                # one dominated the per-block cost.
+                for instance in instances:
+                    if dtype_obj == instance:
+                        return True
+                for ea_func in ea_funcs:
+                    if ea_func(dtype_obj):
+                        return True
+                if klass_tuple and isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
                     pa_type = dtype_obj.pyarrow_dtype
@@ -5927,7 +5933,10 @@ class DataFrame(NDFrame, OpsMixin):
                         # invents varies by pyarrow version), so only a unitless
                         # spec may match it
                         dtype_obj = np.dtype(f"{dtype_obj.kind}8")
-                return any(func(dtype_obj) for func in funcs)
+                for func in funcs:
+                    if func(dtype_obj):
+                        return True
+                return False
 
             return matches_any, frozenset(resolved)
 
