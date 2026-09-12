@@ -5563,11 +5563,13 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("at least one of include or exclude must be nonempty")
 
         def matches_object(dtype_obj: DtypeObj) -> bool:
-            # backwards compat for the default `str` dtype being
-            # selected by object. ``is_handled`` is defined below, after both
-            # sides are resolved; nothing calls this until ``predicate`` runs.
-            if dtype_obj == np.dtype(np.object_):
+            # ``is_handled`` is defined below, after both sides are resolved;
+            # nothing calls this until ``predicate`` runs.
+            # GH#68494: Sparse[object] has an object scalar type but does not
+            # compare equal to np.dtype(object)
+            if issubclass(dtype_obj.type, np.object_):
                 return True
+            # backwards compat for the default `str` dtype being selected by object
             return (
                 isinstance(dtype_obj, StringDtype)
                 and dtype_obj.na_value is np.nan

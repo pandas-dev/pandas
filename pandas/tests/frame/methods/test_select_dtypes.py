@@ -1465,3 +1465,18 @@ def test_select_dtypes_include_object_with_explicit_str_no_warning(
     with tm.assert_produces_warning(None):
         result = df.select_dtypes(include=["object", str_spec])
     tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+@pytest.mark.parametrize("object_spec", [object, "object", np.object_])
+def test_select_dtypes_sparse_object_subtype(object_spec):
+    # GH#68494: a Sparse[object] column is an object column, but SparseDtype
+    # does not compare equal to np.dtype(object)
+    df = pd.DataFrame(
+        {
+            "a": pd.arrays.SparseArray(["x", "y"], dtype=object),
+            "b": pd.arrays.SparseArray([1, 2], dtype="int64"),
+            "c": pd.Series([1, "z"], dtype=object),
+        }
+    )
+    tm.assert_frame_equal(df.select_dtypes(include=object_spec), df[["a", "c"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude=object_spec), df[["b"]])
