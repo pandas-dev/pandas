@@ -5560,6 +5560,18 @@ class DataFrame(NDFrame, OpsMixin):
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
+        def matches_object(dtype_obj: DtypeObj) -> bool:
+            # backwards compat for the default `str` dtype being
+            # selected by object. ``is_handled`` is defined below, after both
+            # sides are resolved; nothing calls this until ``predicate`` runs.
+            if dtype_obj == np.dtype(np.object_):
+                return True
+            return (
+                isinstance(dtype_obj, StringDtype)
+                and dtype_obj.na_value is np.nan
+                and not is_handled(dtype_obj)
+            )
+
         def to_callable(
             dtypes,
         ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
@@ -5568,13 +5580,6 @@ class DataFrame(NDFrame, OpsMixin):
             # along with the set of objects they resolve to -- dtype instances,
             # dtype.type-style objects, or ExtensionDtype classes/instances for
             # EA-name strings (used for validation below).
-
-            def matches_object(dtype_obj: DtypeObj) -> bool:
-                # backwards compat for the default `str` dtype being
-                # selected by object
-                return dtype_obj == np.dtype(np.object_) or (
-                    isinstance(dtype_obj, StringDtype) and dtype_obj.na_value is np.nan
-                )
 
             def matches_number(dtype_obj: DtypeObj) -> bool:
                 # All numeric dtypes, excluding bool dtypes
@@ -5950,7 +5955,7 @@ class DataFrame(NDFrame, OpsMixin):
         def is_handled(dtype: StringDtype) -> bool:
             # A spec other than ``object`` that matches this column decides
             # its fate whether or not ``object`` keeps selecting str columns
-            # (GH#61916).
+            # (GH#61916, GH#62718).
             for spec in include_set | exclude_set:
                 if spec is str:
                     return True
@@ -5961,19 +5966,32 @@ class DataFrame(NDFrame, OpsMixin):
                     return True
             return False
 
-        if np.object_ in include_set and any(
+        if (np.object_ in include_set or np.object_ in exclude_set) and any(
             isinstance(dtype, StringDtype)
             and dtype.na_value is np.nan
             and not is_handled(dtype)
             for dtype in blk_dtypes
         ):
-            # GH#61916
+            # GH#61916, GH#62718. include and exclude cannot both name object;
+            # the overlap check above has already raised in that case.
+            if np.object_ in include_set:
+                msg = (
+                    "For backward compatibility, 'str' dtypes are included by "
+                    "select_dtypes when 'object' dtype is specified. "
+                    "This behavior is deprecated and will be removed in a future "
+                    "version. Explicitly pass 'str' to `include` to select them, "
+                    "or to `exclude` to remove them and silence this warning."
+                )
+            else:
+                msg = (
+                    "For backward compatibility, 'str' dtypes are excluded by "
+                    "select_dtypes when 'object' dtype is specified. "
+                    "This behavior is deprecated and will be removed in a future "
+                    "version. Explicitly pass 'str' to `exclude` to remove them, "
+                    "or to `include` to keep them and silence this warning."
+                )
             warnings.warn(
-                "For backward compatibility, 'str' dtypes are included by "
-                "select_dtypes when 'object' dtype is specified. "
-                "This behavior is deprecated and will be removed in a future "
-                "version. Explicitly pass 'str' to `include` to select them, "
-                "or to `exclude` to remove them and silence this warning.\nSee "
+                f"{msg}\nSee "
                 "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
                 "#string-migration-select-dtypes for details on how to write code "
                 "that works with pandas 2 and 3.",
