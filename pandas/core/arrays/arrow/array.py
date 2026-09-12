@@ -334,6 +334,44 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
+    """
+    Whether ``pa.array`` on this type can return a view on caller-owned memory.
+
+    Zero-copy over numpy/masked arrays for fixed-width layouts; character
+    layouts always repack, so copying those would cost a full copy of the
+    character data for no safety gain. Nested types may have a zero-copy child.
+    """
+    return not (
+        _is_varbinary_type(pa_type)
+        or pa.types.is_string_view(pa_type)
+        or pa.types.is_binary_view(pa_type)
+    )
+
+
+def _copy_pyarrow_buffers(
+    pa_array: pa.Array | pa.ChunkedArray,
+) -> pa.Array | pa.ChunkedArray:
+    """
+    Return an equal array that owns its buffers (GH#67990).
+
+    ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
+    so dictionary types are rebuilt from copies of both halves.
+    """
+    if isinstance(pa_array, pa.ChunkedArray):
+        return pa.chunked_array(
+            [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
+            type=pa_array.type,
+        )
+    if pa.types.is_dictionary(pa_array.type):
+        return pa.DictionaryArray.from_arrays(
+            _copy_pyarrow_buffers(pa_array.indices),
+            _copy_pyarrow_buffers(pa_array.dictionary),
+            ordered=pa_array.type.ordered,
+        )
+    return pa.concat_arrays([pa_array])
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -2912,6 +2950,10 @@ class ArrowExtensionArray(
                 and value.type == self._pa_array.type
                 and len(value) == len(self)
             ):
+                # GH#67990 this adopts ``value`` as our backing array, so copy
+                #  first if the caller may still own and mutate its buffers.
+                if _boxing_may_borrow_memory(value.type):
+                    value = _copy_pyarrow_buffers(value)
                 data = value
             else:
                 data = self._if_else(True, value, self._pa_array)
