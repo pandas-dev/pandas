@@ -5904,10 +5904,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # and EA-subclass specs (GH#65366) are all checked against the
                 # raw dtype before the ArrowDtype -> numpy_dtype normalization
                 # below.
-                # This runs once per block, so plain loops are used instead of
-                # any(...) over a generator: most calls have only one or two
-                # non-empty lists, and constructing a generator for each empty
-                # one dominated the per-block cost.
+                # GH#??? - dont use generators for these checks; too much overhead.
                 for instance in instances:
                     if dtype_obj == instance:
                         return True
