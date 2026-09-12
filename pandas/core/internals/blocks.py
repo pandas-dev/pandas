@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import inspect
 import re
 from typing import (
@@ -118,7 +119,6 @@ if TYPE_CHECKING:
         Callable,
         Generator,
         Iterable,
-        Sequence,
     )
 
     from pandas._typing import (
@@ -1807,6 +1807,65 @@ class EABackedBlock(Block):
             return self
 
     @final
+    def _align_listlike_arg(
+        self, arg, target: ArrayLike, mask: npt.NDArray[np.bool_] | None = None
+    ):
+        """
+        Line a list-like ``other``/``new`` up against ``target``.
+
+        ``EA._where``/``EA._putmask`` need an arraylike they can index with the
+        mask, so a raw list -- which supports neither boolean indexing nor
+        broadcasting -- would otherwise fall through to an object upcast
+        (GH#63842).  A length-1 argument is broadcast, matching what numpy
+        dtypes get from ``np.where``.  When ``mask`` is given we are on the
+        putmask path, which takes one more shape -- one entry per selected
+        position -- and dispatches that case itself.
+        """
+        if (
+            isinstance(arg, (np.ndarray, ExtensionArray))
+            or not is_list_like(arg)
+            or not isinstance(arg, Sequence)
+            or isinstance(arg, tuple)
+        ):
+            # An ndarray/EA already lines up or broadcasts.  Otherwise only an
+            #  ordered sequence can be lined up against the mask; a dict or set
+            #  is left for the EA to reject, which upcasts to object and holds
+            #  it as a scalar, as numpy dtypes do.  A tuple is excluded because
+            #  it is a valid scalar, and is held as one for numpy dtypes too
+            #  (GH#37681).
+            return arg
+
+        # NB: not _from_sequence(dtype=self.dtype), which would coerce where we
+        #  want to raise -- str turns 9 into "9" and Categorical turns an
+        #  unknown category into NaN.  Casting is the setitem call's job, and
+        #  its raising is what triggers the caller's upcast to object.
+        arg = com.asarray_tuplesafe(arg)
+
+        nrows = self.shape[-1]
+        if mask is not None and len(arg) == mask.sum() != nrows:
+            # One entry per selected position; putmask dispatches this itself.
+            return arg
+
+        if target.ndim == 2:
+            # TODO(EA2D): unnecessary with 2D EAs
+            if len(arg) == nrows:
+                # Column-like, not row-like: the same reshape (and the same
+                #  raise for a multi-column block) as in Block.where.
+                return arg.reshape(target.shape)
+            # Any other length is left to np.where's broadcasting, as it is
+            #  for numpy dtypes.
+            return arg
+
+        if len(arg) == 1 and nrows != 1:
+            arg = arg.repeat(nrows)
+        elif len(arg) != nrows:
+            raise ValueError(
+                f"Length of value ({len(arg)}) does not match length of "
+                f"the array ({nrows})"
+            )
+        return arg
+
+    @final
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
 
@@ -1825,6 +1884,8 @@ class EABackedBlock(Block):
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
             return [self.copy(deep=False)]
+
+        other = self._align_listlike_arg(other, arr)
 
         try:
             res_values = arr._where(cond, other).T
@@ -1909,9 +1970,22 @@ class EABackedBlock(Block):
             if isinstance(new, (np.ndarray, ExtensionArray)) and new.ndim == 2:
                 new = new.T
 
+        new = self._align_listlike_arg(new, values, mask)
+
         try:
-            # Caller is responsible for ensuring matching lengths
-            values._putmask(mask, new)
+            if (
+                (self.ndim == 1 or self.shape[0] == 1)
+                and isinstance(new, (np.ndarray, ExtensionArray))
+                and new.ndim == 1
+                and len(new) == mask.sum() != self.shape[-1]
+            ):
+                # One entry per selected position rather than one per row.
+                #  This is the EA analogue of the np.place call that
+                #  putmask_without_repeat makes for numpy dtypes; EA._putmask
+                #  itself takes only a full-length value.
+                values[mask] = new
+            else:
+                values._putmask(mask, new)
         except OutOfBoundsDatetime:
             raise
         except (TypeError, ValueError):
