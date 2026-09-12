@@ -816,6 +816,7 @@ Conversion
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 - Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
+- Fixed bug in :meth:`DataFrame.to_numpy` raising ``ValueError`` when ``na_value`` was passed and there were no missing values, e.g. ``na_value=np.nan`` with an integer ``dtype`` (:issue:`56233`)
 
 Strings
 ^^^^^^^

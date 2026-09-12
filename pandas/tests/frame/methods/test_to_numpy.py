@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._testing as tm
@@ -15,6 +16,22 @@ class TestToNumpy:
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4.5]})
         expected = np.array([[1, 3], [2, 4]], dtype="int64")
         result = df.to_numpy(dtype="int64")
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, dtype",
+        [
+            ({"a": [1, 2, 3]}, "Int64"),
+            ({"a": [1, 2, 3], "b": [4, 5, 6]}, "Int64"),
+            ({"a": [1, 2, 3]}, "int64"),
+        ],
+    )
+    def test_to_numpy_na_value_no_missing(self, data, dtype):
+        # GH#56233 assigning na_value is a no-op when there is no NA, even
+        # when the na_value cannot be cast to the target dtype
+        df = pd.DataFrame(data, dtype=dtype)
+        result = df.to_numpy(na_value=float("nan"))
+        expected = df.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
     def test_to_numpy_copy(self):

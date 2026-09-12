@@ -1912,7 +1912,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         elif arr.dtype.kind == "f" and passed_nan:
             pass
         else:
-            arr[isna(arr)] = na_value
+            # GH#56233 avoid raising in the case of an all false mask
+            mask = isna(arr)
+            if mask.any():
+                arr[mask] = na_value
 
         return arr.transpose()
 
