@@ -1166,7 +1166,9 @@ def test_style_to_csv(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_csv = geom_df.to_csv(lineterminator="\n")
+    # engine="python": this compares to_csv's exact text against to_xml's,
+    # which the pyarrow write engine's header quoting would break
+    out_csv = geom_df.to_csv(lineterminator="\n", engine="python")
 
     if out_csv is not None:
         out_csv = out_csv.strip()
