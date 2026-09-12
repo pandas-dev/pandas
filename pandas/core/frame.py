@@ -5911,8 +5911,9 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
+                    pa_type = dtype_obj.pyarrow_dtype
                     # tz exists only on pa.timestamp; date32/date64 reach here too
-                    if getattr(dtype_obj.pyarrow_dtype, "tz", None) is not None:
+                    if getattr(pa_type, "tz", None) is not None:
                         # GH#68075: numpy_dtype drops the tz, so a tz-aware
                         # column would match a naive datetime64 spec; a
                         # DatetimeTZDtype column matches none of these either
@@ -5920,6 +5921,12 @@ class DataFrame(NDFrame, OpsMixin):
                     # class- and string-based matching treats ArrowDtype
                     # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
+                    if dtype_obj.kind in "mM" and not hasattr(pa_type, "unit"):
+                        # GH#68484: numpy_dtype invents a resolution for a date
+                        # column (date32 is day-resolution, and which one it
+                        # invents varies by pyarrow version), so only a unitless
+                        # spec may match it
+                        dtype_obj = np.dtype(f"{dtype_obj.kind}8")
                 return any(func(dtype_obj) for func in funcs)
 
             return matches_any, frozenset(resolved)
