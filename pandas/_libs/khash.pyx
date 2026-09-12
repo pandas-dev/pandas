@@ -22,11 +22,6 @@ cdef void kh_destroy_pymap_checked(kh_pymap_t* table):
     raise_if_errors()
 
 
-cdef void kh_clear_pymap_checked(kh_pymap_t* table):
-    kh_clear_pymap(table)
-    raise_if_errors()
-
-
 cdef khuint_t kh_get_pymap_checked(kh_pymap_t* table, PyObject* key):
     cdef khuint_t k = kh_get_pymap(table, key)
     raise_if_errors()
@@ -42,11 +37,6 @@ cdef khuint_t kh_put_pymap_checked(kh_pymap_t* table, PyObject* key, int* ret):
     cdef khuint_t result = kh_put_pymap(table, key, ret)
     raise_if_errors()
     return result
-
-
-cdef void kh_del_pymap_checked(kh_pymap_t* table, khuint_t k):
-    kh_del_pymap(table, k)
-    raise_if_errors()
 
 
 cdef bint kh_exist_pymap_checked(kh_pymap_t* table, khiter_t k):
