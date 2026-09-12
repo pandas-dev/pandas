@@ -4593,6 +4593,14 @@ class TestGroupbyAggPyArrowNative:
                 [Decimal(3 * 10**37)] * 5,
                 Decimal(15 * 10**37),
             ),
+            # same, but the input already has the maximum precision, so the
+            # widening cast is a no-op and cannot report the overflow
+            (
+                "prod",
+                pa.decimal128(38, 0),
+                [Decimal(10**19), Decimal(12 * 10**18)],
+                Decimal(12 * 10**37),
+            ),
         ],
     )
     def test_groupby_sum_prod_exceeds_max_precision(
@@ -4654,7 +4662,7 @@ class TestGroupbyAggPyArrowNative:
         ids=["decimal", "ArrowDtype", "str[pyarrow]"],
     )
     def test_groupby_empty(self, dtype, how):
-        # GH#63416 an empty input has no groups to scatter into
+        # GH#63416 an empty input has no groups to place results into
         ser = pd.Series([], dtype=dtype)
         result = getattr(ser.groupby([]), how)()
         assert len(result) == 0
