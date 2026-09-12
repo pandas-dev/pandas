@@ -461,6 +461,25 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(lambda x: x.strip())
 
+    @pytest.mark.parametrize(
+        "replace_kwargs",
+        [
+            {"to_replace": "a1", "value": lambda m: "X"},
+            {"to_replace": r"\d", "value": lambda m: "X", "regex": True},
+            {"to_replace": ["a1"], "value": [lambda m: "X"]},
+            {"to_replace": {"a1": lambda m: "X"}},
+            {"regex": {r"\d": lambda m: "X"}},
+        ],
+    )
+    def test_replace_invalid_value_callable(self, replace_kwargs):
+        # GH#68199 replace() should raise instead of storing a callable
+        # value, however it is spelled (scalar, regex, list-like, or
+        # dict-like)
+        series = pd.Series(["a1", "b2"])
+        msg = "'value' cannot be callable, got invalid type 'function'"
+        with pytest.raises(TypeError, match=msg):
+            series.replace(**replace_kwargs)
+
     def test_replace_ellipsis(self):
         # GH#50373 Ellipsis should be accepted as a scalar to_replace
         series = pd.Series([..., 2, 3])
