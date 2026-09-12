@@ -956,6 +956,34 @@ def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     assert nanops.nanmedian(values) == 0.5 + 3.5j
 
 
+@pytest.mark.parametrize("dtype", ["float32", "float64", "complex64", "complex128"])
+def test_nanmedian_skipna_false_keeps_dtype(disable_bottleneck, dtype):
+    # GH#68422 the propagated NaN was a bare float, so the 2-D result took its
+    #  dtype from whichever slice was reduced first
+    values = np.array([1, np.nan, 3], dtype=dtype)
+
+    result = nanops.nanmedian(values, skipna=False)
+    assert result.dtype == values.dtype
+
+    result = nanops.nanmedian(values.reshape(1, 3), axis=1, skipna=False)
+    assert result.dtype == values.dtype
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32"])
+@pytest.mark.parametrize("ddof", [1, 3, 5])
+@pytest.mark.parametrize("func", ["nanvar", "nanstd", "nansem"])
+def test_nanvar_family_keeps_dtype(disable_bottleneck, func, ddof, dtype):
+    # GH#68422 count and its degrees of freedom went to a bare float once
+    #  ddof >= count, which widened the 1-D result but not the 2-D one
+    values = np.array([1, 2, 3], dtype=dtype)
+
+    result = getattr(nanops, func)(values, ddof=ddof)
+    assert result.dtype == values.dtype
+
+    result = getattr(nanops, func)(values.reshape(1, 3), axis=1, ddof=ddof)
+    assert result.dtype == values.dtype
+
+
 @pytest.mark.parametrize("shape", [(1, 1), (1, 3), (3, 1), (3, 3)])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])

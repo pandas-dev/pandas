@@ -1026,7 +1026,7 @@ def nanmedian(
     Returns
     -------
     result : float | ndarray
-        Unless input is a float array, in which case use the same
+        Unless input is a float or complex array, in which case use the same
         precision as the input array.
 
     Examples
@@ -1051,7 +1051,10 @@ def nanmedian(
         else:
             _mask = ~_mask
         if not skipna and not _mask.all():
-            return np.nan
+            # x's own NaN: np.apply_along_axis below takes the result dtype
+            #  from the first slice, so a bare float would cast a later
+            #  complex slice to real
+            return x.dtype.type(np.nan)
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
@@ -1163,8 +1166,8 @@ def _get_counts_nanvar(
 
     Returns
     -------
-    count : int, np.nan or np.ndarray
-    d : int, np.nan or np.ndarray
+    count : np.floating or np.ndarray
+    d : np.floating or np.ndarray
     """
     count = _get_counts(values_shape, mask, axis, dtype=dtype)
     d = count - dtype.type(ddof)
@@ -1172,11 +1175,9 @@ def _get_counts_nanvar(
     # always return NaN, never inf
     if is_float(count):
         if count <= ddof:
-            # error: Incompatible types in assignment (expression has type
-            # "float", variable has type "Union[floating[Any], ndarray[Any,
-            # dtype[floating[Any]]]]")
-            count = np.nan  # type: ignore[assignment]
-            d = np.nan
+            # dtype's own NaN, not a bare float: nansem divides by sqrt(count),
+            #  which would widen a float32 result to float64
+            count = d = dtype.type(np.nan)
     else:
         # count is not narrowed by is_float check
         count = cast("np.ndarray", count)
