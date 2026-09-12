@@ -1291,22 +1291,28 @@ def _interval_unit_frame():
 @pytest.mark.parametrize(
     "spec, msg",
     [
-        (pd.IntervalDtype(), "must give a subtype and 'closed'"),
-        (pd.IntervalDtype(closed="left"), "must give a subtype and 'closed'"),
-        ("interval[int64]", "pass 'closed' too"),
-        (pd.IntervalDtype("int64"), "pass 'closed' too"),
-        ("interval[datetime64]", "give the subtype a resolution"),
-        (pd.IntervalDtype(np.dtype("M8")), "give the subtype a resolution"),
-        ("interval[timedelta64, left]", "give the subtype a resolution"),
-        (pd.IntervalDtype(np.dtype("M8"), "left"), "give the subtype a resolution"),
+        (pd.IntervalDtype(), "e.g. pd.IntervalDtype('int64', 'left')"),
+        (pd.IntervalDtype(closed="left"), "e.g. pd.IntervalDtype('int64', 'left')"),
+        (pd.IntervalDtype(closed="right"), "e.g. pd.IntervalDtype('int64', 'right')"),
+        ("interval[int64]", "e.g. 'interval[int64, right]'"),
+        (pd.IntervalDtype("int64"), "e.g. 'interval[int64, right]'"),
+        ("interval[datetime64]", "e.g. 'interval[datetime64[us], right]'"),
+        (pd.IntervalDtype(np.dtype("M8")), "e.g. 'interval[datetime64[us], right]'"),
+        ("interval[timedelta64, left]", "e.g. 'interval[timedelta64[us], left]'"),
+        (
+            pd.IntervalDtype(np.dtype("M8"), "left"),
+            "e.g. 'interval[datetime64[us], left]'",
+        ),
     ],
 )
 @pytest.mark.parametrize("kwarg", ["include", "exclude"])
 def test_select_dtypes_partial_interval_raises(spec, msg, kwarg):
     # GH#40234: an IntervalDtype instance names one exact dtype, so leaving
-    # any attribute open names no dtype a column can have
+    # any attribute open names no dtype a column can have. The example each
+    # message names keeps the closed the spec gave, so copying it back
+    # selects what the user asked for.
     df = _interval_unit_frame()
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match=re.escape(msg)):
         df.select_dtypes(**{kwarg: spec})
 
 

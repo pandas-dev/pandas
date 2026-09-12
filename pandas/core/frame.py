@@ -5460,6 +5460,9 @@ class DataFrame(NDFrame, OpsMixin):
             * If ``include`` and ``exclude`` have overlapping elements
             * If a datetime64/timedelta64 spec, or an interval spec's subtype,
               names a resolution no column can have, e.g. ``'datetime64[10s]'``
+            * If an :class:`IntervalDtype` or :class:`CategoricalDtype` spec
+              leaves an attribute, or an interval subtype's resolution, unset,
+              e.g. ``pd.IntervalDtype('int64')`` or ``'interval[datetime64]'``
         TypeError
             * If any kind of string dtype is passed in.
 
@@ -5479,12 +5482,13 @@ class DataFrame(NDFrame, OpsMixin):
         * A dtype instance (e.g. ``np.dtype("int32")`` or
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
-          of dtypes. An instance must therefore pin every attribute down:
-          ``pd.CategoricalDtype()`` with no categories or
-          ``pd.IntervalDtype("int64")`` with no ``closed`` raises, since no
-          column has such a dtype. Pass the class or the bare string --
-          ``pd.CategoricalDtype`` or ``"category"``, ``pd.IntervalDtype`` or
-          ``"interval"`` -- to select the whole family
+          of dtypes. An :class:`IntervalDtype` or :class:`CategoricalDtype`
+          instance must pin every attribute down: ``pd.CategoricalDtype()``
+          with no categories or ``pd.IntervalDtype("int64")`` with no
+          ``closed`` raises, since no column has such a dtype. Pass the
+          class or the bare string -- ``pd.CategoricalDtype`` or
+          ``"category"``, ``pd.IntervalDtype`` or ``"interval"`` -- to select
+          the whole family
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5640,31 +5644,34 @@ class DataFrame(NDFrame, OpsMixin):
                     )
 
             def check_interval_spec(target: IntervalDtype) -> None:
-                # GH#40234: an instance selects one exact dtype, so every
-                # attribute must be pinned down; no column ever has a None
-                # subtype or ``closed``.
+                # GH#40234: an interval spec selects one exact dtype, so
+                # every part must be pinned down: no column has a None subtype
+                # or ``closed``, nor a subtype without a resolution.
                 subtype = target.subtype
                 if subtype is None:
+                    closed = target.closed or "left"
                     raise ValueError(
-                        "an interval spec must give a subtype and 'closed', "
-                        "e.g. pd.IntervalDtype('int64', 'left'); pass "
+                        "an interval spec must give a subtype, e.g. "
+                        f"pd.IntervalDtype('int64', {closed!r}); pass "
                         "pd.IntervalDtype or 'interval' to select every "
                         "interval column"
                     )
                 if lib.is_np_dtype(subtype, "mM"):
                     if is_unitless_datetimelike(subtype):
+                        closed = target.closed or "right"
                         raise ValueError(
-                            f"{target!r} does not name a specific dtype; give "
-                            "the subtype a resolution, e.g. "
-                            f"'interval[{subtype.type.__name__}[us], right]', "
-                            "or pass 'interval' to select every interval column"
+                            f"{str(target)!r} does not name a specific dtype; "
+                            "give the subtype a resolution, e.g. "
+                            f"'interval[{subtype.type.__name__}[us], {closed}]'"
+                            ", or pass 'interval' to select every interval "
+                            "column"
                         )
                     # a subtype names a resolution the same way a top-level
                     # spec does, so reject the impossible ones here too
                     check_resolution(subtype, str(target), "interval")
                 if target.closed is None:
                     raise ValueError(
-                        f"{target!r} does not name a specific dtype; pass "
+                        f"{str(target)!r} does not name a specific dtype; pass "
                         f"'closed' too, e.g. 'interval[{subtype}, right]', or "
                         "'interval' to select every interval column"
                     )
