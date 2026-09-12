@@ -329,6 +329,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     _name: Hashable
     _metadata: list[str] = ["_name"]
+
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        if "_name" not in cls._metadata:
+            cls._metadata = [*cls._metadata, "_name"]
+
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
