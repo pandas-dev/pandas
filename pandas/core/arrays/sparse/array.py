@@ -63,6 +63,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
     DatetimeTZDtype,
     SparseDtype,
 )
@@ -192,6 +193,16 @@ def _get_fill(arr: SparseArray) -> np.ndarray:
         return np.asarray(arr.fill_value, dtype=arr.dtype.subtype)
     except ValueError:
         return np.asarray(arr.fill_value)
+
+
+def _maybe_object_for_bool_fill(
+    from_dtype: np.dtype, result_dtype: np.dtype
+) -> np.dtype:
+    # GH#32119 numpy bool cannot hold a non-bool (e.g. NA) fill value, so a take
+    #  that introduces one upcasts to object like the dense path, never to float.
+    if from_dtype.kind == "b" and result_dtype.kind != "b":
+        return np.dtype(object)
+    return result_dtype
 
 
 def _sparse_array_op(
@@ -1224,7 +1235,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if len(self) == 0:
             # Empty... Allow taking only if all empty
             if (indices == -1).all():
-                dtype = np.result_type(self.sp_values, type(fill_value))
+                dtype = _maybe_object_for_bool_fill(
+                    self.dtype.subtype,
+                    np.result_type(self.sp_values, type(fill_value)),
+                )
                 taken = np.empty_like(indices, dtype=dtype)
                 taken.fill(fill_value)
                 return taken
@@ -1240,17 +1254,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if self.sp_index.npoints == 0 and old_fill_indices.all():
             # We've looked up all valid points on an all-sparse array.
-            taken = np.full(
-                sp_indexer.shape, fill_value=self.fill_value, dtype=self.dtype.subtype
-            )
+            # GH#32119 the fill is the array's own, so don't promote; the bool
+            #  subtype is the exception, where np.full would quietly turn an NA
+            #  fill into True
+            _dtype = self.dtype.subtype
+            if _dtype.kind == "b" and not lib.is_bool(self.fill_value):
+                _dtype = np.dtype(object)
+            taken = np.full(sp_indexer.shape, fill_value=self.fill_value, dtype=_dtype)
 
         elif self.sp_index.npoints == 0:
             # Use the old fill_value unless we took for an index of -1
-            _dtype = np.result_type(self.dtype.subtype, type(fill_value))
-            if self.dtype.subtype.kind == "b" and _dtype.kind != "b":
-                # GH#32119 numpy bool can't hold a non-bool (e.g. NA) fill;
-                #  match the dense reindex behavior and upcast to object
-                _dtype = np.dtype(object)
+            _dtype = _maybe_object_for_bool_fill(
+                self.dtype.subtype,
+                np.result_type(self.dtype.subtype, type(fill_value)),
+            )
             taken = np.full(sp_indexer.shape, fill_value=fill_value, dtype=_dtype)
             taken[old_fill_indices] = self.fill_value
         else:
@@ -1267,16 +1284,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             result_type = taken.dtype
 
             if m0.any():
-                result_type = np.result_type(result_type, type(self.fill_value))
+                result_type = _maybe_object_for_bool_fill(
+                    taken.dtype, np.result_type(result_type, type(self.fill_value))
+                )
                 taken = taken.astype(result_type)
                 taken[old_fill_indices] = self.fill_value
 
             if m1.any():
-                result_type = np.result_type(result_type, type(fill_value))
-                if taken.dtype.kind == "b" and result_type.kind != "b":
-                    # GH#32119 numpy bool can't hold a non-bool (e.g. NA)
-                    #  fill; match the dense reindex behavior (bool -> object)
-                    result_type = np.dtype(object)
+                result_type = _maybe_object_for_bool_fill(
+                    taken.dtype, np.result_type(result_type, type(fill_value))
+                )
                 taken = taken.astype(result_type)
                 taken[new_fill_indices] = fill_value
 
@@ -2479,7 +2496,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype=np.bool_,
             )
 
-    def _logical_method(self, other, op) -> SparseArray:
+    def _logical_method(self, other, op):
+        other_dtype = getattr(other, "dtype", None)
+        if isinstance(other_dtype, BaseMaskedDtype) and other_dtype.kind == "b":
+            # GH#68422 defer to the masked operand's reflected op, which keeps
+            #  its Kleene NA semantics; densifying here loses them.
+            #  Boolean only -- the other masked dtypes reach _arith_method,
+            #  which cannot consume a SparseArray.
+            return NotImplemented
+
         # GH#32119 the sparse fast path (see _sparse_array_op / splib) only
         #  implements and/or/xor for boolean and integer subtypes. When
         #  alignment upcasts an operand to object/float -- e.g. NA introduced

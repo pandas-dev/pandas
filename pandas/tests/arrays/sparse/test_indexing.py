@@ -194,6 +194,56 @@ class TestTake:
         assert result.dtype == pd.SparseDtype(object, False)
         tm.assert_sp_array_equal(result, expected)
 
+    def test_take_fill_bool_empty_upcasts_to_object(self):
+        # GH#68422 same as above for a length-zero array, which takes a
+        #  separate branch and kept upcasting to float
+        sparse = SparseArray(np.array([], dtype=bool))
+        result = sparse.take([-1, -1], allow_fill=True)
+        expected = SparseArray([np.nan, np.nan], dtype=pd.SparseDtype(object, False))
+        assert result.dtype == pd.SparseDtype(object, False)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_bool_old_fill_upcasts_to_object(self):
+        # GH#68422 same for the old-fill arm, reached when the array's own
+        #  fill value is NA; it kept upcasting True to 1.0
+        sparse = SparseArray(
+            np.array([True, np.nan], dtype=object),
+            dtype=pd.SparseDtype(bool, np.nan),
+        )
+        result = sparse.take([0, 1], allow_fill=True)
+        expected = SparseArray([True, np.nan], dtype=pd.SparseDtype(object, np.nan))
+        assert result.dtype == pd.SparseDtype(object, np.nan)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_bool_all_sparse_na_fill_upcasts_to_object(self):
+        # GH#68422 the all-sparse arm took the subtype straight, so np.full
+        #  wrote the NA fill into a bool array and resolved it to True
+        sparse = SparseArray(
+            np.array([np.nan, np.nan], dtype=object),
+            dtype=pd.SparseDtype(bool, np.nan),
+        )
+        result = sparse.take([1, 0], allow_fill=True)
+        expected = SparseArray([np.nan, np.nan], dtype=pd.SparseDtype(object, np.nan))
+        assert result.dtype == pd.SparseDtype(object, np.nan)
+        tm.assert_sp_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["uint8", "int8", "int16", "float32"])
+    def test_take_all_sparse_preserves_narrow_subtype(self, dtype):
+        # GH#68422 the all-sparse arm writes a fill its own subtype already
+        #  holds, so it must not promote
+        sparse = SparseArray(np.zeros(3, dtype=dtype), fill_value=0)
+        result = sparse.take([2, 1, 0], allow_fill=True)
+        assert result.dtype == sparse.dtype
+
+    def test_reindex_empty_bool_upcasts_to_object(self):
+        # GH#68422 the user-visible path onto the branch above
+        ser = pd.Series(SparseArray(np.array([], dtype=bool)))
+        result = ser.reindex([0, 1])
+        expected = pd.Series(
+            SparseArray([np.nan, np.nan], dtype=pd.SparseDtype(object, False))
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)
