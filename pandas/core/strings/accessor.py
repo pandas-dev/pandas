@@ -635,7 +635,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.str.cat(pd.Series(["x", "y", "z"]))
-        Index([nan, nan, nan], dtype='object')
+        Index([NaN, NaN, NaN], dtype='object')
 
         Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
 

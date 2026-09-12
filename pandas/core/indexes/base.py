@@ -1496,6 +1496,23 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted value.
         """
+        if isinstance(val, (complex, np.complexfloating)):
+            real_isna, imag_isna = isna(val.real), isna(val.imag)
+            if real_isna or imag_isna:
+                # match Series/DataFrame per-component NaN repr (GH#64733)
+                real_str = "NaN" if real_isna else default_pprint(val.real)
+                if imag_isna:
+                    sign, imag_str = "+", "NaN"
+                else:
+                    imag_pprint = default_pprint(val.imag)
+                    if imag_pprint.startswith("-"):
+                        sign, imag_str = "-", imag_pprint[1:]
+                    else:
+                        sign, imag_str = "+", imag_pprint
+                return f"{real_str}{sign}{imag_str}j"
+        elif isinstance(val, (float, np.floating)) and isna(val):
+            # match Series/DataFrame NaN repr (GH#64733)
+            return "NaN"
         return default_pprint(val)
 
     @final
@@ -2769,7 +2786,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
-        Index([5.2, 6.0, nan], dtype='float64')
+        Index([5.2, 6.0, NaN], dtype='float64')
         >>> idx.isna()
         array([False, False,  True])
 
@@ -2778,7 +2795,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', nan], dtype='str')
+        Index(['black', '', 'red', NaN], dtype='str')
         >>> idx.isna()
         array([False, False, False,  True])
 
@@ -2826,7 +2843,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
-        Index([5.2, 6.0, nan], dtype='float64')
+        Index([5.2, 6.0, NaN], dtype='float64')
         >>> idx.notna()
         array([ True,  True, False])
 
@@ -2835,7 +2852,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', nan], dtype='str')
+        Index(['black', '', 'red', NaN], dtype='str')
         >>> idx.notna()
         array([ True,  True,  True, False])
         """
@@ -7688,7 +7705,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> import pandas as pd
         >>> idx = pd.Index([10, 20, 30, 40, 50])
         >>> idx.diff()
-        Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
+        Index([NaN, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         """
         return Index(self.to_series().diff(periods))
