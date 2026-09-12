@@ -21,3 +21,4 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
 cpdef bint is_fixed_offset(tzinfo tz)
 
 cdef object get_dst_info(tzinfo tz)
+cdef object get_zoneinfo_twin(tzinfo tz)
