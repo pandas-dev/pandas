@@ -2033,8 +2033,7 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
     return i8result.view(dt64arr.dtype)
 
 
-# relativedelta keywords that can be expressed as a Timedelta / handled
-#  by the vectorized _apply_array path
+# relativedelta keywords the vectorized _apply_array path supports
 _relativedelta_fast = frozenset({
     "years",
     "months",
@@ -2136,14 +2135,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
         # Coerce to that resolution when lossless so the scalar result
         # matches the vectorized DatetimeIndex/Series path; apply_wraps
         # then narrows back to ``other``'s unit where that is also lossless.
-        # Use _pd_timedelta_unit rather than _pd_timedelta.unit: the latter
-        # is cached, but ``other - offset`` negates into a fresh offset on
-        # every call, so the cache is always cold there and building the
-        # Timedelta dominated the runtime.
+        # There is nothing to do when the offset has no Timedelta
+        # representation (unit None, e.g. ``weekday``), or when its unit is
+        # "s": Timestamp(other) is never coarser than "us", so apply_wraps
+        # would undo that coercion anyway.
         offset_unit = self._pd_timedelta_unit
         if offset_unit is None or offset_unit == "s":
-            # Timestamp(other) is never coarser than "us", so coercing to
-            # "s" would be undone by the narrowing in apply_wraps anyway.
             return result
         result2 = result.as_unit(offset_unit)
         if result == result2:
@@ -2153,11 +2150,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
     @property
     def _pd_timedelta_unit(self) -> str | None:
         """
-        The unit ``_pd_timedelta`` has, or None if it would raise
-        NotImplementedError.
+        The unit _pd_timedelta has, None if it would raise NotImplementedError.
 
         Determined from the keyword names alone, so it is cheap even when
-        the ``_pd_timedelta`` cache is cold.
+        the _pd_timedelta cache is cold.
         """
         kwds = self.kwds
         if self._use_relativedelta:
