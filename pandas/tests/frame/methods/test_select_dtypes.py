@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import re
 
 import numpy as np
 import pytest
@@ -1334,6 +1335,35 @@ def test_select_dtypes_interval_unitless_subtype_with_closed(spec):
     # GH#66120: leaving the subtype's unit open still honors an explicit closed
     df = _interval_unit_frame()
     tm.assert_frame_equal(df.select_dtypes(include=spec), df[["dt_us_left"]])
+
+
+@pytest.mark.parametrize(
+    "spec, unitless",
+    [
+        ("interval[datetime64[10s]]", "interval[datetime64]"),
+        ("interval[datetime64[Y], left]", "interval[datetime64, left]"),
+        ("interval[timedelta64[2ns]]", "interval[timedelta64]"),
+        (pd.IntervalDtype(np.dtype("M8[10s]")), "interval[datetime64]"),
+        (pd.IntervalDtype(np.dtype("M8[Y]"), "left"), "interval[datetime64, left]"),
+        (pd.IntervalDtype(np.dtype("m8[2ns]")), "interval[timedelta64]"),
+    ],
+)
+@pytest.mark.parametrize("kwarg", ["include", "exclude"])
+def test_select_dtypes_interval_unsupported_subtype_resolution_raises(
+    spec, unitless, kwarg
+):
+    # GH#40234 a subtype naming a resolution no column can have raises, as the
+    # same resolution does at the top level, instead of selecting nothing
+    df = _interval_unit_frame()
+    msg = (
+        f"{str(spec)!r} is not a supported datetime64/timedelta64 resolution; "
+        f"pass 's', 'ms', 'us', 'ns', or {unitless!r}"
+    )
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        df.select_dtypes(**{kwarg: spec})
+
+    # the remedy the message names selects interval columns
+    assert not df.select_dtypes(include=unitless).empty
 
 
 @pytest.mark.parametrize("kwarg", ["include", "exclude"])
