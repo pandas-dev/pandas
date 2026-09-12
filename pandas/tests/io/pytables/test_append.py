@@ -743,6 +743,17 @@ because its data contents are not [string] but [mixed] object dtype"""
     with pytest.raises(TypeError, match=msg):
         temp_hdfstore.append("df", df)
 
+    # GH#9604 — an unhashable element alongside a missing value must still get
+    # this message: choosing the column's NaN sentinel looks at its values first
+    for label, value in [("unhashable", ["a"]), ("array", np.array([1, 2]))]:
+        df = pd.DataFrame({label: [value, np.nan]})
+        msg2 = re.escape(
+            f"""Cannot serialize the column [{label}]
+because its data contents are not [string] but [mixed] object dtype"""
+        )
+        with pytest.raises(TypeError, match=msg2):
+            temp_hdfstore.append(f"df_{label}", df)
+
     # datetime with embedded nans as object
     df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
