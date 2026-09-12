@@ -427,8 +427,28 @@ class TestPandasContainer:
     )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
         df = pd.DataFrame([{"a_float": value}])
-        encoded = df.to_json(double_precision=precision)
+        depr_msg = "The 'double_precision' keyword in DataFrame.to_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
+
+    @pytest.mark.parametrize("precision", [10, 3])
+    def test_to_json_double_precision_deprecated(self, precision):
+        # GH#62464 - warns even when the current default value is passed
+        # explicitly, and the output is unchanged while deprecated
+        df = pd.DataFrame({"a": [1 / 3]})
+        depr_msg = "The 'double_precision' keyword in DataFrame.to_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = df.to_json(double_precision=precision)
+        expected = f'{{"a":{{"0":{round(1 / 3, precision)}}}}}'
+        assert result == expected
+
+        ser = df["a"]
+        depr_msg = "The 'double_precision' keyword in Series.to_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = ser.to_json(double_precision=precision)
+        expected = f'{{"0":{round(1 / 3, precision)}}}'
+        assert result == expected
 
     def test_frame_to_json_except(self):
         df = pd.DataFrame([1, 2, 3])
@@ -765,7 +785,11 @@ class TestPandasContainer:
 
     def test_series_from_json_precise_float(self):
         s = pd.Series([4.56, 4.56, 4.56])
-        result = pd.read_json(StringIO(s.to_json()), typ="series", precise_float=True)
+        depr_msg = "The 'precise_float' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = pd.read_json(
+                StringIO(s.to_json()), typ="series", precise_float=True
+            )
         tm.assert_series_equal(result, s, check_index_type=False)
 
     def test_series_with_dtype(self):
@@ -797,7 +821,20 @@ class TestPandasContainer:
 
     def test_frame_from_json_precise_float(self):
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        result = pd.read_json(StringIO(df.to_json()), precise_float=True)
+        depr_msg = "The 'precise_float' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = pd.read_json(StringIO(df.to_json()), precise_float=True)
+        tm.assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize("precise_float", [False, True])
+    def test_read_json_precise_float_deprecated(self, precise_float):
+        # GH#62464 - warns even when the current default value is passed
+        # explicitly, and the result is unchanged while deprecated
+        df = pd.DataFrame({"a": [4.56, 1.5]})
+        json = df.to_json()
+        depr_msg = "The 'precise_float' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = pd.read_json(StringIO(json), precise_float=precise_float)
         tm.assert_frame_equal(result, df)
 
     def test_typ(self):

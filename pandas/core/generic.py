@@ -2269,7 +2269,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Literal["split", "records", "index", "table", "columns", "values"] | None
         ) = None,
         date_format: str | None = None,
-        double_precision: int = 10,
+        double_precision: int | lib.NoDefault = lib.no_default,
         force_ascii: bool = True,
         date_unit: TimeUnit = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
@@ -2339,6 +2339,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The number of decimal places to use when encoding
             floating point values. The possible maximal value is 15.
             Passing double_precision greater than 15 will raise a ValueError.
+
+            .. deprecated:: 3.1.0
+                In a future version, floating point values will be written
+                with the shortest representation that round-trips exactly.
+                Round the data before writing to control the number of digits.
         force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
@@ -2604,6 +2609,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+
+        if double_precision is not lib.no_default:
+            # GH#62464
+            warnings.warn(
+                f"The 'double_precision' keyword in {type(self).__name__}.to_json "
+                "is deprecated and will be removed in a future version. Floating "
+                "point values will then be written with the shortest "
+                "representation that round-trips exactly. Round the data before "
+                "writing to control the number of digits.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            double_precision = 10
 
         cf.is_nonnegative_int(indent)
         indent = indent or 0
