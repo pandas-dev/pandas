@@ -19,7 +19,10 @@ from typing import (
 )
 from urllib.parse import quote
 
-from scripts.issue_assignment.core import STALE_LABEL
+from scripts.issue_assignment.core import (
+    GATE_LABEL,
+    STALE_LABEL,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -79,8 +82,15 @@ query($owner: String!, $name: String!, $cursor: String) {
       nodes {
         number
         isDraft
-        author { login }
+        author { login __typename }
         authorAssociation
+        closingIssuesReferences(first: 20) {
+          nodes {
+            number
+            repository { nameWithOwner }
+            assignees(first: 20) { nodes { login } }
+          }
+        }
         reviews(last: 50) {
           nodes { author { login } state submittedAt authorAssociation }
         }
@@ -156,10 +166,7 @@ class GitHubClient:
 
     # --- reads ---------------------------------------------------------------
 
-    def linked_issues_for_pr(self, number: int) -> list[LinkedIssue]:
-        nodes = self._graphql(_LINKED_ISSUES_QUERY, number=number)["pullRequest"][
-            "closingIssuesReferences"
-        ]["nodes"]
+    def _linked_issues(self, nodes: list[dict[str, Any]]) -> list[LinkedIssue]:
         return [
             {
                 "number": node["number"],
@@ -169,6 +176,12 @@ class GitHubClient:
             # Ignore linked issues to other repositories.
             if node["repository"]["nameWithOwner"].lower() == self.repo.lower()
         ]
+
+    def linked_issues_for_pr(self, number: int) -> list[LinkedIssue]:
+        nodes = self._graphql(_LINKED_ISSUES_QUERY, number=number)["pullRequest"][
+            "closingIssuesReferences"
+        ]["nodes"]
+        return self._linked_issues(nodes)
 
     def iter_open_pull_requests_review_state(self) -> Iterator[OpenPRState]:
         """Yield an ``OpenPRState`` for each open PR, paginating in batches.
@@ -208,6 +221,17 @@ class GitHubClient:
                     and (marked := parse_dt(event["createdAt"])) is not None
                 ]
                 newest_stale = max(stale_events, default=None)
+                # Newest gate label application, whoever applied it: a
+                # maintainer hand-applying the label means the same thing.
+                gate_marked_at = max(
+                    (
+                        marked
+                        for event in node["labelEvents"]["nodes"]
+                        if event["label"]["name"] == GATE_LABEL
+                        and (marked := parse_dt(event["createdAt"])) is not None
+                    ),
+                    default=None,
+                )
                 reopened_events: list[Comment] = [
                     {
                         "author": (event.get("actor") or {}).get("login"),
@@ -228,11 +252,16 @@ class GitHubClient:
                     if commit_nodes
                     else None
                 )
+                author = node.get("author") or {}
                 yield {
                     "number": node["number"],
                     "is_draft": node["isDraft"],
-                    "author": (node.get("author") or {}).get("login"),
+                    "author": author.get("login"),
                     "author_association": node.get("authorAssociation"),
+                    "author_is_bot": author.get("__typename") == "Bot",
+                    "linked_issues": self._linked_issues(
+                        node["closingIssuesReferences"]["nodes"]
+                    ),
                     "reviews": reviews,
                     "review_requests": review_requests,
                     "has_pending_review_requests": (
@@ -249,6 +278,7 @@ class GitHubClient:
                         if newest_stale is not None and newest_stale[1] == _BOT_LOGIN
                         else None
                     ),
+                    "gate_marked_at": gate_marked_at,
                 }
             page = connection["pageInfo"]
             if not page["hasNextPage"]:
