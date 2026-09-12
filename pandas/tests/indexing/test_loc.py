@@ -1581,13 +1581,9 @@ class TestLocBaseIndependent:
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
         result = pd.DataFrame(index=idx, columns=["var"], dtype=np.float64)
-        if idxer == "var":
-            with pytest.raises(TypeError, match="Invalid value"):
-                result.loc[:, idxer] = expected
-        else:
-            # See https://github.com/pandas-dev/pandas/issues/56223
-            result.loc[:, idxer] = expected
-            tm.assert_frame_equal(result, expected)
+        # See https://github.com/pandas-dev/pandas/issues/56223
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_time_key(self):
         index = pd.date_range("2012-01-01", "2012-01-05", freq="30min")
@@ -3976,12 +3972,52 @@ def test_loc_setitem_extension_array_into_object_series():
     # GH#42437 - assigning an ExtensionArray with array-like elements
     # to an object-dtype Series via .loc should not raise
     pa = pytest.importorskip("pyarrow")
-
     arr = pd.array([[1, 2], [3, 4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     ser = pd.Series([None, None, None], dtype=object)
     ser.loc[:] = arr
     expected = pd.Series(list(arr), dtype=object)
     tm.assert_series_equal(ser, expected)
+
+
+class TestLocSetitemDataFrameAlignment:
+    def test_loc_setitem_scalar_column_dataframe_alignment(self):
+        # GH 58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        item = pd.DataFrame([100], columns=["A"], index=["v"])
+
+        # Setting a single block dataframe's column with a dataframe should align
+        df.loc[:, "A"] = item
+
+        expected = pd.DataFrame(
+            [[np.nan, 2.0], [np.nan, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_scalar_column_dataframe_non_unique_columns(self):
+        # GH 58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        item = pd.DataFrame(
+            [[10.0, 20.0], [30.0, 40.0]], index=["x", "y"], columns=["A", "A"]
+        )
+        msg = "Setting with non-unique columns is not allowed."
+        with pytest.raises(ValueError, match=msg):
+            df.loc[:, "A"] = item
+
+    def test_loc_setitem_scalar_column_dataframe_row_slice(self):
+        # GH 58482
+        df = pd.DataFrame(
+            [[1.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        other = pd.DataFrame([[100.0]], columns=["A"], index=["x"])
+        df.loc[["x"], "A"] = other
+        expected = pd.DataFrame(
+            [[100.0, 2.0], [3.0, 4.0]], index=["x", "y"], columns=["A", "B"]
+        )
+        tm.assert_frame_equal(df, expected)
 
 
 def test_loc_setitem_expansion_incompatible_dtype_warns():
