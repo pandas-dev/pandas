@@ -377,3 +377,22 @@ def test_assert_index_equal_check_freq_check_order_false(box, start):
     with tm.assert_produces_warning(None):
         tm.assert_index_equal(shuffled, idx, check_order=False)
         tm.assert_index_equal(shuffled, idx, check_order=False, check_freq=True)
+
+
+def test_assert_index_equal_large_mixed_integer_float():
+    # GH#66699 only exact=False reaches the magnitude guard; the default
+    #  "equiv" rejects an int64/float64 pair before it
+    left = pd.Index([2**60 + 1])
+    right = pd.Index([float(2**60)])
+
+    tm.assert_index_equal(left, right, exact=False, check_exact=False, rtol=0, atol=1)
+    msg = r"Index values are different \(100\.0 %\)"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_index_equal(
+            left, right, exact=False, check_exact=False, rtol=0, atol=0.5
+        )
+
+    same = pd.Index([2**60])
+    tm.assert_index_equal(
+        same, pd.Index([float(2**60)]), exact=False, check_exact=False, rtol=0, atol=0
+    )

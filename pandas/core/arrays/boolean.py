@@ -392,6 +392,7 @@ class BooleanArray(BaseMaskedArray):
 
     def _logical_method(self, other, op):
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
+        ops.disallow_datetimelike_logical_op(self, other, op)
         other_is_scalar = lib.is_scalar(other)
         mask = None
 
