@@ -69,6 +69,12 @@ MESSAGE = (
     "tests never run:"
 )
 
+TARGET_MESSAGE = (
+    "Warning: {module!r} gates tests with importorskip/skip_if_no, and "
+    "{package!r} is declared only for these pixi targets: {targets}. "
+    "Affected test files:"
+)
+
 
 def environments_running_tests() -> set[str]:
     """
@@ -105,6 +111,18 @@ def declared_packages(pixi: dict, environments: Iterable[str]) -> set[str]:
     return packages
 
 
+def target_specific_packages(pixi: dict) -> dict[str, set[str]]:
+    """
+    Map each target-specific package to the pixi targets that install it.
+    """
+    packages: dict[str, set[str]] = {}
+    for target, block in pixi.get("target", {}).items():
+        for dependency_type in ("dependencies", "pypi-dependencies"):
+            for package in block.get(dependency_type, {}):
+                packages.setdefault(package, set()).add(target)
+    return packages
+
+
 def gated_modules() -> dict[str, set[str]]:
     """
     Map each gated top level module to the files that gate on it.
@@ -119,23 +137,44 @@ def gated_modules() -> dict[str, set[str]]:
     return modules
 
 
-def validate_test_dependencies() -> int:
-    with open(PIXI_PATH, "rb") as file_handle:
-        pixi = tomllib.load(file_handle)
-    declared = declared_packages(pixi, environments_running_tests())
-
+def validate_declared_packages(
+    modules: dict[str, set[str]],
+    declared: set[str],
+    target_specific: dict[str, set[str]],
+) -> int:
+    """
+    Report test gates that run nowhere or only on specific pixi targets.
+    """
     ret = 0
-    for module, paths in sorted(gated_modules().items()):
+    for module, paths in sorted(modules.items()):
         if module in ALLOWED_UNDECLARED or module in sys.stdlib_module_names:
             continue
         package = IMPORT_TO_CONDA.get(module, module)
         if package in declared:
             continue
-        print(MESSAGE.format(module=module, package=package))
+
+        targets = target_specific.get(package)
+        if targets:
+            formatted_targets = ", ".join(sorted(targets))
+            print(
+                TARGET_MESSAGE.format(
+                    module=module, package=package, targets=formatted_targets
+                )
+            )
+        else:
+            print(MESSAGE.format(module=module, package=package))
+            ret = 1
         for path in sorted(paths):
             print(f"    {path}")
-        ret = 1
     return ret
+
+
+def validate_test_dependencies() -> int:
+    with open(PIXI_PATH, "rb") as file_handle:
+        pixi = tomllib.load(file_handle)
+    declared = declared_packages(pixi, environments_running_tests())
+    target_specific = target_specific_packages(pixi)
+    return validate_declared_packages(gated_modules(), declared, target_specific)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
