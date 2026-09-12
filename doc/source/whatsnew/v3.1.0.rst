@@ -882,6 +882,7 @@ Indexing
 - Bug in :meth:`MultiIndex.get_loc` returning a slice instead of an integer for a unique key when the :class:`MultiIndex` contained duplicates elsewhere, causing ``.loc`` to return a :class:`Series` instead of a scalar (:issue:`42102`)
 - Bug in :meth:`RangeIndex.get_indexer` returning spurious matches for extreme integer targets (near ``INT64_MIN`` or ``uint64`` values above ``INT64_MAX``) and failing to match genuine members of ranges spanning more than ``INT64_MAX`` (:issue:`64148`)
 - Bug in :meth:`RangeIndex.memory_usage` and :attr:`RangeIndex.nbytes` raising ``TypeError`` on PyPy (:issue:`46176`)
+- Bug in :meth:`RangeIndex.symmetric_difference` returning the result in descending order instead of sorted when operating against an empty :class:`RangeIndex` (:issue:`68264`)
 - Bug in :meth:`Series.where` and :meth:`Series.mask` raising ``ValueError`` when ``other`` is a tuple on object-dtype :class:`Series` (:issue:`37681`)
 - Bug in boolean-mask setitem, :meth:`Series.where`, :meth:`Series.mask`, and :meth:`Series.combine_first` aborting the Python process when applied to an :class:`ArrowDtype` column with null type (:issue:`66703`)
 - Bug in setitem (e.g. :meth:`Series.iloc`) silently storing corrupted values in the untouched entries of an :class:`ArrowDtype` ``binary`` or ``large_binary`` column when assigning ``NA`` to a column that had been sliced; later operations on the column, such as :meth:`DataFrame.to_parquet`, could then raise ``ArrowInvalid`` (:issue:`64320`)
