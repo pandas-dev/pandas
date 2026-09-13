@@ -166,9 +166,8 @@ cpdef assert_almost_equal(a, b,
                     return True
 
                 # array_equivalent compared after a lossy cast to float64; redo
-                #  it at full integer precision so only a genuine difference pays
-                #  for the loop below. A float outside the integer dtype's range
-                #  has no exact cast, so leave that case to the loop.
+                #  it at full integer precision. A float outside the integer
+                #  dtype's range has no exact cast, so leave that to the loop.
                 flt_arr = b if int_arr is a else a
                 info = np.iinfo(int_arr.dtype)
                 if ((flt_arr >= info.min) & (flt_arr < info.max + 1)).all():

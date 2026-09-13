@@ -254,12 +254,13 @@ def test_assert_almost_equal_large_mixed_integer_float_message():
 
 
 def test_assert_almost_equal_2d_large_mixed_integer_float():
-    # GH#68366 check_dtype=False must hold in 2-D as well as 1-D
-    big = np.array([[2**60, 1], [2, 3]], dtype="int64")
+    # GH#68366 the element loop must honour check_dtype in 2-D as well as 1-D;
+    #  the one-integer difference keeps this off the exact-match fast path
+    big = np.array([[2**60 + 1, 1], [2, 3]], dtype="int64")
+    flt = np.array([[float(2**60), 1.0], [2.0, 3.0]])
 
-    _assert_almost_equal_both(
-        big, big.astype("float64"), check_dtype=False, rtol=0, atol=0
-    )
+    _assert_almost_equal_both(big, flt, check_dtype=False, rtol=0, atol=1)
+    _assert_not_almost_equal_both(big, flt, check_dtype=False, rtol=0, atol=0)
 
 
 def test_assert_almost_equal_nested_arrays_check_dtype():

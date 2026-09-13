@@ -557,7 +557,7 @@ Performance improvements
 - Performance improvement in :func:`read_sas` for compressed SAS7BDAT files with many rows per page, up to ~1.7x faster (:issue:`47339`)
 - Performance improvement in :func:`read_sas` when decoding strings (:issue:`47339`)
 - Performance improvement in :func:`read_sql` with ADBC connections by requesting only table metadata when checking whether an input string names a table (:issue:`65652`)
-- Performance improvement in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_index_equal` with ``check_exact=False`` and ``check_dtype=False`` (``exact=False`` for :func:`testing.assert_index_equal`) when integer and floating values above ``2**53`` are exactly equal, which fell back to an element-by-element comparison (:issue:`68568`)
+- Performance improvement in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_index_equal` when comparing exactly-equal integer and floating values above ``2**53`` without checking dtype, which fell back to an element-by-element comparison (:issue:`68568`)
 - Performance improvement in :func:`to_datetime` and the :class:`Timestamp` constructor when parsing strings with timezone offsets (:issue:`66123`)
 - Performance improvement in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns (:issue:`65195`)
 - Performance improvement in :func:`to_datetime` with the default ``cache=True`` for inputs that are already datetime-typed or use a ``unit`` (:issue:`65380`)
