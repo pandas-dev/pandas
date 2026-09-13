@@ -218,12 +218,11 @@ class TestReductions:
         assert pd.isna(result)
 
     def test_mean_all_na_datetimelike(self):
-        # GH#68484 the NA is the subtype's, not float nan
+        # GH#68484 the NA is NaT, not float nan
         arr = SparseArray(np.array([], dtype="m8[ns]"))
         with tm.assert_produces_warning(None):
             result = arr.mean()
-        assert isinstance(result, np.timedelta64)
-        assert pd.isna(result)
+        assert result is pd.NaT
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_mean_raises_for_unsupported_object_dtype_with_na(self, skipna):
@@ -331,8 +330,7 @@ class TestMinMax:
         arr = SparseArray(data, dtype=dtype)
         result = getattr(arr, func)()
         if expected is pd.NaT:
-            # TODO: pin down whether we wrap datetime64("NaT")
-            assert result is pd.NaT or np.isnat(result)
+            assert result is pd.NaT
         else:
             assert np.isnan(result)
 
@@ -566,6 +564,49 @@ def test_datetimelike_reductions_match_dense(name, unit, skipna):
     tm.assert_series_equal(
         frame_result, frame_expected.astype(pd.SparseDtype(frame_expected.dtype))
     )
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("shape", ["na_fill", "stored_fill", "all_fill"])
+@pytest.mark.parametrize(
+    "name, unit",
+    [
+        (name, unit)
+        for unit in ["M8[us]", "m8[us]"]
+        for name in ["min", "max", "mean", "sum", "median", "std"]
+        # sum and mean reduce the sp_values with ndarray.sum(), which numpy
+        #  rejects for datetime64
+        if not (unit == "M8[us]" and name in ("sum", "mean"))
+    ],
+)
+def test_datetimelike_reductions_box_the_scalar(name, unit, shape, skipna):
+    # GH#68555 these returned a raw np.datetime64/np.timedelta64
+    if shape == "all_fill":
+        # every value is the fill value, so there are no stored values to reduce
+        values = np.array([7, 7], dtype=unit)
+    else:
+        values = np.array([1, 3, "NaT", 5], dtype=unit)
+    # a numpy-scalar fill value is stored unboxed; a Timestamp one is stored
+    #  boxed already and so would not reach the leak
+    fill_value = None if shape == "na_fill" else values[-1]
+    arr = SparseArray(values, fill_value=fill_value)
+    expected = getattr(pd.Series(values), name)(skipna=skipna)
+
+    for result in [
+        getattr(arr, name)(skipna=skipna),
+        getattr(pd.Series(arr), name)(skipna=skipna),
+    ]:
+        assert type(result) is type(expected)
+        if pd.isna(expected):
+            assert result is pd.NaT
+        else:
+            assert result == expected
+
+    frame_result = getattr(pd.DataFrame({"a": arr}), name)(skipna=skipna)
+    frame_expected = getattr(pd.DataFrame({"a": values}), name)(skipna=skipna)
+    # the subtype is what the keepdims arm picks; the fill value follows the input
+    assert frame_result.dtype.subtype == frame_expected.dtype
+    tm.assert_series_equal(frame_result.astype(frame_expected.dtype), frame_expected)
 
 
 def test_frame_std_datetime64_widens_to_timedelta64():

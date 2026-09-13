@@ -1880,20 +1880,38 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                         # sparse columns does not mix fill values
                         fill_value = subtype.type(fill_value).item()
                     dtype = SparseDtype(subtype, fill_value)
-            elif dtype.subtype.kind in "mM" and result_dtype.kind in "mM":
+            elif dtype.subtype.kind in "mM" and (
+                result is NaT or isinstance(result, (Timestamp, Timedelta))
+            ):
                 # datetimelike reductions are closed over the subtype except std,
-                # which turns a datetime64 column into a timedelta64 one
-                if result_dtype != dtype.subtype:
-                    dtype = SparseDtype(result_dtype)
+                # which turns a datetime64 column into a timedelta64 one. Go by
+                # the reduction, not the result: a boxed result no longer says which.
+                if dtype.subtype.kind == "M" and name in _complex_to_real_reductions:
+                    unit = np.datetime_data(dtype.subtype)[0]
+                    dtype = SparseDtype(np.dtype(f"m8[{unit}]"))
+                if result is NaT:
+                    # a boxed NaT is inferred as datetime64, so a timedelta64
+                    # subtype needs the numpy NaT back
+                    result = na_value_for_dtype(dtype.subtype, compat=False)
             return type(self)([result], dtype=dtype)
         else:
             return result
+
+    @property
+    def _na_scalar(self) -> Scalar:
+        """
+        The NA a reduction returns, boxed as NaT for a datetimelike subtype.
+        """
+        return maybe_box_datetimelike(
+            na_value_for_dtype(self.dtype.subtype, compat=False), self.dtype.subtype
+        )
 
     def _dense_reduce(self, name: str, *, skipna: bool, **kwargs):
         """
         Compute a reduction that has no sparse-aware kernel on the dense values.
         """
-        return getattr(nanops, f"nan{name}")(self._densify(), skipna=skipna, **kwargs)
+        result = getattr(nanops, f"nan{name}")(self._densify(), skipna=skipna, **kwargs)
+        return maybe_box_datetimelike(result, self.dtype.subtype)
 
     def all(self, axis=None, *args, skipna: bool = True, **kwargs) -> bool:
         """
@@ -2034,17 +2052,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         sp_sum = valid_vals.sum()
 
         if not skipna and self._hasna:
-            return na_value_for_dtype(self.dtype.subtype, compat=False)
+            return self._na_scalar
 
         if self._null_fill_value:
             if check_below_min_count(valid_vals.shape, None, min_count):
-                return na_value_for_dtype(self.dtype.subtype, compat=False)
-            return sp_sum
+                return self._na_scalar
+            result = sp_sum
         else:
             nsparse = self.sp_index.ngaps
             if check_below_min_count(valid_vals.shape, None, min_count - nsparse):
-                return na_value_for_dtype(self.dtype.subtype, compat=False)
-            return sp_sum + self.fill_value * nsparse
+                return self._na_scalar
+            result = sp_sum + self.fill_value * nsparse
+        return maybe_box_datetimelike(result, self.dtype.subtype)
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> SparseArray:
         accum_func = {
@@ -2177,7 +2196,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if not nobs:
             # nobs == 0 is exactly "every entry is NA", empty arrays included; the
             # division and the fill_value adjustment both warn or raise there (GH#68484)
-            return na_value_for_dtype(self.dtype.subtype, compat=False)
+            return self._na_scalar
 
         # Compute the reduction before the skipna=False NA short-circuit so
         # unsupported dtypes still raise during the operation validation.
@@ -2187,9 +2206,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             mean = (sp_sum + self.fill_value * nsparse) / nobs
 
         if not skipna and self._hasna:
-            return na_value_for_dtype(self.dtype.subtype, compat=False)
+            return self._na_scalar
 
-        return mean
+        return maybe_box_datetimelike(mean, self.dtype.subtype)
 
     def median(
         self,
@@ -2481,22 +2500,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             sp_min_max = getattr(valid_vals, kind)()
 
             if not skipna and self._hasna:
-                return na_value_for_dtype(self.dtype.subtype, compat=False)
+                return self._na_scalar
 
             # If a non-null fill value is currently present, it might be the min/max
             if has_nonnull_fill_vals:
                 func = max if kind == "max" else min
-                return func(sp_min_max, self.fill_value)
-
-            # A present NA with skipna=False is handled above, so the min/max of
-            # the valid sparse values is the result.
-            return sp_min_max
+                result = func(sp_min_max, self.fill_value)
+            else:
+                # A present NA with skipna=False is handled above, so the min/max
+                # of the valid sparse values is the result.
+                result = sp_min_max
         elif not skipna and self._hasna:
-            return na_value_for_dtype(self.dtype.subtype, compat=False)
+            return self._na_scalar
         elif has_nonnull_fill_vals:
-            return self.fill_value
+            result = self.fill_value
         else:
-            return na_value_for_dtype(self.dtype.subtype, compat=False)
+            return self._na_scalar
+        return maybe_box_datetimelike(result, self.dtype.subtype)
 
     def _argmin_argmax(self, kind: Literal["argmin", "argmax"]) -> int:
         values = self._sparse_values
