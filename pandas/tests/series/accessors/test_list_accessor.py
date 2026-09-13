@@ -150,8 +150,10 @@ def test_list_accessor_not_iterable():
 
 
 def test_list_get_negative_index():
-    ser = pd.Series(["A-B", "C-D"], dtype=pd.ArrowDtype(pa.string()), name="a")
-    result = ser.str.split("-").list[-1]
+    ser = pd.Series(
+        [["A", "B"], ["C", "D"]], dtype=pd.ArrowDtype(pa.list_(pa.string())), name="a"
+    )
+    result = ser.list[-1]
     expected = pd.Series(
         ["B", "D"],
         dtype=pd.ArrowDtype(pa.string()),  # item type, not list_dtype
