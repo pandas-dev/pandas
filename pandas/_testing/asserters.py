@@ -101,9 +101,11 @@ def assert_almost_equal(
         then `RangeIndex` and `Index` with int64 dtype are also considered
         equivalent when doing type checking.
     rtol : float, default 1e-5
-        Relative tolerance.
+        Relative tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance.
+        Absolute tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -259,9 +261,13 @@ def assert_index_equal(
         If True, both indexes must contain the same elements, in the same order.
         If False, both indexes must contain the same elements, but in any order.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'Index' or 'MultiIndex'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -839,9 +845,10 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0.0
-            for left_arr, right_arr in zip(left, right, strict=True):
+            # ravel so the count is over values, matching the `left.size` total
+            for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
                 # count up differences
-                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
+                if not array_equivalent(left_val, right_val, strict_nan=strict_nan):
                     diff += 1
 
             diff = diff * 100.0 / left.size
@@ -893,9 +900,13 @@ def assert_extension_array_equal(
             Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'ExtensionArray'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1103,9 +1114,13 @@ def assert_series_equal(
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1431,9 +1446,13 @@ def assert_frame_equal(
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
-        Relative tolerance. Only used when check_exact is False.
+        Relative tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance. Only used when check_exact is False.
+        Absolute tolerance. Only used when check_exact is False, and only
+        applied to numeric dtypes; values of other dtypes, such as interval,
+        are always compared exactly.
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.

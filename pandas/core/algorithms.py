@@ -158,20 +158,21 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8")
         else:
-            # e.g. Sparse[bool, False]  # TODO: no test cases get here
+            # e.g. Sparse[bool, False], see test_mode_sparse_bool
             return np.asarray(values).astype("uint8", copy=False)
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values)
 
     elif is_float_dtype(values.dtype):
+        # itemsize comes off the values, not the dtype: an ExtensionDtype
+        # (e.g. Sparse[float64]) may not have one.
         # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
-        # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype, dtype[Any]]"
-        # has no attribute "itemsize"
-        if values.dtype.itemsize in [2, 12, 16]:  # type: ignore[union-attr]
+        float_values = np.asarray(values)
+        if float_values.dtype.itemsize in [2, 12, 16]:
             # we dont (yet) have float128 hashtable support
-            return ensure_float64(values)
-        return np.asarray(values)
+            return ensure_float64(float_values)
+        return float_values
 
     elif is_complex_dtype(values.dtype):
         # NumpyExtensionArray needs to be unwrapped to the underlying ndarray

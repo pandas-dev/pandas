@@ -75,9 +75,11 @@ cpdef assert_almost_equal(a, b,
     a : object
     b : object
     rtol : float, default 1e-5
-        Relative tolerance.
+        Relative tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance.
+        Absolute tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -163,6 +165,11 @@ cpdef assert_almost_equal(a, b,
                 ):
                     return True
 
+            # flatten so the loop compares values, not rows; see GH#68366 and
+            #  test_assert_almost_equal_2d_large_mixed_integer_float
+            a = a.ravel()
+            b = b.ravel()
+
         else:
             na, nb = len(a), len(b)
 
@@ -179,7 +186,9 @@ cpdef assert_almost_equal(a, b,
 
         for i in range(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], rtol=rtol, atol=atol)
+                assert_almost_equal(
+                    a[i], b[i], check_dtype=check_dtype, rtol=rtol, atol=atol
+                )
             except AssertionError:
                 is_unequal = True
                 diff += 1

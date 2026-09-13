@@ -645,14 +645,8 @@ class TestTimedeltaMultiplicationDivision:
         #  instead of raising the way a Python int does.
         td = pd.Timedelta(2**62, unit="ns")
 
-        msg = "|".join(
-            [
-                "Python int too large to convert to C long",
-                # windows, 32bit linux builds
-                "int too big to convert",
-            ]
-        )
-        with pytest.raises(OverflowError, match=msg):
+        msg = "Overflow in int64 multiplication"
+        with pytest.raises(OutOfBoundsTimedelta, match=msg):
             op(td, dtype(4))
 
     @pytest.mark.parametrize("dtype", [np.float32, np.float64])
@@ -1619,6 +1613,67 @@ def test_td_mul_lands_on_nat_sentinel(unit, factor):
         td * factor
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         factor * td
+
+
+@pytest.mark.parametrize("factor", [4, 4.0])
+def test_td_mul_scalar_overflow_int(factor):
+    # GH#68393 the int64 cast raised a bare OverflowError naming a C type, where
+    #  the ndarray equivalent raises OutOfBoundsTimedelta.  An integral float is
+    #  exact here, so it takes the int64 path too
+    td = pd.Timedelta(2**62, unit="ns")
+
+    msg = "Overflow in int64 multiplication"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("factor", [4.5, np.inf, -np.inf])
+def test_td_mul_scalar_overflow_float(factor):
+    # GH#68393 a non-integral multiplier keeps the product in float; infinities
+    #  reach the same cast
+    td = pd.Timedelta(2**62, unit="ns")
+
+    msg = "Overflow in timedelta multiplication"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td * factor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        factor * td
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("divisor", [1e-30, np.float32(1e-30), 0.5])
+def test_td_div_scalar_overflow(unit, divisor):
+    # GH#68393 scalar counterpart of test_td_div_float_ndarray_overflow
+    td = pd.Timedelta(np.iinfo(np.int64).max, unit)
+
+    msg = "Overflow in timedelta division"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td / divisor
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        td // divisor
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("factor", [np.inf, -np.inf, np.float32("inf")])
+def test_td_mul_zero_by_inf_is_nat(unit, factor):
+    # GH#68392 a zero timedelta times an infinity is the one product that comes
+    #  out NaN; the cast used to leak "cannot convert float NaN to integer",
+    #  where every vectorized form gives NaT
+    td = pd.Timedelta(0, unit)
+
+    assert td * factor is pd.NaT
+    assert factor * td is pd.NaT
+
+    assert (pd.TimedeltaIndex([td]) * factor)[0] is pd.NaT
+    assert (pd.Series([td]) * factor)[0] is pd.NaT
+
+    # the ndarray path agrees, but trips numpy's own invalid-value warning,
+    #  which it does not suppress the way the TimedeltaIndex path does
+    expected = np.array([np.timedelta64("NaT", unit)])
+    with np.errstate(invalid="ignore"):
+        tm.assert_numpy_array_equal(td * np.array([factor]), expected)
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])

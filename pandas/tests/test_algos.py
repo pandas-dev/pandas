@@ -26,6 +26,7 @@ import pandas._testing as tm
 import pandas.core.algorithms as algos
 from pandas.core.arrays import (
     DatetimeArray,
+    SparseArray,
     TimedeltaArray,
 )
 import pandas.core.common as com
@@ -2281,6 +2282,28 @@ class TestMode:
         result = ser.mode()
         expected = pd.Series([1], name="foo")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("subtype", ["float16", "float32", "float64"])
+    def test_mode_sparse_float(self, subtype):
+        # GH#68421 SparseDtype has no itemsize for _ensure_data to read
+        ser = pd.Series(SparseArray(np.array([1, 2, 2, 3], dtype=subtype)))
+        result = ser.mode()
+        expected = pd.Series([2], dtype=ser.dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_mode_sparse_bool(self):
+        # GH#68421 bool goes through _ensure_data's non-ndarray bool branch
+        arr = SparseArray([True, True, True, False])
+        result = pd.Series(arr).mode()
+        tm.assert_series_equal(result, pd.Series([True], dtype=arr.dtype))
+
+    @pytest.mark.parametrize("dropna, expected", [(True, 1.0), (False, np.nan)])
+    def test_mode_sparse_counts_fill_value(self, dropna, expected):
+        # GH#68421 the fill value is a value like any other, so the implicit
+        # entries count toward the mode
+        arr = SparseArray([np.nan, np.nan, np.nan, 1.0, 1.0])
+        result = pd.Series(arr).mode(dropna=dropna)
+        tm.assert_series_equal(result, pd.Series([expected], dtype=arr.dtype))
 
 
 class TestDiff:
