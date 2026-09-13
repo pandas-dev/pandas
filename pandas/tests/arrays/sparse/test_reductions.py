@@ -915,3 +915,46 @@ def test_frame_and_series_mean_all_na(arr, subtype):
     assert result.dtype.subtype == subtype
     assert pd.isna(result["a"])
     assert pd.isna(series_result)
+
+
+@pytest.mark.parametrize(
+    "arr, expected",
+    [
+        (SparseArray(["a", "a", "b"], fill_value="a"), "aab"),
+        (SparseArray(["a", "a"], fill_value="a"), "aa"),
+        (SparseArray(["b", "c"], fill_value="a"), "bc"),
+        (
+            SparseArray(np.array([b"a", b"a", b"b"], dtype=object), fill_value=b"a"),
+            b"aab",
+        ),
+        (SparseArray(np.array([], dtype=object), fill_value="a"), 0),
+        (SparseArray(np.array([np.nan], dtype=object), fill_value="a"), 0),
+    ],
+)
+def test_sum_object_fill_value(arr, expected):
+    # GH#68581 str and bytes concatenation is not commutative, so the closed-form
+    #  fill_value * nsparse adjustment appended the gaps, and degenerated to
+    #  int(0) + str when no stored value was non-NA
+    result = arr.sum()
+    assert result == expected
+    assert result == pd.Series(arr.to_dense(), dtype=object).sum()
+
+
+def test_sum_object_fill_value_na_raises_like_dense():
+    # GH#68581 a stored NA among strings raises in nanops instead of being
+    #  skipped; sparse now matches dense here rather than returning the gaps
+    #  out of order.  Both sides flip together when that is fixed.
+    arr = SparseArray(np.array(["a", np.nan, "b"], dtype=object), fill_value="a")
+    msg = "can only concatenate str"
+    with pytest.raises(TypeError, match=msg):
+        arr.sum()
+    with pytest.raises(TypeError, match=msg):
+        pd.Series(arr.to_dense(), dtype=object).sum()
+
+
+def test_sum_object_null_fill_value_keeps_stored_order():
+    # GH#68581 an NA fill needs no adjustment, so this stays on the closed-form
+    #  path; it deliberately does not match dense, which raises instead
+    arr = SparseArray(["a", "b", None])
+    assert arr._null_fill_value
+    assert arr.sum() == "ab"

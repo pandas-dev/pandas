@@ -2023,6 +2023,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_sum(args, kwargs)
         skipna = validate_bool_kwarg(skipna, "skipna")
+
+        if self.dtype.subtype.kind == "O" and not self._null_fill_value:
+            # the fill_value * nsparse adjustment below assumes a commutative +,
+            #  which str and bytes do not have; an NA fill is skipped, not added,
+            #  so it needs none.  See test_sum_object_fill_value.
+            return self._dense_reduce("sum", skipna=skipna, min_count=min_count)
+
         valid_vals = self._valid_sp_values
         sp_sum = valid_vals.sum()
 
