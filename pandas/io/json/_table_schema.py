@@ -41,7 +41,10 @@ import pandas.core.common as com
 from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
 
     from pandas._typing import (
         DtypeObj,
@@ -345,7 +348,7 @@ def build_table_schema(
 
 
 def _unmatched_names(
-    names: list[Hashable], records: list[dict[str, Any]]
+    names: Sequence[Hashable], records: list[dict[str, Any]]
 ) -> list[Hashable]:
     """
     Non-string field names with no key holding their values in "data".
@@ -381,8 +384,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     NotImplementedError
         If the JSON table schema contains either timezone or timedelta data
     ValueError
-        If a field name cannot be matched to the key that holds its values in
-        the "data" records
+        If a non-string field name cannot be matched to the key that holds its
+        values in the "data" records, or if two field names share that key
 
     Notes
     -----
@@ -403,16 +406,21 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     schema = table["schema"]
     records = table["data"]
     names = [field["name"] for field in schema["fields"]]
+    # only a non-string name has to be matched, and only an object record is
+    #  keyed by label -- anything else is positional data DataFrame takes as-is
+    keyed: list[dict[str, Any]] = []
+    if any(not isinstance(name, str) for name in names):
+        keyed = [record for record in records if isinstance(record, dict)]
     float_names = [name for name in names if isinstance(name, float)]
-    if not precise_float and _unmatched_names(float_names, records):
+    if not precise_float and _unmatched_names(float_names, keyed):
         # the fast parser perturbs a float label (0.3 reads back as
         #  0.30000000000000004) so it no longer matches its key in "data";
-        #  the schema is metadata, not data (GH#19129)
+        #  precise_float governs the data values, not the labels (GH#19129)
         schema = ujson_loads(json, precise_float=True)["schema"]
         names = [field["name"] for field in schema["fields"]]
     fields = schema["fields"]
-    col_order = [name if isinstance(name, str) else str(name) for name in names]
-    if len(set(col_order)) < len(set(names)):
+    col_order = [str(name) for name in names]
+    if len(set(col_order)) < len(col_order):
         collisions = [
             name
             for name, col in zip(names, col_order, strict=True)
@@ -422,8 +430,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             f"Field names {collisions} share a string form, so they share a "
             "single key in 'data' and cannot be read back"
         )
-    if records:
-        unmatched = _unmatched_names(names, records)
+    if keyed:
+        unmatched = _unmatched_names(names, keyed)
         if unmatched:
             msg = f"Field names {unmatched} have no matching key in 'data'"
             if any(isinstance(name, float) for name in unmatched):
@@ -450,10 +458,11 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
 
     if "primaryKey" in schema:
         pkey = schema["primaryKey"]
-        if isinstance(pkey, str):
-            # the spec allows a bare field name as well as an array of them
+        if not isinstance(pkey, list):
+            # the spec allows a bare field name as well as an array of them,
+            #  and build_table_schema(primary_key=0) writes a non-string one
             pkey = [pkey]
-        primary_key = [key if isinstance(key, str) else str(key) for key in pkey]
+        primary_key = [str(key) for key in pkey]
         df = df.set_index(primary_key)
         if len(df.index.names) == 1:
             if df.index.name == "index":
