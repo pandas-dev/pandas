@@ -1540,11 +1540,13 @@ cdef class TextReader:
                                               raise_on_invalid)
                 na_count = 0
 
-            if result is not None and dtype != "int64":
+            if result is not None and user_dtype and result.dtype != dtype:
                 # GH#55232 a value the user's dtype cannot hold must raise
-                #  instead of silently wrapping around
+                #  instead of silently wrapping around.  Gated on user_dtype:
+                #  inference must keep a uint64 result from the overflow
+                #  fallback above, not wrap it into the int64 it asked to try.
                 casted = result.astype(dtype)
-                if not np.can_cast(result.dtype, dtype) and (casted != result).any():
+                if (casted != result).any():
                     raise ValueError(
                         f"cannot safely convert passed user dtype of "
                         f"{dtype} for {result.dtype.name} dtyped data in "

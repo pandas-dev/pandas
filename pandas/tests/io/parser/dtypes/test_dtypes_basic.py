@@ -998,6 +998,8 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg):
     [
         # only fits uint64, so the c engine falls back to _try_uint64
         ("x\n18446744073709551615\n1\n", "uint8"),
+        # the requested dtype is the int64 that overflowed into the fallback
+        ("x\n18446744073709551615\n1\n", "int64"),
         # parses as float rather than int, which both engines must check too
         ("x\n300.0\n1.0\n", "uint8"),
         ("x\n257.0\n1.0\n", "int8"),
