@@ -2828,7 +2828,7 @@ def maybe_convert_numeric(
         else:
             if isinstance(val, str):
                 val_lower = val.lower()
-                if val_lower in ("nan", "-nan", "+nan"):
+                if convert_to_masked_nullable and val_lower in ("nan", "-nan", "+nan"):
                     fval = NaN
                     seen.null_ = True
                     if allow_null_in_int:
