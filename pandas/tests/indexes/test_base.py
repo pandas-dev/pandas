@@ -329,6 +329,23 @@ class TestIndex:
         with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
             idx.replace("2020-01-01", "z")
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_index_replace_widening_matches_like_block_replace(self, unit):
+        # GH#68563 object compares an ns Timestamp unequal where `in` says it is
+        #  present, so the guard has to match the way Block.replace does.  That
+        #  ns no-op is a pre-existing object-dtype bug; raising keeps it from
+        #  reaching the caller as data
+        idx = pd.CategoricalIndex(pd.date_range("2020", periods=3, unit=unit))
+
+        if unit == "ns":
+            with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
+                idx.replace(idx[0], "z")
+        else:
+            result = idx.replace(idx[0], "z")
+
+            expected = Index(["z", idx[1], idx[2]], dtype=object)
+            tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "idx, na, expected",
         [

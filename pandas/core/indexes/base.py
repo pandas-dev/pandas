@@ -170,7 +170,10 @@ from pandas.core.indexers import (
     is_valid_positional_slice,
 )
 from pandas.core.indexes.frozen import FrozenList
-from pandas.core.missing import clean_reindex_fill_method
+from pandas.core.missing import (
+    clean_reindex_fill_method,
+    mask_missing,
+)
 from pandas.core.ops import get_op_result_name
 from pandas.core.sorting import (
     ensure_key_mapped,
@@ -6915,9 +6918,9 @@ class Index(IndexOpsMixin, PandasObject):
         Common dtype to retry replace() on after self.dtype refused a value.
 
         A literal `to_replace` that matches nothing is left out: Block.replace
-        skips those rather than widening for them, so the retry has to agree.
-        Also returns those literals that did match, for the caller to re-check
-        against the widened dtype.
+        skips those rather than widening for them, so matching goes through
+        mask_missing the way Block.replace does.  Also returns those literals
+        that did match, for the caller to re-check against the widened dtype.
         """
         if is_dict_like(to_replace):
             pairs = list(to_replace.items())
@@ -6940,11 +6943,12 @@ class Index(IndexOpsMixin, PandasObject):
             matched = []
             for to_rep, val in pairs:
                 if checknull(to_rep):
-                    # `in` misses NA on some dtypes, so match it against hasnans
+                    # NA is matched against hasnans rather than compared, and
+                    #  stays out of keys: widening cannot lose an NA match
                     if self.hasnans:
                         matched.append(val)
                     continue
-                if is_hashable(to_rep) and to_rep in self:
+                if is_hashable(to_rep) and mask_missing(self._values, to_rep).any():
                     matched.append(val)
                     keys.append(to_rep)
             repl = matched
@@ -7013,10 +7017,10 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype == self.dtype:
                 raise
             widened = self.astype(dtype)
-            if any(key not in widened for key in keys):
-                # widening changed how to_replace compares, e.g. a str against
-                #  datetime categories; re-raise rather than hand back data with
-                #  the replacement silently dropped
+            if any(not mask_missing(widened._values, key).any() for key in keys):
+                # widening changed how to_replace compares, e.g. a str or an
+                #  ns-resolution Timestamp against datetime categories; re-raise
+                #  rather than hand back data with the replacement silently dropped
                 raise
             return widened.replace(to_replace, value, regex=regex)
 
