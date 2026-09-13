@@ -1442,7 +1442,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "with NAs present."
             )
         if isinstance(value, ExtensionArray):
-            value = value.astype(object)
+            na_mask = value._mask
+            if na_mask.any():
+                dum_min = self._data.min()
+                clean_vals = np.where(na_mask, dum_min, value._data)
+                res = self._data.searchsorted(clean_vals, side=side, sorter=sorter)
+                res[na_mask] = len(self)
+                return res
+            value = value._data
+        elif value is libmissing.NA:
+            return np.array([len(self)])
         # Base class searchsorted would cast to object, which is *much* slower.
         return self._data.searchsorted(value, side=side, sorter=sorter)
 
