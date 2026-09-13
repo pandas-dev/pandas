@@ -748,23 +748,24 @@ def test_to_dense_datetimelike_fill_other_unit(kind, unit, boxed):
     )
 
 
+@pytest.mark.parametrize("fill", [pd.NaT, np.nan, np.float64("nan"), pd.NA])
 @pytest.mark.parametrize("kind", ["M8", "m8"])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_datetimelike_nat_fill_value_normalized(kind, unit):
-    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it
-    #  behaves identically to the np.datetime64("NaT") spelling
+def test_datetimelike_na_fill_value_normalized(fill, kind, unit):
+    # GH#68449, GH#68558 any NA fill value is stored as the subtype's own NaT,
+    #  so it behaves identically to the np.datetime64("NaT") spelling
     values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
     values[1] = "NaT"
 
-    arr = SparseArray(values, fill_value=pd.NaT)
+    arr = SparseArray(values, fill_value=fill)
     expected = SparseArray(values, fill_value=values[1])
 
     assert arr.dtype == expected.dtype
-    assert arr.fill_value is not pd.NaT
+    assert arr.fill_value.dtype == values.dtype
     tm.assert_sp_array_equal(arr, expected)
 
-    # these raised TypeError for the pd.NaT spelling, except np.asarray, which
-    #  returned object dtype for a timedelta64 subtype
+    # each of these was wrong for at least one of the fill spellings above,
+    #  see GH#68449 and GH#68558
     tm.assert_numpy_array_equal(arr.to_dense(), values)
     tm.assert_numpy_array_equal(np.asarray(arr), values)
     tm.assert_numpy_array_equal(
@@ -775,7 +776,7 @@ def test_datetimelike_nat_fill_value_normalized(kind, unit):
     tm.assert_sp_array_equal(arr.unique(), expected.unique())
     all_fill = np.full(2, "NaT", dtype=values.dtype)
     tm.assert_sp_array_equal(
-        SparseArray(all_fill, fill_value=pd.NaT).take([0, 1], allow_fill=True),
+        SparseArray(all_fill, fill_value=fill).take([0, 1], allow_fill=True),
         SparseArray(all_fill, fill_value=values[1]).take([0, 1], allow_fill=True),
     )
     tm.assert_sp_array_equal(
