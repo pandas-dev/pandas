@@ -1027,3 +1027,23 @@ class TestTableOrientReader:
         result = pd.read_json(StringIO(json.dumps(table)), orient="table")
         expected = pd.DataFrame({5: [np.nan, 1.5]}, index=pd.Index([1, 2], name="idx"))
         tm.assert_frame_equal(result, expected)
+
+    def test_read_json_table_orient_float_label_no_records(self):
+        # GH#19129 with no records there is nothing to match the label against,
+        #  so the precise parse has to happen regardless
+        df = pd.DataFrame({0.3: pd.Series([], dtype=np.float64)})
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        # the fast parser reads 0.3 back as 0.30000000000000004, which
+        #  assert_frame_equal would accept as a column label
+        assert list(result.columns) == [0.3]
+        tm.assert_frame_equal(result, df, check_index_type=False)
+
+    def test_read_json_table_orient_nan_label(self):
+        # GH#19129 the writer stores a NaN label as null in the schema but as
+        #  "nan" in "data", so it cannot be matched back up
+        df = pd.DataFrame([[1.0]], columns=[np.nan])
+        out = StringIO(df.to_json(orient="table"))
+        msg = re.escape("Field names [None] have no matching key in 'data'")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")

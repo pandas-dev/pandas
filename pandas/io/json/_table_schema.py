@@ -344,6 +344,22 @@ def build_table_schema(
     return schema
 
 
+def _unmatched_names(
+    names: list[Hashable], records: list[dict[str, Any]]
+) -> list[Hashable]:
+    """
+    Non-string field names with no key holding their values in "data".
+    """
+    # JSON object keys are always strings, so a non-string field name is
+    #  keyed by its string form in "data" (GH#19129).
+    return [
+        name
+        for name in names
+        if not isinstance(name, str)
+        and not any(str(name) in record for record in records)
+    ]
+
+
 def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     Builds a DataFrame from a given schema
@@ -385,16 +401,16 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     table = ujson_loads(json, precise_float=precise_float)
     schema = table["schema"]
-    if not precise_float and any(
-        isinstance(field["name"], float) for field in schema["fields"]
-    ):
+    records = table["data"]
+    names = [field["name"] for field in schema["fields"]]
+    float_names = [name for name in names if isinstance(name, float)]
+    if not precise_float and _unmatched_names(float_names, records):
         # the fast parser perturbs a float label (0.3 reads back as
-        #  0.30000000000000004); the schema is metadata, not data (GH#19129)
+        #  0.30000000000000004) so it no longer matches its key in "data";
+        #  the schema is metadata, not data (GH#19129)
         schema = ujson_loads(json, precise_float=True)["schema"]
+        names = [field["name"] for field in schema["fields"]]
     fields = schema["fields"]
-    names = [field["name"] for field in fields]
-    # JSON object keys are always strings, so a non-string field name is
-    #  keyed by its string form in "data" (GH#19129).
     col_order = [name if isinstance(name, str) else str(name) for name in names]
     if len(set(col_order)) < len(set(names)):
         collisions = [
@@ -406,14 +422,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             f"Field names {collisions} share a string form, so they share a "
             "single key in 'data' and cannot be read back"
         )
-    records = table["data"]
     if records:
-        unmatched = [
-            name
-            for name, col in zip(names, col_order, strict=True)
-            if not isinstance(name, str)
-            and not any(col in record for record in records)
-        ]
+        unmatched = _unmatched_names(names, records)
         if unmatched:
             msg = f"Field names {unmatched} have no matching key in 'data'"
             if any(isinstance(name, float) for name in unmatched):
