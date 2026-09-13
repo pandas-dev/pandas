@@ -7,6 +7,7 @@ from datetime import (
 )
 from io import StringIO
 import json
+import re
 
 import numpy as np
 import pytest
@@ -925,3 +926,104 @@ class TestTableOrientReader:
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [5, 6, 7, 8],
+            [1.5, 2.5],
+            [0.1, 0.3, 0.7],
+            [True, False],
+            ["a", 7],
+            pd.RangeIndex(2),
+        ],
+    )
+    def test_read_json_table_orient_non_string_columns(self, columns):
+        # GH#19129
+        df = pd.DataFrame(
+            np.arange(2 * len(columns), dtype=np.float64).reshape(2, len(columns)),
+            columns=columns,
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_colliding_string_form(self):
+        # GH#19129 5 and "5" share one key in "data", so neither column is
+        #  recoverable; raise rather than return the wrong values
+        df = pd.DataFrame([[1, 2]], columns=[5, "5"])
+        out = StringIO(df.to_json(orient="table"))
+        msg = re.escape("Field names [5, '5'] share a string form")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
+
+    def test_read_json_table_orient_scalar_primary_key(self):
+        # GH#19129 the spec allows a bare field name; pandas only ever writes
+        #  the array form, so nothing else covers this
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": "idx", "type": "integer"},
+                    {"name": "a", "type": "integer"},
+                ],
+                "primaryKey": "idx",
+            },
+            "data": [{"idx": 1, "a": 2}],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame({"a": [2]}, index=pd.Index([1], name="idx"))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("name", [0, False, ""])
+    def test_read_json_table_orient_falsy_series_name(self, name):
+        # GH#19129 only a None name stands in as "values"
+        ser = pd.Series([1.0, 2.0], name=name)
+        out = StringIO(ser.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(ser.to_frame(), result)
+
+    def test_read_json_table_orient_unmatched_float_label(self):
+        # GH#19129 double_precision rounds the label in the schema but not the
+        #  "data" key, so the two no longer line up
+        df = pd.DataFrame([[1.0]], columns=[1 / 3])
+        out = StringIO(df.to_json(orient="table"))
+        msg = "have no matching key in 'data'; a float label may need"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
+
+        # a label that survives the rounding still round-trips
+        df = pd.DataFrame([[1.0]], columns=[0.12345678901234])
+        out = StringIO(df.to_json(orient="table", double_precision=15))
+        tm.assert_frame_equal(pd.read_json(out, orient="table"), df)
+
+    # 0.3 is perturbed by the fast float parser, 5 is not
+    @pytest.mark.parametrize("name", [5, 0.3])
+    def test_read_json_table_orient_non_string_index_names(self, name):
+        # GH#19129
+        df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([3, 4], name=name))
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+        mi = pd.MultiIndex.from_tuples([(1, 2), (3, 4)], names=[name, "y"])
+        df = pd.DataFrame({"a": [1, 2]}, index=mi)
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_sparse_records(self):
+        # GH#19129 a non-string field name absent from the first record but
+        #  present in a later one is not a mismatch
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": "idx", "type": "integer"},
+                    {"name": 5, "type": "number"},
+                ],
+                "primaryKey": ["idx"],
+            },
+            "data": [{"idx": 1}, {"idx": 2, "5": 1.5}],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame({5: [np.nan, 1.5]}, index=pd.Index([1, 2], name="idx"))
+        tm.assert_frame_equal(result, expected)
