@@ -9,6 +9,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
@@ -993,6 +994,7 @@ GH,100102040,202,0205"""
 
 
 @xfail_pyarrow  # pyarrow engine casts the parsed frame, silently wrapping around
+@pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
 @pytest.mark.parametrize(
     "dtype, err, msg",
     [
@@ -1002,13 +1004,16 @@ GH,100102040,202,0205"""
         ("int8", ValueError, "cannot safely convert passed user dtype of int8"),
     ],
 )
-def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg):
+def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_backend):
     # GH#55232 out-of-range values must raise instead of silently wrapping
-    #  around, matching the Series/array constructors
+    #  around, matching the Series/array constructors.  dtype_backend is
+    #  parametrized because it decides which cast the python engine takes.
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
     parser = all_parsers
     data = "x\n-1\n257\n"
     with pytest.raises(err, match=msg):
-        parser.read_csv(StringIO(data), dtype={"x": dtype})
+        parser.read_csv(StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend)
 
 
 @xfail_pyarrow  # pyarrow engine casts the parsed frame, silently wrapping around
