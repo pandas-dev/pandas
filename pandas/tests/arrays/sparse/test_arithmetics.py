@@ -610,6 +610,96 @@ def test_logical_op_masked_other_uneven_length_series(op, n_sparse, n_other):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.ge])
+@pytest.mark.parametrize(
+    "values, masked_dtype",
+    [
+        (np.array([True, False, True, False]), "boolean"),
+        (np.array([1, 0, 3, 0]), "Int64"),
+        (np.array([1.0, 0.0, 3.0, 0.0]), "Float64"),
+    ],
+)
+def test_cmp_op_masked_other(op, values, masked_dtype):
+    # GH#68579 densifying the masked operand dropped its NA: a boolean one
+    #  raised, the rest resolved it as if it were NaN where dense gives <NA>
+    other = pd.array(values, dtype=masked_dtype)
+    other[1] = pd.NA
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_op_masked_other_without_na():
+    # GH#68579 the operand's dtype decides the result dtype, not whether it
+    #  holds NA -- as it does for the dense operand
+    values = np.array([1, 0, 3, 0])
+    other = pd.array(values, dtype="Int64")
+
+    result = SparseArray(values) < other
+    assert result.dtype == pd.BooleanDtype()
+    tm.assert_extension_array_equal(result, values < other)
+
+
+def test_cmp_op_masked_other_series():
+    # GH#68579 the Series path dispatches to the same reflected op
+    values = np.array([1, 0, 3, 0])
+    other = pd.Series(pd.array([1, pd.NA, 3, 0], dtype="Int64"))
+
+    result = pd.Series(SparseArray(values)) < other
+    expected = pd.Series(values) < other
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.ge,
+        operator.and_,
+        operator.or_,
+        operator.xor,
+    ],
+)
+@pytest.mark.parametrize(
+    "values", [np.array([True, False, True, False]), np.array([1, 0, 3, 0])]
+)
+def test_op_na_scalar(op, values):
+    # GH#68579 NA has no truth value, so assembling the result raised; sparse
+    #  is numpy-backed, so the answer is the dense Series one
+    result = op(SparseArray(values), pd.NA)
+
+    expected = op(pd.Series(values), pd.NA)
+    assert isinstance(result.dtype, pd.SparseDtype)
+    tm.assert_series_equal(pd.Series(result).astype(bool), expected)
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne])
+@pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+def test_eq_na_scalar_datetimelike(op, dtype):
+    # GH#68579 equality against NA answers like the dense array
+    values = np.array([1, 2], dtype=dtype)
+
+    result = op(SparseArray(values), pd.NA)
+    expected = op(pd.Series(values), pd.NA)
+    tm.assert_series_equal(pd.Series(result).astype(bool), expected)
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.ge])
+@pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+def test_ordering_na_scalar_datetimelike_raises(op, dtype):
+    # GH#68579 a datetimelike dtype refuses to be ordered against NA, so the
+    #  NA shortcut must raise there rather than answer all-False
+    values = np.array([1, 2], dtype=dtype)
+
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        op(SparseArray(values), pd.NA)
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        op(pd.Series(values), pd.NA)
+
+
 @pytest.mark.parametrize(
     "a, b",
     [
