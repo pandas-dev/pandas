@@ -580,6 +580,10 @@ class BaseExprVisitor(ast.NodeVisitor):
         from pandas import eval as pd_eval
 
         value = self.visit(node.value)
+        if isinstance(node.slice, ast.Tuple):
+            # visit_Tuple builds a list, which __getitem__ reads as a single
+            #  axis-0 selector rather than a multi-axis key (GH#49905)
+            raise NotImplementedError("multi-dimensional subscripts are not supported")
         slobj = self.visit(node.slice)
         if isinstance(slobj, slice):
             # visit_Slice returns a bare slice; re-parsing it would stringify it into

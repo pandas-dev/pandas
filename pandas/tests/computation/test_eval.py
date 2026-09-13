@@ -2034,6 +2034,15 @@ def test_subscript_op_key_uses_engine():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("expr", ["arr[1, 2]", "arr[(1, 2)]", "arr[1:3, 2]"])
+def test_multi_dimensional_subscript_raises(expr, engine, parser):
+    # GH#49905 a tuple key becomes a list, so arr[1, 2] would select arr[[1, 2]]
+    arr = np.arange(12).reshape(3, 4)  # noqa: F841
+    msg = "multi-dimensional subscripts are not supported"
+    with pytest.raises(NotImplementedError, match=msg):
+        pd.eval(expr, engine=engine, parser=parser)
+
+
 def test_method_calls_on_binop():
     # GH 61175
     x = pd.Series([1, 2, 3, 5])
