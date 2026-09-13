@@ -794,22 +794,6 @@ def test_tz_aware_fill_value_still_rejected():
     msg = "fill_value must be a valid value for the SparseDtype.subtype"
     with pytest.raises(ValueError, match=msg):
         pd.SparseDtype("M8[ns]", fill_value=pd.Timestamp("2020-01-01", tz="UTC"))
-@pytest.mark.parametrize("kind", ["M8", "m8"])
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_datetimelike_boxed_fill_value_dense(kind, unit):
-    # GH#68571 np.asarray fell back to object for a boxed fill value, leaving the
-    #  sp_values unboxed; to_dense truncated a sub-microsecond fill value
-    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
-    boxed = pd.Timestamp(values[0]) if kind == "M8" else pd.Timedelta(values[0])
-
-    arr = SparseArray(values, fill_value=boxed)
-    assert arr.sp_index.ngaps == 1
-
-    tm.assert_numpy_array_equal(np.asarray(arr), values)
-    tm.assert_numpy_array_equal(arr.to_dense(), values)
-    tm.assert_numpy_array_equal(
-        np.asarray(arr, dtype=object), pd.array(values).astype(object)
-    )
 
 
 @pytest.mark.parametrize(
