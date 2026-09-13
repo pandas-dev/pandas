@@ -108,7 +108,9 @@ def set_default_names(data):
                 "Index name of 'index' is not round-trippable.",
                 stacklevel=find_stack_level(),
             )
-        elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
+        elif len(nms) > 1 and any(
+            isinstance(x, str) and x.startswith("level_") for x in nms
+        ):
             warnings.warn(
                 "Index names beginning with 'level_' are not round-trippable.",
                 stacklevel=find_stack_level(),
@@ -360,6 +362,9 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     ------
     NotImplementedError
         If the JSON table schema contains either timezone or timedelta data
+    ValueError
+        If a field name cannot be matched to the key that holds its values in
+        the "data" records
 
     Notes
     -----
@@ -377,12 +382,49 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
-    col_order = [field["name"] for field in table["schema"]["fields"]]
-    df = DataFrame(table["data"], columns=col_order)[col_order]
+    schema = table["schema"]
+    if not precise_float and any(
+        isinstance(field["name"], float) for field in schema["fields"]
+    ):
+        # the fast parser perturbs a float label (0.3 reads back as
+        #  0.30000000000000004); the schema is metadata, not data (GH#19129)
+        schema = ujson_loads(json, precise_float=True)["schema"]
+    fields = schema["fields"]
+    names = [field["name"] for field in fields]
+    # JSON object keys are always strings, so a non-string field name is
+    #  keyed by its string form in "data" (GH#19129).
+    col_order = [name if isinstance(name, str) else str(name) for name in names]
+    if len(set(col_order)) < len(set(names)):
+        collisions = [
+            name
+            for name, col in zip(names, col_order, strict=True)
+            if col_order.count(col) > 1
+        ]
+        raise ValueError(
+            f"Field names {collisions} share a string form, so they share a "
+            "single key in 'data' and cannot be read back"
+        )
+    records = table["data"]
+    if records:
+        unmatched = [
+            name
+            for name, col in zip(names, col_order, strict=True)
+            if not isinstance(name, str)
+            and not any(col in record for record in records)
+        ]
+        if unmatched:
+            msg = f"Field names {unmatched} have no matching key in 'data'"
+            if any(isinstance(name, float) for name in unmatched):
+                msg += (
+                    "; a float label may need to be written with a larger "
+                    "'double_precision' in to_json"
+                )
+            raise ValueError(msg)
+    df = DataFrame(records, columns=col_order)[col_order]
 
     dtypes = {
-        field["name"]: convert_json_field_to_pandas_type(field)
-        for field in table["schema"]["fields"]
+        col: convert_json_field_to_pandas_type(field)
+        for col, field in zip(col_order, fields, strict=True)
     }
 
     # No ISO constructor for Timedelta as of yet, so need to raise
@@ -394,8 +436,13 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
 
-    if "primaryKey" in table["schema"]:
-        df = df.set_index(table["schema"]["primaryKey"])
+    if "primaryKey" in schema:
+        pkey = schema["primaryKey"]
+        if isinstance(pkey, str):
+            # the spec allows a bare field name as well as an array of them
+            pkey = [pkey]
+        primary_key = [key if isinstance(key, str) else str(key) for key in pkey]
+        df = df.set_index(primary_key)
         if len(df.index.names) == 1:
             if df.index.name == "index":
                 df.index.name = None
@@ -403,5 +450,11 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             df.index.names = [
                 None if x.startswith("level_") else x for x in df.index.names
             ]
+
+    if col_order != names:
+        # undo the stringification of the non-string labels
+        restore = dict(zip(col_order, names, strict=True))
+        df.columns = [restore[col] for col in df.columns]
+        df.index.names = [restore.get(name, name) for name in df.index.names]
 
     return df
