@@ -909,7 +909,8 @@ def test_construction_trailing_characters_raises(value, leftover):
 @pytest.mark.parametrize(
     "value, msg",
     [
-        # a single term is out of range, so no later term can bring it back
+        # a single term is out of range, so cast_from_unit raises before
+        #  the total is checked
         ("1000000 days", "cannot convert input 1000000.0 with the unit 'D'"),
         ("99999999999999999999ns", "cannot convert input 1e+20 with the unit 'ns'"),
         ("P106752D", "cannot convert input 106752.0 with the unit 'D'"),
@@ -946,6 +947,8 @@ def test_construction_string_out_of_bounds(value, msg):
 
     with pytest.raises(OutOfBoundsTimedelta, match=re.escape(msg)):
         pd.to_timedelta([value])
+
+    assert pd.to_timedelta(value, errors="coerce") is pd.NaT
 
     result = pd.to_timedelta([value], errors="coerce")
     tm.assert_index_equal(result, pd.TimedeltaIndex([pd.NaT]))

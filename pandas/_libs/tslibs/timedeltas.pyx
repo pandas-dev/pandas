@@ -611,10 +611,11 @@ cdef int64_t _check_td_ns(object total, str ts) except? -1:
     """
     Range-check a timedelta string's parsed nanosecond total (GH#68560).
 
-    The parsers sum Python ints, so a running total that overshoots can be
-    brought back by a later term; only the total has to fit. The lower bound is
-    exclusive because INT64_MIN is NPY_NAT, and a parse landing there is a
-    value, not NaT.
+    Unit-suffixed terms are already bounded by cast_from_unit, so this catches
+    totals that leave the range while every term is in it -- and, in
+    parse_timedelta_string, one that overshoots and is brought back by a later
+    term. The lower bound is exclusive because a parse landing on INT64_MIN
+    would be indistinguishable from NPY_NAT.
     """
     if not (-(2**63) < total < 2**63):
         raise OutOfBoundsTimedelta(f"Out of bounds nanosecond timedelta: '{ts}'")
