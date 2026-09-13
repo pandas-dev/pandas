@@ -610,11 +610,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # np.False_ must take the serial path too (GH#66327).
     if not kwds.get("low_memory", True):
         return False
-    # Converter callables execute in the parser workers. They may be stateful
-    # or rely on thread-affine resources (e.g. a sqlite3 connection), so the
-    # parallel path cannot guarantee the same behaviour as the serial path.
-    if kwds.get("converters") is not None:
-        return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
     # would report chunk-relative (i.e. wrong) ones.
@@ -1090,7 +1085,21 @@ def _read_csv_chunks(
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
-                fut.result()
+                try:
+                    fut.result()
+                except Exception as err:
+                    if (
+                        "SQLite objects created in a thread can only be used in that same thread"
+                        in str(err)
+                    ):
+                        raise RuntimeError(
+                            "A read_csv converter raised a SQLite thread-affinity "
+                            "error while running in a parallel parser worker. "
+                            "Use a thread-safe resource in the converter or "
+                            "disable parallel CSV reading with "
+                            "mode.max_threads=1."
+                        ) from err
+                    raise
 
             # A column of only NA tokens and ints too large for int64 converts
             # to no numeric dtype, and is then emitted with its NA tokens left
