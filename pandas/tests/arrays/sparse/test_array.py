@@ -489,6 +489,38 @@ def test_accumulate_integer_subtype():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("op_name", ["cumsum", "cumprod", "cummin", "cummax"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_accumulate_na_gaps_subtype_cannot_hold_na(op_name, skipna):
+    # GH#68187 the gaps of a Sparse[int64, nan] are NA, not 0. cumsum is affected
+    #  too: _accumulate's fast path for it is gated on skipna.
+    values = np.array([1.0, np.nan, 5.0, np.nan])
+    arr = SparseArray(values).astype(pd.SparseDtype("int64", np.nan))
+
+    result = getattr(pd.Series(arr), op_name)(skipna=skipna)
+    expected = getattr(pd.Series(values), op_name)(skipna=skipna)
+
+    # only that fast path keeps the subtype; the rest promote to hold the gaps
+    subtype = "int64" if (op_name == "cumsum" and skipna) else "float64"
+    assert result.dtype == pd.SparseDtype(subtype, np.nan)
+    # not sparse.to_dense(), which has the same cast-the-gaps bug this fixes
+    tm.assert_series_equal(result.astype("float64"), expected)
+
+
+@pytest.mark.parametrize("op_name", ["cumprod", "cummin", "cummax"])
+def test_accumulate_bool_subtype_promotes_to_object(op_name):
+    # GH#68187 a Sparse[bool, nan] has no wider numpy bool dtype to hold the gaps.
+    #  cumsum is excluded: its fast path returns Sparse[int64, nan] instead.
+    values = np.array([True, np.nan, False, np.nan], dtype=object)
+    arr = SparseArray([1.0, np.nan, 0.0, np.nan]).astype(pd.SparseDtype("bool", np.nan))
+
+    result = getattr(pd.Series(arr), op_name)()
+    expected = getattr(pd.Series(values), op_name)()
+
+    assert result.dtype == pd.SparseDtype(object, np.nan)
+    tm.assert_series_equal(result.sparse.to_dense(), expected)
+
+
 def test_accumulate_datetime64():
     # GH#68187 a datetimelike subtype accumulates through its own array
     dti = pd.to_datetime(["2020-01-02", "NaT", "2020-01-01"])

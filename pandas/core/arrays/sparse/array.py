@@ -1963,7 +1963,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self.cumsum(**kwargs)
 
         result: ExtensionArray | np.ndarray
-        values = ensure_wrapped_if_datetimelike(self.to_dense())
+        values = ensure_wrapped_if_datetimelike(self._densify())
         if isinstance(values, ExtensionArray):
             # datetimelike subtypes have their own accumulations
             result = values._accumulate(name, skipna=skipna, **kwargs)
