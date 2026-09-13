@@ -250,6 +250,23 @@ def test_index_array_inplace_op_raises(data, dtype):
     tm.assert_index_equal(idx, expected)
 
 
+def test_sparse_index_astype_readonly():
+    # GH#38547 a fully dense SparseArray densifies to sp_values itself, so
+    #  astype must not hand back a writeable alias of an immutable Index
+    idx = pd.Index(
+        pd.arrays.SparseArray(np.array([1, 2, 3], dtype="int64"), fill_value=0)
+    )
+    expected = idx.copy(deep=True)
+
+    # copy=False keeps the result aliasing sp_values, which is the case under test
+    result = idx.array.astype(np.dtype("int64"), copy=False)
+    assert result.flags.writeable is False
+    with pytest.raises(ValueError, match="read-only"):
+        result[0] = 99
+
+    tm.assert_index_equal(idx, expected)
+
+
 def test_index_array_inplace_op_raises_interval():
     # GH#38547 IntervalArray._putmask has its own path mutating _left/_right
     idx = pd.interval_range(0, 2)
