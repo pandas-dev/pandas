@@ -2853,7 +2853,7 @@ def test_roundtrip(conn, request, test_frame1):
 
     if "adbc" in conn_name:
         result = result.rename(columns={"__index_level_0__": "level_0"})
-    result.set_index("level_0", inplace=True)
+    result = result.set_index("level_0")
     # result.index.astype(int)
 
     result.index.name = None

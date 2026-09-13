@@ -90,6 +90,11 @@ class TestSeriesAccessor:
         assert rows == expected_rows
         assert cols == expected_cols
 
+    def test_density_empty(self):
+        # GH#68468
+        ser = pd.Series(SparseArray(np.array([], dtype="float64")))
+        assert np.isnan(ser.sparse.density)
+
     def test_non_sparse_raises(self):
         ser = pd.Series([1, 2, 3])
         with pytest.raises(AttributeError, match=".sparse"):
@@ -215,6 +220,11 @@ class TestFrameAccessor:
         res = df.sparse.density
         expected = 0.75
         assert res == expected
+
+    def test_density_empty(self):
+        # GH#68468
+        df = pd.DataFrame({"A": SparseArray(np.array([], dtype="float64"))})
+        assert np.isnan(df.sparse.density)
 
     @pytest.mark.parametrize("dtype", ["int64", "float64"])
     @pytest.mark.parametrize("dense_index", [True, False])
