@@ -3186,7 +3186,7 @@ def test_median_skipna_false_keeps_complex(na_first):
     ],
 )
 def test_reduce_axis1_int_block_does_not_wrap(method, expected):
-    # GH#68095: the int block used to be accumulated in int64, silently
+    # GH#68641: the int block used to be accumulated in int64, silently
     # wrapping, while the transpose path accumulates in float64
     df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": [0.5]})
     assert len(df._mgr.blocks) > 1
@@ -3197,7 +3197,7 @@ def test_reduce_axis1_int_block_does_not_wrap(method, expected):
 
 
 def test_reduce_axis1_int_only_mean_widens_to_float64():
-    # GH#68095: with no float column the common dtype is int64, so mean has to
+    # GH#68641: with no float column the common dtype is int64, so mean has to
     # widen it the way nanmean does or the sum wraps and flips sign
     df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": np.array([1], dtype="uint8")})
     assert len(df._mgr.blocks) > 1
@@ -3209,7 +3209,7 @@ def test_reduce_axis1_int_only_mean_widens_to_float64():
 
 @pytest.mark.parametrize("method", ["sum", "prod", "mean"])
 def test_reduce_axis1_uint64_block_does_not_wrap(method):
-    # GH#68095
+    # GH#68641
     df = pd.DataFrame(
         {
             "a": np.array([2**63], dtype="uint64"),
@@ -3226,7 +3226,7 @@ def test_reduce_axis1_uint64_block_does_not_wrap(method):
 
 
 def test_reduce_axis1_int_uint_combine_stays_exact():
-    # GH#68095: combining an int64 partial with a uint64 one promoted the
+    # GH#68641: combining an int64 partial with a uint64 one promoted the
     # result to a lossy float64
     df = pd.DataFrame(
         {"a": np.array([2**62 + 1], dtype="int64"), "b": np.array([1], dtype="uint8")}
@@ -3239,7 +3239,7 @@ def test_reduce_axis1_int_uint_combine_stays_exact():
 
 @pytest.mark.parametrize("method", ["sum", "prod", "mean"])
 def test_reduce_axis1_float32_not_upcast(method):
-    # GH#68095: reducing in the common dtype keeps float32 out of float64
+    # GH#68641: reducing in the common dtype keeps float32 out of float64
     df = pd.DataFrame(
         {
             "a": np.array([1.5, 2.5], dtype="float32"),
@@ -3262,7 +3262,7 @@ def test_reduce_axis1_float32_not_upcast(method):
     ],
 )
 def test_reduce_axis1_bool_block_keeps_common_dtype(method, expected):
-    # GH#68095: find_common_type would collapse to object here, which is why
+    # GH#68641: find_common_type would collapse to object here, which is why
     # the accumulation dtype comes from np.result_type instead
     df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": [0.5], "d": [True]})
     assert len(df._mgr.blocks) == 3
@@ -3272,7 +3272,7 @@ def test_reduce_axis1_bool_block_keeps_common_dtype(method, expected):
 
 
 def test_reduce_axis1_mean_complex_keeps_imaginary_part():
-    # GH#68095: mean unconditionally cast the combined result to float64,
+    # GH#68641: mean unconditionally cast the combined result to float64,
     # silently discarding the imaginary part
     df = pd.DataFrame(
         {"a": [True, False], "b": np.array([1 + 2j, 3 + 4j], dtype="complex64")}
@@ -3295,7 +3295,7 @@ def test_reduce_axis1_bool_block_keeps_numpy_int_semantics():
 
 
 def test_reduce_axis1_float32_block_does_not_overflow():
-    # GH#68095: the float32 block was accumulated in float32, overflowing to
+    # GH#68641: the float32 block was accumulated in float32, overflowing to
     # inf where the transpose path accumulated in the common float64
     df = pd.DataFrame(
         {
