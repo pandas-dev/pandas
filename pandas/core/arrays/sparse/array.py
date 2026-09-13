@@ -1473,24 +1473,22 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         Change the dtype of a SparseArray.
 
-        The output will always be a SparseArray. To convert to a dense
-        ndarray with a certain dtype, use :meth:`numpy.asarray`.
-
         Parameters
         ----------
         dtype : np.dtype or ExtensionDtype
             For SparseDtype, this changes the dtype of
             ``self.sp_values`` and the ``self.fill_value``.
 
-            For other dtypes, this only changes the dtype of
-            ``self.sp_values``.
+            For any other dtype, the array is densified and cast to it.
 
         copy : bool, default True
             Whether to ensure a copy is made, even if not necessary.
 
         Returns
         -------
-        SparseArray
+        np.ndarray or pandas.api.extensions.ExtensionArray
+            A SparseArray for a SparseDtype, another ExtensionArray for any
+            other ExtensionDtype, otherwise a dense ndarray of ``dtype``.
 
         Examples
         --------
@@ -1505,8 +1503,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         [0, 0, 1, 2]
         Length: 4, dtype: Sparse[int32, 0]
 
-        Using a NumPy dtype with a different kind (e.g. float) will coerce
-        just ``self.sp_values``.
+        Changing the subtype can change the fill value too -- here ``0``
+        becomes ``nan``, the default for ``float64``.
 
         >>> arr.astype(pd.SparseDtype(np.dtype("float64")))
         <SparseArray>
@@ -1529,7 +1527,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         future_dtype = pandas_dtype(dtype)
         if not isinstance(future_dtype, SparseDtype):
             # GH#34457
-            values = np.asarray(self)
+            values = self._densify()
             values = ensure_wrapped_if_datetimelike(values)
             return astype_array(values, dtype=future_dtype, copy=False)
 
@@ -1683,11 +1681,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         is no good either because it promotes on ``type(fill_value)`` and so widens
         e.g. ``Sparse[uint64]`` to float64.
 
-        With no gaps this is ``sp_values`` itself, not a copy, so callers must not
-        write to the result.
+        With no gaps this is ``sp_values`` itself (or a read-only view of it), not
+        a copy, so callers must not write to the result.
         """
         if self.sp_index.ngaps == 0:
-            return self.sp_values
+            result = self.sp_values
+            if self._readonly:
+                result = result.view()
+                result.flags.writeable = False
+            return result
 
         npdtype = self.sp_values.dtype
         fill_value = self.fill_value

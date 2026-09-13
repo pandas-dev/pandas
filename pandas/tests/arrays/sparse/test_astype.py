@@ -245,3 +245,29 @@ class TestAstype:
         result = arr.astype("Sparse[int64]")
         expected = SparseArray(np.array([1, 2, 3], dtype="int64"))
         tm.assert_sp_array_equal(result, expected)
+
+    def test_astype_uint64_dense_exact(self):
+        # GH#68573 densifying for astype must not promote on type(fill_value):
+        #  np.result_type(uint64, int) is float64, which rounds above 2**53
+        values = np.array([1, 0, 2**63 + 12345], dtype="uint64")
+        arr = SparseArray(values, fill_value=0)
+
+        result = arr.astype("uint64")
+        tm.assert_numpy_array_equal(result, values)
+
+    @pytest.mark.parametrize(
+        "unit_dtype, fill_type", [("M8[ns]", pd.Timestamp), ("m8[ns]", pd.Timedelta)]
+    )
+    @pytest.mark.parametrize("target", ["coarser_unit", "int64", object])
+    def test_astype_dense_boxed_datetimelike_fill_value(
+        self, unit_dtype, fill_type, target
+    ):
+        # GH#68573 a boxed Timestamp/Timedelta fill_value made the densified
+        #  values object dtype, so the cast saw the stored values as raw integers
+        values = np.array([10**9, 2 * 10**9]).astype(unit_dtype)
+        arr = SparseArray(values, fill_value=fill_type(values[0]))
+        dtype = unit_dtype.replace("ns", "s") if target == "coarser_unit" else target
+
+        result = arr.astype(dtype)
+        expected = pd.array(values).astype(dtype)
+        tm.assert_equal(result, expected)
