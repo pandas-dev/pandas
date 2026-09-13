@@ -104,9 +104,7 @@ class TestCanParallelizeCsv:
         def converter(value):
             return int(value)
 
-        assert not _can_parallelize_csv(
-            path, self._kwds(converters={"a": converter})
-        )
+        assert not _can_parallelize_csv(path, self._kwds(converters={"a": converter}))
 
     def test_accepts_default_engine(self, tmp_path, monkeypatch):
         """engine=None (the default) should be treated the same as engine='c'."""
