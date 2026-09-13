@@ -19,7 +19,6 @@ from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna
 
@@ -393,12 +392,12 @@ class BooleanArray(BaseMaskedArray):
     def _logical_method(self, other, op):
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         ops.disallow_datetimelike_logical_op(self, other, op)
-        other_is_scalar = lib.is_scalar(other)
+        other_is_scalar = ops.is_scalar_for_op(other)
         mask = None
 
         if isinstance(other, BooleanArray):
             other, mask = other._data, other._mask
-        elif is_list_like(other):
+        elif ops.is_listlike_for_op(other):
             if not isinstance(
                 other, (list, ExtensionArray, np.ndarray)
             ) and not ops.has_castable_attr(other):
