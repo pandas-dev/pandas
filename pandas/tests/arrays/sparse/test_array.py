@@ -816,6 +816,25 @@ def test_tz_aware_fill_value_still_rejected():
         pd.SparseDtype("M8[ns]", fill_value=pd.Timestamp("2020-01-01", tz="UTC"))
 
 
+@pytest.mark.parametrize(
+    "fill_value",
+    [
+        pd.Timestamp("2016-01-01 00:00:00.000000001"),
+        pd.Timestamp("2016-01-01", tz="US/Pacific"),
+        pd.Timedelta(1, "ns"),
+    ],
+)
+def test_object_subtype_boxed_fill_value(fill_value):
+    # GH#68571 an object subtype holds a boxed scalar as-is; unboxing it would
+    #  lose the nanosecond or the tz
+    expected = np.array([fill_value, 1, "a"], dtype=object)
+    arr = SparseArray(expected, fill_value=fill_value)
+    assert arr.sp_index.ngaps == 1
+
+    tm.assert_numpy_array_equal(np.asarray(arr), expected)
+    tm.assert_numpy_array_equal(arr.to_dense(), expected)
+
+
 def test_array_interface(arr_data, arr):
     # https://github.com/pandas-dev/pandas/pull/60046
     result = np.asarray(arr)
