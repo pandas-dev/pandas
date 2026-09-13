@@ -60,3 +60,16 @@ def test_concat_with_non_sparse(other, expected_dtype):
     result = pd.concat([other, s_sparse], ignore_index=True)
     expected = pd.Series(list(other) + list(s_sparse)).astype(expected_dtype)
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_different_fill_value_warns(performance_warning):
+    # GH#68567 the two dtypes used to compare equal, so find_common_type took its
+    # all-equal shortcut and the warning about dropping a fill value never fired
+    ser = pd.Series(SparseArray([1.0, np.nan, 2.0]))
+    other = pd.Series(SparseArray([1.0, 0.0, 2.0], fill_value=0.0))
+
+    msg = "Concatenating sparse arrays with multiple fill values"
+    with tm.assert_produces_warning(performance_warning, match=msg):
+        result = pd.concat([ser, other], ignore_index=True)
+
+    assert result.dtype == pd.SparseDtype("float64", np.nan)
