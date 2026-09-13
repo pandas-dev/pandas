@@ -1804,7 +1804,10 @@ class SparseDtype(ExtensionDtype):
             is_string_dtype,
             pandas_dtype,
         )
-        from pandas.core.dtypes.missing import na_value_for_dtype
+        from pandas.core.dtypes.missing import (
+            is_valid_na_for_dtype,
+            na_value_for_dtype,
+        )
 
         dtype = pandas_dtype(dtype)
         if is_string_dtype(dtype):
@@ -1828,9 +1831,9 @@ class SparseDtype(ExtensionDtype):
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
-        elif fill_value is NaT and dtype.kind in "mM":
-            # GH#68449 store the subtype's own NaT, so that the two spellings
-            #  of the fill value behave identically downstream
+        elif dtype.kind in "mM" and is_valid_na_for_dtype(fill_value, dtype):
+            # GH#68449, GH#68558 store the subtype's own NaT, so that every
+            #  spelling of an NA fill value behaves identically downstream
             fill_value = na_value_for_dtype(dtype)
 
         self._dtype = dtype

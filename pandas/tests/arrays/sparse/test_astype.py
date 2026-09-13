@@ -236,6 +236,35 @@ class TestAstype:
         assert result.dtype == pd.SparseDtype(bool, fill_value=True)
         tm.assert_numpy_array_equal(result.to_dense(), values.astype(bool))
 
+    @pytest.mark.parametrize(
+        "arr, dtype",
+        [
+            (SparseArray([1.0, np.nan, 2.0]), pd.SparseDtype("float64", 1.0)),
+            (SparseArray([1.0, 0.0, 2.0], fill_value=0.0), pd.SparseDtype("float64")),
+        ],
+    )
+    def test_astype_changes_only_fill_value(self, arr, dtype):
+        # GH#68567 the two dtypes compared equal, so astype returned early and
+        # the requested fill_value was dropped. What the gaps end up holding is
+        # SparseArray.astype's contract, not this one's — see GH#35795.
+        assert arr.dtype.subtype == dtype.subtype
+
+        result = arr.astype(dtype)
+
+        assert result.dtype.subtype == dtype.subtype
+        # not `result.dtype == dtype`: that routes through the __eq__ under test,
+        #  which passes even when astype hands back the source dtype unchanged
+        tm.assert_almost_equal(result.dtype.fill_value, dtype.fill_value)
+
+    def test_astype_changes_fill_value_series_and_frame(self):
+        # GH#68567 Series/DataFrame.astype short-circuit on dtype equality of
+        #  their own, separately from SparseArray.astype
+        arr = SparseArray([1.0, np.nan, 2.0])
+        dtype = pd.SparseDtype("float64", 1.0)
+
+        assert pd.Series(arr).astype(dtype).dtype.fill_value == 1.0
+        assert pd.DataFrame({"a": arr}).astype(dtype).dtypes["a"].fill_value == 1.0
+
     def test_astype_fully_dense_na_fill_to_int_no_raise(self):
         # GH#49631 a fully dense float SparseArray whose (unused) NaN fill_value
         # cannot be represented as an integer must not raise on astype to int

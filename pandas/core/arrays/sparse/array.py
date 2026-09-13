@@ -1253,7 +1253,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         keys, counts, _ = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
         if fcounts > 0 and (not self._null_fill_value or not dropna):
-            mask = isna(keys) if self._null_fill_value else keys == self.fill_value
+            if self._null_fill_value:
+                mask = isna(keys)
+            elif keys.dtype == object:
+                # GH#68586 an object key such as pd.NA compares to a non-bool,
+                #  which mask.any() cannot consume
+                mask = ops.comp_method_OBJECT_ARRAY(operator.eq, keys, self.fill_value)
+            else:
+                mask = keys == self.fill_value
             if mask.any():
                 counts[mask] += fcounts
             else:
@@ -1697,8 +1704,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         def func(sp_val):
             new_sp_val = mapper.get(sp_val, None) if is_map else mapper(sp_val)
-            # check identity and equality because nans are not equal to each other
-            if new_sp_val is fill_val or new_sp_val == fill_val:
+            # check identity as well as equality because NA values are not equal to
+            #  each other, and GH#68586 comparing a stored one gives a non-bool.
+            #  is_scalar first: isna on a list-valued mapper result is not a bool
+            if new_sp_val is fill_val or (
+                not (is_scalar(new_sp_val) and isna(new_sp_val))
+                and new_sp_val == fill_val
+            ):
                 msg = "fill value in the sparse values not supported"
                 raise ValueError(msg)
             return new_sp_val
@@ -2723,13 +2735,22 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # TODO: make this more flexible than just ndarray...
             other = _as_sparse_operand(other, self.fill_value)
 
+        op_name = op.__name__.strip("_")
+        # _logical_method routes and/or/xor here for the sparse fast path, and the
+        #  dense route below only knows the comparison operators
+        is_cmp = op_name in ("eq", "ne", "lt", "gt", "le", "ge")
+
         if isinstance(other, SparseArray):
             if len(self) != len(other):
                 raise ValueError(
                     f"operands have mismatched length {len(self)} and {len(other)}"
                 )
 
-            op_name = op.__name__.strip("_")
+            if is_cmp and object in (self.dtype.subtype, other.dtype.subtype):
+                # GH#68586 _sparse_array_op casts both operands to their common
+                #  subtype, so object on either side reaches a kernel splib lacks
+                return self._cmp_method_dense(other.to_dense(), other.fill_value, op)
+
             return _sparse_array_op(self, other, op, op_name)
         elif other is libmissing.NA:
             # GH#68579 NA has no truth value, so the scalar arm below cannot
@@ -2740,6 +2761,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             else:
                 result = np.full(len(self), fill_value, dtype=np.bool_)
             return type(self)(result, fill_value=fill_value, dtype=np.bool_)
+        elif is_cmp and self.dtype.subtype == object:
+            # GH#68586 the np.bool_ buffer below cannot hold the result of comparing
+            #  e.g. pd.NA, so use the kernel the dense path uses -- but only the
+            #  stored values need it, so this stays O(nnz) rather than O(len)
+            sp_values = ops.comparison_op(self.sp_values, other, op)
+            fill_value = self._cmp_fill_value(other, op)
+            return _wrap_result(op_name, sp_values, self.sp_index, fill_value)
         else:
             # scalar
             fill_value = op(self.fill_value, other)
@@ -2752,10 +2780,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 dtype=np.bool_,
             )
 
+    def _cmp_fill_value(self, other, op) -> bool:
+        # GH#68586 through the object kernel so that an NA fill value compares
+        #  False instead of making the bool() below raise
+        return bool(
+            ops.comparison_op(np.array([self.fill_value], dtype=object), other, op)[0]
+        )
+
+    def _cmp_method_dense(self, rvalues, rfill, op) -> SparseArray:
+        # GH#68586 splib has no object comparison kernels, so an object subtype on
+        #  either side is computed densely; unlike the scalar arm this cannot work
+        #  off sp_values, because the two sparse indexes need not line up.
+        result = ops.comparison_op(np.asarray(self), rvalues, op)
+        return type(self)(
+            result, fill_value=self._cmp_fill_value(rfill, op), dtype=np.bool_
+        )
+
     def _logical_method(self, other, op):
-        # GH#68452 before the np.asarray below, which flattens a PeriodArray or a
-        #  tz-aware DatetimeArray to object and hides it from the guard
-        ops.disallow_datetimelike_logical_op(self, other, op)
         other_dtype = getattr(other, "dtype", None)
         if isinstance(other_dtype, BaseMaskedDtype) and other_dtype.kind == "b":
             # GH#68483 defer to the masked operand's reflected op, which keeps
@@ -2773,8 +2814,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return self._cmp_or_logical_op(other, op)
 
         lvalues = np.asarray(self)
-        rvalues = other if is_scalar(other) else np.asarray(other)
+        # GH#68569 keep an EA operand boxed so logical_op dispatches to it as the dense
+        #  path does; densifying flattened e.g. a Categorical to object.
+        rvalues = extract_array(other, extract_numpy=True)
+        if isinstance(rvalues, SparseArray):
+            # A sparse operand is the exception: dispatching would re-enter here with
+            #  the two swapped, and logical_op treats its left and right differently
+            #  -- see test_logical_op_both_sparse_matches_dense.
+            rvalues = np.asarray(rvalues)
         result = logical_op(lvalues, rvalues, op)
+        if not isinstance(result, np.ndarray):
+            # GH#68569 the operand's own op answered in its dtype, as it does densely.
+            #  Re-wrapping a nullable result as sparse would give it an NA fill value
+            #  that later logical ops raise on.
+            return result
         return type(self)(result)
 
     def _logical_needs_dense(self, other) -> bool:

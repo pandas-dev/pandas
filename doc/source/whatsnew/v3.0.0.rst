@@ -1319,6 +1319,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta` with a string outside the representable range returning a wrong value, or raising ``OutOfBoundsDatetime`` or ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`68560`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
