@@ -361,12 +361,12 @@ _BOOL_SPARSE_DTYPE_TRUE_FILL = SparseDtype(bool, True)
 
 def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
     """
-    Dense dtype wide enough to hold ``fill_value``, and ``fill_value`` unboxed.
+    Dense dtype wide enough to hold ``fill_value``, and ``fill_value`` unboxed —
+    for a datetimelike ``dtype``, as a numpy scalar in that dtype's own unit.
 
     ``maybe_promote`` is no good on its own: its datetime64 arm widens to ``M8[ns]``
     whenever the fill value's unit differs, so a ``Timestamp`` would pull a
-    ``Sparse[M8[s]]`` up to nanoseconds.  A ``Timestamp``/``Timedelta`` is unboxed
-    because ``np.full`` would otherwise truncate it to microseconds.
+    ``Sparse[M8[s]]`` up to nanoseconds.
     """
     dummy = ensure_wrapped_if_datetimelike(np.empty(0, dtype=dtype))
     if can_hold_element(dummy, fill_value):
@@ -376,8 +376,11 @@ def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
             if isna(fill_value):
                 # a unitless NaT is deprecated as of numpy 2.5
                 fill_value = dtype.type("NaT", np.datetime_data(dtype)[0])
-            elif isinstance(fill_value, (Timestamp, Timedelta)):
-                fill_value = fill_value.asm8
+            else:
+                # np.full truncates a Timestamp/Timedelta to microseconds;
+                #  can_hold_element has already ruled out a lossy conversion
+                box = Timestamp if dtype.kind == "M" else Timedelta
+                fill_value = box(fill_value).asm8.astype(dtype)
         return dtype, fill_value
     return maybe_promote(dtype, fill_value)
 
@@ -690,17 +693,17 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         fill_value = self.fill_value
 
-        if dtype is None:
+        if self.sp_values.dtype.kind in "mM":
+            # np.result_type gives object for a Timestamp/Timedelta fill value
+            #  and raises for np.nan; the helper also puts the fill in the
+            #  subtype's unit, see test_to_dense_datetimelike_fill_other_unit
+            inferred, fill_value = _promote_for_fill(self.sp_values.dtype, fill_value)
+            if dtype is None:
+                dtype = inferred
+        elif dtype is None:
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
             # and return object.
-            if self.sp_values.dtype.kind == "M":
-                # However, we *do* special-case the common case of
-                # a datetime64 with pandas NaT.
-                if fill_value is NaT:
-                    # Can't put pd.NaT in a datetime64[ns]
-                    unit = np.datetime_data(self.sp_values.dtype)[0]
-                    fill_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
             try:
                 dtype = np.result_type(self.sp_values.dtype, type(fill_value))
             except TypeError:

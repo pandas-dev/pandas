@@ -650,6 +650,55 @@ def test_array_object_datetimelike(kind, unit):
 
 @pytest.mark.parametrize("kind", ["M8", "m8"])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("na_fill", [True, False])
+def test_to_dense_datetimelike_non_numpy_fill(kind, unit, na_fill):
+    # GH#68590 a fill value numpy cannot promote against the subtype made the
+    #  dense result object dtype, with the stored values rendered as ints or
+    #  datetime.datetime beside the fill; to_dense truncated a ns fill to us
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    if na_fill:
+        values[1] = "NaT"
+        fill_value = np.nan
+    else:
+        fill_value = (pd.Timestamp if kind == "M8" else pd.Timedelta)(values[1])
+
+    arr = SparseArray(values, fill_value=fill_value)
+    assert arr.sp_index.ngaps == 1
+
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    expected = pd.array(values).astype(object)
+    tm.assert_numpy_array_equal(np.asarray(arr, dtype=object), expected)
+    tm.assert_numpy_array_equal(arr.astype(object), expected)
+
+    # an explicit numeric dtype casts the gap the way numpy casts the dense
+    #  values, so a missing fill value gives iNaT rather than 0
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype="i8"), np.asarray(values, dtype="i8")
+    )
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+@pytest.mark.parametrize("boxed", [True, False])
+def test_to_dense_datetimelike_fill_other_unit(kind, unit, boxed):
+    # GH#68590 a fill value whose unit differs from the subtype -- the us a
+    #  string-parsed Timestamp carries -- densified in the fill's own unit, so
+    #  a numeric cast read it as a raw integer
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    box = pd.Timestamp if kind == "M8" else pd.Timedelta
+    fill_value = box(values[1]).as_unit("ns")
+
+    arr = SparseArray(values, fill_value=fill_value if boxed else fill_value.asm8)
+    assert arr.sp_index.ngaps == 1
+
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype="i8"), np.asarray(values, dtype="i8")
+    )
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_datetimelike_nat_fill_value_normalized(kind, unit):
     # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it
     #  behaves identically to the np.datetime64("NaT") spelling
