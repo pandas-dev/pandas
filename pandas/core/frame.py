@@ -17292,7 +17292,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         acc_dtype: np.dtype | None = None
         if name in ("sum", "prod", "mean"):
-            # GH#68095: reduce every block in one dtype, else a narrow partial
+            # GH#68641: reduce every block in one dtype, else a narrow partial
             # overflows or combines lossily (see
             # test_reduce_axis1_int_block_does_not_wrap). np.result_type, not
             # find_common_type, which gives object for a bool mix.
