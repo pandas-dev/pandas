@@ -1575,8 +1575,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Parameters
         ----------
         dtype : np.dtype or ExtensionDtype
-            For SparseDtype, this changes the dtype of
-            ``self.sp_values`` and the ``self.fill_value``.
+            For SparseDtype, this changes the subtype and the
+            ``fill_value``, preserving the values.
 
             For any other dtype, the array is densified and cast to it.
 
@@ -1603,14 +1603,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Length: 4, dtype: Sparse[int32, 0]
 
         Changing the subtype can change the fill value too -- here ``0``
-        becomes ``nan``, the default for ``float64``.
+        becomes ``nan``, the default for ``float64``. The values are never
+        changed to match a new fill value, so a fill value absent from the
+        data leaves nothing to compress.
 
         >>> arr.astype(pd.SparseDtype(np.dtype("float64")))
         <SparseArray>
-        [nan, nan, 1.0, 2.0]
+        [0.0, 0.0, 1.0, 2.0]
         Length: 4, dtype: Sparse[float64, nan]
-
-        Using a SparseDtype, you can also change the fill value as well.
 
         >>> arr.astype(pd.SparseDtype("float64", fill_value=0.0))
         <SparseArray>
@@ -1646,14 +1646,41 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             fv_arr[0] = self.fill_value
             converted_fv = np.asarray(astype_array(fv_arr, dtype.subtype))
             dtype = SparseDtype(dtype.subtype, fill_value=converted_fv[0])
+            # dtype.fill_value is now the converted self.fill_value, so the gaps
+            # keep their value and the check below would only cost a densify
+            converted_fill = True
+        else:
+            converted_fill = False
 
         subtype = pandas_dtype(dtype._subtype_with_str)
         subtype = cast("np.dtype", subtype)  # ensured by update_dtype
+
+        if not converted_fill and not self._fill_value_matches(
+            dtype.fill_value, subtype
+        ):
+            # GH#35795 the gaps hold self.fill_value, so keeping sp_index while
+            # adopting a different fill_value would silently change those values
+            values = ensure_wrapped_if_datetimelike(self._densify())
+            values = np.asarray(astype_array(values, subtype, copy=False))
+            return type(self)(values, kind=self.kind, dtype=dtype)
+
         values = ensure_wrapped_if_datetimelike(self.sp_values)
         sp_values = astype_array(values, subtype, copy=copy)
         sp_values = np.asarray(sp_values)
 
         return self._simple_new(sp_values, self.sp_index, dtype)
+
+    def _fill_value_matches(self, fill_value, subtype) -> bool:
+        """Whether fill_value is the value the gaps already hold under subtype."""
+        if isna(self.fill_value) or isna(fill_value):
+            return bool(isna(self.fill_value) and isna(fill_value))
+        if is_object_dtype(self.dtype.subtype) or is_object_dtype(subtype):
+            # _make_sparse tells 0, 0.0 and False apart for object data, so this
+            # has to as well, see make_mask_object_ndarray
+            return type(self.fill_value) is type(fill_value) and bool(
+                self.fill_value == fill_value
+            )
+        return bool(self.fill_value == fill_value)
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
         """

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs.sparse import IntIndex
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -829,13 +831,11 @@ def test_any_all_skipna_false_numeric_na_fill_value(name, dtype, data):
 @pytest.mark.parametrize(
     "subtype", ["int64", "uint64", "float64", "complex128", "m8[ns]"]
 )
-def test_any_all_skipna_false_na_fill_value_astype(name, subtype):
-    # GH#68559 astype reaches an NA fill on subtypes a nullable array never
-    #  sparsifies to; each one densifies to its own NA, NaN or NaT, both truthy
-    values = np.array([1, 0, 0], dtype=subtype)
-    arr = SparseArray(values, fill_value=values[2]).astype(
-        pd.SparseDtype(subtype, pd.NA)
-    )
+def test_any_all_skipna_false_na_fill_value(name, subtype):
+    # GH#68559 an NA fill value on a numeric subtype; the gaps densify to that
+    #  subtype's own NA, NaN or NaT, both truthy
+    sp_values = np.array([1], dtype=subtype)
+    arr = SparseArray(sp_values, sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
     assert arr.sp_index.ngaps
 
     assert getattr(arr, name)(skipna=False)
@@ -845,9 +845,7 @@ def test_any_all_skipna_false_na_fill_value_astype(name, subtype):
 def test_any_all_skipna_false_bool_subtype_na_fill_value(name):
     # GH#68559 a bool subtype densifies to object holding pd.NA rather than to a
     #  numpy NA, so unlike the numeric subtypes it goes on raising like dense
-    arr = SparseArray([True, False, False], fill_value=False).astype(
-        pd.SparseDtype(bool, pd.NA)
-    )
+    arr = SparseArray(np.array([True]), sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
     assert arr.sp_index.ngaps
 
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
@@ -999,3 +997,22 @@ def test_sum_object_null_fill_value_keeps_stored_order():
     arr = SparseArray(["a", "b", None])
     assert arr._null_fill_value
     assert arr.sum() == "ab"
+
+
+@pytest.mark.parametrize("op", ["sum", "any", "max"])
+def test_frame_reduction_axis_1_different_fill_values(op, performance_warning):
+    # GH#35795 the axis=1 path concatenates the columns, which read the second
+    #  column's gaps as the first column's fill_value
+    df = pd.DataFrame(
+        {
+            "a": SparseArray([0, 0, 1], fill_value=0),
+            "b": SparseArray([1, 0, 0], fill_value=1),
+        }
+    )
+
+    msg = "Concatenating sparse arrays with multiple fill values"
+    with tm.assert_produces_warning(performance_warning, match=msg):
+        result = getattr(df, op)(axis=1)
+
+    expected = getattr(df.sparse.to_dense(), op)(axis=1)
+    tm.assert_series_equal(result, expected)

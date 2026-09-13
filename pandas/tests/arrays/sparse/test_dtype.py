@@ -133,7 +133,7 @@ def test_na_fill_value_astype_not_ignored():
     # GH#68582 astype short-circuits on dtype equality
     arr = pd.arrays.SparseArray([1.0, np.nan, 2.0])
     result = arr.astype(pd.SparseDtype("float64", 0.0))
-    expected = pd.arrays.SparseArray([1.0, 0.0, 2.0], fill_value=0.0)
+    expected = pd.arrays.SparseArray(np.array([1.0, np.nan, 2.0]), fill_value=0.0)
     tm.assert_sp_array_equal(result, expected)
 
 

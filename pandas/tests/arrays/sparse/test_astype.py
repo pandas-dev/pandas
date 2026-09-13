@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
+from pandas.errors import IntCastingNaNError
 
 import pandas as pd
 import pandas._testing as tm
@@ -16,19 +17,20 @@ class TestAstype:
         expected = SparseArray([None, None, 0, 2], dtype=np.dtype("float32"))
         tm.assert_sp_array_equal(result, expected)
 
+        # GH#35795 the NaN gaps are values, so asking for a 0 fill_value stores
+        #  them rather than turning them into zeros
         dtype = pd.SparseDtype("float64", fill_value=0)
         result = arr.astype(dtype)
         expected = SparseArray._simple_new(
-            np.array([0.0, 2.0], dtype=dtype.subtype), IntIndex(4, [2, 3]), dtype
+            np.array([np.nan, np.nan, 2.0], dtype=dtype.subtype),
+            IntIndex(4, [0, 1, 3]),
+            dtype,
         )
         tm.assert_sp_array_equal(result, expected)
 
-        dtype = pd.SparseDtype("int64", 0)
-        result = arr.astype(dtype)
-        expected = SparseArray._simple_new(
-            np.array([0, 2], dtype=np.int64), IntIndex(4, [2, 3]), dtype
-        )
-        tm.assert_sp_array_equal(result, expected)
+        # GH#35795 and so they block an integer subtype, as they do when stored
+        with pytest.raises(IntCastingNaNError, match="non-finite values"):
+            arr.astype(pd.SparseDtype("int64", 0))
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
         with pytest.raises(ValueError, match="NA"):
@@ -156,9 +158,9 @@ class TestAstype:
         values = np.array(["NaT", "2016-01-02", "2016-01-03"], dtype="M8[ns]")
         arr = SparseArray(values)
         dtype = pd.SparseDtype("int64", fill_value=5)
-        expected = SparseArray._simple_new(
-            values[1:].astype("int64"), IntIndex(3, [1, 2]), dtype
-        )
+        # GH#35795 the NaT gap keeps its value rather than becoming the
+        #  requested fill_value, so nothing is left to compress
+        expected = SparseArray(values.astype("int64"), dtype=dtype)
 
         result = arr.astype(dtype)
         tm.assert_sp_array_equal(result, expected)
@@ -265,6 +267,39 @@ class TestAstype:
         assert pd.Series(arr).astype(dtype).dtype.fill_value == 1.0
         assert pd.DataFrame({"a": arr}).astype(dtype).dtypes["a"].fill_value == 1.0
 
+    def test_astype_different_fill_value_keeps_values(self):
+        # GH#35795 the positions holding the old fill_value must be stored, not
+        #  relabelled with the requested one
+        arr = SparseArray([1, 1, 0, 1], fill_value=1)
+
+        result = arr.astype(pd.SparseDtype("int64", 0))
+
+        assert result.dtype == pd.SparseDtype("int64", 0)
+        expected = np.array([1, 1, 0, 1], dtype="int64")
+        tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+    def test_astype_different_fill_value_does_not_fillna(self):
+        # GH#35795 a NaN fill_value is data, so astype must not silently replace
+        #  it with the requested fill_value
+        arr = SparseArray([np.nan, 0.0, 2.0], fill_value=np.nan)
+
+        result = arr.astype(pd.SparseDtype("float32", 0.0))
+
+        assert result.dtype == pd.SparseDtype("float32", 0.0)
+        expected = np.array([np.nan, 0.0, 2.0], dtype="float32")
+        tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+    def test_astype_fill_value_absent_from_values(self):
+        # GH#35795 asking for a fill_value the data does not contain is legal and
+        #  gives a fully dense result rather than changing the values
+        arr = SparseArray([0, 0, 1], fill_value=0)
+
+        result = arr.astype(pd.SparseDtype("int64", 9))
+
+        assert result.sp_index.npoints == 3
+        expected = np.array([0, 0, 1], dtype="int64")
+        tm.assert_numpy_array_equal(result.to_dense(), expected)
+
     def test_astype_fully_dense_na_fill_to_int_no_raise(self):
         # GH#49631 a fully dense float SparseArray whose (unused) NaN fill_value
         # cannot be represented as an integer must not raise on astype to int
@@ -300,3 +335,47 @@ class TestAstype:
         result = arr.astype(dtype)
         expected = pd.array(values).astype(dtype)
         tm.assert_equal(result, expected)
+
+
+def test_astype_frame_different_fill_value_round_trip():
+    # GH#35795 the reported case: a frame round-tripped through two sparse
+    #  fill values came back all zeros
+    df = pd.DataFrame([[1, 1, 1, 1, 0, 1]]).T
+
+    sdf = df.astype(pd.SparseDtype("int64", fill_value=1))
+    result = sdf.astype(pd.SparseDtype("int64", fill_value=0))
+
+    tm.assert_frame_equal(result.astype("int64"), df)
+
+
+def test_astype_preserves_kind():
+    # GH#35795 re-sparsifying for a new fill_value must keep the index kind
+    arr = SparseArray([0, 0, 1, 2], fill_value=0, kind="block")
+
+    result = arr.astype(pd.SparseDtype("float64", 9.0))
+
+    assert result.kind == "block"
+    tm.assert_numpy_array_equal(result.to_dense(), np.array([0.0, 0.0, 1.0, 2.0]))
+
+
+@pytest.mark.parametrize("subtype", ["uint64", "int64"])
+def test_astype_different_fill_value_does_not_widen(subtype):
+    # GH#35795 materializing the gaps must keep the subtype's own dense dtype;
+    #  going through float64 rounds values that do not fit its mantissa
+    values = np.array([0, 2**62 + 1, 0, 2**62 + 3], dtype=subtype)
+    arr = SparseArray(values, fill_value=0)
+
+    result = arr.astype(pd.SparseDtype(subtype, 7))
+
+    tm.assert_numpy_array_equal(result.to_dense(), values)
+
+
+def test_astype_object_target_distinguishes_type():
+    # GH#35795 object data tells 0 and False apart, so a numeric fill value that
+    #  merely compares equal to the requested one must still re-sparsify
+    arr = SparseArray([0, 1, 2], fill_value=0)
+
+    result = arr.astype(pd.SparseDtype(object, False))
+
+    assert result.sp_index.npoints == 3
+    tm.assert_numpy_array_equal(np.asarray(result), np.array([0, 1, 2], dtype=object))

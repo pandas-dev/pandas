@@ -32,6 +32,20 @@ class TestSparseArrayConcat:
         assert result.kind == kind
 
 
+def test_concat_different_fill_values(performance_warning):
+    # GH#35795 the second array's gap positions hold its own fill_value, so they
+    #  have to be converted rather than read as the first array's fill_value
+    ser1 = pd.Series(SparseArray([0, 0, 1], fill_value=0))
+    ser2 = pd.Series(SparseArray([1, 0, 0], fill_value=1))
+
+    msg = "Concatenating sparse arrays with multiple fill values"
+    with tm.assert_produces_warning(performance_warning, match=msg):
+        result = pd.concat([ser1, ser2], ignore_index=True)
+
+    expected = pd.Series(SparseArray([0, 0, 1, 1, 0, 0], fill_value=0))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "other, expected_dtype",
     [
