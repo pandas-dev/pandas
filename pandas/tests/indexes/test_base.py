@@ -414,12 +414,14 @@ class TestIndex:
 
     def test_index_replace_sparse_densifies(self):
         # GH#68563 SparseArray refuses setitem outright, so the retry reaches it too;
-        #  only a value that widens out of the Sparse family gets through
+        #  only a non-Sparse ExtensionDtype widens out of the Sparse family, where
+        #  a numpy dtype widens to Sparse again
         idx = Index(SparseArray([1, 2, 3]))
+        value = pd.Timestamp("2016-01-01", tz="UTC")
 
-        result = idx.replace(1, "zzzz")
+        result = idx.replace(1, value)
 
-        tm.assert_index_equal(result, Index(["zzzz", 2, 3], dtype=object))
+        tm.assert_index_equal(result, Index([value, 2, 3], dtype=object))
 
     @pytest.mark.parametrize("value", [5, 1.5])
     def test_index_replace_sparse_narrow_still_raises(self, value):
