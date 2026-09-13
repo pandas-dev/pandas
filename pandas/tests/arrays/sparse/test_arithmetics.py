@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays.sparse import SparseArray
 
 
@@ -594,10 +595,14 @@ def test_binary_operators(op, fill_value):
 
 @pytest.mark.parametrize("values", [[1, 2, 3], [True, False, True]])
 @pytest.mark.parametrize("op", [operator.add, operator.gt])
-def test_datetimelike_operand_raises_typeerror(values, op):
+@pytest.mark.parametrize("other_kind", ["datetime64", "timedelta64"])
+def test_datetimelike_operand_raises_typeerror(values, op, other_kind):
     # GH#68466 the operand was coerced to self.fill_value first, so SparseDtype
     #  rejected the fill_value before the op could reject the operand
-    other = np.asarray(pd.date_range("2016", periods=3))
+    if other_kind == "datetime64":
+        other = np.asarray(pd.date_range("2016", periods=3))
+    else:
+        other = np.asarray(pd.timedelta_range("1 Day", periods=3))
     with pytest.raises(TypeError):
         op(SparseArray(values), other)
 
@@ -606,6 +611,107 @@ def test_mul_timedelta64_operand():
     # GH#68466 valid densely, but the fill_value coercion raised
     tda = np.asarray(pd.timedelta_range("1 Day", periods=3))
     result = SparseArray([1, 2, 3]) * tda
-    tm.assert_numpy_array_equal(
-        result.to_dense(), (np.arange(1, 4) * tda).astype(object)
-    )
+    tm.assert_numpy_array_equal(result.to_dense(), np.arange(1, 4) * tda)
+
+
+_NO_COMMON_SUBTYPE_VALUES = {
+    "i8": np.array([1, 2, 3]),
+    "f8": np.array([1.0, np.nan, 3.0]),
+    "bool": np.array([True, False, True]),
+    "tda": np.asarray(pd.timedelta_range("1 Day", periods=3)),
+    "dti": np.asarray(pd.date_range("2016", periods=3)),
+}
+
+
+@pytest.mark.parametrize(
+    "lkind, rkind, op",
+    [
+        ("i8", "tda", operator.mul),
+        ("f8", "tda", operator.mul),
+        ("i8", "tda", roperator.rmul),
+        ("i8", "bool", operator.mul),
+        ("i8", "bool", operator.or_),
+        ("i8", "bool", operator.xor),
+        ("tda", "i8", operator.truediv),
+        ("tda", "f8", operator.floordiv),
+        ("tda", "dti", operator.add),
+        ("dti", "tda", operator.sub),
+    ],
+)
+def test_no_common_subtype_matches_dense(lkind, rkind, op):
+    # GH#68562 int64 and m8[us] have no common subtype, so both operands were
+    #  cast to object and the result kept that dtype
+    left = _NO_COMMON_SUBTYPE_VALUES[lkind]
+    right = _NO_COMMON_SUBTYPE_VALUES[rkind]
+
+    result = op(SparseArray(left), right)
+    expected = op(pd.Series(left), pd.Series(right))
+    assert result.dtype == pd.SparseDtype(expected.dtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne])
+def test_no_common_subtype_comparison_matches_dense(op):
+    # GH#68562 a comparison keeps its own fill value, so only the subtype is
+    #  pinned to the dense result
+    tda = _NO_COMMON_SUBTYPE_VALUES["tda"]
+    i8 = _NO_COMMON_SUBTYPE_VALUES["i8"]
+
+    result = op(SparseArray(tda), i8)
+    expected = op(pd.Series(tda), pd.Series(i8))
+    assert result.dtype.subtype == expected.dtype
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("op", [divmod, roperator.rdivmod])
+def test_no_common_subtype_divmod(op):
+    # GH#68562 divmod returns a 2-tuple, which the reflected name used to miss
+    left = _NO_COMMON_SUBTYPE_VALUES["i8" if op is roperator.rdivmod else "tda"]
+    right = _NO_COMMON_SUBTYPE_VALUES["tda" if op is roperator.rdivmod else "i8"]
+
+    result = op(SparseArray(left), right)
+    expected = op(pd.Series(left), pd.Series(right))
+    for res, exp in zip(result, expected, strict=True):
+        assert res.dtype == pd.SparseDtype(exp.dtype)
+        tm.assert_numpy_array_equal(res.to_dense(), exp.to_numpy())
+
+
+def test_no_common_subtype_fill_value_matches_subtype():
+    # GH#68562 the float operand contributes an np.nan fill value, which is not
+    #  the flavor of NA a timedelta64 result holds
+    tda = _NO_COMMON_SUBTYPE_VALUES["tda"]
+    result = SparseArray([1.0, np.nan, 3.0]) * tda
+
+    assert isinstance(result.fill_value, np.timedelta64)
+    assert isinstance(result[1], np.timedelta64)
+
+
+def test_no_common_subtype_preserves_index_kind():
+    # GH#68562 the dense path re-sparsifies from scratch, so it has to be told
+    #  which kind of index to rebuild
+    tda = _NO_COMMON_SUBTYPE_VALUES["tda"]
+    result = SparseArray([1, 2, 3], kind="block") * tda
+    assert result.kind == "block"
+
+
+def test_no_common_subtype_na_fill_value_keeps_object():
+    # GH#68562 a pd.NA fill escapes _get_fill's ValueError fallback, so such an
+    #  operand keeps the object-cast path rather than raising
+    arr = SparseArray([1, 2, 3], fill_value=pd.NA)
+
+    result = arr * np.array([True, False, True])
+    assert result.dtype.subtype == np.dtype(object)
+    assert result.fill_value is pd.NA
+    tm.assert_numpy_array_equal(result.to_dense(), np.array([1, 0, 3], dtype=object))
+
+
+def test_no_common_subtype_both_with_gaps():
+    # GH#68562 neither operand is dense, so this used to reach the splib kernels
+    #  and fail on the missing sparse_mul_object
+    left = SparseArray([1, 0, 3, 4])
+    right = SparseArray(np.array([1, 2, "NaT", 4], dtype="m8[us]"))
+
+    result = left * right
+    expected = pd.Series(left.to_dense()) * pd.Series(right.to_dense())
+    assert result.dtype == pd.SparseDtype(expected.dtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())

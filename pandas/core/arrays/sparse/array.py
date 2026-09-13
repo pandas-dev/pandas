@@ -104,6 +104,11 @@ from pandas.core.nanops import (
     dt64_any_all_msg,
     na_accum_func,
 )
+from pandas.core.ops.array_ops import (
+    arithmetic_op,
+    comparison_op,
+    logical_op,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -178,6 +183,9 @@ _complex_to_real_reductions = frozenset({"var", "std", "sem", "skew", "kurt"})
 # Reductions that give a bool rather than a value of the array's own dtype.
 _boolean_reductions = frozenset({"any", "all"})
 
+# Op names, dunders stripped, whose result is bool rather than either operand's dtype.
+_comparison_ops = frozenset({"eq", "ne", "lt", "gt", "le", "ge"})
+
 
 # ----------------------------------------------------------------------------
 # Array
@@ -205,6 +213,21 @@ def _get_fill(arr: SparseArray) -> np.ndarray:
         return np.asarray(arr.fill_value, dtype=arr.dtype.subtype)
     except ValueError:
         return np.asarray(arr.fill_value)
+
+
+def _has_dense_fill(arr: SparseArray) -> bool:
+    """
+    Whether _get_fill can express arr's fill value as an array at all.
+
+    Its fallback catches only ValueError, so a pd.NA fill escapes as a TypeError;
+    such an operand keeps the object-cast path, which carries the fill through.
+    """
+    try:
+        with np.errstate(all="ignore"):
+            _get_fill(arr)
+    except TypeError:
+        return False
+    return True
 
 
 def _sparse_array_op(
@@ -236,6 +259,17 @@ def _sparse_array_op(
 
     if ltype != rtype:
         subtype = find_common_type([ltype, rtype])
+        if (
+            is_object_dtype(subtype)
+            and not (is_object_dtype(ltype) or is_object_dtype(rtype))
+            and _has_dense_fill(left)
+            and _has_dense_fill(right)
+        ):
+            # GH#68562 no common subtype, e.g. int64 and m8[us]: casting both
+            #  to object would leave an object result where the dense op
+            #  promotes to m8[us]
+            return _dense_array_op(left, right, op, name)
+
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
 
@@ -315,6 +349,59 @@ def _sparse_array_op(
     return _wrap_result(name, result, index, fill, dtype=result_dtype)
 
 
+def _dense_array_op(
+    left: SparseArray, right: SparseArray, op: Callable, name: str
+) -> SparseArray:
+    """
+    Densify both operands, run the non-sparse op, and re-sparsify on the fill value.
+
+    For subtypes with no common type only the non-sparse op knows the result
+    dtype, and only it applies pandas' rules for the pairs numpy would otherwise
+    accept (e.g. int64 + M8[us]).
+    """
+    if name in {"and", "rand", "or", "ror", "xor", "rxor"}:
+        dense_op = logical_op
+    elif name in _comparison_ops:
+        dense_op = comparison_op
+    else:
+        dense_op = arithmetic_op
+
+    lvalues = ensure_wrapped_if_datetimelike(left.to_dense())
+    rvalues = ensure_wrapped_if_datetimelike(right.to_dense())
+
+    with np.errstate(all="ignore"):
+        # length-1 arrays, not scalars, so the fill values promote the way the
+        #  values did
+        lfill = ensure_wrapped_if_datetimelike(_get_fill(left).reshape(1))
+        rfill = ensure_wrapped_if_datetimelike(_get_fill(right).reshape(1))
+        result = dense_op(lvalues, rvalues, op)
+        fill = dense_op(lfill, rfill, op)
+
+    if name in ("divmod", "rdivmod"):
+        # error: Incompatible return value type (got "Tuple[SparseArray,
+        # SparseArray]", expected "SparseArray")
+        return (  # type: ignore[return-value]
+            _wrap_dense_result(name, result[0], fill[0], left.kind),
+            _wrap_dense_result(name, result[1], fill[1], left.kind),
+        )
+    return _wrap_dense_result(name, result, fill, left.kind)
+
+
+def _wrap_dense_result(name: str, result, fill, kind: SparseIndexKind) -> SparseArray:
+    """
+    Sparsify one _dense_array_op result on the matching entry of its fill array.
+    """
+    values = np.asarray(result)
+    # np.asarray so a datetimelike op's Timestamp/Timedelta fill is spelled the
+    #  way every other _sparse_array_op path spells it
+    fill_value = np.asarray(fill)[0]
+    if values.dtype.kind in "mM" and isna(fill_value):
+        # _get_fill gives up the subtype for a fill value it cannot hold -- the
+        #  np.nan a float operand contributes -- so this can be the wrong NA
+        fill_value = SparseDtype(values.dtype).fill_value
+    return _wrap_result(name, values, None, fill_value, values.dtype, kind)
+
+
 def _as_sparse_operand(
     values: np.ndarray, fill_value, dtype: Dtype | None = None
 ) -> SparseArray:
@@ -333,7 +420,12 @@ def _as_sparse_operand(
 
 
 def _wrap_result(
-    name: str, data, sparse_index, fill_value, dtype: Dtype | None = None
+    name: str,
+    data,
+    sparse_index,
+    fill_value,
+    dtype: Dtype | None = None,
+    kind: SparseIndexKind = "integer",
 ) -> SparseArray:
     """
     wrap op result to have correct dtype
@@ -342,7 +434,7 @@ def _wrap_result(
         # e.g. __eq__ --> eq
         name = name[2:-2]
 
-    if name in ("eq", "ne", "lt", "gt", "le", "ge"):
+    if name in _comparison_ops:
         dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
@@ -351,7 +443,7 @@ def _wrap_result(
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
     return SparseArray(
-        data, sparse_index=sparse_index, fill_value=fill_value, dtype=dtype
+        data, sparse_index=sparse_index, fill_value=fill_value, dtype=dtype, kind=kind
     )
 
 
@@ -2631,8 +2723,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         #  to a dense computation so the result matches the non-sparse path.
         if not self._logical_needs_dense(other):
             return self._cmp_method(other, op)
-
-        from pandas.core.ops.array_ops import logical_op
 
         lvalues = np.asarray(self)
         rvalues = other if is_scalar(other) else np.asarray(other)
