@@ -7,9 +7,7 @@ HTML IO.
 from __future__ import annotations
 
 from collections import abc
-import errno
 import numbers
-import os
 import re
 from re import Pattern
 from typing import (
@@ -130,17 +128,10 @@ def _read(
     -------
     raw_text : str
     """
-    try:
-        with get_handle(
-            obj, "r", encoding=encoding, storage_options=storage_options
-        ) as handles:
-            return handles.handle.read()
-    except OSError as err:
-        if not is_url(obj):
-            raise FileNotFoundError(
-                f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {obj}"
-            ) from err
-        raise
+    with get_handle(
+        obj, "r", encoding=encoding, storage_options=storage_options
+    ) as handles:
+        return handles.handle.read()
 
 
 class _HtmlFrameParser:
@@ -792,10 +783,13 @@ class _LxmlFrameParser(_HtmlFrameParser):
             # try to parse the input in the simplest way
             try:
                 r = parse(self.io, parser=parser)
-            except OSError as err:
-                raise FileNotFoundError(
-                    f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {self.io}"
-                ) from err
+            except OSError:
+                # lxml reports every local-file failure as a bare OSError; reopen
+                # the path so the real error surfaces with its own errno.
+                if isinstance(self.io, (str, bytes)):
+                    with open(self.io, "rb"):
+                        pass
+                raise
         try:
             r = r.getroot()
         except AttributeError:
