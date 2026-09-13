@@ -2208,6 +2208,50 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.Timestamp(value, unit="ns")
 
+    @pytest.mark.parametrize("unit", ["Y", "M"])
+    def test_float_to_datetime_oob_year_month(self, unit):
+        # GH#68640 units Y/M skipped the int64-domain check, so a float below
+        # int64 min aliased to the NaT sentinel and came back as NaT.
+        arr = np.array([-1e19], dtype="float64")
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            pd.to_datetime(arr, unit=unit)
+        assert pd.to_datetime(arr, unit=unit, errors="coerce")[0] is pd.NaT
+
+    @pytest.mark.parametrize("unit", ["Y", "M"])
+    @pytest.mark.parametrize("value", [np.inf, -np.inf])
+    def test_inf_to_datetime_oob_year_month(self, unit, value):
+        # GH#68640 inf is unrepresentable, not "ambiguous": units Y/M raised
+        # ValueError where every other unit raised OutOfBoundsDatetime.
+        msg = "cannot convert input"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime(np.array([value]), unit=unit)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime([value], unit=unit)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.Timestamp(value, unit=unit)
+
+    def test_year_month_non_round_beats_oob(self):
+        # GH#68640 the int64-domain check must not preempt the ambiguity error,
+        # which an out-of-bounds neighbour would otherwise mask.
+        msg = "Conversion of non-round float with unit=Y is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            pd.to_datetime(np.array([1.5, 1e19]), unit="Y")
+
+    @pytest.mark.parametrize("unit", ["foo", "", "YM"])
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_unrecognized_unit_beats_oob(self, unit, errors):
+        # GH#68640 an out-of-bounds value must not mask a misspelled unit
+        with pytest.raises(ValueError, match="Unrecognized unit"):
+            pd.to_datetime(np.array([1e19, 1.5]), unit=unit, errors=errors)
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "D", "s", "ns"])
+    def test_round_float_to_datetime_oob_object_path(self, unit):
+        # GH#68640 a round float went through a cast at the call site, outside
+        # the guard that turns the overflow into OutOfBoundsDatetime.
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            pd.to_datetime([1e30], unit=unit)
+        assert pd.to_datetime([1e30], unit=unit, errors="coerce")[0] is pd.NaT
+
     def test_uint64_to_datetime_raise_oob(self):
         # GH#60677 uint64 values > int64 max overflow silently
         uint64_max = np.iinfo(np.uint64).max
