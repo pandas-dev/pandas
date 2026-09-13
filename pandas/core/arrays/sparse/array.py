@@ -2649,6 +2649,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # GH#68453 reducing sp_values alone would drop the gaps
                 return ufunc.reduce(self._densify(), **kwargs)
 
+            if method == "accumulate":
+                # GH#68566 numpy cannot accumulate the scalar fill_value; like
+                #  _accumulate, the densified result's fill value is NA regardless
+                result = ufunc.accumulate(self._densify(), **kwargs)
+                fill_value = na_value_for_dtype(result.dtype, compat=False)
+                return type(self)(result, fill_value=fill_value)
+
             # No alignment necessary.
             sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
             fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)

@@ -534,6 +534,45 @@ def test_accumulate_datetime64():
         ser.cumsum()
 
 
+@pytest.mark.parametrize(
+    "ufunc, data, fill_value",
+    [
+        (np.add, [1.0, 0.0, 2.0], 0.0),
+        # an NA fill value propagates, where Series.cumsum would skip it
+        (np.add, [1.0, np.nan, 2.0], np.nan),
+        (np.bitwise_or, [1, 4, 0, 0], 4),
+        # subtypes np.asarray would widen or objectify; see SparseArray._densify
+        (np.bitwise_or, np.array([1, 4, 0, 0], dtype="uint64"), 4),
+        (np.maximum, np.array([1000, 2500, 4000], "m8[ns]"), pd.Timedelta("2500ns")),
+    ],
+)
+def test_ufunc_accumulate_includes_fill_value(ufunc, data, fill_value):
+    # GH#68566 this accumulated the stored values and the scalar fill_value
+    #  separately, and numpy cannot accumulate a scalar
+    arr = SparseArray(data, fill_value=fill_value)
+    assert arr.sp_index.ngaps
+
+    result = ufunc.accumulate(arr)
+
+    expected = ufunc.accumulate(np.asarray(data, dtype=arr.dtype.subtype))
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+    # like cumsum, the fill value is NA regardless of the original one
+    assert pd.isna(result.fill_value)
+
+
+def test_ufunc_accumulate_promotes_na_gaps():
+    # GH#68566 to_dense would cast the gaps of an NA-filled int64 subtype to 0,
+    #  accumulating to [1, 1, 5, 5]; see SparseArray._densify
+    arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
+        pd.SparseDtype("int64", np.nan)
+    )
+
+    result = np.maximum.accumulate(arr)
+
+    expected = SparseArray([1.0, np.nan, np.nan, np.nan], fill_value=np.nan)
+    tm.assert_sp_array_equal(result, expected)
+
+
 def test_setting_fill_value_updates():
     arr = SparseArray([0.0, np.nan], fill_value=0)
     arr.fill_value = np.nan
