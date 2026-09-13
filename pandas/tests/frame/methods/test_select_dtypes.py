@@ -1543,3 +1543,16 @@ def test_select_dtypes_sparse_object_subtype(object_spec):
     )
     tm.assert_frame_equal(df.select_dtypes(include=object_spec), df[["a", "c"]])
     tm.assert_frame_equal(df.select_dtypes(exclude=object_spec), df[["b"]])
+
+
+def test_select_dtypes_sparse_na_fill_value():
+    # GH#68567: "Sparse[float64]" names the NaN-fill parametrization, so it must
+    # not also match a column whose fill_value is a real number
+    df = pd.DataFrame(
+        {
+            "a": pd.arrays.SparseArray([1.0, np.nan]),
+            "b": pd.arrays.SparseArray([1.0, 0.0], fill_value=0.0),
+        }
+    )
+    tm.assert_frame_equal(df.select_dtypes(include="Sparse[float64]"), df[["a"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude="Sparse[float64]"), df[["b"]])

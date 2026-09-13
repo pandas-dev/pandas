@@ -904,3 +904,71 @@ def test_construction_trailing_characters_raises(value, leftover):
 
     result = pd.to_timedelta([value], errors="coerce")
     tm.assert_index_equal(result, pd.TimedeltaIndex([pd.NaT]))
+
+
+@pytest.mark.parametrize(
+    "value, msg",
+    [
+        # a single term is out of range, so cast_from_unit raises before
+        #  the total is checked
+        ("1000000 days", "cannot convert input 1000000.0 with the unit 'D'"),
+        ("99999999999999999999ns", "cannot convert input 1e+20 with the unit 'ns'"),
+        ("P106752D", "cannot convert input 106752.0 with the unit 'D'"),
+        ("-P200000D", "cannot convert input 200000.0 with the unit 'D'"),
+        # the total is out of range
+        (
+            "99999999999999999999:00:00",
+            "Out of bounds nanosecond timedelta: '99999999999999999999:00:00'",
+        ),
+        (
+            "106751 days 106751 days",
+            "Out of bounds nanosecond timedelta: '106751 days 106751 days'",
+        ),
+        (
+            "2562047:47:16.854775808",
+            "Out of bounds nanosecond timedelta: '2562047:47:16.854775808'",
+        ),
+        # the total is exactly NPY_NAT, one below the representable range
+        (
+            "-2562047:47:16.854775808",
+            "Out of bounds nanosecond timedelta: '-2562047:47:16.854775808'",
+        ),
+        (
+            "-P106751DT23H47M16.854775808S",
+            "Out of bounds nanosecond timedelta: '-P106751DT23H47M16.854775808S'",
+        ),
+    ],
+)
+def test_construction_string_out_of_bounds(value, msg):
+    # GH#68560 these used to raise OutOfBoundsDatetime or a bare OverflowError,
+    #  or silently wrap the int64 nanosecond total and return a wrong value
+    with pytest.raises(OutOfBoundsTimedelta, match=re.escape(msg)):
+        pd.Timedelta(value)
+
+    with pytest.raises(OutOfBoundsTimedelta, match=re.escape(msg)):
+        pd.to_timedelta([value])
+
+    assert pd.to_timedelta(value, errors="coerce") is pd.NaT
+
+    result = pd.to_timedelta([value], errors="coerce")
+    tm.assert_index_equal(result, pd.TimedeltaIndex([pd.NaT]))
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("2562047:47:16.854775807", pd.Timedelta(2**63 - 1, "ns")),
+        ("-2562047:47:16.854775807", pd.Timedelta(-(2**63) + 1, "ns")),
+        ("106751 days 23:47:16.854775807", pd.Timedelta(2**63 - 1, "ns")),
+        ("P106751DT23H47M16.854775807S", pd.Timedelta(2**63 - 1, "ns")),
+        # GH#68560 the leading "-" applies to every term until the first ":",
+        #  so the running total can leave the range and be brought back
+        (
+            "-106751 days 106751 days 2562001:00:00",
+            pd.Timedelta(-9223369200000000000, "ns"),
+        ),
+    ],
+)
+def test_construction_string_at_bounds(value, expected):
+    # GH#68560 the total's range check must not reject a representable value
+    assert pd.Timedelta(value) == expected
