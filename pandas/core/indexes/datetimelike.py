@@ -507,17 +507,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     def _parse_with_reso(self, label: str) -> tuple[datetime, Resolution]:
         # overridden by TimedeltaIndex
-        try:
-            if self.freq is None or hasattr(self.freq, "rule_code"):
-                freq = self.freq
-        except NotImplementedError:
-            freq = getattr(self, "freqstr", getattr(self, "_inferred_freq_str", None))
-
         freqstr: str | None
-        if freq is not None and not isinstance(freq, str):
-            freqstr = freq.rule_code
+        if self.freq is None:
+            freqstr = None
         else:
-            freqstr = freq
+            try:
+                freqstr = self.freq.rule_code
+            except NotImplementedError:
+                # e.g. a generic DateOffset, which has no rule_code; it also
+                #  carries no quarter/month anchor, so None is the right answer
+                freqstr = None
 
         if isinstance(label, np.str_):
             # GH#45580

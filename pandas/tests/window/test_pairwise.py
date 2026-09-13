@@ -1,28 +1,24 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.algorithms import safe_sort
 
 
 @pytest.fixture(
     params=[
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 0]),
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 1]),
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=["C", "C"]),
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1.0, 0]),
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0.0, 1]),
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=["C", 1]),
-        DataFrame([[2.0, 4.0], [1.0, 2.0], [5.0, 2.0], [8.0, 1.0]], columns=[1, 0.0]),
-        DataFrame([[2, 4.0], [1, 2.0], [5, 2.0], [8, 1.0]], columns=[0, 1.0]),
-        DataFrame([[2, 4], [1, 2], [5, 2], [8, 1.0]], columns=[1.0, "X"]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 0]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1, 1]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=["C", "C"]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[1.0, 0]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0.0, 1]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=["C", 1]),
+        pd.DataFrame(
+            [[2.0, 4.0], [1.0, 2.0], [5.0, 2.0], [8.0, 1.0]], columns=[1, 0.0]
+        ),
+        pd.DataFrame([[2, 4.0], [1, 2.0], [5, 2.0], [8, 1.0]], columns=[0, 1.0]),
+        pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1.0]], columns=[1.0, "X"]),
     ]
 )
 def pairwise_frames(request):
@@ -33,13 +29,13 @@ def pairwise_frames(request):
 @pytest.fixture
 def pairwise_target_frame():
     """Pairwise target frame for test_pairwise"""
-    return DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1])
+    return pd.DataFrame([[2, 4], [1, 2], [5, 2], [8, 1]], columns=[0, 1])
 
 
 @pytest.fixture
 def pairwise_other_frame():
     """Pairwise other frame for test_pairwise"""
-    return DataFrame(
+    return pd.DataFrame(
         [[None, 1, 1], [None, 1, 2], [None, 3, 2], [None, 8, 1]],
         columns=["Y", "Z", "X"],
     )
@@ -70,11 +66,11 @@ def test_rolling_corr(series):
 )
 def test_rolling_cov_corr_degenerate(method, expected_values):
     # GH#24019
-    a = Series([1e5, 0, 0, 0, 0])
-    b = Series([9.45] * 5)
+    a = pd.Series([1e5, 0, 0, 0, 0])
+    b = pd.Series([9.45] * 5)
     wind = a.rolling(5)
     result = getattr(wind, method)(b)
-    expected = Series(expected_values)
+    expected = pd.Series(expected_values)
     tm.assert_series_equal(result, expected)
 
 
@@ -85,10 +81,10 @@ def test_rolling_cov_corr_degenerate(method, expected_values):
 def test_rolling_cov_corr_nan_gap_recovery(method, expected_last):
     # GH#65739 a window whose valid-pair count drops to 0 must not poison
     # subsequent overlapping windows with NaN
-    a = Series([1.0, 10.0, 20.0, 30.0])
-    b = Series([1.0, np.nan, 20.0, 30.0])
+    a = pd.Series([1.0, 10.0, 20.0, 30.0])
+    b = pd.Series([1.0, np.nan, 20.0, 30.0])
     result = getattr(a.rolling(2), method)(b)
-    expected = Series([np.nan, np.nan, np.nan, expected_last])
+    expected = pd.Series([np.nan, np.nan, np.nan, expected_last])
     tm.assert_series_equal(result, expected)
 
 
@@ -109,8 +105,8 @@ def test_rolling_cov_corr_outlier_exit(method, swap_xy, offset_y):
     ]
     if swap_xy:
         values_x, values_y = values_y, values_x
-    series_x = Series(values_x, dtype="float64")
-    series_y = Series(values_y, dtype="float64")
+    series_x = pd.Series(values_x, dtype="float64")
+    series_y = pd.Series(values_y, dtype="float64")
 
     result = getattr(series_x.rolling(window), method)(series_y)
 
@@ -126,7 +122,7 @@ def test_rolling_cov_corr_outlier_exit(method, swap_xy, offset_y):
         chunk_x = array_x[stop - window : stop]
         chunk_y = array_y[stop - window : stop]
         expected.append(pairwise(chunk_x - chunk_x[0], chunk_y - chunk_y[0])[0, 1])
-    tm.assert_series_equal(result, Series(expected), rtol=1e-12, atol=0)
+    tm.assert_series_equal(result, pd.Series(expected), rtol=1e-12, atol=0)
 
 
 @pytest.mark.parametrize("method", ["cov", "corr"])
@@ -137,8 +133,8 @@ def test_rolling_cov_corr_shared_offset(method, offset):
     # wrong with no outlier anywhere in the data -- e.g. prices, or epoch
     # timestamps around 1.7e18
     window = 5
-    series_x = Series([1, 2, 4, 7, 3, 5, 9, 2, 6, 8], dtype="float64") + offset
-    series_y = Series([2, 1, 5, 3, 8, 4, 7, 9, 1, 6], dtype="float64") + offset
+    series_x = pd.Series([1, 2, 4, 7, 3, 5, 9, 2, 6, 8], dtype="float64") + offset
+    series_y = pd.Series([2, 1, 5, 3, 8, 4, 7, 9, 1, 6], dtype="float64") + offset
 
     result = getattr(series_x.rolling(window), method)(series_y)
 
@@ -150,7 +146,7 @@ def test_rolling_cov_corr_shared_offset(method, offset):
         chunk_x = array_x[stop - window : stop]
         chunk_y = array_y[stop - window : stop]
         expected.append(pairwise(chunk_x - chunk_x[0], chunk_y - chunk_y[0])[0, 1])
-    tm.assert_series_equal(result, Series(expected), rtol=1e-12, atol=0)
+    tm.assert_series_equal(result, pd.Series(expected), rtol=1e-12, atol=0)
 
 
 @pytest.mark.parametrize("method", ["cov", "corr"])
@@ -158,8 +154,8 @@ def test_rolling_cov_corr_outlier_exit_no_nan(method):
     # GH#65739 cancellation could drive ssqdm_x negative, so calc_corr took the
     # square root of a negative number and returned NaN for every later window
     window = 3
-    series_x = Series([1.0, 2.0, 1e12, 1e7, 6.0, 5.0, 8.0, 7.0])
-    series_y = Series([2.0, 1.0, 3.0, -1e12, 4.0, 7.0, 6.0, 9.0])
+    series_x = pd.Series([1.0, 2.0, 1e12, 1e7, 6.0, 5.0, 8.0, 7.0])
+    series_y = pd.Series([2.0, 1.0, 3.0, -1e12, 4.0, 7.0, 6.0, 9.0])
 
     result = getattr(series_x.rolling(window), method)(series_y)
 
@@ -175,7 +171,7 @@ def test_rolling_cov_corr_outlier_exit_no_nan(method):
         chunk_x = array_x[stop - window : stop]
         chunk_y = array_y[stop - window : stop]
         expected.append(pairwise(chunk_x - chunk_x[0], chunk_y - chunk_y[0])[0, 1])
-    tm.assert_series_equal(result, Series(expected), rtol=1e-5, atol=0)
+    tm.assert_series_equal(result, pd.Series(expected), rtol=1e-5, atol=0)
 
 
 @pytest.mark.parametrize("method", ["cov", "corr"])
@@ -183,8 +179,8 @@ def test_rolling_cov_corr_extreme_range_recovers(method):
     # GH#65739 a window spanning nearly the whole float64 range must not leave
     # the accumulators holding NaN, which would blank every later window
     window = 5
-    series_x = Series([1e308, 1.0, 2.0, 3.0, -1e308, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
-    series_y = Series([0.2, 0.1, 0.5, 0.3, 0.8, 0.4, 0.9, 0.6, 0.7, 0.2, 0.5])
+    series_x = pd.Series([1e308, 1.0, 2.0, 3.0, -1e308, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
+    series_y = pd.Series([0.2, 0.1, 0.5, 0.3, 0.8, 0.4, 0.9, 0.6, 0.7, 0.2, 0.5])
 
     result = getattr(series_x.rolling(window), method)(series_y)
 
@@ -203,8 +199,8 @@ def test_rolling_cov_corr_extreme_range_recovers(method):
 
 def test_rolling_corr_bias_correction():
     # test for correct bias correction
-    a = Series(
-        np.arange(20, dtype=np.float64), index=date_range("2020-01-01", periods=20)
+    a = pd.Series(
+        np.arange(20, dtype=np.float64), index=pd.date_range("2020-01-01", periods=20)
     )
     b = a.copy()
     a[:5] = np.nan
@@ -234,15 +230,15 @@ def test_flex_binary_frame(method, frame):
     tm.assert_frame_equal(res, exp)
     tm.assert_frame_equal(res2, exp)
 
-    frame2 = DataFrame(
+    frame2 = pd.DataFrame(
         np.random.default_rng(2).standard_normal(frame.shape),
         index=frame.index,
         columns=frame.columns,
     )
 
     res3 = getattr(frame.rolling(window=10), method)(frame2)
-    res3.columns = Index(list(res3.columns))
-    exp = DataFrame(
+    res3.columns = pd.Index(list(res3.columns))
+    exp = pd.DataFrame(
         {k: getattr(frame[k].rolling(window=10), method)(frame2[k]) for k in frame}
     )
     tm.assert_frame_equal(res3, exp)
@@ -251,15 +247,15 @@ def test_flex_binary_frame(method, frame):
 @pytest.mark.parametrize("window", range(7))
 def test_rolling_corr_with_zero_variance(window):
     # GH 18430
-    s = Series(np.zeros(20))
-    other = Series(np.arange(20))
+    s = pd.Series(np.zeros(20))
+    other = pd.Series(np.arange(20))
 
     assert s.rolling(window=window).corr(other=other).isna().all()
 
 
 def test_corr_sanity():
     # GH 3155
-    df = DataFrame(
+    df = pd.DataFrame(
         np.array(
             [
                 [0.87024726, 0.18505595],
@@ -275,33 +271,33 @@ def test_corr_sanity():
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
-    df = DataFrame(np.random.default_rng(2).random((30, 2)))
+    df = pd.DataFrame(np.random.default_rng(2).random((30, 2)))
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
 
 def test_rolling_cov_diff_length():
     # GH 7512
-    s1 = Series([1, 2, 3], index=range(3))
-    s2 = Series([1, 3], index=range(0, 4, 2))
+    s1 = pd.Series([1, 2, 3], index=range(3))
+    s2 = pd.Series([1, 3], index=range(0, 4, 2))
     result = s1.rolling(window=3, min_periods=2).cov(s2)
-    expected = Series([None, None, 2.0])
+    expected = pd.Series([None, None, 2.0])
     tm.assert_series_equal(result, expected)
 
-    s2a = Series([1, None, 3], index=range(3))
+    s2a = pd.Series([1, None, 3], index=range(3))
     result = s1.rolling(window=3, min_periods=2).cov(s2a)
     tm.assert_series_equal(result, expected)
 
 
 def test_rolling_corr_diff_length():
     # GH 7512
-    s1 = Series([1, 2, 3], index=range(3))
-    s2 = Series([1, 3], index=range(0, 4, 2))
+    s1 = pd.Series([1, 2, 3], index=range(3))
+    s2 = pd.Series([1, 3], index=range(0, 4, 2))
     result = s1.rolling(window=3, min_periods=2).corr(s2)
-    expected = Series([None, None, 1.0])
+    expected = pd.Series([None, None, 1.0])
     tm.assert_series_equal(result, expected)
 
-    s2a = Series([1, None, 3], index=range(3))
+    s2a = pd.Series([1, None, 3], index=range(3))
     result = s1.rolling(window=3, min_periods=2).corr(s2a)
     tm.assert_series_equal(result, expected)
 
@@ -309,10 +305,10 @@ def test_rolling_corr_diff_length():
 @pytest.mark.parametrize("func", ["cov", "corr"])
 def test_time_based_rolling_other_longer_raises(func):
     # GH#62937
-    idx_short = date_range("2020-01-01", periods=3, freq="D")
-    idx_long = date_range("2020-01-01", periods=5, freq="D")
-    s = Series([1, 2, 3], index=idx_short)
-    other = Series([1, 2, 3, 4, 5], index=idx_long)
+    idx_short = pd.date_range("2020-01-01", periods=3, freq="D")
+    idx_long = pd.date_range("2020-01-01", periods=5, freq="D")
+    s = pd.Series([1, 2, 3], index=idx_short)
+    other = pd.Series([1, 2, 3, 4, 5], index=idx_long)
     msg = "Variable rolling window requires .* Got 3 < 5"
     with pytest.raises(ValueError, match=msg):
         getattr(s.rolling("2D"), func)(other)
@@ -327,14 +323,14 @@ def test_time_based_rolling_other_longer_raises(func):
 )
 def test_rolling_functions_window_non_shrinkage_binary(f):
     # corr/cov return a MI DataFrame
-    df = DataFrame(
+    df = pd.DataFrame(
         [[1, 5], [3, 2], [3, 9], [-1, 0]],
-        columns=Index(["A", "B"], name="foo"),
-        index=Index(range(4), name="bar"),
+        columns=pd.Index(["A", "B"], name="foo"),
+        index=pd.Index(range(4), name="bar"),
     )
-    df_expected = DataFrame(
-        columns=Index(["A", "B"], name="foo"),
-        index=MultiIndex.from_product([df.index, df.columns], names=["bar", "foo"]),
+    df_expected = pd.DataFrame(
+        columns=pd.Index(["A", "B"], name="foo"),
+        index=pd.MultiIndex.from_product([df.index, df.columns], names=["bar", "foo"]),
         dtype="float64",
     )
     df_result = f(df)
@@ -349,14 +345,20 @@ def test_rolling_functions_window_non_shrinkage_binary(f):
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
-    df1 = DataFrame()
-    df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
+    df1 = pd.DataFrame()
+    df2 = pd.DataFrame(
+        columns=pd.Index(["a"], name="foo"), index=pd.Index([], name="bar")
+    )
     df2["a"] = df2["a"].astype("float64")
 
-    df1_expected = DataFrame(index=MultiIndex.from_product([df1.index, df1.columns]))
-    df2_expected = DataFrame(
-        index=MultiIndex.from_product([df2.index, df2.columns], names=["bar", "foo"]),
-        columns=Index(["a"], name="foo"),
+    df1_expected = pd.DataFrame(
+        index=pd.MultiIndex.from_product([df1.index, df1.columns])
+    )
+    df2_expected = pd.DataFrame(
+        index=pd.MultiIndex.from_product(
+            [df2.index, df2.columns], names=["bar", "foo"]
+        ),
+        columns=pd.Index(["a"], name="foo"),
         dtype="float64",
     )
 
@@ -517,20 +519,20 @@ class TestPairwise:
     )
     def test_pairwise_with_series(self, pairwise_frames, pairwise_target_frame, f):
         # DataFrame with a Series
-        result = f(pairwise_frames, Series([1, 1, 3, 8]))
+        result = f(pairwise_frames, pd.Series([1, 1, 3, 8]))
         tm.assert_index_equal(result.index, pairwise_frames.index)
         tm.assert_index_equal(result.columns, pairwise_frames.columns)
-        expected = f(pairwise_target_frame, Series([1, 1, 3, 8]))
+        expected = f(pairwise_target_frame, pd.Series([1, 1, 3, 8]))
         # since we have sorted the results
         # we can only compare non-nans
         result = result.dropna().values
         expected = expected.dropna().values
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-        result = f(Series([1, 1, 3, 8]), pairwise_frames)
+        result = f(pd.Series([1, 1, 3, 8]), pairwise_frames)
         tm.assert_index_equal(result.index, pairwise_frames.index)
         tm.assert_index_equal(result.columns, pairwise_frames.columns)
-        expected = f(Series([1, 1, 3, 8]), pairwise_target_frame)
+        expected = f(pd.Series([1, 1, 3, 8]), pairwise_target_frame)
         # since we have sorted the results
         # we can only compare non-nans
         result = result.dropna().values
@@ -539,23 +541,25 @@ class TestPairwise:
 
     def test_corr_freq_memory_error(self):
         # GH 31789
-        s = Series(range(5), index=date_range("2020", periods=5))
+        s = pd.Series(range(5), index=pd.date_range("2020", periods=5))
         result = s.rolling("12h").corr(s)
-        expected = Series([np.nan] * 5, index=date_range("2020", periods=5))
+        expected = pd.Series([np.nan] * 5, index=pd.date_range("2020", periods=5))
         tm.assert_series_equal(result, expected)
 
     def test_cov_mulittindex(self):
         # GH 34440
 
-        columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
+        columns = pd.MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
         index = range(3)
-        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns)
+        df = pd.DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns)
 
         result = df.ewm(alpha=0.1).cov()
 
-        index = MultiIndex.from_product([range(3), list("ab"), list("xy"), list("AB")])
-        columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
-        expected = DataFrame(
+        index = pd.MultiIndex.from_product(
+            [range(3), list("ab"), list("xy"), list("AB")]
+        )
+        columns = pd.MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
+        expected = pd.DataFrame(
             np.vstack(
                 (
                     np.full((8, 8), np.nan),
@@ -571,12 +575,12 @@ class TestPairwise:
 
     def test_multindex_columns_pairwise_func(self):
         # GH 21157
-        columns = MultiIndex.from_arrays([["M", "N"], ["P", "Q"]], names=["a", "b"])
-        df = DataFrame(np.ones((5, 2)), columns=columns)
+        columns = pd.MultiIndex.from_arrays([["M", "N"], ["P", "Q"]], names=["a", "b"])
+        df = pd.DataFrame(np.ones((5, 2)), columns=columns)
         result = df.rolling(3).corr()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             np.nan,
-            index=MultiIndex.from_arrays(
+            index=pd.MultiIndex.from_arrays(
                 [
                     np.repeat(np.arange(5, dtype=np.int64), 2),
                     ["M", "N"] * 5,

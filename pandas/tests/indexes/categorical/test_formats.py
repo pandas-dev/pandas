@@ -4,13 +4,13 @@ Tests for CategoricalIndex.__repr__ and related methods.
 
 import pandas._config.config as cf
 
-from pandas import CategoricalIndex
+import pandas as pd
 
 
 class TestCategoricalIndexReprStringCategories:
     def test_string_categorical_index_repr(self):
         # short
-        idx = CategoricalIndex(["a", "bb", "ccc"])
+        idx = pd.CategoricalIndex(["a", "bb", "ccc"])
         expected = (
             "CategoricalIndex(['a', 'bb', 'ccc'], "
             "categories=['a', 'bb', 'ccc'],\n"
@@ -20,7 +20,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_multiline(self):
         # multiple lines
-        idx = CategoricalIndex(["a", "bb", "ccc"] * 10)
+        idx = pd.CategoricalIndex(["a", "bb", "ccc"] * 10)
         expected = (
             "CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', "
             "'bb', 'ccc', 'a',\n"
@@ -35,7 +35,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_truncated(self):
         # truncated
-        idx = CategoricalIndex(["a", "bb", "ccc"] * 100)
+        idx = pd.CategoricalIndex(["a", "bb", "ccc"] * 100)
         expected = (
             "CategoricalIndex(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', "
             "'bb', 'ccc', 'a',\n"
@@ -50,7 +50,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_many_categories(self):
         # larger categories
-        idx = CategoricalIndex(list("abcdefghijklmmo"))
+        idx = pd.CategoricalIndex(list("abcdefghijklmmo"))
         expected = (
             "CategoricalIndex(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', "
             "'i', 'j', 'k', 'l',\n"
@@ -63,7 +63,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_unicode(self):
         # short
-        idx = CategoricalIndex(["あ", "いい", "ううう"])
+        idx = pd.CategoricalIndex(["あ", "いい", "ううう"])
         expected = (
             "CategoricalIndex(['あ', 'いい', 'ううう'], "
             "categories=['あ', 'いい', 'ううう'],\n"
@@ -73,7 +73,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_unicode_multiline(self):
         # multiple lines
-        idx = CategoricalIndex(["あ", "いい", "ううう"] * 10)
+        idx = pd.CategoricalIndex(["あ", "いい", "ううう"] * 10)
         expected = (
             "CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
             "'あ', 'いい', 'ううう', 'あ',\n"
@@ -88,7 +88,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_unicode_truncated(self):
         # truncated
-        idx = CategoricalIndex(["あ", "いい", "ううう"] * 100)
+        idx = pd.CategoricalIndex(["あ", "いい", "ううう"] * 100)
         expected = (
             "CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', 'ううう', "
             "'あ', 'いい', 'ううう', 'あ',\n"
@@ -103,7 +103,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_unicode_many_categories(self):
         # larger categories
-        idx = CategoricalIndex(list("あいうえおかきくけこさしすせそ"))
+        idx = pd.CategoricalIndex(list("あいうえおかきくけこさしすせそ"))
         expected = (
             "CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', "
             "'く', 'け', 'こ', 'さ', 'し',\n"
@@ -117,7 +117,7 @@ class TestCategoricalIndexReprStringCategories:
     def test_categorical_index_repr_east_asian_width(self):
         with cf.option_context("display.unicode.east_asian_width", True):
             # short
-            idx = CategoricalIndex(["あ", "いい", "ううう"])
+            idx = pd.CategoricalIndex(["あ", "いい", "ううう"])
             expected = (
                 "CategoricalIndex(['あ', 'いい', 'ううう'], "
                 "categories=['あ', 'いい', 'ううう'],\n"
@@ -128,7 +128,7 @@ class TestCategoricalIndexReprStringCategories:
     def test_categorical_index_repr_east_asian_width_multiline(self):
         with cf.option_context("display.unicode.east_asian_width", True):
             # multiple lines
-            idx = CategoricalIndex(["あ", "いい", "ううう"] * 10)
+            idx = pd.CategoricalIndex(["あ", "いい", "ううう"] * 10)
             expected = (
                 "CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', "
                 "'ううう', 'あ', 'いい',\n"
@@ -148,7 +148,7 @@ class TestCategoricalIndexReprStringCategories:
     def test_categorical_index_repr_east_asian_width_truncated(self):
         with cf.option_context("display.unicode.east_asian_width", True):
             # truncated
-            idx = CategoricalIndex(["あ", "いい", "ううう"] * 100)
+            idx = pd.CategoricalIndex(["あ", "いい", "ううう"] * 100)
             expected = (
                 "CategoricalIndex(['あ', 'いい', 'ううう', 'あ', 'いい', "
                 "'ううう', 'あ', 'いい',\n"
@@ -166,7 +166,7 @@ class TestCategoricalIndexReprStringCategories:
 
     def test_categorical_index_repr_east_asian_width_many_categories(self):
         with cf.option_context("display.unicode.east_asian_width", True):
-            idx = CategoricalIndex(list("あいうえおかきくけこさしすせそ"))
+            idx = pd.CategoricalIndex(list("あいうえおかきくけこさしすせそ"))
             expected = (
                 "CategoricalIndex(['あ', 'い', 'う', 'え', 'お', 'か', 'き', "
                 "'く', 'け', 'こ',\n"

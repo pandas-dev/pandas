@@ -4298,8 +4298,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
-        Can be either a call or an index. dropna is not available with index notation.
-        Index notation accepts a comma separated list of integers and slices.
+        .. deprecated:: 3.1.0
+
+            Index notation (``g.nth[n]``) is deprecated in favor of calling
+            ``g.nth(n)`` and will be removed in a future version of pandas.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -4341,20 +4343,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  2 3.0
         4  2 5.0
         >>> g.nth(slice(None, -1))
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-
-        Index notation may also be used
-
-        >>> g.nth[0, 1]
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-        4  2 5.0
-        >>> g.nth[:-1]
            A   B
         0  1 NaN
         1  1 2.0

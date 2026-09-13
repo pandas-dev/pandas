@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
@@ -49,7 +48,7 @@ class TestSparseArrayArithmetics:
 
     def _check_bool_result(self, res):
         assert isinstance(res, SparseArray)
-        assert isinstance(res.dtype, SparseDtype)
+        assert isinstance(res.dtype, pd.SparseDtype)
         assert res.dtype.subtype == np.bool_
         assert isinstance(res.fill_value, bool)
 
@@ -254,30 +253,30 @@ class TestSparseArrayArithmetics:
         rvalues = np.array([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
         a = SparseArray(values, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix, op)
 
         a = SparseArray(values, fill_value=0, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, fill_value=0, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, fill_value=0, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, fill_value=1, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype, fill_value=1)
+        assert a.dtype == pd.SparseDtype(dtype, fill_value=1)
         b = SparseArray(rvalues, fill_value=2, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(dtype, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_int_array_comparison(self, kind):
@@ -334,24 +333,24 @@ class TestSparseArrayArithmetics:
 
         a = SparseArray(values, kind=kind)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind, fill_value=0)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=1)
         b = SparseArray(rvalues, kind=kind, fill_value=2)
-        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(rdtype, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_mixed_array_comparison(self, kind):
@@ -363,24 +362,24 @@ class TestSparseArrayArithmetics:
 
         a = SparseArray(values, kind=kind)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
 
         self._check_comparison_ops(a, b, values, rvalues)
         self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_comparison_ops(a, b, values, rvalues)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind, fill_value=0)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_comparison_ops(a, b, values, rvalues)
 
         a = SparseArray(values, kind=kind, fill_value=1)
         b = SparseArray(rvalues, kind=kind, fill_value=2)
-        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(rdtype, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
     def test_xor(self):
@@ -479,8 +478,62 @@ def test_logical_op_uneven_length_series(op):
     result = op(sparse == 5, dense == 5)
     expected = op(pd.Series(np.arange(10)) == 5, dense == 5)
 
-    assert isinstance(result.dtype, SparseDtype)
+    assert isinstance(result.dtype, pd.SparseDtype)
     tm.assert_series_equal(result.astype(bool), expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("subtype", [bool, object])
+def test_logical_op_masked_other(op, subtype):
+    # GH#68483 a masked operand keeps its own Kleene semantics; densifying it
+    #  lost them -- raising on the NA for a bool subtype, silently resolving it
+    #  to False for an object one
+    values = np.array([True, True, False, False], dtype=subtype)
+    other = pd.array([True, pd.NA, True, False], dtype="boolean")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_masked_other_without_na(op):
+    # GH#68483 the operand's dtype decides, not whether it holds NA, so the
+    #  result is the masked dtype either way -- as it is for the dense operand
+    values = np.array([True, True, False, False])
+    other = pd.array([True, False, True, False], dtype="boolean")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    assert result.dtype == pd.BooleanDtype()
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_non_boolean_masked_other(op):
+    # GH#68483 only a masked *boolean* operand is deferred to; the other masked
+    #  dtypes reach _arith_method, which cannot consume a SparseArray
+    # int64 explicitly: on 32-bit the default int would not match the int64 result
+    values = np.array([1, 0, 3, 0], dtype="int64")
+    other = pd.array([1, 2, 3, 4], dtype="Int64")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other.to_numpy(dtype="int64"))
+    assert isinstance(result.dtype, pd.SparseDtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("n_sparse, n_other", [(11, 10), (10, 11)])
+def test_logical_op_masked_other_uneven_length_series(op, n_sparse, n_other):
+    # GH#68483 the alignment path onto the above; either operand can be the one
+    #  that gains the NA, and only the shorter-sparse case upcasts it to object
+    sparse = pd.Series(SparseArray(np.arange(n_sparse)))
+    other = pd.Series(np.arange(n_other) == 5, dtype="boolean")
+
+    result = op(sparse == 5, other)
+    expected = op(pd.Series(np.arange(n_sparse)) == 5, other)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -537,3 +590,22 @@ def test_binary_operators(op, fill_value):
         else:
             tm.assert_almost_equal(res4.fill_value, exp_fv)
             tm.assert_almost_equal(res4.to_dense(), exp)
+
+
+@pytest.mark.parametrize("values", [[1, 2, 3], [True, False, True]])
+@pytest.mark.parametrize("op", [operator.add, operator.gt])
+def test_datetimelike_operand_raises_typeerror(values, op):
+    # GH#68466 the operand was coerced to self.fill_value first, so SparseDtype
+    #  rejected the fill_value before the op could reject the operand
+    other = np.asarray(pd.date_range("2016", periods=3))
+    with pytest.raises(TypeError):
+        op(SparseArray(values), other)
+
+
+def test_mul_timedelta64_operand():
+    # GH#68466 valid densely, but the fill_value coercion raised
+    tda = np.asarray(pd.timedelta_range("1 Day", periods=3))
+    result = SparseArray([1, 2, 3]) * tda
+    tm.assert_numpy_array_equal(
+        result.to_dense(), (np.arange(1, 4) * tda).astype(object)
+    )

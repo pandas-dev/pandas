@@ -14,16 +14,7 @@ from pandas.compat import (
     is_platform_arm,
 )
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    date_range,
-    option_context,
-    to_datetime,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.util.version import Version
 
@@ -31,7 +22,7 @@ from pandas.util.version import Version
 @pytest.fixture
 def duplicate_columns_frame():
     """Dataframe with duplicate column names."""
-    return DataFrame(
+    return pd.DataFrame(
         np.random.default_rng(2).standard_normal((1500, 4)),
         columns=["a", "a", "b", "b"],
     )
@@ -39,7 +30,7 @@ def duplicate_columns_frame():
 
 def test_info_empty():
     # GH #45494
-    df = DataFrame()
+    df = pd.DataFrame()
     buf = StringIO()
     df.info(buf=buf)
     result = buf.getvalue()
@@ -54,8 +45,10 @@ def test_info_empty():
 
 def test_info_categorical_column_smoke_test():
     n = 2500
-    df = DataFrame({"int64": np.random.default_rng(2).integers(100, size=n, dtype=int)})
-    df["category"] = Series(
+    df = pd.DataFrame(
+        {"int64": np.random.default_rng(2).integers(100, size=n, dtype=int)}
+    )
+    df["category"] = pd.Series(
         np.array(list("abcdefghij")).take(
             np.random.default_rng(2).integers(0, 10, size=n, dtype=int)
         )
@@ -97,7 +90,7 @@ def test_info_smoke_test2(float_frame):
     float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
 
     # no columns or index
-    DataFrame().info(buf=buf)
+    pd.DataFrame().info(buf=buf)
 
 
 @pytest.mark.parametrize(
@@ -111,8 +104,8 @@ def test_info_smoke_test2(float_frame):
     ],
 )
 def test_info_default_verbose_selection(num_columns, max_info_columns, verbose):
-    frame = DataFrame(np.random.default_rng(2).standard_normal((5, num_columns)))
-    with option_context("display.max_info_columns", max_info_columns):
+    frame = pd.DataFrame(np.random.default_rng(2).standard_normal((5, num_columns)))
+    with pd.option_context("display.max_info_columns", max_info_columns):
         io_default = StringIO()
         frame.info(buf=io_default)
         result = io_default.getvalue()
@@ -128,7 +121,7 @@ def test_info_verbose_check_header_separator_body():
     buf = StringIO()
     size = 1001
     start = 5
-    frame = DataFrame(np.random.default_rng(2).standard_normal((3, size)))
+    frame = pd.DataFrame(np.random.default_rng(2).standard_normal((3, size)))
     frame.info(verbose=True, buf=buf)
 
     res = buf.getvalue()
@@ -190,7 +183,7 @@ def test_info_verbose_with_counts_spacing(
     size, header_exp, separator_exp, first_line_exp, last_line_exp
 ):
     """Test header column, spacer, first line and last line in verbose mode."""
-    frame = DataFrame(np.random.default_rng(2).standard_normal((3, size)))
+    frame = pd.DataFrame(np.random.default_rng(2).standard_normal((3, size)))
     with StringIO() as buf:
         frame.info(verbose=True, show_counts=True, buf=buf)
         all_lines = buf.getvalue().splitlines()
@@ -206,7 +199,7 @@ def test_info_verbose_with_counts_spacing(
 
 def test_info_memory():
     # https://github.com/pandas-dev/pandas/issues/21056
-    df = DataFrame({"a": Series([1, 2], dtype="i8")})
+    df = pd.DataFrame({"a": pd.Series([1, 2], dtype="i8")})
     buf = StringIO()
     df.info(buf=buf)
     result = buf.getvalue()
@@ -228,7 +221,7 @@ def test_info_memory():
 
 def test_info_wide():
     io = StringIO()
-    df = DataFrame(np.random.default_rng(2).standard_normal((5, 101)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 101)))
     df.info(buf=io)
 
     io = StringIO()
@@ -237,7 +230,7 @@ def test_info_wide():
     assert len(result.splitlines()) > 100
 
     expected = result
-    with option_context("display.max_info_columns", 101):
+    with pd.option_context("display.max_info_columns", 101):
         io = StringIO()
         df.info(buf=io)
         result = io.getvalue()
@@ -247,7 +240,7 @@ def test_info_wide():
 def test_info_duplicate_columns_shows_correct_dtypes():
     # GH11761
     io = StringIO()
-    frame = DataFrame([[1, 2.0]], columns=["a", "a"])
+    frame = pd.DataFrame([[1, 2.0]], columns=["a", "a"])
     frame.info(buf=io)
     lines = io.getvalue().splitlines(True)
     assert " 0   a       1 non-null      int64  \n" == lines[5]
@@ -268,7 +261,7 @@ def test_info_shows_column_dtypes():
     n = 10
     for i, dtype in enumerate(dtypes):
         data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
     buf = StringIO()
     df.info(buf=buf)
     res = buf.getvalue()
@@ -283,10 +276,10 @@ def test_info_shows_column_dtypes():
 
 
 def test_info_max_cols():
-    df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
+    df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
     for len_, verbose in [(5, None), (5, False), (12, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
-        with option_context("max_info_columns", 4):
+        with pd.option_context("max_info_columns", 4):
             buf = StringIO()
             df.info(buf=buf, verbose=verbose)
             res = buf.getvalue()
@@ -294,7 +287,7 @@ def test_info_max_cols():
 
     for len_, verbose in [(12, None), (5, False), (12, True)]:
         # max_cols not exceeded
-        with option_context("max_info_columns", 5):
+        with pd.option_context("max_info_columns", 5):
             buf = StringIO()
             df.info(buf=buf, verbose=verbose)
             res = buf.getvalue()
@@ -302,14 +295,14 @@ def test_info_max_cols():
 
     for len_, max_cols in [(12, 5), (5, 4)]:
         # setting truncates
-        with option_context("max_info_columns", 4):
+        with pd.option_context("max_info_columns", 4):
             buf = StringIO()
             df.info(buf=buf, max_cols=max_cols)
             res = buf.getvalue()
             assert len(res.strip().split("\n")) == len_
 
         # setting wouldn't truncate
-        with option_context("max_info_columns", 5):
+        with pd.option_context("max_info_columns", 5):
             buf = StringIO()
             df.info(buf=buf, max_cols=max_cols)
             res = buf.getvalue()
@@ -331,7 +324,7 @@ def test_info_memory_usage():
     n = 10
     for i, dtype in enumerate(dtypes):
         data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
     buf = StringIO()
 
     # display memory usage case
@@ -362,10 +355,12 @@ def test_info_memory_usage():
     n = 100
     for i, dtype in enumerate(dtypes):
         data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
-    df = DataFrame(data)
+    df = pd.DataFrame(data)
     df.columns = dtypes
 
-    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
+    df_with_object_index = pd.DataFrame(
+        {"a": [1]}, index=pd.Index(["foo"], dtype=object)
+    )
     df_with_object_index.info(buf=buf, memory_usage=True)
     res = buf.getvalue().splitlines()
     assert re.match(r"memory usage: [^+]+\+", res[-1])
@@ -388,10 +383,10 @@ def test_info_memory_usage():
     assert df.memory_usage().sum() == df.memory_usage(deep=True).sum()
 
     # test for validity
-    DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
-    DataFrame(1, index=["a"], columns=["A"]).index.nbytes
-    df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
+    pd.DataFrame(1, index=["a"], columns=["A"]).memory_usage(index=True)
+    pd.DataFrame(1, index=["a"], columns=["A"]).index.nbytes
+    df = pd.DataFrame(
+        data=1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     df.index.nbytes
     df.memory_usage(index=True)
@@ -403,32 +398,36 @@ def test_info_memory_usage():
 
 @pytest.mark.skipif(PYPY, reason="on PyPy deep=True doesn't change result")
 def test_info_memory_usage_deep_not_pypy():
-    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
+    df_with_object_index = pd.DataFrame(
+        {"a": [1]}, index=pd.Index(["foo"], dtype=object)
+    )
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         > df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = DataFrame({"a": Series(["a"], dtype=object)})
+    df_object = pd.DataFrame({"a": pd.Series(["a"], dtype=object)})
     assert df_object.memory_usage(deep=True).sum() > df_object.memory_usage().sum()
 
 
 @pytest.mark.xfail(not PYPY, reason="on PyPy deep=True does not change result")
 def test_info_memory_usage_deep_pypy():
-    df_with_object_index = DataFrame({"a": [1]}, index=Index(["foo"], dtype=object))
+    df_with_object_index = pd.DataFrame(
+        {"a": [1]}, index=pd.Index(["foo"], dtype=object)
+    )
     assert (
         df_with_object_index.memory_usage(index=True, deep=True).sum()
         == df_with_object_index.memory_usage(index=True).sum()
     )
 
-    df_object = DataFrame({"a": Series(["a"], dtype=object)})
+    df_object = pd.DataFrame({"a": pd.Series(["a"], dtype=object)})
     assert df_object.memory_usage(deep=True).sum() == df_object.memory_usage().sum()
 
 
 @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
 def test_usage_via_getsizeof():
-    df = DataFrame(
-        data=1, index=MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
+    df = pd.DataFrame(
+        data=1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
     )
     mem = df.memory_usage(deep=True).sum()
     # sys.getsizeof will call the .memory_usage with
@@ -439,17 +438,17 @@ def test_usage_via_getsizeof():
 
 def test_info_memory_usage_qualified(using_infer_string):
     buf = StringIO()
-    df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
+    df = pd.DataFrame(1, columns=list("ab"), index=[1, 2, 3])
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
-    df = DataFrame(1, columns=list("ab"), index=Index(list("ABC"), dtype=object))
+    df = pd.DataFrame(1, columns=list("ab"), index=pd.Index(list("ABC"), dtype=object))
     df.info(buf=buf)
     assert "+" in buf.getvalue()
 
     buf = StringIO()
-    df = DataFrame(1, columns=list("ab"), index=Index(list("ABC"), dtype="str"))
+    df = pd.DataFrame(1, columns=list("ab"), index=pd.Index(list("ABC"), dtype="str"))
     df.info(buf=buf)
     if using_infer_string and HAS_PYARROW:
         assert "+" not in buf.getvalue()
@@ -457,15 +456,17 @@ def test_info_memory_usage_qualified(using_infer_string):
         assert "+" in buf.getvalue()
 
     buf = StringIO()
-    df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
+    df = pd.DataFrame(
+        1, columns=list("ab"), index=pd.MultiIndex.from_product([range(3), range(3)])
     )
     df.info(buf=buf)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
-    df = DataFrame(
-        1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
+    df = pd.DataFrame(
+        1,
+        columns=list("ab"),
+        index=pd.MultiIndex.from_product([range(3), ["foo", "bar"]]),
     )
     df.info(buf=buf)
     if using_infer_string and HAS_PYARROW:
@@ -483,11 +484,11 @@ def test_info_memory_usage_bug_on_multiindex():
 
     N = 100
     M = len(ascii_uppercase)
-    index = MultiIndex.from_product(
-        [list(ascii_uppercase), date_range("20160101", periods=N)],
+    index = pd.MultiIndex.from_product(
+        [list(ascii_uppercase), pd.date_range("20160101", periods=N)],
         names=["id", "date"],
     )
-    df = DataFrame(
+    df = pd.DataFrame(
         {"value": np.random.default_rng(2).standard_normal(N * M)}, index=index
     )
 
@@ -501,8 +502,8 @@ def test_info_memory_usage_bug_on_multiindex():
 
 def test_info_categorical():
     # GH14298
-    idx = CategoricalIndex(["a", "b"])
-    df = DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
+    idx = pd.CategoricalIndex(["a", "b"])
+    df = pd.DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
 
     buf = StringIO()
     df.info(buf=buf)
@@ -511,7 +512,7 @@ def test_info_categorical():
 @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
 def test_info_int_columns(using_infer_string):
     # GH#37245
-    df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
+    df = pd.DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
     buf = StringIO()
     df.info(show_counts=True, buf=buf)
     result = buf.getvalue()
@@ -533,14 +534,14 @@ def test_info_int_columns(using_infer_string):
 
 def test_memory_usage_empty_no_warning(using_infer_string):
     # GH#50066
-    df = DataFrame(index=["a", "b"])
+    df = pd.DataFrame(index=["a", "b"])
     with tm.assert_produces_warning(None):
         result = df.memory_usage()
     if using_infer_string and HAS_PYARROW:
         value = 18
     else:
         value = 16 if IS64 else 8
-    expected = Series(value, index=["Index"])
+    expected = pd.Series(value, index=["Index"])
     tm.assert_series_equal(result, expected)
 
 
@@ -550,9 +551,9 @@ def test_info_compute_numba():
     numba = pytest.importorskip("numba")
     if Version(numba.__version__) == Version("0.61") and is_platform_arm():
         pytest.skip(f"Segfaults on ARM platforms with numba {numba.__version__}")
-    df = DataFrame([[1, 2], [3, 4]])
+    df = pd.DataFrame([[1, 2], [3, 4]])
 
-    with option_context("compute.use_numba", True):
+    with pd.option_context("compute.use_numba", True):
         buf = StringIO()
         df.info(buf=buf)
         result = buf.getvalue()
@@ -576,10 +577,10 @@ def test_info_compute_numba():
 )
 def test_info_show_counts(row, columns, show_counts, result):
     # Explicit cast to float to avoid implicit cast when setting nan
-    df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
+    df = pd.DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
     df.iloc[1, 1] = np.nan
 
-    with option_context(
+    with pd.option_context(
         "display.max_info_rows", row, "display.max_info_columns", columns
     ):
         with StringIO() as buf:
@@ -591,7 +592,7 @@ def test_info_dtype_after_datetime_to_pydatetime():
     # GH#55136
     # After converting datetime64 column to python datetime objects,
     # .info() should report dtype as object, not datetime64
-    df = DataFrame({"a": to_datetime(["2023-01-01", "2023-01-02"])})
+    df = pd.DataFrame({"a": pd.to_datetime(["2023-01-01", "2023-01-02"])})
     df["a"] = df["a"].dt.to_pydatetime()
     assert df["a"].dtype == np.dtype("object")
     with StringIO() as buf:
