@@ -558,6 +558,7 @@ Performance improvements
 - Performance improvement in :func:`read_sas` for compressed SAS7BDAT files with many rows per page, up to ~1.7x faster (:issue:`47339`)
 - Performance improvement in :func:`read_sas` when decoding strings (:issue:`47339`)
 - Performance improvement in :func:`read_sql` with ADBC connections by requesting only table metadata when checking whether an input string names a table (:issue:`65652`)
+- Performance improvement in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_index_equal` when comparing exactly-equal integer and floating values above ``2**53`` without checking dtype, which fell back to an element-by-element comparison (:issue:`68568`)
 - Performance improvement in :func:`to_datetime` and the :class:`Timestamp` constructor when parsing strings with timezone offsets (:issue:`66123`)
 - Performance improvement in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns (:issue:`65195`)
 - Performance improvement in :func:`to_datetime` with the default ``cache=True`` for inputs that are already datetime-typed, use a ``unit``, or use an ISO 8601 ``format`` (:issue:`65380`)
@@ -1221,6 +1222,7 @@ Other
 
 - Bug in :class:`DataFrame` constructor where passing the same :class:`Index` object as both ``index`` and ``columns`` shared a single object between the two axes, so mutating metadata such as ``names`` on one would also change the other (:issue:`42934`)
 - Bug in :func:`eval` and :meth:`DataFrame.eval` where passing a :class:`Series` or :class:`DataFrame` as ``expr`` silently parsed its (possibly truncated) repr instead of raising, producing a confusing error (:issue:`16289`)
+- Bug in :func:`eval`, :meth:`DataFrame.eval` and :meth:`DataFrame.query` raising instead of evaluating a subscript expression such as ``"a.str[-1:] == 'c'"`` (:issue:`49905`)
 - Bug in :func:`option_context` where deprecation warnings pointed to ``contextlib.__enter__`` instead of user code (:issue:`63235`)
 - Bug in :func:`testing.assert_frame_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_index_equal` where the ``first diff`` line of the failure message did not quote strings, so a string-vs-number mismatch such as ``"1"`` against ``1`` was reported as ``1 != 1`` (:issue:`37488`)
 - Bug in :func:`testing.assert_series_equal` with ``check_category_order=False`` raising for equal :class:`Categorical` values when missing values were present and the two objects stored their categories in a different order (:issue:`62008`)
