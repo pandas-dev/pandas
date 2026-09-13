@@ -21,7 +21,10 @@ import numpy as np
 
 from pandas._config.config import _global_config as config
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import (
     BlockIndex,
@@ -2690,6 +2693,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> SparseArray:
+        if isinstance(getattr(other, "dtype", None), BaseMaskedDtype):
+            # GH#68579 defer to the masked operand's reflected comparison, which
+            #  keeps its NA semantics; densifying here loses them.
+            return NotImplemented
+
+        return self._cmp_or_logical_op(other, op)
+
+    def _cmp_or_logical_op(self, other, op) -> SparseArray:
+        # Shared by _cmp_method and _logical_method's fast path.
         if (
             is_list_like(other)
             and not isinstance(other, (list, np.ndarray, ExtensionArray))
@@ -2719,6 +2731,15 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)
+        elif other is libmissing.NA:
+            # GH#68579 NA has no truth value, so the scalar arm below cannot
+            #  build a boolean result; answer as the dense path does.
+            fill_value = op is operator.ne
+            if self.dtype.subtype.kind in "mM":
+                result = ops.invalid_comparison(self, other, op)
+            else:
+                result = np.full(len(self), fill_value, dtype=np.bool_)
+            return type(self)(result, fill_value=fill_value, dtype=np.bool_)
         else:
             # scalar
             fill_value = op(self.fill_value, other)
@@ -2749,7 +2770,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         #  by reindexing a boolean SparseArray to a longer index -- fall back
         #  to a dense computation so the result matches the non-sparse path.
         if not self._logical_needs_dense(other):
-            return self._cmp_method(other, op)
+            return self._cmp_or_logical_op(other, op)
 
         lvalues = np.asarray(self)
         rvalues = other if is_scalar(other) else np.asarray(other)
