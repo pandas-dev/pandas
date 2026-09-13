@@ -360,34 +360,39 @@ class TestIndex:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "idx, kwargs, msg",
+        "idx, kwargs, expected",
         [
             (
                 Index([1, 2, pd.NA], dtype="Int64"),
                 {"to_replace": [np.nan, 1], "value": ["x", 5]},
-                "Invalid value 'x' for dtype 'Int64'",
+                Index([5, 2, "x"], dtype=object),
             ),
             (
                 Index([1, 2, pd.NA], dtype="Int64"),
                 {"to_replace": {np.nan: "x", 1: 5}},
-                "Invalid value 'x' for dtype 'Int64'",
+                Index([5, 2, "x"], dtype=object),
             ),
             (
                 pd.CategoricalIndex(["a", "b", None]),
                 {"to_replace": [None, "a"], "value": [1.5, "z"]},
-                "Cannot setitem on a Categorical with a new category",
+                Index(["z", "b", 1.5], dtype=object),
+            ),
+            (
+                Index([1, 2, pd.NA], dtype="Int64"),
+                {"to_replace": [np.nan, "no_such_value"], "value": [1.5, "zzz"]},
+                Index([1.0, 2.0, 1.5], dtype="Float64"),
             ),
         ],
     )
-    def test_index_replace_na_to_replace_mixed_with_literal_raises(
-        self, idx, kwargs, msg
+    def test_index_replace_na_to_replace_mixed_with_literal(
+        self, idx, kwargs, expected
     ):
-        # GH#68563 an NA paired with a matching literal still raises where the
-        #  numpy-backed Index widens. The messages differ because the two get there
-        #  differently: `np.nan` is not `in` the Int64 Index, while `None` is `in`
-        #  the Categorical and is caught by the widened-dtype re-check instead
-        with pytest.raises(TypeError, match=msg):
-            idx.replace(**kwargs)
+        # GH#68563 `in` finds an NA to_replace on some dtypes but not others, so
+        #  the pair is matched against hasnans instead; the literal paired with it
+        #  is still filtered on whether it matches
+        result = idx.replace(**kwargs)
+
+        tm.assert_index_equal(result, expected)
 
     def test_index_replace_na_to_replace_without_nans_stays_narrow(self):
         # GH#68563 the NA pair matches nothing when the Index holds no NA, so it
@@ -408,13 +413,24 @@ class TestIndex:
         tm.assert_index_equal(result, Index([True, 2, 3], dtype=object))
 
     def test_index_replace_sparse_densifies(self):
-        # GH#68563 SparseArray refuses setitem outright, so the retry reaches it too
-        #  and densifies, the way Index.insert already does for Sparse
+        # GH#68563 SparseArray refuses setitem outright, so the retry reaches it too;
+        #  only a value that widens out of the Sparse family gets through
         idx = Index(SparseArray([1, 2, 3]))
 
         result = idx.replace(1, "zzzz")
 
         tm.assert_index_equal(result, Index(["zzzz", 2, 3], dtype=object))
+
+    @pytest.mark.parametrize("value", [5, 1.5])
+    def test_index_replace_sparse_narrow_still_raises(self, value):
+        # GH#68563 a value the Sparse subtype can hold still raises: the widened
+        #  dtype is Sparse too and refuses setitem just the same, where Index.where
+        #  and Index.putmask handle it and stay Sparse.  Needs Block.replace not to
+        #  go through putmask_inplace for Sparse
+        idx = Index(SparseArray([1, 2, 3]))
+
+        with pytest.raises(TypeError, match="does not support item assignment"):
+            idx.replace(1, value)
 
     def test_index_replace_numpy_bool_regex(self):
         # GH#68563 np.False_ passes replace's is_bool check, so it must take the
@@ -424,6 +440,15 @@ class TestIndex:
         result = idx.replace(["no_such_value", "a"], [1.5, "z"], regex=np.False_)
 
         tm.assert_index_equal(result, idx.replace(["no_such_value", "a"], [1.5, "z"]))
+
+    def test_index_replace_regex_does_not_filter_unmatched_pair(self):
+        # GH#68563 a pattern is not pre-matched, so a regex pair that replaces
+        #  nothing still widens; the values are the same either way
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        result = idx.replace(["no_such_value", "a"], [1.5, "z"], regex=True)
+
+        tm.assert_index_equal(result, Index(["z", "b", "c"], dtype=object))
 
     @pytest.mark.parametrize(
         "kwargs, err, msg",

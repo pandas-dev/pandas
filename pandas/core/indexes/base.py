@@ -6931,16 +6931,23 @@ class Index(IndexOpsMixin, PandasObject):
         repl = [val for _, val in pairs]
         keys: list[Any] = []
         if is_bool(regex) and not regex:
-            # a pattern is matched rather than compared, so only filter literals
+            # a pattern is matched rather than compared, so regex pairs go
+            #  unfiltered and widen more than Block.replace needs; see
+            #  test_index_replace_regex_does_not_filter_unmatched_pair
             matched = []
             for to_rep, val in pairs:
-                # `in` misses NA on some dtypes, so an NA to_replace can be read
-                #  as matching nothing; see
-                #  test_index_replace_na_to_replace_mixed_with_literal_raises
+                if is_hashable(to_rep) and isna(to_rep):
+                    # `in` misses NA on some dtypes, so match it against hasnans
+                    if self.hasnans:
+                        matched.append(val)
+                    continue
                 if is_hashable(to_rep) and to_rep in self:
                     matched.append(val)
                     keys.append(to_rep)
-            repl = matched or repl
+            repl = matched
+            if not repl:
+                # nothing to widen for; signal the caller to re-raise
+                return self.dtype, keys
 
         # a bare list infers as object; an Index resolves its own dtype
         return self._find_common_type_compat(Index(repl)), keys
