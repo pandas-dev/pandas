@@ -1138,6 +1138,7 @@ Reshaping
 - Bug in :meth:`Series.combine` passing a :class:`Series` instead of a scalar to ``func`` when the index contained duplicated labels; occurrences of a duplicated label are now paired in order (:issue:`67446`)
 - Bug in :meth:`Series.combine` using ``fill_value`` instead of the value from ``other`` when the two indexes had labels that compare equal but differ in dtype, e.g. ``True`` and ``1`` (:issue:`67446`)
 - Bug in :meth:`Series.combine` with :class:`MultiIndex` inputs of different numbers of levels returning incorrect results or raising ``AssertionError``; now raises ``ValueError`` (:issue:`67446`)
+- Bug in :meth:`Series.unstack` adding a spurious all-NaN column when the unstacked level held a value that no row used, and in :meth:`Series.unstack` and :meth:`DataFrame.unstack` raising on such an index when ``sort=False`` (:issue:`68588`)
 - Bug in :meth:`Series.unstack` with ``sort=False`` always placing a ``NaN`` column first without reordering the corresponding values (:issue:`66672`)
 - Fixed bug in :meth:`DataFrame.pivot_table` with ``margins=True`` and a dictionary ``aggfunc`` raising ``KeyError`` when a column in the data is missing from the dictionary (:issue:`66151`)
 - Fixed bug in :meth:`Series.sort_values` where ``ignore_index=True`` had no effect on an already-sorted Series (:issue:`65833`)

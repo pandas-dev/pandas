@@ -1603,6 +1603,80 @@ def test_unstack_monotonic_values_unsorted_codes():
     assert result.loc["a", 1] == 10
 
 
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "mixed"])
+@pytest.mark.parametrize(
+    "level, level_codes",
+    [(["x", np.nan], [0, -1]), ([np.nan, "x"], [1, -1])],
+    ids=["unused-last", "unused-first"],
+)
+def test_unstack_level_with_unused_entry(sort, dtype, level, level_codes):
+    # GH#68588 remove_unused_levels returns the index unpruned when a level holds
+    #  NaN as a value (GH#37510), so the unstacked level can keep a value no row
+    #  uses. That entry used to get a column of its own, duplicating the NaN
+    #  column under sort=True and leaving the blocks out of step with the columns
+    #  under sort=False.
+    index = pd.MultiIndex(
+        levels=[["a", "b"], level], codes=[[0, 1], level_codes], names=["i", "j"]
+    )
+    if dtype == "mixed":
+        # two numpy blocks: the one shape that used to corrupt silently rather
+        #  than raise, so the to_numpy check below has something to catch
+        df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.0]}, index=index)
+    else:
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=index, dtype=dtype)
+
+    result = df.unstack("j", sort=sort)
+
+    if sort:
+        # the unused entry stays in the level, but no code points at it
+        col_level, x_pos = level, level.index("x")
+        codes = [-1, x_pos, -1, x_pos]
+        values = [[np.nan, 1.0, np.nan, 3.0], [2.0, np.nan, 4.0, np.nan]]
+    else:
+        col_level = ["x"]
+        codes = [0, -1, 0, -1]
+        values = [[1.0, np.nan, 3.0, np.nan], [np.nan, 2.0, np.nan, 4.0]]
+    expected = pd.DataFrame(
+        values,
+        index=pd.Index(["a", "b"], name="i"),
+        columns=pd.MultiIndex(
+            levels=[["A", "B"], col_level],
+            codes=[[0, 0, 1, 1], codes],
+            names=[None, "j"],
+        ),
+    )
+    if dtype == "Int64":
+        # an EA column keeps its dtype, and unstacks through ExtensionBlock
+        expected = expected.astype(dtype)
+    tm.assert_frame_equal(result, expected)
+    # assert_frame_equal reads the columns one at a time, so it does not notice
+    #  blocks that are wider than the placement they were given
+    tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("sort", [True, False])
+def test_unstack_unused_entry_from_nan_in_other_level(sort):
+    # GH#68588 The NaN that stops remove_unused_levels can sit in a different
+    #  level, leaving the unstacked level holding an ordinary unused value.
+    index = pd.MultiIndex(
+        levels=[["x", np.nan], ["a", "b", "c"]],
+        codes=[[0, -1, 0], [0, 1, 1]],
+        names=["i", "j"],
+    )
+    ser = pd.Series([1.0, 2.0, 3.0], index=index)
+
+    result = ser.unstack("j", sort=sort)
+
+    order = [np.nan, "x"] if sort else ["x", np.nan]
+    expected = pd.DataFrame(
+        [[np.nan, 2.0], [1.0, 3.0]] if sort else [[1.0, 3.0], [np.nan, 2.0]],
+        index=pd.Index(order, name="i"),
+        columns=pd.Index(["a", "b"], name="j"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
     data = pd.Series(["a", "b", "c", "a"], dtype="object")
