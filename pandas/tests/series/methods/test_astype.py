@@ -736,3 +736,45 @@ def test_astype_object_to_datetimelike_bigendian(kind):
     assert result.dtype.byteorder != ">"
     tm.assert_series_equal(result, expected)
     tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_astype_object_numeric_to_timedelta64_unit(unit):
+    # GH#68659 the numbers were read as nanoseconds whatever unit was asked
+    #  for, so m8[s] came back all zeros
+    dtype = f"m8[{unit}]"
+    expected = pd.Series([2, 3], dtype=dtype)
+    ser = pd.Series([2, 3], dtype=object)
+
+    tm.assert_series_equal(ser.astype(dtype), expected)
+    tm.assert_series_equal(pd.Series(ser, dtype=dtype), expected)
+    tm.assert_series_equal(pd.Series(pd.Index(ser), dtype=dtype), expected)
+    tm.assert_index_equal(pd.Index(ser).astype(dtype), pd.Index(expected))
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [pd.Timedelta(1, "s"), "2 sec", np.timedelta64(3, "s")],
+        [4, pd.Timedelta(5, "s")],
+        ["6 sec", 7],
+    ],
+)
+def test_astype_object_to_timedelta64_unit_numeric_only(values):
+    # GH#68659 the dtype's unit applies only when every non-null entry is a bare
+    #  number; either way astype has to agree with the constructor
+    ser = pd.Series(values, dtype=object)
+
+    result = ser.astype("m8[ms]")
+
+    tm.assert_series_equal(result, pd.Series(values, dtype="m8[ms]"))
+
+
+@pytest.mark.parametrize("dtype", ["m8", "M8"])
+def test_astype_object_to_datetimelike_no_unit(dtype):
+    # GH#68659 object input is converted by the array constructors, so it gets
+    #  their message rather than the one further down _astype_nansafe
+    ser = pd.Series([2, 3], dtype=object)
+
+    with pytest.raises(ValueError, match="dtype with no precision is not allowed"):
+        ser.astype(dtype)

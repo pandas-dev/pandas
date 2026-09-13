@@ -766,7 +766,7 @@ class TestMerge:
         dtype = f"m8[{unit}]"
         if unit in ["D", "h", "m"]:
             # We cannot astype, instead do nearest supported unit, i.e. "s"
-            msg = "Supported resolutions are 's', 'ms', 'us', 'ns'"
+            msg = "Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'"
             with pytest.raises(ValueError, match=msg):
                 ser.astype(dtype)
 

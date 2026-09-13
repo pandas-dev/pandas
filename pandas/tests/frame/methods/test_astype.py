@@ -409,13 +409,8 @@ class TestAstype:
             ["4 Days", "5 Days", "6 Days"],
         ]
         df = pd.DataFrame(vals, dtype=object)
-        msg = (
-            r"Cannot convert from timedelta64\[us\] to timedelta64\[.*\]. "
-            "Supported resolutions are 's', 'ms', 'us', 'ns'"
-        )
+        msg = "Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'"
         with pytest.raises(ValueError, match=msg):
-            # TODO: this is ValueError while for DatetimeArray it is TypeError;
-            #  get these consistent
             df.astype(f"m8[{unit}]")
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
@@ -906,3 +901,26 @@ def test_astype_to_string_dtype_not_modifying_input(any_string_dtype, val):
     expected = df.copy()
     df.astype(any_string_dtype)
     tm.assert_frame_equal(df, expected)
+
+
+def test_astype_object_numeric_to_timedelta64_unit_2d():
+    # GH#68659 a whole object block reaches the conversion as one 2D array; a
+    #  single-column block takes a different path than a wider one
+    df = pd.DataFrame({"a": [2, 3], "b": [4, 5]}, dtype=object)
+    expected = pd.DataFrame({"a": [2, 3], "b": [4, 5]}, dtype="m8[s]")
+
+    tm.assert_frame_equal(df.astype("m8[s]"), expected)
+    tm.assert_frame_equal(df[["a"]].astype("m8[s]"), expected[["a"]])
+
+
+def test_astype_object_numeric_to_timedelta64_unit_2d_mixed():
+    # GH#68659 whether the unit applies is decided per column, so the string
+    #  column sharing "a"'s block must not change how "a" is read
+    df = pd.DataFrame({"a": [2, 3], "b": ["1 sec", "2 sec"]}, dtype=object)
+    assert len(df._mgr.blocks) == 1
+
+    result = df.astype("m8[s]")
+
+    expected = pd.DataFrame({"a": [2, 3], "b": ["1 sec", "2 sec"]}, dtype="m8[s]")
+    tm.assert_frame_equal(result, expected)
+    tm.assert_series_equal(result["a"], df["a"].astype("m8[s]"))
