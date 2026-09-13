@@ -683,8 +683,7 @@ def test_reductions_with_na_fill_value_match_dense(
 
 @pytest.mark.parametrize("name", ["median", "std"])
 def test_reduction_keeps_sub_microsecond_fill_value(name):
-    # GH#68194 np.full routes a Timedelta fill value through the stdlib datetime
-    #  protocol, which floors it to microseconds
+    # GH#68194 a sub-microsecond fill value must survive the reduction
     values = np.array([1000, 2500, 2500, 4000], dtype="m8[ns]")
     arr = SparseArray(values, fill_value=pd.Timedelta("2500ns"))
     assert arr.sp_index.ngaps == 2

@@ -1837,6 +1837,12 @@ class SparseDtype(ExtensionDtype):
         self._fill_value = fill_value
         self._check_fill_value()
 
+        if isinstance(fill_value, (Timestamp, Timedelta)) and dtype.kind in "mM":
+            # GH#68589 store the subtype's own scalar, like the NaT case above:
+            #  numpy converts a boxed scalar through datetime, truncating a
+            #  nanosecond fill value wherever it reaches numpy
+            self._fill_value = fill_value.asm8.astype(dtype)
+
     def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.

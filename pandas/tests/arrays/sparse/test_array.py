@@ -732,6 +732,38 @@ def test_datetimelike_nat_fill_value_normalized(kind, unit):
     )
 
 
+@pytest.mark.parametrize("kind, box", [("M8", pd.Timestamp), ("m8", pd.Timedelta)])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimelike_boxed_fill_value_normalized(kind, box, unit):
+    # GH#68589 a boxed fill value is stored as the subtype's own scalar, so it
+    #  behaves identically to the np.datetime64/np.timedelta64 spelling
+    values = np.array([1, 2, 2], dtype="i8").astype(f"{kind}[{unit}]")
+
+    arr = SparseArray(values, fill_value=box(values[0]))
+    expected = SparseArray(values, fill_value=values[0])
+
+    assert arr.dtype == expected.dtype
+    assert not isinstance(arr.fill_value, box)
+    tm.assert_sp_array_equal(arr, expected)
+
+    # the boxed spelling used a truncated fill value here
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_series_equal(arr.value_counts(), expected.value_counts())
+    tm.assert_sp_array_equal(arr.unique(), expected.unique())
+    tm.assert_sp_array_equal(arr - values[0], expected - values[0])
+
+    # and here it came back as object dtype holding raw ints or datetimes
+    tm.assert_numpy_array_equal(np.asarray(arr), values)
+
+
+def test_tz_aware_fill_value_still_rejected():
+    # GH#68589 normalizing before _check_fill_value would turn this into a naive
+    #  datetime64 that passes validation, silently dropping the timezone
+    msg = "fill_value must be a valid value for the SparseDtype.subtype"
+    with pytest.raises(ValueError, match=msg):
+        pd.SparseDtype("M8[ns]", fill_value=pd.Timestamp("2020-01-01", tz="UTC"))
+
+
 def test_array_interface(arr_data, arr):
     # https://github.com/pandas-dev/pandas/pull/60046
     result = np.asarray(arr)
