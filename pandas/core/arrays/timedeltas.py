@@ -37,6 +37,7 @@ from pandas._libs.tslibs.fields import (
 )
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
+    contains_str,
     floordiv_object_array,
     ints_to_pytimedelta,
     parse_timedelta_unit,
@@ -279,7 +280,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                 # GH#68639 the unit applies to the numeric entries, matching
                 #  to_timedelta(data, unit=...), except that a str alongside
                 #  them would make array_to_timedelta64 reject the unit
-                apply_unit = not lib.has_string_element(data)
+                apply_unit = not contains_str(data)
             else:
                 apply_unit = data.dtype.kind in "iuf"
             if apply_unit:

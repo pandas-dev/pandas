@@ -349,6 +349,39 @@ cdef class ResoState:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def contains_str(ndarray values) -> bool:
+    """
+    Check whether an object-dtype array holds at least one str.
+
+    A str timedelta carries its own unit, so callers must not pass a ``unit``
+    alongside one.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+        May be 2D.
+
+    Returns
+    -------
+    bool
+    """
+    cdef:
+        Py_ssize_t _
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
+        object item
+
+    for _ in range(values.size):
+        # Analogous to: item = values[i]
+        item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
+        if isinstance(item, str):
+            return True
+        cnp.PyArray_ITER_NEXT(it)
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def array_to_timedelta64(
     ndarray values,
     str unit=None,
@@ -373,7 +406,6 @@ def array_to_timedelta64(
         object item
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
         NPY_DATETIMEUNIT item_reso, int_reso
         ResoState state = ResoState(creso)
@@ -392,16 +424,8 @@ def array_to_timedelta64(
     if errors not in {"ignore", "raise", "coerce"}:
         raise ValueError("errors must be one of {'ignore', 'raise', or 'coerce'}")
 
-    if unit is not None and errors != "coerce":
-        it = cnp.PyArray_IterNew(values)
-        for _ in range(n):
-            # Analogous to: item = values[i]
-            item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
-            if isinstance(item, str):
-                raise ValueError(
-                    "unit must not be specified if the input contains a str"
-                )
-            cnp.PyArray_ITER_NEXT(it)
+    if unit is not None and errors != "coerce" and contains_str(values):
+        raise ValueError("unit must not be specified if the input contains a str")
 
     for _ in range(n):
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]

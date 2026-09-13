@@ -2265,42 +2265,6 @@ def first_non_numeric(ndarray values):
     return None, has_nat
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def has_string_element(ndarray values) -> bool:
-    """
-    Check whether an object-dtype array holds at least one string.
-
-    Parameters
-    ----------
-    values : ndarray[object]
-
-    Returns
-    -------
-    bool
-
-    Examples
-    --------
-    >>> has_string_element(np.array([1, "2"], dtype=object))
-    True
-    >>> has_string_element(np.array([1, 2], dtype=object))
-    False
-    """
-    cdef:
-        Py_ssize_t _i, n = cnp.PyArray_SIZE(values)
-        flatiter it = PyArray_IterNew(values)
-        object val
-
-    for _i in range(n):
-        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
-        PyArray_ITER_NEXT(it)
-
-        if isinstance(val, str):
-            return True
-
-    return False
-
-
 @cython.internal
 cdef class BytesValidator(Validator):
     cdef bint is_value_typed(self, object value) except -1:
