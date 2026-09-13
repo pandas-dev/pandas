@@ -246,6 +246,32 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_series_equal(out, expected)
 
 
+def test_binary_ufunc_where_pandas_object():
+    # GH#60611 passing a Series as the ufunc `where` argument used to recurse
+    #  infinitely (RecursionError / segfault) instead of masking the result.
+    a = pd.Series([-3.22, 4.0])
+
+    result = np.maximum(a, 0, where=a > 2, out=a.copy())
+
+    expected = pd.Series([-3.22, 4.0])
+    tm.assert_series_equal(result, expected)
+
+
+def test_binary_ufunc_where_pandas_object_misaligned_index():
+    # GH#60611 a `where` Series is aligned to the operands by label (missing
+    #  labels treated as False), mirroring Series.where/mask, rather than
+    #  being matched up positionally.
+    ser = pd.Series([1.0, 2.0, 3.0], index=[0, 1, 2])
+    mask = pd.Series([True, False, False], index=[2, 1, 0])
+    out = pd.Series([0.0, 0.0, 0.0])
+
+    result = np.maximum(ser, 10.0, where=mask, out=out)
+
+    expected = pd.Series([0.0, 0.0, 10.0])
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(out, expected)
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:
