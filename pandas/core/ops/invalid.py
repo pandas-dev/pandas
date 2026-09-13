@@ -180,7 +180,9 @@ def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
             dtype = next(
                 (dtype for dtype in obj.dtypes if _is_datetimelike_dtype(dtype)), None
             )
-            descr = None if dtype is None else f"with dtype {dtype}"
+            if dtype is None:
+                continue
+            descr = f"with dtype {dtype}"
         elif _is_datetimelike_array(obj):
             descr = f"with dtype {obj.dtype}"
         elif isinstance(obj, _DATETIMELIKE_SCALARS):
@@ -189,10 +191,7 @@ def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
             descr = f"of type {type(obj).__name__}"
         else:
             continue
-        if descr is not None:
-            raise TypeError(
-                f"Object {descr} cannot perform the numpy op {ufunc.__name__}"
-            )
+        raise TypeError(f"Object {descr} cannot perform the numpy op {ufunc.__name__}")
 
 
 def make_invalid_op(name: str) -> Callable[..., NoReturn]:

@@ -581,6 +581,21 @@ def test_binary_logical_ufunc_datetimelike_scalar_raises(func, scalar):
 
 
 @pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("left_dtype", ["boolean", "Int64", "Sparse[bool]"])
+def test_binary_logical_ufunc_datetimelike_scalar_unboxed(func, left_dtype):
+    # GH#68524 a datetimelike scalar is not in any _HANDLED_TYPES, so
+    #  __array_ufunc__ defers on an unboxed left operand unless the guard runs first
+    left = pd.array([True, False], dtype=left_dtype)
+    scalar = pd.Timestamp("2016-01-01")
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, scalar)
+    with pytest.raises(TypeError, match=msg):
+        func(scalar, left)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
 @pytest.mark.parametrize("left_dtype", ["bool", "boolean", "Int64", "Sparse[bool]"])
 @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
 def test_binary_logical_ufunc_datetimelike_left_operand_boxes(func, left_dtype, box):
