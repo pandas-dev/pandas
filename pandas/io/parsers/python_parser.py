@@ -572,11 +572,27 @@ class PythonParser(ParserBase):
             )
         else:
             try:
-                values = astype_array(values, cast_type, copy=True)
+                casted = astype_array(values, cast_type, copy=True)
             except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
                 ) from err
+            # GH#55232 a value the user's dtype cannot hold must raise
+            #  instead of silently wrapping around.  Discarding a float's
+            #  fractional part is not wraparound and stays allowed, so floats
+            #  are compared truncated (see test_read_fwf.py::test_dtype).
+            if cast_type.kind in "iu" and values.dtype.kind in "iuf":
+                orig = np.trunc(values) if values.dtype.kind == "f" else values
+                if (
+                    not np.can_cast(values.dtype, cast_type)
+                    and (np.asarray(casted) != orig).any()
+                ):
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{cast_type} for {values.dtype.name} dtyped data in "
+                        f"column {column}"
+                    )
+            values = casted
         return values
 
     @cache_readonly

@@ -990,3 +990,41 @@ GH,100102040,202,0205"""
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # pyarrow engine casts the parsed frame, silently wrapping around
+@pytest.mark.parametrize(
+    "dtype, err, msg",
+    [
+        ("UInt8", TypeError, "cannot safely cast non-equivalent int64 to uint8"),
+        ("Int8", TypeError, "cannot safely cast non-equivalent int64 to int8"),
+        ("uint8", ValueError, "cannot safely convert passed user dtype of uint8"),
+        ("int8", ValueError, "cannot safely convert passed user dtype of int8"),
+    ],
+)
+def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg):
+    # GH#55232 out-of-range values must raise instead of silently wrapping
+    #  around, matching the Series/array constructors
+    parser = all_parsers
+    data = "x\n-1\n257\n"
+    with pytest.raises(err, match=msg):
+        parser.read_csv(StringIO(data), dtype={"x": dtype})
+
+
+@xfail_pyarrow  # pyarrow engine casts the parsed frame, silently wrapping around
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        # only fits uint64, so the c engine falls back to _try_uint64
+        ("x\n18446744073709551615\n1\n", "uint8"),
+        # parses as float rather than int, which both engines must check too
+        ("x\n300.0\n1.0\n", "uint8"),
+        ("x\n257.0\n1.0\n", "int8"),
+    ],
+)
+def test_unsafe_integer_dtype_raises_for_non_int64_source(all_parsers, data, dtype):
+    # GH#55232 the check has to cover every dtype the parser itself can
+    #  produce, not only the int64 the common case parses to
+    parser = all_parsers
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(StringIO(data), dtype={"x": dtype})

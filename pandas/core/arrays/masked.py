@@ -491,10 +491,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, value: BaseMaskedArray
     ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
         # ``value`` is a masked array of the same numeric family as self.
-        # Coerce its underlying ndarray rather than the masked array itself:
-        # _coerce_to_array's isinstance fast path would raw-astype and
-        # silently wrap out-of-bounds values (GH#65510), whereas the ndarray
-        # takes the general path that rejects a lossy cast via _safe_cast.
+        # Coerce its underlying ndarray so that a lossy cast is rejected by
+        # _safe_cast (GH#65510).  _coerce_to_array's fast path now rejects it
+        # too (GH#55232); this differs only in also rejecting masked values.
         data, _ = self._coerce_to_array(value._data, dtype=self.dtype)
         return data, value._mask
 

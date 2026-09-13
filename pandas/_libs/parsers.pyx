@@ -1823,7 +1823,15 @@ cdef class TextReader:
                 na_count = 0
 
             if result is not None and dtype != "int64":
-                result = result.astype(dtype)
+                # GH#55232 a value the user's dtype cannot hold must raise
+                #  instead of silently wrapping around
+                casted = result.astype(dtype)
+                if not np.can_cast(result.dtype, dtype) and (casted != result).any():
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{dtype} for {result.dtype.name} dtyped data in "
+                        f"column {i}")
+                result = casted
 
             return result, na_count, na_mask
 
