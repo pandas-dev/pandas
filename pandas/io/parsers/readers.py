@@ -1458,9 +1458,9 @@ def read_csv(
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices. The function is applied to the raw
-        text read from the file, before any missing-value detection: an empty
-        field is passed as an empty string ``''``, and ``na_values`` and
-        ``keep_default_na`` have no effect on a column that has a converter.
+        text read from the file, so an empty field is passed as an empty string
+        ``''``; ``na_values`` and ``keep_default_na`` are then applied to the
+        value the function returns.
     true_values : list, optional
         Values to consider as ``True`` in addition
         to case-insensitive variants of 'True'.
@@ -2059,9 +2059,9 @@ def read_table(
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices. The function is applied to the raw
-        text read from the file, before any missing-value detection: an empty
-        field is passed as an empty string ``''``, and ``na_values`` and
-        ``keep_default_na`` have no effect on a column that has a converter.
+        text read from the file, so an empty field is passed as an empty string
+        ``''``; ``na_values`` and ``keep_default_na`` are then applied to the
+        value the function returns.
     true_values : list, optional
         Values to consider as ``True`` in addition to
         case-insensitive variants of 'True'.

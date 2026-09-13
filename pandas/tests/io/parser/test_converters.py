@@ -259,3 +259,117 @@ def test_converter_multi_index(all_parsers):
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keep_default_na", [True, False])
+@pytest.mark.parametrize(
+    "na_values,values",
+    [
+        ("CAT", ["1", np.nan, "3"]),
+        ([-999, "CAT"], ["1", np.nan, "3"]),
+        ({"A": ["CAT"]}, ["1", np.nan, "3"]),
+        # no entry for the converter column, so it gets the defaults or nothing
+        ({"B": ["CAT"]}, ["1", "CAT", "3"]),
+    ],
+)
+def test_converters_na_values(all_parsers, na_values, values, keep_default_na):
+    # GH#13302 the c engine skipped na_values entirely on a converter column
+    parser = all_parsers
+    data = "A,B\nx1,x\nCAT,y\nx3,z"
+    converters = {"A": lambda x: x.lstrip("x")}
+    kwargs = {
+        "converters": converters,
+        "na_values": na_values,
+        "keep_default_na": keep_default_na,
+    }
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
+    result = parser.read_csv(StringIO(data), **kwargs)
+    expected = pd.DataFrame({"A": values, "B": ["x", "y", "z"]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("keep_default_na", [True, False])
+def test_converters_keep_default_na(all_parsers, keep_default_na):
+    # GH#13302
+    parser = all_parsers
+    data = "A\n1\nNA\n3"
+    converters = {"A": lambda x: x}
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), converters=converters, keep_default_na=keep_default_na
+            )
+        return
+
+    result = parser.read_csv(
+        StringIO(data), converters=converters, keep_default_na=keep_default_na
+    )
+    values = ["1", np.nan, "3"] if keep_default_na else ["1", "NA", "3"]
+    tm.assert_frame_equal(result, pd.DataFrame({"A": values}))
+
+
+def test_converters_na_filter_false(all_parsers):
+    # GH#13302 na_filter=False turns off na_values on a converter column too
+    parser = all_parsers
+    data = "A\n1\nCAT\n3"
+    converters = {"A": lambda x: x}
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), converters=converters, na_values="CAT", na_filter=False
+            )
+        return
+
+    result = parser.read_csv(
+        StringIO(data), converters=converters, na_values="CAT", na_filter=False
+    )
+    tm.assert_frame_equal(result, pd.DataFrame({"A": ["1", "CAT", "3"]}))
+
+
+def test_converters_na_values_numeric_output(all_parsers):
+    # GH#13302 na_values are matched against the converter's output, so the
+    # column still infers a numeric dtype
+    parser = all_parsers
+    data = "A\n1\n-999\n3"
+    converters = {"A": int}
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), converters=converters, na_values=[-999])
+        return
+
+    result = parser.read_csv(StringIO(data), converters=converters, na_values=[-999])
+    tm.assert_frame_equal(result, pd.DataFrame({"A": [1.0, np.nan, 3.0]}))
+
+
+def test_converters_na_values_index_col(all_parsers):
+    # GH#13302 a converter column used as the index honors na_values too --
+    # on the python engine without ever calling the converter.
+    parser = all_parsers
+    data = "A,B\nq,x\nCAT,y"
+    converters = {"A": lambda x: x}
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data), converters=converters, na_values=["CAT"], index_col=0
+            )
+        return
+
+    result = parser.read_csv(
+        StringIO(data), converters=converters, na_values=["CAT"], index_col=0
+    )
+    expected = pd.DataFrame({"B": ["x", "y"]}, index=pd.Index(["q", np.nan], name="A"))
+    tm.assert_frame_equal(result, expected)
