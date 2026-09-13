@@ -276,16 +276,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit = None
         if dtype is not None:
             if data.dtype == object:
-                # the unit applies iff the non-null values are all numeric
-                mask = isna(data)
-                notna_data = data[~mask] if mask.any() else data
-                is_numeric = lib.is_integer_float_array(notna_data)
+                # GH#68639 the unit applies to the numeric entries, matching
+                #  to_timedelta(data, unit=...), except that a str alongside
+                #  them would make array_to_timedelta64 reject the unit
+                apply_unit = not lib.has_string_element(data)
             else:
-                is_numeric = data.dtype.kind in "iuf"
-            if is_numeric:
-                # numeric data is interpreted in the dtype's unit, matching
-                #  to_timedelta(data, unit=...); mixed Timedelta/numeric data
-                #  keeps the "ns" default, unlike to_timedelta
+                apply_unit = data.dtype.kind in "iuf"
+            if apply_unit:
                 unit = np.datetime_data(dtype)[0]
 
         data = sequence_to_td64ns(data, copy=copy, unit=unit)
