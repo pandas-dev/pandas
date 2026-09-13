@@ -708,21 +708,22 @@ def test_select_dtypes_dt64_td64_string_byteorder_unitless(kind):
 
 def test_select_dtypes_td64_non_native_column():
     # GH#40234 a string spec matches by resolution, an instance spec stays exact.
-    # Construction no longer yields a non-native column (GH#68342); the fixture
-    # leans on a unit-changing astype, itself a bug, so the assert is a tripwire
+    # Construction normalizes byteorder and GH#68565 stopped astype producing a
+    # non-native column, so ``view`` plus setitem is the route left -- the
+    # byteorder assert is a tripwire for that becoming unreachable too
     df = pd.DataFrame(
         {
-            "be": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
-            "le": pd.Series(np.array([1, 2], dtype="<m8[s]")),
-            "ms": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
+            "le": pd.Series(np.array([1, 2], dtype="m8[s]")),
+            "ms": pd.Series(np.array([1, 2], dtype="m8[ms]")),
         }
-    ).astype({"be": ">m8[s]"})
+    )
+    df["be"] = pd.Series(np.array([1, 2], dtype="m8[s]")).array.view(">m8[s]")
     assert df["be"].dtype.byteorder == ">"
 
     # a string spec is byteorder-agnostic on both sides
     for spec in ("timedelta64[s]", ">timedelta64[s]", "<timedelta64[s]"):
         result = df.select_dtypes(include=[spec])
-        tm.assert_frame_equal(result, df[["be", "le"]])
+        tm.assert_frame_equal(result, df[["le", "be"]])
 
     result = df.select_dtypes(exclude=["timedelta64[s]"])
     tm.assert_frame_equal(result, df[["ms"]])
