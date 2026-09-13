@@ -43,7 +43,10 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_matching_na
+from pandas._libs.missing import (
+    checknull,
+    is_matching_na,
+)
 from pandas._libs.tslibs import (
     Timestamp,
     tz_compare,
@@ -6936,7 +6939,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  test_index_replace_regex_does_not_filter_unmatched_pair
             matched = []
             for to_rep, val in pairs:
-                if is_hashable(to_rep) and isna(to_rep):
+                if checknull(to_rep):
                     # `in` misses NA on some dtypes, so match it against hasnans
                     if self.hasnans:
                         matched.append(val)
