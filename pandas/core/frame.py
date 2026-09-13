@@ -10294,7 +10294,7 @@ class DataFrame(NDFrame, OpsMixin):
         array_op = ops.get_array_op(func)
 
         right = lib.item_from_zerodim(right)
-        if not is_list_like(right):
+        if not ops.is_listlike_for_op(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             bm = self._mgr.apply(array_op, right=right)
             return self._constructor_from_mgr(bm, axes=bm.axes)
@@ -10547,7 +10547,9 @@ class DataFrame(NDFrame, OpsMixin):
                     f"dimension must be <= 2: {right.shape}"
                 )
 
-        elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
+        elif ops.is_listlike_for_op(right) and not isinstance(
+            right, (Series, DataFrame)
+        ):
             if not isinstance(
                 right, (np.ndarray, ExtensionArray, Index, list, dict)
             ) and not ops.has_castable_attr(right):

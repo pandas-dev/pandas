@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
-    is_scalar,
     is_string_dtype,
     pandas_dtype,
 )
@@ -76,7 +75,10 @@ from pandas.core.arrays._ranges import generate_regular_range
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
-from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.common import (
+    is_scalar_for_op,
+    unpack_zerodim_and_defer,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -516,7 +518,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> Self:
-        if is_scalar(other):
+        if is_scalar_for_op(other):
             if lib.is_bool(other):
                 raise TypeError(
                     f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
@@ -658,7 +660,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return op(self._ndarray, other)
 
         else:
-            # caller is responsible for checking lib.is_scalar(other)
+            # caller is responsible for checking is_scalar_for_op(other)
             # assume other is numeric, otherwise numpy will raise
 
             if op in [roperator.rtruediv, roperator.rfloordiv]:
@@ -713,7 +715,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def __truediv__(self, other):
         # timedelta / X is well-defined for timedelta-like or numeric X
         op = operator.truediv
-        if is_scalar(other):
+        if is_scalar_for_op(other):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
@@ -744,7 +746,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def __rtruediv__(self, other):
         # X / timedelta is defined only for timedelta-like X
         op = roperator.rtruediv
-        if is_scalar(other):
+        if is_scalar_for_op(other):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
@@ -764,7 +766,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
         op = operator.floordiv
-        if is_scalar(other):
+        if is_scalar_for_op(other):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
@@ -795,7 +797,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__rfloordiv__")
     def __rfloordiv__(self, other):
         op = roperator.rfloordiv
-        if is_scalar(other):
+        if is_scalar_for_op(other):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)

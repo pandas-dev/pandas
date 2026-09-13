@@ -1258,7 +1258,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         mask = isna(self) | isna(other)
         valid = ~mask
 
-        if lib.is_list_like(other):
+        if ops.is_listlike_for_op(other):
             if not isinstance(
                 other, (list, ExtensionArray, np.ndarray)
             ) and not ops.has_castable_attr(other):

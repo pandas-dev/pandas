@@ -2519,7 +2519,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isinstance(other, SparseArray):
             return _sparse_array_op(self, other, op, op_name)
 
-        elif is_scalar(other):
+        elif ops.is_scalar_for_op(other):
             with np.errstate(all="ignore"):
                 fill = op(_get_fill(self), np.asarray(other))
                 result = op(self.sp_values, other)
@@ -2560,7 +2560,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def _cmp_method(self, other, op) -> SparseArray:
         if (
-            is_list_like(other)
+            ops.is_listlike_for_op(other)
             and not isinstance(other, (list, np.ndarray, ExtensionArray))
             and not ops.has_castable_attr(other)
         ):
@@ -2572,7 +2572,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
-        if not is_scalar(other) and not isinstance(other, type(self)):
+        if not ops.is_scalar_for_op(other) and not isinstance(other, type(self)):
             # convert list-like to ndarray
             other = np.asarray(other)
 
