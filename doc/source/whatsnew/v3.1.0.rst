@@ -1177,6 +1177,7 @@ Sparse
 - Bug in :meth:`SparseArray.mean` raising a ``TypeError`` when called with the ``skipna`` argument (:issue:`65478`)
 - Bug in :meth:`SparseArray.sum` with ``skipna=False`` returning ``NA`` for a non-null ``fill_value`` and ignoring missing values under a null ``fill_value`` (:issue:`65478`)
 - Bug in :meth:`SparseArray.to_dense` and :meth:`Series.to_numpy` with an explicit ``dtype`` on a datetime64 or timedelta64 :class:`SparseArray` mishandling the ``fill_value``: a nanosecond :class:`Timestamp` or :class:`Timedelta` was truncated to microseconds, and a ``fill_value`` whose unit differed from the column's was read as a raw integer (:issue:`68590`)
+- Bug in NumPy ufunc accumulations such as ``np.add.accumulate`` and ``np.maximum.accumulate`` on a :class:`SparseArray` raising ``TypeError: cannot accumulate on a scalar`` (:issue:`68566`)
 - Bug in NumPy ufunc reductions such as ``np.logaddexp.reduce``, ``np.bitwise_or.reduce``, and ``np.gcd.reduce`` on a :class:`SparseArray` reducing only the stored values, ignoring the entries equal to ``fill_value`` (:issue:`68453`)
 - Bug in ``np.prod`` and ``np.multiply.reduce`` on a :class:`SparseArray` silently returning the product of only the stored values, ignoring the entries equal to ``fill_value`` (:issue:`68194`)
 - Bug in ``np.std`` and ``np.var`` on a :class:`SparseArray` returning ``NaN`` when the array held missing values, inconsistently with ``np.sum`` and ``np.mean``, which skip them (:issue:`68194`)
