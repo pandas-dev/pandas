@@ -2718,9 +2718,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Write DataFrame index as a column.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
-        nan_rep : Any, optional
-            How to represent null values as str.
-            Not allowed with append=True.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns
+            (``format="table"`` only).
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
+            Only used when the table is created; ignored on later appends,
+            which reuse whatever the table already stores.
         dropna : bool, default False, optional
             Remove missing values.
 

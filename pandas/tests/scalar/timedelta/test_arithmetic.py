@@ -1331,6 +1331,16 @@ class TestTimedeltaMultiplicationDivision:
         with pytest.raises(TypeError, match=msg):
             pd.Timedelta("1 day") * True
 
+    @pytest.mark.parametrize("box", [np.array, pd.array, pd.Index, pd.Series])
+    def test_mul_bool_array_invalid(self, box):
+        # GH#62316
+        obj = box([True, False])
+        msg = "Cannot multiply Timedelta by bool. Explicitly cast to integer"
+        with pytest.raises(TypeError, match=msg):
+            pd.Timedelta("1 day") * obj
+        with pytest.raises(TypeError, match=msg):
+            obj * pd.Timedelta("1 day")
+
 
 class TestTimedeltaComparison:
     def test_compare_pytimedelta_bounds(self):
