@@ -324,13 +324,7 @@ def test_add_strings(any_string_dtype):
     tm.assert_frame_equal(result, expected)
 
 
-def test_add_frame(any_string_dtype, using_infer_string):
-    if not using_infer_string:
-        pytest.skip(
-            "This doesn't fail on this build, but this build is going away, "
-            "so not worth more invasive fix."
-        )
-
+def test_add_frame(any_string_dtype):
     dtype = any_string_dtype
 
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
