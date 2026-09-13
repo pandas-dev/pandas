@@ -542,6 +542,11 @@ $1$,$2$
         with open(temp_file, "rb") as f:
             assert f.read() == expected_crlf
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11, 9),
+        reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9, "
+        "see python/cpython#67044",
+    )
     def test_to_csv_string_with_cr(self, temp_file):
         # GH#10018 - a bare "\r" must be quoted even though it is not the
         #  lineterminator, or read_csv splits the field across rows
