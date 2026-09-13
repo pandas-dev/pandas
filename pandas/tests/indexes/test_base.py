@@ -423,10 +423,9 @@ class TestIndex:
 
     @pytest.mark.parametrize("value", [5, 1.5])
     def test_index_replace_sparse_narrow_still_raises(self, value):
-        # GH#68563 a value the Sparse subtype can hold still raises: the widened
-        #  dtype is Sparse too and refuses setitem just the same, where Index.where
-        #  and Index.putmask handle it and stay Sparse.  Needs Block.replace not to
-        #  go through putmask_inplace for Sparse
+        # GH#68563 the widened dtype is Sparse too, and SparseArray refuses setitem
+        #  whatever the subtype, where Index.where and Index.putmask widen and stay
+        #  Sparse; retire once Sparse supports setitem, see GH#21818
         idx = Index(SparseArray([1, 2, 3]))
 
         with pytest.raises(TypeError, match="does not support item assignment"):
