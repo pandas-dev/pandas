@@ -1560,6 +1560,7 @@ Sparse
 - Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
 - Bug in :meth:`DataFrame.sparse.to_dense` which ignored subclassing and always returned an instance of :class:`DataFrame` (:issue:`59913`)
 - Bug in :meth:`SparseArray.cumsum` with integer data caused max recursion depth error. (:issue:`62669`)
+- Bug in :meth:`SparseArray.shift` raising for a datetimelike subtype or a boolean subtype with the default ``fill_value``, and otherwise choosing a result dtype from ``fill_value`` that disagreed with :meth:`Series.shift` (:issue:`68580`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^

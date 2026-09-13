@@ -788,3 +788,51 @@ def test_array_interface(arr_data, arr):
     result_nocopy1 = np.array(arr2, copy=False)
     result_nocopy2 = np.array(arr2, copy=False)
     assert np.may_share_memory(result_nocopy1, result_nocopy2)
+
+
+def test_shift_bool_subtype():
+    # GH#68580 np.result_type promoted the NA fill to float64, which the array's
+    #  own False fill_value is not valid for
+    arr = SparseArray(np.array([True, False]))
+    result = arr.shift(1)
+    expected = SparseArray(np.array([np.nan, True], dtype=object), fill_value=False)
+    tm.assert_sp_array_equal(result, expected)
+
+    # an explicit bool fill needs no promotion
+    tm.assert_sp_array_equal(
+        arr.shift(1, fill_value=True), SparseArray(np.array([True, True]))
+    )
+
+
+def test_shift_fill_value_promotion():
+    # GH#68580 np.result_type is not value-aware, so an int64 subtype both cast a
+    #  bool fill to 1 and widened for a float fill it could hold exactly
+    arr = SparseArray(np.array([1, 2, 3]))
+
+    result = arr.shift(1, fill_value=True)
+    assert result.dtype == pd.SparseDtype(object, 0)
+    assert result[0] is True
+
+    result = arr.shift(1, fill_value=2.0)
+    tm.assert_sp_array_equal(result, SparseArray(np.array([2, 1, 2])))
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_shift_datetimelike_subtype(kind, unit):
+    # GH#68580 np.result_type cannot promote a datetimelike dtype against the
+    #  NA fill value at all, so this raised
+    dtype = f"{kind}[{unit}]"
+    values = np.array([1, 2, 3], dtype="i8").astype(dtype)
+    arr = SparseArray(values)
+
+    result = arr.shift(1)
+    expected = SparseArray(np.array(["NaT", values[0], values[1]], dtype=dtype))
+    tm.assert_sp_array_equal(result, expected)
+
+    # an explicit fill is a Timestamp/Timedelta, which np.result_type rejects
+    #  as a dtype
+    box = pd.Timestamp if kind == "M8" else pd.Timedelta
+    result = arr.shift(1, fill_value=box(values[2]))
+    expected = SparseArray(np.array([values[2], values[0], values[1]], dtype=dtype))
+    tm.assert_sp_array_equal(result, expected)

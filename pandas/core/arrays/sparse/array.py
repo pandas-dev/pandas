@@ -1027,7 +1027,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if isna(fill_value):
             fill_value = self.dtype.na_value
 
-        subtype = np.result_type(fill_value, self.dtype.subtype)
+        subtype, fill_value = _promote_for_fill(self.dtype.subtype, fill_value)
 
         if subtype != self.dtype.subtype:
             # just coerce up front
