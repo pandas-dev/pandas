@@ -3003,6 +3003,12 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__mul__(item)
+            elif other.dtype.kind == "b":
+                # GH#62316 without this numpy silently treats True as 1
+                raise TypeError(
+                    "Cannot multiply Timedelta by bool. "
+                    "Explicitly cast to integer instead."
+                )
             elif other.dtype.kind in "iuf":
                 return _mul_numeric_array(self, other)
             return other * self.to_timedelta64()
