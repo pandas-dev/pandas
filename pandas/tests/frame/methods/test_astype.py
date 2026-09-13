@@ -904,7 +904,7 @@ def test_astype_to_string_dtype_not_modifying_input(any_string_dtype, val):
 
 
 def test_astype_object_numeric_to_timedelta64_unit_2d():
-    # GH#68659 a whole object block reaches the conversion as one 2D array; a
+    # GH#68688 a whole object block reaches the conversion as one 2D array; a
     #  single-column block takes a different path than a wider one
     df = pd.DataFrame({"a": [2, 3], "b": [4, 5]}, dtype=object)
     expected = pd.DataFrame({"a": [2, 3], "b": [4, 5]}, dtype="m8[s]")
@@ -914,7 +914,7 @@ def test_astype_object_numeric_to_timedelta64_unit_2d():
 
 
 def test_astype_object_numeric_to_timedelta64_unit_2d_mixed():
-    # GH#68659 whether the unit applies is decided per column, so the string
+    # GH#68688 whether the unit applies is decided per column, so the string
     #  column sharing "a"'s block must not change how "a" is read
     df = pd.DataFrame({"a": [2, 3], "b": ["1 sec", "2 sec"]}, dtype=object)
     assert len(df._mgr.blocks) == 1
