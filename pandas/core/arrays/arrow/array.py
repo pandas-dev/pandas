@@ -4,6 +4,7 @@ from datetime import (
     date,
     datetime,
 )
+from decimal import Decimal
 import functools
 import operator
 import re
@@ -1804,11 +1805,7 @@ class ArrowExtensionArray(
                     f" expected {len(self)}"
                 )
 
-        try:
-            fill_value = self._box_pa(value, pa_type=self._pa_array.type)
-        except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
-            raise TypeError(msg) from err
+        fill_value = self._validate_setitem_value(value)
 
         try:
             return self._from_pyarrow_array(
@@ -3222,8 +3219,21 @@ class ArrowExtensionArray(
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
+        pa_type = self._pa_array.type
+        if pa.types.is_integer(pa_type):
+            # GH#68638 pyarrow truncates the fractional part instead of refusing
+            #  the value; the masked dtypes raise.
+            value = lib.item_from_zerodim(value)
+            if lib.is_float(value):
+                lossy = not isna(value) and not value.is_integer()
+            elif isinstance(value, Decimal):
+                lossy = value.is_finite() and value != value.to_integral_value()
+            else:
+                lossy = False
+            if lossy:
+                raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
         try:
-            value = self._box_pa(value, self._pa_array.type)
+            value = self._box_pa(value, pa_type)
         except pa.ArrowTypeError as err:
             msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
             raise TypeError(msg) from err
