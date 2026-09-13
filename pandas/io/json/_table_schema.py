@@ -41,6 +41,8 @@ import pandas.core.common as com
 from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         DtypeObj,
         JSONSerializable,
@@ -453,7 +455,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
 
     if col_order != names:
         # undo the stringification of the non-string labels
-        restore = dict(zip(col_order, names, strict=True))
+        restore: dict[Hashable, Any] = dict(zip(col_order, names, strict=True))
         df.columns = [restore[col] for col in df.columns]
         df.index.names = [restore.get(name, name) for name in df.index.names]
 
