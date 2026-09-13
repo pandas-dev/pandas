@@ -550,6 +550,8 @@ def test_logical_op_ea_result_keeps_operand_dtype(op):
     # GH#68569 the operand answers in its own dtype; wrapping that back up as sparse
     #  took an NA fill value, and the result then raised when used in another op
     pytest.importorskip("pyarrow")
+    # an object subtype to reach the dense fallback; a bool subtype still takes the
+    #  sparse fast path, which densifies the operand
     values = np.array([True, True, False, False], dtype=object)
     other = pd.array([True, False, True, False], dtype="bool[pyarrow]")
 
@@ -563,7 +565,9 @@ def test_logical_op_ea_result_keeps_operand_dtype(op):
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
 def test_logical_op_dtypeless_sequence_raises(op):
     # GH#68569 the dense fallback hands its operand over as given, so a list now reaches
-    #  logical_op's GH#52264 guard instead of np.asarray carrying it past
+    #  logical_op's GH#52264 guard instead of np.asarray carrying it past. An object
+    #  subtype to reach that fallback; a bool subtype still takes the sparse fast path,
+    #  which answers for a list.
     values = np.array([True, True, False, False], dtype=object)
     other = [True, False, True, False]
 
