@@ -2255,6 +2255,20 @@ def test_iloc_setitem_2d_ea_block_1d_value_not_ndarray(box):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+def test_iloc_setitem_2d_ea_block_0d_row_key(dtype):
+    # GH#68521 a 0-d ndarray row key drops the row axis just like an int does,
+    #  so the swap does not transpose and the value must not be reshaped
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+
+    df.iloc[np.array(1)] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+    arr[1] = [100, 101, 102]
+    expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+
 def test_iloc_setitem_2d_ea_block_2d_value_two_list_keys():
     # GH#68521 two list keys go through np.ix_, and swapping them to the block's
     #  layout leaves the selection alone -- the value must not be transposed

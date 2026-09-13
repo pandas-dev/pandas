@@ -1785,10 +1785,10 @@ class EABackedBlock(Block):
                 indexer = (indexer, slice(None))
             if len(indexer) == 2:
                 # GH#68521 the swap transposes the selection only when the
-                #  entries index separate axes: an integer entry drops one, and
+                #  entries index separate axes: a scalar entry drops one, and
                 #  two advanced indexers broadcast against each other.
                 transposed = any(isinstance(x, slice) for x in indexer) and not any(
-                    lib.is_integer(x) for x in indexer
+                    not isinstance(x, slice) and np.ndim(x) == 0 for x in indexer
                 )
                 indexer = indexer[::-1]
             if transposed:
@@ -1805,8 +1805,7 @@ class EABackedBlock(Block):
                 if getattr(value, "ndim", 0) == 2:
                     value = value.T
                 elif getattr(value, "ndim", 0) == 1:
-                    # a 1D value is per-column, repeated across the selected
-                    #  rows; columns are our first axis, so spell that out
+                    # a 1D value is per-column, repeated across the selected rows
                     value = value.reshape(-1, 1)
         check_setitem_lengths(indexer, value, values)
 
