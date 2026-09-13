@@ -2685,11 +2685,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif _is_2d_value(value) and not (
-                isinstance(value, list)
-                and isinstance(value[0], tuple)
-                and len(value[0]) != len(ilocs)
-            ):
+            elif _is_2d_value_for_columns(value, len(ilocs)):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2944,6 +2940,41 @@ class _iLocIndexer(_LocationIndexer):
             ):
                 self._setitem_with_indexer_split_path(indexer, value, name)
                 return
+
+            if (
+                self.ndim == 2
+                and len(indexer) == 2
+                # an integer column key drops the column axis, so the selection
+                #  stays 1-D and numpy broadcasts the value into it just fine
+                and not is_integer(indexer[1])
+                and not is_scalar(indexer[0])
+                and not isinstance(value, ABCDataFrame)
+                and is_list_like_indexer(value)
+                and getattr(value, "ndim", 1) == 1
+                # length_of_indexer below measures only these, and only in
+                #  one dimension; every other row key (masked/Categorical/tuple,
+                #  0-d or 2-D ndarray) has to keep taking the whole-block path,
+                #  which reports its own, clearer errors.  GH#68021
+                and isinstance(
+                    indexer[0], (slice, range, list, np.ndarray, ABCSeries, ABCIndex)
+                )
+                and getattr(indexer[0], "ndim", 1) == 1
+            ):
+                ilocs = self._ensure_iterable_column_indexer(indexer[1])
+                if len(ilocs) == 1 and not _is_2d_value_for_columns(value, 1):
+                    # _ensure_iterable_column_indexer leaves a non-ndarray
+                    #  boolean key alone, so ilocs[0] can be True rather than a
+                    #  position; that is not ours to set column-wise
+                    loc = ilocs[0]
+                    if is_integer(loc):
+                        nrows = length_of_indexer(indexer[0], self.obj.index)
+                        if nrows == len(value):
+                            # GH#68021 the cross-product selection is (N, 1) but
+                            #  the value is 1-D of length N, which numpy cannot
+                            #  broadcast into it.  Set the single column row-wise,
+                            #  as the split path does.
+                            self._setitem_single_column(int(loc), value, indexer[0])
+                            return
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
@@ -3526,6 +3557,23 @@ def _positional_row(row):
     if isinstance(row, (tuple, np.ndarray, ABCExtensionArray, ABCIndex)):
         return row
     return np.asarray(row, dtype=object)
+
+
+def _is_2d_value_for_columns(value, ncols: int) -> bool:
+    """
+    Whether ``value`` is a 2-D value spanning ``ncols`` selected columns.
+
+    A list of tuples whose tuples are not ``ncols`` long is per-cell values --
+    e.g. tuples being stored into a single object-dtype column -- rather than a
+    2-D block with one entry per selected column. GH#37629
+    """
+    if not _is_2d_value(value):
+        return False
+    return not (
+        isinstance(value, list)
+        and isinstance(value[0], tuple)
+        and len(value[0]) != ncols
+    )
 
 
 def _is_2d_value(value) -> bool:

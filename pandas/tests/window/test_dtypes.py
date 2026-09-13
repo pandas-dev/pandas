@@ -5,11 +5,7 @@ from pandas.errors import DataError
 
 from pandas.core.dtypes.common import pandas_dtype
 
-from pandas import (
-    NA,
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 # gh-12373 : rolling functions error on float32 data
@@ -94,7 +90,7 @@ def dtypes(request):
 def test_series_dtypes(
     method, data, expected_data, coerce_int, dtypes, min_periods, step
 ):
-    ser = Series(data, dtype=get_dtype(dtypes, coerce_int=coerce_int))
+    ser = pd.Series(data, dtype=get_dtype(dtypes, coerce_int=coerce_int))
     rolled = ser.rolling(2, min_periods=min_periods, step=step)
 
     if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
@@ -103,64 +99,67 @@ def test_series_dtypes(
             getattr(rolled, method)()
     else:
         result = getattr(rolled, method)()
-        expected = Series(expected_data, dtype="float64")[::step]
+        expected = pd.Series(expected_data, dtype="float64")[::step]
         tm.assert_almost_equal(result, expected)
 
 
 def test_series_nullable_int(any_signed_int_ea_dtype, step):
     # GH 43016
-    ser = Series([0, 1, NA], dtype=any_signed_int_ea_dtype)
+    ser = pd.Series([0, 1, pd.NA], dtype=any_signed_int_ea_dtype)
     result = ser.rolling(2, step=step).mean()
-    expected = Series([np.nan, 0.5, np.nan])[::step]
+    expected = pd.Series([np.nan, 0.5, np.nan])[::step]
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "method, expected_data, min_periods",
     [
-        ("count", {0: Series([1, 2, 2, 2, 2]), 1: Series([1, 2, 2, 2, 2])}, 0),
+        ("count", {0: pd.Series([1, 2, 2, 2, 2]), 1: pd.Series([1, 2, 2, 2, 2])}, 0),
         (
             "max",
-            {0: Series([np.nan, 2, 4, 6, 8]), 1: Series([np.nan, 3, 5, 7, 9])},
+            {0: pd.Series([np.nan, 2, 4, 6, 8]), 1: pd.Series([np.nan, 3, 5, 7, 9])},
             None,
         ),
         (
             "min",
-            {0: Series([np.nan, 0, 2, 4, 6]), 1: Series([np.nan, 1, 3, 5, 7])},
+            {0: pd.Series([np.nan, 0, 2, 4, 6]), 1: pd.Series([np.nan, 1, 3, 5, 7])},
             None,
         ),
         (
             "sum",
-            {0: Series([np.nan, 2, 6, 10, 14]), 1: Series([np.nan, 4, 8, 12, 16])},
+            {
+                0: pd.Series([np.nan, 2, 6, 10, 14]),
+                1: pd.Series([np.nan, 4, 8, 12, 16]),
+            },
             None,
         ),
         (
             "mean",
-            {0: Series([np.nan, 1, 3, 5, 7]), 1: Series([np.nan, 2, 4, 6, 8])},
+            {0: pd.Series([np.nan, 1, 3, 5, 7]), 1: pd.Series([np.nan, 2, 4, 6, 8])},
             None,
         ),
         (
             "std",
             {
-                0: Series([np.nan] + [np.sqrt(2)] * 4),
-                1: Series([np.nan] + [np.sqrt(2)] * 4),
+                0: pd.Series([np.nan] + [np.sqrt(2)] * 4),
+                1: pd.Series([np.nan] + [np.sqrt(2)] * 4),
             },
             None,
         ),
         (
             "var",
-            {0: Series([np.nan, 2, 2, 2, 2]), 1: Series([np.nan, 2, 2, 2, 2])},
+            {0: pd.Series([np.nan, 2, 2, 2, 2]), 1: pd.Series([np.nan, 2, 2, 2, 2])},
             None,
         ),
         (
             "median",
-            {0: Series([np.nan, 1, 3, 5, 7]), 1: Series([np.nan, 2, 4, 6, 8])},
+            {0: pd.Series([np.nan, 1, 3, 5, 7]), 1: pd.Series([np.nan, 2, 4, 6, 8])},
             None,
         ),
     ],
 )
 def test_dataframe_dtypes(method, expected_data, dtypes, min_periods, step):
-    df = DataFrame(np.arange(10).reshape((5, 2)), dtype=get_dtype(dtypes))
+    df = pd.DataFrame(np.arange(10).reshape((5, 2)), dtype=get_dtype(dtypes))
     rolled = df.rolling(2, min_periods=min_periods, step=step)
 
     if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
@@ -169,5 +168,5 @@ def test_dataframe_dtypes(method, expected_data, dtypes, min_periods, step):
             getattr(rolled, method)()
     else:
         result = getattr(rolled, method)()
-        expected = DataFrame(expected_data, dtype="float64")[::step]
+        expected = pd.DataFrame(expected_data, dtype="float64")[::step]
         tm.assert_frame_equal(result, expected)

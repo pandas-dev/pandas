@@ -1,18 +1,14 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    Series,
-    Timestamp,
-    isna,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestSeriesArgsort:
     def test_argsort_axis(self):
         # GH#54257
-        ser = Series(range(3))
+        ser = pd.Series(range(3))
 
         msg = "No axis named 2 for object type Series"
         with pytest.raises(ValueError, match=msg):
@@ -26,7 +22,7 @@ class TestSeriesArgsort:
 
     def test_argsort_numpy_missing(self):
         data = [0.1, np.nan, 0.2, np.nan, 0.3]
-        ser = Series(data)
+        ser = pd.Series(data)
         result = np.argsort(ser)
         expected = np.argsort(np.array(data))
 
@@ -38,32 +34,32 @@ class TestSeriesArgsort:
 
     def test_argsort_dt64(self, unit):
         # GH#2967 (introduced bug in 0.11-dev I think)
-        ser = Series(
-            [Timestamp(f"201301{i:02d}") for i in range(1, 6)], dtype=f"M8[{unit}]"
+        ser = pd.Series(
+            [pd.Timestamp(f"201301{i:02d}") for i in range(1, 6)], dtype=f"M8[{unit}]"
         )
         assert ser.dtype == f"datetime64[{unit}]"
         shifted = ser.shift(-1)
         assert shifted.dtype == f"datetime64[{unit}]"
-        assert isna(shifted[4])
+        assert pd.isna(shifted[4])
 
         result = ser.argsort()
-        expected = Series(range(5), dtype=np.intp)
+        expected = pd.Series(range(5), dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
         result = shifted.argsort()
-        expected = Series([*list(range(4)), 4], dtype=np.intp)
+        expected = pd.Series([*list(range(4)), 4], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):
-        ser = Series(np.random.default_rng(2).integers(0, 100, size=10000))
+        ser = pd.Series(np.random.default_rng(2).integers(0, 100, size=10000))
         mindexer = ser.argsort(kind="mergesort")
         qindexer = ser.argsort()
 
         mexpected = np.argsort(ser.values, kind="mergesort")
         qexpected = np.argsort(ser.values, kind="quicksort")
 
-        tm.assert_series_equal(mindexer.astype(np.intp), Series(mexpected))
-        tm.assert_series_equal(qindexer.astype(np.intp), Series(qexpected))
+        tm.assert_series_equal(mindexer.astype(np.intp), pd.Series(mexpected))
+        tm.assert_series_equal(qindexer.astype(np.intp), pd.Series(qexpected))
         msg = (
             r"ndarray Expected type <class 'numpy\.ndarray'>, "
             r"found <class 'pandas\.Series'> instead"

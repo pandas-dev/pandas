@@ -4,10 +4,7 @@ import pytest
 from pandas.core.dtypes.cast import construct_1d_arraylike_from_scalar
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
-from pandas import (
-    Categorical,
-    Timedelta,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -18,7 +15,7 @@ def test_cast_1d_array_like_from_scalar_categorical():
     # categories and ordering of the passed dtype.
     cats = ["a", "b", "c"]
     cat_type = CategoricalDtype(categories=cats, ordered=False)
-    expected = Categorical(["a", "a"], categories=cats)
+    expected = pd.Categorical(["a", "a"], categories=cats)
 
     result = construct_1d_arraylike_from_scalar("a", len(expected), cat_type)
     tm.assert_categorical_equal(result, expected)
@@ -26,14 +23,14 @@ def test_cast_1d_array_like_from_scalar_categorical():
 
 def test_cast_1d_array_like_from_timestamp(fixed_now_ts):
     # check we dont lose nanoseconds
-    ts = fixed_now_ts + Timedelta(1)
+    ts = fixed_now_ts + pd.Timedelta(1)
     res = construct_1d_arraylike_from_scalar(ts, 2, np.dtype("M8[ns]"))
     assert res[0] == ts
 
 
 def test_cast_1d_array_like_from_timedelta():
     # check we dont lose nanoseconds
-    td = Timedelta(1)
+    td = pd.Timedelta(1)
     res = construct_1d_arraylike_from_scalar(td, 2, np.dtype("m8[ns]"))
     assert res[0] == td
 

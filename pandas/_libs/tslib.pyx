@@ -37,6 +37,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -374,10 +375,7 @@ cpdef array_to_datetime(
     bint warned_quarter=False,
 ):
     """
-    Converts a 1D array of date-like values to a numpy array of either:
-        1) datetime64[ns] data
-        2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
-           is encountered
+    Converts a 1D array of date-like values to a numpy array of datetime64 data.
 
     Also returns a fixed-offset tzinfo object if an array of strings with the same
     timezone offset is passed and utc=True is not passed. Otherwise, None
@@ -408,7 +406,7 @@ cpdef array_to_datetime(
     Returns
     -------
     np.ndarray
-        May be datetime64[creso_unit] or object dtype
+        datetime64[creso_unit] dtype
     tzinfo or None
     """
     cdef:
@@ -473,6 +471,12 @@ cpdef array_to_datetime(
                 state.found_other = True
 
             elif cnp.is_datetime64_object(val):
+                if get_datetime64_unit_count(val) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.datetime64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:
@@ -583,9 +587,9 @@ cpdef array_to_datetime(
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            elif is_raise:
+            else:
+                # is_raise
                 raise
-            return values, None
 
     tz_out = state.check_for_mixed_inputs(tz_out, utc)
 

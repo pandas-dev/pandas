@@ -11,11 +11,6 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas import (
-    Series,
-    Timestamp,
-    option_context,
-)
 import pandas._testing as tm
 from pandas.core import ops
 
@@ -25,7 +20,7 @@ from pandas.core import ops
 
 class TestObjectComparisons:
     def test_comparison_object_numeric_nas(self, comparison_op):
-        ser = Series(np.random.default_rng(2).standard_normal(10), dtype=object)
+        ser = pd.Series(np.random.default_rng(2).standard_normal(10), dtype=object)
         shifted = ser.shift(2)
 
         func = comparison_op
@@ -38,15 +33,15 @@ class TestObjectComparisons:
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
     def test_object_comparisons(self, infer_string):
-        with option_context("future.infer_string", infer_string):
-            ser = Series(["a", "b", np.nan, "c", "a"])
+        with pd.option_context("future.infer_string", infer_string):
+            ser = pd.Series(["a", "b", np.nan, "c", "a"])
 
             result = ser == "a"
-            expected = Series([True, False, False, False, True])
+            expected = pd.Series([True, False, False, False, True])
             tm.assert_series_equal(result, expected)
 
             result = ser < "a"
-            expected = Series([False, False, False, False, False])
+            expected = pd.Series([False, False, False, False, False])
             tm.assert_series_equal(result, expected)
 
             result = ser != "a"
@@ -55,23 +50,23 @@ class TestObjectComparisons:
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_more_na_comparisons(self, dtype):
-        left = Series(["a", np.nan, "c"], dtype=dtype)
-        right = Series(["a", np.nan, "d"], dtype=dtype)
+        left = pd.Series(["a", np.nan, "c"], dtype=dtype)
+        right = pd.Series(["a", np.nan, "d"], dtype=dtype)
 
         result = left == right
-        expected = Series([True, False, False])
+        expected = pd.Series([True, False, False])
         tm.assert_series_equal(result, expected)
 
         result = left != right
-        expected = Series([False, True, True])
+        expected = pd.Series([False, True, True])
         tm.assert_series_equal(result, expected)
 
         result = left == np.nan
-        expected = Series([False, False, False])
+        expected = pd.Series([False, False, False])
         tm.assert_series_equal(result, expected)
 
         result = left != np.nan
-        expected = Series([True, True, True])
+        expected = pd.Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
     def test_comp_nat_object_dtype(self):
@@ -124,14 +119,14 @@ class TestArithmetic:
     def test_pow_ops_object(self):
         # GH#22922
         # pow is weird with masking & 1, so testing here
-        a = Series([1, np.nan, 1, np.nan], dtype=object)
-        b = Series([1, np.nan, np.nan, 1], dtype=object)
+        a = pd.Series([1, np.nan, 1, np.nan], dtype=object)
+        b = pd.Series([1, np.nan, np.nan, 1], dtype=object)
         result = a**b
-        expected = Series(a.values**b.values, dtype=object)
+        expected = pd.Series(a.values**b.values, dtype=object)
         tm.assert_series_equal(result, expected)
 
         result = b**a
-        expected = Series(b.values**a.values, dtype=object)
+        expected = pd.Series(b.values**a.values, dtype=object)
 
         tm.assert_series_equal(result, expected)
 
@@ -142,8 +137,8 @@ class TestArithmetic:
         # Check that scalars satisfying is_extension_array_dtype(obj)
         # do not incorrectly try to dispatch to an ExtensionArray operation
 
-        arr = Series(["a", "b", "c"])
-        expected = Series([op(x, other) for x in arr])
+        arr = pd.Series(["a", "b", "c"])
+        expected = pd.Series([op(x, other) for x in arr])
 
         arr = tm.box_expected(arr, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -152,8 +147,8 @@ class TestArithmetic:
         tm.assert_equal(result, expected)
 
     def test_objarr_add_str(self, box_with_array):
-        ser = Series(["x", np.nan, "x"])
-        expected = Series(["xa", np.nan, "xa"])
+        ser = pd.Series(["x", np.nan, "x"])
+        expected = pd.Series(["xa", np.nan, "xa"])
 
         ser = tm.box_expected(ser, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -162,8 +157,8 @@ class TestArithmetic:
         tm.assert_equal(result, expected)
 
     def test_objarr_radd_str(self, box_with_array):
-        ser = Series(["x", np.nan, "x"])
-        expected = Series(["ax", np.nan, "ax"])
+        ser = pd.Series(["x", np.nan, "x"])
+        expected = pd.Series(["ax", np.nan, "ax"])
 
         ser = tm.box_expected(ser, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -176,13 +171,13 @@ class TestArithmetic:
         [
             [1, 2, 3],
             [1.1, 2.2, 3.3],
-            [Timestamp("2011-01-01"), Timestamp("2011-01-02"), pd.NaT],
+            [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02"), pd.NaT],
             ["x", "y", 1],
         ],
     )
     @pytest.mark.parametrize("dtype", [None, object])
     def test_objarr_radd_str_invalid(self, dtype, data, box_with_array):
-        ser = Series(data, dtype=dtype)
+        ser = pd.Series(data, dtype=dtype)
 
         ser = tm.box_expected(ser, box_with_array)
         msg = "|".join(
@@ -201,7 +196,7 @@ class TestArithmetic:
         # invalid ops
         box = box_with_array
 
-        obj_ser = Series(list("abc"), dtype=object, name="objects")
+        obj_ser = pd.Series(list("abc"), dtype=object, name="objects")
 
         obj_ser = tm.box_expected(obj_ser, box)
         msg = "|".join(
@@ -219,13 +214,13 @@ class TestArithmetic:
 
     # TODO: Moved from tests.series.test_operators; needs cleanup
     def test_operators_na_handling(self):
-        ser = Series(["foo", "bar", "baz", np.nan])
+        ser = pd.Series(["foo", "bar", "baz", np.nan])
         result = "prefix_" + ser
-        expected = Series(["prefix_foo", "prefix_bar", "prefix_baz", np.nan])
+        expected = pd.Series(["prefix_foo", "prefix_bar", "prefix_baz", np.nan])
         tm.assert_series_equal(result, expected)
 
         result = ser + "_suffix"
-        expected = Series(["foo_suffix", "bar_suffix", "baz_suffix", np.nan])
+        expected = pd.Series(["foo_suffix", "bar_suffix", "baz_suffix", np.nan])
         tm.assert_series_equal(result, expected)
 
     # TODO: parametrize over box
@@ -233,11 +228,11 @@ class TestArithmetic:
     def test_series_with_dtype_radd_timedelta(self, dtype):
         # note this test is _not_ aimed at timedelta64-dtyped Series
         # as of 2.0 we retain object dtype when ser.dtype == object
-        ser = Series(
+        ser = pd.Series(
             [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.Timedelta("3 days")],
             dtype=dtype,
         )
-        expected = Series(
+        expected = pd.Series(
             [pd.Timedelta("4 days"), pd.Timedelta("5 days"), pd.Timedelta("6 days")],
             dtype=dtype,
         )
@@ -251,19 +246,19 @@ class TestArithmetic:
     # TODO: cleanup & parametrize over box
     def test_mixed_timezone_series_ops_object(self):
         # GH#13043
-        ser = Series(
+        ser = pd.Series(
             [
-                Timestamp("2015-01-01", tz="US/Eastern"),
-                Timestamp("2015-01-01", tz="Asia/Tokyo"),
+                pd.Timestamp("2015-01-01", tz="US/Eastern"),
+                pd.Timestamp("2015-01-01", tz="Asia/Tokyo"),
             ],
             name="xxx",
         )
         assert ser.dtype == object
 
-        exp = Series(
+        exp = pd.Series(
             [
-                Timestamp("2015-01-02", tz="US/Eastern"),
-                Timestamp("2015-01-02", tz="Asia/Tokyo"),
+                pd.Timestamp("2015-01-02", tz="US/Eastern"),
+                pd.Timestamp("2015-01-02", tz="Asia/Tokyo"),
             ],
             name="xxx",
         )
@@ -271,28 +266,28 @@ class TestArithmetic:
         tm.assert_series_equal(pd.Timedelta("1 days") + ser, exp)
 
         # object series & object series
-        ser2 = Series(
+        ser2 = pd.Series(
             [
-                Timestamp("2015-01-03", tz="US/Eastern"),
-                Timestamp("2015-01-05", tz="Asia/Tokyo"),
+                pd.Timestamp("2015-01-03", tz="US/Eastern"),
+                pd.Timestamp("2015-01-05", tz="Asia/Tokyo"),
             ],
             name="xxx",
         )
         assert ser2.dtype == object
-        exp = Series(
+        exp = pd.Series(
             [pd.Timedelta("2 days"), pd.Timedelta("4 days")], name="xxx", dtype=object
         )
         tm.assert_series_equal(ser2 - ser, exp)
         tm.assert_series_equal(ser - ser2, -exp)
 
-        ser = Series(
+        ser = pd.Series(
             [pd.Timedelta("01:00:00"), pd.Timedelta("02:00:00")],
             name="xxx",
             dtype=object,
         )
         assert ser.dtype == object
 
-        exp = Series(
+        exp = pd.Series(
             [pd.Timedelta("01:30:00"), pd.Timedelta("02:30:00")],
             name="xxx",
             dtype=object,
@@ -303,7 +298,7 @@ class TestArithmetic:
     # TODO: cleanup & parametrize over box
     def test_iadd_preserves_name(self):
         # GH#17067, GH#19723 __iadd__ and __isub__ should preserve index name
-        ser = Series([1, 2, 3])
+        ser = pd.Series([1, 2, 3])
         ser.index.name = "foo"
 
         ser.index += 1

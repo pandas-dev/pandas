@@ -7,18 +7,7 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
 
-from pandas import (
-    DataFrame,
-    date_range,
-    read_csv,
-    read_excel,
-    read_feather,
-    read_json,
-    read_parquet,
-    read_pickle,
-    read_stata,
-    read_table,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 from pandas.util.version import Version
@@ -48,12 +37,12 @@ def fsspectest():
 
 @pytest.fixture
 def df1():
-    return DataFrame(
+    return pd.DataFrame(
         {
             "int": [1, 3],
             "float": [2.0, np.nan],
             "str": ["t", "s"],
-            "dt": date_range("2018-06-18", periods=2),
+            "dt": pd.date_range("2018-06-18", periods=2),
         }
     )
 
@@ -71,7 +60,7 @@ def test_read_csv(cleared_fs, df1):
     text = str(df1.to_csv(index=False)).encode()
     with cleared_fs.open("test/test.csv", "wb") as w:
         w.write(text)
-    df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
+    df2 = pd.read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     expected = df1.copy()
     expected["dt"] = expected["dt"].astype("M8[us]")
@@ -82,7 +71,7 @@ def test_reasonable_error(monkeypatch, cleared_fs):
     from fsspec.registry import known_implementations
 
     with pytest.raises(ValueError, match="nosuchprotocol"):
-        read_csv("nosuchprotocol://test/test.csv")
+        pd.read_csv("nosuchprotocol://test/test.csv")
     err_msg = "test error message"
     monkeypatch.setitem(
         known_implementations,
@@ -90,13 +79,13 @@ def test_reasonable_error(monkeypatch, cleared_fs):
         {"class": "unimportable.CouldExist", "err": err_msg},
     )
     with pytest.raises(ImportError, match=err_msg):
-        read_csv("couldexist://test/test.csv")
+        pd.read_csv("couldexist://test/test.csv")
 
 
 def test_to_csv(cleared_fs, df1):
     df1.to_csv("memory://test/test.csv", index=True)
 
-    df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
+    df2 = pd.read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
 
     expected = df1.copy()
     expected["dt"] = expected["dt"].astype("M8[us]")
@@ -112,7 +101,7 @@ def test_to_excel(cleared_fs, df1):
     path = f"memory://test/test.{ext}"
     df1.to_excel(path, index=True)
 
-    df2 = read_excel(path, parse_dates=["dt"], index_col=0)
+    df2 = pd.read_excel(path, parse_dates=["dt"], index_col=0)
 
     expected = df1.copy()
     expected["dt"] = expected["dt"].astype("M8[us]")
@@ -131,7 +120,7 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
 
     mode = mode.replace("w", "r")
     with fsspec.open(path, mode=mode) as fsspec_object:
-        df2 = read_csv(
+        df2 = pd.read_csv(
             fsspec_object,
             parse_dates=["dt"],
             index_col=0,
@@ -144,23 +133,23 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
 
 
 def test_csv_options(fsspectest):
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_csv(
         "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
     )
     assert fsspectest.test[0] == "csv_write"
-    read_csv("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    pd.read_csv("testmem://test/test.csv", storage_options={"test": "csv_read"})
     assert fsspectest.test[0] == "csv_read"
 
 
 def test_read_table_options(fsspectest):
     # GH #39167
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_csv(
         "testmem://test/test.csv", storage_options={"test": "csv_write"}, index=False
     )
     assert fsspectest.test[0] == "csv_write"
-    read_table("testmem://test/test.csv", storage_options={"test": "csv_read"})
+    pd.read_table("testmem://test/test.csv", storage_options={"test": "csv_read"})
     assert fsspectest.test[0] == "csv_read"
 
 
@@ -171,13 +160,13 @@ def test_excel_options(fsspectest):
     pytest.importorskip("openpyxl")
     extension = "xlsx"
 
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
 
     path = f"testmem://test/test.{extension}"
 
     df.to_excel(path, storage_options={"test": "write"}, index=False)
     assert fsspectest.test[0] == "write"
-    read_excel(path, storage_options={"test": "read"})
+    pd.read_excel(path, storage_options={"test": "read"})
     assert fsspectest.test[0] == "read"
 
 
@@ -205,7 +194,7 @@ def test_to_parquet_new_file(cleared_fs, df1, request):
 def test_arrowparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("pyarrow")
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_parquet(
         "testmem://test/test.csv",
         engine="pyarrow",
@@ -213,7 +202,7 @@ def test_arrowparquet_options(fsspectest):
         storage_options={"test": "parquet_write"},
     )
     assert fsspectest.test[0] == "parquet_write"
-    read_parquet(
+    pd.read_parquet(
         "testmem://test/test.csv",
         engine="pyarrow",
         storage_options={"test": "parquet_read"},
@@ -228,7 +217,7 @@ def test_fastparquet_options(fsspectest):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
 
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_parquet(
         "testmem://test/test.csv",
         engine="fastparquet",
@@ -236,7 +225,7 @@ def test_fastparquet_options(fsspectest):
         storage_options={"test": "parquet_write"},
     )
     assert fsspectest.test[0] == "parquet_write"
-    read_parquet(
+    pd.read_parquet(
         "testmem://test/test.csv",
         engine="fastparquet",
         storage_options={"test": "parquet_read"},
@@ -248,11 +237,11 @@ def test_fastparquet_options(fsspectest):
 @pytest.mark.parametrize("compression_suffix", ["", ".gz", ".bz2"])
 def test_from_s3_csv(s3_bucket_public_with_data, s3so, tips_file, compression_suffix):
     pytest.importorskip("s3fs")
-    df_from_s3 = read_csv(
+    df_from_s3 = pd.read_csv(
         f"s3://{s3_bucket_public_with_data.name}/tips.csv{compression_suffix}",
         storage_options=s3so,
     )
-    df_from_local = read_csv(tips_file)
+    df_from_local = pd.read_csv(tips_file)
     tm.assert_equal(df_from_s3, df_from_local)
 
 
@@ -260,11 +249,11 @@ def test_from_s3_csv(s3_bucket_public_with_data, s3so, tips_file, compression_su
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
 def test_s3_protocols(s3_bucket_public_with_data, s3so, tips_file, protocol):
     pytest.importorskip("s3fs")
-    df_from_s3 = read_csv(
+    df_from_s3 = pd.read_csv(
         f"{protocol}://{s3_bucket_public_with_data.name}/tips.csv",
         storage_options=s3so,
     )
-    df_from_local = read_csv(tips_file)
+    df_from_local = pd.read_csv(tips_file)
     tm.assert_equal(df_from_s3, df_from_local)
 
 
@@ -281,7 +270,7 @@ def test_s3_parquet(s3_bucket_public, s3so, df1):
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so
     )
-    df2 = read_parquet(fn, engine="fastparquet", storage_options=s3so)
+    df2 = pd.read_parquet(fn, engine="fastparquet", storage_options=s3so)
     tm.assert_equal(df1, df2)
 
 
@@ -292,37 +281,39 @@ def test_not_present_exception():
         "management tool to install the fsspec package."
     )
     with pytest.raises(ImportError, match=msg):
-        read_csv("memory://test/test.csv")
+        pd.read_csv("memory://test/test.csv")
 
 
 def test_feather_options(fsspectest):
     pytest.importorskip("pyarrow")
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_feather("testmem://mockfile", storage_options={"test": "feather_write"})
     assert fsspectest.test[0] == "feather_write"
-    out = read_feather("testmem://mockfile", storage_options={"test": "feather_read"})
+    out = pd.read_feather(
+        "testmem://mockfile", storage_options={"test": "feather_read"}
+    )
     assert fsspectest.test[0] == "feather_read"
     tm.assert_frame_equal(df, out)
 
 
 def test_pickle_options(fsspectest):
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_pickle("testmem://mockfile", storage_options={"test": "pickle_write"})
     assert fsspectest.test[0] == "pickle_write"
-    out = read_pickle("testmem://mockfile", storage_options={"test": "pickle_read"})
+    out = pd.read_pickle("testmem://mockfile", storage_options={"test": "pickle_read"})
     assert fsspectest.test[0] == "pickle_read"
     tm.assert_frame_equal(df, out)
 
 
 def test_json_options(fsspectest, compression):
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_json(
         "testmem://mockfile",
         compression=compression,
         storage_options={"test": "json_write"},
     )
     assert fsspectest.test[0] == "json_write"
-    out = read_json(
+    out = pd.read_json(
         "testmem://mockfile",
         compression=compression,
         storage_options={"test": "json_read"},
@@ -332,19 +323,19 @@ def test_json_options(fsspectest, compression):
 
 
 def test_stata_options(fsspectest):
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_stata(
         "testmem://mockfile", storage_options={"test": "stata_write"}, write_index=False
     )
     assert fsspectest.test[0] == "stata_write"
-    out = read_stata("testmem://mockfile", storage_options={"test": "stata_read"})
+    out = pd.read_stata("testmem://mockfile", storage_options={"test": "stata_read"})
     assert fsspectest.test[0] == "stata_read"
     tm.assert_frame_equal(df, out.astype("int64"))
 
 
 def test_markdown_options(fsspectest):
     pytest.importorskip("tabulate")
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     df.to_markdown("testmem://mockfile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
     assert fsspectest.cat("testmem://mockfile")
@@ -353,15 +344,15 @@ def test_markdown_options(fsspectest):
 def test_non_fsspec_options():
     pytest.importorskip("pyarrow")
     with pytest.raises(ValueError, match="storage_options"):
-        read_csv("localfile", storage_options={"a": True})
+        pd.read_csv("localfile", storage_options={"a": True})
     with pytest.raises(ValueError, match="storage_options"):
         # separate test for parquet, which has a different code path
-        read_parquet("localfile", storage_options={"a": True})
+        pd.read_parquet("localfile", storage_options={"a": True})
     by = io.BytesIO()
 
     with pytest.raises(ValueError, match="storage_options"):
-        read_csv(by, storage_options={"a": True})
+        pd.read_csv(by, storage_options={"a": True})
 
-    df = DataFrame({"a": [0]})
+    df = pd.DataFrame({"a": [0]})
     with pytest.raises(ValueError, match="storage_options"):
         df.to_parquet("nonfsspecpath", storage_options={"a": True})

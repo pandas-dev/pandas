@@ -5,18 +5,13 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
 
 def test_astype_single_dtype():
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": 1.5})
     df_orig = df.copy()
     df2 = df.astype("float64")
 
@@ -39,7 +34,7 @@ def test_astype_single_dtype():
 def test_astype_avoids_copy(dtype, new_dtype):
     if new_dtype == "int64[pyarrow]":
         pytest.importorskip("pyarrow")
-    df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
+    df = pd.DataFrame({"a": [1, 2, 3]}, dtype=dtype)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -59,7 +54,7 @@ def test_astype_avoids_copy(dtype, new_dtype):
 def test_astype_different_target_dtype(dtype):
     if dtype == "int32[pyarrow]":
         pytest.importorskip("pyarrow")
-    df = DataFrame({"a": [1, 2, 3]})
+    df = pd.DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
     df2 = df.astype(dtype)
 
@@ -76,7 +71,7 @@ def test_astype_different_target_dtype(dtype):
 
 
 def test_astype_numpy_to_ea():
-    ser = Series([1, 2, 3])
+    ser = pd.Series([1, 2, 3])
     result = ser.astype("Int64")
     assert np.shares_memory(get_array(ser), get_array(result))
 
@@ -85,7 +80,7 @@ def test_astype_numpy_to_ea():
     "dtype, new_dtype", [("object", "string[python]"), ("string[python]", "object")]
 )
 def test_astype_string_and_object(dtype, new_dtype):
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -98,7 +93,7 @@ def test_astype_string_and_object(dtype, new_dtype):
     "dtype, new_dtype", [("object", "string[python]"), ("string[python]", "object")]
 )
 def test_astype_string_and_object_update_original(dtype, new_dtype):
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
     df2 = df.astype(new_dtype)
     df_orig = df2.copy()
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -111,7 +106,7 @@ def test_astype_str_copy_on_pickle_roundrip():
     # TODO(infer_string) this test can be removed after 3.0 (once str is the default)
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter array inplace
-    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base = pd.Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy.astype(str)
     tm.assert_series_equal(base, base_copy)
@@ -120,7 +115,7 @@ def test_astype_str_copy_on_pickle_roundrip():
 def test_astype_string_copy_on_pickle_roundrip(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter array inplace
-    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base = pd.Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy.astype(any_string_dtype)
     tm.assert_series_equal(base, base_copy)
@@ -129,7 +124,7 @@ def test_astype_string_copy_on_pickle_roundrip(any_string_dtype):
 def test_astype_string_read_only_on_pickle_roundrip(any_string_dtype):
     # https://github.com/pandas-dev/pandas/issues/54654
     # ensure_string_array may alter read-only array inplace
-    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base = pd.Series(np.array([(1, 2), None, 1], dtype="object"))
     base_copy = pickle.loads(pickle.dumps(base))
     base_copy._values.flags.writeable = False
     base_copy.astype(any_string_dtype)
@@ -137,8 +132,12 @@ def test_astype_string_read_only_on_pickle_roundrip(any_string_dtype):
 
 
 def test_astype_dict_dtypes():
-    df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": Series([1.5, 1.5, 1.5], dtype="float64")}
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [4, 5, 6],
+            "c": pd.Series([1.5, 1.5, 1.5], dtype="float64"),
+        }
     )
     df_orig = df.copy()
     df2 = df.astype({"a": "float64", "c": "float64"})
@@ -157,7 +156,7 @@ def test_astype_dict_dtypes():
 
 
 def test_astype_different_datetime_resos():
-    df = DataFrame({"a": date_range("2019-12-31", periods=2, freq="D")})
+    df = pd.DataFrame({"a": pd.date_range("2019-12-31", periods=2, freq="D")})
     result = df.astype("datetime64[ms]")
 
     assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
@@ -165,8 +164,12 @@ def test_astype_different_datetime_resos():
 
 
 def test_astype_different_timezones():
-    df = DataFrame(
-        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns")}
+    df = pd.DataFrame(
+        {
+            "a": pd.date_range(
+                "2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns"
+            )
+        }
     )
     result = df.astype("datetime64[ns, Europe/Berlin]")
     assert not result._mgr._has_no_reference(0)
@@ -174,8 +177,12 @@ def test_astype_different_timezones():
 
 
 def test_astype_different_timezones_different_reso():
-    df = DataFrame(
-        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns")}
+    df = pd.DataFrame(
+        {
+            "a": pd.date_range(
+                "2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns"
+            )
+        }
     )
     result = df.astype("datetime64[ms, Europe/Berlin]")
     assert result._mgr._has_no_reference(0)
@@ -184,11 +191,11 @@ def test_astype_different_timezones_different_reso():
 
 def test_astype_arrow_timestamp():
     pytest.importorskip("pyarrow")
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "a": [
-                Timestamp("2020-01-01 01:01:01.000001"),
-                Timestamp("2020-01-01 01:01:01.000001"),
+                pd.Timestamp("2020-01-01 01:01:01.000001"),
+                pd.Timestamp("2020-01-01 01:01:01.000001"),
             ]
         },
         dtype="M8[ns]",
@@ -199,7 +206,7 @@ def test_astype_arrow_timestamp():
 
 
 def test_convert_dtypes_infer_objects():
-    ser = Series(["a", "b", "c"])
+    ser = pd.Series(["a", "b", "c"])
     ser_orig = ser.copy()
     msg = "keyword in Series.convert_dtypes is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -216,7 +223,9 @@ def test_convert_dtypes_infer_objects():
 
 
 def test_convert_dtypes(using_infer_string):
-    df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
+    df = pd.DataFrame(
+        {"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]}
+    )
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 

@@ -115,7 +115,7 @@ on how to format the docstring.
 The examples in the docstring ('doctests') must be valid Python code,
 that in a deterministic way returns the presented output, and that can be
 copied and run by users. This can be checked with the script above, and is
-also tested on Travis. A failing doctest will be a blocker for merging a PR.
+also tested by GitHub Actions. A failing doctest will be a blocker for merging a PR.
 Check the :ref:`examples <docstring.examples>` section in the docstring guide
 for some tips and tricks to get the doctests passing.
 
@@ -199,7 +199,7 @@ Building main branch documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When pull requests are merged into the pandas ``main`` branch, the main parts of
-the documentation are also built by Github Actions. These docs are then hosted `here
+the documentation are also built by GitHub Actions. These docs are then hosted `here
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :any:`Continuous Integration <contributing.ci>` section.
 

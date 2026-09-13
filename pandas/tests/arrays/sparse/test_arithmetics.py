@@ -1,11 +1,12 @@
 import operator
+import re
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import SparseDtype
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays.sparse import SparseArray
 
 
@@ -49,7 +50,7 @@ class TestSparseArrayArithmetics:
 
     def _check_bool_result(self, res):
         assert isinstance(res, SparseArray)
-        assert isinstance(res.dtype, SparseDtype)
+        assert isinstance(res.dtype, pd.SparseDtype)
         assert res.dtype.subtype == np.bool_
         assert isinstance(res.fill_value, bool)
 
@@ -254,30 +255,30 @@ class TestSparseArrayArithmetics:
         rvalues = np.array([2, 0, 2, 3, 0, 0, 1, 5, 2, 0], dtype=dtype)
 
         a = SparseArray(values, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix, op)
 
         a = SparseArray(values, fill_value=0, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, fill_value=0, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype)
+        assert a.dtype == pd.SparseDtype(dtype)
         b = SparseArray(rvalues, fill_value=0, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype)
+        assert b.dtype == pd.SparseDtype(dtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, fill_value=1, dtype=dtype, kind=kind)
-        assert a.dtype == SparseDtype(dtype, fill_value=1)
+        assert a.dtype == pd.SparseDtype(dtype, fill_value=1)
         b = SparseArray(rvalues, fill_value=2, dtype=dtype, kind=kind)
-        assert b.dtype == SparseDtype(dtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(dtype, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_int_array_comparison(self, kind):
@@ -334,24 +335,24 @@ class TestSparseArrayArithmetics:
 
         a = SparseArray(values, kind=kind)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
 
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
         self._check_numeric_ops(a, b * 0, values, rvalues * 0, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind, fill_value=0)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
         a = SparseArray(values, kind=kind, fill_value=1)
         b = SparseArray(rvalues, kind=kind, fill_value=2)
-        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(rdtype, fill_value=2)
         self._check_numeric_ops(a, b, values, rvalues, mix, op)
 
     def test_mixed_array_comparison(self, kind):
@@ -363,24 +364,24 @@ class TestSparseArrayArithmetics:
 
         a = SparseArray(values, kind=kind)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
 
         self._check_comparison_ops(a, b, values, rvalues)
         self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_comparison_ops(a, b, values, rvalues)
 
         a = SparseArray(values, kind=kind, fill_value=0)
         b = SparseArray(rvalues, kind=kind, fill_value=0)
-        assert b.dtype == SparseDtype(rdtype)
+        assert b.dtype == pd.SparseDtype(rdtype)
         self._check_comparison_ops(a, b, values, rvalues)
 
         a = SparseArray(values, kind=kind, fill_value=1)
         b = SparseArray(rvalues, kind=kind, fill_value=2)
-        assert b.dtype == SparseDtype(rdtype, fill_value=2)
+        assert b.dtype == pd.SparseDtype(rdtype, fill_value=2)
         self._check_comparison_ops(a, b, values, rvalues)
 
     def test_xor(self):
@@ -479,8 +480,224 @@ def test_logical_op_uneven_length_series(op):
     result = op(sparse == 5, dense == 5)
     expected = op(pd.Series(np.arange(10)) == 5, dense == 5)
 
-    assert isinstance(result.dtype, SparseDtype)
+    assert isinstance(result.dtype, pd.SparseDtype)
     tm.assert_series_equal(result.astype(bool), expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("subtype", [bool, object])
+def test_logical_op_masked_other(op, subtype):
+    # GH#68483 a masked operand keeps its own Kleene semantics; densifying it
+    #  lost them -- raising on the NA for a bool subtype, silently resolving it
+    #  to False for an object one
+    values = np.array([True, True, False, False], dtype=subtype)
+    other = pd.array([True, pd.NA, True, False], dtype="boolean")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_masked_other_without_na(op):
+    # GH#68483 the operand's dtype decides, not whether it holds NA, so the
+    #  result is the masked dtype either way -- as it is for the dense operand
+    values = np.array([True, True, False, False])
+    other = pd.array([True, False, True, False], dtype="boolean")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    assert result.dtype == pd.BooleanDtype()
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_non_boolean_masked_other(op):
+    # GH#68483 only a masked *boolean* operand is deferred to; the other masked
+    #  dtypes reach _arith_method, which cannot consume a SparseArray
+    # int64 explicitly: on 32-bit the default int would not match the int64 result
+    values = np.array([1, 0, 3, 0], dtype="int64")
+    other = pd.array([1, 2, 3, 4], dtype="Int64")
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other.to_numpy(dtype="int64"))
+    assert isinstance(result.dtype, pd.SparseDtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.Categorical([True, False, True, False]),
+        pd.Categorical(["a", "b", "a", "b"]),
+        pd.array([1.0, 0.0, None, 1.0], dtype="Float64"),
+    ],
+)
+def test_logical_op_ea_other_raises_like_dense(op, other):
+    # GH#68569 densifying the operand answered from the truthiness of its values;
+    #  the dense path hands the EA to its own op, which rejects these
+    values = np.array([True, True, False, False])
+
+    with pytest.raises(TypeError) as dense_err:
+        op(pd.Series(values), pd.Series(other))
+    with pytest.raises(TypeError, match=re.escape(str(dense_err.value))):
+        op(SparseArray(values), other)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_ea_result_keeps_operand_dtype(op):
+    # GH#68569 the operand answers in its own dtype; wrapping that back up as sparse
+    #  took an NA fill value, and the result then raised when used in another op
+    pytest.importorskip("pyarrow")
+    # an object subtype to reach the dense fallback; a bool subtype still takes the
+    #  sparse fast path, which densifies the operand
+    values = np.array([True, True, False, False], dtype=object)
+    other = pd.array([True, False, True, False], dtype="bool[pyarrow]")
+
+    result = op(SparseArray(values), other)
+    expected = op(pd.Series(values), pd.Series(other))
+    tm.assert_series_equal(pd.Series(result), expected)
+    # the poisoned Sparse[bool, <NA>] raised here
+    tm.assert_equal(op(result, result), op(expected, expected).array)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_dtypeless_sequence_raises(op):
+    # GH#68569 the dense fallback hands its operand over as given, so a list now reaches
+    #  logical_op's GH#52264 guard instead of np.asarray carrying it past. An object
+    #  subtype to reach that fallback; a bool subtype still takes the sparse fast path,
+    #  which answers for a list.
+    values = np.array([True, True, False, False], dtype=object)
+    other = [True, False, True, False]
+
+    msg = "dtype-less sequences"
+    with pytest.raises(TypeError, match=msg):
+        op(SparseArray(values), other)
+    with pytest.raises(TypeError, match=msg):
+        op(pd.Series(values), other)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_both_sparse_matches_dense(op):
+    # GH#68569 logical_op rejects a float on the left and coerces it on the right, so
+    #  dispatching to a sparse operand -- which re-enters with the two swapped --
+    #  inverted which order is accepted
+    floats = np.array([1.5, 0.0, 2.5, np.nan])
+    bools = np.array([True, False, True, False])
+
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
+        op(pd.Series(floats), pd.Series(bools))
+    with pytest.raises(TypeError, match=msg):
+        op(SparseArray(floats), SparseArray(bools))
+
+    expected = op(pd.Series(bools), pd.Series(floats))
+    result = op(SparseArray(bools), SparseArray(floats))
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("n_sparse, n_other", [(11, 10), (10, 11)])
+def test_logical_op_masked_other_uneven_length_series(op, n_sparse, n_other):
+    # GH#68483 the alignment path onto the above; either operand can be the one
+    #  that gains the NA, and only the shorter-sparse case upcasts it to object
+    sparse = pd.Series(SparseArray(np.arange(n_sparse)))
+    other = pd.Series(np.arange(n_other) == 5, dtype="boolean")
+
+    result = op(sparse == 5, other)
+    expected = op(pd.Series(np.arange(n_sparse)) == 5, other)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.ge])
+@pytest.mark.parametrize(
+    "values, masked_dtype",
+    [
+        (np.array([True, False, True, False]), "boolean"),
+        (np.array([1, 0, 3, 0]), "Int64"),
+        (np.array([1.0, 0.0, 3.0, 0.0]), "Float64"),
+    ],
+)
+def test_cmp_op_masked_other(op, values, masked_dtype):
+    # GH#68579 densifying the masked operand dropped its NA: a boolean one
+    #  raised, the rest resolved it as if it were NaN where dense gives <NA>
+    other = pd.array(values, dtype=masked_dtype)
+    other[1] = pd.NA
+
+    result = op(SparseArray(values), other)
+    expected = op(values, other)
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_op_masked_other_without_na():
+    # GH#68579 the operand's dtype decides the result dtype, not whether it
+    #  holds NA -- as it does for the dense operand
+    values = np.array([1, 0, 3, 0])
+    other = pd.array(values, dtype="Int64")
+
+    result = SparseArray(values) < other
+    assert result.dtype == pd.BooleanDtype()
+    tm.assert_extension_array_equal(result, values < other)
+
+
+def test_cmp_op_masked_other_series():
+    # GH#68579 the Series path dispatches to the same reflected op
+    values = np.array([1, 0, 3, 0])
+    other = pd.Series(pd.array([1, pd.NA, 3, 0], dtype="Int64"))
+
+    result = pd.Series(SparseArray(values)) < other
+    expected = pd.Series(values) < other
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.ge,
+        operator.and_,
+        operator.or_,
+        operator.xor,
+    ],
+)
+@pytest.mark.parametrize(
+    "values", [np.array([True, False, True, False]), np.array([1, 0, 3, 0])]
+)
+def test_op_na_scalar(op, values):
+    # GH#68579 NA has no truth value, so assembling the result raised; sparse
+    #  is numpy-backed, so the answer is the dense Series one
+    result = op(SparseArray(values), pd.NA)
+
+    expected = op(pd.Series(values), pd.NA)
+    assert isinstance(result.dtype, pd.SparseDtype)
+    tm.assert_series_equal(pd.Series(result).astype(bool), expected)
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne])
+@pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+def test_eq_na_scalar_datetimelike(op, dtype):
+    # GH#68579 equality against NA answers like the dense array
+    values = np.array([1, 2], dtype=dtype)
+
+    result = op(SparseArray(values), pd.NA)
+    expected = op(pd.Series(values), pd.NA)
+    tm.assert_series_equal(pd.Series(result).astype(bool), expected)
+
+
+@pytest.mark.parametrize("op", [operator.lt, operator.ge])
+@pytest.mark.parametrize("dtype", ["m8[ns]", "M8[ns]"])
+def test_ordering_na_scalar_datetimelike_raises(op, dtype):
+    # GH#68579 a datetimelike dtype refuses to be ordered against NA, so the
+    #  NA shortcut must raise there rather than answer all-False
+    values = np.array([1, 2], dtype=dtype)
+
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        op(SparseArray(values), pd.NA)
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        op(pd.Series(values), pd.NA)
 
 
 @pytest.mark.parametrize(
@@ -537,3 +754,237 @@ def test_binary_operators(op, fill_value):
         else:
             tm.assert_almost_equal(res4.fill_value, exp_fv)
             tm.assert_almost_equal(res4.to_dense(), exp)
+
+
+@pytest.mark.parametrize("values", [[1, 2, 3], [True, False, True]])
+@pytest.mark.parametrize("op", [operator.add, operator.gt])
+@pytest.mark.parametrize("other_kind", ["datetime64", "timedelta64"])
+def test_datetimelike_operand_raises_typeerror(values, op, other_kind):
+    # GH#68466 the operand was coerced to self.fill_value first, so SparseDtype
+    #  rejected the fill_value before the op could reject the operand
+    if other_kind == "datetime64":
+        other = np.asarray(pd.date_range("2016", periods=3))
+    else:
+        other = np.asarray(pd.timedelta_range("1 Day", periods=3))
+    with pytest.raises(TypeError):
+        op(SparseArray(values), other)
+
+
+def test_mul_timedelta64_operand():
+    # GH#68466 valid densely, but the fill_value coercion raised
+    tda = np.asarray(pd.timedelta_range("1 Day", periods=3))
+    result = SparseArray([1, 2, 3]) * tda
+    tm.assert_numpy_array_equal(result.to_dense(), np.arange(1, 4) * tda)
+
+
+_NO_COMMON_SUBTYPE_VALUES = {
+    "i8": np.array([1, 2, 3]),
+    "f8": np.array([1.0, np.nan, 3.0]),
+    "bool": np.array([True, False, True]),
+    "tda": np.asarray(pd.timedelta_range("1 Day", periods=3)),
+    "dti": np.asarray(pd.date_range("2016", periods=3)),
+}
+
+
+@pytest.mark.parametrize(
+    "lkind, rkind, op",
+    [
+        ("i8", "tda", operator.mul),
+        ("f8", "tda", operator.mul),
+        ("i8", "tda", roperator.rmul),
+        ("i8", "bool", operator.mul),
+        ("i8", "bool", operator.or_),
+        ("i8", "bool", operator.xor),
+        ("tda", "i8", operator.truediv),
+        ("tda", "f8", operator.floordiv),
+        ("tda", "dti", operator.add),
+        ("dti", "tda", operator.sub),
+    ],
+)
+def test_no_common_subtype_matches_dense(lkind, rkind, op):
+    # GH#68562 int64 and m8[us] have no common subtype, so both operands were
+    #  cast to object and the result kept that dtype
+    left = _NO_COMMON_SUBTYPE_VALUES[lkind]
+    right = _NO_COMMON_SUBTYPE_VALUES[rkind]
+
+    result = op(SparseArray(left), right)
+    expected = op(pd.Series(left), pd.Series(right))
+    assert result.dtype == pd.SparseDtype(expected.dtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne])
+def test_no_common_subtype_comparison_matches_dense(op):
+    # GH#68562 a comparison keeps its own fill value, so only the subtype is
+    #  pinned to the dense result
+    tda = _NO_COMMON_SUBTYPE_VALUES["tda"]
+    i8 = _NO_COMMON_SUBTYPE_VALUES["i8"]
+
+    result = op(SparseArray(tda), i8)
+    expected = op(pd.Series(tda), pd.Series(i8))
+    assert result.dtype.subtype == expected.dtype
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("op", [divmod, roperator.rdivmod])
+def test_no_common_subtype_divmod(op):
+    # GH#68562 divmod returns a 2-tuple, which the reflected name used to miss
+    left = _NO_COMMON_SUBTYPE_VALUES["i8" if op is roperator.rdivmod else "tda"]
+    right = _NO_COMMON_SUBTYPE_VALUES["tda" if op is roperator.rdivmod else "i8"]
+
+    result = op(SparseArray(left), right)
+    expected = op(pd.Series(left), pd.Series(right))
+    for res, exp in zip(result, expected, strict=True):
+        assert res.dtype == pd.SparseDtype(exp.dtype)
+        tm.assert_numpy_array_equal(res.to_dense(), exp.to_numpy())
+
+
+def test_no_common_subtype_fill_value_matches_subtype():
+    # GH#68562 the float operand contributes an np.nan fill value, which is not
+    #  the flavor of NA a timedelta64 result holds
+    tda = _NO_COMMON_SUBTYPE_VALUES["tda"]
+    result = SparseArray([1.0, np.nan, 3.0]) * tda
+
+    assert isinstance(result.fill_value, np.timedelta64)
+    assert isinstance(result[1], np.timedelta64)
+
+
+def test_no_common_subtype_preserves_index_kind():
+    # GH#68562 the dense path re-sparsifies from scratch, so it has to be told
+    #  which kind of index to rebuild
+    tda = _NO_COMMON_SUBTYPE_VALUES["tda"]
+    result = SparseArray([1, 2, 3], kind="block") * tda
+    assert result.kind == "block"
+
+
+def test_no_common_subtype_na_fill_value_keeps_object():
+    # GH#68562 a pd.NA fill escapes _get_fill's ValueError fallback, so such an
+    #  operand keeps the object-cast path rather than raising
+    arr = SparseArray([1, 2, 3], fill_value=pd.NA)
+
+    result = arr * np.array([True, False, True])
+    assert result.dtype.subtype == np.dtype(object)
+    assert result.fill_value is pd.NA
+    tm.assert_numpy_array_equal(result.to_dense(), np.array([1, 0, 3], dtype=object))
+
+
+def test_no_common_subtype_both_with_gaps():
+    # GH#68562 neither operand is dense, so this used to reach the splib kernels
+    #  and fail on the missing sparse_mul_object
+    left = SparseArray([1, 0, 3, 4])
+    right = SparseArray(np.array([1, 2, "NaT", 4], dtype="m8[us]"))
+
+    result = left * right
+    expected = pd.Series(left.to_dense()) * pd.Series(right.to_dense())
+    assert result.dtype == pd.SparseDtype(expected.dtype)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.le,
+        operator.gt,
+        operator.ge,
+    ],
+)
+@pytest.mark.parametrize("other", [1, None, np.array([1, 1, pd.NA, 2], dtype=object)])
+def test_cmp_object_subtype_with_na(op, other):
+    # GH#68586 comparing pd.NA gives pd.NA rather than a bool, which neither the
+    #  np.bool_ result buffer nor the sparse kernels can hold
+    values = np.array([1, pd.NA, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = op(arr, other)
+    dense_other = pd.Series(other) if isinstance(other, np.ndarray) else other
+    expected = op(pd.Series(values), dense_other)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_cmp_object_subtype_sparse_operands_unequal_indices():
+    # GH#68586 splib has no object comparison kernel, so the unequal-index path
+    #  raised AttributeError even with no missing values involved
+    left = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="a")
+    right = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="c")
+
+    result = left == right
+    tm.assert_numpy_array_equal(result.to_dense(), np.ones(3, dtype=bool))
+
+
+@pytest.mark.parametrize(
+    "values, left_fill, right_fill",
+    [
+        (np.array([1, 2, 3]), 1, 3),
+        (np.array([True, False, True]), True, False),
+    ],
+)
+def test_cmp_object_operand_against_non_object_subtype(values, left_fill, right_fill):
+    # GH#68586 _sparse_array_op casts both operands to their common subtype, so
+    #  the missing kernel was reached with the object subtype on either side
+    left = SparseArray(values, fill_value=left_fill)
+    right = SparseArray(np.asarray(values, dtype=object), fill_value=right_fill)
+    # the kernel lookup is only reached when both operands have gaps and differ
+    assert left.sp_index.ngaps and right.sp_index.ngaps
+    assert not left.sp_index.equals(right.sp_index)
+
+    result = left == right
+    tm.assert_numpy_array_equal(result.to_dense(), np.ones(len(values), dtype=bool))
+
+
+def test_cmp_object_ndarray_operand_against_non_object_subtype():
+    # GH#68586 a dense operand is wrapped as Sparse[object], reaching the same
+    #  missing kernel
+    arr = SparseArray(np.array([1, 2, 3]), fill_value=1)
+    other = np.array([3, 2, 1], dtype=object)
+
+    result = arr == other
+    expected = pd.Series([1, 2, 3]) == pd.Series(other)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_cmp_object_subtype_na_scalar_never_equal():
+    # GH#68586 the raw numpy comparison matched None against None; densely a
+    #  missing scalar compares unequal to everything
+    values = np.array([1, None, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = operator.eq(arr, None)
+    expected = operator.eq(pd.Series(values), None)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_cmp_object_subtype_keeps_fill_value():
+    # GH#68586 the result's fill value is op(fill_value, other), not the default
+    values = np.array([1, pd.NA, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    assert (arr == 0).dtype == pd.SparseDtype(bool, True)
+    assert (arr == 1).dtype == pd.SparseDtype(bool, False)
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.gt])
+@pytest.mark.parametrize("subtype", [object, "int64"])
+def test_cmp_masked_boolean_other(op, subtype):
+    # GH#68586 np.asarray on the operand drops its mask, and the object route
+    #  then resolved the NA to False; defer so the operand keeps it
+    values = np.array([1, 2, 0], dtype=subtype)
+    other = pd.array([True, False, None], dtype="boolean")
+
+    result = op(SparseArray(values, fill_value=0), other)
+    expected = op(pd.Series(values), pd.Series(other))
+    tm.assert_extension_array_equal(result, expected.array)
+
+
+def test_cmp_object_subtype_scalar_keeps_sparse_index():
+    # GH#68586 the object route compares sp_values, so it neither materializes
+    #  the dense array nor re-sparsifies the result
+    arr = SparseArray(np.array([1, 2, 0, 0], dtype=object), fill_value=0)
+
+    result = arr == 1
+    tm.assert_numpy_array_equal(result.sp_index.indices, arr.sp_index.indices)
+    tm.assert_numpy_array_equal(
+        result.to_dense(), np.array([True, False, False, False])
+    )

@@ -1847,9 +1847,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
-    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def sem(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce("sem", skipna=skipna, axis=axis, ddof=ddof, **kwargs)
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
     def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):

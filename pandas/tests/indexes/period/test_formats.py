@@ -2,15 +2,11 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    PeriodIndex,
-    Series,
-)
 import pandas._testing as tm
 
 
 def test_get_values_for_csv():
-    index = PeriodIndex(["2017-01-01", "2017-01-02", "2017-01-03"], freq="D")
+    index = pd.PeriodIndex(["2017-01-01", "2017-01-02", "2017-01-03"], freq="D")
 
     # First, with no arguments.
     expected = np.array(["2017-01-01", "2017-01-02", "2017-01-03"], dtype=object)
@@ -29,7 +25,7 @@ def test_get_values_for_csv():
     tm.assert_numpy_array_equal(result, expected)
 
     # NULL object handling should work
-    index = PeriodIndex(["2017-01-01", pd.NaT, "2017-01-03"], freq="D")
+    index = pd.PeriodIndex(["2017-01-01", pd.NaT, "2017-01-03"], freq="D")
     expected = np.array(["2017-01-01", "NaT", "2017-01-03"], dtype=object)
 
     result = index._get_values_for_csv(na_rep="NaT")
@@ -45,16 +41,16 @@ class TestPeriodIndexRendering:
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
         # GH#7601
-        idx1 = PeriodIndex([], freq="D")
-        idx2 = PeriodIndex(["2011-01-01"], freq="D")
-        idx3 = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
-        idx4 = PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="Y")
-        idx6 = PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="h")
+        idx1 = pd.PeriodIndex([], freq="D")
+        idx2 = pd.PeriodIndex(["2011-01-01"], freq="D")
+        idx3 = pd.PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
+        idx4 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx5 = pd.PeriodIndex(["2011", "2012", "2013"], freq="Y")
+        idx6 = pd.PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="h")
         idx7 = pd.period_range("2013Q1", periods=1, freq="Q")
         idx8 = pd.period_range("2013Q1", periods=2, freq="Q")
         idx9 = pd.period_range("2013Q1", periods=3, freq="Q")
-        idx10 = PeriodIndex(["2011-01-01", "2011-02-01"], freq="3D")
+        idx10 = pd.PeriodIndex(["2011-01-01", "2011-02-01"], freq="3D")
 
         exp1 = "PeriodIndex([], dtype='period[D]')"
 
@@ -92,12 +88,12 @@ class TestPeriodIndexRendering:
     # TODO: These are Series.__repr__ tests
     def test_representation_to_series(self):
         # GH#10971
-        idx1 = PeriodIndex([], freq="D")
-        idx2 = PeriodIndex(["2011-01-01"], freq="D")
-        idx3 = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
-        idx4 = PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="Y")
-        idx6 = PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="h")
+        idx1 = pd.PeriodIndex([], freq="D")
+        idx2 = pd.PeriodIndex(["2011-01-01"], freq="D")
+        idx3 = pd.PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
+        idx4 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx5 = pd.PeriodIndex(["2011", "2012", "2013"], freq="Y")
+        idx6 = pd.PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="h")
 
         idx7 = pd.period_range("2013Q1", periods=1, freq="Q")
         idx8 = pd.period_range("2013Q1", periods=2, freq="Q")
@@ -144,17 +140,17 @@ dtype: period[Q-DEC]"""
             [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9],
             strict=True,
         ):
-            result = repr(Series(idx))
+            result = repr(pd.Series(idx))
             assert result == expected
 
     def test_summary(self):
         # GH#9116
-        idx1 = PeriodIndex([], freq="D")
-        idx2 = PeriodIndex(["2011-01-01"], freq="D")
-        idx3 = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
-        idx4 = PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="Y")
-        idx6 = PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="h")
+        idx1 = pd.PeriodIndex([], freq="D")
+        idx2 = pd.PeriodIndex(["2011-01-01"], freq="D")
+        idx3 = pd.PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
+        idx4 = pd.PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
+        idx5 = pd.PeriodIndex(["2011", "2012", "2013"], freq="Y")
+        idx6 = pd.PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="h")
 
         idx7 = pd.period_range("2013Q1", periods=1, freq="Q")
         idx8 = pd.period_range("2013Q1", periods=2, freq="Q")
