@@ -1341,7 +1341,9 @@ cdef class TextReader:
                     self._warn_parser(f"Both a converter and dtype were specified "
                                       f"for column {name} - only the converter will "
                                       f"be used.")
-                results[i] = _apply_converter(conv, self.parser, i, start, end)
+                results[i] = _apply_converter(
+                    conv, self.parser, i, start, end,
+                    self._get_na_pyset(i, name))
                 continue
 
             # Collect the set of NaN values associated with the column.
@@ -2163,6 +2165,24 @@ cdef class TextReader:
             return _ensure_encoded(values), fvalues
         else:
             return _ensure_encoded(self.na_values), self.na_fvalues
+
+    cdef set _get_na_pyset(self, Py_ssize_t i, object name):
+        """
+        The na_values entry for column i as python objects, for matching
+        against a converter's output. _get_na_list encodes to bytes for the
+        tokenizer's hashset.
+        """
+        cdef:
+            object key = self._get_na_key(i, name)
+
+        if not self.na_filter:
+            return set()
+        if key is not None:
+            return set(self.na_values[key]) | set(self.na_fvalues[key])
+        if isinstance(self.na_values, dict):
+            # no entry for this column
+            return set(STR_NA_VALUES) if self.keep_default_na else set()
+        return set(self.na_values) | set(self.na_fvalues)
 
     cdef object _get_na_key(self, Py_ssize_t i, object name):
         # The na_values entry column i resolves to, mirroring _get_na_list, so
@@ -4438,7 +4458,7 @@ for k in list(na_values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _apply_converter(object f, parser_t *parser, int64_t col,
-                      int64_t line_start, int64_t line_end):
+                      int64_t line_start, int64_t line_end, set na_set):
     cdef:
         Py_ssize_t i, lines
         coliter_t it
@@ -4459,7 +4479,29 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
         val = PyUnicode_DecodeUTF8(word, _token_len(parser, token_idx), NULL)
         result[i] = f(val)
 
+    if na_set:
+        _sanitize_converted(result, na_set)
+
     return lib.maybe_convert_objects(result)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _sanitize_converted(ndarray[object] values, set na_set):
+    # GH#13302: na_values match the converter's output, as in the python
+    # engine. Unlike sanitize_objects this tolerates unhashable output, which
+    # only a converter can produce.
+    cdef:
+        Py_ssize_t i
+        object val
+
+    for i in range(len(values)):
+        val = values[i]
+        try:
+            if val in na_set:
+                values[i] = np.nan
+        except TypeError:
+            continue
 
 
 cdef list _maybe_encode(list values):

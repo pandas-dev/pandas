@@ -1826,3 +1826,30 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
 
     assert result.columns.tolist() == ["a", "b", "c"]
     assert result.index.name is None
+
+
+def test_converter_unhashable_output_with_na_values(c_parser_only):
+    # GH#13302 matching na_values against the converter's output must not
+    # reject output that cannot be hashed. The python engine raises here.
+    parser = c_parser_only
+    data = "A\n1\nCAT\n3"
+
+    result = parser.read_csv(
+        StringIO(data), converters={"A": lambda x: [x]}, na_values="CAT"
+    )
+    expected = pd.DataFrame({"A": [["1"], ["CAT"], ["3"]]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_converter_bool_output_na_values(c_parser_only):
+    # GH#13302 True == 1, so bools a converter returns match a numeric
+    # na_values entry, the same cells the read without a converter drops.
+    # c engine only: the python engine writes the match back as True.
+    parser = c_parser_only
+    data = "A\n1\n0\n1"
+
+    result = parser.read_csv(
+        StringIO(data), converters={"A": lambda x: bool(int(x))}, na_values=[1]
+    )
+    expected = pd.DataFrame({"A": [np.nan, False, np.nan]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
