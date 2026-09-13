@@ -610,6 +610,11 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     # np.False_ must take the serial path too (GH#66327).
     if not kwds.get("low_memory", True):
         return False
+    # Converter callables execute in the parser workers. They may be stateful
+    # or rely on thread-affine resources (e.g. a sqlite3 connection), so the
+    # parallel path cannot guarantee the same behaviour as the serial path.
+    if kwds.get("converters") is not None:
+        return False
 
     # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
     # would report chunk-relative (i.e. wrong) ones.

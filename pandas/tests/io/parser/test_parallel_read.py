@@ -96,6 +96,18 @@ class TestCanParallelizeCsv:
         monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
         assert _can_parallelize_csv(path, self._kwds())
 
+    def test_rejects_converters(self, tmp_path, monkeypatch):
+        path = tmp_path / "data.csv"
+        path.write_text("a,b\n1,2\n", encoding="utf-8")
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+        def converter(value):
+            return int(value)
+
+        assert not _can_parallelize_csv(
+            path, self._kwds(converters={"a": converter})
+        )
+
     def test_accepts_default_engine(self, tmp_path, monkeypatch):
         """engine=None (the default) should be treated the same as engine='c'."""
         path = tmp_path / "data.csv"
