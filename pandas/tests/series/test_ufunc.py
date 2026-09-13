@@ -640,3 +640,24 @@ def test_binary_logical_ufunc_reduce_datetimelike_raises(func, dtype):
     msg = f"cannot perform the numpy op {func.__name__}"
     with pytest.raises(TypeError, match=msg):
         func.reduce(ser)
+
+
+class _ThirdPartyArray:
+    # stands in for e.g. a polars Series, whose dtype has no "kind"
+    dtype = "bool"
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return np.array([True, False])
+
+
+def test_logical_op_third_party():
+    # GH#68524 the datetimelike guard must not crash on a dtype it does not
+    #  recognize
+    left = pd.Series([True, True])
+    right = _ThirdPartyArray()
+    expected = np.array([True, False])
+
+    tm.assert_numpy_array_equal(np.logical_and(left, right), expected)
+    tm.assert_numpy_array_equal(np.logical_and(right, left), expected)
+
+    tm.assert_series_equal(left & right, pd.Series(expected))

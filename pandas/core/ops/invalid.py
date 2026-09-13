@@ -98,8 +98,11 @@ def _is_datetimelike_array(obj: object) -> bool:
 
 
 def _is_datetimelike_dtype(dtype: DtypeObj) -> bool:
-    if dtype.kind in "biufc":
-        # no numeric or bool dtype is datetimelike, and logical_op is hot
+    kind = getattr(dtype, "kind", None)
+    if kind is None or kind in "biufc":
+        # no numeric or bool dtype is datetimelike, and logical_op is hot.  A
+        #  third-party dtype has no kind; crashing on it would keep us from
+        #  deferring to that operand, see test_logical_op_third_party
         return False
     if isinstance(dtype, CategoricalDtype) and dtype.categories is not None:
         # a Categorical hides its categories behind kind "O"
