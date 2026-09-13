@@ -1043,7 +1043,7 @@ class IndexOpsMixin(OpsMixin):
         return bool(isna(self).any())  # type: ignore[union-attr]
 
     @final
-    def _map_values(self, mapper, na_action=None):
+    def _map_values(self, mapper, na_action=None, convert: bool = True):
         """
         An internal function that maps values using the input
         correspondence (which can be a dict, Series, or function).
@@ -1055,6 +1055,9 @@ class IndexOpsMixin(OpsMixin):
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
             mapping function
+        convert : bool, default True
+            Try to find better dtype for elementwise function results. If
+            False, keep the mapped values as-is in an object-dtype result.
 
         Returns
         -------
@@ -1066,9 +1069,9 @@ class IndexOpsMixin(OpsMixin):
         arr = self._values
 
         if isinstance(arr, ExtensionArray):
-            return arr.map(mapper, na_action=na_action)
+            return arr.map(mapper, na_action=na_action, convert=convert)
 
-        return algorithms.map_array(arr, mapper, na_action=na_action)
+        return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
 
     def value_counts(
         self,
