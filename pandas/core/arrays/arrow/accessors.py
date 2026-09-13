@@ -59,6 +59,8 @@ class ArrowAccessor(metaclass=ABCMeta):
 def _list_element_neg(chunk: pa.Array, key: int) -> pa.Array:
     if pa.types.is_fixed_size_list(chunk.type):
         chunk = chunk.cast(pa.list_(chunk.type.value_type))
+    if pc.any(pc.less(pc.list_value_length(chunk), -key)).as_py():
+        raise IndexError(f"list index {key} out of range")
     indices = pc.add(chunk.offsets[1:], key)
     if chunk.null_count:
         indices = pc.if_else(chunk.is_valid(), indices, None)
@@ -171,10 +173,6 @@ class ListAccessor(ArrowAccessor):
         from pandas import Series
 
         if isinstance(key, int):
-            # TODO: Support negative key but pyarrow does not allow
-            # element index to be an array.
-            # if key < 0:
-            #     key = pc.add(key, pc.list_value_length(self._pa_array))
             pa_array = self._pa_array
             chunks = (
                 pa_array.chunks if isinstance(pa_array, pa.ChunkedArray) else [pa_array]
