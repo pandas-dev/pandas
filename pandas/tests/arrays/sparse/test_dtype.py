@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -98,6 +99,32 @@ def test_nans_not_equal():
     b = pd.SparseDtype(float, pd.NA)
     assert a != b
     assert b != a
+
+
+@pytest.mark.parametrize(
+    "subtype, fill_value",
+    [
+        ("float64", 0.0),
+        ("float64", 1.5),
+        ("datetime64[ns]", np.datetime64("2016-01-01", "ns")),
+        ("timedelta64[ns]", np.timedelta64(1, "ns")),
+    ],
+)
+def test_na_fill_value_not_equal_to_value_fill(subtype, fill_value):
+    # GH#68582 an NA fill value must not compare equal to a real fill value of
+    #  the same Python type
+    a = pd.SparseDtype(subtype)
+    b = pd.SparseDtype(subtype, fill_value)
+    assert a != b
+    assert b != a
+
+
+def test_na_fill_value_astype_not_ignored():
+    # GH#68582 astype short-circuits on dtype equality
+    arr = pd.arrays.SparseArray([1.0, np.nan, 2.0])
+    result = arr.astype(pd.SparseDtype("float64", 0.0))
+    expected = pd.arrays.SparseArray([1.0, 0.0, 2.0], fill_value=0.0)
+    tm.assert_sp_array_equal(result, expected)
 
 
 tups = [
