@@ -1,4 +1,5 @@
 import operator
+import re
 
 import numpy as np
 import pytest
@@ -522,6 +523,78 @@ def test_logical_op_non_boolean_masked_other(op):
     expected = op(values, other.to_numpy(dtype="int64"))
     assert isinstance(result.dtype, pd.SparseDtype)
     tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.Categorical([True, False, True, False]),
+        pd.Categorical(["a", "b", "a", "b"]),
+        pd.array([1.0, 0.0, None, 1.0], dtype="Float64"),
+    ],
+)
+def test_logical_op_ea_other_raises_like_dense(op, other):
+    # GH#68569 densifying the operand answered from the truthiness of its values;
+    #  the dense path hands the EA to its own op, which rejects these
+    values = np.array([True, True, False, False])
+
+    with pytest.raises(TypeError) as dense_err:
+        op(pd.Series(values), pd.Series(other))
+    with pytest.raises(TypeError, match=re.escape(str(dense_err.value))):
+        op(SparseArray(values), other)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_ea_result_keeps_operand_dtype(op):
+    # GH#68569 the operand answers in its own dtype; wrapping that back up as sparse
+    #  took an NA fill value, and the result then raised when used in another op
+    pytest.importorskip("pyarrow")
+    # an object subtype to reach the dense fallback; a bool subtype still takes the
+    #  sparse fast path, which densifies the operand
+    values = np.array([True, True, False, False], dtype=object)
+    other = pd.array([True, False, True, False], dtype="bool[pyarrow]")
+
+    result = op(SparseArray(values), other)
+    expected = op(pd.Series(values), pd.Series(other))
+    tm.assert_series_equal(pd.Series(result), expected)
+    # the poisoned Sparse[bool, <NA>] raised here
+    tm.assert_equal(op(result, result), op(expected, expected).array)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_dtypeless_sequence_raises(op):
+    # GH#68569 the dense fallback hands its operand over as given, so a list now reaches
+    #  logical_op's GH#52264 guard instead of np.asarray carrying it past. An object
+    #  subtype to reach that fallback; a bool subtype still takes the sparse fast path,
+    #  which answers for a list.
+    values = np.array([True, True, False, False], dtype=object)
+    other = [True, False, True, False]
+
+    msg = "dtype-less sequences"
+    with pytest.raises(TypeError, match=msg):
+        op(SparseArray(values), other)
+    with pytest.raises(TypeError, match=msg):
+        op(pd.Series(values), other)
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+def test_logical_op_both_sparse_matches_dense(op):
+    # GH#68569 logical_op rejects a float on the left and coerces it on the right, so
+    #  dispatching to a sparse operand -- which re-enters with the two swapped --
+    #  inverted which order is accepted
+    floats = np.array([1.5, 0.0, 2.5, np.nan])
+    bools = np.array([True, False, True, False])
+
+    msg = "unsupported operand type"
+    with pytest.raises(TypeError, match=msg):
+        op(pd.Series(floats), pd.Series(bools))
+    with pytest.raises(TypeError, match=msg):
+        op(SparseArray(floats), SparseArray(bools))
+
+    expected = op(pd.Series(bools), pd.Series(floats))
+    result = op(SparseArray(bools), SparseArray(floats))
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
 
 
 @pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
