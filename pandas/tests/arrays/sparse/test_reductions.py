@@ -768,6 +768,52 @@ def test_any_all_na_fill_value():
 
 
 @pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+@pytest.mark.parametrize("data", [[1, None], [1, 0, None]])
+def test_any_all_skipna_false_numeric_na_fill_value(name, dtype, data):
+    # GH#68559 sparsifying a nullable numeric array gives a numeric subtype with a
+    #  pd.NA fill, whose truth the skipna=False gate took directly; the gaps densify
+    #  to a truthy NaN. [1, 0, None] covers all() falling through to a False value
+    arr = SparseArray(pd.array(data, dtype=dtype))
+    assert arr.fill_value is pd.NA
+    expected = getattr(pd.Series(arr._densify()), name)(skipna=False)
+
+    assert getattr(arr, name)(skipna=False) == expected
+    assert arr._reduce(name, skipna=False) == expected
+    assert getattr(pd.Series(arr), name)(skipna=False) == expected
+    assert getattr(pd.DataFrame({"A": arr}), name)(skipna=False)["A"] == expected
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
+@pytest.mark.parametrize(
+    "subtype", ["int64", "uint64", "float64", "complex128", "m8[ns]"]
+)
+def test_any_all_skipna_false_na_fill_value_astype(name, subtype):
+    # GH#68559 astype reaches an NA fill on subtypes a nullable array never
+    #  sparsifies to; each one densifies to its own NA, NaN or NaT, both truthy
+    values = np.array([1, 0, 0], dtype=subtype)
+    arr = SparseArray(values, fill_value=values[2]).astype(
+        pd.SparseDtype(subtype, pd.NA)
+    )
+    assert arr.sp_index.ngaps
+
+    assert getattr(arr, name)(skipna=False)
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
+def test_any_all_skipna_false_bool_subtype_na_fill_value(name):
+    # GH#68559 a bool subtype densifies to object holding pd.NA rather than to a
+    #  numpy NA, so unlike the numeric subtypes it goes on raising like dense
+    arr = SparseArray([True, False, False], fill_value=False).astype(
+        pd.SparseDtype(bool, pd.NA)
+    )
+    assert arr.sp_index.ngaps
+
+    with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):
+        getattr(arr, name)(skipna=False)
+
+
+@pytest.mark.parametrize("name", ["any", "all"])
 @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]"])
 def test_any_all_datetime64_raises(name, unit):
     # GH#68438 sparse answered for a datetime64 subtype where dense raises

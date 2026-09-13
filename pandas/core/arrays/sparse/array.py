@@ -1841,6 +1841,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 values = self._valid_sp_values
             if isna(fill_value):
                 fill_value = True
+        elif isna(fill_value):
+            # gaps count as what _densify puts there: the promoted NA. NaN and NaT
+            #  are truthy; a pd.NA survives the promotion and raises like dense
+            fill_value = maybe_promote(self.sp_values.dtype, fill_value)[1]
 
         # not np.all(): an object pd.NA fill then raises like dense; see
         #  test_any_all_na_fill_value
@@ -1887,6 +1891,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 values = self._valid_sp_values
             if isna(fill_value):
                 fill_value = False
+        elif isna(fill_value):
+            # see the fill-value note in all()
+            fill_value = maybe_promote(self.sp_values.dtype, fill_value)[1]
 
         # not np.any(); see the note in all()
         if self.sp_index.ngaps > 0 and fill_value:
