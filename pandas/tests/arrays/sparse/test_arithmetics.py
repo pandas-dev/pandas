@@ -715,3 +715,113 @@ def test_no_common_subtype_both_with_gaps():
     expected = pd.Series(left.to_dense()) * pd.Series(right.to_dense())
     assert result.dtype == pd.SparseDtype(expected.dtype)
     tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        operator.eq,
+        operator.ne,
+        operator.lt,
+        operator.le,
+        operator.gt,
+        operator.ge,
+    ],
+)
+@pytest.mark.parametrize("other", [1, None, np.array([1, 1, pd.NA, 2], dtype=object)])
+def test_cmp_object_subtype_with_na(op, other):
+    # GH#68586 comparing pd.NA gives pd.NA rather than a bool, which neither the
+    #  np.bool_ result buffer nor the sparse kernels can hold
+    values = np.array([1, pd.NA, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = op(arr, other)
+    dense_other = pd.Series(other) if isinstance(other, np.ndarray) else other
+    expected = op(pd.Series(values), dense_other)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_cmp_object_subtype_sparse_operands_unequal_indices():
+    # GH#68586 splib has no object comparison kernel, so the unequal-index path
+    #  raised AttributeError even with no missing values involved
+    left = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="a")
+    right = SparseArray(np.array(["a", "b", "c"], dtype=object), fill_value="c")
+
+    result = left == right
+    tm.assert_numpy_array_equal(result.to_dense(), np.ones(3, dtype=bool))
+
+
+@pytest.mark.parametrize(
+    "values, left_fill, right_fill",
+    [
+        (np.array([1, 2, 3]), 1, 3),
+        (np.array([True, False, True]), True, False),
+    ],
+)
+def test_cmp_object_operand_against_non_object_subtype(values, left_fill, right_fill):
+    # GH#68586 _sparse_array_op casts both operands to their common subtype, so
+    #  the missing kernel was reached with the object subtype on either side
+    left = SparseArray(values, fill_value=left_fill)
+    right = SparseArray(np.asarray(values, dtype=object), fill_value=right_fill)
+    # the kernel lookup is only reached when both operands have gaps and differ
+    assert left.sp_index.ngaps and right.sp_index.ngaps
+    assert not left.sp_index.equals(right.sp_index)
+
+    result = left == right
+    tm.assert_numpy_array_equal(result.to_dense(), np.ones(len(values), dtype=bool))
+
+
+def test_cmp_object_ndarray_operand_against_non_object_subtype():
+    # GH#68586 a dense operand is wrapped as Sparse[object], reaching the same
+    #  missing kernel
+    arr = SparseArray(np.array([1, 2, 3]), fill_value=1)
+    other = np.array([3, 2, 1], dtype=object)
+
+    result = arr == other
+    expected = pd.Series([1, 2, 3]) == pd.Series(other)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_cmp_object_subtype_na_scalar_never_equal():
+    # GH#68586 the raw numpy comparison matched None against None; densely a
+    #  missing scalar compares unequal to everything
+    values = np.array([1, None, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = operator.eq(arr, None)
+    expected = operator.eq(pd.Series(values), None)
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_cmp_object_subtype_keeps_fill_value():
+    # GH#68586 the result's fill value is op(fill_value, other), not the default
+    values = np.array([1, pd.NA, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    assert (arr == 0).dtype == pd.SparseDtype(bool, True)
+    assert (arr == 1).dtype == pd.SparseDtype(bool, False)
+
+
+@pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.gt])
+@pytest.mark.parametrize("subtype", [object, "int64"])
+def test_cmp_masked_boolean_other(op, subtype):
+    # GH#68586 np.asarray on the operand drops its mask, and the object route
+    #  then resolved the NA to False; defer so the operand keeps it
+    values = np.array([1, 2, 0], dtype=subtype)
+    other = pd.array([True, False, None], dtype="boolean")
+
+    result = op(SparseArray(values, fill_value=0), other)
+    expected = op(pd.Series(values), pd.Series(other))
+    tm.assert_extension_array_equal(result, expected.array)
+
+
+def test_cmp_object_subtype_scalar_keeps_sparse_index():
+    # GH#68586 the object route compares sp_values, so it neither materializes
+    #  the dense array nor re-sparsifies the result
+    arr = SparseArray(np.array([1, 2, 0, 0], dtype=object), fill_value=0)
+
+    result = arr == 1
+    tm.assert_numpy_array_equal(result.sp_index.indices, arr.sp_index.indices)
+    tm.assert_numpy_array_equal(
+        result.to_dense(), np.array([True, False, False, False])
+    )
