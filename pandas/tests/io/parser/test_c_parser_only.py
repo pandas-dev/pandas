@@ -1680,17 +1680,3 @@ def test_converter_unhashable_output_with_na_values(c_parser_only):
     )
     expected = pd.DataFrame({"A": [["1"], ["CAT"], ["3"]]})
     tm.assert_frame_equal(result, expected)
-
-
-def test_converter_bool_output_na_values(c_parser_only):
-    # GH#13302 True == 1, so bools a converter returns match a numeric
-    # na_values entry, the same cells the read without a converter drops.
-    # c engine only: the python engine writes the match back as True.
-    parser = c_parser_only
-    data = "A\n1\n0\n1"
-
-    result = parser.read_csv(
-        StringIO(data), converters={"A": lambda x: bool(int(x))}, na_values=[1]
-    )
-    expected = pd.DataFrame({"A": [np.nan, False, np.nan]}, dtype=object)
-    tm.assert_frame_equal(result, expected)

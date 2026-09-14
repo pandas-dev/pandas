@@ -4096,11 +4096,15 @@ cdef _sanitize_converted(ndarray[object] values, set na_set):
 
     for i in range(len(values)):
         val = values[i]
+        if type(val).__hash__ is None:
+            # list/dict/set/ndarray; the try/except below is for the
+            # remainder, but reaching it every row costs ~3x the read
+            continue
         try:
             if val in na_set:
                 values[i] = np.nan
         except TypeError:
-            continue
+            pass
 
 
 cdef list _maybe_encode(list values):
