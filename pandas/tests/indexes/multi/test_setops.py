@@ -259,14 +259,14 @@ def test_union(idx, sort):
         assert result.equals(idx)
 
 
-def test_union_mixed_date_timestamp():
-    # GH 61807
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_union_mixed_date_timestamp(tz):
+    # GH#61807, GH#68577 the combined level keeps object dtype instead of raising
+    ts = pd.Timestamp("2001-01-01", tz=tz)
     left = pd.MultiIndex.from_arrays(
         [pd.Index([date(2001, 1, 1)], dtype=object), pd.Index(["foo"], dtype=object)]
     )
-    right = pd.MultiIndex.from_arrays(
-        [pd.Index([pd.Timestamp("2001-01-01")]), pd.Index(["bar"], dtype=object)]
-    )
+    right = pd.MultiIndex.from_arrays([pd.Index([ts]), pd.Index(["bar"], dtype=object)])
 
     with tm.assert_produces_warning(
         Pandas4Warning,
@@ -276,7 +276,7 @@ def test_union_mixed_date_timestamp():
 
     expected = pd.MultiIndex.from_arrays(
         [
-            pd.Index([date(2001, 1, 1), pd.Timestamp("2001-01-01")], dtype=object),
+            pd.Index([date(2001, 1, 1), ts], dtype=object),
             pd.Index(["foo", "bar"], dtype=object),
         ]
     )

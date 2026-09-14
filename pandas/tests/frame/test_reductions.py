@@ -1410,7 +1410,7 @@ class TestDataFrameAnalytics:
         ]
         df = pd.DataFrame({"A": float_data, "B": datetime_data})
 
-        msg = "datetime64 type does not support operation 'any'"
+        msg = "'any' with datetime64 dtypes is not supported"
         with pytest.raises(TypeError, match=msg):
             df.any(axis=1)
 
@@ -1506,7 +1506,7 @@ class TestDataFrameAnalytics:
                 getattr(pd.DataFrame(data), func.__name__)(axis=None)
         if data.dtypes.apply(lambda x: x.kind == "M").any():
             # GH#34479
-            msg = "datetime64 type does not support operation '(any|all)'"
+            msg = "'(any|all)' with datetime64 dtypes is not supported"
             with pytest.raises(TypeError, match=msg):
                 func(data)
 
@@ -3157,3 +3157,21 @@ def test_numeric_only_validates_bool():
     df_num.mean(numeric_only=False)
     df_num.sum(numeric_only=True)
     df_num.std(numeric_only=True)
+
+
+@pytest.mark.parametrize("na_first", [True, False])
+def test_median_skipna_false_keeps_complex(na_first):
+    # GH#68487 the NaN propagated for a column holding an NA was real, so
+    #  whenever that column was reduced first the others were cast down to it
+    #  and lost their imaginary part
+    cols = {"a": [1 + 2j, np.nan], "b": [1 + 2j, 3 + 4j]}
+    if not na_first:
+        cols = dict(reversed(cols.items()))
+    df = pd.DataFrame(cols)
+
+    expected = pd.Series(
+        [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
+        index=list(cols),
+    )
+    tm.assert_series_equal(df.median(skipna=False), expected)
+    tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)

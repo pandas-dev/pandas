@@ -23,6 +23,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    TypeGuard,
     cast,
     overload,
 )
@@ -5458,6 +5459,8 @@ class DataFrame(NDFrame, OpsMixin):
         ValueError
             * If both of ``include`` and ``exclude`` are empty
             * If ``include`` and ``exclude`` have overlapping elements
+            * If a datetime64/timedelta64 spec, or an interval spec's subtype,
+              names a resolution no column can have, e.g. ``'datetime64[10s]'``
         TypeError
             * If any kind of string dtype is passed in.
 
@@ -5477,10 +5480,12 @@ class DataFrame(NDFrame, OpsMixin):
         * A dtype instance (e.g. ``np.dtype("int32")`` or
           ``pd.CategoricalDtype(["a", "b"])``) selects only columns with
           exactly that dtype, whereas a class or string selects a family
-          of dtypes. Under-specified instances like a unitless
-          ``np.dtype("datetime64")``, a bare ``pd.CategoricalDtype()``, or a
-          ``pd.IntervalDtype("int64")`` without a ``closed`` select their
-          whole family
+          of dtypes. An under-specified instance, such as a unitless
+          ``np.dtype("datetime64")``, a ``pd.CategoricalDtype(ordered=True)``
+          with no categories, or a ``pd.IntervalDtype("int64")`` with no
+          ``closed``, selects the family its given attributes name; a bare
+          ``pd.CategoricalDtype()`` names none, so it selects every
+          categorical column, as does the equivalent ``ordered=False``
         * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
           ``'datetime64'``
         * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
@@ -5549,27 +5554,37 @@ class DataFrame(NDFrame, OpsMixin):
             include = (include,) if include is not None else ()
         if not is_list_like(exclude):
             exclude = (exclude,) if exclude is not None else ()
+        # GH#68448: see test_select_dtypes_listlike_spec_container
+        include, exclude = tuple(include), tuple(exclude)
 
         selection = (frozenset(include), frozenset(exclude))
 
         if not any(selection):
             raise ValueError("at least one of include or exclude must be nonempty")
 
+        def matches_object(dtype_obj: DtypeObj) -> bool:
+            # ``is_handled`` is defined below, after both sides are resolved;
+            # nothing calls this until ``predicate`` runs.
+            # GH#68494: Sparse[object] has an object scalar type but does not
+            # compare equal to np.dtype(object)
+            if issubclass(dtype_obj.type, np.object_):
+                return True
+            # backwards compat for the default `str` dtype being selected by object
+            return (
+                isinstance(dtype_obj, StringDtype)
+                and dtype_obj.na_value is np.nan
+                and not is_handled(dtype_obj)
+            )
+
         def to_callable(
             dtypes,
-        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj]]:
+        ) -> tuple[Callable[[DtypeObj], bool], frozenset[type | DtypeObj | str]]:
             # We convert the user-provided dtypes (which may be dtype instances,
             # dtype classes, dtype.types, or strings) into our dtype predicate,
             # along with the set of objects they resolve to -- dtype instances,
-            # dtype.type-style objects, or ExtensionDtype classes/instances for
-            # EA-name strings (used for validation below).
-
-            def matches_object(dtype_obj: DtypeObj) -> bool:
-                # backwards compat for the default `str` dtype being
-                # selected by object
-                return dtype_obj == np.dtype(np.object_) or (
-                    isinstance(dtype_obj, StringDtype) and dtype_obj.na_value is np.nan
-                )
+            # dtype.type-style objects, ExtensionDtype classes/instances for
+            # EA-name strings, or an ``interval_spec_key`` string (used for
+            # validation below).
 
             def matches_number(dtype_obj: DtypeObj) -> bool:
                 # All numeric dtypes, excluding bool dtypes
@@ -5581,6 +5596,13 @@ class DataFrame(NDFrame, OpsMixin):
                         and issubclass(dtype_obj.type, np.number)
                     )
                     or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
+                )
+
+            def matches_categorical_ordered(dtype_obj: DtypeObj) -> bool:
+                # GH#40234: an ordered CategoricalDtype with no categories
+                # names the ordered-categorical family, not one exact dtype
+                return isinstance(dtype_obj, CategoricalDtype) and bool(
+                    dtype_obj.ordered
                 )
 
             def matches_type(
@@ -5607,21 +5629,77 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
-            def matches_interval_subtype(
-                target: IntervalDtype,
-            ) -> Callable[[DtypeObj], bool]:
-                # GH#66119, GH#66120: an interval spec with a subtype but no
-                # ``closed`` (e.g. the string "interval[int64]" or the instance
-                # IntervalDtype("int64")) has closed=None, which ``==`` never
-                # matches since no column has closed=None. Treat it as naming
-                # the subtype family, matching that subtype for any closed.
-                def func(dtype_obj: DtypeObj) -> bool:
-                    return (
-                        isinstance(dtype_obj, IntervalDtype)
-                        and dtype_obj.subtype == target.subtype
+            def is_unitless_datetimelike(dtype_obj: DtypeObj) -> bool:
+                return (
+                    lib.is_np_dtype(dtype_obj, "mM")
+                    and np.datetime_data(dtype_obj)[0] == "generic"
+                )
+
+            def check_resolution(
+                np_dtype: np.dtype, spec: str, unitless_spec: str
+            ) -> None:
+                # A multiple of a unit ("10s") or a resolution pandas does not
+                # support ("Y") is not a dtype any column can have (GH#40234).
+                # Callers handle the unitless case first.
+                if not is_supported_dtype(np_dtype):
+                    raise ValueError(
+                        f"{spec!r} is not a supported "
+                        "datetime64/timedelta64 resolution; pass "
+                        f"'s', 'ms', 'us', 'ns', or {unitless_spec!r}"
                     )
 
+            def is_partial_interval(target: DtypeObj) -> TypeGuard[IntervalDtype]:
+                # GH#66119, GH#66120, GH#68491: an interval spec that leaves
+                # ``closed`` ("interval[int64]"), the subtype's unit
+                # ("interval[datetime64]") or the subtype itself open describes
+                # no dtype a column can have, so ``==`` matches nothing -- or,
+                # with the subtype omitted, every interval column.
+                if not isinstance(target, IntervalDtype):
+                    return False
+                if target.subtype is None:
+                    # a bare IntervalDtype() does name the whole family
+                    return target.closed is not None
+                return target.closed is None or is_unitless_datetimelike(target.subtype)
+
+            def interval_spec_key(target: IntervalDtype) -> DtypeObj | str:
+                # An interval spec hashes and compares by its ``str``, which
+                # collapses to plain "interval" once the subtype is None -- so
+                # any two subtype-less specs collide in ``resolved`` and read as
+                # an include/exclude overlap.
+                if target.subtype is None:
+                    return f"IntervalDtype(closed={target.closed!r})"
+                return target
+
+            def matches_partial_interval(
+                target: IntervalDtype,
+            ) -> Callable[[DtypeObj], bool]:
+                # Each component the spec leaves open matches any value.
+                generic_unit = target.subtype is not None and is_unitless_datetimelike(
+                    target.subtype
+                )
+
+                def func(dtype_obj: DtypeObj) -> bool:
+                    if not isinstance(dtype_obj, IntervalDtype):
+                        return False
+                    if target.closed is not None and dtype_obj.closed != target.closed:
+                        return False
+                    if target.subtype is None:
+                        return True
+                    if generic_unit:
+                        return dtype_obj.subtype.type is target.subtype.type
+                    return dtype_obj.subtype == target.subtype
+
                 return func
+
+            def check_interval_subtype(target: IntervalDtype) -> None:
+                # An interval subtype names a resolution the same way a
+                # top-level spec does, so reject the impossible ones here too.
+                subtype = target.subtype
+                if lib.is_np_dtype(subtype, "mM") and not is_unitless_datetimelike(
+                    subtype
+                ):
+                    unitless = IntervalDtype(np.dtype(subtype.type), target.closed)
+                    check_resolution(subtype, str(target), str(unitless))
 
             def matches_np_dtype(
                 np_dtype: np.dtype,
@@ -5639,7 +5717,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return func
 
-            # Matchers for string specs that name a specific ExtensionDtype are
+            # Matchers for specs that name a specific ExtensionDtype are
             # collected separately: they are checked against the column dtype
             # as-is, before the ArrowDtype -> numpy_dtype normalization that the
             # remaining (numpy-oriented) matchers rely on.
@@ -5647,7 +5725,7 @@ class DataFrame(NDFrame, OpsMixin):
             instances: list[DtypeObj] = []
             ea_funcs: list[Callable[[DtypeObj], bool]] = []
             klasses: list[type[ExtensionDtype]] = []
-            resolved: set[type | DtypeObj] = set()
+            resolved: set[type | DtypeObj | str] = set()
             for dtype in dtypes:
                 if dtype is None:
                     # GH#28943: a bare include=None means "not specified", but a
@@ -5674,41 +5752,33 @@ class DataFrame(NDFrame, OpsMixin):
                             "numpy string dtypes are not allowed, "
                             "use 'str' or 'object' instead"
                         )
+                    if isinstance(dtype, IntervalDtype):
+                        check_interval_subtype(dtype)
                     if lib.is_np_dtype(dtype, "mM"):
-                        unit, count = np.datetime_data(dtype)
-                        if unit == "generic":
+                        if is_unitless_datetimelike(dtype):
                             # unitless np.dtype("datetime64") is not a specific
                             # dtype, so match the family, as with np.datetime64
                             resolved.add(dtype.type)
                             funcs.append(matches_type(dtype.type))
                             continue
-                        if count != 1 or unit not in ("s", "ms", "us", "ns"):
-                            # no column can ever have this dtype
-                            raise ValueError(
-                                f"{dtype.name!r} is not a supported "
-                                "datetime64/timedelta64 resolution; pass "
-                                "'s', 'ms', 'us', 'ns', or "
-                                f"{dtype.type.__name__!r}"
-                            )
+                        check_resolution(dtype, dtype.name, dtype.type.__name__)
                     elif isinstance(dtype, CategoricalDtype) and (
                         dtype.categories is None
                     ):
-                        # a bare CategoricalDtype() is not a specific dtype,
-                        # so match all categorical columns, as with the
-                        # "category" string
-                        resolved.add(dtype.type)
-                        funcs.append(matches_type(dtype.type))
+                        if dtype.ordered:
+                            resolved.add(dtype)
+                            ea_funcs.append(matches_categorical_ordered)
+                        else:
+                            # a bare CategoricalDtype() is not a specific dtype,
+                            # so match all categorical columns, as with the
+                            # "category" string
+                            resolved.add(dtype.type)
+                            funcs.append(matches_type(dtype.type))
                         continue
-                    elif (
-                        isinstance(dtype, IntervalDtype)
-                        and dtype.subtype is not None
-                        and dtype.closed is None
-                    ):
-                        # GH#66119: a partially-specified IntervalDtype instance
-                        # (subtype but no closed, e.g. IntervalDtype("int64"))
-                        # names the subtype family, matching any closed value
-                        resolved.add(dtype)
-                        ea_funcs.append(matches_interval_subtype(dtype))
+                    elif is_partial_interval(dtype):
+                        # GH#66119
+                        resolved.add(interval_spec_key(dtype))
+                        ea_funcs.append(matches_partial_interval(dtype))
                         continue
                     resolved.add(dtype)
                     instances.append(dtype)
@@ -5757,12 +5827,21 @@ class DataFrame(NDFrame, OpsMixin):
                             pdtype = pandas_dtype(dtype)
                         except TypeError:
                             if not isinstance(dtype, str):
+                                if isinstance(dtype, type):
+                                    # until 3.1 these resolved to object, i.e.
+                                    # selected every object column, see GH#68443
+                                    raise TypeError(
+                                        "select_dtypes does not support the class "
+                                        f"{dtype.__name__}; pass 'object' to select "
+                                        "all object-dtype columns"
+                                    ) from None
                                 raise
                             # strings accepted here but not by pandas_dtype
                             if dtype in ("datetimetz", "datetime64tz"):
-                                # GH#24558
+                                # GH#24558; str() so an ndarray spec reprs as
+                                # 'datetimetz', not np.str_('datetimetz')
                                 warnings.warn(
-                                    f"Passing {dtype!r} to select_dtypes is "
+                                    f"Passing {str(dtype)!r} to select_dtypes is "
                                     "deprecated and will raise in a future "
                                     "version. Pass pd.DatetimeTZDtype instead.",
                                     Pandas4Warning,
@@ -5797,6 +5876,8 @@ class DataFrame(NDFrame, OpsMixin):
                             if isinstance(dtype, str) and isinstance(
                                 pdtype, ExtensionDtype
                             ):
+                                if isinstance(pdtype, IntervalDtype):
+                                    check_interval_subtype(pdtype)
                                 # GH#40234, GH#59888: a string naming a specific
                                 # ExtensionDtype selects that exact dtype rather
                                 # than anything sharing its ``dtype.type``. A
@@ -5805,15 +5886,11 @@ class DataFrame(NDFrame, OpsMixin):
                                 # a bare name (e.g. "Int64", "category") names
                                 # the dtype's class and matches any instance.
                                 if "[" in dtype:
-                                    if (
-                                        isinstance(pdtype, IntervalDtype)
-                                        and pdtype.closed is None
-                                    ):
-                                        # GH#66120: "interval[int64]" resolves to
-                                        # closed=None; match the subtype family
-                                        resolved.add(pdtype)
+                                    if is_partial_interval(pdtype):
+                                        # GH#66120
+                                        resolved.add(interval_spec_key(pdtype))
                                         ea_funcs.append(
-                                            matches_interval_subtype(pdtype)
+                                            matches_partial_interval(pdtype)
                                         )
                                     else:
                                         resolved.add(pdtype)
@@ -5823,25 +5900,18 @@ class DataFrame(NDFrame, OpsMixin):
                                     ea_funcs.append(matches_ea_class(type(pdtype)))
                                 continue
                             if lib.is_np_dtype(pdtype, "mM"):
-                                unit, count = np.datetime_data(pdtype)
                                 # a unitless datetime64/timedelta64 falls
                                 # through to a family match on pdtype.type
-                                if unit != "generic":
+                                if not is_unitless_datetimelike(pdtype):
                                     # byteorder is not part of what a string
                                     # spec selects: ">i8" selects every int64
                                     # column through the pdtype.type path below,
                                     # so canonicalize the spec here and let
                                     # matches_np_dtype normalize the column
                                     pdtype = pdtype.newbyteorder("=")
-                                    if count != 1 or not is_supported_dtype(pdtype):
-                                        # a multiple of a unit (e.g. "10s") is
-                                        # not a resolution any column can have
-                                        raise ValueError(
-                                            f"{pdtype.name!r} is not a supported "
-                                            "datetime64/timedelta64 resolution; "
-                                            "pass 's', 'ms', 'us', 'ns', or "
-                                            f"{pdtype.type.__name__!r}"
-                                        )
+                                    check_resolution(
+                                        pdtype, pdtype.name, pdtype.type.__name__
+                                    )
                                     # a specific unit (s, ms, us, ns) matches
                                     # only that exact resolution (GH#40234)
                                     resolved.add(pdtype)
@@ -5864,15 +5934,19 @@ class DataFrame(NDFrame, OpsMixin):
                 # and EA-subclass specs (GH#65366) are all checked against the
                 # raw dtype before the ArrowDtype -> numpy_dtype normalization
                 # below.
-                if any(dtype_obj == instance for instance in instances):
-                    return True
-                if any(func(dtype_obj) for func in ea_funcs):
-                    return True
-                if isinstance(dtype_obj, klass_tuple):
+                # GH#68501 - dont use generators for these checks; too much overhead.
+                for instance in instances:
+                    if dtype_obj == instance:
+                        return True
+                for ea_func in ea_funcs:
+                    if ea_func(dtype_obj):
+                        return True
+                if klass_tuple and isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
+                    pa_type = dtype_obj.pyarrow_dtype
                     # tz exists only on pa.timestamp; date32/date64 reach here too
-                    if getattr(dtype_obj.pyarrow_dtype, "tz", None) is not None:
+                    if getattr(pa_type, "tz", None) is not None:
                         # GH#68075: numpy_dtype drops the tz, so a tz-aware
                         # column would match a naive datetime64 spec; a
                         # DatetimeTZDtype column matches none of these either
@@ -5880,7 +5954,16 @@ class DataFrame(NDFrame, OpsMixin):
                     # class- and string-based matching treats ArrowDtype
                     # columns like their numpy counterparts
                     dtype_obj = dtype_obj.numpy_dtype
-                return any(func(dtype_obj) for func in funcs)
+                    if dtype_obj.kind in "mM" and not hasattr(pa_type, "unit"):
+                        # GH#68488: numpy_dtype invents a resolution for a date
+                        # column (date32 is day-resolution, and which one it
+                        # invents varies by pyarrow version), so only a unitless
+                        # spec may match it
+                        dtype_obj = np.dtype(f"{dtype_obj.kind}8")
+                for func in funcs:
+                    if func(dtype_obj):
+                        return True
+                return False
 
             return matches_any, frozenset(resolved)
 
@@ -5911,25 +5994,47 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
-        # ``str`` (the type) and ``StringDtype`` (from a "str"/"string" spec)
-        # both count as the user explicitly handling string columns.
-        string_specs = {str, StringDtype}
-        if (
-            np.object_ in include_set
-            and string_specs.isdisjoint(include_set)
-            and string_specs.isdisjoint(exclude_set)
-            and any(
-                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
-                for dtype in blk_dtypes
-            )
+
+        def is_handled(dtype: StringDtype) -> bool:
+            # A spec other than ``object`` that matches this column decides
+            # its fate whether or not ``object`` keeps selecting str columns
+            # (GH#61916, GH#62718).
+            for spec in include_set | exclude_set:
+                if spec is str:
+                    return True
+                if isinstance(spec, type):
+                    if issubclass(spec, ExtensionDtype) and isinstance(dtype, spec):
+                        return True
+                elif dtype == spec:
+                    return True
+            return False
+
+        if (np.object_ in include_set or np.object_ in exclude_set) and any(
+            isinstance(dtype, StringDtype)
+            and dtype.na_value is np.nan
+            and not is_handled(dtype)
+            for dtype in blk_dtypes
         ):
-            # GH#61916
+            # GH#61916, GH#62718. include and exclude cannot both name object;
+            # the overlap check above has already raised in that case.
+            if np.object_ in include_set:
+                msg = (
+                    "For backward compatibility, 'str' dtypes are included by "
+                    "select_dtypes when 'object' dtype is specified. "
+                    "This behavior is deprecated and will be removed in a future "
+                    "version. Explicitly pass 'str' to `include` to select them, "
+                    "or to `exclude` to remove them and silence this warning."
+                )
+            else:
+                msg = (
+                    "For backward compatibility, 'str' dtypes are excluded by "
+                    "select_dtypes when 'object' dtype is specified. "
+                    "This behavior is deprecated and will be removed in a future "
+                    "version. Explicitly pass 'str' to `exclude` to remove them, "
+                    "or to `include` to keep them and silence this warning."
+                )
             warnings.warn(
-                "For backward compatibility, 'str' dtypes are included by "
-                "select_dtypes when 'object' dtype is specified. "
-                "This behavior is deprecated and will be removed in a future "
-                "version. Explicitly pass 'str' to `include` to select them, "
-                "or to `exclude` to remove them and silence this warning.\nSee "
+                f"{msg}\nSee "
                 "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
                 "#string-migration-select-dtypes for details on how to write code "
                 "that works with pandas 2 and 3.",

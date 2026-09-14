@@ -431,6 +431,16 @@ class TestSetIndex:
         idf = idf.reset_index().set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
+    def test_set_index_preserve_object_dtype_after_query(self):
+        # GH#30517 set_index must not re-infer a subset that happens to be numeric;
+        #  reset_index still does, so the round trip is not yet lossless
+        df = pd.DataFrame({"mixed": [1, 2, "abc", "def"], "ints": [100, 200, 300, 400]})
+
+        result = df.query("ints < 300").set_index("mixed").index
+        expected = pd.Index([1, 2], dtype=object, name="mixed")
+
+        tm.assert_index_equal(result, expected)
+
     def test_set_index_preserve_categorical_dtype(self):
         # GH#13743, GH#13854
         df = pd.DataFrame(
