@@ -705,3 +705,34 @@ def test_astype_to_datetimelike_unit(arr_dtype, kind, unit):
         assert expected.dtype == f"{kind}8[s]"
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize("values", [[10**9, "NaT"], [10**9, 2 * 10**9]])
+@pytest.mark.parametrize("from_unit, to_unit", [("ns", "s"), ("s", "ns")])
+def test_astype_to_datetimelike_bigendian(kind, values, from_unit, to_unit):
+    # GH#68565 the result was a big-endian-typed array of natively-written bits,
+    #  so every value read back byteswapped. The NaT-free case is what reaches
+    #  the vectorized branch, and to_numpy is what reads through the dtype
+    ser = pd.Series(np.array(values, dtype=f"{kind}8[{from_unit}]"))
+    result = ser.astype(f">{kind}8[{to_unit}]")
+
+    expected = ser.astype(f"{kind}8[{to_unit}]")
+    assert result.dtype.byteorder != ">"
+    tm.assert_series_equal(result, expected)
+    tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_astype_object_to_datetimelike_bigendian(kind):
+    # GH#68565 a timedelta64 target additionally came back reporting a native
+    #  dtype, so nothing signaled the corruption. datetime64 takes only the unit
+    #  from the requested dtype and was already correct; it is here as a guard
+    values = ["2020-01-01", pd.NaT] if kind == "M" else ["1000s", pd.NaT]
+    ser = pd.Series(values, dtype=object)
+
+    result = ser.astype(f">{kind}8[s]")
+    expected = ser.astype(f"{kind}8[s]")
+    assert result.dtype.byteorder != ">"
+    tm.assert_series_equal(result, expected)
+    tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())

@@ -489,6 +489,38 @@ def test_accumulate_integer_subtype():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("op_name", ["cumsum", "cumprod", "cummin", "cummax"])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_accumulate_na_gaps_subtype_cannot_hold_na(op_name, skipna):
+    # GH#68187 the gaps of a Sparse[int64, nan] are NA, not 0. cumsum is affected
+    #  too: _accumulate's fast path for it is gated on skipna.
+    values = np.array([1.0, np.nan, 5.0, np.nan])
+    arr = SparseArray(values).astype(pd.SparseDtype("int64", np.nan))
+
+    result = getattr(pd.Series(arr), op_name)(skipna=skipna)
+    expected = getattr(pd.Series(values), op_name)(skipna=skipna)
+
+    # only that fast path keeps the subtype; the rest promote to hold the gaps
+    subtype = "int64" if (op_name == "cumsum" and skipna) else "float64"
+    assert result.dtype == pd.SparseDtype(subtype, np.nan)
+    # not sparse.to_dense(), which has the same cast-the-gaps bug this fixes
+    tm.assert_series_equal(result.astype("float64"), expected)
+
+
+@pytest.mark.parametrize("op_name", ["cumprod", "cummin", "cummax"])
+def test_accumulate_bool_subtype_promotes_to_object(op_name):
+    # GH#68187 a Sparse[bool, nan] has no wider numpy bool dtype to hold the gaps.
+    #  cumsum is excluded: its fast path returns Sparse[int64, nan] instead.
+    values = np.array([True, np.nan, False, np.nan], dtype=object)
+    arr = SparseArray([1.0, np.nan, 0.0, np.nan]).astype(pd.SparseDtype("bool", np.nan))
+
+    result = getattr(pd.Series(arr), op_name)()
+    expected = getattr(pd.Series(values), op_name)()
+
+    assert result.dtype == pd.SparseDtype(object, np.nan)
+    tm.assert_series_equal(result.sparse.to_dense(), expected)
+
+
 def test_accumulate_datetime64():
     # GH#68187 a datetimelike subtype accumulates through its own array
     dti = pd.to_datetime(["2020-01-02", "NaT", "2020-01-01"])
@@ -500,6 +532,45 @@ def test_accumulate_datetime64():
     msg = "Accumulation cumsum not supported"
     with pytest.raises(TypeError, match=msg):
         ser.cumsum()
+
+
+@pytest.mark.parametrize(
+    "ufunc, data, fill_value",
+    [
+        (np.add, [1.0, 0.0, 2.0], 0.0),
+        # an NA fill value propagates, where Series.cumsum would skip it
+        (np.add, [1.0, np.nan, 2.0], np.nan),
+        (np.bitwise_or, [1, 4, 0, 0], 4),
+        # subtypes np.asarray would widen or objectify; see SparseArray._densify
+        (np.bitwise_or, np.array([1, 4, 0, 0], dtype="uint64"), 4),
+        (np.maximum, np.array([1000, 2500, 4000], "m8[ns]"), pd.Timedelta("2500ns")),
+    ],
+)
+def test_ufunc_accumulate_includes_fill_value(ufunc, data, fill_value):
+    # GH#68566 this accumulated the stored values and the scalar fill_value
+    #  separately, and numpy cannot accumulate a scalar
+    arr = SparseArray(data, fill_value=fill_value)
+    assert arr.sp_index.ngaps
+
+    result = ufunc.accumulate(arr)
+
+    expected = ufunc.accumulate(np.asarray(data, dtype=arr.dtype.subtype))
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+    # like cumsum, the fill value is NA regardless of the original one
+    assert pd.isna(result.fill_value)
+
+
+def test_ufunc_accumulate_promotes_na_gaps():
+    # GH#68566 to_dense would cast the gaps of an NA-filled int64 subtype to 0,
+    #  accumulating to [1, 1, 5, 5]; see SparseArray._densify
+    arr = SparseArray([1.0, np.nan, 5.0, np.nan]).astype(
+        pd.SparseDtype("int64", np.nan)
+    )
+
+    result = np.maximum.accumulate(arr)
+
+    expected = SparseArray([1.0, np.nan, np.nan, np.nan], fill_value=np.nan)
+    tm.assert_sp_array_equal(result, expected)
 
 
 def test_setting_fill_value_updates():
@@ -590,6 +661,25 @@ def test_map_missing():
     tm.assert_sp_array_equal(result, expected)
 
 
+def test_map_list_valued_mapper():
+    # GH#68586 the fill-value collision check must not take the truth of a
+    #  mapper result that is not a scalar
+    arr = SparseArray(np.array([1, 2, 0, 0]), fill_value=0)
+
+    result = arr.map({0: 9, 1: [1, 2], 2: 5})
+    assert list(result) == [[1, 2], 5, 9, 9]
+
+
+def test_map_object_subtype_with_na():
+    # GH#68586 the fill-value collision check took the truth of an object
+    #  comparison, which a stored pd.NA makes ambiguous
+    values = np.array([1, pd.NA, 2], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = arr.map(lambda x: x)
+    tm.assert_numpy_array_equal(result.to_dense(), values)
+
+
 @pytest.mark.parametrize("fill_value", [np.nan, 1])
 def test_dropna(fill_value):
     # GH-28287
@@ -650,21 +740,71 @@ def test_array_object_datetimelike(kind, unit):
 
 @pytest.mark.parametrize("kind", ["M8", "m8"])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_datetimelike_nat_fill_value_normalized(kind, unit):
-    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it
-    #  behaves identically to the np.datetime64("NaT") spelling
+@pytest.mark.parametrize("na_fill", [True, False])
+def test_to_dense_datetimelike_non_numpy_fill(kind, unit, na_fill):
+    # GH#68590 a fill value numpy cannot promote against the subtype made the
+    #  dense result object dtype, with the stored values rendered as ints or
+    #  datetime.datetime beside the fill; to_dense truncated a ns fill to us
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    if na_fill:
+        values[1] = "NaT"
+        fill_value = np.nan
+    else:
+        fill_value = (pd.Timestamp if kind == "M8" else pd.Timedelta)(values[1])
+
+    arr = SparseArray(values, fill_value=fill_value)
+    assert arr.sp_index.ngaps == 1
+
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    expected = pd.array(values).astype(object)
+    tm.assert_numpy_array_equal(np.asarray(arr, dtype=object), expected)
+    tm.assert_numpy_array_equal(arr.astype(object), expected)
+
+    # an explicit numeric dtype casts the gap the way numpy casts the dense
+    #  values, so a missing fill value gives iNaT rather than 0
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype="i8"), np.asarray(values, dtype="i8")
+    )
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+@pytest.mark.parametrize("boxed", [True, False])
+def test_to_dense_datetimelike_fill_other_unit(kind, unit, boxed):
+    # GH#68590 a fill value whose unit differs from the subtype -- the us a
+    #  string-parsed Timestamp carries -- densified in the fill's own unit, so
+    #  a numeric cast read it as a raw integer
+    values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
+    box = pd.Timestamp if kind == "M8" else pd.Timedelta
+    fill_value = box(values[1]).as_unit("ns")
+
+    arr = SparseArray(values, fill_value=fill_value if boxed else fill_value.asm8)
+    assert arr.sp_index.ngaps == 1
+
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_numpy_array_equal(
+        np.asarray(arr, dtype="i8"), np.asarray(values, dtype="i8")
+    )
+
+
+@pytest.mark.parametrize("fill", [pd.NaT, np.nan, np.float64("nan"), pd.NA])
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimelike_na_fill_value_normalized(fill, kind, unit):
+    # GH#68449, GH#68558 any NA fill value is stored as the subtype's own NaT,
+    #  so it behaves identically to the np.datetime64("NaT") spelling
     values = np.array([1, 2, 3], dtype="i8").astype(f"{kind}[{unit}]")
     values[1] = "NaT"
 
-    arr = SparseArray(values, fill_value=pd.NaT)
+    arr = SparseArray(values, fill_value=fill)
     expected = SparseArray(values, fill_value=values[1])
 
     assert arr.dtype == expected.dtype
-    assert arr.fill_value is not pd.NaT
+    assert arr.fill_value.dtype == values.dtype
     tm.assert_sp_array_equal(arr, expected)
 
-    # these raised TypeError for the pd.NaT spelling, except np.asarray, which
-    #  returned object dtype for a timedelta64 subtype
+    # each of these was wrong for at least one of the fill spellings above,
+    #  see GH#68449 and GH#68558
     tm.assert_numpy_array_equal(arr.to_dense(), values)
     tm.assert_numpy_array_equal(np.asarray(arr), values)
     tm.assert_numpy_array_equal(
@@ -675,12 +815,63 @@ def test_datetimelike_nat_fill_value_normalized(kind, unit):
     tm.assert_sp_array_equal(arr.unique(), expected.unique())
     all_fill = np.full(2, "NaT", dtype=values.dtype)
     tm.assert_sp_array_equal(
-        SparseArray(all_fill, fill_value=pd.NaT).take([0, 1], allow_fill=True),
+        SparseArray(all_fill, fill_value=fill).take([0, 1], allow_fill=True),
         SparseArray(all_fill, fill_value=values[1]).take([0, 1], allow_fill=True),
     )
     tm.assert_sp_array_equal(
         arr.astype("Sparse[int64]"), expected.astype("Sparse[int64]")
     )
+
+
+@pytest.mark.parametrize("kind, box", [("M8", pd.Timestamp), ("m8", pd.Timedelta)])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimelike_boxed_fill_value_normalized(kind, box, unit):
+    # GH#68589 a boxed fill value is stored as the subtype's own scalar, so it
+    #  behaves identically to the np.datetime64/np.timedelta64 spelling
+    values = np.array([1, 2, 2], dtype="i8").astype(f"{kind}[{unit}]")
+
+    arr = SparseArray(values, fill_value=box(values[0]))
+    expected = SparseArray(values, fill_value=values[0])
+
+    assert arr.dtype == expected.dtype
+    assert not isinstance(arr.fill_value, box)
+    tm.assert_sp_array_equal(arr, expected)
+
+    # the boxed spelling used a truncated fill value here
+    tm.assert_numpy_array_equal(arr.to_dense(), values)
+    tm.assert_series_equal(arr.value_counts(), expected.value_counts())
+    tm.assert_sp_array_equal(arr.unique(), expected.unique())
+    tm.assert_sp_array_equal(arr - values[0], expected - values[0])
+
+    # and here it came back as object dtype holding raw ints or datetimes
+    tm.assert_numpy_array_equal(np.asarray(arr), values)
+
+
+def test_tz_aware_fill_value_still_rejected():
+    # GH#68589 normalizing before _check_fill_value would turn this into a naive
+    #  datetime64 that passes validation, silently dropping the timezone
+    msg = "fill_value must be a valid value for the SparseDtype.subtype"
+    with pytest.raises(ValueError, match=msg):
+        pd.SparseDtype("M8[ns]", fill_value=pd.Timestamp("2020-01-01", tz="UTC"))
+
+
+@pytest.mark.parametrize(
+    "fill_value",
+    [
+        pd.Timestamp("2016-01-01 00:00:00.000000001"),
+        pd.Timestamp("2016-01-01", tz="US/Pacific"),
+        pd.Timedelta(1, "ns"),
+    ],
+)
+def test_object_subtype_boxed_fill_value(fill_value):
+    # GH#68571 an object subtype holds a boxed scalar as-is; unboxing it would
+    #  lose the nanosecond or the tz
+    expected = np.array([fill_value, 1, "a"], dtype=object)
+    arr = SparseArray(expected, fill_value=fill_value)
+    assert arr.sp_index.ngaps == 1
+
+    tm.assert_numpy_array_equal(np.asarray(arr), expected)
+    tm.assert_numpy_array_equal(arr.to_dense(), expected)
 
 
 def test_array_interface(arr_data, arr):
@@ -707,3 +898,62 @@ def test_array_interface(arr_data, arr):
     result_nocopy1 = np.array(arr2, copy=False)
     result_nocopy2 = np.array(arr2, copy=False)
     assert np.may_share_memory(result_nocopy1, result_nocopy2)
+
+
+def test_shift_bool_subtype():
+    # GH#68580 np.result_type promoted the NA fill to float64, which the array's
+    #  own False fill_value is not valid for
+    arr = SparseArray(np.array([True, False]))
+    result = arr.shift(1)
+    expected = SparseArray(np.array([np.nan, True], dtype=object), fill_value=False)
+    tm.assert_sp_array_equal(result, expected)
+
+    # an explicit bool fill needs no promotion
+    tm.assert_sp_array_equal(
+        arr.shift(1, fill_value=True), SparseArray(np.array([True, True]))
+    )
+
+
+def test_shift_fill_value_promotion():
+    # GH#68580 np.result_type is not value-aware, so an int64 subtype both cast a
+    #  bool fill to 1 and widened for a float fill it could hold exactly
+    arr = SparseArray(np.array([1, 2, 3]))
+
+    result = arr.shift(1, fill_value=True)
+    assert result.dtype == pd.SparseDtype(object, 0)
+    assert result[0] is True
+
+    result = arr.shift(1, fill_value=2.0)
+    tm.assert_sp_array_equal(result, SparseArray(np.array([2, 1, 2])))
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_shift_datetimelike_subtype(kind, unit):
+    # GH#68580 np.result_type cannot promote a datetimelike dtype against the
+    #  NA fill value at all, so this raised
+    dtype = f"{kind}[{unit}]"
+    values = np.array([1, 2, 3], dtype="i8").astype(dtype)
+    arr = SparseArray(values)
+
+    result = arr.shift(1)
+    expected = SparseArray(np.array(["NaT", values[0], values[1]], dtype=dtype))
+    tm.assert_sp_array_equal(result, expected)
+
+    # an explicit fill is a Timestamp/Timedelta, which np.result_type rejects
+    #  as a dtype
+    box = pd.Timestamp if kind == "M8" else pd.Timedelta
+    result = arr.shift(1, fill_value=box(values[2]))
+    expected = SparseArray(np.array([values[2], values[0], values[1]], dtype=dtype))
+    tm.assert_sp_array_equal(result, expected)
+
+
+def test_value_counts_object_subtype_with_na():
+    # GH#68586 the fill_value mask took the truth of an object comparison, which
+    #  pd.NA makes ambiguous
+    values = np.array([1, pd.NA, 0, 1], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = arr.value_counts(dropna=False)
+    expected = pd.Series([1, 2, 1], index=pd.Index([0, 1, pd.NA], dtype=object))
+    tm.assert_series_equal(result, expected)
