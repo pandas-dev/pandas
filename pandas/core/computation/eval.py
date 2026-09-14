@@ -11,6 +11,8 @@ from typing import (
 )
 import warnings
 
+from pandas._config.config import _global_config as config
+
 from pandas._libs import lib
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
@@ -58,8 +60,17 @@ def _check_engine(engine: str | None) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas.core.computation.check import (
+        NUMEXPR_BLOCKED_VERSION,
+        NUMEXPR_INSTALLED,
+        warn_numexpr_blocked,
+    )
     from pandas.core.computation.expressions import USE_NUMEXPR
+
+    if engine is None and not NUMEXPR_INSTALLED and config["compute"]["use_numexpr"]:
+        # report an unusable numexpr where we would have used it, GH#66956. An
+        #  explicit engine="numexpr" raises below, which needs no warning.
+        warn_numexpr_blocked()
 
     if engine is None:
         engine = "numexpr" if USE_NUMEXPR else "python"
@@ -74,10 +85,18 @@ def _check_engine(engine: str | None) -> str:
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
     if engine == "numexpr" and not NUMEXPR_INSTALLED:
-        raise ImportError(
+        msg = (
             "'numexpr' is not installed or an unsupported version. Cannot use "
             "engine='numexpr' for query/eval if 'numexpr' is not installed"
         )
+        if NUMEXPR_BLOCKED_VERSION is not None:
+            # the deferred warning does not fire here, so the raise names the version
+            msg += (
+                f" (numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can "
+                "silently return incorrect results, so pandas does not use it; "
+                "install numexpr 2.14.2 or newer)"
+            )
+        raise ImportError(msg)
 
     return engine
 
