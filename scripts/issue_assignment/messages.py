@@ -118,7 +118,7 @@ def pr_marked_stale(gate_issue: int | None = None) -> str:
         f"on it, just push a commit, reply to a review comment, or leave a "
         f"comment — here or on the linked issue — and the label clears itself. "
         f"{next_step}"
-        f"Otherwise it'll be closed in "
+        f"Otherwise it will be closed in "
         f"**{PR_CLOSE_DAYS} days** to keep the queue manageable. Your branch "
         f"still remains, and you can ask a maintainer to reopen this PR to "
         f"continue. See the [contributing guide]({DOCS_URL}) for how the pull "
