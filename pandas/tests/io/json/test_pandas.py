@@ -32,30 +32,29 @@ import pandas._testing as tm
 from pandas.io.json import ujson_dumps
 
 
-def test_literal_json_raises():
-    # PR 53409
-    jsonl = """{"a": 1, "b": 2}
+@pytest.mark.parametrize(
+    "literal, lines",
+    [
+        (
+            """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
-        {"a": 7, "b": 8}"""
+        {"a": 7, "b": 8}""",
+            False,
+        ),
+        ('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', True),
+        ('{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n', False),
+        ('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', False),
+    ],
+)
+def test_literal_json_raises(literal, lines):
+    # PR 53409
+    with pytest.raises(OSError, match=r"\[Errno \d+\]") as excinfo:
+        pd.read_json(literal, lines=lines)
 
-    # Windows rejects the literal as a filename with EINVAL rather than ENOENT
-    msg = "|".join([r"\[Errno 2\]", "Invalid argument"])
-
-    with pytest.raises(OSError, match=msg):
-        pd.read_json(jsonl, lines=False)
-
-    with pytest.raises(OSError, match=msg):
-        pd.read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-
-    with pytest.raises(OSError, match=msg):
-        pd.read_json(
-            '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
-            lines=False,
-        )
-
-    with pytest.raises(OSError, match=msg):
-        pd.read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
+    # Windows rejects the literal as a filename with EINVAL rather than ENOENT.
+    # Compare the errno symbolically; WASM numbers them differently.
+    assert excinfo.value.errno in (errno.ENOENT, errno.EINVAL)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):

@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import errno
 from functools import partial
 from io import (
     BytesIO,
@@ -100,10 +101,7 @@ def flavor_read_html(request):
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785
-        # Windows rejects the literal as a filename with EINVAL rather than ENOENT
-        msg = "|".join([r"\[Errno 2\]", "Invalid argument"])
-
-        with pytest.raises(OSError, match=msg):
+        with pytest.raises(OSError, match=r"\[Errno \d+\]") as excinfo:
             flavor_read_html(
                 """<table>
                 <thead>
@@ -126,6 +124,10 @@ class TestReadHtml:
                 </tbody>
             </table>"""
             )
+
+        # Windows rejects the literal as a filename with EINVAL rather than ENOENT.
+        # Compare the errno symbolically; WASM numbers them differently.
+        assert excinfo.value.errno in (errno.ENOENT, errno.EINVAL)
 
     @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
     @pytest.mark.skipif(

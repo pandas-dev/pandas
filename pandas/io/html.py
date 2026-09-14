@@ -752,6 +752,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def _equals_tag(self, obj, tag) -> bool:
         return obj.tag == tag
 
+    def _raise_if_unreadable(self) -> None:
+        # lxml does not report an unreadable local file consistently -- some
+        # builds raise an errno-less OSError, others parse it as an empty
+        # document -- so reopen the path to let the real error escape. GH#29125
+        if isinstance(self.io, (str, bytes)) and not is_url(self.io):
+            with open(self.io, "rb"):
+                pass
+
     def _build_doc(self):
         """
         Raises
@@ -784,11 +792,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
             try:
                 r = parse(self.io, parser=parser)
             except OSError:
-                # lxml reports every local-file failure as a bare OSError; reopen
-                # the path so the real error surfaces with its own errno.
-                if isinstance(self.io, (str, bytes)):
-                    with open(self.io, "rb"):
-                        pass
+                self._raise_if_unreadable()
                 raise
         try:
             r = r.getroot()
@@ -796,6 +800,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
             pass
         else:
             if not hasattr(r, "text_content"):
+                self._raise_if_unreadable()
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
 
         for br in r.xpath("*//br"):
