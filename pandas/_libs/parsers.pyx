@@ -4498,8 +4498,9 @@ cdef _sanitize_converted(ndarray[object] values, set na_set):
     for i in range(len(values)):
         val = values[i]
         if type(val).__hash__ is None:
-            # list/dict/set/ndarray; the try/except below is for the
-            # remainder, but reaching it every row costs ~3x the read
+            # list/dict/set/ndarray; the try/except below catches the rest
+            # (a tuple holding a list, say), but raising once per row is ~3x
+            # the cost of the read
             continue
         try:
             if val in na_set:
