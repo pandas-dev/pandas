@@ -25,7 +25,12 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     PeriodDtype,
 )
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -52,6 +57,20 @@ _DATETIMELIKE_SCALARS = (
     Period,
     BaseOffset,
 )
+
+_PANDAS_OBJECTS = (ABCDataFrame, ABCExtensionArray, ABCIndex, ABCSeries)
+
+
+def _defers_to(obj: object) -> bool:
+    """
+    Whether a ufunc operand is one pandas hands the operation off to.
+    """
+    array_ufunc = getattr(type(obj), "__array_ufunc__", None)
+    return (
+        array_ufunc is not None
+        and array_ufunc is not np.ndarray.__array_ufunc__
+        and not isinstance(obj, _PANDAS_OBJECTS)
+    )
 
 
 def invalid_comparison(
@@ -177,6 +196,11 @@ def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
         return
 
     for obj in inputs:
+        if _defers_to(obj):
+            # raising here would take the op away from an operand we do not own,
+            #  see test_logical_ufunc_third_party_datetimelike
+            continue
+
         if isinstance(obj, ABCDataFrame):
             # a DataFrame has no dtype of its own, and with two inputs
             #  array_ufunc np.asarray()s it before any column-level guard runs

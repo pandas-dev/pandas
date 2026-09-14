@@ -643,8 +643,9 @@ def test_binary_logical_ufunc_reduce_datetimelike_raises(func, dtype):
 
 
 class _ThirdPartyArray:
-    # stands in for e.g. a polars Series, whose dtype has no "kind"
-    dtype = "bool"
+    # stands in for e.g. a polars Series; the default dtype has no "kind"
+    def __init__(self, dtype="bool") -> None:
+        self.dtype = dtype
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         return np.array([True, False])
@@ -661,3 +662,20 @@ def test_logical_op_third_party():
     tm.assert_numpy_array_equal(np.logical_and(right, left), expected)
 
     tm.assert_series_equal(left & right, pd.Series(expected))
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_logical_ufunc_third_party_datetimelike(box, dtype):
+    # GH#68524 pandas defers to an operand with its own __array_ufunc__, so the
+    #  guard must not raise on its behalf over a dtype it does not own
+    left = box(pd.array([True, True]))
+    foreign = _ThirdPartyArray(np.dtype(dtype))
+
+    # each order gets its own baseline; only a left-hand box re-wraps the result
+    tm.assert_equal(
+        np.logical_and(left, foreign), np.logical_and(left, _ThirdPartyArray())
+    )
+    tm.assert_equal(
+        np.logical_and(foreign, left), np.logical_and(_ThirdPartyArray(), left)
+    )
