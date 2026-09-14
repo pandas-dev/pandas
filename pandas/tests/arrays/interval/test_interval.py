@@ -282,3 +282,18 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     assert result.dtype.subtype == dtype
     assert result.left.dtype == dtype
     assert result.right.dtype == dtype
+
+
+@pytest.mark.parametrize(
+    "subtype", ["Int64", "Float64", "datetime64[s, Europe/Brussels]"]
+)
+def test_concat_same_type_retains_extension_subtype(subtype):
+    # GH#64297
+    breaks = pd.array([1, 2, 3], dtype="Int64").astype(subtype)
+    arr = IntervalArray.from_breaks(breaks)
+    assert arr.dtype.subtype == subtype
+
+    result = IntervalArray._concat_same_type([arr, arr])
+    assert result.dtype == arr.dtype
+    tm.assert_extension_array_equal(result[:2], arr)
+    tm.assert_extension_array_equal(result[2:], arr)
