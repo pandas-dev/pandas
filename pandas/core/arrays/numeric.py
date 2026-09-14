@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -225,11 +226,11 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             values = np.ones(values.shape, dtype=dtype)
         else:
             idx = np.nanargmax(values)
-            # `values` is positionally aligned with the input; when the input
-            # is a Series with a non-default index, ``original[idx]`` would do
-            # a label lookup and can land on a missing element even when
-            # ``values[idx]`` is concrete (GH#62473). Access positionally.
-            original_idx = getattr(original, "iloc", original)[idx]
+            # GH#62473: index positionally, since original[idx] may hit NA.
+            if isinstance(original, ABCSeries):
+                original_idx = original.iloc[idx]
+            else:
+                original_idx = original[idx]
             if (
                 not libmissing.checknull(original_idx)
                 and int(values[idx]) != original_idx
