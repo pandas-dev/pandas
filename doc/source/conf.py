@@ -450,8 +450,16 @@ random.seed(42)"""
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
 
-# https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
-toggleprompt_offset_right = 35
+# Strip input prompts when copying code cells so only code (not prompts or
+# outputs) is copied. Pattern covers the stock Python REPL, bash, and the
+# IPython/Jupyter prompts emitted by the ipython directive used across the
+# user guide (e.g. `In [1]:` with `...:` continuations). When prompt lines
+# are detected, only those lines are copied, which excludes outputs
+# automatically. See https://sphinx-copybutton.readthedocs.io/en/latest/use.html
+# Note: sphinx-toggleprompt is intentionally not used here; it is broken for
+# the current Sphinx (https://github.com/jurasofish/sphinx-toggleprompt/issues/23).
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
+copybutton_prompt_is_regexp = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["../_templates"]
