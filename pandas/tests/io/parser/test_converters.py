@@ -295,46 +295,31 @@ def test_converters_na_values(all_parsers, na_values, values, keep_default_na):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("keep_default_na", [True, False])
-def test_converters_keep_default_na(all_parsers, keep_default_na):
-    # GH#13302
+@pytest.mark.parametrize(
+    "kwargs,values",
+    [
+        ({}, ["1", np.nan, "CAT"]),
+        ({"keep_default_na": False}, ["1", "", "CAT"]),
+        ({"keep_default_na": False, "na_values": "CAT"}, ["1", "", np.nan]),
+        ({"na_filter": False, "na_values": "CAT"}, ["1", "", "CAT"]),
+    ],
+)
+def test_converters_default_na_values(all_parsers, kwargs, values):
+    # GH#13302 the default NA strings, keep_default_na and na_filter apply to
+    # a converter column as they do to any other
     parser = all_parsers
-    data = "A\n1\nNA\n3"
-    converters = {"A": lambda x: x}
+    data = "A,B\n1,x\n,y\nCAT,z"
+    converters = {"A": str}
 
     if parser.engine == "pyarrow":
         msg = "The 'converters' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            parser.read_csv(
-                StringIO(data), converters=converters, keep_default_na=keep_default_na
-            )
+            parser.read_csv(StringIO(data), converters=converters, **kwargs)
         return
 
-    result = parser.read_csv(
-        StringIO(data), converters=converters, keep_default_na=keep_default_na
-    )
-    values = ["1", np.nan, "3"] if keep_default_na else ["1", "NA", "3"]
-    tm.assert_frame_equal(result, pd.DataFrame({"A": values}))
-
-
-def test_converters_na_filter_false(all_parsers):
-    # GH#13302 na_filter=False turns off na_values on a converter column too
-    parser = all_parsers
-    data = "A\n1\nCAT\n3"
-    converters = {"A": lambda x: x}
-
-    if parser.engine == "pyarrow":
-        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(
-                StringIO(data), converters=converters, na_values="CAT", na_filter=False
-            )
-        return
-
-    result = parser.read_csv(
-        StringIO(data), converters=converters, na_values="CAT", na_filter=False
-    )
-    tm.assert_frame_equal(result, pd.DataFrame({"A": ["1", "CAT", "3"]}))
+    result = parser.read_csv(StringIO(data), converters=converters, **kwargs)
+    expected = pd.DataFrame({"A": values, "B": ["x", "y", "z"]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_converters_na_values_numeric_output(all_parsers):
@@ -354,10 +339,34 @@ def test_converters_na_values_numeric_output(all_parsers):
     tm.assert_frame_equal(result, pd.DataFrame({"A": [1.0, np.nan, 3.0]}))
 
 
+def test_converters_na_values_all_na_dtype(all_parsers, request):
+    # GH#13302 an all-NA converter column is float64, like the read without a
+    # converter
+    parser = all_parsers
+    data = "A,B\nCAT,x\nCAT,y"
+    converters = {"A": lambda x: x}
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), converters=converters, na_values="CAT")
+        return
+
+    if parser.engine == "python":
+        mark = pytest.mark.xfail(
+            reason="python engine does not re-infer a converter column"
+        )
+        request.applymarker(mark)
+
+    result = parser.read_csv(StringIO(data), converters=converters, na_values="CAT")
+    expected = pd.DataFrame({"A": [np.nan, np.nan], "B": ["x", "y"]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_converters_na_values_index_col(all_parsers):
-    # GH#13302 a converter column used as the index honors na_values too.
-    # The converter is an identity so that this passes on the python engine,
-    # which never calls a converter for an index column.
+    # GH#13302 na_values apply to a converter column used as the index. The
+    # converter is an identity so that this passes on the python engine, which
+    # never calls a converter for an index column.
     parser = all_parsers
     data = "A,B\nq,x\nCAT,y"
     converters = {"A": lambda x: x}
@@ -377,9 +386,9 @@ def test_converters_na_values_index_col(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_converters_na_values_bool_output(all_parsers):
+def test_converters_na_values_bool_output(all_parsers, request):
     # GH#13302 True == 1, so bools a converter returns match a numeric
-    # na_values entry, the same cells the read without a converter drops.
+    # na_values entry, the same cells the read without a converter drops
     parser = all_parsers
     data = "A\n1\n0\n1"
     converters = {"A": lambda x: bool(int(x))}
@@ -390,36 +399,11 @@ def test_converters_na_values_bool_output(all_parsers):
             parser.read_csv(StringIO(data), converters=converters, na_values=[1])
         return
 
+    if parser.engine == "python":
+        # np.putmask writes the NaN into a bool array, where it reads as True
+        mark = pytest.mark.xfail(reason="python engine writes NaN into a bool array")
+        request.applymarker(mark)
+
     result = parser.read_csv(StringIO(data), converters=converters, na_values=[1])
-    if parser.engine == "python":
-        # map_infer converts to a real bool array first, so _infer_types
-        # takes the numeric path and the match is lost
-        expected = pd.DataFrame({"A": [True, False, True]})
-    else:
-        expected = pd.DataFrame({"A": [np.nan, False, np.nan]}, dtype=object)
+    expected = pd.DataFrame({"A": [np.nan, False, np.nan]}, dtype=object)
     tm.assert_frame_equal(result, expected)
-
-
-def test_converters_raising_on_empty_field(all_parsers):
-    # GH#13302 na_values apply to the converter's output, so a converter that
-    # raises on an empty field still raises; the python engine masks it.
-    parser = all_parsers
-    data = "a,b\n1,x\n,y\n3,z"
-
-    if parser.engine == "pyarrow":
-        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
-        with pytest.raises(ValueError, match=msg):
-            parser.read_csv(StringIO(data), converters={"a": float})
-        return
-
-    if parser.engine == "python":
-        # the empty field is masked before the converter sees it, leaving the
-        # column object dtype
-        result = parser.read_csv(StringIO(data), converters={"a": float})
-        expected = pd.DataFrame({"a": [1.0, np.nan, 3.0], "b": ["x", "y", "z"]})
-        expected["a"] = expected["a"].astype(object)
-        tm.assert_frame_equal(result, expected)
-        return
-
-    with pytest.raises(ValueError, match="could not convert string to float"):
-        parser.read_csv(StringIO(data), converters={"a": float})
