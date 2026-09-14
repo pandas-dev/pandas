@@ -1089,7 +1089,8 @@ def _read_csv_chunks(
                     fut.result()
                 except Exception as err:
                     if (
-                        "SQLite objects created in a thread can only be used in that same thread"
+                        "SQLite objects created in a thread can only be used in "
+"that same thread"
                         in str(err)
                     ):
                         raise RuntimeError(
