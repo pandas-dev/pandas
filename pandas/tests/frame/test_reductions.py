@@ -1748,6 +1748,28 @@ class TestDataFrameReductions:
         tm.assert_series_equal(df.min(axis=1), expected_dt_series)
         tm.assert_series_equal(df.max(axis=1), expected_dt_series)
 
+    @pytest.mark.parametrize("method", ["min", "max"])
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "datetime64[ns, UTC]",
+            "datetime64[ns]",
+            "timedelta64[ns]",
+        ],
+    )
+    def test_minmax_empty_homogeneous_axis1_preserves_dtype(self, method, dtype):
+        # GH#32802: empty frame with homogeneous datetime-like columns
+        # must not fall back to float64 for axis=1 reductions.
+        ser = pd.Series([], dtype=dtype)
+        df = pd.concat([ser, ser], axis=1)
+        expected = pd.Series([], dtype=dtype, index=df.index)
+
+        result = getattr(df, method)(axis=1)
+        tm.assert_series_equal(result, expected)
+
+        result_agg = df.agg(method, axis=1)
+        tm.assert_series_equal(result_agg, expected)
+
     def test_min_max_dt64_api_consistency_empty_df(self):
         # check DataFrame/Series api consistency when calling min/max on an empty
         # DataFrame/Series.
