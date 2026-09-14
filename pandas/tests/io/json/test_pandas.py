@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+import errno
 from io import (
     BytesIO,
     StringIO,
@@ -7,7 +8,9 @@ from io import (
 import json
 import os
 from pathlib import Path
+import re
 import sys
+from urllib.error import HTTPError
 import uuid
 
 import numpy as np
@@ -15,7 +18,11 @@ import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import IS64
+from pandas.compat import (
+    IS64,
+    WASM,
+    is_platform_windows,
+)
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -25,29 +32,29 @@ import pandas._testing as tm
 from pandas.io.json import ujson_dumps
 
 
-def test_literal_json_raises():
-    # PR 53409
-    jsonl = """{"a": 1, "b": 2}
+@pytest.mark.parametrize(
+    "literal, lines",
+    [
+        (
+            """{"a": 1, "b": 2}
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
-        {"a": 7, "b": 8}"""
+        {"a": 7, "b": 8}""",
+            False,
+        ),
+        ('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', True),
+        ('{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n', False),
+        ('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', False),
+    ],
+)
+def test_literal_json_raises(literal, lines):
+    # PR 53409
+    with pytest.raises(OSError, match=r"\[Errno \d+\]") as excinfo:
+        pd.read_json(literal, lines=lines)
 
-    msg = r".* does not exist"
-
-    with pytest.raises(FileNotFoundError, match=msg):
-        pd.read_json(jsonl, lines=False)
-
-    with pytest.raises(FileNotFoundError, match=msg):
-        pd.read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
-
-    with pytest.raises(FileNotFoundError, match=msg):
-        pd.read_json(
-            '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
-            lines=False,
-        )
-
-    with pytest.raises(FileNotFoundError, match=msg):
-        pd.read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
+    # Windows rejects the literal as a filename with EINVAL rather than ENOENT.
+    # Compare the errno symbolically; WASM numbers them differently.
+    assert excinfo.value.errno in (errno.ENOENT, errno.EINVAL)
 
 
 def assert_json_roundtrip_equal(result, expected, orient):
@@ -1298,6 +1305,19 @@ class TestPandasContainer:
 
     @pytest.mark.network
     @pytest.mark.single_cpu
+    def test_url_not_found(self, httpserver):
+        # GH#29125 a failed fetch must not be reported as a missing file
+        httpserver.serve_content("not found", code=404)
+
+        try:
+            with pytest.raises(HTTPError, match="HTTP Error 404") as err:
+                pd.read_json(httpserver.url)
+        finally:
+            # has a file-like handle that we can close
+            err.value.close()
+
+    @pytest.mark.network
+    @pytest.mark.single_cpu
     def test_url(self, httpserver):
         data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
         httpserver.serve_content(content=data)
@@ -2065,12 +2085,14 @@ class TestPandasContainer:
     def test_read_json_with_very_long_file_path(self, compression):
         # GH 46718
         long_json_path = f"{'a' * 1000}.json{compression}"
-        with pytest.raises(
-            FileNotFoundError, match=f"File {long_json_path} does not exist"
-        ):
-            # path too long for Windows is handled in file_exists() but raises in
-            # _get_data_from_filepath()
+        # the strerror text is locale-dependent, so only the path is matched
+        with pytest.raises(OSError, match=re.escape(long_json_path)) as excinfo:
             pd.read_json(long_json_path)
+
+        # GH#29125 the path is too long, not missing (Windows and WASM do not
+        # report ENAMETOOLONG)
+        if not (is_platform_windows() or WASM):
+            assert excinfo.value.errno == errno.ENAMETOOLONG
 
     @pytest.mark.parametrize(
         "date_format,key", [("epoch", 86400000), ("iso", "1970-01-02T00:00:00.000")]

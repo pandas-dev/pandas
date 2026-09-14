@@ -2391,3 +2391,93 @@ def test_sum_mixed_empty(any_string_dtype):
     )
     result = empty_df.sum()
     tm.assert_series_equal(result, expected)
+
+
+def test_frame_with_ea_series_keeps_dtype(any_numeric_ea_dtype):
+    # GH#61828 the Series used to be dispatched element-wise, so its dtype
+    # never reached the op and the result came back as numpy
+    df = pd.DataFrame([[10, 20], [30, 40]])
+    ser = pd.Series([1, 2], dtype=any_numeric_ea_dtype)
+
+    # the Series-with-Series result dtype is what the broadcast should give
+    dtype = (df[0] + ser).dtype
+    expected = pd.DataFrame([[11, 22], [31, 42]], dtype=dtype)
+    tm.assert_frame_equal(df + ser, expected)
+    tm.assert_frame_equal(df.add(ser), expected)
+
+    # comparisons keep it too, so the result is boolean rather than bool.
+    # the operand overlaps df so the result is not uniform, pinning the broadcast axis
+    overlapping = pd.Series([10, 40], dtype=any_numeric_ea_dtype)
+    dtype = (df[0] > overlapping).dtype
+    expected = pd.DataFrame([[False, False], [True, False]], dtype=dtype)
+    tm.assert_frame_equal(df > overlapping, expected)
+    expected = pd.DataFrame([[True, False], [False, True]], dtype=dtype)
+    tm.assert_frame_equal(df == overlapping, expected)
+
+
+def test_frame_with_categorical_series_raises_like_series():
+    # GH#61828 arithmetic against a Categorical used to operate on the
+    # categories as scalars instead of raising the way every other box does
+    df = pd.DataFrame([[10, 20], [30, 40]])
+    ser = pd.Series(pd.Categorical([10, 40]))
+
+    msg = "Object with dtype category cannot perform the numpy op add"
+    with pytest.raises(TypeError, match=msg):
+        df + ser
+    with pytest.raises(TypeError, match=msg):
+        df.add(ser)
+    with pytest.raises(TypeError, match=msg):
+        df[0] + ser
+
+    msg = "Unordered Categoricals can only compare equality or not"
+    with pytest.raises(TypeError, match=msg):
+        df.lt(ser)
+    with pytest.raises(TypeError, match=msg):
+        df[0].lt(ser)
+
+    # logical ops go through the same path (_logical_method is _arith_method)
+    bool_df = pd.DataFrame([[True, False], [False, True]])
+    with pytest.raises(TypeError, match="cannot perform the numpy op bitwise_and"):
+        bool_df & pd.Series(pd.Categorical([True, False]))
+
+    # an ordered Categorical is rejected as well, with its own message
+    ordered = pd.Series(pd.Categorical([1, 2], ordered=True))
+    msg = "Cannot compare a Categorical for op"
+    with pytest.raises(TypeError, match=msg):
+        df.lt(ordered)
+    with pytest.raises(TypeError, match=msg):
+        df[0].lt(ordered)
+
+    # equality is still defined for an unordered Categorical
+    expected = pd.DataFrame([[True, False], [False, True]])
+    tm.assert_frame_equal(df == ser, expected)
+
+
+def test_frame_with_ea_series_propagates_na():
+    # GH#61828 the Series used to be dispatched element-wise, so NA compared as
+    # an ordinary scalar instead of propagating
+    df = pd.DataFrame([[10, 20], [30, 40]])
+    ser = pd.Series([1, None], dtype="Int64")
+
+    result = df > ser
+    expected = pd.DataFrame([[True, None], [True, None]], dtype="boolean")
+    tm.assert_frame_equal(result, expected)
+
+    result = df == ser
+    expected = pd.DataFrame([[False, None], [False, None]], dtype="boolean")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_with_period_series():
+    # GH#61828 adding a period Series to an integer frame used to raise
+    df = pd.DataFrame([[10, 20], [30, 40]])
+    ser = pd.Series(pd.period_range("2020-01-01", periods=2, freq="D"))
+
+    result = df + ser
+    expected = pd.DataFrame(
+        {
+            0: pd.PeriodIndex(["2020-01-11", "2020-01-31"], freq="D"),
+            1: pd.PeriodIndex(["2020-01-22", "2020-02-11"], freq="D"),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
