@@ -137,6 +137,7 @@ extensions = [
     "numpydoc",
     "sphinx_copybutton",
     "sphinx_design",
+    "jupyterlite_sphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -449,6 +450,25 @@ random.seed(42)"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
+
+# Interactive "Try it in your browser!" buttons on API reference Examples
+# sections (GH#65734, as on NumPy's API pages). jupyterlite-sphinx inserts
+# try_examples directives into numpydoc Examples sections at build time; the
+# preamble provides the pd/np names docstring examples assume but never
+# import. See https://jupyterlite-sphinx.readthedocs.io/
+global_enable_try_examples = True
+try_examples_global_button_text = "Try it in your browser!"
+try_examples_global_warning_text = (
+    "Interactive examples are experimental and may take a moment to load. "
+    "The pandas version running in your browser may differ from the version "
+    "documented here, and some optional dependencies and local data files "
+    "may be unavailable. Run the cells from top to bottom, starting with "
+    "the imports."
+)
+try_examples_preamble = "import pandas as pd\nimport numpy as np"
+# Keep .ipynb rendering with nbsphinx: jupyterlite-sphinx would otherwise bind
+# the ipynb suffix and break nbsphinx pages (e.g. style.ipynb labels)
+jupyterlite_bind_ipynb_suffix = False
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
