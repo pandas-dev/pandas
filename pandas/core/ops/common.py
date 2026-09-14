@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._libs.lib import (
     is_list_like,
+    is_scalar,
     item_from_zerodim,
 )
 from pandas._libs.missing import is_matching_na
@@ -41,6 +42,37 @@ def has_castable_attr(obj) -> bool:
     return any(hasattr(obj, name) for name in attrs)
 
 
+def is_listlike_for_op(other) -> bool:
+    """
+    Whether ``other`` should be operated with element-wise, as opposed to
+    being treated as a scalar.
+
+    Iterators are list-like but have no length, so they cannot be aligned
+    element-wise; they are treated as scalar-like (GH#31646), matching
+    ndarray and numpy-dtype Series.
+    """
+    return is_list_like(other) and (
+        hasattr(other, "__len__") or has_castable_attr(other)
+    )
+
+
+def is_scalar_for_op(other) -> bool:
+    """
+    Whether ``other`` should be treated as a scalar rather than operated with
+    element-wise.
+
+    Wider than ``lib.is_scalar``: an iterator, or any object we neither
+    recognize as a scalar nor can align element-wise, belongs on the scalar
+    path instead of in a ``len()`` call (GH#31646). Not the negation of
+    ``is_listlike_for_op``: a sized sequence defining ``__getitem__`` but not
+    ``__iter__`` is not ``is_list_like``, yet NumPy still coerces it, so it
+    stays element-wise.
+    """
+    return is_scalar(other) or not (
+        hasattr(other, "__len__") or has_castable_attr(other)
+    )
+
+
 def maybe_warn_listlike(other) -> None:
     """
     Warn when operating against a list-like that is neither a standard container
@@ -48,9 +80,10 @@ def maybe_warn_listlike(other) -> None:
 
     Such operations (e.g. with ``tuple``, ``range``, ``deque``) are deprecated
     (GH#62423) and will treat ``other`` as scalar-like in a future version.
+    Iterators are already scalar-like, so they do not warn.
     """
     if (
-        is_list_like(other)
+        is_listlike_for_op(other)
         and not isinstance(
             other,
             (list, np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCDataFrame),
