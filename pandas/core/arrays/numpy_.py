@@ -257,10 +257,11 @@ class NumpyExtensionArray(
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in NumpyExtensionArray, since pandas' ExtensionArrays are 1-d.
-        out = kwargs.get("out", ())
 
         # this path never reaches ExtensionArray.__array_ufunc__
         ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
+        out = kwargs.get("out", ())
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
