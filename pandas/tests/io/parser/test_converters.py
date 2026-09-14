@@ -268,6 +268,7 @@ def test_converter_multi_index(all_parsers):
         ("CAT", ["1", np.nan, "3"]),
         ([-999, "CAT"], ["1", np.nan, "3"]),
         ({"A": ["CAT"]}, ["1", np.nan, "3"]),
+        ({0: ["CAT"]}, ["1", np.nan, "3"]),
         # no entry for the converter column, so it gets the defaults or nothing
         ({"B": ["CAT"]}, ["1", "CAT", "3"]),
     ],
@@ -354,8 +355,9 @@ def test_converters_na_values_numeric_output(all_parsers):
 
 
 def test_converters_na_values_index_col(all_parsers):
-    # GH#13302 a converter column used as the index honors na_values too --
-    # on the python engine without ever calling the converter.
+    # GH#13302 a converter column used as the index honors na_values too.
+    # The converter is an identity so that this passes on the python engine,
+    # which never calls a converter for an index column.
     parser = all_parsers
     data = "A,B\nq,x\nCAT,y"
     converters = {"A": lambda x: x}
@@ -373,3 +375,51 @@ def test_converters_na_values_index_col(all_parsers):
     )
     expected = pd.DataFrame({"B": ["x", "y"]}, index=pd.Index(["q", np.nan], name="A"))
     tm.assert_frame_equal(result, expected)
+
+
+def test_converters_na_values_bool_output(all_parsers):
+    # GH#13302 True == 1, so bools a converter returns match a numeric
+    # na_values entry, the same cells the read without a converter drops.
+    parser = all_parsers
+    data = "A\n1\n0\n1"
+    converters = {"A": lambda x: bool(int(x))}
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), converters=converters, na_values=[1])
+        return
+
+    result = parser.read_csv(StringIO(data), converters=converters, na_values=[1])
+    if parser.engine == "python":
+        # map_infer converts to a real bool array first, so _infer_types
+        # takes the numeric path and the match is lost
+        expected = pd.DataFrame({"A": [True, False, True]})
+    else:
+        expected = pd.DataFrame({"A": [np.nan, False, np.nan]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_converters_raising_on_empty_field(all_parsers):
+    # GH#13302 na_values apply to the converter's output, so a converter that
+    # raises on an empty field still raises; the python engine masks it.
+    parser = all_parsers
+    data = "a,b\n1,x\n,y\n3,z"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), converters={"a": float})
+        return
+
+    if parser.engine == "python":
+        # the empty field is masked before the converter sees it, leaving the
+        # column object dtype
+        result = parser.read_csv(StringIO(data), converters={"a": float})
+        expected = pd.DataFrame({"a": [1.0, np.nan, 3.0], "b": ["x", "y", "z"]})
+        expected["a"] = expected["a"].astype(object)
+        tm.assert_frame_equal(result, expected)
+        return
+
+    with pytest.raises(ValueError, match="could not convert string to float"):
+        parser.read_csv(StringIO(data), converters={"a": float})
