@@ -845,7 +845,8 @@ def assert_numpy_array_equal(
                 )
 
             if (
-                left.dtype.kind in "mM"
+                check_dtype
+                and left.dtype.kind in "mM"
                 and right.dtype.kind in "mM"
                 and left.dtype != right.dtype
             ):
@@ -866,8 +867,21 @@ def assert_numpy_array_equal(
 
         raise AssertionError(err_msg)
 
+    # NumPy compares datetime-like values across units, while array_equivalent
+    # requires matching datetime-like dtypes. Use NumPy's unit-aware comparison
+    # when the caller has explicitly disabled the dtype check.
+    if (
+        not check_dtype
+        and left.dtype.kind in "mM"
+        and left.dtype.kind == right.dtype.kind
+        and left.dtype != right.dtype
+    ):
+        values_equivalent = np.array_equal(left, right, equal_nan=True)
+    else:
+        values_equivalent = array_equivalent(left, right, strict_nan=strict_nan)
+
     # compare shape and values
-    if not array_equivalent(left, right, strict_nan=strict_nan):
+    if not values_equivalent:
         _raise(left, right, err_msg)
 
     if check_dtype:

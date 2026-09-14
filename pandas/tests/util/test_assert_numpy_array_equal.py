@@ -236,6 +236,34 @@ numpy array values are different \\(100.0 %\\)
         tm.assert_numpy_array_equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "left, right",
+    [
+        (
+            np.array([1], dtype="m8[s]"),
+            np.array([1_000_000], dtype="m8[us]"),
+        ),
+        (
+            np.array(["NaT"], dtype="m8[s]"),
+            np.array(["NaT"], dtype="m8[us]"),
+        ),
+    ],
+)
+def test_assert_numpy_array_equal_different_unit_check_dtype_false(left, right):
+    # GH#68459
+    tm.assert_numpy_array_equal(left, right, check_dtype=False)
+
+
+def test_assert_numpy_array_equal_unequal_different_unit_check_dtype_false():
+    # GH#68459
+    left = np.array([1], dtype="m8[s]")
+    right = np.array([2_000_000], dtype="m8[us]")
+    msg = "numpy array values are different"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(left, right, check_dtype=False)
+
+
 def test_assert_numpy_array_equal_nat_different_unit():
     # GH#68459
     arr1 = np.array(["NaT"], dtype="timedelta64[s]")
