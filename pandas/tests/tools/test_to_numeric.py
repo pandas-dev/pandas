@@ -930,6 +930,33 @@ def test_coerce_pyarrow_backend():
     tm.assert_series_equal(result, expected)
 
 
+def test_coerce_arrow_dtype_input_no_dtype_backend():
+    # GH#67949 with ArrowDtype input and no dtype_backend passed, coerced
+    # NaN values were embedded directly as float data instead of being
+    # tracked via the mask, so isna()/ffill() failed to recognize them.
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", "NaN"], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([1, None], dtype=pd.ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result.isna(), pd.Series([False, True]))
+    expected_ffill = pd.Series([1, 1], dtype=pd.ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result.ffill(), expected_ffill)
+
+
+def test_coerce_arrow_dtype_input_mixed_real_and_coerced_na():
+    # GH#67949 A real null mixed with an unparsable non-null value: the
+    # real null is dropped before parsing, so the coerced-NaN mask (indexed
+    # relative to the post-drop array) must be scattered back into the
+    # full-length mask rather than discarded.
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", None, "NaN"], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce")
+    expected = pd.Series([1, None, None], dtype=pd.ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result.isna(), pd.Series([False, True, True]))
+
+
 def test_large_exponent_coerce():
     # GH#63650 - exponent overflow in precise_xstrtod should not segfault
     ser = pd.Series(["1E3000000000"])
