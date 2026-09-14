@@ -17,10 +17,6 @@ from pandas.errors import (
 )
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Timestamp,
-)
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
 
@@ -49,7 +45,7 @@ def test_dtype_all_columns(
             pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
         )
 
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((5, 2)).round(4),
         columns=list("AB"),
         index=["1A", "1B", "1C", "1D", "1E"],
@@ -79,7 +75,7 @@ one,two
 2,3.5
 3,4.5
 4,5.5"""
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, "2.5"], [2, "3.5"], [3, "4.5"], [4, "5.5"]], columns=["one", "two"]
     )
     expected["one"] = expected["one"].astype(np.float64)
@@ -143,14 +139,14 @@ def test_dtype_with_converters(all_parsers):
         dtype={"a": "i8"},
         converters={"a": lambda x: str(x)},
     )
-    expected = DataFrame({"a": ["1.1", "1.2"], "b": [2.2, 2.3]})
+    expected = pd.DataFrame({"a": ["1.1", "1.2"], "b": [2.2, 2.3]})
     tm.assert_frame_equal(result, expected)
 
 
 def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
     data = "0\n1"
     parser = all_parsers
-    expected = DataFrame([0, 1], dtype=any_real_numpy_dtype)
+    expected = pd.DataFrame([0, 1], dtype=any_real_numpy_dtype)
 
     result = parser.read_csv(StringIO(data), header=None, dtype=any_real_numpy_dtype)
     tm.assert_frame_equal(expected, result, check_column_type=False)
@@ -165,7 +161,7 @@ def test_numeric_dtype(all_parsers, any_real_numpy_dtype):
 def test_complex_dtype(all_parsers, data, dtype):
     # GH#9379 round-trip support for complex columns in read_csv
     parser = all_parsers
-    expected = DataFrame({"a": [1 + 2j, 2 + 3j, 3 + 4j]}, dtype=dtype)
+    expected = pd.DataFrame({"a": [1 + 2j, 2 + 3j, 3 + 4j]}, dtype=dtype)
 
     result = parser.read_csv(StringIO(data), dtype={"a": dtype})
     tm.assert_frame_equal(result, expected)
@@ -174,7 +170,7 @@ def test_complex_dtype(all_parsers, data, dtype):
 def test_complex_dtype_roundtrip(all_parsers, temp_file):
     # GH#9379 read_csv reads back what to_csv writes for complex columns
     parser = all_parsers
-    expected = DataFrame({"a": [1 + 2j, 2 + 3j, 3 + 4j]}, dtype="complex128")
+    expected = pd.DataFrame({"a": [1 + 2j, 2 + 3j, 3 + 4j]}, dtype="complex128")
     expected.to_csv(temp_file, index=False)
 
     result = parser.read_csv(temp_file, dtype={"a": "complex128"})
@@ -185,7 +181,7 @@ def test_complex_dtype_with_na(all_parsers):
     # GH#9379 empty cells in complex columns become nan+0j
     parser = all_parsers
     data = "a,b\n(1+2j),1\n,2\n(3+4j),3\n"
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": np.array([1 + 2j, complex(np.nan, 0), 3 + 4j], dtype="complex128"),
             "b": [1, 2, 3],
@@ -221,7 +217,7 @@ def test_boolean_dtype(all_parsers):
     )
 
     result = parser.read_csv(StringIO(data), dtype="boolean")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.array(
                 [
@@ -273,8 +269,8 @@ def test_delimiter_with_usecols_and_parse_dates(all_parsers):
         parse_dates=["col3"],
         decimal=",",
     )
-    expected = DataFrame(
-        {"col1": [-9.1], "col2": [-9.1], "col3": [Timestamp("2010-10-10")]}
+    expected = pd.DataFrame(
+        {"col1": [-9.1], "col2": [-9.1], "col3": [pd.Timestamp("2010-10-10")]}
     )
     tm.assert_frame_equal(result, expected)
 
@@ -367,7 +363,7 @@ no,yyy
         false_values=["no"],
         dtype={"a": "boolean"},
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a": [True, False, True, False], "b": ["xxx", "yyy", "zzz", "aaa"]}
     )
     expected["a"] = expected["a"].astype("boolean")
@@ -383,7 +379,7 @@ def test_dtype_mangle_dup_cols(all_parsers, dtypes, exp_value):
     # GH#42462
     dtype_dict_copy = dtype_dict.copy()
     result = parser.read_csv(StringIO(data), dtype=dtype_dict)
-    expected = DataFrame({"a": ["1"], "a.1": [exp_value]})
+    expected = pd.DataFrame({"a": ["1"], "a.1": [exp_value]})
     assert dtype_dict == dtype_dict_copy, "dtype dict changed"
     tm.assert_frame_equal(result, expected)
 
@@ -393,7 +389,7 @@ def test_dtype_mangle_dup_cols_single_dtype(all_parsers):
     parser = all_parsers
     data = """a,a\n1,1"""
     result = parser.read_csv(StringIO(data), dtype=str)
-    expected = DataFrame({"a": ["1"], "a.1": ["1"]})
+    expected = pd.DataFrame({"a": ["1"], "a.1": ["1"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -425,7 +421,7 @@ def test_dtype_multi_index(all_parsers):
         },
     )
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             ("A", "X"): np.int32([1]),
             ("B", "Y"): np.int32([2]),
@@ -445,7 +441,7 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
 ,3,5
 1,,6
 2,4,"""
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.array([pd.NA, 1, 2], dtype=dtype),
             "b": pd.array([3, pd.NA, 4], dtype=dtype),
@@ -464,7 +460,7 @@ def test_nullable_int_dtype_boundary_values(all_parsers):
     parser = all_parsers
     data = "a,b\n-9223372036854775808,18446744073709551615\n0,0\n"
     result = parser.read_csv(StringIO(data), dtype={"a": "Int64", "b": "UInt64"})
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.array([-9223372036854775808, 0], dtype="Int64"),
             "b": pd.array([18446744073709551615, 0], dtype="UInt64"),
@@ -484,7 +480,7 @@ def test_explicit_arrow_numeric_dtype(all_parsers):
     result = parser.read_csv(
         StringIO(data), dtype={"a": "int64[pyarrow]", "b": "double[pyarrow]"}
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.array([1, pd.NA, -3], dtype="int64[pyarrow]"),
             "b": pd.array([2.5, pd.NA, 4.0], dtype="double[pyarrow]"),
@@ -526,7 +522,7 @@ def test_explicit_arrow_temporal_dtype(all_parsers):
     parser = all_parsers
     data = "a,b\n2020-01-01,1\n,2\n2021-06-15,3\n"
     result = parser.read_csv(StringIO(data), dtype={"a": "timestamp[ns][pyarrow]"})
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.array(
                 ["2020-01-01", None, "2021-06-15"], dtype="timestamp[ns][pyarrow]"
@@ -548,7 +544,7 @@ def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
         true_values=["yes"],
         false_values=["no"],
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a": pd.array([True, False, True], dtype="boolean"), "b": [1, 2, 3]}
     )
     tm.assert_frame_equal(result, expected)
@@ -563,7 +559,7 @@ def test_dtypes_defaultdict(all_parsers, default):
     dtype = defaultdict(lambda: default, a="int64")
     parser = all_parsers
     result = parser.read_csv(StringIO(data), dtype=dtype)
-    expected = DataFrame({"a": [1], "b": 2.0})
+    expected = pd.DataFrame({"a": [1], "b": 2.0})
     tm.assert_frame_equal(result, expected)
 
 
@@ -576,7 +572,7 @@ def test_dtypes_defaultdict_names_with_integer_header(all_parsers):
     dtype = defaultdict(lambda: "float64", x="int64")
     parser = all_parsers
     result = parser.read_csv(StringIO(data), header=0, names=["x", "y"], dtype=dtype)
-    expected = DataFrame({"x": [1], "y": 2.0})
+    expected = pd.DataFrame({"x": [1], "y": 2.0})
     tm.assert_frame_equal(result, expected)
 
 
@@ -589,7 +585,9 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     dtype["b.1"] = "int64"
     parser = all_parsers
     result = parser.read_csv(StringIO(data), dtype=dtype)
-    expected = DataFrame({"a": [1], "b": [2.0], "a.1": [3], "b.2": [4.0], "b.1": [5]})
+    expected = pd.DataFrame(
+        {"a": [1], "b": [2.0], "a.1": [3], "b.2": [4.0], "b.1": [5]}
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -616,7 +614,7 @@ def test_dtype_backend(all_parsers):
     result = parser.read_csv(
         StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"]
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.Series([1, 3], dtype="Int64"),
             "b": pd.Series([2.5, 4.5], dtype="Float64"),
@@ -626,7 +624,7 @@ def test_dtype_backend(all_parsers):
             "f": pd.Series([pd.NA, 7.5], dtype="Float64"),
             "g": pd.Series([pd.NA, True], dtype="boolean"),
             "h": pd.Series([pd.NA, "a"], dtype="string"),
-            "i": pd.Series([Timestamp("2019-12-31")] * 2),
+            "i": pd.Series([pd.Timestamp("2019-12-31")] * 2),
             "j": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
@@ -645,7 +643,7 @@ def test_dtype_backend_and_dtype(all_parsers):
     result = parser.read_csv(
         StringIO(data), dtype_backend="numpy_nullable", dtype="float64"
     )
-    expected = DataFrame({"a": [1.0, np.nan], "b": [2.5, np.nan]})
+    expected = pd.DataFrame({"a": [1.0, np.nan], "b": [2.5, np.nan]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -660,7 +658,7 @@ b,
 """
         result = parser.read_csv(StringIO(data), dtype_backend="numpy_nullable")
 
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "a": pd.array(["a", "b"], dtype=pd.StringDtype(string_storage)),
                 "b": pd.array(["x", pd.NA], dtype=pd.StringDtype(string_storage)),
@@ -678,7 +676,7 @@ def test_dtype_backend_ea_dtype_specified(all_parsers):
     result = parser.read_csv(
         StringIO(data), dtype="Int64", dtype_backend="numpy_nullable"
     )
-    expected = DataFrame({"a": [1], "b": 2}, dtype="Int64")
+    expected = pd.DataFrame({"a": [1], "b": 2}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -693,7 +691,9 @@ def test_dtype_string_int_column_with_na(all_parsers, dtype):
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
 
-    expected = DataFrame({"var1": ["44794724", None], "var2": ["x", "y"]}, dtype=dtype)
+    expected = pd.DataFrame(
+        {"var1": ["44794724", None], "var2": ["x", "y"]}, dtype=dtype
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -707,7 +707,7 @@ def test_dtype_backend_pyarrow(all_parsers, request):
 3,4.5,False,b,6,7.5,True,a,12-31-2019,
 """
     result = parser.read_csv(StringIO(data), dtype_backend="pyarrow", parse_dates=["i"])
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.Series([1, 3], dtype="int64[pyarrow]"),
             "b": pd.Series([2.5, 4.5], dtype="float64[pyarrow]"),
@@ -720,7 +720,7 @@ def test_dtype_backend_pyarrow(all_parsers, request):
                 [pd.NA, "a"],
                 dtype=pd.ArrowDtype(pa.string()),
             ),
-            "i": pd.Series([Timestamp("2019-12-31")] * 2),
+            "i": pd.Series([pd.Timestamp("2019-12-31")] * 2),
             "j": pd.Series([pd.NA, pd.NA], dtype="null[pyarrow]"),
         }
     )
@@ -736,7 +736,7 @@ def test_ea_int_avoid_overflow(all_parsers):
 1582218195625938945,1
 """
     result = parser.read_csv(StringIO(data), dtype={"a": "Int64"})
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": IntegerArray(
                 np.array([1, 1, 1582218195625938945]), np.array([False, True, False])
@@ -758,7 +758,7 @@ y,2
     parser = all_parsers
     result = parser.read_csv(StringIO(data))
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.Series(
                 ["x", "y", None if parser.engine == "pyarrow" else np.nan], dtype=dtype
@@ -785,7 +785,7 @@ z,a"""
         if dtype is str and using_infer_string
         else object
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
             "b": pd.Series(["a", "a", "a"], dtype=expected_dtype),
@@ -796,7 +796,7 @@ z,a"""
 
     result = parser.read_csv(StringIO(data), dtype={"a": dtype})
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "a": pd.Series(["x", "y", "z"], dtype=expected_dtype),
             "b": pd.Series(["a", "a", "a"]),
@@ -832,7 +832,7 @@ def test_dtypes_with_usecols(all_parsers):
 4,5,6"""
 
     result = parser.read_csv(StringIO(data), usecols=["a", "c"], dtype={"a": object})
-    expected = DataFrame({"a": pd.Series(["1", "4"], dtype=object), "c": [3, 6]})
+    expected = pd.DataFrame({"a": pd.Series(["1", "4"], dtype=object), "c": [3, 6]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -867,7 +867,7 @@ CD,101044572,def,0150
 EF,000023607,ghi,0205
 GH,100102040,jkl,0205"""
     result = parser.read_csv(StringIO(data), dtype=dtype)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col1": ["AB", "CD", "EF", "GH"],
             "col2": ["000388907", "101044572", "000023607", "100102040"],
@@ -888,7 +888,7 @@ def test_leading_zeros_preserved_with_dtype_str_no_header(all_parsers, request):
         )
     data = "01,0150\n002,0205"
     result = parser.read_csv(StringIO(data), header=None, dtype=str)
-    expected = DataFrame([["01", "0150"], ["002", "0205"]], dtype=str)
+    expected = pd.DataFrame([["01", "0150"], ["002", "0205"]], dtype=str)
     tm.assert_frame_equal(result, expected)
 
 
@@ -901,7 +901,7 @@ def test_leading_zeros_with_missing_values_dtype_str(all_parsers, request):
         )
     data = "a,b\n01,\n,002"
     result = parser.read_csv(StringIO(data), dtype=str)
-    expected = DataFrame({"a": ["01", np.nan], "b": [np.nan, "002"]}, dtype=str)
+    expected = pd.DataFrame({"a": ["01", np.nan], "b": [np.nan, "002"]}, dtype=str)
     tm.assert_frame_equal(result, expected)
 
 
@@ -918,7 +918,7 @@ def test_leading_zeros_preserved_with_dtype_defaultdict(all_parsers, request):
 AB,000388907,199
 CD,101044572,200"""
     result = parser.read_csv(StringIO(data), dtype=dtype)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col1": pd.Series(["AB", "CD"], dtype=str),
             "col2": pd.Series(["000388907", "101044572"], dtype=str),
@@ -933,7 +933,7 @@ def test_object_dtype_dict_preserves_raw_strings(all_parsers):
     parser = all_parsers
     data = "a,b\n01,2\n002,3"
     result = parser.read_csv(StringIO(data), dtype={"a": object})
-    expected = DataFrame({"a": pd.Series(["01", "002"], dtype=object), "b": [2, 3]})
+    expected = pd.DataFrame({"a": pd.Series(["01", "002"], dtype=object), "b": [2, 3]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -944,7 +944,7 @@ def test_dtype_dict_non_string_key_pyarrow(pyarrow_parser_only):
     parser = pyarrow_parser_only
     data = "a,b\n01,2\n002,3"
     result = parser.read_csv(StringIO(data), dtype={"a": str, 1: str})
-    expected = DataFrame({"a": pd.Series(["01", "002"], dtype=str), "b": [2, 3]})
+    expected = pd.DataFrame({"a": pd.Series(["01", "002"], dtype=str), "b": [2, 3]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -960,7 +960,7 @@ GH,100102040,202,0205"""
     result = parser.read_csv(
         StringIO(data), dtype={"col2": str, "col3": "int64", "col4": str}
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "col1": pd.Series(["AB", "CD", "EF", "GH"], dtype=str),
             "col2": pd.Series(

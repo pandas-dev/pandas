@@ -1254,9 +1254,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # multiply by python ints: numpy's scalar multiply spuriously reports
         #  overflow for a np.int64 count of INT64_MIN on Windows
         counts = new_i8_data.ravel().tolist()
-        new_data = np.array([self.freq.base * count for count in counts]).reshape(
-            new_i8_data.shape
-        )
+        # dtype=object is necessary for the length-zero case, where numpy
+        #  would otherwise infer float64 (GH#40624)
+        new_data = np.array(
+            [self.freq.base * count for count in counts], dtype=object
+        ).reshape(new_i8_data.shape)
 
         if o_mask is None:
             # i.e. Period scalar
@@ -1359,6 +1361,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise integer_op_not_supported(self)
             obj = cast("PeriodArray", self)
             result = obj._addsub_int_array_or_scalar(other * obj.dtype._n, operator.add)
+        elif other_dtype is not None and other_dtype.kind == "b":
+            # GH#68452 is_integer_dtype is False for bool, so without this bool
+            #  operands fall through to numpy, which reads True as a one-unit
+            #  timedelta.  Period, where ints are legal, keeps its object-path raise
+            if isinstance(self.dtype, PeriodDtype):
+                return NotImplemented
+            raise integer_op_not_supported(self)
         else:
             # Includes Categorical, other ExtensionArrays
             # For PeriodDtype, if self is a TimedeltaArray and other is a
@@ -1427,6 +1436,11 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise integer_op_not_supported(self)
             obj = cast("PeriodArray", self)
             result = obj._addsub_int_array_or_scalar(other * obj.dtype._n, operator.sub)
+        elif other_dtype is not None and other_dtype.kind == "b":
+            # GH#68452, see __add__
+            if isinstance(self.dtype, PeriodDtype):
+                return NotImplemented
+            raise integer_op_not_supported(self)
         else:
             # Includes ExtensionArrays, float_dtype
             return NotImplemented
@@ -1633,10 +1647,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 raise TypeError(f"datetime64 type does not support operation '{how}'")
             if how in ["any", "all"]:
                 # GH#34479
-                raise TypeError(
-                    f"'{how}' with datetime64 dtypes is no longer supported. "
-                    f"Use (obj != pd.Timestamp(0)).{how}() instead."
-                )
+                raise TypeError(nanops.dt64_any_all_msg(how))
 
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid

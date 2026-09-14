@@ -14,6 +14,7 @@ import mmap
 import os
 from pathlib import Path
 import pickle
+import re
 import tempfile
 
 import numpy as np
@@ -288,15 +289,10 @@ Look,a snake,🐍"""
                 ("io", "data", "fixed_width", "fixed_width_format.txt"),
             ),
             (pd.read_excel, "xlrd", ("io", "data", "excel", "test1.xlsx")),
-            # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
-            # suppress until we migrate the implementation (GH#66177)
-            pytest.param(
+            (
                 pd.read_feather,
                 "pyarrow",
-                ("io", "data", "feather", "feather-0_3_1.feather"),
-                marks=pytest.mark.filterwarnings(
-                    "ignore:Feather V1 files are deprecated:DeprecationWarning"
-                ),
+                ("io", "data", "feather", "simple_dataset.feather"),
             ),
             (
                 pd.read_hdf,
@@ -727,3 +723,32 @@ def test_pyarrow_read_csv_datetime_dtype():
     expect = pd.DataFrame({"date": expect_data})
 
     tm.assert_frame_equal(expect, result)
+
+
+@pytest.mark.skipif(WASM, reason="limited file system access on WASM")
+@pytest.mark.skipif(
+    is_platform_windows(), reason="Windows reports a directory as a permission error"
+)
+@pytest.mark.parametrize(
+    "reader, module, fn_ext",
+    [
+        (pd.read_csv, "os", "csv"),
+        (pd.read_excel, "openpyxl", "xlsx"),
+        (pd.read_fwf, "os", "txt"),
+        (pd.read_html, "lxml", "html"),
+        (pd.read_json, "os", "json"),
+        (pd.read_pickle, "os", "pickle"),
+        (pd.read_stata, "os", "dta"),
+        (pd.read_xml, "lxml", "xml"),
+    ],
+)
+def test_read_directory_not_reported_as_missing(reader, module, fn_ext, tmp_path):
+    # GH#29125 readers must not report every I/O failure as a missing file
+    pytest.importorskip(module)
+
+    path = tmp_path / f"a_directory.{fn_ext}"
+    path.mkdir()
+
+    # the strerror text is locale-dependent, so only the path is matched
+    with pytest.raises(IsADirectoryError, match=re.escape(str(path))):
+        reader(path)

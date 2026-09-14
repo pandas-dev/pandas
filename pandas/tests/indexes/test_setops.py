@@ -16,15 +16,7 @@ import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 
-from pandas import (
-    CategoricalIndex,
-    DatetimeTZDtype,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import (
     is_signed_integer_dtype,
@@ -115,10 +107,16 @@ def test_union_different_types(index_flat_sortable, index_flat2_sortable):
 @pytest.mark.parametrize(
     "idx1,idx2",
     [
-        (Index(np.arange(5), dtype=np.int64), RangeIndex(5)),
-        (Index(np.arange(5), dtype=np.float64), Index(np.arange(5), dtype=np.int64)),
-        (Index(np.arange(5), dtype=np.float64), RangeIndex(5)),
-        (Index(np.arange(5), dtype=np.float64), Index(np.arange(5), dtype=np.uint64)),
+        (pd.Index(np.arange(5), dtype=np.int64), pd.RangeIndex(5)),
+        (
+            pd.Index(np.arange(5), dtype=np.float64),
+            pd.Index(np.arange(5), dtype=np.int64),
+        ),
+        (pd.Index(np.arange(5), dtype=np.float64), pd.RangeIndex(5)),
+        (
+            pd.Index(np.arange(5), dtype=np.float64),
+            pd.Index(np.arange(5), dtype=np.uint64),
+        ),
     ],
 )
 def test_compatible_inconsistent_pairs(idx1, idx2):
@@ -154,8 +152,8 @@ def test_compatible_inconsistent_pairs(idx1, idx2):
 def test_union_dtypes(left, right, expected, names):
     left = pandas_dtype(left)
     right = pandas_dtype(right)
-    a = Index([], dtype=left, name=names[0])
-    b = Index([], dtype=right, name=names[1])
+    a = pd.Index([], dtype=left, name=names[0])
+    b = pd.Index([], dtype=right, name=names[1])
     result = a.union(b)
     assert result.dtype == expected
     assert result.name == names[2]
@@ -169,10 +167,10 @@ def test_union_dtypes(left, right, expected, names):
 @pytest.mark.parametrize("values", [[1, 2, 2, 3], [3, 3]])
 def test_intersection_duplicates(values):
     # GH#31326
-    a = Index(values)
-    b = Index([3, 3])
+    a = pd.Index(values)
+    b = pd.Index([3, 3])
     result = a.intersection(b)
-    expected = Index([3])
+    expected = pd.Index([3])
     tm.assert_index_equal(result, expected)
 
 
@@ -189,7 +187,7 @@ class TestSetOps:
             getattr(index, method)(case)
 
     def test_intersection_base(self, index):
-        if isinstance(index, CategoricalIndex):
+        if isinstance(index, pd.CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
 
         first = index[:5].unique()
@@ -197,7 +195,7 @@ class TestSetOps:
         intersect = first.intersection(second)
         tm.assert_index_equal(intersect, second)
 
-        if isinstance(index.dtype, DatetimeTZDtype):
+        if isinstance(index.dtype, pd.DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -208,7 +206,7 @@ class TestSetOps:
             result = first.intersection(case)
             assert equal_contents(result, second)
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
@@ -222,7 +220,7 @@ class TestSetOps:
         union = first.union(second)
         tm.assert_index_equal(union.sort_values(), everything.sort_values())
 
-        if isinstance(index.dtype, DatetimeTZDtype):
+        if isinstance(index.dtype, pd.DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -233,7 +231,7 @@ class TestSetOps:
             result = first.union(case)
             assert equal_contents(result, everything)
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
             with pytest.raises(TypeError, match=msg):
                 first.union([1, 2, 3])
@@ -245,7 +243,7 @@ class TestSetOps:
             # i think (TODO: be sure) there assumptions baked in about
             #  the index fixture that don't hold here?
             answer = set(first).difference(set(second))
-        elif isinstance(index, CategoricalIndex):
+        elif isinstance(index, pd.CategoricalIndex):
             answer = []
         else:
             answer = index[4:]
@@ -258,7 +256,7 @@ class TestSetOps:
             result = first.difference(case, sort)
             assert equal_contents(result, answer)
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
@@ -271,7 +269,7 @@ class TestSetOps:
             and index.inferred_type == "string"
         ):
             request.applymarker(pytest.mark.xfail(reason="TODO: infer_string"))
-        if isinstance(index, CategoricalIndex):
+        if isinstance(index, pd.CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
             pytest.skip("Too few values for test")
@@ -292,7 +290,7 @@ class TestSetOps:
             result = first.symmetric_difference(case)
             assert equal_contents(result, answer)
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             msg = "other must be a MultiIndex or a list of tuples"
             with pytest.raises(TypeError, match=msg):
                 first.symmetric_difference([1, 2, 3])
@@ -437,7 +435,7 @@ class TestSetOps:
         tm.assert_index_equal(intersect, expected)
 
     def test_intersection_name_retention_with_nameless(self, index):
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             index = index.rename(list(range(index.nlevels)))
         else:
             index = index.rename("foo")
@@ -466,7 +464,7 @@ class TestSetOps:
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_difference_name_retention_equals(self, index, names):
-        if isinstance(index, MultiIndex):
+        if isinstance(index, pd.MultiIndex):
             names = [[x] * index.nlevels for x in names]
         index = index.rename(names[0])
         other = index.rename(names[1])
@@ -497,7 +495,7 @@ def test_setop_with_categorical(index_flat, sort, method, using_infer_string):
     index = index_flat
 
     other = index.astype("category")
-    exact = "equiv" if isinstance(index, RangeIndex) else True
+    exact = "equiv" if isinstance(index, pd.RangeIndex) else True
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
@@ -538,12 +536,12 @@ def test_union_duplicate_index_subsets_of_each_other(
 ):
     # GH#31326
     dtype = any_dtype_for_small_pos_integer_indexes
-    a = Index([1, 2, 2, 3], dtype=dtype)
-    b = Index([3, 3, 4], dtype=dtype)
+    a = pd.Index([1, 2, 2, 3], dtype=dtype)
+    b = pd.Index([3, 3, 4], dtype=dtype)
 
-    expected = Index([1, 2, 2, 3, 3, 4], dtype=dtype)
-    if isinstance(a, CategoricalIndex):
-        expected = Index([1, 2, 2, 3, 3, 4])
+    expected = pd.Index([1, 2, 2, 3, 3, 4], dtype=dtype)
+    if isinstance(a, pd.CategoricalIndex):
+        expected = pd.Index([1, 2, 2, 3, 3, 4])
     result = a.union(b)
     tm.assert_index_equal(result, expected)
     result = a.union(b, sort=False)
@@ -555,9 +553,9 @@ def test_union_with_duplicate_index_and_non_monotonic(
 ):
     # GH#36289
     dtype = any_dtype_for_small_pos_integer_indexes
-    a = Index([1, 0, 0], dtype=dtype)
-    b = Index([0, 1], dtype=dtype)
-    expected = Index([0, 0, 1], dtype=dtype)
+    a = pd.Index([1, 0, 0], dtype=dtype)
+    b = pd.Index([0, 1], dtype=dtype)
+    expected = pd.Index([0, 0, 1], dtype=dtype)
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
@@ -568,38 +566,38 @@ def test_union_with_duplicate_index_and_non_monotonic(
 
 def test_union_duplicate_index_different_dtypes():
     # GH#36289
-    a = Index([1, 2, 2, 3])
-    b = Index(["1", "0", "0"])
-    expected = Index([1, 2, 2, 3, "1", "0", "0"])
+    a = pd.Index([1, 2, 2, 3])
+    b = pd.Index(["1", "0", "0"])
+    expected = pd.Index([1, 2, 2, 3, "1", "0", "0"])
     result = a.union(b, sort=False)
     tm.assert_index_equal(result, expected)
 
 
 def test_union_same_value_duplicated_in_both():
     # GH#36289
-    a = Index([0, 0, 1])
-    b = Index([0, 0, 1, 2])
+    a = pd.Index([0, 0, 1])
+    b = pd.Index([0, 0, 1, 2])
     result = a.union(b)
-    expected = Index([0, 0, 1, 2])
+    expected = pd.Index([0, 0, 1, 2])
     tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("dup", [1, np.nan])
 def test_union_nan_in_both(dup):
     # GH#36289
-    a = Index([np.nan, 1, 2, 2])
-    b = Index([np.nan, dup, 1, 2])
+    a = pd.Index([np.nan, 1, 2, 2])
+    b = pd.Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
-    expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    expected = pd.Index([np.nan, dup, 1.0, 2.0, 2.0])
     tm.assert_index_equal(result, expected)
 
 
 def test_union_rangeindex_sort_true():
     # GH 53490
-    idx1 = RangeIndex(1, 100, 6)
-    idx2 = RangeIndex(1, 50, 3)
+    idx1 = pd.RangeIndex(1, 100, 6)
+    idx2 = pd.RangeIndex(1, 50, 3)
     result = idx1.union(idx2, sort=True)
-    expected = Index(
+    expected = pd.Index(
         [
             1,
             4,
@@ -636,11 +634,11 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(
 ):
     # GH#36289
     dtype = any_dtype_for_small_pos_integer_indexes
-    a = Index([1, 0, 2], dtype=dtype)
-    b = Index([0, 0, 1], dtype=dtype)
-    expected = Index([0, 0, 1, 2], dtype=dtype)
-    if isinstance(a, CategoricalIndex):
-        expected = Index([0, 0, 1, 2])
+    a = pd.Index([1, 0, 2], dtype=dtype)
+    b = pd.Index([0, 0, 1], dtype=dtype)
+    expected = pd.Index([0, 0, 1, 2], dtype=dtype)
+    if isinstance(a, pd.CategoricalIndex):
+        expected = pd.Index([0, 0, 1, 2])
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
@@ -650,13 +648,13 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(
 
 
 def test_union_int_categorical_with_nan():
-    ci = CategoricalIndex([1, 2, np.nan])
+    ci = pd.CategoricalIndex([1, 2, np.nan])
     assert ci.categories.dtype.kind == "i"
 
-    idx = Index([1, 2])
+    idx = pd.Index([1, 2])
 
     result = idx.union(ci)
-    expected = Index([1, 2, np.nan], dtype=np.float64)
+    expected = pd.Index([1, 2, np.nan], dtype=np.float64)
     tm.assert_index_equal(result, expected)
 
     result = ci.union(idx)
@@ -669,11 +667,11 @@ class TestSetOpsUnsorted:
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
 
-        index1 = Index(dt_dates, dtype=object)
-        index2 = Index(["aa"], dtype=object)
+        index1 = pd.Index(dt_dates, dtype=object)
+        index2 = pd.Index(["aa"], dtype=object)
         result = index2.intersection(index1)
 
-        expected = Index([], dtype=object)
+        expected = pd.Index([], dtype=object)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -699,9 +697,9 @@ class TestSetOpsUnsorted:
         ],
     )
     def test_intersection_name_preservation(self, index2_name, keeps_name, sort):
-        index2 = Index([3, 4, 5, 6, 7], name=index2_name)
-        index1 = Index([1, 2, 3, 4, 5], name="index")
-        expected = Index([3, 4, 5])
+        index2 = pd.Index([3, 4, 5, 6, 7], name=index2_name)
+        index1 = pd.Index([1, 2, 3, 4, 5], name="index")
+        expected = pd.Index([3, 4, 5])
         result = index1.intersection(index2, sort)
 
         if keeps_name:
@@ -727,16 +725,16 @@ class TestSetOpsUnsorted:
 
     def test_chained_union(self, sort):
         # Chained unions handles names correctly
-        i1 = Index([1, 2], name="i1")
-        i2 = Index([5, 6], name="i2")
-        i3 = Index([3, 4], name="i3")
+        i1 = pd.Index([1, 2], name="i1")
+        i2 = pd.Index([5, 6], name="i2")
+        i3 = pd.Index([3, 4], name="i3")
         union = i1.union(i2.union(i3, sort=sort), sort=sort)
         expected = i1.union(i2, sort=sort).union(i3, sort=sort)
         tm.assert_index_equal(union, expected)
 
-        j1 = Index([1, 2], name="j1")
-        j2 = Index([], name="j2")
-        j3 = Index([], name="j3")
+        j1 = pd.Index([1, 2], name="j1")
+        j2 = pd.Index([], name="j2")
+        j3 = pd.Index([], name="j3")
         union = j1.union(j2.union(j3, sort=sort), sort=sort)
         expected = j1.union(j2, sort=sort).union(j3, sort=sort)
         tm.assert_index_equal(union, expected)
@@ -753,7 +751,7 @@ class TestSetOpsUnsorted:
         else:
             tm.assert_index_equal(union, everything)
 
-    @pytest.mark.parametrize("klass", [np.array, Series, list])
+    @pytest.mark.parametrize("klass", [np.array, pd.Series, list])
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_union_from_iterables(self, index, klass, sort):
         # GH#10149
@@ -778,10 +776,10 @@ class TestSetOpsUnsorted:
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union(Index([], dtype=first.dtype), sort=sort)
+        union = first.union(pd.Index([], dtype=first.dtype), sort=sort)
         assert union is not first
 
-        union = Index([], dtype=first.dtype).union(first, sort=sort)
+        union = pd.Index([], dtype=first.dtype).union(first, sort=sort)
         assert union is not first
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -817,10 +815,10 @@ class TestSetOpsUnsorted:
 
     def test_difference_should_not_compare(self):
         # GH 55113
-        left = Index([1, 1])
-        right = Index([True])
+        left = pd.Index([1, 1])
+        right = pd.Index([True])
         result = left.difference(right)
-        expected = Index([1])
+        expected = pd.Index([1])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -847,14 +845,14 @@ class TestSetOpsUnsorted:
 
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable(self, opname):
-        a = Index([3, Timestamp("2000"), 1])
-        b = Index([2, Timestamp("1999"), 1])
+        a = pd.Index([3, pd.Timestamp("2000"), 1])
+        b = pd.Index([2, pd.Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
         with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             # sort=None, the default
             result = op(a)
-        expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])
+        expected = pd.Index([3, pd.Timestamp("2000"), 2, pd.Timestamp("1999")])
         if opname == "difference":
             expected = expected[:2]
         tm.assert_index_equal(result, expected)
@@ -866,8 +864,8 @@ class TestSetOpsUnsorted:
 
     @pytest.mark.parametrize("opname", ["difference", "symmetric_difference"])
     def test_difference_incomparable_true(self, opname):
-        a = Index([3, Timestamp("2000"), 1])
-        b = Index([2, Timestamp("1999"), 1])
+        a = pd.Index([3, pd.Timestamp("2000"), 1])
+        b = pd.Index([2, pd.Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b, sort=True)
 
         msg = "'<' not supported between instances of 'Timestamp' and 'int'"
@@ -875,12 +873,12 @@ class TestSetOpsUnsorted:
             op(a)
 
     def test_symmetric_difference_mi(self, sort):
-        index1 = MultiIndex.from_tuples(
+        index1 = pd.MultiIndex.from_tuples(
             zip(["foo", "bar", "baz"], [1, 2, 3], strict=True)
         )
-        index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
+        index2 = pd.MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
         result = index1.symmetric_difference(index2, sort=sort)
-        expected = MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
+        expected = pd.MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
@@ -893,11 +891,11 @@ class TestSetOpsUnsorted:
         ],
     )
     def test_symmetric_difference_missing(self, index2, expected, sort):
-        index2 = Index(index2)
-        expected = Index(expected)
+        index2 = pd.Index(index2)
+        expected = pd.Index(expected)
         # GH#13514 change: {nan} - {nan} == {}
         # (GH#6444, sorting of nans, is no longer an issue)
-        index1 = Index([1, np.nan, 2, 3])
+        index1 = pd.Index([1, np.nan, 2, 3])
 
         result = index1.symmetric_difference(index2, sort=sort)
         if sort is None:
@@ -905,9 +903,9 @@ class TestSetOpsUnsorted:
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference_non_index(self, sort):
-        index1 = Index([1, 2, 3, 4], name="index1")
+        index1 = pd.Index([1, 2, 3, 4], name="index1")
         index2 = np.array([2, 3, 4, 5])
-        expected = Index([1, 5], name="index1")
+        expected = pd.Index([1, 5], name="index1")
         result = index1.symmetric_difference(index2, sort=sort)
         if sort in (None, True):
             tm.assert_index_equal(result, expected)
@@ -925,34 +923,34 @@ class TestSetOpsUnsorted:
 
     def test_union_ea_dtypes(self, any_numeric_ea_and_arrow_dtype):
         # GH#51365
-        idx = Index([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
-        idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        idx = pd.Index([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
+        idx2 = pd.Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.union(idx2)
-        expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        expected = pd.Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         tm.assert_index_equal(result, expected)
 
     def test_union_string_array(self, any_string_dtype):
-        idx1 = Index(["a"], dtype=any_string_dtype)
-        idx2 = Index(["b"], dtype=any_string_dtype)
+        idx1 = pd.Index(["a"], dtype=any_string_dtype)
+        idx2 = pd.Index(["b"], dtype=any_string_dtype)
         result = idx1.union(idx2)
-        expected = Index(["a", "b"], dtype=any_string_dtype)
+        expected = pd.Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)
 
     @td.skip_if_no("pyarrow")
     def test_union_pyarrow_timestamp(self):
         # GH#58421
-        left = Index(["2020-01-01"], dtype="timestamp[s][pyarrow]")
-        right = Index(["2020-01-02"], dtype="timestamp[s][pyarrow]")
+        left = pd.Index(["2020-01-01"], dtype="timestamp[s][pyarrow]")
+        right = pd.Index(["2020-01-02"], dtype="timestamp[s][pyarrow]")
 
         res = left.union(right)
-        expected = Index(["2020-01-01", "2020-01-02"], dtype=left.dtype)
+        expected = pd.Index(["2020-01-01", "2020-01-02"], dtype=left.dtype)
         tm.assert_index_equal(res, expected)
 
 
 def test_intersection_mutation_safety():
     # GH#63169
-    index1 = Index([0, 1], name="original")
-    index2 = Index([0, 1], name="original")
+    index1 = pd.Index([0, 1], name="original")
+    index2 = pd.Index([0, 1], name="original")
 
     result = index1.intersection(index2)
 
@@ -970,8 +968,8 @@ def test_intersection_mutation_safety():
 
 def test_union_mutation_safety():
     # GH#63169
-    index1 = Index([0, 1], name="original")
-    index2 = Index([0, 1], name="original")
+    index1 = pd.Index([0, 1], name="original")
+    index2 = pd.Index([0, 1], name="original")
 
     result = index1.union(index2)
 
@@ -989,8 +987,8 @@ def test_union_mutation_safety():
 
 def test_union_mutation_safety_other():
     # GH#63169
-    index1 = Index([0, 1], name="original")
-    index2 = Index([0, 1], name="original")
+    index1 = pd.Index([0, 1], name="original")
+    index2 = pd.Index([0, 1], name="original")
 
     result = index1.union(index2)
 
@@ -1007,8 +1005,8 @@ def test_union_mutation_safety_other():
 
 def test_multiindex_intersection_mutation_safety():
     # GH#63169
-    mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
-    mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi1 = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi2 = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
 
     result = mi1.intersection(mi2)
     assert result is not mi1
@@ -1019,8 +1017,8 @@ def test_multiindex_intersection_mutation_safety():
 
 def test_multiindex_union_mutation_safety():
     # GH#63169
-    mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
-    mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi1 = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi2 = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
 
     result = mi1.union(mi2)
     assert result is not mi1
@@ -1033,13 +1031,13 @@ def test_union_disjoint_monotonic_sorted():
     # GH#54646 - union of two disjoint monotonic-increasing Index objects
     # should be sorted when sort is not False, even though both inputs are
     # individually monotonic.
-    idx1 = Index([5, 6, 7])
-    idx2 = Index([1, 2, 3])
+    idx1 = pd.Index([5, 6, 7])
+    idx2 = pd.Index([1, 2, 3])
 
     result = idx1.union(idx2, sort=None)
-    expected = Index([1, 2, 3, 5, 6, 7])
+    expected = pd.Index([1, 2, 3, 5, 6, 7])
     tm.assert_index_equal(result, expected)
 
     result_false = idx1.union(idx2, sort=False)
-    expected_false = Index([5, 6, 7, 1, 2, 3])
+    expected_false = pd.Index([5, 6, 7, 1, 2, 3])
     tm.assert_index_equal(result_false, expected_false)

@@ -6,10 +6,6 @@ from pandas._libs.arrays import NDArrayBacked
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalDtype,
-)
 import pandas._testing as tm
 from pandas.core.indexes.api import (
     CategoricalIndex,
@@ -192,7 +188,7 @@ class TestCategoricalIndex:
         ],
     )
     def test_unique(self, data, categories, expected_data, ordered):
-        dtype = CategoricalDtype(categories, ordered=ordered)
+        dtype = pd.CategoricalDtype(categories, ordered=ordered)
 
         msg = "Constructing a Categorical with a dtype and values containing"
         warn = None if expected_data == [1] else Pandas4Warning
@@ -322,7 +318,7 @@ class TestCategoricalIndex2:
     def test_disallow_addsub_ops(self, func, op_name):
         # GH 10039
         # set ops (+/-) raise TypeError
-        idx = Index(Categorical(["a", "b"]))
+        idx = Index(pd.Categorical(["a", "b"]))
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [

@@ -6,7 +6,7 @@ from pandas.compat import (
     WASM,
 )
 
-from pandas import date_range
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -31,5 +31,5 @@ def test_dti_resolution(request, tz_naive_fixture, freq, expected):
             pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
         )
 
-    idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
+    idx = pd.date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
     assert idx.resolution == expected

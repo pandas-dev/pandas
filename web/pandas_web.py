@@ -71,7 +71,7 @@ class Preprocessors:
         Add the current year to the context, so it can be used for the copyright
         note, or other places where it is needed.
         """
-        context["current_year"] = datetime.datetime.now().year
+        context["current_year"] = datetime.datetime.now().year  # noqa: TID251
         return context
 
     @staticmethod

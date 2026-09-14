@@ -1,0 +1,33 @@
+.. _whatsnew_306:
+
+What's new in 3.0.6 (September XX, 2026)
+----------------------------------------
+
+These are the changes in pandas 3.0.6. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_306.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_306.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_306.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.0.5..v3.0.6|HEAD

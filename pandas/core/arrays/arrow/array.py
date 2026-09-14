@@ -1104,6 +1104,14 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
+        if isinstance(other, range):
+            # GH#63429 our callers defer both of these to the EA for EA-backed
+            #  values, and ops.comparison_op's length check does not see
+            #  through a range.
+            ops.maybe_warn_listlike(other)
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
@@ -1113,10 +1121,8 @@ class ArrowExtensionArray(
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
-                if (
-                    (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype))
-                    or (pa.types.is_timestamp(rtype) and pa.types.is_date(ltype))
-                    or isinstance(other, range)
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
                 ):
                     # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
@@ -1201,7 +1207,12 @@ class ArrowExtensionArray(
                     other = other.cast(pa.large_string())
 
                 sep = pa.scalar("", type=self_array.type)
-                if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
+                if isinstance(other, pa.Scalar):
+                    if pc.is_null(other).as_py():
+                        other = other.cast(self_array.type)
+                elif len(other) == 0 and pa.types.is_null(other.type):
+                    # GH#40624 a length-zero object-dtype other boxes to the
+                    #  pyarrow null type, which has no join kernel
                     other = other.cast(self_array.type)
                 try:
                     if op is operator.add:
@@ -2765,10 +2776,11 @@ class ArrowExtensionArray(
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        ddof: int = 1,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("sem", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
 
     def skew(
         self,
@@ -3302,6 +3314,11 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
+        if pa_version_under25p0 and pa.types.is_null(values.type):
+            # GH#66703 pc.replace_with_mask aborts the process for null dtype
+            # (apache/arrow#47447, fixed in pyarrow 25.0.0). The null type
+            # has no non-null values to replace; return it unchanged.
+            return values
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:

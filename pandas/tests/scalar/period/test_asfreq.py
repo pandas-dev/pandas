@@ -2,11 +2,7 @@ import pytest
 
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
-from pandas import (
-    Period,
-    Timestamp,
-    offsets,
-)
+import pandas as pd
 import pandas._testing as tm
 
 bday_msg = "Period with BDay freq is deprecated"
@@ -19,7 +15,7 @@ class TestFreqConversion:
     @pytest.mark.parametrize("freq", ["Y", "Q", "M", "W", "B", "D"])
     def test_asfreq_near_zero(self, freq):
         # GH#19643, GH#19650
-        per = Period("0001-01-01", freq=freq)
+        per = pd.Period("0001-01-01", freq=freq)
         tup1 = (per.year, per.hour, per.day)
 
         prev = per - 1
@@ -29,8 +25,8 @@ class TestFreqConversion:
 
     def test_asfreq_near_zero_weekly(self):
         # GH#19834
-        per1 = Period("0001-01-01", "D") + 6
-        per2 = Period("0001-01-01", "D") - 6
+        per1 = pd.Period("0001-01-01", "D") + 6
+        per2 = pd.Period("0001-01-01", "D") - 6
         week1 = per1.asfreq("W")
         week2 = per2.asfreq("W")
         assert week1 != week2
@@ -40,15 +36,15 @@ class TestFreqConversion:
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643, used to incorrectly give Timestamp in 1754
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            per = Period("0001-01-01", freq="B")
+            per = pd.Period("0001-01-01", freq="B")
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             per.to_timestamp()
 
     def test_asfreq_corner(self):
-        val = Period(freq="Y", year=2007)
+        val = pd.Period(freq="Y", year=2007)
         result1 = val.asfreq("5min")
         result2 = val.asfreq("min")
-        expected = Period("2007-12-31 23:59", freq="min")
+        expected = pd.Period("2007-12-31 23:59", freq="min")
         assert result1.ordinal == expected.ordinal
         assert result1.freqstr == "5min"
         assert result2.ordinal == expected.ordinal
@@ -58,44 +54,44 @@ class TestFreqConversion:
         # frequency conversion tests: from Annual Frequency
         msg = INVALID_FREQ_ERR_MSG
 
-        ival_A = Period(freq="Y", year=2007)
+        ival_A = pd.Period(freq="Y", year=2007)
 
-        ival_AJAN = Period(freq="Y-JAN", year=2007)
-        ival_AJUN = Period(freq="Y-JUN", year=2007)
-        ival_ANOV = Period(freq="Y-NOV", year=2007)
+        ival_AJAN = pd.Period(freq="Y-JAN", year=2007)
+        ival_AJUN = pd.Period(freq="Y-JUN", year=2007)
+        ival_ANOV = pd.Period(freq="Y-NOV", year=2007)
 
-        ival_A_to_Q_start = Period(freq="Q", year=2007, quarter=1)
-        ival_A_to_Q_end = Period(freq="Q", year=2007, quarter=4)
-        ival_A_to_M_start = Period(freq="M", year=2007, month=1)
-        ival_A_to_M_end = Period(freq="M", year=2007, month=12)
-        ival_A_to_W_start = Period(freq="W", year=2007, month=1, day=1)
-        ival_A_to_W_end = Period(freq="W", year=2007, month=12, day=31)
+        ival_A_to_Q_start = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_A_to_Q_end = pd.Period(freq="Q", year=2007, quarter=4)
+        ival_A_to_M_start = pd.Period(freq="M", year=2007, month=1)
+        ival_A_to_M_end = pd.Period(freq="M", year=2007, month=12)
+        ival_A_to_W_start = pd.Period(freq="W", year=2007, month=1, day=1)
+        ival_A_to_W_end = pd.Period(freq="W", year=2007, month=12, day=31)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_A_to_B_start = Period(freq="B", year=2007, month=1, day=1)
-            ival_A_to_B_end = Period(freq="B", year=2007, month=12, day=31)
-        ival_A_to_D_start = Period(freq="D", year=2007, month=1, day=1)
-        ival_A_to_D_end = Period(freq="D", year=2007, month=12, day=31)
-        ival_A_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_A_to_H_end = Period(freq="h", year=2007, month=12, day=31, hour=23)
-        ival_A_to_T_start = Period(
+            ival_A_to_B_start = pd.Period(freq="B", year=2007, month=1, day=1)
+            ival_A_to_B_end = pd.Period(freq="B", year=2007, month=12, day=31)
+        ival_A_to_D_start = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_A_to_D_end = pd.Period(freq="D", year=2007, month=12, day=31)
+        ival_A_to_H_start = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_A_to_H_end = pd.Period(freq="h", year=2007, month=12, day=31, hour=23)
+        ival_A_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_A_to_T_end = Period(
+        ival_A_to_T_end = pd.Period(
             freq="Min", year=2007, month=12, day=31, hour=23, minute=59
         )
-        ival_A_to_S_start = Period(
+        ival_A_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_A_to_S_end = Period(
+        ival_A_to_S_end = pd.Period(
             freq="s", year=2007, month=12, day=31, hour=23, minute=59, second=59
         )
 
-        ival_AJAN_to_D_end = Period(freq="D", year=2007, month=1, day=31)
-        ival_AJAN_to_D_start = Period(freq="D", year=2006, month=2, day=1)
-        ival_AJUN_to_D_end = Period(freq="D", year=2007, month=6, day=30)
-        ival_AJUN_to_D_start = Period(freq="D", year=2006, month=7, day=1)
-        ival_ANOV_to_D_end = Period(freq="D", year=2007, month=11, day=30)
-        ival_ANOV_to_D_start = Period(freq="D", year=2006, month=12, day=1)
+        ival_AJAN_to_D_end = pd.Period(freq="D", year=2007, month=1, day=31)
+        ival_AJAN_to_D_start = pd.Period(freq="D", year=2006, month=2, day=1)
+        ival_AJUN_to_D_end = pd.Period(freq="D", year=2007, month=6, day=30)
+        ival_AJUN_to_D_start = pd.Period(freq="D", year=2006, month=7, day=1)
+        ival_ANOV_to_D_end = pd.Period(freq="D", year=2007, month=11, day=30)
+        ival_ANOV_to_D_start = pd.Period(freq="D", year=2006, month=12, day=1)
 
         assert ival_A.asfreq("Q", "s") == ival_A_to_Q_start
         assert ival_A.asfreq("Q", "e") == ival_A_to_Q_end
@@ -133,42 +129,42 @@ class TestFreqConversion:
     def test_conv_quarterly(self):
         # frequency conversion tests: from Quarterly Frequency
 
-        ival_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_Q_end_of_year = Period(freq="Q", year=2007, quarter=4)
+        ival_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_Q_end_of_year = pd.Period(freq="Q", year=2007, quarter=4)
 
-        ival_QEJAN = Period(freq="Q-JAN", year=2007, quarter=1)
-        ival_QEJUN = Period(freq="Q-JUN", year=2007, quarter=1)
+        ival_QEJAN = pd.Period(freq="Q-JAN", year=2007, quarter=1)
+        ival_QEJUN = pd.Period(freq="Q-JUN", year=2007, quarter=1)
 
-        ival_Q_to_A = Period(freq="Y", year=2007)
-        ival_Q_to_M_start = Period(freq="M", year=2007, month=1)
-        ival_Q_to_M_end = Period(freq="M", year=2007, month=3)
-        ival_Q_to_W_start = Period(freq="W", year=2007, month=1, day=1)
-        ival_Q_to_W_end = Period(freq="W", year=2007, month=3, day=31)
+        ival_Q_to_A = pd.Period(freq="Y", year=2007)
+        ival_Q_to_M_start = pd.Period(freq="M", year=2007, month=1)
+        ival_Q_to_M_end = pd.Period(freq="M", year=2007, month=3)
+        ival_Q_to_W_start = pd.Period(freq="W", year=2007, month=1, day=1)
+        ival_Q_to_W_end = pd.Period(freq="W", year=2007, month=3, day=31)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_Q_to_B_start = Period(freq="B", year=2007, month=1, day=1)
-            ival_Q_to_B_end = Period(freq="B", year=2007, month=3, day=30)
-        ival_Q_to_D_start = Period(freq="D", year=2007, month=1, day=1)
-        ival_Q_to_D_end = Period(freq="D", year=2007, month=3, day=31)
-        ival_Q_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_Q_to_H_end = Period(freq="h", year=2007, month=3, day=31, hour=23)
-        ival_Q_to_T_start = Period(
+            ival_Q_to_B_start = pd.Period(freq="B", year=2007, month=1, day=1)
+            ival_Q_to_B_end = pd.Period(freq="B", year=2007, month=3, day=30)
+        ival_Q_to_D_start = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_Q_to_D_end = pd.Period(freq="D", year=2007, month=3, day=31)
+        ival_Q_to_H_start = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_Q_to_H_end = pd.Period(freq="h", year=2007, month=3, day=31, hour=23)
+        ival_Q_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_Q_to_T_end = Period(
+        ival_Q_to_T_end = pd.Period(
             freq="Min", year=2007, month=3, day=31, hour=23, minute=59
         )
-        ival_Q_to_S_start = Period(
+        ival_Q_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_Q_to_S_end = Period(
+        ival_Q_to_S_end = pd.Period(
             freq="s", year=2007, month=3, day=31, hour=23, minute=59, second=59
         )
 
-        ival_QEJAN_to_D_start = Period(freq="D", year=2006, month=2, day=1)
-        ival_QEJAN_to_D_end = Period(freq="D", year=2006, month=4, day=30)
+        ival_QEJAN_to_D_start = pd.Period(freq="D", year=2006, month=2, day=1)
+        ival_QEJAN_to_D_end = pd.Period(freq="D", year=2006, month=4, day=30)
 
-        ival_QEJUN_to_D_start = Period(freq="D", year=2006, month=7, day=1)
-        ival_QEJUN_to_D_end = Period(freq="D", year=2006, month=9, day=30)
+        ival_QEJUN_to_D_start = pd.Period(freq="D", year=2006, month=7, day=1)
+        ival_QEJUN_to_D_end = pd.Period(freq="D", year=2006, month=9, day=30)
 
         assert ival_Q.asfreq("Y") == ival_Q_to_A
         assert ival_Q_end_of_year.asfreq("Y") == ival_Q_to_A
@@ -199,30 +195,30 @@ class TestFreqConversion:
     def test_conv_monthly(self):
         # frequency conversion tests: from Monthly Frequency
 
-        ival_M = Period(freq="M", year=2007, month=1)
-        ival_M_end_of_year = Period(freq="M", year=2007, month=12)
-        ival_M_end_of_quarter = Period(freq="M", year=2007, month=3)
-        ival_M_to_A = Period(freq="Y", year=2007)
-        ival_M_to_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_M_to_W_start = Period(freq="W", year=2007, month=1, day=1)
-        ival_M_to_W_end = Period(freq="W", year=2007, month=1, day=31)
+        ival_M = pd.Period(freq="M", year=2007, month=1)
+        ival_M_end_of_year = pd.Period(freq="M", year=2007, month=12)
+        ival_M_end_of_quarter = pd.Period(freq="M", year=2007, month=3)
+        ival_M_to_A = pd.Period(freq="Y", year=2007)
+        ival_M_to_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_M_to_W_start = pd.Period(freq="W", year=2007, month=1, day=1)
+        ival_M_to_W_end = pd.Period(freq="W", year=2007, month=1, day=31)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_M_to_B_start = Period(freq="B", year=2007, month=1, day=1)
-            ival_M_to_B_end = Period(freq="B", year=2007, month=1, day=31)
-        ival_M_to_D_start = Period(freq="D", year=2007, month=1, day=1)
-        ival_M_to_D_end = Period(freq="D", year=2007, month=1, day=31)
-        ival_M_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_M_to_H_end = Period(freq="h", year=2007, month=1, day=31, hour=23)
-        ival_M_to_T_start = Period(
+            ival_M_to_B_start = pd.Period(freq="B", year=2007, month=1, day=1)
+            ival_M_to_B_end = pd.Period(freq="B", year=2007, month=1, day=31)
+        ival_M_to_D_start = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_M_to_D_end = pd.Period(freq="D", year=2007, month=1, day=31)
+        ival_M_to_H_start = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_M_to_H_end = pd.Period(freq="h", year=2007, month=1, day=31, hour=23)
+        ival_M_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_M_to_T_end = Period(
+        ival_M_to_T_end = pd.Period(
             freq="Min", year=2007, month=1, day=31, hour=23, minute=59
         )
-        ival_M_to_S_start = Period(
+        ival_M_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_M_to_S_end = Period(
+        ival_M_to_S_end = pd.Period(
             freq="s", year=2007, month=1, day=31, hour=23, minute=59, second=59
         )
 
@@ -249,70 +245,70 @@ class TestFreqConversion:
 
     def test_conv_weekly(self):
         # frequency conversion tests: from Weekly Frequency
-        ival_W = Period(freq="W", year=2007, month=1, day=1)
+        ival_W = pd.Period(freq="W", year=2007, month=1, day=1)
 
-        ival_WSUN = Period(freq="W", year=2007, month=1, day=7)
-        ival_WSAT = Period(freq="W-SAT", year=2007, month=1, day=6)
-        ival_WFRI = Period(freq="W-FRI", year=2007, month=1, day=5)
-        ival_WTHU = Period(freq="W-THU", year=2007, month=1, day=4)
-        ival_WWED = Period(freq="W-WED", year=2007, month=1, day=3)
-        ival_WTUE = Period(freq="W-TUE", year=2007, month=1, day=2)
-        ival_WMON = Period(freq="W-MON", year=2007, month=1, day=1)
+        ival_WSUN = pd.Period(freq="W", year=2007, month=1, day=7)
+        ival_WSAT = pd.Period(freq="W-SAT", year=2007, month=1, day=6)
+        ival_WFRI = pd.Period(freq="W-FRI", year=2007, month=1, day=5)
+        ival_WTHU = pd.Period(freq="W-THU", year=2007, month=1, day=4)
+        ival_WWED = pd.Period(freq="W-WED", year=2007, month=1, day=3)
+        ival_WTUE = pd.Period(freq="W-TUE", year=2007, month=1, day=2)
+        ival_WMON = pd.Period(freq="W-MON", year=2007, month=1, day=1)
 
-        ival_WSUN_to_D_start = Period(freq="D", year=2007, month=1, day=1)
-        ival_WSUN_to_D_end = Period(freq="D", year=2007, month=1, day=7)
-        ival_WSAT_to_D_start = Period(freq="D", year=2006, month=12, day=31)
-        ival_WSAT_to_D_end = Period(freq="D", year=2007, month=1, day=6)
-        ival_WFRI_to_D_start = Period(freq="D", year=2006, month=12, day=30)
-        ival_WFRI_to_D_end = Period(freq="D", year=2007, month=1, day=5)
-        ival_WTHU_to_D_start = Period(freq="D", year=2006, month=12, day=29)
-        ival_WTHU_to_D_end = Period(freq="D", year=2007, month=1, day=4)
-        ival_WWED_to_D_start = Period(freq="D", year=2006, month=12, day=28)
-        ival_WWED_to_D_end = Period(freq="D", year=2007, month=1, day=3)
-        ival_WTUE_to_D_start = Period(freq="D", year=2006, month=12, day=27)
-        ival_WTUE_to_D_end = Period(freq="D", year=2007, month=1, day=2)
-        ival_WMON_to_D_start = Period(freq="D", year=2006, month=12, day=26)
-        ival_WMON_to_D_end = Period(freq="D", year=2007, month=1, day=1)
+        ival_WSUN_to_D_start = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_WSUN_to_D_end = pd.Period(freq="D", year=2007, month=1, day=7)
+        ival_WSAT_to_D_start = pd.Period(freq="D", year=2006, month=12, day=31)
+        ival_WSAT_to_D_end = pd.Period(freq="D", year=2007, month=1, day=6)
+        ival_WFRI_to_D_start = pd.Period(freq="D", year=2006, month=12, day=30)
+        ival_WFRI_to_D_end = pd.Period(freq="D", year=2007, month=1, day=5)
+        ival_WTHU_to_D_start = pd.Period(freq="D", year=2006, month=12, day=29)
+        ival_WTHU_to_D_end = pd.Period(freq="D", year=2007, month=1, day=4)
+        ival_WWED_to_D_start = pd.Period(freq="D", year=2006, month=12, day=28)
+        ival_WWED_to_D_end = pd.Period(freq="D", year=2007, month=1, day=3)
+        ival_WTUE_to_D_start = pd.Period(freq="D", year=2006, month=12, day=27)
+        ival_WTUE_to_D_end = pd.Period(freq="D", year=2007, month=1, day=2)
+        ival_WMON_to_D_start = pd.Period(freq="D", year=2006, month=12, day=26)
+        ival_WMON_to_D_end = pd.Period(freq="D", year=2007, month=1, day=1)
 
-        ival_W_end_of_year = Period(freq="W", year=2007, month=12, day=31)
-        ival_W_end_of_quarter = Period(freq="W", year=2007, month=3, day=31)
-        ival_W_end_of_month = Period(freq="W", year=2007, month=1, day=31)
-        ival_W_to_A = Period(freq="Y", year=2007)
-        ival_W_to_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_W_to_M = Period(freq="M", year=2007, month=1)
+        ival_W_end_of_year = pd.Period(freq="W", year=2007, month=12, day=31)
+        ival_W_end_of_quarter = pd.Period(freq="W", year=2007, month=3, day=31)
+        ival_W_end_of_month = pd.Period(freq="W", year=2007, month=1, day=31)
+        ival_W_to_A = pd.Period(freq="Y", year=2007)
+        ival_W_to_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_W_to_M = pd.Period(freq="M", year=2007, month=1)
 
-        if Period(freq="D", year=2007, month=12, day=31).day_of_week == 6:
-            ival_W_to_A_end_of_year = Period(freq="Y", year=2007)
+        if pd.Period(freq="D", year=2007, month=12, day=31).day_of_week == 6:
+            ival_W_to_A_end_of_year = pd.Period(freq="Y", year=2007)
         else:
-            ival_W_to_A_end_of_year = Period(freq="Y", year=2008)
+            ival_W_to_A_end_of_year = pd.Period(freq="Y", year=2008)
 
-        if Period(freq="D", year=2007, month=3, day=31).day_of_week == 6:
-            ival_W_to_Q_end_of_quarter = Period(freq="Q", year=2007, quarter=1)
+        if pd.Period(freq="D", year=2007, month=3, day=31).day_of_week == 6:
+            ival_W_to_Q_end_of_quarter = pd.Period(freq="Q", year=2007, quarter=1)
         else:
-            ival_W_to_Q_end_of_quarter = Period(freq="Q", year=2007, quarter=2)
+            ival_W_to_Q_end_of_quarter = pd.Period(freq="Q", year=2007, quarter=2)
 
-        if Period(freq="D", year=2007, month=1, day=31).day_of_week == 6:
-            ival_W_to_M_end_of_month = Period(freq="M", year=2007, month=1)
+        if pd.Period(freq="D", year=2007, month=1, day=31).day_of_week == 6:
+            ival_W_to_M_end_of_month = pd.Period(freq="M", year=2007, month=1)
         else:
-            ival_W_to_M_end_of_month = Period(freq="M", year=2007, month=2)
+            ival_W_to_M_end_of_month = pd.Period(freq="M", year=2007, month=2)
 
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_W_to_B_start = Period(freq="B", year=2007, month=1, day=1)
-            ival_W_to_B_end = Period(freq="B", year=2007, month=1, day=5)
-        ival_W_to_D_start = Period(freq="D", year=2007, month=1, day=1)
-        ival_W_to_D_end = Period(freq="D", year=2007, month=1, day=7)
-        ival_W_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_W_to_H_end = Period(freq="h", year=2007, month=1, day=7, hour=23)
-        ival_W_to_T_start = Period(
+            ival_W_to_B_start = pd.Period(freq="B", year=2007, month=1, day=1)
+            ival_W_to_B_end = pd.Period(freq="B", year=2007, month=1, day=5)
+        ival_W_to_D_start = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_W_to_D_end = pd.Period(freq="D", year=2007, month=1, day=7)
+        ival_W_to_H_start = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_W_to_H_end = pd.Period(freq="h", year=2007, month=1, day=7, hour=23)
+        ival_W_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_W_to_T_end = Period(
+        ival_W_to_T_end = pd.Period(
             freq="Min", year=2007, month=1, day=7, hour=23, minute=59
         )
-        ival_W_to_S_start = Period(
+        ival_W_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_W_to_S_end = Period(
+        ival_W_to_S_end = pd.Period(
             freq="s", year=2007, month=1, day=7, hour=23, minute=59, second=59
         )
 
@@ -364,48 +360,48 @@ class TestFreqConversion:
         # frequency conversion tests: from Weekly Frequency
         msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK", year=2007, month=1, day=1)
+            pd.Period(freq="WK", year=2007, month=1, day=1)
 
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK-SAT", year=2007, month=1, day=6)
+            pd.Period(freq="WK-SAT", year=2007, month=1, day=6)
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK-FRI", year=2007, month=1, day=5)
+            pd.Period(freq="WK-FRI", year=2007, month=1, day=5)
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK-THU", year=2007, month=1, day=4)
+            pd.Period(freq="WK-THU", year=2007, month=1, day=4)
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK-WED", year=2007, month=1, day=3)
+            pd.Period(freq="WK-WED", year=2007, month=1, day=3)
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK-TUE", year=2007, month=1, day=2)
+            pd.Period(freq="WK-TUE", year=2007, month=1, day=2)
         with pytest.raises(ValueError, match=msg):
-            Period(freq="WK-MON", year=2007, month=1, day=1)
+            pd.Period(freq="WK-MON", year=2007, month=1, day=1)
 
     def test_conv_business(self):
         # frequency conversion tests: from Business Frequency"
 
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_B = Period(freq="B", year=2007, month=1, day=1)
-            ival_B_end_of_year = Period(freq="B", year=2007, month=12, day=31)
-            ival_B_end_of_quarter = Period(freq="B", year=2007, month=3, day=30)
-            ival_B_end_of_month = Period(freq="B", year=2007, month=1, day=31)
-            ival_B_end_of_week = Period(freq="B", year=2007, month=1, day=5)
+            ival_B = pd.Period(freq="B", year=2007, month=1, day=1)
+            ival_B_end_of_year = pd.Period(freq="B", year=2007, month=12, day=31)
+            ival_B_end_of_quarter = pd.Period(freq="B", year=2007, month=3, day=30)
+            ival_B_end_of_month = pd.Period(freq="B", year=2007, month=1, day=31)
+            ival_B_end_of_week = pd.Period(freq="B", year=2007, month=1, day=5)
 
-        ival_B_to_A = Period(freq="Y", year=2007)
-        ival_B_to_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_B_to_M = Period(freq="M", year=2007, month=1)
-        ival_B_to_W = Period(freq="W", year=2007, month=1, day=7)
-        ival_B_to_D = Period(freq="D", year=2007, month=1, day=1)
-        ival_B_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_B_to_H_end = Period(freq="h", year=2007, month=1, day=1, hour=23)
-        ival_B_to_T_start = Period(
+        ival_B_to_A = pd.Period(freq="Y", year=2007)
+        ival_B_to_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_B_to_M = pd.Period(freq="M", year=2007, month=1)
+        ival_B_to_W = pd.Period(freq="W", year=2007, month=1, day=7)
+        ival_B_to_D = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_B_to_H_start = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_B_to_H_end = pd.Period(freq="h", year=2007, month=1, day=1, hour=23)
+        ival_B_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_B_to_T_end = Period(
+        ival_B_to_T_end = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=23, minute=59
         )
-        ival_B_to_S_start = Period(
+        ival_B_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_B_to_S_end = Period(
+        ival_B_to_S_end = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=23, minute=59, second=59
         )
 
@@ -433,45 +429,45 @@ class TestFreqConversion:
     def test_conv_daily(self):
         # frequency conversion tests: from Business Frequency"
 
-        ival_D = Period(freq="D", year=2007, month=1, day=1)
-        ival_D_end_of_year = Period(freq="D", year=2007, month=12, day=31)
-        ival_D_end_of_quarter = Period(freq="D", year=2007, month=3, day=31)
-        ival_D_end_of_month = Period(freq="D", year=2007, month=1, day=31)
-        ival_D_end_of_week = Period(freq="D", year=2007, month=1, day=7)
+        ival_D = pd.Period(freq="D", year=2007, month=1, day=1)
+        ival_D_end_of_year = pd.Period(freq="D", year=2007, month=12, day=31)
+        ival_D_end_of_quarter = pd.Period(freq="D", year=2007, month=3, day=31)
+        ival_D_end_of_month = pd.Period(freq="D", year=2007, month=1, day=31)
+        ival_D_end_of_week = pd.Period(freq="D", year=2007, month=1, day=7)
 
-        ival_D_friday = Period(freq="D", year=2007, month=1, day=5)
-        ival_D_saturday = Period(freq="D", year=2007, month=1, day=6)
-        ival_D_sunday = Period(freq="D", year=2007, month=1, day=7)
+        ival_D_friday = pd.Period(freq="D", year=2007, month=1, day=5)
+        ival_D_saturday = pd.Period(freq="D", year=2007, month=1, day=6)
+        ival_D_sunday = pd.Period(freq="D", year=2007, month=1, day=7)
 
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_B_friday = Period(freq="B", year=2007, month=1, day=5)
-            ival_B_monday = Period(freq="B", year=2007, month=1, day=8)
+            ival_B_friday = pd.Period(freq="B", year=2007, month=1, day=5)
+            ival_B_monday = pd.Period(freq="B", year=2007, month=1, day=8)
 
-        ival_D_to_A = Period(freq="Y", year=2007)
+        ival_D_to_A = pd.Period(freq="Y", year=2007)
 
-        ival_Deoq_to_AJAN = Period(freq="Y-JAN", year=2008)
-        ival_Deoq_to_AJUN = Period(freq="Y-JUN", year=2007)
-        ival_Deoq_to_ADEC = Period(freq="Y-DEC", year=2007)
+        ival_Deoq_to_AJAN = pd.Period(freq="Y-JAN", year=2008)
+        ival_Deoq_to_AJUN = pd.Period(freq="Y-JUN", year=2007)
+        ival_Deoq_to_ADEC = pd.Period(freq="Y-DEC", year=2007)
 
-        ival_D_to_QEJAN = Period(freq="Q-JAN", year=2007, quarter=4)
-        ival_D_to_QEJUN = Period(freq="Q-JUN", year=2007, quarter=3)
-        ival_D_to_QEDEC = Period(freq="Q-DEC", year=2007, quarter=1)
+        ival_D_to_QEJAN = pd.Period(freq="Q-JAN", year=2007, quarter=4)
+        ival_D_to_QEJUN = pd.Period(freq="Q-JUN", year=2007, quarter=3)
+        ival_D_to_QEDEC = pd.Period(freq="Q-DEC", year=2007, quarter=1)
 
-        ival_D_to_M = Period(freq="M", year=2007, month=1)
-        ival_D_to_W = Period(freq="W", year=2007, month=1, day=7)
+        ival_D_to_M = pd.Period(freq="M", year=2007, month=1)
+        ival_D_to_W = pd.Period(freq="W", year=2007, month=1, day=7)
 
-        ival_D_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_D_to_H_end = Period(freq="h", year=2007, month=1, day=1, hour=23)
-        ival_D_to_T_start = Period(
+        ival_D_to_H_start = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_D_to_H_end = pd.Period(freq="h", year=2007, month=1, day=1, hour=23)
+        ival_D_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_D_to_T_end = Period(
+        ival_D_to_T_end = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=23, minute=59
         )
-        ival_D_to_S_start = Period(
+        ival_D_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_D_to_S_end = Period(
+        ival_D_to_S_end = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=23, minute=59, second=59
         )
 
@@ -510,32 +506,32 @@ class TestFreqConversion:
     def test_conv_hourly(self):
         # frequency conversion tests: from Hourly Frequency"
 
-        ival_H = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_H_end_of_year = Period(freq="h", year=2007, month=12, day=31, hour=23)
-        ival_H_end_of_quarter = Period(freq="h", year=2007, month=3, day=31, hour=23)
-        ival_H_end_of_month = Period(freq="h", year=2007, month=1, day=31, hour=23)
-        ival_H_end_of_week = Period(freq="h", year=2007, month=1, day=7, hour=23)
-        ival_H_end_of_day = Period(freq="h", year=2007, month=1, day=1, hour=23)
-        ival_H_end_of_bus = Period(freq="h", year=2007, month=1, day=1, hour=23)
+        ival_H = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_H_end_of_year = pd.Period(freq="h", year=2007, month=12, day=31, hour=23)
+        ival_H_end_of_quarter = pd.Period(freq="h", year=2007, month=3, day=31, hour=23)
+        ival_H_end_of_month = pd.Period(freq="h", year=2007, month=1, day=31, hour=23)
+        ival_H_end_of_week = pd.Period(freq="h", year=2007, month=1, day=7, hour=23)
+        ival_H_end_of_day = pd.Period(freq="h", year=2007, month=1, day=1, hour=23)
+        ival_H_end_of_bus = pd.Period(freq="h", year=2007, month=1, day=1, hour=23)
 
-        ival_H_to_A = Period(freq="Y", year=2007)
-        ival_H_to_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_H_to_M = Period(freq="M", year=2007, month=1)
-        ival_H_to_W = Period(freq="W", year=2007, month=1, day=7)
-        ival_H_to_D = Period(freq="D", year=2007, month=1, day=1)
+        ival_H_to_A = pd.Period(freq="Y", year=2007)
+        ival_H_to_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_H_to_M = pd.Period(freq="M", year=2007, month=1)
+        ival_H_to_W = pd.Period(freq="W", year=2007, month=1, day=7)
+        ival_H_to_D = pd.Period(freq="D", year=2007, month=1, day=1)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_H_to_B = Period(freq="B", year=2007, month=1, day=1)
+            ival_H_to_B = pd.Period(freq="B", year=2007, month=1, day=1)
 
-        ival_H_to_T_start = Period(
+        ival_H_to_T_start = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
-        ival_H_to_T_end = Period(
+        ival_H_to_T_end = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=59
         )
-        ival_H_to_S_start = Period(
+        ival_H_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_H_to_S_end = Period(
+        ival_H_to_S_end = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=59, second=59
         )
 
@@ -563,42 +559,42 @@ class TestFreqConversion:
     def test_conv_minutely(self):
         # frequency conversion tests: from Minutely Frequency"
 
-        ival_T = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
-        ival_T_end_of_year = Period(
+        ival_T = pd.Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
+        ival_T_end_of_year = pd.Period(
             freq="Min", year=2007, month=12, day=31, hour=23, minute=59
         )
-        ival_T_end_of_quarter = Period(
+        ival_T_end_of_quarter = pd.Period(
             freq="Min", year=2007, month=3, day=31, hour=23, minute=59
         )
-        ival_T_end_of_month = Period(
+        ival_T_end_of_month = pd.Period(
             freq="Min", year=2007, month=1, day=31, hour=23, minute=59
         )
-        ival_T_end_of_week = Period(
+        ival_T_end_of_week = pd.Period(
             freq="Min", year=2007, month=1, day=7, hour=23, minute=59
         )
-        ival_T_end_of_day = Period(
+        ival_T_end_of_day = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=23, minute=59
         )
-        ival_T_end_of_bus = Period(
+        ival_T_end_of_bus = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=23, minute=59
         )
-        ival_T_end_of_hour = Period(
+        ival_T_end_of_hour = pd.Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=59
         )
 
-        ival_T_to_A = Period(freq="Y", year=2007)
-        ival_T_to_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_T_to_M = Period(freq="M", year=2007, month=1)
-        ival_T_to_W = Period(freq="W", year=2007, month=1, day=7)
-        ival_T_to_D = Period(freq="D", year=2007, month=1, day=1)
+        ival_T_to_A = pd.Period(freq="Y", year=2007)
+        ival_T_to_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_T_to_M = pd.Period(freq="M", year=2007, month=1)
+        ival_T_to_W = pd.Period(freq="W", year=2007, month=1, day=7)
+        ival_T_to_D = pd.Period(freq="D", year=2007, month=1, day=1)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_T_to_B = Period(freq="B", year=2007, month=1, day=1)
-        ival_T_to_H = Period(freq="h", year=2007, month=1, day=1, hour=0)
+            ival_T_to_B = pd.Period(freq="B", year=2007, month=1, day=1)
+        ival_T_to_H = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
 
-        ival_T_to_S_start = Period(
+        ival_T_to_S_start = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        ival_T_to_S_end = Period(
+        ival_T_to_S_end = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=59
         )
 
@@ -626,41 +622,43 @@ class TestFreqConversion:
     def test_conv_secondly(self):
         # frequency conversion tests: from Secondly Frequency"
 
-        ival_S = Period(freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0)
-        ival_S_end_of_year = Period(
+        ival_S = pd.Period(
+            freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
+        )
+        ival_S_end_of_year = pd.Period(
             freq="s", year=2007, month=12, day=31, hour=23, minute=59, second=59
         )
-        ival_S_end_of_quarter = Period(
+        ival_S_end_of_quarter = pd.Period(
             freq="s", year=2007, month=3, day=31, hour=23, minute=59, second=59
         )
-        ival_S_end_of_month = Period(
+        ival_S_end_of_month = pd.Period(
             freq="s", year=2007, month=1, day=31, hour=23, minute=59, second=59
         )
-        ival_S_end_of_week = Period(
+        ival_S_end_of_week = pd.Period(
             freq="s", year=2007, month=1, day=7, hour=23, minute=59, second=59
         )
-        ival_S_end_of_day = Period(
+        ival_S_end_of_day = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=23, minute=59, second=59
         )
-        ival_S_end_of_bus = Period(
+        ival_S_end_of_bus = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=23, minute=59, second=59
         )
-        ival_S_end_of_hour = Period(
+        ival_S_end_of_hour = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=59, second=59
         )
-        ival_S_end_of_minute = Period(
+        ival_S_end_of_minute = pd.Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=59
         )
 
-        ival_S_to_A = Period(freq="Y", year=2007)
-        ival_S_to_Q = Period(freq="Q", year=2007, quarter=1)
-        ival_S_to_M = Period(freq="M", year=2007, month=1)
-        ival_S_to_W = Period(freq="W", year=2007, month=1, day=7)
-        ival_S_to_D = Period(freq="D", year=2007, month=1, day=1)
+        ival_S_to_A = pd.Period(freq="Y", year=2007)
+        ival_S_to_Q = pd.Period(freq="Q", year=2007, quarter=1)
+        ival_S_to_M = pd.Period(freq="M", year=2007, month=1)
+        ival_S_to_W = pd.Period(freq="W", year=2007, month=1, day=7)
+        ival_S_to_D = pd.Period(freq="D", year=2007, month=1, day=1)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
-            ival_S_to_B = Period(freq="B", year=2007, month=1, day=1)
-        ival_S_to_H = Period(freq="h", year=2007, month=1, day=1, hour=0)
-        ival_S_to_T = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
+            ival_S_to_B = pd.Period(freq="B", year=2007, month=1, day=1)
+        ival_S_to_H = pd.Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_S_to_T = pd.Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
 
         assert ival_S.asfreq("Y") == ival_S_to_A
         assert ival_S_end_of_year.asfreq("Y") == ival_S_to_A
@@ -685,80 +683,80 @@ class TestFreqConversion:
     def test_conv_microsecond(self):
         # GH#31475 Avoid floating point errors dropping the start_time to
         #  before the beginning of the Period
-        per = Period("2020-01-30 15:57:27.576166", freq="us")
+        per = pd.Period("2020-01-30 15:57:27.576166", freq="us")
         assert per.ordinal == 1580399847576166
 
         start = per.start_time
-        expected = Timestamp("2020-01-30 15:57:27.576166")
+        expected = pd.Timestamp("2020-01-30 15:57:27.576166")
         assert start == expected
         assert start._value == per.ordinal
 
     def test_asfreq_mult(self):
         # normal freq to mult freq
-        p = Period(freq="Y", year=2007)
+        p = pd.Period(freq="Y", year=2007)
         # ordinal will not change
-        for freq in ["3Y", offsets.YearEnd(3)]:
+        for freq in ["3Y", pd.offsets.YearEnd(3)]:
             result = p.asfreq(freq)
-            expected = Period("2007", freq="3Y")
+            expected = pd.Period("2007", freq="3Y")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
         # ordinal will not change
-        for freq in ["3Y", offsets.YearEnd(3)]:
+        for freq in ["3Y", pd.offsets.YearEnd(3)]:
             result = p.asfreq(freq, how="S")
-            expected = Period("2007", freq="3Y")
+            expected = pd.Period("2007", freq="3Y")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
 
         # mult freq to normal freq
-        p = Period(freq="3Y", year=2007)
+        p = pd.Period(freq="3Y", year=2007)
         # ordinal will change because how=E is the default
-        for freq in ["Y", offsets.YearEnd()]:
+        for freq in ["Y", pd.offsets.YearEnd()]:
             result = p.asfreq(freq)
-            expected = Period("2009", freq="Y")
+            expected = pd.Period("2009", freq="Y")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
         # ordinal will not change
-        for freq in ["Y", offsets.YearEnd()]:
+        for freq in ["Y", pd.offsets.YearEnd()]:
             result = p.asfreq(freq, how="s")
-            expected = Period("2007", freq="Y")
+            expected = pd.Period("2007", freq="Y")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
 
-        p = Period(freq="Y", year=2007)
-        for freq in ["2M", offsets.MonthEnd(2)]:
+        p = pd.Period(freq="Y", year=2007)
+        for freq in ["2M", pd.offsets.MonthEnd(2)]:
             result = p.asfreq(freq)
-            expected = Period("2007-12", freq="2M")
+            expected = pd.Period("2007-12", freq="2M")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
-        for freq in ["2M", offsets.MonthEnd(2)]:
+        for freq in ["2M", pd.offsets.MonthEnd(2)]:
             result = p.asfreq(freq, how="s")
-            expected = Period("2007-01", freq="2M")
+            expected = pd.Period("2007-01", freq="2M")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
 
-        p = Period(freq="3Y", year=2007)
-        for freq in ["2M", offsets.MonthEnd(2)]:
+        p = pd.Period(freq="3Y", year=2007)
+        for freq in ["2M", pd.offsets.MonthEnd(2)]:
             result = p.asfreq(freq)
-            expected = Period("2009-12", freq="2M")
+            expected = pd.Period("2009-12", freq="2M")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
-        for freq in ["2M", offsets.MonthEnd(2)]:
+        for freq in ["2M", pd.offsets.MonthEnd(2)]:
             result = p.asfreq(freq, how="s")
-            expected = Period("2007-01", freq="2M")
+            expected = pd.Period("2007-01", freq="2M")
 
             assert result == expected
             assert result.ordinal == expected.ordinal
@@ -766,10 +764,10 @@ class TestFreqConversion:
 
     def test_asfreq_combined(self):
         # normal freq to combined freq
-        p = Period("2007", freq="h")
+        p = pd.Period("2007", freq="h")
 
         # ordinal will not change
-        expected = Period("2007", freq="25h")
+        expected = pd.Period("2007", freq="25h")
         for freq, how in zip(["1D1h", "1h1D"], ["E", "S"], strict=True):
             result = p.asfreq(freq, how=how)
             assert result == expected
@@ -777,13 +775,13 @@ class TestFreqConversion:
             assert result.freq == expected.freq
 
         # combined freq to normal freq
-        p1 = Period(freq="1D1h", year=2007)
-        p2 = Period(freq="1h1D", year=2007)
+        p1 = pd.Period(freq="1D1h", year=2007)
+        p2 = pd.Period(freq="1h1D", year=2007)
 
         # ordinal will change because how=E is the default
         result1 = p1.asfreq("h")
         result2 = p2.asfreq("h")
-        expected = Period("2007-01-02", freq="h")
+        expected = pd.Period("2007-01-02", freq="h")
         assert result1 == expected
         assert result1.ordinal == expected.ordinal
         assert result1.freq == expected.freq
@@ -794,7 +792,7 @@ class TestFreqConversion:
         # ordinal will not change
         result1 = p1.asfreq("h", how="S")
         result2 = p2.asfreq("h", how="S")
-        expected = Period("2007-01-01", freq="h")
+        expected = pd.Period("2007-01-01", freq="h")
         assert result1 == expected
         assert result1.ordinal == expected.ordinal
         assert result1.freq == expected.freq
@@ -803,13 +801,13 @@ class TestFreqConversion:
         assert result2.freq == expected.freq
 
     def test_asfreq_MS(self):
-        initial = Period("2013")
+        initial = pd.Period("2013")
 
-        assert initial.asfreq(freq="M", how="S") == Period("2013-01", "M")
+        assert initial.asfreq(freq="M", how="S") == pd.Period("2013-01", "M")
 
         msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
             initial.asfreq(freq="MS", how="S")
 
         with pytest.raises(ValueError, match=msg):
-            Period("2013-01", "MS")
+            pd.Period("2013-01", "MS")
