@@ -184,15 +184,6 @@ pick up the requested ``dtype_backend`` only with the ``pyarrow`` engine, and
 with the ``python`` engine under ``dtype_backend="pyarrow"``; the ``c`` engine
 always gives numpy-backed categories (:issue:`66382`).
 
-As with every other dtype, the inference sees one chunk at a time when reading
-with ``chunksize`` or ``iterator=True``, so chunks of the same column can now
-end up with different category dtypes; previously they were always strings.
-Concatenating such chunks then gives ``object`` rather than the ``str`` it gave
-before; pass ``union_categories=True`` to :func:`concat` to get a categorical
-back. The internal chunking that ``low_memory=True`` does within a single read
-does not diverge this way, since it infers once, after those chunks are
-combined.
-
 .. _whatsnew_310.notable_bug_fixes.timestamp_ignored_arguments:
 
 :class:`Timestamp` no longer ignores date components and the positional ``tzinfo``
