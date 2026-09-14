@@ -416,6 +416,9 @@ cdef class TextReader:
         list names   # can be None
         set noconvert  # set[int]
         dict datetime_cols  # dict[int, bool]
+        # NA hashset per column (per reader when na_values is not a dict),
+        # built on first use and freed in _close; see _get_na_set
+        dict na_set_cache  # dict[int, tuple[list, set, uintptr_t]]
         dict dt_chunk_states  # dict[int, _DatetimeChunkState] | None
         int64_t lm_chunk_idx
         object _buffer_ref  # keeps pre-loaded bytes alive during parse
@@ -609,6 +612,7 @@ cdef class TextReader:
 
         self.noconvert = set()
         self.datetime_cols = {}
+        self.na_set_cache = {}
         self.dt_chunk_states = None
         self.lm_chunk_idx = 0
 
@@ -1249,25 +1253,16 @@ cdef class TextReader:
             na_fset = set()
 
             if self.na_filter:
-                na_list, na_fset = self._get_na_list(i, name)
+                na_fset = self._get_na_set(i, name, &na_hashset)
                 na_filter = 1
-                na_hashset = kset_from_list(na_list)
             else:
                 na_filter = 0
 
             # Attempt to parse tokens and infer dtype of the column.
             # Should return as the desired dtype (inferred or specified).
-            try:
-                col_res, na_count, na_mask = self._convert_tokens(
-                    i, start, end, name, na_filter, na_hashset,
-                    na_fset, col_dtype)
-            finally:
-                # gh-21353
-                #
-                # Cleanup the NaN hash that we generated
-                # to avoid memory leaks.
-                if na_filter:
-                    self._free_na_set(na_hashset)
+            col_res, na_count, na_mask = self._convert_tokens(
+                i, start, end, name, na_filter, na_hashset,
+                na_fset, col_dtype)
 
             # don't try to upcast EAs
             if (
@@ -1874,8 +1869,43 @@ cdef class TextReader:
         else:
             return _ensure_encoded(self.na_values), self.na_fvalues
 
-    cdef _free_na_set(self, kh_str_starts_t *table):
-        kh_destroy_str_starts(table)
+    cdef object _get_na_key(self, Py_ssize_t i, object name):
+        # The na_values entry column i resolves to, mirroring _get_na_list, so
+        # that columns sharing an entry share a hashset. None means "the
+        # defaults", which most columns of a wide file take; keying on i
+        # instead would build and hold one hashset per column.
+        if not isinstance(self.na_values, dict):
+            return None
+        if name is not None and name in self.na_values:
+            return name
+        if i in self.na_values:
+            return i
+        return None
+
+    cdef set _get_na_set(self, Py_ssize_t i, object name,
+                         kh_str_starts_t **table):
+        """
+        The NA hashset and float NA set for column i, built on first use and
+        reused for every later chunk, and for every other column resolving to
+        the same na_values entry, rather than rebuilt per (column, chunk)
+        under the GIL.
+        """
+        cdef:
+            object key = self._get_na_key(i, name)
+            tuple entry = self.na_set_cache.get(key)
+            list na_list
+            set na_fset
+
+        if entry is None:
+            na_list, na_fset = self._get_na_list(i, name)
+            table[0] = kset_from_list(na_list)
+            # na_list stays referenced here: the hashset's keys point into
+            # its bytes objects
+            entry = (na_list, na_fset, <uintptr_t>table[0])
+            self.na_set_cache[key] = entry
+        else:
+            table[0] = <kh_str_starts_t *><uintptr_t>entry[2]
+        return entry[1]
 
     cdef _get_column_name(self, Py_ssize_t i, Py_ssize_t nused):
         cdef int64_t j
@@ -1923,6 +1953,10 @@ cdef _close(TextReader reader):
     if reader.false_set:
         kh_destroy_str_starts(reader.false_set)
         reader.false_set = NULL
+    if reader.na_set_cache:
+        for entry in reader.na_set_cache.values():
+            kh_destroy_str_starts(<kh_str_starts_t *><uintptr_t>entry[2])
+        reader.na_set_cache = {}
 
 
 cdef:

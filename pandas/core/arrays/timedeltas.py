@@ -1348,6 +1348,12 @@ def sequence_to_td64ns(
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):
+        if data.dtype.byteorder == ">":
+            # GH#68342 supported units are otherwise stored as-is; the swap also
+            #  has to precede the cast, whose finer->coarser branch views i8 raw
+            data = data.astype(data.dtype.newbyteorder("<"))
+            copy = False
+
         if not is_supported_dtype(data.dtype):
             # cast to closest supported unit, i.e. s or ns
             new_dtype = get_supported_dtype(data.dtype)
