@@ -2333,8 +2333,8 @@ class TestPivotTable:
     def test_pivot_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
-        # GH#20601
-        # GH#26314: Change ValueError to PerformanceWarning
+        # GH 20601
+        # GH 26314: Change ValueError to PerformanceWarning
         class MockUnstacker(reshape_lib._Unstacker):
             def __init__(self, *args, **kwargs) -> None:
                 # __init__ will raise the warning
