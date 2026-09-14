@@ -2589,6 +2589,46 @@ class TestLocSetitemWithExpansion:
         )
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, item",
+        [
+            # used to raise: pyarrow lets an OverflowError out of the cast.
+            #  Spelled out rather than "str" so the case survives with
+            #  future.infer_string disabled
+            (pd.StringDtype(na_value=np.nan), 2**70),
+            # used to raise: BaseMaskedArray._from_sequence rejects NaT
+            ("Int64", pd.NaT),
+            # used to land on an arrow period/interval type, which concat
+            #  then coerced back into the int64 column
+            ("int64[pyarrow]", pd.Period("2021-01-01", freq="D")),
+            ("int64[pyarrow]", pd.Interval(5, 6)),
+        ],
+    )
+    def test_loc_setitem_with_expansion_lossy_pre_cast(self, dtype, item):
+        # GH#65431 the pre-cast is only an optimization; when it raises or
+        #  lands on another dtype, the column widens to object
+        if "pyarrow" in str(dtype):
+            pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"a": pd.Series([1, 2], dtype=dtype)})
+        original = list(df["a"])
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            df.loc[2] = [item]
+
+        expected = pd.DataFrame({"a": pd.Series([*original, item], dtype=object)})
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_with_expansion_sparse_na(self):
+        # GH#65431 pre-casting NaN gives Sparse[float64, nan], not the column's
+        #  Sparse[int64, 0]; adopting it used to turn the appended NaN into 0
+        df = pd.DataFrame({"a": pd.arrays.SparseArray([0, 1, 2], fill_value=0)})
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            df.loc[3] = [np.nan]
+
+        expected = pd.DataFrame({"a": pd.arrays.SparseArray([0.0, 1.0, 2.0, np.nan])})
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_with_expansion_multiindex_retains_dtypes(self):
         # GH#17026
         mi = pd.MultiIndex.from_tuples([("a", "c"), ("b", "c"), ("c", "d")])
@@ -4097,4 +4137,36 @@ def test_loc_setitem_row_expansion_int_ea_float_value():
             "numpy": [1, 2, 3],
         }
     )
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "row_key", [[0, 1, 2], slice(0, 2), np.array([True, True, True, False])]
+)
+@pytest.mark.parametrize("col_key", [["b"], slice("b", "b")])
+def test_loc_setitem_single_column_key_1d_value(row_key, col_key):
+    # GH#68021 a column key selecting exactly one column makes the selection
+    #  (N, 1), which a length-N 1-D value could not be broadcast into on a
+    #  single-block frame.  .loc reaches the same code path as .iloc only after
+    #  label->position conversion and _maybe_mask_setitem_value.
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+
+    df.loc[row_key, col_key] = [1.0, 2.0, 3.0]
+
+    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    expected["b"] = [1.0, 2.0, 3.0, 0.0]
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_single_column_key_1d_value_non_unique_index():
+    # GH#68021 a duplicated label expands the row selection, so two labels can
+    #  select three rows and consume a length-3 value
+    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"), index=["w", "x", "x", "z"])
+
+    df.loc[["w", "x"], ["b"]] = [1.0, 2.0, 3.0]
+
+    expected = pd.DataFrame(
+        np.zeros((4, 3)), columns=list("abc"), index=["w", "x", "x", "z"]
+    )
+    expected["b"] = [1.0, 2.0, 3.0, 0.0]
     tm.assert_frame_equal(df, expected)

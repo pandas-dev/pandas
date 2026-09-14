@@ -260,7 +260,7 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert string .* to numeric|"
+            "Could not convert .* to numeric|"
             "Cannot perform reduction 'mean' with string dtype",
         ),
     }[groupby_func_np]
@@ -289,8 +289,8 @@ def test_groupby_raises_datetime(
             return
 
     klass, msg = {
-        "all": (TypeError, "'all' with datetime64 dtypes is no longer supported"),
-        "any": (TypeError, "'any' with datetime64 dtypes is no longer supported"),
+        "all": (TypeError, "'all' with datetime64 dtypes is not supported"),
+        "any": (TypeError, "'any' with datetime64 dtypes is not supported"),
         "bfill": (None, ""),
         "corrwith": (TypeError, "cannot perform __mul__ with this index type"),
         "count": (None, ""),

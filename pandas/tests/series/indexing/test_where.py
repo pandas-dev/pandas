@@ -7,6 +7,7 @@ import pandas as pd
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize("dtype", ["S1", "V1"])
 @pytest.mark.parametrize(
     "method,cond",
     [
@@ -14,9 +15,9 @@ import pandas._testing as tm
         ("mask", [False, True, False]),
     ],
 )
-def test_where_mask_bytes_dtype_with_na(method, cond):
+def test_where_mask_cannot_hold_na_dtype(method, cond, dtype):
     # GH#52373
-    ser = pd.Series([b"a", b"b", b"c"], dtype="S1")
+    ser = pd.Series(np.array([b"a", b"b", b"c"], dtype=dtype))
 
     result = getattr(ser, method)(cond)
 

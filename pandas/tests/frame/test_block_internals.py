@@ -304,20 +304,19 @@ class TestDataFrameBlockInternals:
 
     def test_stale_cached_series_bug_473(self):
         # this is chained, but ok
-        with pd.option_context("chained_assignment", None):
-            Y = pd.DataFrame(
-                np.random.default_rng(2).random((4, 4)),
-                index=("a", "b", "c", "d"),
-                columns=("e", "f", "g", "h"),
-            )
-            repr(Y)
-            Y["e"] = Y["e"].astype("object")
-            with tm.raises_chained_assignment_error():
-                Y["g"]["c"] = np.nan
-            repr(Y)
-            Y.sum()
-            Y["g"].sum()
-            assert not pd.isna(Y["g"]["c"])
+        Y = pd.DataFrame(
+            np.random.default_rng(2).random((4, 4)),
+            index=("a", "b", "c", "d"),
+            columns=("e", "f", "g", "h"),
+        )
+        repr(Y)
+        Y["e"] = Y["e"].astype("object")
+        with tm.raises_chained_assignment_error():
+            Y["g"]["c"] = np.nan
+        repr(Y)
+        Y.sum()
+        Y["g"].sum()
+        assert not pd.isna(Y["g"]["c"])
 
     def test_strange_column_corruption_issue(self, performance_warning):
         # TODO(wesm): Unclear how exactly this is related to internal matters

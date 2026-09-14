@@ -124,10 +124,6 @@ class _Unstacker:
         self.constructor = constructor
         self.sort = sort
 
-        # remove_unused_levels ensures every value in the unstacked level
-        # has at least one entry, which guarantees that the mask returned by
-        # get_new_values satisfies mask.any(0).all() i.e. no column in the
-        # unstacked result is entirely empty.
         self.index = index.remove_unused_levels()
 
         self.level = self.index._get_level_number(level)
@@ -146,6 +142,7 @@ class _Unstacker:
         self.removed_level = self.new_index_levels.pop(self.level)
         self.removed_level_full = index.levels[self.level]
         self.unique_nan_index: int = -1
+        self._level_code_map: npt.NDArray[np.intp] | None = None
         if not self.sort:
             unique_codes: np.ndarray = unique(self.index.codes[self.level])
             if self.has_nan:
@@ -157,17 +154,24 @@ class _Unstacker:
 
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
+        elif any(lev.hasnans for lev in self.index.levels):
+            # remove_unused_levels returns the index unpruned when a level holds
+            #  NaN as a value (GH#37510) -- and only then -- so the unstacked
+            #  level can keep a value no row uses, which would get a column of
+            #  its own below.
+            level_codes = self.index.codes[self.level]
+            used = np.zeros(len(self.removed_level), dtype=bool)
+            used[level_codes[level_codes != -1]] = True
+            if not used.all():
+                self.removed_level = self.removed_level[used]
+                self._level_code_map = np.cumsum(used, dtype=np.intp) - 1
 
         if config["mode"]["performance_warnings"]:
-            # Bug fix GH 20601
-            # If the data frame is too big, the number of unique index combination
-            # will cause int32 overflow on windows environments.
-            # We want to check and raise a warning before this happens
-            num_rows = max(index_level.size for index_level in self.new_index_levels)
-            num_columns = self.removed_level.size
-
-            # GH20601: This forces an overflow if the number of cells is too high.
-            # GH 26314: Previous ValueError raised was too restrictive for many users.
+            # GH#20601: warn when the mask built in _make_selectors would have
+            #  more cells than int32 can index. GH#26314: warn, don't raise.
+            # num_rows, num_columns are that mask's full_shape (GH#10582).
+            num_rows = self._comp_index_and_ngroups[1]
+            num_columns = self.index.levshape[self.level] + self.has_nan
             num_cells = num_rows * num_columns
             if num_cells > np.iinfo(np.int32).max:
                 warnings.warn(
@@ -212,7 +216,10 @@ class _Unstacker:
         level_codes = self.index.codes[self.level]
         if self.sort:
             # -1 for NaN; self.lift shifts those into position 0.
-            return level_codes
+            if self._level_code_map is None:
+                return level_codes
+            # renumber past the dropped entries, keeping -1 for NaN
+            return np.where(level_codes == -1, -1, self._level_code_map[level_codes])
         # removed_level is in order of first appearance, and so is this, with
         #  NaN numbered wherever it first appeared (see unique_nan_index).
         return factorize(level_codes)[0]
@@ -222,7 +229,7 @@ class _Unstacker:
         # libreshape.unstack walks the values in the order they occupy in the
         #  result, so sort the rows by (result row, result column).
         comp_index, ngroups = self._comp_index_and_ngroups
-        stride = self.index.levshape[self.level] + self.has_nan
+        stride = len(self.removed_level) + self.has_nan
         keys = [comp_index, self._unstacked_level_codes]
 
         # xnull=False shifts a -1 code to 0, which is where _make_selectors puts
@@ -246,7 +253,7 @@ class _Unstacker:
     def _make_selectors(self) -> None:
         comp_index, ngroups = self._comp_index_and_ngroups
 
-        stride = self.index.levshape[self.level] + self.has_nan
+        stride = len(self.removed_level) + self.has_nan
         self.full_shape = ngroups, stride
 
         # make the mask

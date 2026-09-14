@@ -2567,6 +2567,18 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
         tm.assert_frame_equal(result, expected)
 
+    def test_datetime_date_tuple_columns_from_dict_timestamp_keys(self):
+        # GH#36131 a Timestamp key does not match a date column, so this behaves
+        #  like any other non-matching key and gives an empty frame
+        day = date(2011, 1, 1)
+        tup = day, day
+        ts = pd.Timestamp(day) + timedelta(hours=1)
+        result = pd.DataFrame(
+            {(ts, ts): pd.Series(range(3), index=range(3))}, columns=[tup]
+        )
+        expected = pd.DataFrame(columns=pd.Index(pd.Series([tup])))
+        tm.assert_frame_equal(result, expected)
+
     def test_construct_with_two_categoricalindex_series(self):
         # GH 14600
         s1 = pd.Series(

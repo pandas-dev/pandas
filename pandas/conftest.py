@@ -21,6 +21,7 @@ Instead of splitting it was decided to define sections here:
 from __future__ import annotations
 
 from collections import abc
+import contextlib
 from datetime import (
     UTC,
     date,
@@ -203,14 +204,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     """
     doctest_namespace["np"] = np
     doctest_namespace["pd"] = pd
-
-
-@pytest.fixture(autouse=True)
-def configure_tests() -> None:
-    """
-    Configure settings for all tests and test modules.
-    """
-    pd.set_option("chained_assignment", "raise")
 
 
 # ----------------------------------------------------------------
@@ -1947,6 +1940,13 @@ def ip():
 
 @pytest.fixture
 def mpl_cleanup():
+    """Uses mpl_cleanup_context to ensure matplotlib is cleaned up around a test."""
+    with mpl_cleanup_context():
+        yield
+
+
+@contextlib.contextmanager
+def mpl_cleanup_context():
     """
     Ensure Matplotlib is cleaned up around a test.
 

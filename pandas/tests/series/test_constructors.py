@@ -1213,6 +1213,19 @@ class TestSeriesConstructors:
         assert expected.dtype == "M8[ms]"
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["D", "h", "s", "ms", "us", "ns", "ps", "fs"])
+    def test_constructor_timedelta64_bigendian(self, unit):
+        # GH#68342 the byteswap also turned NaT into an ordinary duration; ps/fs
+        #  are load-bearing, only the finer->coarser cast views i8 unswapped
+        arr = np.array([1000, "NaT"], dtype=f">m8[{unit}]")
+
+        result = pd.Series(arr)
+        expected = pd.Series(arr.astype(f"<m8[{unit}]"))
+        assert result.dtype.byteorder != ">"
+        assert result.isna().tolist() == [False, True]
+        tm.assert_series_equal(result, expected)
+        tm.assert_index_equal(pd.to_timedelta(arr), pd.Index(expected))
+
     @pytest.mark.parametrize("interval_constructor", [pd.IntervalIndex, IntervalArray])
     def test_construction_interval(self, interval_constructor):
         # construction from interval & array of intervals
@@ -1975,6 +1988,14 @@ class TestSeriesConstructors:
         #  nanoseconds (which silently truncated these to zero)
         result = pd.Series(data, dtype="timedelta64[s]")
         expected = pd.Series(pd.to_timedelta(data, unit="s").as_unit("s"))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_dtype_timedelta_mixed_honors_unit(self):
+        # GH#68639 numbers mixed with timedelta-like objects are interpreted in
+        #  the dtype's unit, not as nanoseconds
+        data = [pd.Timedelta(1, "s"), 2]
+        result = pd.Series(data, dtype="timedelta64[s]")
+        expected = pd.Series(pd.to_timedelta(data, unit="s"))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):

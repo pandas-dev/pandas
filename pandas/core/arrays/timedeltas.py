@@ -37,6 +37,7 @@ from pandas._libs.tslibs.fields import (
 )
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
+    contains_str,
     floordiv_object_array,
     ints_to_pytimedelta,
     parse_timedelta_unit,
@@ -276,16 +277,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         unit = None
         if dtype is not None:
             if data.dtype == object:
-                # the unit applies iff the non-null values are all numeric
-                mask = isna(data)
-                notna_data = data[~mask] if mask.any() else data
-                is_numeric = lib.is_integer_float_array(notna_data)
+                # GH#68639 the unit applies to the numeric entries, matching
+                #  to_timedelta(data, unit=...), except that a str alongside
+                #  them would make array_to_timedelta64 reject the unit
+                apply_unit = not contains_str(data)
             else:
-                is_numeric = data.dtype.kind in "iuf"
-            if is_numeric:
-                # numeric data is interpreted in the dtype's unit, matching
-                #  to_timedelta(data, unit=...); mixed Timedelta/numeric data
-                #  keeps the "ns" default, unlike to_timedelta
+                apply_unit = data.dtype.kind in "iuf"
+            if apply_unit:
                 unit = np.datetime_data(dtype)[0]
 
         data = sequence_to_td64ns(data, copy=copy, unit=unit)
@@ -1348,6 +1346,12 @@ def sequence_to_td64ns(
         copy = False
 
     elif lib.is_np_dtype(data.dtype, "m"):
+        if data.dtype.byteorder == ">":
+            # GH#68342 supported units are otherwise stored as-is; the swap also
+            #  has to precede the cast, whose finer->coarser branch views i8 raw
+            data = data.astype(data.dtype.newbyteorder("<"))
+            copy = False
+
         if not is_supported_dtype(data.dtype):
             # cast to closest supported unit, i.e. s or ns
             new_dtype = get_supported_dtype(data.dtype)
