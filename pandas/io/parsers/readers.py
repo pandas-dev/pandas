@@ -1090,8 +1090,7 @@ def _read_csv_chunks(
                 except Exception as err:
                     if (
                         "SQLite objects created in a thread can only be used in "
-"that same thread"
-                        in str(err)
+                        "that same thread" in str(err)
                     ):
                         raise RuntimeError(
                             "A read_csv converter raised a SQLite thread-affinity "
