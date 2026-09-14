@@ -1777,26 +1777,58 @@ class EABackedBlock(Block):
             #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
             #  whose __setitem__ does not check the flag.
             raise ValueError("Cannot modify read-only array")
+        transposed = values.ndim == 2
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
                 indexer = (indexer, slice(None))
             if len(indexer) == 2:
+                # GH#68521 the swap transposes the selection only when the
+                #  entries index separate axes: a scalar entry drops one, and
+                #  two advanced indexers broadcast against each other.
+                transposed = any(isinstance(x, slice) for x in indexer) and not any(
+                    not isinstance(x, slice) and np.ndim(x) == 0 for x in indexer
+                )
                 indexer = indexer[::-1]
-            if isinstance(value, np.ndarray) and value.ndim == 2:
-                value = value.T
+            if transposed:
+                if is_list_like(value) and not isinstance(value, np.ndarray):
+                    # GH#68521 the reorientation below needs a reshape. Not
+                    #  _validate_setitem_value: it unboxes, so the assignment
+                    #  would re-validate i8 ordinals against PeriodDtype.
+                    try:
+                        # error: "ExtensionArray" has no attribute
+                        # "_validate_listlike"
+                        value = values._validate_listlike(value)  # type: ignore[attr-defined]
+                    except (TypeError, ValueError):
+                        pass  # let the assignment below raise or coerce, as before
+                if getattr(value, "ndim", 0) == 2:
+                    value = value.T
+                elif getattr(value, "ndim", 0) == 1:
+                    # a 1D value is per-column, repeated across the selected rows
+                    value = value.reshape(-1, 1)
         check_setitem_lengths(indexer, value, values)
 
         try:
             values[indexer] = value
-        except (ValueError, TypeError):
-            if isinstance(self.dtype, IntervalDtype):
-                # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
-                return nb.setitem(orig_indexer, orig_value)
+        except (ValueError, TypeError) as err:
+            # IntervalDtype: see TestSetitemFloatIntervalWithIntIntervalValues
+            if isinstance(self.dtype, IntervalDtype) or isinstance(
+                self, NDArrayBackedExtensionBlock
+            ):
+                if values.ndim == 2:
+                    # GH#68521 a 1D block leaks the same misleading report, but
+                    #  giving it this one would change the exception type of
+                    #  Series setitem for four dtypes, so it is left alone here.
+                    target_shape = _unbroadcastable_shape(values, indexer, value)
+                    if target_shape is not None:
+                        if transposed:
+                            target_shape = target_shape[::-1]
+                        raise ValueError(
+                            f"could not broadcast input array from shape "
+                            f"{np.shape(orig_value)} into shape {target_shape}"
+                        ) from err
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
@@ -2311,6 +2343,31 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+
+def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> Shape | None:
+    """
+    The shape of ``values[indexer]`` when ``value`` cannot be broadcast into it.
+
+    Returns None both when the value does fit and when that cannot be
+    determined, so a caller can only use a non-None result to rule a failed
+    setitem a shape problem rather than a dtype one.
+    """
+    try:
+        target_shape = np.shape(values[indexer])
+        value_shape = np.shape(value)
+    except (IndexError, TypeError, ValueError):
+        return None
+    # assignment also drops leading length-1 axes of the value, which
+    #  broadcasting on its own does not, e.g. ``arr[0] = np.array([x])``
+    while len(value_shape) > len(target_shape) and value_shape[0] == 1:
+        value_shape = value_shape[1:]
+    try:
+        if np.broadcast_shapes(target_shape, value_shape) == target_shape:
+            return None
+    except ValueError:
+        pass
+    return target_shape
 
 
 # -----------------------------------------------------------------
