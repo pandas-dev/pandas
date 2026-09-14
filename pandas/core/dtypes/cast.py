@@ -1789,7 +1789,11 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     raise LossySetitemError
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
-                np_can_hold_element(dtype, np.asarray(arr))
+                #  np.asarray widens a SparseArray to the fill_value's dtype, so
+                #  ask for the subtype to keep e.g. Sparse[int8] out of int64.
+                np_can_hold_element(
+                    dtype, np.asarray(arr, dtype=getattr(arr.dtype, "subtype", None))
+                )
                 return element
 
             return element

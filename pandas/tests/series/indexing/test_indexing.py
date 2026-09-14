@@ -405,6 +405,14 @@ def test_setitem_sparse_int_into_int(indexer_sli):
     tm.assert_series_equal(ser, pd.Series([4, 0, 6]))
 
 
+def test_setitem_sparse_int_into_same_width_int(indexer_sli):
+    # np.asarray widens a SparseArray to the fill_value's dtype, which made an
+    # int8 -> int8 set look lossy even though it holds
+    ser = pd.Series(np.array([1, 2, 3], dtype=np.int8))
+    indexer_sli(ser)[:] = pd.arrays.SparseArray(np.array([4, 0, 6], dtype=np.int8))
+    tm.assert_series_equal(ser, pd.Series(np.array([4, 0, 6], dtype=np.int8)))
+
+
 class TestDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{1}, {1: 1}])
     def test_getitem_dict_and_set_deprecated(self, key):
