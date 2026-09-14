@@ -184,3 +184,10 @@ def test_can_hold_element_sparse_int(wrapper):
     assert can_hold_element(np.array([], dtype=np.int64), element)
     # int64 values are not held by a narrower dtype, same as for Int64
     assert not can_hold_element(np.array([], dtype=np.int8), element)
+
+    # an int8 subtype does fit int8, same as for Int8; np.asarray widens a
+    # SparseArray to the fill_value's dtype, which used to reject this
+    narrow = wrapper(pd.arrays.SparseArray(np.array([4, 0, 6], dtype=np.int8)))
+
+    assert can_hold_element(np.array([], dtype=np.int8), narrow)
+    assert can_hold_element(np.array([], dtype=np.int64), narrow)
