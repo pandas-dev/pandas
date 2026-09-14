@@ -17255,6 +17255,29 @@ class DataFrame(NDFrame, OpsMixin):
         Apply the reduction block-wise along axis=1 and then reduce the resulting
         1D arrays.
         """
+        acc_dtype: np.dtype | None = None
+        if name in ("sum", "prod", "mean"):
+            # GH#68641: reduce every block in one dtype, else a narrow partial
+            # overflows or combines lossily (see
+            # test_reduce_axis1_int_block_does_not_wrap). np.result_type, not
+            # find_common_type, which gives object for a bool mix.
+            arrays = [
+                blk.values
+                for blk in self._mgr.blocks
+                if isinstance(blk.values, np.ndarray)
+            ]
+            if len(arrays) == len(self._mgr.blocks) and all(
+                arr.dtype.kind in "biufc" for arr in arrays
+            ):
+                acc_dtype = np.result_type(*[arr.dtype for arr in arrays])
+                if name == "mean" and (
+                    acc_dtype.kind != "f" or acc_dtype == np.float16
+                ):
+                    # nanmean's result widens for all but float32/float64
+                    acc_dtype = np.dtype(
+                        np.complex128 if acc_dtype.kind == "c" else np.float64
+                    )
+
         if name == "all":
             result = np.ones(len(self), dtype=bool)
             ufunc = np.logical_and
@@ -17283,6 +17306,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         for block in self._mgr.blocks:
             vals = block.values
+            if acc_dtype is not None and vals.dtype != acc_dtype:
+                vals = vals.astype(acc_dtype)
             if name in ("min", "max"):
                 middle = ufunc.reduce(vals, axis=0)  # type: ignore[arg-type]
             elif name == "mean":
@@ -17312,7 +17337,8 @@ class DataFrame(NDFrame, OpsMixin):
                         non_null_count += vals.shape[0] - isna(vals).sum(axis=0)
                 if name == "mean":
                     null_mask = non_null_count == 0
-                    result = result.astype("float64")
+                    if result.dtype.kind not in "fc":
+                        result = result.astype("float64")
                     result[~null_mask] /= non_null_count[~null_mask]
                     result[null_mask] = np.nan
                 else:
