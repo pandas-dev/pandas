@@ -593,33 +593,24 @@ class BaseBlockManager(PandasObject):
                     )
 
                     indexer = list(indexer)
-                    # first block equals values we are setting to -> set to all columns
+                    # The column indexer has to keep the kind the caller used:
+                    # a slice takes the cross product with the row indexer,
+                    # while an array broadcasts against it (GH#65446)
                     if lib.is_integer(indexer[1]):
                         col_indexer = 0
-                    elif len(inverse) > 1 and lib.is_range_indexer(
-                        inverse, len(blk_loc)
-                    ):
-                        col_indexer = slice(None)  # type: ignore[assignment]
+                    elif isinstance(indexer[1], slice):
+                        # the new block holds the columns sorted, so a slice
+                        # over them differs from the caller's only in direction
+                        step = None if inverse[0] < inverse[-1] else -1
+                        col_indexer = slice(None, None, step)  # type: ignore[assignment]
                     else:
                         col_indexer = inverse  # type: ignore[assignment]
                     indexer[1] = col_indexer
 
-                    row_indexer = indexer[0]
-                    if isinstance(col_indexer, np.ndarray):
-                        if (
-                            isinstance(row_indexer, np.ndarray)
-                            and row_indexer.ndim == 1
-                        ):
-                            # GH#65446: Make the row indexer 2d to take a cross product
-                            row_indexer = row_indexer[:, None]
-                    elif isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
-                        # numpy cannot handle a 2d indexer in combo with a slice
-                        row_indexer = np.squeeze(row_indexer, axis=1)
-                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
+                    if isinstance(indexer[0], np.ndarray) and len(indexer[0]) == 0:
                         # numpy does not like empty indexer combined with slice
                         # and we are setting nothing anyway
                         return self
-                    indexer[0] = row_indexer
                     self.blocks[0].setitem(tuple(indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
