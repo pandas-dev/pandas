@@ -437,3 +437,13 @@ def test_index_ops_defer_to_unknown_subclasses(other):
     result = other + a
     assert isinstance(result, MyIndex)
     assert a._calls == 1
+
+
+def test_add_frame_sparse_object():
+    # GH#64969 object-dtype SparseArray keeps its sparse dtype in DataFrame ops
+    df = pd.DataFrame([["x", "y"]], dtype=object)
+    arr = pd.arrays.SparseArray(["a", "b"], dtype=object)
+
+    result = df + arr
+    expected = pd.DataFrame([["xa", "yb"]]).astype(pd.SparseDtype(object))
+    tm.assert_frame_equal(result, expected)
