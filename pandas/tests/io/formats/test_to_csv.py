@@ -988,6 +988,28 @@ $1$,$2$
             with open(temp_file, "rb") as f:
                 assert f.read() == expected_crlf
 
+    @pytest.mark.skipif(
+        sys.version_info < (3, 11, 9),
+        reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9, "
+        "see python/cpython#67044",
+    )
+    def test_to_csv_string_with_cr(self, temp_file, engine):
+        # GH#10018 - a bare "\r" must be quoted even though it is not the
+        #  lineterminator, or read_csv splits the field across rows
+        data = {"int": [1, 2, 3], "str_cr": ["abc", "d\ref", "g\rh\r\ri"]}
+        df = pd.DataFrame(data)
+
+        if uses_pyarrow(engine):
+            expected = b'"int","str_cr"\n1,"abc"\n2,"d\ref"\n3,"g\rh\r\ri"\n'
+        else:
+            expected = b'int,str_cr\n1,abc\n2,"d\ref"\n3,"g\rh\r\ri"\n'
+        df.to_csv(temp_file, lineterminator="\n", index=False, engine=engine)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected
+
+        df.to_csv(temp_file, index=False, engine=engine)
+        tm.assert_frame_equal(pd.read_csv(temp_file), df)
+
     def test_to_csv_string_with_crlf(self, temp_file, engine):
         # GH 20353
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}

@@ -1249,65 +1249,6 @@ def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
     return np.asarray(starts), np.asarray(ends)
 
 
-def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list keys,
-                 list sorted_labels) -> dict:
-    """
-    Parameters
-    ----------
-    index : ndarray[intp]
-    labels : ndarray[int64]
-    keys : list
-    sorted_labels : list[ndarray[int64]]
-    """
-    cdef:
-        Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
-        dict result = {}
-        object tup
-
-    k = len(keys)
-
-    # Start at the first non-null entry
-    j = 0
-    for j in range(0, n):
-        if labels[j] != -1:
-            break
-    else:
-        return result
-    cur = labels[j]
-    start = j
-
-    for i in range(j+1, n):
-        lab = labels[i]
-
-        if lab != cur:
-            if lab != -1:
-                if k == 1:
-                    # When k = 1 we do not want to return a tuple as key
-                    tup = keys[0][sorted_labels[0][i - 1]]
-                else:
-                    tup = PyTuple_New(k)
-                    for j in range(k):
-                        val = keys[j][sorted_labels[j][i - 1]]
-                        PyTuple_SET_ITEM(tup, j, val)
-                        Py_INCREF(val)
-                result[tup] = index[start:i]
-            start = i
-        cur = lab
-
-    if k == 1:
-        # When k = 1 we do not want to return a tuple as key
-        tup = keys[0][sorted_labels[0][n - 1]]
-    else:
-        tup = PyTuple_New(k)
-        for j in range(k):
-            val = keys[j][sorted_labels[j][n - 1]]
-            PyTuple_SET_ITEM(tup, j, val)
-            Py_INCREF(val)
-    result[tup] = index[start:]
-
-    return result
-
-
 # core.common import for fast inference checks
 
 @set_module("pandas.api.types")
