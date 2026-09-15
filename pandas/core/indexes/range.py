@@ -258,6 +258,7 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
+        # result._references populated lazily
         return result
 
     @cache_readonly

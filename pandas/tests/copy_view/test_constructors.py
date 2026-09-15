@@ -364,3 +364,18 @@ def test_frame_from_dict_of_index():
 
     df.iloc[0, 0] = 100
     tm.assert_index_equal(idx, expected)
+
+
+def test_rangeindex_cached_data():
+    # https://github.com/pandas-dev/pandas/issues/67055
+    # creating a Series from a RangeIndex should still track a reference because
+    # the RangeIndex caches the materialized _data used by the Series
+    idx = pd.RangeIndex(3)
+    ser = pd.Series(idx)
+
+    # idx2 takes a view of idx -> shares the cache and tracks a reference
+    idx2 = idx.rename("a")
+    del idx
+    ser.iloc[0] = 99
+
+    tm.assert_numpy_array_equal(idx2._data, np.array([0, 1, 2]))
