@@ -325,3 +325,28 @@ def test_array_ufuncs_for_many_arguments():
     )
     with pytest.raises(NotImplementedError, match=re.escape(msg)):
         ufunc(df, df, ser)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "period[D]"])
+def test_binary_logical_ufunc_datetimelike_raises(func, dtype):
+    # GH#68524 with two inputs a DataFrame np.asarray()s its columns before the
+    #  ufunc runs, so the column's own guard never sees them
+    df = pd.DataFrame({"A": pd.array(["2016-01-01", "2016-01-02"], dtype=dtype)})
+    other = pd.DataFrame({"A": [True, False]})
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(other, df)
+    with pytest.raises(TypeError, match=msg):
+        func(df, other)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns, US/Pacific]", "period[D]"])
+def test_logical_not_ufunc_datetimelike_raises(dtype):
+    # GH#68524 one input takes the BlockManager.apply path instead, and these two
+    #  dtypes returned a frame of False
+    df = pd.DataFrame({"A": pd.array(["2016-01-01", "2016-01-02"], dtype=dtype)})
+
+    with pytest.raises(TypeError, match="cannot perform the numpy op logical_not"):
+        np.logical_not(df)

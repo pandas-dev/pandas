@@ -64,6 +64,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     arraylike,
     missing,
+    ops,
     roperator,
 )
 from pandas.core.algorithms import (
@@ -2953,6 +2954,9 @@ class ExtensionArray:
         return type(self)._from_sequence(rounded, dtype=self.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # the fallback at the end of this method np.asarray()s the values to object
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         if any(
             isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
         ):

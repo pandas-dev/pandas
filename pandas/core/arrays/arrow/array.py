@@ -990,6 +990,9 @@ class ArrowExtensionArray(
                 or pa.types.is_integer(self._pa_array.type)
             )
         ):
+            # this branch returns without reaching ExtensionArray.__array_ufunc__
+            ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
             # GH#62506 - when distinguish_nan_and_na is True,
             # default_array_ufunc converts to numpy via np.asarray which
             # produces object dtype that most ufuncs can't handle.
