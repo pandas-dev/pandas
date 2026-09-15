@@ -2883,6 +2883,9 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame({"a": ["1", "2", None]}, dtype="str")
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_frame_string_inference(self):
         # GH#54430
         dtype = pd.StringDtype(na_value=np.nan)
@@ -2917,6 +2920,9 @@ class TestDataFrameConstructors:
             df = pd.DataFrame({"a": ["a", "b"]}, dtype="object")
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_frame_string_inference_array_string_dtype(self):
         # GH#54496
         dtype = pd.StringDtype(na_value=np.nan)
@@ -2941,6 +2947,9 @@ class TestDataFrameConstructors:
             df = pd.DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_frame_string_inference_block_dim(self):
         # GH#55363
         with pd.option_context("future.infer_string", True):
