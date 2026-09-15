@@ -1819,6 +1819,37 @@ def test_setitem_temporal_into_unsettled_self_accepted(pa_type):
     assert arr.astype("timestamp[ns][pyarrow]")[0] == expected
 
 
+@pytest.mark.parametrize(
+    "pa_type, value",
+    [
+        (pa.string(), pd.Timestamp("2016-01-01")),
+        (pa.large_string(), pd.Timestamp("2016-01-01")),
+        (pa.binary(), pd.Timestamp("2016-01-01")),
+        (pa.duration("ns"), pd.Timestamp("2016-01-01")),
+        (pa.timestamp("ns"), pd.Timedelta("1s")),
+        (pa.time64("us"), pd.Timedelta("1s")),
+        (pa.time32("s"), pd.Timedelta("1s")),
+    ],
+)
+def test_setitem_temporal_scalar_into_mismatched_self_raises(pa_type, value):
+    # GH#68419 _box_pa_scalar read pa_type.unit whatever the target was, so a
+    #  string self raised AttributeError and a mismatched temporal self silently
+    #  stored the integer
+    arr = pd.array([None, None], dtype=ArrowDtype(pa_type))
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = value
+
+
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()])
+def test_setitem_timestamp_into_date_self(pa_type):
+    # GH#68419 a Timestamp is a valid date value; reaching for date32's
+    #  nonexistent .unit used to make this an AttributeError
+    arr = pd.array([date(2016, 1, 1)] * 2, dtype=ArrowDtype(pa_type))
+    arr[0] = pd.Timestamp("2016-01-05")
+    expected = pd.array([date(2016, 1, 5), date(2016, 1, 1)], dtype=ArrowDtype(pa_type))
+    tm.assert_extension_array_equal(arr, expected)
+
+
 def test_fillna_temporal_into_string_self_accepted():
     # GH#68419 filling a string column with datetimes is a string conversion,
     #  not an integer reinterpretation, and must keep working
@@ -1827,6 +1858,14 @@ def test_fillna_temporal_into_string_self_accepted():
     assert result.dtype == ArrowDtype(pa.string())
     assert result[0] == "a"
     assert result[1] == "2016-01-02 00:00:00.000000"
+
+
+def test_fillna_temporal_scalar_into_string_self_raises():
+    # GH#68419 the scalar spelling used to raise AttributeError. It stays stricter
+    #  than the array spelling above, which pyarrow converts
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(pd.Timestamp("2016-01-01"))
 
 
 def test_setitem_numeric_still_accepted():

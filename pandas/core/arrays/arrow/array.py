@@ -385,8 +385,6 @@ def _is_all_na(value) -> bool:
         # pyarrow keeps NaN distinct from null, so a float NaN built as an arrow
         #  value is a value here, unlike the numpy spelling below
         return value.null_count == len(value)
-    if isinstance(value, pa.Scalar):
-        return False
     return bool(np.asarray(isna(value)).all())
 
 
@@ -771,14 +769,20 @@ class ArrowExtensionArray(
         elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
-            # Workaround https://github.com/apache/arrow/issues/37291
-            if isinstance(value, Timedelta):
+            # Workaround https://github.com/apache/arrow/issues/37291. Only a
+            #  duration or timestamp target reconciles units here; anything else
+            #  is pa.scalar's to accept or reject (GH#68419)
+            if isinstance(value, Timedelta) and (
+                pa_type is None or pa.types.is_duration(pa_type)
+            ):
                 if pa_type is None:
                     pa_type = pa.duration(value.unit)
                 elif value.unit != pa_type.unit:
                     value = value.as_unit(pa_type.unit)
                 value = value._value
-            elif isinstance(value, Timestamp):
+            elif isinstance(value, Timestamp) and (
+                pa_type is None or pa.types.is_timestamp(pa_type)
+            ):
                 if pa_type is None:
                     pa_type = pa.timestamp(value.unit, tz=value.tz)
                 elif value.unit != pa_type.unit:
