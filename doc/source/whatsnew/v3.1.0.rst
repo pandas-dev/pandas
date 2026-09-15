@@ -288,8 +288,8 @@ input requires it).
 
 Specifically, :func:`to_datetime`, :func:`to_timedelta`, :class:`Timestamp`,
 and :class:`Timedelta` constructors will still use the ``unit`` argument to
-convert numeric input, but not use that resolution for the resulting ``dtype``.
-For example, the following cases now all default to microseconds:
+convert numeric input, but no longer use that resolution for the resulting
+``dtype``. For example, the following cases now all default to microseconds:
 
 .. code-block:: pycon
 
@@ -304,8 +304,12 @@ For example, the following cases now all default to microseconds:
 
 Compared to the behaviour in pandas 2.x, this means that those cases now give
 microsecond resolution instead of nanoseconds. Except for the ``pd.Timestamp(1,
-unit="s")`` case, which already used the input ``unit`` before pandas 3.0.
+unit="s")`` case, which already used the input ``unit`` before pandas 3.0,
+and thus now gives microsecond instead of second resolution.
 
+If you actually need the specific resolution from the input data, use the
+:meth:`~Timestamp.as_unit` (or :meth:`Series.dt.as_unit`) method after
+construction to convert to the desired resolution.
 
 .. _whatsnew_310.api_breaking.deps:
 
