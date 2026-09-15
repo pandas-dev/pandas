@@ -1157,8 +1157,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> idx.str.partition()
         MultiIndex([('X', ' ', '123'),
-                    ('Y', ' ', '999')],
-                   )
+                    ('Y', ' ', '999')])
 
         Or an index with tuples with ``expand=False``:
 
@@ -1249,8 +1248,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> idx.str.partition()
         MultiIndex([('X', ' ', '123'),
-                    ('Y', ' ', '999')],
-                   )
+                    ('Y', ' ', '999')])
 
         Or an index with tuples with ``expand=False``:
 
