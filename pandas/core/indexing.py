@@ -2951,13 +2951,9 @@ class _iLocIndexer(_LocationIndexer):
                 and not isinstance(value, ABCDataFrame)
                 and is_list_like_indexer(value)
                 and getattr(value, "ndim", 1) == 1
-                # length_of_indexer below measures only these, and only in
-                #  one dimension; every other row key (masked/Categorical/tuple,
-                #  0-d or 2-D ndarray) has to keep taking the whole-block path,
-                #  which reports its own, clearer errors.  GH#68021
-                and isinstance(
-                    indexer[0], (slice, range, list, np.ndarray, ABCSeries, ABCIndex)
-                )
+                # length_of_indexer below measures only in one dimension; 0-d or 2-D
+                # indexer has to keep taking the whole-block path, which reports its
+                # own, clearer errors.  GH#68021
                 and getattr(indexer[0], "ndim", 1) == 1
             ):
                 ilocs = self._ensure_iterable_column_indexer(indexer[1])

@@ -1996,26 +1996,37 @@ class TestILocSeries:
         tm.assert_series_equal(ser, expected)
 
 
+@pytest.mark.parametrize("mixed", [True, False])
 @pytest.mark.parametrize(
     "row_key",
     [
         [0, 1, 2],
         slice(0, 3),
         range(3),
-        np.array([True, True, True, False]),
         pd.Series([0, 1, 2]),
         pd.Index([0, 1, 2]),
+        pd.array([0, 1, 2], dtype="Int64"),
+        pd.Categorical([0, 1, 2]),
+        (0, 1, 2),
+        [True, True, True, False],
+        np.array([True, True, True, False]),
+        pd.array([True, True, True, False], dtype="boolean"),
+        pd.Index([True, True, True, False]),
     ],
 )
 @pytest.mark.parametrize("col_key", [[1], slice(1, 2), np.array([False, True, False])])
-def test_iloc_setitem_single_column_key_1d_value(row_key, col_key):
+def test_iloc_setitem_single_column_key_1d_value(mixed, row_key, col_key):
     # GH#68021 a length-1 column key makes the selection (N, 1), which a
     #  length-N 1-D value could not be broadcast into on a single-block frame
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    if mixed:
+        df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
+    else:
+        df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    df_orig = df.copy()
 
     df.iloc[row_key, col_key] = [1.0, 2.0, 3.0]
 
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    expected = df_orig.copy()
     expected["b"] = [1.0, 2.0, 3.0, 0.0]
     tm.assert_frame_equal(df, expected)
 
@@ -2120,30 +2131,6 @@ def test_iloc_setitem_scalar_row_single_column_unchanged():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.parametrize(
-    "row_key",
-    [
-        pd.array([0, 1, 2], dtype="Int64"),
-        pd.array([True, True, True, False], dtype="boolean"),
-        pd.Categorical([0, 1, 2]),
-        (0, 1, 2),
-    ],
-)
-def test_iloc_setitem_single_column_key_row_key_length_of_indexer_cannot_measure(
-    row_key,
-):
-    # GH#68021 length_of_indexer does not know these row keys and raises
-    #  AssertionError for them, so they have to keep taking the whole-block
-    #  path instead of the per-column one
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
-    df.iloc[row_key, [1]] = [1.0, 2.0, 3.0]
-
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
-
-
 def test_iloc_setitem_boolean_column_key_selecting_one_column():
     # GH#68021 _ensure_iterable_column_indexer leaves a list of bools alone, so
     #  the per-column path would have taken True for a position
@@ -2196,32 +2183,6 @@ def test_iloc_setitem_null_slice_column_key_single_column_frame():
     df.iloc[[0, 1, 2], :] = [10.0, 20.0, 30.0]
 
     tm.assert_frame_equal(df, pd.DataFrame({"a": [10.0, 20.0, 30.0, 3.0]}))
-
-
-def test_iloc_setitem_boolean_index_row_key():
-    # GH#68021 on a single-block frame this raised the same
-    #  "setting an array element with a sequence" as every other row key; it
-    #  reaches length_of_indexer, and so the Index.sum() crash, only via the
-    #  new per-column route
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
-    df.iloc[pd.Index([True, True, True, False]), [1]] = [1.0, 2.0, 3.0]
-
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
-
-
-def test_iloc_setitem_boolean_index_row_key_mixed_dtype():
-    # GH#68021 this is where the Index.sum() crash was already reachable: the
-    #  split path measures the row key, so it raised AttributeError on main
-    df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
-
-    df.iloc[pd.Index([True, True, True, False]), [1]] = [1.0, 2.0, 3.0]
-
-    expected = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
 
 
 def test_iloc_setitem_series_boolean_index_row_key():

@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
@@ -305,13 +306,15 @@ def length_of_indexer(indexer, target=None) -> int:
         # slices with start/stop left as None).
         start, stop, step = indexer.indices(target_len)
         return len(range(start, stop, step))
-    elif isinstance(indexer, (ABCSeries, ABCIndex, np.ndarray, list)):
-        if isinstance(indexer, list):
+    elif isinstance(
+        indexer, (ABCSeries, ABCIndex, ABCExtensionArray, np.ndarray, list, tuple)
+    ):
+        if isinstance(indexer, (list, tuple)):
             indexer = np.array(indexer)
 
-        if indexer.dtype == bool:
+        if is_bool_dtype(indexer.dtype):
             # GH#25774
-            # np.asarray because Index has no .sum; GH#68021
+            # np.asarray because Index/ExtensionArray may not have .sum; GH#68021
             return int(np.asarray(indexer).sum())
         return len(indexer)
     elif isinstance(indexer, range):
