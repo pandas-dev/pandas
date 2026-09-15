@@ -339,12 +339,21 @@ def test_converters_na_values_numeric_output(all_parsers):
     tm.assert_frame_equal(result, pd.DataFrame({"A": [1.0, np.nan, 3.0]}))
 
 
-def test_converters_na_values_all_na_dtype(all_parsers, request):
-    # GH#13302 an all-NA converter column is float64, like the read without a
-    # converter
+@pytest.mark.parametrize(
+    "data,converters,values",
+    [
+        ("A,B\nCAT,x\nCAT,y", {"A": lambda x: x}, [np.nan, np.nan]),
+        (
+            "A,B\n1,x\nCAT,y",
+            {"A": lambda x: int(x) if x.isdigit() else x},
+            [1.0, np.nan],
+        ),
+    ],
+)
+def test_converters_na_values_dtype(all_parsers, request, data, converters, values):
+    # GH#13302 a converter column is re-inferred after the NA substitution, so
+    # it lands on the dtype the read without a converter would give
     parser = all_parsers
-    data = "A,B\nCAT,x\nCAT,y"
-    converters = {"A": lambda x: x}
 
     if parser.engine == "pyarrow":
         msg = "The 'converters' option is not supported with the 'pyarrow' engine"
@@ -359,7 +368,7 @@ def test_converters_na_values_all_na_dtype(all_parsers, request):
         request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), converters=converters, na_values="CAT")
-    expected = pd.DataFrame({"A": [np.nan, np.nan], "B": ["x", "y"]})
+    expected = pd.DataFrame({"A": values, "B": ["x", "y"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -407,3 +416,25 @@ def test_converters_na_values_bool_output(all_parsers, request):
     result = parser.read_csv(StringIO(data), converters=converters, na_values=[1])
     expected = pd.DataFrame({"A": [np.nan, False, np.nan]}, dtype=object)
     tm.assert_frame_equal(result, expected)
+
+
+def test_converters_raising_on_empty_field(all_parsers, request):
+    # GH#13302 na_values apply to the converter's output, so a converter that
+    # raises on an empty field still raises
+    parser = all_parsers
+    data = "a,b\n1,x\n,y\n3,z"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'converters' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), converters={"a": float})
+        return
+
+    if parser.engine == "python":
+        mark = pytest.mark.xfail(
+            reason="python engine retries with the NA tokens masked"
+        )
+        request.applymarker(mark)
+
+    with pytest.raises(ValueError, match="could not convert string to float"):
+        parser.read_csv(StringIO(data), converters={"a": float})
