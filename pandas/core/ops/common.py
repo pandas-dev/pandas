@@ -41,6 +41,15 @@ def has_castable_attr(obj) -> bool:
     return any(hasattr(obj, name) for name in attrs)
 
 
+def raise_if_2d(other) -> None:
+    """
+    Reject a multi-dimensional operand before any dtype-specific conversion,
+    matching BaseMaskedArray (GH#62682).
+    """
+    if isinstance(other, (np.ndarray, ABCExtensionArray)) and other.ndim > 1:
+        raise NotImplementedError("can only perform ops with 1-d structures")
+
+
 def maybe_warn_listlike(other) -> None:
     """
     Warn when operating against a list-like that is neither a standard container
