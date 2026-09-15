@@ -2178,3 +2178,53 @@ def test_iloc_setitem_series_boolean_index_row_key():
     ser.iloc[pd.Index([True, True, False, False])] = ["a", "b"]
 
     tm.assert_series_equal(ser, pd.Series(["a", "b", 3, 4], dtype=object))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pd.StringDtype("python", na_value=np.nan),
+        pytest.param(
+            pd.StringDtype("pyarrow", na_value=np.nan), marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [list, np.array, pd.Series, pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.iloc[:, box([True])] = df * 2
+
+    expected = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = df.iloc[[0, 1], :] * 2
+
+    arr = pd.array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = pd.DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.iloc[:, box([True])] = scalar
+
+    expected = pd.DataFrame({"a": pd.array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = scalar * 2
+
+    expected = pd.DataFrame(
+        {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
+    )
+    tm.assert_frame_equal(df, expected)
