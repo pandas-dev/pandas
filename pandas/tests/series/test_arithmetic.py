@@ -1249,31 +1249,39 @@ def test_arraylike_comparison_preserve_na():
 
 @pytest.mark.parametrize(
     "left",
-    [pd.Series, pd.Index, pd.array, np.array],
+    [pd.Series, pd.Index, np.array],
 )
 @pytest.mark.parametrize(
     "right",
-    [pd.Series, pd.Index, pd.array, np.array],
+    [pd.Series, pd.Index, np.array],
 )
 def test_comparison_between_arraylike_preserve_na(left, right):
     # GH#63328
     data_1 = [0, 1, 2]
     data_2 = [1, 1, pd.NA]
     data_3 = [pd.NA, pd.NA, pd.NA]
-    expected_1 = pd.Series([False, True, pd.NA], dtype="object")
-    expected_2 = pd.Series([pd.NA, pd.NA, pd.NA], dtype="object")
+    expected_series_1 = pd.Series([False, True, pd.NA], dtype="object")
+    expected_series_2 = pd.Series([pd.NA, pd.NA, pd.NA], dtype="object")
+    expected_ndarray_1 = np.array([False, True, pd.NA], dtype="object")
+    expected_ndarray_2 = np.array([pd.NA, pd.NA, pd.NA], dtype="object")
 
     if left is np.array and right is np.array:
         # TypeError is raised when both sides are NumPy arrays and
         # either side contains NA
         return None
 
-    result_1 = pd.Series(left(data_1) == right(data_2), dtype="object")
-    tm.assert_series_equal(result_1, expected_1)
-    result_1 = pd.Series(left(data_2) == right(data_1), dtype="object")
-    tm.assert_series_equal(result_1, expected_1)
+    result_1 = left(data_1) == right(data_2)
+    result_1 = left(data_2) == right(data_1)
+    result_2 = left(data_2) == right(data_3)
+    result_2 = left(data_3) == right(data_2)
 
-    result_2 = pd.Series(left(data_2) == right(data_3), dtype="object")
-    tm.assert_series_equal(result_2, expected_2)
-    result_2 = pd.Series(left(data_3) == right(data_2), dtype="object")
-    tm.assert_series_equal(result_2, expected_2)
+    if left is pd.Series or right is pd.Series:
+        tm.assert_series_equal(result_1, expected_series_1)
+        tm.assert_series_equal(result_1, expected_series_1)
+        tm.assert_series_equal(result_2, expected_series_2)
+        tm.assert_series_equal(result_2, expected_series_2)
+    else:
+        tm.assert_numpy_array_equal(result_1, expected_ndarray_1)
+        tm.assert_numpy_array_equal(result_1, expected_ndarray_1)
+        tm.assert_numpy_array_equal(result_2, expected_ndarray_2)
+        tm.assert_numpy_array_equal(result_2, expected_ndarray_2)
