@@ -800,12 +800,16 @@ class TestSeriesConstructors:
             [np.uint64(1)],
         ],
     )
-    def test_constructor_numpy_uints(self, values):
+    def test_constructor_numpy_uints(self, values, using_python_scalars):
         # GH#47294
         value = values[0]
         result = pd.Series(values)
 
-        assert result[0].dtype == value.dtype
+        assert result.dtype == value.dtype
+        if using_python_scalars:
+            assert type(result[0]) is int
+        else:
+            assert result[0].dtype == value.dtype
         assert result[0] == value
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
