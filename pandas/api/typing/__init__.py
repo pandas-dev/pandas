@@ -2,6 +2,12 @@
 Public API classes that store intermediate results useful for type-hinting.
 """
 
+__lazy_modules__ = (
+    "pandas.io.json._json",
+    "pandas.io.sas.sasreader",
+    "pandas.io.stata",
+)
+
 from pandas._libs import NaTType
 from pandas._libs.lib import NoDefault
 from pandas._libs.missing import NAType

@@ -4,6 +4,8 @@ import importlib
 import inspect
 import pathlib
 import pkgutil
+import subprocess
+import sys
 
 import pytest
 
@@ -574,3 +576,38 @@ def test_attributes_module(module_name):
         except Exception:
             failures.append((module_name, name, type(obj), obj.__module__))
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports():
+    # `import pandas` should not eagerly import the deferred I/O backends
+    code = (
+        "import pandas, sys; "
+        "assert 'pandas.io.excel' not in sys.modules; "
+        "assert 'pandas.testing' not in sys.modules"
+    )
+    subprocess.check_call([sys.executable, "-c", code])
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports_read_csv():
+    # pd.read_csv must only load pandas.io.parsers, not sibling backends
+    code = (
+        "import pandas as pd, sys\n"
+        "from io import StringIO\n"
+        "pd.read_csv(StringIO('a,b\\n1,2'))\n"
+        "assert 'pandas.io.parsers' in sys.modules\n"
+        "siblings = ('pandas.io.excel', 'pandas.io.parquet', 'pandas.io.sql',\n"
+        "            'pandas.io.pytables', 'pandas.io.stata', 'pandas.io.sas',\n"
+        "            'pandas.io.xml')\n"
+        "loaded = [m for m in siblings if m in sys.modules]\n"
+        "assert not loaded, f'unexpectedly loaded: {loaded}'\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
