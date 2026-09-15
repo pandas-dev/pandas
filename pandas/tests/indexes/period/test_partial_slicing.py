@@ -97,6 +97,18 @@ class TestPeriodIndex:
         result = ser.loc[start:stop]
         assert list(result.index.astype(str)) == expected
 
+    def test_string_slice_freq_without_resolution(self):
+        # GH#66571: a weekly PeriodIndex has no Resolution, so reading
+        # _resolution_obj raises KeyError. An annual label against such an
+        # index must still take the calendar-freq path rather than letting
+        # that KeyError escape.
+        pi = pd.period_range("2001-01-01", periods=60, freq="W")
+        ser = pd.Series(range(len(pi)), index=pi)
+        result = ser.loc["2001":"2001"]
+        assert len(result) == 53
+        assert str(result.index[0]) == "2001-01-01/2001-01-07"
+        assert str(result.index[-1]) == "2001-12-31/2002-01-06"
+
     def test_pindex_slice_index(self):
         pi = pd.period_range(start="1/1/10", end="12/31/12", freq="M")
         s = pd.Series(np.random.default_rng(2).random(len(pi)), index=pi)
