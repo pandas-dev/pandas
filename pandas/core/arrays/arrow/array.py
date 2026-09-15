@@ -334,15 +334,6 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
-def _raise_if_2d(other) -> None:
-    """
-    Reject a multi-dimensional operand before any pyarrow conversion, as
-    BaseMaskedArray does; see test_op_2d_ndarray_raises (GH#62682).
-    """
-    if isinstance(other, (np.ndarray, ExtensionArray)) and other.ndim > 1:
-        raise NotImplementedError("can only perform ops with 1-d structures")
-
-
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -1118,7 +1109,7 @@ class ArrowExtensionArray(
             ops.maybe_warn_listlike(other)
 
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
-            _raise_if_2d(other)
+            ops.raise_if_2d(other)
             if is_list_like(other) and len(self) != len(other):
                 # is_list_like excludes 0-dim ndarrays, which are scalars here
                 raise ValueError("Lengths must match to compare")
@@ -1197,7 +1188,7 @@ class ArrowExtensionArray(
 
         pa_type = self._pa_array.type
         other_original = other
-        _raise_if_2d(other)
+        ops.raise_if_2d(other)
         other = self._box_pa(other)
 
         if (
@@ -1277,7 +1268,7 @@ class ArrowExtensionArray(
     def _logical_method(self, other, op) -> Self:
         # checked here too because the GH#60234 arm below returns without
         #  reaching _evaluate_op_method
-        _raise_if_2d(other)
+        ops.raise_if_2d(other)
 
         # For integer types `^`, `|`, `&` are bitwise operators and return
         # integer types. Otherwise these are boolean ops.

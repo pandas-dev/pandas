@@ -232,27 +232,41 @@ def test_add_2d(any_string_dtype, request):
     dtype = any_string_dtype
 
     if dtype == object:
-        reason = "Failed: DID NOT RAISE <class 'ValueError'>"
+        reason = "Failed: DID NOT RAISE <class 'NotImplementedError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.applymarker(mark)
 
+    # GH#62682 a 2-D operand is rejected up front, matching BaseMaskedArray,
+    #  rather than reported as a length mismatch
     a = pd.array(["a", "b", "c"], dtype=dtype)
     b = np.array([["a", "b", "c"]], dtype=object)
-    if dtype != object and dtype.storage == "pyarrow":
-        # GH#62682 arrow-backed arrays reject 2D operands up front, matching
-        #  BaseMaskedArray; the python storage has no such guard
-        err = NotImplementedError
-        msg = "can only perform ops with 1-d structures"
-    else:
-        err = ValueError
-        msg = "3 != 1"
-
-    with pytest.raises(err, match=msg):
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
         a + b
 
     s = pd.Series(a)
-    with pytest.raises(err, match=msg):
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
         s + b
+
+
+@pytest.mark.parametrize("op", [operator.or_, operator.and_, operator.xor])
+def test_logical_2d(any_string_dtype, op, request):
+    # GH#62682 the GH#60234 string-vs-bool arm silently broadcast the 2-D
+    #  operand to a (2, 2) result
+    dtype = any_string_dtype
+
+    if dtype == object:
+        reason = "object dtype has no string-vs-bool arm; raises TypeError"
+        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        request.applymarker(mark)
+
+    a = pd.array(["a", "b"], dtype=dtype)
+    other = np.array([[True, False], [True, False]])
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(other, a)
+
+    s = pd.Series(a)
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(other, s)
 
 
 def test_add_sequence(any_string_dtype, request, using_infer_string):

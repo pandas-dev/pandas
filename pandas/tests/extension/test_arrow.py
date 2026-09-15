@@ -1529,12 +1529,10 @@ def test_op_2d_extension_array_raises(other, op):
 
 
 @pytest.mark.parametrize("op", [operator.or_, operator.and_, operator.xor])
-@pytest.mark.parametrize("dtype", [ArrowDtype(pa.string()), pd.StringDtype("pyarrow")])
-def test_logical_2d_ndarray_bool_raises(dtype, op):
-    # GH#62682 the GH#60234 string-vs-bool arm of _logical_method returns before
-    #  _evaluate_op_method, so it needs the 1-d check of its own; StringDtype
-    #  returned a (2, 2) ndarray, ArrowDtype raised ArrowInvalid
-    arr = pd.array(["a", "b"], dtype=dtype)
+def test_logical_2d_ndarray_bool_raises(op):
+    # GH#62682 the GH#60234 string-vs-bool arm returns before _evaluate_op_method,
+    #  so it needs a 1-d check of its own; StringDtype is covered by test_logical_2d
+    arr = pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
     other = np.array([[True, False], [True, False]])
     with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
         op(other, arr)
