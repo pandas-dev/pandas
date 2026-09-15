@@ -2158,6 +2158,19 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
+            elif (
+                is_list_like(indexer[1])
+                and len(indexer[1]) == 1
+                and isinstance(indexer[1][0], (bool, np.bool_))
+            ):
+                # GH#66527, GH#66579 length-1 boolean column mask on a
+                # single-column, 1D-only EA block. [True] selects the sole
+                # column; [False] selects nothing, so setitem is a no-op.
+                if indexer[1][0]:
+                    indexer = indexer[0]
+                else:
+                    indexer = (np.array([], dtype=np.intp),)
+
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
 
