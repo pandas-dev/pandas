@@ -1073,7 +1073,7 @@ class TestDatetime64Arithmetic:
     #  relevant because historically integer-addition was allowed if we had
     #  a freq.
     @pytest.mark.parametrize("freq", ["h", "D", "W", "2ME", "MS", "QE", "B", None])
-    @pytest.mark.parametrize("dtype", [None, "uint8"])
+    @pytest.mark.parametrize("dtype", [None, "uint8", "bool"])
     def test_dt64arr_addsub_intlike(
         self, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
@@ -1089,7 +1089,10 @@ class TestDatetime64Arithmetic:
 
         obj = index_or_series_or_array(dti)
         other = np.array([4, -1])
-        if dtype is not None:
+        if dtype == "bool":
+            # 4 and -1 are both truthy; keep a False element in the array
+            other = np.array([True, False])
+        elif dtype is not None:
             other = other.astype(dtype)
 
         msg = "|".join(
@@ -1105,6 +1108,8 @@ class TestDatetime64Arithmetic:
         assert_invalid_addsub_type(obj, 1, msg)
         assert_invalid_addsub_type(obj, np.int64(2), msg)
         assert_invalid_addsub_type(obj, np.array(3, dtype=np.int64), msg)
+        # GH#68452 np.bool_ is not caught by lib.is_integer
+        assert_invalid_addsub_type(obj, np.bool_(True), msg)
         assert_invalid_addsub_type(obj, other, msg)
         assert_invalid_addsub_type(obj, np.array(other), msg)
         assert_invalid_addsub_type(obj, pd.array(other), msg)

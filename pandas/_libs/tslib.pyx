@@ -519,8 +519,10 @@ cpdef array_to_datetime(
                     if infer_reso:
                         creso = state.creso
 
+                    # Not <int64_t>: casting here would overflow outside
+                    #  cast_from_unit's guard, leaking OverflowError
                     iresult[i] = cast_from_unit(
-                        <int64_t>val, unit_for_numerics, out_reso=creso
+                        val, unit_for_numerics, out_reso=creso
                     )
 
                     state.found_other = True

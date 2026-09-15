@@ -358,6 +358,72 @@ def test_infer_freq_business_hour(data, expected):
     assert idx.inferred_freq == expected
 
 
+@pytest.mark.parametrize(
+    "klass, data",
+    [
+        # fractional overnight gap: 17.5h, not the 17h of a "bh" day boundary
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-01 10:00",
+                "2026-01-01 11:00",
+                "2026-01-02 04:30",
+                "2026-01-02 05:30",
+                "2026-01-02 06:30",
+            ],
+        ),
+        # fractional base step: 1.5h floors to the same 1 as an hourly step
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-01 10:30",
+                "2026-01-01 12:00",
+                "2026-01-02 05:30",
+                "2026-01-02 07:00",
+                "2026-01-02 08:30",
+            ],
+        ),
+        # fractional weekend gap: 65.5h, not the 65h of a "bh" weekend
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-02 09:00",
+                "2026-01-02 10:00",
+                "2026-01-02 11:00",
+                "2026-01-05 04:30",
+                "2026-01-05 05:30",
+                "2026-01-05 06:30",
+            ],
+        ),
+        # fractional weekend gap: 3.5d, not the 3d of a "B" weekend
+        (
+            pd.DatetimeIndex,
+            [
+                "2026-01-01 09:00",
+                "2026-01-02 09:00",
+                "2026-01-05 21:00",
+                "2026-01-06 21:00",
+                "2026-01-07 21:00",
+                "2026-01-08 21:00",
+                "2026-01-09 21:00",
+            ],
+        ),
+        # _TimedeltaFrequencyInferer inherits the same "bh" check
+        (
+            pd.TimedeltaIndex,
+            ["1h", "2h", "3h", "20h30min", "21h30min", "22h30min"],
+        ),
+    ],
+)
+def test_infer_freq_fractional_gap(klass, data):
+    # GH#68153 a gap that is not a whole number of hours/days must not be
+    #  floored into matching the "bh"/"B" delta patterns
+    idx = klass(data)
+    assert idx.inferred_freq is None
+
+
 def test_not_monotonic():
     rng = pd.DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     rng = rng[::-1]

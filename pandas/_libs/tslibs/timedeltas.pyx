@@ -349,6 +349,39 @@ cdef class ResoState:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def contains_str(ndarray values) -> bool:
+    """
+    Check whether an object-dtype array holds at least one str.
+
+    A str timedelta carries its own unit, so callers must not pass a ``unit``
+    alongside one.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+        May be 2D.
+
+    Returns
+    -------
+    bool
+    """
+    cdef:
+        Py_ssize_t _
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
+        object item
+
+    for _ in range(values.size):
+        # Analogous to: item = values[i]
+        item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
+        if isinstance(item, str):
+            return True
+        cnp.PyArray_ITER_NEXT(it)
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def array_to_timedelta64(
     ndarray values,
     str unit=None,
@@ -373,7 +406,6 @@ def array_to_timedelta64(
         object item
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
         NPY_DATETIMEUNIT item_reso, int_reso
         ResoState state = ResoState(creso)
@@ -389,16 +421,8 @@ def array_to_timedelta64(
     if errors not in {"ignore", "raise", "coerce"}:
         raise ValueError("errors must be one of {'ignore', 'raise', or 'coerce'}")
 
-    if unit is not None and errors != "coerce":
-        it = cnp.PyArray_IterNew(values)
-        for _ in range(n):
-            # Analogous to: item = values[i]
-            item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
-            if isinstance(item, str):
-                raise ValueError(
-                    "unit must not be specified if the input contains a str"
-                )
-            cnp.PyArray_ITER_NEXT(it)
+    if unit is not None and errors != "coerce" and contains_str(values):
+        raise ValueError("unit must not be specified if the input contains a str")
 
     for _ in range(n):
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -604,6 +628,21 @@ def array_to_timedelta64(
     return result
 
 
+cdef int64_t _check_td_ns(object total, str ts) except? -1:
+    """
+    Range-check a timedelta string's parsed nanosecond total (GH#68560).
+
+    Unit-suffixed terms are already bounded by cast_from_unit, so this catches
+    totals that leave the range while every term is in it -- and, in
+    parse_timedelta_string, one that overshoots and is brought back by a later
+    term. The lower bound is exclusive because a parse landing on INT64_MIN
+    would be indistinguishable from NPY_NAT.
+    """
+    if not (-(2**63) < total < 2**63):
+        raise OutOfBoundsTimedelta(f"Out of bounds nanosecond timedelta: '{ts}'")
+    return total
+
+
 @cython.cpow(True)
 cdef int64_t parse_timedelta_string(
     str ts, c_Resolution* out_reso=NULL
@@ -622,7 +661,8 @@ cdef int64_t parse_timedelta_string(
         str c
         bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
         str current_unit = None
-        int64_t result = 0, m = 0, r
+        int64_t m = 0
+        object result = 0, r
         list number = [], frac = [], unit = []
         # finest reso seen; RESO_DAY is the coarsest a timedelta string reaches.
         #  spec_ptr is NULL (skipping all reso work) unless a caller wants it.
@@ -698,7 +738,7 @@ cdef int64_t parse_timedelta_string(
                 elif current_unit == "m":
                     current_unit = "s"
                     m = 1000000000
-                r = <int64_t>int("".join(number)) * m
+                r = int("".join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_hhmmss = 1
             else:
@@ -717,7 +757,7 @@ cdef int64_t parse_timedelta_string(
                 if current_unit != "m":
                     raise ValueError("expected hh:mm:ss format before .")
                 m = 1000000000
-                r = <int64_t>int("".join(number)) * m
+                r = int("".join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_value = 1
                 unit, number, frac = [], [], []
@@ -760,7 +800,7 @@ cdef int64_t parse_timedelta_string(
         else:
             m = 1
             frac = frac[:9]
-        r = <int64_t>int("".join(frac)) * m
+        r = int("".join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
     # we have a regular format
@@ -778,7 +818,7 @@ cdef int64_t parse_timedelta_string(
                 f"received: {ts}"
             )
         m = 1000000000
-        r = <int64_t>int("".join(number)) * m
+        r = int("".join(number)) * m
         result += timedelta_as_neg(r, neg)
         if c_Resolution.RESO_SEC < reso:
             reso = c_Resolution.RESO_SEC
@@ -810,15 +850,15 @@ cdef int64_t parse_timedelta_string(
 
     if out_reso is not NULL:
         out_reso[0] = reso
-    return result
+    return _check_td_ns(result, ts)
 
 
-cdef int64_t timedelta_as_neg(int64_t value, bint neg):
+cdef object timedelta_as_neg(object value, bint neg):
     """
 
     Parameters
     ----------
-    value : int64_t of the timedelta value
+    value : the timedelta value in nanoseconds
     neg : bool if the a negative value
     """
     if neg:
@@ -854,7 +894,12 @@ cdef timedelta_from_spec(object number, object frac, object unit,
         out_reso[0] = _timedelta_unit_to_reso(unit)
 
     n = "".join(number) + "." + "".join(frac)
-    return cast_from_unit(float(n), unit)
+    try:
+        return cast_from_unit(float(n), unit)
+    except OutOfBoundsDatetime as err:
+        # GH#68560 cast_from_unit is shared with the Timestamp path and raises
+        #  the datetime-named class; there is no datetime in this one.
+        raise OutOfBoundsTimedelta(*err.args) from err
 
 
 cdef c_Resolution _timedelta_unit_to_reso(str abbrev):
@@ -1254,11 +1299,12 @@ cdef int64_t parse_iso_format_string(
 
     cdef:
         unicode c
-        int64_t result = 0, r
+        object result = 0, r
         int p = 0, sign = 1
         object dec_unit = "ms", err_msg
         bint have_dot = 0, have_value = 0, neg = 0
         list number = [], unit = []
+        str body
         c_Resolution reso = c_Resolution.RESO_DAY
         c_Resolution spec_reso = c_Resolution.RESO_DAY
         c_Resolution* spec_ptr = &spec_reso if out_reso is not NULL else NULL
@@ -1267,9 +1313,11 @@ cdef int64_t parse_iso_format_string(
 
     if ts[0] == "-":
         sign = -1
-        ts = ts[1:]
+        body = ts[1:]
+    else:
+        body = ts
 
-    for c in ts:
+    for c in body:
         # number (ascii codes)
         if 48 <= ord(c) <= 57:
 
@@ -1353,7 +1401,7 @@ cdef int64_t parse_iso_format_string(
 
     if out_reso is not NULL:
         out_reso[0] = reso
-    return sign*result
+    return _check_td_ns(sign*result, ts)
 
 
 def parse_timedelta_string_reso(str ts):
@@ -2994,6 +3042,12 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__mul__(item)
+            elif other.dtype.kind == "b":
+                # GH#62316 without this numpy silently treats True as 1
+                raise TypeError(
+                    "Cannot multiply Timedelta by bool. "
+                    "Explicitly cast to integer instead."
+                )
             elif other.dtype.kind in "iuf":
                 return _mul_numeric_array(self, other)
             return other * self.to_timedelta64()

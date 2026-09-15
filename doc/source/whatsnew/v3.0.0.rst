@@ -747,7 +747,7 @@ small behavior differences as collateral:
 - :class:`Timedelta` no longer accepts :class:`.Day` objects as inputs
 - :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns an :class:`.offsets.Hour` object in cases where it used to return a :class:`.Day` object.
 - Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex` with a :class:`.Day` ``freq`` no longer preserves that ``freq`` attribute.
-- Adding or subtracting a :class:`.Day` with a :class:`Timedelta` is no longer supported.
+- Subtracting a :class:`Timedelta` from a :class:`.Day` is no longer supported.
 - Adding or subtracting a :class:`.Day` offset to a timezone-aware :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
 
 .. _whatsnew_300.api_breaking.nan_vs_na:
@@ -1319,6 +1319,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta` with a string outside the representable range returning a wrong value, or raising ``OutOfBoundsDatetime`` or ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`68560`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
@@ -1560,6 +1561,7 @@ Sparse
 - Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
 - Bug in :meth:`DataFrame.sparse.to_dense` which ignored subclassing and always returned an instance of :class:`DataFrame` (:issue:`59913`)
 - Bug in :meth:`SparseArray.cumsum` with integer data caused max recursion depth error. (:issue:`62669`)
+- Bug in :meth:`SparseArray.shift` raising for a datetimelike subtype or a boolean subtype with the default ``fill_value``, and otherwise choosing a result dtype from ``fill_value`` that disagreed with :meth:`Series.shift` (:issue:`68580`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^

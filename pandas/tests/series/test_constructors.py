@@ -1990,6 +1990,14 @@ class TestSeriesConstructors:
         expected = pd.Series(pd.to_timedelta(data, unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dtype_timedelta_mixed_honors_unit(self):
+        # GH#68639 numbers mixed with timedelta-like objects are interpreted in
+        #  the dtype's unit, not as nanoseconds
+        data = [pd.Timedelta(1, "s"), 2]
+        result = pd.Series(data, dtype="timedelta64[s]")
+        expected = pd.Series(pd.to_timedelta(data, unit="s"))
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = pd.Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
