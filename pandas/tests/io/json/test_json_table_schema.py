@@ -995,7 +995,8 @@ class TestTableOrientReader:
         #  be read wrong
         df = pd.DataFrame(columns=[5e-324, 1.0], dtype=np.float64)
         out = StringIO(df.to_json(orient="table"))
-        with pytest.raises(ValueError, match="Range error"):
+        msg = "requires an exact parse"
+        with pytest.raises(ValueError, match=msg):
             pd.read_json(out, orient="table")
 
     # a non-string scalar is what build_table_schema(primary_key=0) writes
@@ -1047,12 +1048,9 @@ class TestTableOrientReader:
         with pytest.raises(ValueError, match=msg):
             pd.read_json(out, orient="table")
 
-    # 5e-324 is rounded to 0.0 by the fast parser and rejected by the precise
-    #  one, so only the key it is spelled with recovers it
     @pytest.mark.parametrize("label", [0.3, 5e-324])
     def test_read_json_table_orient_float_label_from_key(self, label):
-        # GH#19129 a label the fast parser perturbs is recovered from the
-        #  "data" key that spells it, without decoding the document again
+        # GH#19129 a label the fast parser perturbs is recovered from its key
         df = pd.DataFrame([[1.0, 2.0]], columns=[label, 1.0])
         out = StringIO(df.to_json(orient="table"))
         tm.assert_frame_equal(pd.read_json(out, orient="table"), df)
@@ -1132,16 +1130,14 @@ class TestTableOrientReader:
         tm.assert_frame_equal(result, expected)
 
     def test_read_json_table_orient_no_columns(self):
-        # GH#19129 restoring the labels rebuilds the columns from a list,
-        #  which must not touch an empty column axis
+        # GH#19129 restoring the labels must not touch an empty column axis,
+        #  which rebuilt from a list would come back object
         df = pd.DataFrame(index=pd.Index([1, 2], name="idx"))
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         assert result.index.name == "idx"
         assert result.columns.empty
-        # rebuilt from a list this would be object, since an empty axis has no
-        #  label type to infer from
-        assert result.columns.dtype == "str"
+        assert result.columns.dtype == pd.Index(["idx"]).dtype
 
     def test_read_json_table_orient_null_records(self):
         # GH#19129 "data" is a list in any document pandas writes; a
