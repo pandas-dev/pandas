@@ -4,6 +4,8 @@ from datetime import (
 )
 import itertools
 import re
+import sys
+import warnings
 
 import numpy as np
 import pytest
@@ -32,6 +34,7 @@ from pandas.core.internals.blocks import (
     maybe_coerce_values,
     new_block,
 )
+from pandas.core.internals.managers import interleaved_dtype
 
 
 @pytest.fixture(params=[new_block, make_block])
@@ -970,6 +973,140 @@ class TestGetDtypesCache:
 
         expected = pd.Series([pd.Int64Dtype(), np.dtype("float64")], index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
+
+
+class WriteOnDtypeRead:
+    """Block stand-in whose ``dtype`` read performs a write on the manager."""
+
+    def __init__(self, block, mgr, blocks, write) -> None:
+        self.block = block
+        self.mgr = mgr
+        self.blocks = blocks
+        self.write = write
+
+    @property
+    def dtype(self):
+        self.mgr.blocks = self.blocks  # the write must not see this stand-in
+        self.write()
+        return self.block.dtype
+
+
+def _stale_cache_setup():
+    df = pd.DataFrame({"a": np.array([1], dtype="int64")})
+    df["b"] = np.array([2], dtype="int32")
+    mgr = df._mgr
+    blocks = mgr.blocks
+    stand_in = WriteOnDtypeRead(
+        blocks[0], mgr, blocks, lambda: df.__setitem__("b", np.array([1.5]))
+    )
+    return df, mgr, blocks, stand_in
+
+
+def test_fast_xs_does_not_cache_stale_interleaved_dtype():
+    # GH#68716 fast_xs must not cache a common dtype it computed from blocks that
+    # a write has replaced meanwhile: that write's invalidation already ran.
+    df, mgr, blocks, stand_in = _stale_cache_setup()
+
+    df.iloc[0]
+    assert mgr._interleaved_dtype is not None  # the guard must still cache normally
+
+    mgr._interleaved_dtype = None
+    mgr.blocks = (stand_in, *blocks[1:])
+    # this call still sees the pre-write dtype; only the caching of it is guarded
+    df.iloc[0]
+
+    assert mgr._interleaved_dtype is None
+    expected = pd.Series([1.0, 1.5], index=["a", "b"], name=0)
+    tm.assert_series_equal(df.iloc[0], expected)
+
+
+def test_interleave_does_not_cache_stale_interleaved_dtype():
+    # GH#68716 as_array caches the same common dtype as fast_xs, with the same
+    # requirement that the blocks it was computed from are still current.
+    df, mgr, blocks, stand_in = _stale_cache_setup()
+
+    mgr.as_array()
+    assert mgr._interleaved_dtype is not None
+
+    mgr._interleaved_dtype = None
+    mgr.blocks = (stand_in, *blocks[1:])
+    mgr.as_array()
+
+    assert mgr._interleaved_dtype is None
+    tm.assert_numpy_array_equal(df.to_numpy(), np.array([[1.0, 1.5]]))
+
+
+def _read_on_every_line_of(method, write, read):
+    """
+    Run ``read`` at every line of ``BlockManager.method`` while ``write`` runs.
+
+    Stands in for a reader thread that can be preempted anywhere inside a write.
+    """
+    code = getattr(BlockManager, method).__code__
+
+    def trace_lines(frame, event, arg):
+        if event == "line":
+            read()
+        return trace_lines
+
+    def trace_calls(frame, event, arg):
+        if event == "call" and frame.f_code is code:
+            return trace_lines
+        return None
+
+    previous = sys.gettrace()
+    sys.settrace(trace_calls)
+    try:
+        write()
+    finally:
+        sys.settrace(previous)
+
+
+@pytest.mark.parametrize("read_name", ["iloc", "dtypes", "to_numpy"])
+@pytest.mark.parametrize(
+    "method, columns, key",
+    [
+        # the third column keeps a second block alive; without it the readers take
+        # their single-block fastpath and never reach the cache
+        ("iset", {"a": [1, 2], "b": [3, 4], "c": [1.5, 2.5]}, "a"),
+        # "a" owns its block, so the write takes the _iset_single fastpath
+        ("_iset_single", {"a": [1, 2], "b": [1.5, 2.5]}, "a"),
+        ("insert", {"a": [1, 2], "b": [1.5, 2.5]}, "c"),
+    ],
+)
+def test_write_does_not_leave_a_stale_cache(method, columns, key, read_name):
+    # GH#68716 a reader preempted between a write's cache clear and its self.blocks
+    # swap re-caches the pre-write value, and nothing clears it again.
+    df = pd.DataFrame(columns)
+    mgr = df._mgr
+    readers = {
+        "iloc": lambda: df.iloc[0],
+        "dtypes": lambda: df.dtypes,
+        "to_numpy": lambda: df.to_numpy(),
+    }
+    read = readers[read_name]
+    read()  # prime the caches
+
+    def read_mid_write():
+        # a reader preempted inside a write can see a half-updated manager; this
+        # test is about the state the write leaves behind, not that read's own result
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            try:
+                read()
+            except Exception:
+                pass
+
+    _read_on_every_line_of(
+        method, lambda: df.__setitem__(key, np.array([1 + 2j, 3 + 4j])), read_mid_write
+    )
+
+    fresh = interleaved_dtype([blk.dtype for blk in mgr.blocks])
+    # not `in (None, fresh)`: np.dtype(None) is float64, so a membership test
+    # accepts a stale float64 cache, which is the value this is here to reject
+    assert mgr._interleaved_dtype is None or mgr._interleaved_dtype == fresh
+    tm.assert_series_equal(df.dtypes, df.copy().dtypes)
+    tm.assert_series_equal(df.iloc[0], df.copy().iloc[0])
 
 
 def _as_array(mgr):

@@ -348,6 +348,8 @@ class BaseBlockManager(PandasObject):
             cache = dtypes.take(self.blknos)
             # An invalidating write that landed while we computed has already
             # cleared the cache, so storing now would leave the stale array for good.
+            # Writers clear the caches *after* swapping self.blocks: clearing first
+            # leaves a window in which this check still passes.
             if blocks is self.blocks:
                 self._dtypes_cache = cache
         return cache.copy()
@@ -1190,8 +1192,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # repeated fast_xs calls
         dtype = self._interleaved_dtype
         if dtype is None:
-            dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
-            self._interleaved_dtype = dtype
+            blocks = self.blocks
+            dtype = interleaved_dtype([blk.dtype for blk in blocks])
+            # see the matching guard in get_dtypes
+            if blocks is self.blocks:
+                self._interleaved_dtype = dtype
 
         n = len(self)
 
@@ -1439,13 +1444,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 self._blknos[unfit_idxr] = len(self.blocks)
                 self._blklocs[unfit_idxr] = np.arange(unfit_count)
 
-            # Invalidate the caches before swapping blocks; see get_dtypes
-            # for the window this ordering leaves open.
+            self.blocks += tuple(new_blocks)
+
+            # Invalidate the caches after swapping blocks; see get_dtypes.
             self._interleaved_dtype = None
             self._dtypes_cache = None
             self._known_consolidated = False
-
-            self.blocks += tuple(new_blocks)
 
     def _iset_split_block(
         self,
@@ -1526,11 +1530,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = (*old_blocks[:blkno], nb, *old_blocks[blkno + 1 :])
-        # Invalidate the caches before swapping blocks; see get_dtypes
-        # for the window this ordering leaves open.
+        self.blocks = new_blocks
+
+        # Invalidate the caches after swapping blocks; see get_dtypes.
         self._interleaved_dtype = None
         self._dtypes_cache = None
-        self.blocks = new_blocks
         return
 
     def column_setitem(
@@ -1599,12 +1603,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._insert_update_blklocs_and_blknos(loc)
 
         self.axes[0] = new_axis
-        # Invalidate the caches before swapping blocks; see get_dtypes
-        # for the window this ordering leaves open.
+        self.blocks += (block,)
+
+        # Invalidate the caches after swapping blocks; see get_dtypes.
         self._interleaved_dtype = None
         self._dtypes_cache = None
         self._known_consolidated = False
-        self.blocks += (block,)
 
         # len check is a cheap O(1) short-circuit to avoid the O(n) sum
         # and the get_option overhead on every insert call (GH#57641)
@@ -1935,10 +1939,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # GH#62263 use cached interleaved_dtype
             dtype = self._interleaved_dtype  # type: ignore[assignment]
             if dtype is None:
+                blocks = self.blocks
                 dtype = interleaved_dtype(  # type: ignore[assignment]
-                    [blk.dtype for blk in self.blocks]
+                    [blk.dtype for blk in blocks]
                 )
-                self._interleaved_dtype = dtype
+                # see the matching guard in get_dtypes
+                if blocks is self.blocks:
+                    self._interleaved_dtype = dtype
 
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
