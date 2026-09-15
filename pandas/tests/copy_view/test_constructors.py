@@ -378,4 +378,4 @@ def test_rangeindex_cached_data():
     del idx
     ser.iloc[0] = 99
 
-    tm.assert_numpy_array_equal(idx2._data, np.array([0, 1, 2]))
+    tm.assert_numpy_array_equal(idx2._data, np.array([0, 1, 2], dtype="int64"))
