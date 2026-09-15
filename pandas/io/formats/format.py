@@ -16,7 +16,10 @@ from contextlib import contextmanager
 from csv import QUOTE_NONE
 from decimal import Decimal
 from functools import partial
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import math
 import re
 from shutil import get_terminal_size
@@ -979,11 +982,12 @@ class DataFrameRenderer:
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        engine: str = "auto",
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
         index_label: IndexLabel | None = None,
-        mode: str = "w",
+        mode: str | None = None,
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
         quotechar: str = '"',
@@ -1000,14 +1004,11 @@ class DataFrameRenderer:
         """
         from pandas.io.formats.csvs import CSVFormatter
 
-        if path_or_buf is None:
-            created_buffer = True
-            path_or_buf = StringIO()
-        else:
-            created_buffer = False
+        created_buffer = path_or_buf is None
 
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
+            engine=engine,
             lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
@@ -1028,9 +1029,13 @@ class DataFrameRenderer:
         csv_formatter.save()
 
         if created_buffer:
-            assert isinstance(path_or_buf, StringIO)
-            content = path_or_buf.getvalue()
-            path_or_buf.close()
+            buf = cast("BytesIO | StringIO", csv_formatter.filepath_or_buffer)
+            content = buf.getvalue()
+            if isinstance(content, bytes):
+                # Need to decode into string since the
+                # pyarrow engine only writes binary data
+                content = content.decode("utf-8")
+            buf.close()
             return content
 
         return None
