@@ -458,7 +458,13 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         elif perturbed:
             # no key to recover the label from, so the label itself has to be
             #  parsed exactly, which costs a second decode of the whole document
-            schema = ujson_loads(json, precise_float=True)["schema"]
+            try:
+                schema = ujson_loads(json, precise_float=True)["schema"]
+            except ValueError as err:
+                raise ValueError(
+                    "Reading a float field name with no matching key in "
+                    f"'data' requires an exact parse, which failed: {err}"
+                ) from err
             names = [field["name"] for field in schema["fields"]]
     fields = schema["fields"]
     # a keyed record is looked up by the label's string form, so the frame is
