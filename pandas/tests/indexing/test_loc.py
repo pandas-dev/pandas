@@ -4176,10 +4176,9 @@ def test_loc_setitem_single_column_key_1d_value_non_unique_index():
     "dtype",
     [
         "Int64",
-        pd.StringDtype("python", na_value=np.nan),
-        pytest.param(
-            pd.StringDtype("pyarrow", na_value=np.nan), marks=td.skip_if_no("pyarrow")
-        ),
+        # string dtypes
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
     ],
 )
 @pytest.mark.parametrize(
@@ -4192,6 +4191,8 @@ def test_loc_setitem_single_column_key_1d_value_non_unique_index():
 def test_loc_setitem_single_column_frame_ea_dtype(dtype, box):
     # https://github.com/pandas-dev/pandas/issues/66527
     # column boolean mask that sets into the single column of a 1-column df
+    if isinstance(dtype, tuple):
+        dtype = pd.StringDtype(*dtype)
     df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
 
     # setting with a 2d dataframe
