@@ -316,6 +316,11 @@ def length_of_indexer(indexer, target=None) -> int:
             # GH#25774
             # np.asarray because Index/ExtensionArray may not have .sum; GH#68021
             return int(np.asarray(indexer).sum())
+        # TODO 0-d indexer could be allowed
+        # if getattr(indexer, "ndim", 1) == 0:
+        #     return 1
+        if getattr(indexer, "ndim", 1) != 1:
+            raise ValueError("indexer should be 1-dimensional")
         return len(indexer)
     elif isinstance(indexer, range):
         try:
