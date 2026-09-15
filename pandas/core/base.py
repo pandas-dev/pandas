@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import is_unitless
 from pandas._typing import (
     AxisInt,
     DtypeObj,
@@ -707,6 +708,17 @@ class IndexOpsMixin(OpsMixin):
         array(['1999-12-31T23:00:00.000000000', '2000-01-01T23:00:00...'],
               dtype='datetime64[ns]')
         """
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+            if lib.is_np_dtype(dtype, "M") and is_unitless(dtype):
+                # GH#59772
+                warnings.warn(
+                    "Using a unit-less 'datetime64' dtype in to_numpy is deprecated "
+                    "and will raise in a future version. Pass an explicit "
+                    "resolution, e.g. 'datetime64[ns]', instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
         if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
