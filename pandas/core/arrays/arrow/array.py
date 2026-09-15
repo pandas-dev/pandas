@@ -501,11 +501,13 @@ class ArrowExtensionArray(
             scalars = pc.if_else(pc.equal(scalars, "1.0"), "1", scalars)
             scalars = pc.if_else(pc.equal(scalars, "0.0"), "0", scalars)
             scalars = scalars.cast(pa.bool_())
-        elif (
-            pa.types.is_integer(pa_type)
-            or pa.types.is_floating(pa_type)
-            or pa.types.is_decimal(pa_type)
-        ):
+        elif pa.types.is_decimal(pa_type):
+            # cast the strings directly rather than going through float64,
+            #  which would not fit all decimals
+            if not is_pa_array:
+                strings = pa.array(strings, type=pa.string(), mask=isna(strings))
+            scalars = strings.cast(pa_type)
+        elif pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type):
             from pandas.core.tools.numeric import to_numeric
 
             scalars = to_numeric(strings, errors="raise")
