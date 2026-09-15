@@ -15,13 +15,16 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
 
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
 
+- Fixed a bug in setting with ``.loc`` or ``.iloc`` using a boolean mask to
+  select the columns into a 1-column DataFrame with an extension dtype, which
+  surfaced as a regression for a DataFrame with string data (:issue:`66527`,
+  :issue:`66255`)
 
 
 .. ---------------------------------------------------------------------------

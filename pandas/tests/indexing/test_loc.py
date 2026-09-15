@@ -4170,3 +4170,76 @@ def test_loc_setitem_single_column_key_1d_value_non_unique_index():
     )
     expected["b"] = [1.0, 2.0, 3.0, 0.0]
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pd.StringDtype("python", na_value=np.nan),
+        pytest.param(
+            pd.StringDtype("pyarrow", na_value=np.nan), marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    # TODO Series should also work?
+    # [list, np.array, pd.Series, pd.Index, pd.array],
+    [list, np.array, pd.Index, pd.array],
+    ids=["list", "ndarray", "Index", "pd.array"],
+)
+def test_loc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.loc[:, box([True])] = df * 2
+
+    expected = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.loc[[0, 1], box([True])] = df.loc[[0, 1], :] * 2
+
+    arr = pd.array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = pd.DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.loc[:, box([True])] = scalar
+
+    expected = pd.DataFrame({"a": pd.array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.loc[[0, 1], box([True])] = scalar * 2
+
+    expected = pd.DataFrame(
+        {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
+    )
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["float64", "Float64"],
+)
+@pytest.mark.parametrize(
+    "box",
+    # TODO Series should also work?
+    # [list, np.array, pd.Series, pd.Index, pd.array],
+    [list, np.array, pd.Index, pd.array],
+    ids=["list", "ndarray", "Index", "pd.array"],
+)
+def test_loc_setitem_empty_boolean_column_mask(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66255
+    df = pd.DataFrame({"col": [1, 2, 3, np.nan]}, dtype=dtype)
+    df_orig = df.copy()
+
+    df.loc[:, box([False])] = 100
+
+    tm.assert_frame_equal(df, df_orig)
