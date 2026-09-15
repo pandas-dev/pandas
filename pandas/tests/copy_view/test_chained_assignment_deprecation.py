@@ -2,9 +2,12 @@ import numpy as np
 import pytest
 
 from pandas.compat import CHAINED_WARNING_DISABLED
-from pandas.errors import ChainedAssignmentError
+from pandas.errors import (
+    ChainedAssignmentError,
+    Pandas4Warning,
+)
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -14,7 +17,7 @@ import pandas._testing as tm
 def test_series_setitem(indexer):
     # ensure we only get a single warning for those typical cases of chained
     # assignment
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
 
     # using custom check instead of tm.assert_produces_warning because that doesn't
     # fail if multiple warnings are raised
@@ -30,7 +33,7 @@ def test_series_setitem(indexer):
     "indexer", ["a", ["a", "b"], slice(0, 2), np.array([True, False, True])]
 )
 def test_frame_setitem(indexer):
-    df = DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df[0:3][indexer] = 10
@@ -40,7 +43,7 @@ def test_frame_setitem(indexer):
     "indexer", [0, [0, 1], slice(0, 2), np.array([True, False, True])]
 )
 def test_series_iloc_setitem(indexer):
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df["a"].iloc[indexer] = 0
@@ -50,7 +53,7 @@ def test_series_iloc_setitem(indexer):
     "indexer", [0, [0, 1], slice(0, 2), np.array([True, False, True])]
 )
 def test_frame_iloc_setitem(indexer):
-    df = DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df[0:3].iloc[indexer] = 10
@@ -60,7 +63,7 @@ def test_frame_iloc_setitem(indexer):
     "indexer", [0, [0, 1], slice(0, 2), np.array([True, False, True])]
 )
 def test_series_loc_setitem(indexer):
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df["a"].loc[indexer] = 0
@@ -70,35 +73,47 @@ def test_series_loc_setitem(indexer):
     "indexer", [0, [0, 1], (0, "a"), slice(0, 2), np.array([True, False, True])]
 )
 def test_frame_loc_setitem(indexer):
-    df = DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df[0:3].loc[indexer] = 10
 
 
 def test_series_at_setitem():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df["a"].at[0] = 0
 
 
 def test_frame_at_setitem():
-    df = DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df[0:3].at[0, "a"] = 10
 
 
 def test_series_iat_setitem():
-    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df["a"].iat[0] = 0
 
 
 def test_frame_iat_setitem():
-    df = DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
+    df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": 1})
 
     with tm.raises_chained_assignment_error():
         df[0:3].iat[0, 0] = 10
+
+
+@pytest.mark.parametrize("value", [None, "warn", "raise"])
+def test_chained_assignment_option_deprecation(value):
+    # GH#67987
+    msg = "The 'mode.chained_assignment' option is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with pd.option_context("mode.chained_assignment", value):
+            pass
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.get_option("mode.chained_assignment")

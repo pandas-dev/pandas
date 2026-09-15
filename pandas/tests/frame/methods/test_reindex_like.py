@@ -3,7 +3,7 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -22,7 +22,7 @@ class TestDataFrameReindexLike:
         ],
     )
     def test_reindex_like_methods(self, method, expected_values):
-        df = DataFrame({"x": list(range(5))})
+        df = pd.DataFrame({"x": list(range(5))})
 
         msg = "the 'method' keyword is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -34,10 +34,10 @@ class TestDataFrameReindexLike:
 
     def test_reindex_like_subclass(self):
         # https://github.com/pandas-dev/pandas/issues/31925
-        class MyDataFrame(DataFrame):
+        class MyDataFrame(pd.DataFrame):
             pass
 
-        expected = DataFrame()
+        expected = pd.DataFrame()
         df = MyDataFrame()
         result = df.reindex_like(expected)
 

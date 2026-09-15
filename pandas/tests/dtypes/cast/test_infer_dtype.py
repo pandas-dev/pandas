@@ -14,15 +14,7 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import is_dtype_equal
 
-from pandas import (
-    Categorical,
-    Interval,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 
 
 def test_infer_dtype_from_int_scalar(any_int_numpy_dtype):
@@ -66,7 +58,7 @@ def test_infer_dtype_from_datetime():
     dtype, val = infer_dtype_from_scalar(dt64)
     assert dtype == "M8[ns]"
 
-    ts = Timestamp(1)
+    ts = pd.Timestamp(1)
     dtype, val = infer_dtype_from_scalar(ts)
     assert dtype == "M8[ns]"
 
@@ -84,14 +76,14 @@ def test_infer_dtype_from_timedelta():
     dtype, val = infer_dtype_from_scalar(pytd)
     assert dtype == "m8[us]"
 
-    td = Timedelta(1)
+    td = pd.Timedelta(1)
     dtype, val = infer_dtype_from_scalar(td)
     assert dtype == "m8[ns]"
 
 
 @pytest.mark.parametrize("freq", ["M", "D"])
 def test_infer_dtype_from_period(freq):
-    p = Period("2011-01-01", freq=freq)
+    p = pd.Period("2011-01-01", freq=freq)
     dtype, val = infer_dtype_from_scalar(p)
 
     exp_dtype = f"period[{freq}]"
@@ -105,14 +97,14 @@ def test_infer_dtype_misc():
     dtype, val = infer_dtype_from_scalar(dt)
     assert dtype == np.object_
 
-    ts = Timestamp(1, tz="US/Eastern")
+    ts = pd.Timestamp(1, tz="US/Eastern")
     dtype, val = infer_dtype_from_scalar(ts)
     assert dtype == "datetime64[ns, US/Eastern]"
 
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Eastern", "Asia/Tokyo"])
 def test_infer_from_scalar_tz(tz):
-    dt = Timestamp(1, tz=tz)
+    dt = pd.Timestamp(1, tz=tz)
     dtype, val = infer_dtype_from_scalar(dt)
 
     exp_dtype = f"datetime64[ns, {tz}]"
@@ -126,14 +118,14 @@ def test_infer_from_scalar_tz(tz):
     [
         (0, 1, "int64"),
         (0.0, 1.0, "float64"),
-        (Timestamp(0), Timestamp(1), "datetime64[ns]"),
-        (Timestamp(0, tz="UTC"), Timestamp(1, tz="UTC"), "datetime64[ns, UTC]"),
-        (Timedelta(0), Timedelta(1), "timedelta64[ns]"),
+        (pd.Timestamp(0), pd.Timestamp(1), "datetime64[ns]"),
+        (pd.Timestamp(0, tz="UTC"), pd.Timestamp(1, tz="UTC"), "datetime64[ns, UTC]"),
+        (pd.Timedelta(0), pd.Timedelta(1), "timedelta64[ns]"),
     ],
 )
 def test_infer_from_interval(left, right, subtype, closed):
     # GH 30337
-    interval = Interval(left, right, closed)
+    interval = pd.Interval(left, right, closed)
     result_dtype, result_value = infer_dtype_from_scalar(interval)
     expected_dtype = f"interval[{subtype}, {closed}]"
     assert result_dtype == expected_dtype
@@ -155,8 +147,8 @@ def test_infer_dtype_from_scalar_errors():
         (1, np.int64),
         (1.5, np.float64),
         (np.datetime64("2016-01-01"), np.dtype("M8[s]")),
-        (Timestamp("20160101").as_unit("s"), np.dtype("M8[s]")),
-        (Timestamp("20160101", tz="UTC").as_unit("s"), "datetime64[s, UTC]"),
+        (pd.Timestamp("20160101").as_unit("s"), np.dtype("M8[s]")),
+        (pd.Timestamp("20160101", tz="UTC").as_unit("s"), "datetime64[s, UTC]"),
     ],
 )
 def test_infer_dtype_from_scalar(value, expected, using_infer_string):
@@ -176,17 +168,17 @@ def test_infer_dtype_from_scalar(value, expected, using_infer_string):
         (np.array([1], dtype=np.int64), np.int64),
         ([np.nan, 1, ""], np.object_),
         (np.array([[1.0, 2.0]]), np.float64),
-        (Categorical(list("aabc")), "category"),
-        (Categorical([1, 2, 3]), "category"),
-        (date_range("20160101", periods=3, unit="ns"), np.dtype("=M8[ns]")),
+        (pd.Categorical(list("aabc")), "category"),
+        (pd.Categorical([1, 2, 3]), "category"),
+        (pd.date_range("20160101", periods=3, unit="ns"), np.dtype("=M8[ns]")),
         (
-            date_range("20160101", periods=3, tz="US/Eastern", unit="ns"),
+            pd.date_range("20160101", periods=3, tz="US/Eastern", unit="ns"),
             "datetime64[ns, US/Eastern]",
         ),
-        (Series([1.0, 2, 3]), np.float64),
-        (Series(list("abc")), np.object_),
+        (pd.Series([1.0, 2, 3]), np.float64),
+        (pd.Series(list("abc")), np.object_),
         (
-            Series(date_range("20160101", periods=3, tz="US/Eastern", unit="ns")),
+            pd.Series(pd.date_range("20160101", periods=3, tz="US/Eastern", unit="ns")),
             "datetime64[ns, US/Eastern]",
         ),
     ],
@@ -195,7 +187,7 @@ def test_infer_dtype_from_array(arr, expected, using_infer_string):
     dtype, _ = infer_dtype_from_array(arr)
     if (
         using_infer_string
-        and isinstance(arr, Series)
+        and isinstance(arr, pd.Series)
         and arr.tolist() == ["a", "b", "c"]
     ):
         expected = "string"

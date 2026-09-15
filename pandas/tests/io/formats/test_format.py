@@ -12,19 +12,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-    get_option,
-    option_context,
-    read_csv,
-    reset_option,
-)
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
@@ -93,8 +80,8 @@ def has_expanded_repr(df):
 class TestDataFrameFormatting:
     def test_repr_truncation(self):
         max_len = 20
-        with option_context("display.max_colwidth", max_len):
-            df = DataFrame(
+        with pd.option_context("display.max_colwidth", max_len):
+            df = pd.DataFrame(
                 {
                     "A": np.random.default_rng(2).standard_normal(10),
                     "B": [
@@ -115,30 +102,32 @@ class TestDataFrameFormatting:
                 else:
                     assert "..." not in line
 
-        with option_context("display.max_colwidth", 999999):
+        with pd.option_context("display.max_colwidth", 999999):
             assert "..." not in repr(df)
 
-        with option_context("display.max_colwidth", max_len + 2):
+        with pd.option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
     def test_repr_truncation_preserves_na(self):
         # https://github.com/pandas-dev/pandas/issues/55630
-        df = DataFrame({"a": [pd.NA for _ in range(10)]})
-        with option_context("display.max_rows", 2, "display.show_dimensions", False):
+        df = pd.DataFrame({"a": [pd.NA for _ in range(10)]})
+        with pd.option_context("display.max_rows", 2, "display.show_dimensions", False):
             assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
 
     def test_repr_truncation_dataframe_attrs(self):
         # GH#60455
-        df = DataFrame([[0] * 10])
-        df.attrs["b"] = DataFrame([])
-        with option_context("display.max_columns", 2, "display.show_dimensions", False):
+        df = pd.DataFrame([[0] * 10])
+        df.attrs["b"] = pd.DataFrame([])
+        with pd.option_context(
+            "display.max_columns", 2, "display.show_dimensions", False
+        ):
             assert repr(df) == "   0  ...  9\n0  0  ...  0"
 
     def test_repr_truncation_series_with_dataframe_attrs(self):
         # GH#60568
-        ser = Series([0] * 10)
-        ser.attrs["b"] = DataFrame([])
-        with option_context("display.max_rows", 2, "display.show_dimensions", False):
+        ser = pd.Series([0] * 10)
+        ser.attrs["b"] = pd.DataFrame([])
+        with pd.option_context("display.max_rows", 2, "display.show_dimensions", False):
             assert repr(ser) == "0    0\n    ..\n9    0\ndtype: int64"
 
     def test_max_colwidth_negative_int_raises(self):
@@ -147,7 +136,7 @@ class TestDataFrameFormatting:
         with pytest.raises(
             ValueError, match="Value must be a nonnegative integer or None"
         ):
-            with option_context("display.max_colwidth", -1):
+            with pd.option_context("display.max_colwidth", -1):
                 pass
 
     @pytest.mark.parametrize(
@@ -163,30 +152,30 @@ class TestDataFrameFormatting:
     def test_max_colwidth_narrower_than_placeholder(self, max_colwidth, expected):
         # GH#16097 widths too narrow to fit the "..." placeholder used to be
         # silently ignored
-        df = DataFrame({"a": ["foo", "horse"]})
-        with option_context("display.max_colwidth", max_colwidth):
+        df = pd.DataFrame({"a": ["foo", "horse"]})
+        with pd.option_context("display.max_colwidth", max_colwidth):
             assert repr(df) == expected
 
     def test_repr_chop_threshold(self):
-        df = DataFrame([[0.1, 0.5], [0.5, -0.1]])
-        reset_option("display.chop_threshold")  # default None
+        df = pd.DataFrame([[0.1, 0.5], [0.5, -0.1]])
+        pd.reset_option("display.chop_threshold")  # default None
         assert repr(df) == "     0    1\n0  0.1  0.5\n1  0.5 -0.1"
 
-        with option_context("display.chop_threshold", 0.2):
+        with pd.option_context("display.chop_threshold", 0.2):
             assert repr(df) == "     0    1\n0  0.0  0.5\n1  0.5  0.0"
 
-        with option_context("display.chop_threshold", 0.6):
+        with pd.option_context("display.chop_threshold", 0.6):
             assert repr(df) == "     0    1\n0  0.0  0.0\n1  0.0  0.0"
 
-        with option_context("display.chop_threshold", None):
+        with pd.option_context("display.chop_threshold", None):
             assert repr(df) == "     0    1\n0  0.1  0.5\n1  0.5 -0.1"
 
     def test_repr_chop_threshold_column_below(self):
         # GH 6839: validation case
 
-        df = DataFrame([[10, 20, 30, 40], [8e-10, -1e-11, 2e-9, -2e-11]]).T
+        df = pd.DataFrame([[10, 20, 30, 40], [8e-10, -1e-11, 2e-9, -2e-11]]).T
 
-        with option_context("display.chop_threshold", 0):
+        with pd.option_context("display.chop_threshold", 0):
             assert repr(df) == (
                 "      0             1\n"
                 "0  10.0  8.000000e-10\n"
@@ -195,7 +184,7 @@ class TestDataFrameFormatting:
                 "3  40.0 -2.000000e-11"
             )
 
-        with option_context("display.chop_threshold", 1e-8):
+        with pd.option_context("display.chop_threshold", 1e-8):
             assert repr(df) == (
                 "      0             1\n"
                 "0  10.0  0.000000e+00\n"
@@ -204,7 +193,7 @@ class TestDataFrameFormatting:
                 "3  40.0  0.000000e+00"
             )
 
-        with option_context("display.chop_threshold", 5e-11):
+        with pd.option_context("display.chop_threshold", 5e-11):
             assert repr(df) == (
                 "      0             1\n"
                 "0  10.0  8.000000e-10\n"
@@ -214,17 +203,17 @@ class TestDataFrameFormatting:
             )
 
     def test_repr_no_backslash(self):
-        with option_context("mode.sim_interactive", True):
-            df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
+        with pd.option_context("mode.sim_interactive", True):
+            df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
             assert "\\" not in repr(df)
 
     def test_expand_frame_repr(self):
-        df_small = DataFrame("hello", index=[0], columns=[0])
-        df_wide = DataFrame("hello", index=[0], columns=range(10))
-        df_tall = DataFrame("hello", index=range(30), columns=range(5))
+        df_small = pd.DataFrame("hello", index=[0], columns=[0])
+        df_wide = pd.DataFrame("hello", index=[0], columns=range(10))
+        df_tall = pd.DataFrame("hello", index=range(30), columns=range(5))
 
-        with option_context("mode.sim_interactive", True):
-            with option_context(
+        with pd.option_context("mode.sim_interactive", True):
+            with pd.option_context(
                 "display.max_columns",
                 10,
                 "display.width",
@@ -234,7 +223,7 @@ class TestDataFrameFormatting:
                 "display.show_dimensions",
                 True,
             ):
-                with option_context("display.expand_frame_repr", True):
+                with pd.option_context("display.expand_frame_repr", True):
                     assert not has_truncated_repr(df_small)
                     assert not has_expanded_repr(df_small)
                     assert not has_truncated_repr(df_wide)
@@ -242,7 +231,7 @@ class TestDataFrameFormatting:
                     assert has_vertically_truncated_repr(df_tall)
                     assert has_expanded_repr(df_tall)
 
-                with option_context("display.expand_frame_repr", False):
+                with pd.option_context("display.expand_frame_repr", False):
                     assert not has_truncated_repr(df_small)
                     assert not has_expanded_repr(df_small)
                     assert not has_horizontally_truncated_repr(df_wide)
@@ -253,9 +242,9 @@ class TestDataFrameFormatting:
     def test_repr_non_interactive(self):
         # in non interactive mode, there can be no dependency on the
         # result of terminal auto size detection
-        df = DataFrame("hello", index=range(1000), columns=range(5))
+        df = pd.DataFrame("hello", index=range(1000), columns=range(5))
 
-        with option_context(
+        with pd.option_context(
             "mode.sim_interactive", False, "display.width", 0, "display.max_rows", 5000
         ):
             assert not has_truncated_repr(df)
@@ -270,13 +259,13 @@ class TestDataFrameFormatting:
         )
 
         index = range(5)
-        columns = MultiIndex.from_tuples(
+        columns = pd.MultiIndex.from_tuples(
             [
                 ("This is a long title with > 37 chars.", "cat"),
                 ("This is a loooooonger title with > 43 chars.", "dog"),
             ]
         )
-        df = DataFrame(1, index=index, columns=columns)
+        df = pd.DataFrame(1, index=index, columns=columns)
 
         result = repr(df)
 
@@ -287,7 +276,7 @@ class TestDataFrameFormatting:
         assert "dog" in h2
 
         # regular columns
-        df2 = DataFrame({"A" * 41: [1, 2], "B" * 41: [1, 2]})
+        df2 = pd.DataFrame({"A" * 41: [1, 2], "B" * 41: [1, 2]})
         result = repr(df2)
 
         assert df2.columns[0] in result.split("\n")[0]
@@ -295,7 +284,7 @@ class TestDataFrameFormatting:
     def test_repr_truncates_terminal_size_full(self, monkeypatch):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
-        df = DataFrame(np.random.default_rng(2).random((1, 7)))
+        df = pd.DataFrame(np.random.default_rng(2).random((1, 7)))
 
         monkeypatch.setattr(
             "pandas.io.formats.format.get_terminal_size", lambda: terminal_size
@@ -315,14 +304,16 @@ class TestDataFrameFormatting:
         )
 
         ncols = 20
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 f"col_{idx:02d}": np.random.default_rng(2).standard_normal(3)
                 for idx in range(ncols)
             }
         )
 
-        with option_context("display.width", terminal_width, "display.max_columns", 0):
+        with pd.option_context(
+            "display.width", terminal_width, "display.max_columns", 0
+        ):
             result = repr(df)
             for line in result.split("\n"):
                 assert len(line) <= terminal_width
@@ -330,7 +321,7 @@ class TestDataFrameFormatting:
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
         # determine size of truncation (...) column
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": [108480, 30830],
                 "b": [12345, 12345],
@@ -349,31 +340,35 @@ class TestDataFrameFormatting:
 
         def mkframe(n):
             index = [f"{i:05d}" for i in range(n)]
-            return DataFrame(0, index, index)
+            return pd.DataFrame(0, index, index)
 
         df6 = mkframe(6)
         df10 = mkframe(10)
-        with option_context("mode.sim_interactive", True):
-            with option_context("display.width", term_width * 2):
-                with option_context("display.max_rows", 5, "display.max_columns", 5):
+        with pd.option_context("mode.sim_interactive", True):
+            with pd.option_context("display.width", term_width * 2):
+                with pd.option_context("display.max_rows", 5, "display.max_columns", 5):
                     assert not has_expanded_repr(mkframe(4))
                     assert not has_expanded_repr(mkframe(5))
                     assert not has_expanded_repr(df6)
                     assert has_doubly_truncated_repr(df6)
 
-                with option_context("display.max_rows", 20, "display.max_columns", 10):
+                with pd.option_context(
+                    "display.max_rows", 20, "display.max_columns", 10
+                ):
                     # Out off max_columns boundary, but no extending
                     # since not exceeding width
                     assert not has_expanded_repr(df6)
                     assert not has_truncated_repr(df6)
 
-                with option_context("display.max_rows", 9, "display.max_columns", 10):
+                with pd.option_context(
+                    "display.max_rows", 9, "display.max_columns", 10
+                ):
                     # out vertical bounds can not result in expanded repr
                     assert not has_expanded_repr(df10)
                     assert has_vertically_truncated_repr(df10)
 
             # width=None in terminal, auto detection
-            with option_context(
+            with pd.option_context(
                 "display.max_columns",
                 100,
                 "display.max_rows",
@@ -388,36 +383,36 @@ class TestDataFrameFormatting:
                 assert has_expanded_repr(df)
 
     def test_repr_min_rows(self):
-        df = DataFrame({"a": range(20)})
+        df = pd.DataFrame({"a": range(20)})
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(df)
         assert ".." not in df._repr_html_()
 
-        df = DataFrame({"a": range(61)})
+        df = pd.DataFrame({"a": range(61)})
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(df)
         assert ".." in df._repr_html_()
 
-        with option_context("display.max_rows", 10, "display.min_rows", 4):
+        with pd.option_context("display.max_rows", 10, "display.min_rows", 4):
             # truncated after first two rows
             assert ".." in repr(df)
             assert "2  " not in repr(df)
             assert "..." in df._repr_html_()
             assert "<td>2</td>" not in df._repr_html_()
 
-        with option_context("display.max_rows", 12, "display.min_rows", None):
+        with pd.option_context("display.max_rows", 12, "display.min_rows", None):
             # when set to None, follow value of max_rows
             assert "5    5" in repr(df)
             assert "<td>5</td>" in df._repr_html_()
 
-        with option_context("display.max_rows", 10, "display.min_rows", 12):
+        with pd.option_context("display.max_rows", 10, "display.min_rows", 12):
             # when set value higher as max_rows, use the minimum
             assert "5    5" not in repr(df)
             assert "<td>5</td>" not in df._repr_html_()
 
-        with option_context("display.max_rows", None, "display.min_rows", 12):
+        with pd.option_context("display.max_rows", None, "display.min_rows", 12):
             # max_rows of None -> never truncate
             assert ".." not in repr(df)
             assert ".." not in df._repr_html_()
@@ -447,18 +442,18 @@ class TestDataFrameFormatting:
         self, data, format_option, expected_values
     ):
         if format_option is not None:
-            with option_context("display.float_format", format_option.format):
-                df = DataFrame({"A": [data]})
+            with pd.option_context("display.float_format", format_option.format):
+                df = pd.DataFrame({"A": [data]})
                 html_output = df._repr_html_()
                 assert expected_values in html_output
         else:
-            df = DataFrame({"A": [data]})
+            df = pd.DataFrame({"A": [data]})
             html_output = df._repr_html_()
             assert expected_values in html_output
 
     def test_str_max_colwidth(self):
         # GH 7856
-        df = DataFrame(
+        df = pd.DataFrame(
             [
                 {
                     "a": "foo",
@@ -475,7 +470,7 @@ class TestDataFrameFormatting:
             "0  foo  bar  uncomfortably long line with lots of stuff  1\n"
             "1  foo  bar                                       stuff  1"
         )
-        with option_context("max_colwidth", 20):
+        with pd.option_context("max_colwidth", 20):
             assert str(df) == (
                 "     a    b                    c  d\n"
                 "0  foo  bar  uncomfortably lo...  1\n"
@@ -487,38 +482,38 @@ class TestDataFrameFormatting:
         fac = 1.05  # Arbitrary large factor to exceed term width
         cols = range(int(term_width * fac))
         index = range(10)
-        df = DataFrame(index=index, columns=cols)
-        with option_context("mode.sim_interactive", True):
-            with option_context("display.max_rows", None):
-                with option_context("display.max_columns", None):
+        df = pd.DataFrame(index=index, columns=cols)
+        with pd.option_context("mode.sim_interactive", True):
+            with pd.option_context("display.max_rows", None):
+                with pd.option_context("display.max_columns", None):
                     # Wrap around with None
                     assert has_expanded_repr(df)
-            with option_context("display.max_rows", 0):
-                with option_context("display.max_columns", 0):
+            with pd.option_context("display.max_rows", 0):
+                with pd.option_context("display.max_columns", 0):
                     # Truncate with auto detection.
                     assert has_horizontally_truncated_repr(df)
 
             index = range(int(term_height * fac))
-            df = DataFrame(index=index, columns=cols)
-            with option_context("display.max_rows", 0):
-                with option_context("display.max_columns", None):
+            df = pd.DataFrame(index=index, columns=cols)
+            with pd.option_context("display.max_rows", 0):
+                with pd.option_context("display.max_columns", None):
                     # Wrap around with None
                     assert has_expanded_repr(df)
                     # Truncate vertically
                     assert has_vertically_truncated_repr(df)
 
-            with option_context("display.max_rows", None):
-                with option_context("display.max_columns", 0):
+            with pd.option_context("display.max_rows", None):
+                with pd.option_context("display.max_columns", 0):
                     assert has_horizontally_truncated_repr(df)
 
     def test_to_string_repr_unicode2(self):
-        idx = Index(["abc", "\u03c3a", "aegdvg"])
-        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
+        idx = pd.Index(["abc", "\u03c3a", "aegdvg"])
+        ser = pd.Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         rs = repr(ser).split("\n")
         line_len = len(rs[0])
         for line in rs[1:]:
             try:
-                line = line.decode(get_option("display.encoding"))
+                line = line.decode(pd.get_option("display.encoding"))
             except AttributeError:
                 pass
             if not line.startswith("dtype:"):
@@ -528,7 +523,7 @@ class TestDataFrameFormatting:
         # not aligned properly because of east asian width
 
         # mid col
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
             index=["a", "bb", "c", "ddd"],
         )
@@ -540,7 +535,7 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # last col
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": [1, 222, 33333, 4], "b": ["あ", "いいい", "う", "ええええええ"]},
             index=["a", "bb", "c", "ddd"],
         )
@@ -552,7 +547,7 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # all col
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": ["あああああ", "い", "う", "えええ"],
                 "b": ["あ", "いいい", "う", "ええええええ"],
@@ -567,7 +562,7 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # column name
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "b": ["あ", "いいい", "う", "ええええええ"],
                 "あああああ": [1, 222, 33333, 4],
@@ -582,7 +577,7 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # index
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": ["あああああ", "い", "う", "えええ"],
                 "b": ["あ", "いいい", "う", "ええええええ"],
@@ -597,12 +592,12 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # index name
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": ["あああああ", "い", "う", "えええ"],
                 "b": ["あ", "いいい", "う", "ええええええ"],
             },
-            index=Index(["あ", "い", "うう", "え"], name="おおおお"),
+            index=pd.Index(["あ", "い", "うう", "え"], name="おおおお"),
         )
         expected = (
             "          a       b\n"
@@ -615,12 +610,12 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # all
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "あああ": ["あああ", "い", "う", "えええええ"],
                 "いいいいい": ["あ", "いいい", "う", "ええ"],
             },
-            index=Index(["あ", "いいい", "うう", "え"], name="お"),
+            index=pd.Index(["あ", "いいい", "うう", "え"], name="お"),
         )
         expected = (
             "       あああ いいいいい\n"
@@ -633,10 +628,10 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # MultiIndex
-        idx = MultiIndex.from_tuples(
+        idx = pd.MultiIndex.from_tuples(
             [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
         )
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": ["あああああ", "い", "う", "えええ"],
                 "b": ["あ", "いいい", "う", "ええええええ"],
@@ -653,8 +648,8 @@ class TestDataFrameFormatting:
         assert repr(df) == expected
 
         # truncate
-        with option_context("display.max_rows", 3, "display.max_columns", 3):
-            df = DataFrame(
+        with pd.option_context("display.max_rows", 3, "display.max_columns", 3):
+            df = pd.DataFrame(
                 {
                     "a": ["あああああ", "い", "う", "えええ"],
                     "b": ["あ", "いいい", "う", "ええええええ"],
@@ -681,9 +676,9 @@ class TestDataFrameFormatting:
 
     def test_east_asian_unicode_true(self):
         # Enable Unicode option -----------------------------------------
-        with option_context("display.unicode.east_asian_width", True):
+        with pd.option_context("display.unicode.east_asian_width", True):
             # mid col
-            df = DataFrame(
+            df = pd.DataFrame(
                 {"a": ["あ", "いいい", "う", "ええええええ"], "b": [1, 222, 33333, 4]},
                 index=["a", "bb", "c", "ddd"],
             )
@@ -695,7 +690,7 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # last col
-            df = DataFrame(
+            df = pd.DataFrame(
                 {"a": [1, 222, 33333, 4], "b": ["あ", "いいい", "う", "ええええええ"]},
                 index=["a", "bb", "c", "ddd"],
             )
@@ -707,7 +702,7 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # all col
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "a": ["あああああ", "い", "う", "えええ"],
                     "b": ["あ", "いいい", "う", "ええええええ"],
@@ -724,7 +719,7 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # column name
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "b": ["あ", "いいい", "う", "ええええええ"],
                     "あああああ": [1, 222, 33333, 4],
@@ -741,7 +736,7 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # index
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "a": ["あああああ", "い", "う", "えええ"],
                     "b": ["あ", "いいい", "う", "ええええええ"],
@@ -758,12 +753,12 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # index name
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "a": ["あああああ", "い", "う", "えええ"],
                     "b": ["あ", "いいい", "う", "ええええええ"],
                 },
-                index=Index(["あ", "い", "うう", "え"], name="おおおお"),
+                index=pd.Index(["あ", "い", "うう", "え"], name="おおおお"),
             )
             expected = (
                 "                   a             b\n"
@@ -776,12 +771,12 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # all
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "あああ": ["あああ", "い", "う", "えええええ"],
                     "いいいいい": ["あ", "いいい", "う", "ええ"],
                 },
-                index=Index(["あ", "いいい", "うう", "え"], name="お"),
+                index=pd.Index(["あ", "いいい", "うう", "え"], name="お"),
             )
             expected = (
                 "            あああ いいいいい\n"
@@ -794,10 +789,10 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # MultiIndex
-            idx = MultiIndex.from_tuples(
+            idx = pd.MultiIndex.from_tuples(
                 [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
             )
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "a": ["あああああ", "い", "う", "えええ"],
                     "b": ["あ", "いいい", "う", "ええええええ"],
@@ -814,8 +809,8 @@ class TestDataFrameFormatting:
             assert repr(df) == expected
 
             # truncate
-            with option_context("display.max_rows", 3, "display.max_columns", 3):
-                df = DataFrame(
+            with pd.option_context("display.max_rows", 3, "display.max_columns", 3):
+                df = pd.DataFrame(
                     {
                         "a": ["あああああ", "い", "う", "えええ"],
                         "b": ["あ", "いいい", "う", "ええええええ"],
@@ -845,7 +840,7 @@ class TestDataFrameFormatting:
                 assert repr(df) == expected
 
             # ambiguous unicode
-            df = DataFrame(
+            df = pd.DataFrame(
                 {
                     "b": ["あ", "いいい", "¡¡", "ええええええ"],
                     "あああああ": [1, 222, 33333, 4],
@@ -864,8 +859,8 @@ class TestDataFrameFormatting:
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({"c/\u03c3": Series(dtype=object)})
-        nonempty = DataFrame({"c/\u03c3": Series([1, 2, 3])})
+        empty = pd.DataFrame({"c/\u03c3": pd.Series(dtype=object)})
+        nonempty = pd.DataFrame({"c/\u03c3": pd.Series([1, 2, 3])})
 
         print(empty, file=buf)
         print(nonempty, file=buf)
@@ -878,28 +873,28 @@ class TestDataFrameFormatting:
         [
             "a" * 10,
             1,
-            Timestamp(2020, 1, 1),
+            pd.Timestamp(2020, 1, 1),
             pd.Period("2020-01-01"),
         ],
     )
     @pytest.mark.parametrize("h", [10, 20])
     @pytest.mark.parametrize("w", [10, 20])
     def test_to_string_truncate_indices(self, index_scalar, h, w):
-        with option_context("display.expand_frame_repr", False):
-            df = DataFrame(
+        with pd.option_context("display.expand_frame_repr", False):
+            df = pd.DataFrame(
                 index=[index_scalar] * h, columns=[str(i) * 10 for i in range(w)]
             )
-            with option_context("display.max_rows", 15):
+            with pd.option_context("display.max_rows", 15):
                 if h == 20:
                     assert has_vertically_truncated_repr(df)
                 else:
                     assert not has_vertically_truncated_repr(df)
-            with option_context("display.max_columns", 15):
+            with pd.option_context("display.max_columns", 15):
                 if w == 20:
                     assert has_horizontally_truncated_repr(df)
                 else:
                     assert not has_horizontally_truncated_repr(df)
-            with option_context("display.max_rows", 15, "display.max_columns", 15):
+            with pd.option_context("display.max_rows", 15, "display.max_columns", 15):
                 if h == 20 and w == 20:
                     assert has_doubly_truncated_repr(df)
                 else:
@@ -910,8 +905,8 @@ class TestDataFrameFormatting:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        df = DataFrame(index=arrays, columns=arrays)
-        with option_context("display.max_rows", 7, "display.max_columns", 7):
+        df = pd.DataFrame(index=arrays, columns=arrays)
+        with pd.option_context("display.max_rows", 7, "display.max_columns", 7):
             assert has_doubly_truncated_repr(df)
 
     @pytest.mark.parametrize("dtype", ["object", "datetime64[us]"])
@@ -920,29 +915,29 @@ class TestDataFrameFormatting:
         # when truncated the dtypes of the splits can differ
 
         # 11594
-        ser = Series(
+        ser = pd.Series(
             [datetime(2012, 1, 1)] * 10
             + [datetime(1012, 1, 2)]
             + [datetime(2012, 1, 3)] * 10,
             dtype=dtype,
         )
 
-        with option_context("display.max_rows", 8):
+        with pd.option_context("display.max_rows", 8):
             result = str(ser)
         assert dtype in result
 
     def test_truncate_with_different_dtypes2(self):
         # 12045
-        df = DataFrame({"text": ["some words"] + [None] * 9}, dtype=object)
+        df = pd.DataFrame({"text": ["some words"] + [None] * 9}, dtype=object)
 
-        with option_context("display.max_rows", 8, "display.max_columns", 3):
+        with pd.option_context("display.max_rows", 8, "display.max_columns", 3):
             result = str(df)
             assert "None" in result
             assert "NaN" not in result
 
     def test_truncate_with_different_dtypes_multiindex(self):
         # GH#13000
-        df = DataFrame({"Vals": range(100)})
+        df = pd.DataFrame({"Vals": range(100)})
         frame = pd.concat([df], keys=["Sweep"], names=["Sweep", "Index"])
         result = repr(frame)
 
@@ -951,7 +946,7 @@ class TestDataFrameFormatting:
 
     def test_to_string_truncate_formatters(self):
         # GH#35410 - formatters dict applied to wrong columns after truncation
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(30).reshape(5, 6),
             columns=[f"Col{i}" for i in range(6)],
         )
@@ -965,18 +960,20 @@ class TestDataFrameFormatting:
 
     def test_datetimelike_frame(self):
         # GH 12211
-        df = DataFrame({"date": [Timestamp("20130101").tz_localize("UTC")] + [NaT] * 5})
+        df = pd.DataFrame(
+            {"date": [pd.Timestamp("20130101").tz_localize("UTC")] + [pd.NaT] * 5}
+        )
 
-        with option_context("display.max_rows", 5):
+        with pd.option_context("display.max_rows", 5):
             result = str(df)
             assert "2013-01-01 00:00:00+00:00" in result
             assert "NaT" in result
             assert "..." in result
             assert "[6 rows x 1 columns]" in result
 
-        dts = [Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [NaT] * 5
-        df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
-        with option_context("display.max_rows", 5):
+        dts = [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5 + [pd.NaT] * 5
+        df = pd.DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with pd.option_context("display.max_rows", 5):
             expected = (
                 "                          dt   x\n"
                 "0  2011-01-01 00:00:00-05:00   1\n"
@@ -988,9 +985,9 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [NaT] * 5 + [Timestamp("2011-01-01", tz="US/Eastern")] * 5
-        df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
-        with option_context("display.max_rows", 5):
+        dts = [pd.NaT] * 5 + [pd.Timestamp("2011-01-01", tz="US/Eastern")] * 5
+        df = pd.DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with pd.option_context("display.max_rows", 5):
             expected = (
                 "                          dt   x\n"
                 "0                        NaT   1\n"
@@ -1002,11 +999,11 @@ class TestDataFrameFormatting:
             )
             assert repr(df) == expected
 
-        dts = [Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
-            Timestamp("2011-01-01", tz="US/Eastern")
+        dts = [pd.Timestamp("2011-01-01", tz="Asia/Tokyo")] * 5 + [
+            pd.Timestamp("2011-01-01", tz="US/Eastern")
         ] * 5
-        df = DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
-        with option_context("display.max_rows", 5):
+        df = pd.DataFrame({"dt": dts, "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+        with pd.option_context("display.max_rows", 5):
             expected = (
                 "                           dt   x\n"
                 "0   2011-01-01 00:00:00+09:00   1\n"
@@ -1033,35 +1030,35 @@ class TestDataFrameFormatting:
         # GH19030
         # Check that high-precision time values for the end of day are
         # included in repr for DatetimeIndex
-        df = DataFrame({"A": date_range(start=start_date, freq="D", periods=5)})
+        df = pd.DataFrame({"A": pd.date_range(start=start_date, freq="D", periods=5)})
         result = str(df)
         assert start_date in result
 
-        dti = date_range(start=start_date, freq="D", periods=5)
-        df = DataFrame({"A": range(5)}, index=dti)
+        dti = pd.date_range(start=start_date, freq="D", periods=5)
+        df = pd.DataFrame({"A": range(5)}, index=dti)
         result = str(df.index)
         assert start_date in result
 
     def test_string_repr_encoding(self, datapath):
         filepath = datapath("io", "parser", "data", "unicode_series.csv")
-        df = read_csv(filepath, header=None, encoding="latin1")
+        df = pd.read_csv(filepath, header=None, encoding="latin1")
         repr(df)
         repr(df[1])
 
     def test_repr_corner(self):
         # representing infs poses no problems
-        df = DataFrame({"foo": [-np.inf, np.inf]})
+        df = pd.DataFrame({"foo": [-np.inf, np.inf]})
         repr(df)
 
     def test_frame_info_encoding(self):
         index = ["'Til There Was You (1997)", "ldum klaka (Cold Fever) (1994)"]
-        with option_context("display.max_rows", 1):
-            df = DataFrame(columns=["a", "b", "c"], index=index)
+        with pd.option_context("display.max_rows", 1):
+            df = pd.DataFrame(columns=["a", "b", "c"], index=index)
             repr(df)
             repr(df.T)
 
     def test_wide_repr(self):
-        with option_context(
+        with pd.option_context(
             "mode.sim_interactive",
             True,
             "display.show_dimensions",
@@ -1069,23 +1066,23 @@ class TestDataFrameFormatting:
             "display.max_columns",
             20,
         ):
-            max_cols = get_option("display.max_columns")
-            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
-            with option_context("display.expand_frame_repr", False):
+            max_cols = pd.get_option("display.max_columns")
+            df = pd.DataFrame([["a" * 25] * (max_cols - 1)] * 10)
+            with pd.option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
 
             assert f"10 rows x {max_cols - 1} columns" in rep_str
-            with option_context("display.expand_frame_repr", True):
+            with pd.option_context("display.expand_frame_repr", True):
                 wide_repr = repr(df)
             assert rep_str != wide_repr
 
-            with option_context("display.width", 120):
+            with pd.option_context("display.width", 120):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
 
     def test_wide_repr_wide_columns(self):
-        with option_context("mode.sim_interactive", True, "display.max_columns", 20):
-            df = DataFrame(
+        with pd.option_context("mode.sim_interactive", True, "display.max_columns", 20):
+            df = pd.DataFrame(
                 np.random.default_rng(2).standard_normal((5, 3)),
                 columns=["a" * 90, "b" * 90, "c" * 90],
             )
@@ -1094,17 +1091,17 @@ class TestDataFrameFormatting:
             assert len(rep_str.splitlines()) == 20
 
     def test_wide_repr_named(self):
-        with option_context("mode.sim_interactive", True, "display.max_columns", 20):
-            max_cols = get_option("display.max_columns")
-            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
+        with pd.option_context("mode.sim_interactive", True, "display.max_columns", 20):
+            max_cols = pd.get_option("display.max_columns")
+            df = pd.DataFrame([["a" * 25] * (max_cols - 1)] * 10)
             df.index.name = "DataFrame Index"
-            with option_context("display.expand_frame_repr", False):
+            with pd.option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
-            with option_context("display.expand_frame_repr", True):
+            with pd.option_context("display.expand_frame_repr", True):
                 wide_repr = repr(df)
             assert rep_str != wide_repr
 
-            with option_context("display.width", 150):
+            with pd.option_context("display.width", 150):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
 
@@ -1112,18 +1109,18 @@ class TestDataFrameFormatting:
                 assert "DataFrame Index" in line
 
     def test_wide_repr_multiindex(self):
-        with option_context("mode.sim_interactive", True, "display.max_columns", 20):
-            midx = MultiIndex.from_arrays([["a" * 5] * 10] * 2)
-            max_cols = get_option("display.max_columns")
-            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10, index=midx)
+        with pd.option_context("mode.sim_interactive", True, "display.max_columns", 20):
+            midx = pd.MultiIndex.from_arrays([["a" * 5] * 10] * 2)
+            max_cols = pd.get_option("display.max_columns")
+            df = pd.DataFrame([["a" * 25] * (max_cols - 1)] * 10, index=midx)
             df.index.names = ["Level 0", "Level 1"]
-            with option_context("display.expand_frame_repr", False):
+            with pd.option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
-            with option_context("display.expand_frame_repr", True):
+            with pd.option_context("display.expand_frame_repr", True):
                 wide_repr = repr(df)
             assert rep_str != wide_repr
 
-            with option_context("display.width", 150):
+            with pd.option_context("display.width", 150):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
 
@@ -1131,41 +1128,41 @@ class TestDataFrameFormatting:
                 assert "Level 0 Level 1" in line
 
     def test_wide_repr_multiindex_cols(self):
-        with option_context("mode.sim_interactive", True, "display.max_columns", 20):
-            max_cols = get_option("display.max_columns")
-            midx = MultiIndex.from_arrays([["a" * 5] * 10] * 2)
-            mcols = MultiIndex.from_arrays([["b" * 3] * (max_cols - 1)] * 2)
-            df = DataFrame(
+        with pd.option_context("mode.sim_interactive", True, "display.max_columns", 20):
+            max_cols = pd.get_option("display.max_columns")
+            midx = pd.MultiIndex.from_arrays([["a" * 5] * 10] * 2)
+            mcols = pd.MultiIndex.from_arrays([["b" * 3] * (max_cols - 1)] * 2)
+            df = pd.DataFrame(
                 [["c" * 25] * (max_cols - 1)] * 10, index=midx, columns=mcols
             )
             df.index.names = ["Level 0", "Level 1"]
-            with option_context("display.expand_frame_repr", False):
+            with pd.option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
-            with option_context("display.expand_frame_repr", True):
+            with pd.option_context("display.expand_frame_repr", True):
                 wide_repr = repr(df)
             assert rep_str != wide_repr
 
-        with option_context("display.width", 150, "display.max_columns", 20):
+        with pd.option_context("display.width", 150, "display.max_columns", 20):
             wider_repr = repr(df)
             assert len(wider_repr) < len(wide_repr)
 
     def test_wide_repr_unicode(self):
-        with option_context("mode.sim_interactive", True, "display.max_columns", 20):
+        with pd.option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = 20
-            df = DataFrame([["a" * 25] * 10] * (max_cols - 1))
-            with option_context("display.expand_frame_repr", False):
+            df = pd.DataFrame([["a" * 25] * 10] * (max_cols - 1))
+            with pd.option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
-            with option_context("display.expand_frame_repr", True):
+            with pd.option_context("display.expand_frame_repr", True):
                 wide_repr = repr(df)
             assert rep_str != wide_repr
 
-            with option_context("display.width", 150):
+            with pd.option_context("display.width", 150):
                 wider_repr = repr(df)
                 assert len(wider_repr) < len(wide_repr)
 
     def test_wide_repr_wide_long_columns(self):
-        with option_context("mode.sim_interactive", True):
-            df = DataFrame({"a": ["a" * 30, "b" * 30], "b": ["c" * 70, "d" * 80]})
+        with pd.option_context("mode.sim_interactive", True):
+            df = pd.DataFrame({"a": ["a" * 30, "b" * 30], "b": ["c" * 70, "d" * 80]})
 
             result = repr(df)
             assert "ccccc" in result
@@ -1173,7 +1170,7 @@ class TestDataFrameFormatting:
 
     def test_long_series(self):
         n = 1000
-        s = Series(
+        s = pd.Series(
             np.random.default_rng(2).integers(-50, 50, n),
             index=[f"s{x:04d}" for x in range(n)],
             dtype="int64",
@@ -1192,15 +1189,15 @@ class TestDataFrameFormatting:
                 " \xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2\xe2\x80\xa2",
             )
         ]
-        df = DataFrame(data)
+        df = pd.DataFrame(data)
 
         # it works!
         repr(df)
 
     def test_show_dimensions(self):
-        df = DataFrame(123, index=range(10, 15), columns=range(30))
+        df = pd.DataFrame(123, index=range(10, 15), columns=range(30))
 
-        with option_context(
+        with pd.option_context(
             "display.max_rows",
             10,
             "display.max_columns",
@@ -1214,7 +1211,7 @@ class TestDataFrameFormatting:
         ):
             assert "5 rows" in str(df)
             assert "5 rows" in df._repr_html_()
-        with option_context(
+        with pd.option_context(
             "display.max_rows",
             10,
             "display.max_columns",
@@ -1228,7 +1225,7 @@ class TestDataFrameFormatting:
         ):
             assert "5 rows" not in str(df)
             assert "5 rows" not in df._repr_html_()
-        with option_context(
+        with pd.option_context(
             "display.max_rows",
             2,
             "display.max_columns",
@@ -1242,7 +1239,7 @@ class TestDataFrameFormatting:
         ):
             assert "5 rows" in str(df)
             assert "5 rows" in df._repr_html_()
-        with option_context(
+        with pd.option_context(
             "display.max_rows",
             10,
             "display.max_columns",
@@ -1266,24 +1263,24 @@ class TestDataFrameFormatting:
         max_cols = 20 + (max(term_width, 80) - 80) // 4
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+        df = pd.DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_vertically_truncated_repr(df)
-        with option_context("display.large_repr", "info"):
+        with pd.option_context("display.large_repr", "info"):
             assert has_info_repr(df)
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
+        df = pd.DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_horizontally_truncated_repr(df)
-        with option_context(
+        with pd.option_context(
             "display.large_repr", "info", "display.max_columns", max_cols
         ):
             assert has_info_repr(df)
 
     def test_info_repr_max_cols(self):
         # GH #6939
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
-        with option_context(
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
+        with pd.option_context(
             "display.large_repr",
             "info",
             "display.max_columns",
@@ -1293,7 +1290,7 @@ class TestDataFrameFormatting:
         ):
             assert has_non_verbose_info_repr(df)
 
-        with option_context(
+        with pd.option_context(
             "display.large_repr",
             "info",
             "display.max_columns",
@@ -1312,7 +1309,7 @@ class TestDataFrameFormatting:
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
-        df = DataFrame([A()])
+        df = pd.DataFrame([A()])
         repr(df)  # just don't die
 
     def test_float_trim_zeros(self):
@@ -1324,7 +1321,7 @@ class TestDataFrameFormatting:
             5.59897817305e10,
         ]
         skip = True
-        for line in repr(DataFrame({"A": vals})).split("\n")[:-2]:
+        for line in repr(pd.DataFrame({"A": vals})).split("\n")[:-2]:
             if line.startswith("dtype:"):
                 continue
             if _three_digit_exp():
@@ -1348,7 +1345,7 @@ class TestDataFrameFormatting:
     )
     def test_repr_str_float_truncation(self, data, expected, using_infer_string):
         # GH#38708
-        series = Series(data, dtype=object if "3.50" in data else None)
+        series = pd.Series(data, dtype=object if "3.50" in data else None)
         result = repr(series)
         assert result == expected
 
@@ -1361,15 +1358,15 @@ class TestDataFrameFormatting:
     )
     def test_repr_float_format_in_object_col(self, float_format, expected):
         # GH#40024
-        df = Series([1000.0, "test"])
-        with option_context("display.float_format", float_format):
+        df = pd.Series([1000.0, "test"])
+        with pd.option_context("display.float_format", float_format):
             result = repr(df)
 
         assert result == expected
 
     def test_period(self):
         # GH 12615
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": pd.period_range("2013-01", periods=4, freq="M"),
                 "B": [
@@ -1412,7 +1409,7 @@ class TestDataFrameFormatting:
         https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
         """
         formatter = fmt.DataFrameFormatter(
-            DataFrame(np.random.default_rng(2).random((length, 3))),
+            pd.DataFrame(np.random.default_rng(2).random((length, 3))),
             max_rows=max_rows,
             min_rows=min_rows,
         )
@@ -1421,9 +1418,9 @@ class TestDataFrameFormatting:
 
 
 def gen_series_formatting():
-    s1 = Series(["a"] * 100)
-    s2 = Series(["ab"] * 100)
-    s3 = Series(["a", "ab", "abc", "abcd", "abcde", "abcdef"])
+    s1 = pd.Series(["a"] * 100)
+    s2 = pd.Series(["ab"] * 100)
+    s3 = pd.Series(["a", "ab", "abc", "abcd", "abcde", "abcdef"])
     s4 = s3[::-1]
     test_sers = {"onel": s1, "twol": s2, "asc": s3, "desc": s4}
     return test_sers
@@ -1431,9 +1428,9 @@ def gen_series_formatting():
 
 class TestSeriesFormatting:
     def test_freq_name_separation(self):
-        s = Series(
+        s = pd.Series(
             np.random.default_rng(2).standard_normal(10),
-            index=date_range("1/1/2000", periods=10),
+            index=pd.date_range("1/1/2000", periods=10),
             name=0,
         )
 
@@ -1441,7 +1438,7 @@ class TestSeriesFormatting:
         assert "Freq: D, Name: 0" in result
 
     def test_unicode_name_in_footer(self):
-        s = Series([1, 2], name="\u05e2\u05d1\u05e8\u05d9\u05ea")
+        s = pd.Series([1, 2], name="\u05e2\u05d1\u05e8\u05d9\u05ea")
         sf = fmt.SeriesFormatter(s, name="\u05e2\u05d1\u05e8\u05d9\u05ea")
         sf._get_footer()  # should not raise exception
 
@@ -1449,7 +1446,9 @@ class TestSeriesFormatting:
         # not aligned properly because of east asian width
 
         # unicode index
-        s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
+        s = pd.Series(
+            ["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"]
+        )
         expected = "".join(
             [
                 "あ         a\n",
@@ -1463,7 +1462,9 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # unicode values
-        s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
+        s = pd.Series(
+            ["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"]
+        )
         expected = "".join(
             [
                 "a         あ\n",
@@ -1478,7 +1479,7 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # both
-        s = Series(
+        s = pd.Series(
             ["あ", "いい", "ううう", "ええええ"],
             index=["ああ", "いいいい", "う", "えええ"],
         )
@@ -1496,7 +1497,7 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # unicode footer
-        s = Series(
+        s = pd.Series(
             ["あ", "いい", "ううう", "ええええ"],
             index=["ああ", "いいいい", "う", "えええ"],
             name="おおおおおおお",
@@ -1510,10 +1511,10 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # MultiIndex
-        idx = MultiIndex.from_tuples(
+        idx = pd.MultiIndex.from_tuples(
             [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
         )
-        s = Series([1, 22, 3333, 44444], index=idx)
+        s = pd.Series([1, 22, 3333, 44444], index=idx)
         expected = (
             "あ    いい          1\n"
             "う    え          22\n"
@@ -1523,15 +1524,15 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # object dtype, shorter than unicode repr
-        s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
+        s = pd.Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
         expected = (
             "1          1\nAB        22\nNaN     3333\nあああ    44444\ndtype: int64"
         )
         assert repr(s) == expected
 
         # object dtype, longer than unicode repr
-        s = Series(
-            [1, 22, 3333, 44444], index=[1, "AB", Timestamp("2011-01-01"), "あああ"]
+        s = pd.Series(
+            [1, 22, 3333, 44444], index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"]
         )
         expected = (
             "1                          1\n"
@@ -1542,8 +1543,8 @@ class TestSeriesFormatting:
         assert repr(s) == expected
 
         # truncate
-        with option_context("display.max_rows", 3):
-            s = Series(["あ", "いい", "ううう", "ええええ"], name="おおおおおおお")
+        with pd.option_context("display.max_rows", 3):
+            s = pd.Series(["あ", "いい", "ううう", "ええええ"], name="おおおおおおお")
 
             expected = (
                 "0       あ\n     ... \n"
@@ -1565,9 +1566,9 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
         # Enable Unicode option -----------------------------------------
-        with option_context("display.unicode.east_asian_width", True):
+        with pd.option_context("display.unicode.east_asian_width", True):
             # unicode index
-            s = Series(
+            s = pd.Series(
                 ["a", "bb", "CCC", "D"],
                 index=["あ", "いい", "ううう", "ええええ"],
             )
@@ -1580,7 +1581,7 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # unicode values
-            s = Series(
+            s = pd.Series(
                 ["あ", "いい", "ううう", "ええええ"],
                 index=["a", "bb", "c", "ddd"],
             )
@@ -1592,7 +1593,7 @@ class TestSeriesFormatting:
                 expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
             # both
-            s = Series(
+            s = pd.Series(
                 ["あ", "いい", "ううう", "ええええ"],
                 index=["ああ", "いいいい", "う", "えええ"],
             )
@@ -1607,7 +1608,7 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # unicode footer
-            s = Series(
+            s = pd.Series(
                 ["あ", "いい", "ううう", "ええええ"],
                 index=["ああ", "いいいい", "う", "えええ"],
                 name="おおおおおおお",
@@ -1624,10 +1625,10 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # MultiIndex
-            idx = MultiIndex.from_tuples(
+            idx = pd.MultiIndex.from_tuples(
                 [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
             )
-            s = Series([1, 22, 3333, 44444], index=idx)
+            s = pd.Series([1, 22, 3333, 44444], index=idx)
             expected = (
                 "あ      いい            1\n"
                 "う      え             22\n"
@@ -1638,7 +1639,7 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # object dtype, shorter than unicode repr
-            s = Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
+            s = pd.Series([1, 22, 3333, 44444], index=[1, "AB", np.nan, "あああ"])
             expected = (
                 "1             1\nAB           22\nNaN        3333\n"
                 "あああ    44444\ndtype: int64"
@@ -1646,9 +1647,9 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # object dtype, longer than unicode repr
-            s = Series(
+            s = pd.Series(
                 [1, 22, 3333, 44444],
-                index=[1, "AB", Timestamp("2011-01-01"), "あああ"],
+                index=[1, "AB", pd.Timestamp("2011-01-01"), "あああ"],
             )
             expected = (
                 "1                          1\n"
@@ -1659,8 +1660,10 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # truncate
-            with option_context("display.max_rows", 3):
-                s = Series(["あ", "いい", "ううう", "ええええ"], name="おおおおおおお")
+            with pd.option_context("display.max_rows", 3):
+                s = pd.Series(
+                    ["あ", "いい", "ううう", "ええええ"], name="おおおおおおお"
+                )
                 expected = (
                     "0          あ\n       ...   \n"
                     "3    ええええ\n"
@@ -1682,7 +1685,7 @@ class TestSeriesFormatting:
                 assert repr(s) == expected
 
             # ambiguous unicode
-            s = Series(
+            s = pd.Series(
                 ["¡¡", "い¡¡", "ううう", "ええええ"],
                 index=["ああ", "¡¡¡¡いい", "¡¡", "えええ"],
             )
@@ -1704,7 +1707,7 @@ class TestSeriesFormatting:
             2.03954217305e10,
             5.59897817305e10,
         ]
-        for line in repr(Series(vals)).split("\n"):
+        for line in repr(pd.Series(vals)).split("\n"):
             if line.startswith("dtype:"):
                 continue
             if _three_digit_exp():
@@ -1727,17 +1730,17 @@ class TestSeriesFormatting:
         # GH19030
         # Check that high-precision time values for the end of day are
         # included in repr for DatetimeIndex
-        s1 = Series(date_range(start=start_date, freq="D", periods=5))
+        s1 = pd.Series(pd.date_range(start=start_date, freq="D", periods=5))
         result = str(s1)
         assert start_date in result
 
-        dti = date_range(start=start_date, freq="D", periods=5)
-        s2 = Series(3, index=dti)
+        dti = pd.date_range(start=start_date, freq="D", periods=5)
+        s2 = pd.Series(3, index=dti)
         result = str(s2.index)
         assert start_date in result
 
     def test_mixed_datetime64(self):
-        df = DataFrame({"A": [1, 2], "B": ["2012-01-01", "2012-01-02"]})
+        df = pd.DataFrame({"A": [1, 2], "B": ["2012-01-01", "2012-01-02"]})
         df["B"] = pd.to_datetime(df.B)
 
         result = repr(df.loc[0])
@@ -1746,7 +1749,7 @@ class TestSeriesFormatting:
     def test_period(self):
         # GH 12615
         index = pd.period_range("2013-01", periods=6, freq="M")
-        s = Series(np.arange(6, dtype="int64"), index=index)
+        s = pd.Series(np.arange(6, dtype="int64"), index=index)
         exp = (
             "2013-01    0\n"
             "2013-02    1\n"
@@ -1758,7 +1761,7 @@ class TestSeriesFormatting:
         )
         assert str(s) == exp
 
-        s = Series(index)
+        s = pd.Series(index)
         exp = (
             "0    2013-01\n"
             "1    2013-02\n"
@@ -1771,7 +1774,7 @@ class TestSeriesFormatting:
         assert str(s) == exp
 
         # periods with mixed freq
-        s = Series(
+        s = pd.Series(
             [
                 pd.Period("2011-01", freq="M"),
                 pd.Period("2011-02-01", freq="D"),
@@ -1795,38 +1798,40 @@ class TestSeriesFormatting:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         tuples = list(zip(*arrays, strict=True))
-        index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        s = Series(np.random.default_rng(2).standard_normal(8), index=index)
+        index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+        s = pd.Series(np.random.default_rng(2).standard_normal(8), index=index)
 
-        with option_context("display.max_rows", 10):
+        with pd.option_context("display.max_rows", 10):
             assert len(str(s).split("\n")) == 10
-        with option_context("display.max_rows", 3):
+        with pd.option_context("display.max_rows", 3):
             assert len(str(s).split("\n")) == 5
-        with option_context("display.max_rows", 2):
+        with pd.option_context("display.max_rows", 2):
             assert len(str(s).split("\n")) == 5
-        with option_context("display.max_rows", 1):
+        with pd.option_context("display.max_rows", 1):
             assert len(str(s).split("\n")) == 4
-        with option_context("display.max_rows", 0):
+        with pd.option_context("display.max_rows", 0):
             assert len(str(s).split("\n")) == 10
 
         # index
-        s = Series(np.random.default_rng(2).standard_normal(8), None)
+        s = pd.Series(np.random.default_rng(2).standard_normal(8), None)
 
-        with option_context("display.max_rows", 10):
+        with pd.option_context("display.max_rows", 10):
             assert len(str(s).split("\n")) == 9
-        with option_context("display.max_rows", 3):
+        with pd.option_context("display.max_rows", 3):
             assert len(str(s).split("\n")) == 4
-        with option_context("display.max_rows", 2):
+        with pd.option_context("display.max_rows", 2):
             assert len(str(s).split("\n")) == 4
-        with option_context("display.max_rows", 1):
+        with pd.option_context("display.max_rows", 1):
             assert len(str(s).split("\n")) == 3
-        with option_context("display.max_rows", 0):
+        with pd.option_context("display.max_rows", 0):
             assert len(str(s).split("\n")) == 9
 
     # Make sure #8532 is fixed
     def test_consistent_format(self):
-        s = Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
-        with option_context("display.max_rows", 10, "display.show_dimensions", False):
+        s = pd.Series([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.9999, 1, 1] * 10)
+        with pd.option_context(
+            "display.max_rows", 10, "display.show_dimensions", False
+        ):
             res = repr(s)
         exp = (
             "0      1.0000\n1      1.0000\n2      1.0000\n3      "
@@ -1845,7 +1850,7 @@ class TestSeriesFormatting:
 
     def test_format_explicit(self, using_infer_string):
         test_sers = gen_series_formatting()
-        with option_context("display.max_rows", 4, "display.show_dimensions", False):
+        with pd.option_context("display.max_rows", 4, "display.show_dimensions", False):
             res = repr(test_sers["onel"])
             exp = "0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object"
             if using_infer_string:
@@ -1879,8 +1884,8 @@ class TestSeriesFormatting:
             self.chck_ncols(s)
 
     def test_max_rows_eq_one(self):
-        s = Series(range(10), dtype="int64")
-        with option_context("display.max_rows", 1):
+        s = pd.Series(range(10), dtype="int64")
+        with pd.option_context("display.max_rows", 1):
             strrepr = repr(s).split("\n")
         exp1 = ["0", "0"]
         res1 = strrepr[0].split()
@@ -1893,56 +1898,56 @@ class TestSeriesFormatting:
         def getndots(s):
             return len(re.match(r"[^\.]*(\.*)", s).groups()[0])
 
-        s = Series([0, 2, 3, 6])
-        with option_context("display.max_rows", 2):
+        s = pd.Series([0, 2, 3, 6])
+        with pd.option_context("display.max_rows", 2):
             strrepr = repr(s).replace("\n", "")
         assert getndots(strrepr) == 2
 
-        s = Series([0, 100, 200, 400])
-        with option_context("display.max_rows", 2):
+        s = pd.Series([0, 100, 200, 400])
+        with pd.option_context("display.max_rows", 2):
             strrepr = repr(s).replace("\n", "")
         assert getndots(strrepr) == 3
 
     def test_show_dimensions(self):
         # gh-7117
-        s = Series(range(5))
+        s = pd.Series(range(5))
 
         assert "Length" not in repr(s)
 
-        with option_context("display.max_rows", 4):
+        with pd.option_context("display.max_rows", 4):
             assert "Length" in repr(s)
 
-        with option_context("display.show_dimensions", True):
+        with pd.option_context("display.show_dimensions", True):
             assert "Length" in repr(s)
 
-        with option_context("display.max_rows", 4, "display.show_dimensions", False):
+        with pd.option_context("display.max_rows", 4, "display.show_dimensions", False):
             assert "Length" not in repr(s)
 
     def test_repr_min_rows(self):
-        s = Series(range(20))
+        s = pd.Series(range(20))
 
         # default setting no truncation even if above min_rows
         assert ".." not in repr(s)
 
-        s = Series(range(61))
+        s = pd.Series(range(61))
 
         # default of max_rows 60 triggers truncation if above
         assert ".." in repr(s)
 
-        with option_context("display.max_rows", 10, "display.min_rows", 4):
+        with pd.option_context("display.max_rows", 10, "display.min_rows", 4):
             # truncated after first two rows
             assert ".." in repr(s)
             assert "2  " not in repr(s)
 
-        with option_context("display.max_rows", 12, "display.min_rows", None):
+        with pd.option_context("display.max_rows", 12, "display.min_rows", None):
             # when set to None, follow value of max_rows
             assert "5      5" in repr(s)
 
-        with option_context("display.max_rows", 10, "display.min_rows", 12):
+        with pd.option_context("display.max_rows", 10, "display.min_rows", 12):
             # when set value higher as max_rows, use the minimum
             assert "5      5" not in repr(s)
 
-        with option_context("display.max_rows", None, "display.min_rows", 12):
+        with pd.option_context("display.max_rows", None, "display.min_rows", 12):
             # max_rows of None -> never truncate
             assert ".." not in repr(s)
 
@@ -1978,8 +1983,8 @@ class TestGenericArrayFormatter:
 def test_precision_float_in_object_index():
     # GH#25919 - display.precision not honored for float values in object index
     float_val = 0.55555555
-    df = DataFrame([float_val, "foo"], index=[float_val, "foo"])
-    with option_context("display.precision", 3):
+    df = pd.DataFrame([float_val, "foo"], index=[float_val, "foo"])
+    with pd.option_context("display.precision", 3):
         result = repr(df)
     assert "0.556" in result
     assert "0.55555555" not in result
@@ -2005,8 +2010,8 @@ class TestFloatArrayFormatter:
         # Issue #20359: trimming zeros while there is no decimal point
 
         # Happens when display precision is set to zero
-        with option_context("display.precision", 0):
-            s = Series([840.0, 4200.0])
+        with pd.option_context("display.precision", 0):
+            s = pd.Series([840.0, 4200.0])
             expected_output = "0     840\n1    4200\ndtype: float64"
             assert str(s) == expected_output
 
@@ -2024,17 +2029,17 @@ class TestFloatArrayFormatter:
         # Issue #30122
         # Precision was incorrectly shown
 
-        with option_context("display.precision", 0):
-            df_value = DataFrame(value)
+        with pd.option_context("display.precision", 0):
+            df_value = pd.DataFrame(value)
             assert str(df_value) == expected
 
     def test_output_significant_digits(self):
         # Issue #9764
 
         # In case default display precision changes:
-        with option_context("display.precision", 6):
+        with pd.option_context("display.precision", 6):
             # DataFrame example from issue #9764
-            d = DataFrame(
+            d = pd.DataFrame(
                 {
                     "col1": [
                         9.999e-8,
@@ -2103,20 +2108,20 @@ class TestFloatArrayFormatter:
 
     def test_too_long(self):
         # GH 10451
-        with option_context("display.precision", 4):
+        with pd.option_context("display.precision", 4):
             # need both a number > 1e6 and something that normally formats to
             # having length > display.precision + 6
-            df = DataFrame({"x": [12345.6789]})
+            df = pd.DataFrame({"x": [12345.6789]})
             assert str(df) == "            x\n0  12345.6789"
-            df = DataFrame({"x": [2e6]})
+            df = pd.DataFrame({"x": [2e6]})
             assert str(df) == "           x\n0  2000000.0"
-            df = DataFrame({"x": [12345.6789, 2e6]})
+            df = pd.DataFrame({"x": [12345.6789, 2e6]})
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
 
 class TestTimedelta64Formatter:
     def test_days(self):
-        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), pd.NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "1 days"
@@ -2132,25 +2137,25 @@ class TestTimedelta64Formatter:
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
-        x = pd.to_timedelta([*list(range(5)), NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(5)), pd.NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(-x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "-1 days"
 
     def test_subdays(self):
-        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), pd.NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "0 days 00:00:01"
 
     def test_subdays_neg(self):
-        y = pd.to_timedelta([*list(range(5)), NaT], unit="s")._values
+        y = pd.to_timedelta([*list(range(5)), pd.NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y).get_result()
         assert result[0].strip() == "0 days 00:00:00"
         assert result[1].strip() == "-1 days +23:59:59"
 
     def test_zero(self):
-        x = pd.to_timedelta([*list(range(1)), NaT], unit="D")._values
+        x = pd.to_timedelta([*list(range(1)), pd.NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
 
@@ -2160,7 +2165,7 @@ class TestTimedelta64Formatter:
 
     def test_fractional_seconds_aligned(self):
         # GH#57188 - fractional seconds should be right-padded to uniform width
-        s = 1 / Series(np.arange(1, 4))
+        s = 1 / pd.Series(np.arange(1, 4))
         td = pd.to_timedelta(s, unit="s")._values
         result = fmt._Timedelta64Formatter(td).get_result()
         expected = [
@@ -2179,7 +2184,7 @@ class TestTimedelta64Formatter:
 
     def test_fractional_seconds_nat_handled(self):
         # GH#57188 - NaT should not break alignment
-        td = pd.to_timedelta([1e9, NaT.value, 5e8], unit="ns")._values
+        td = pd.to_timedelta([1e9, pd.NaT.value, 5e8], unit="ns")._values
         result = fmt._Timedelta64Formatter(td).get_result()
         expected = [
             "0 days 00:00:01.000000",
@@ -2191,54 +2196,54 @@ class TestTimedelta64Formatter:
 
 class TestDatetime64Formatter:
     def test_mixed(self):
-        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), NaT])._values
+        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), pd.NaT])._values
         result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01 00:00:00"
         assert result[1].strip() == "2013-01-01 12:00:00"
 
     def test_dates(self):
-        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 2), NaT])._values
+        x = pd.Series([datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT])._values
         result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01"
         assert result[1].strip() == "2013-01-02"
 
     def test_date_nanos(self):
-        x = Series([Timestamp(200)])._values
+        x = pd.Series([pd.Timestamp(200)])._values
         result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
     def test_dates_display(self):
         # 10170
         # make sure that we are consistently display date formatting
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="D"))
+        x = pd.Series(pd.date_range("20130101 09:00:00", periods=5, freq="D"))
         x.iloc[1] = np.nan
         result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-05 09:00:00"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="s"))
+        x = pd.Series(pd.date_range("20130101 09:00:00", periods=5, freq="s"))
         x.iloc[1] = np.nan
         result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:04"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="ms"))
+        x = pd.Series(pd.date_range("20130101 09:00:00", periods=5, freq="ms"))
         x.iloc[1] = np.nan
         result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.004"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="us"))
+        x = pd.Series(pd.date_range("20130101 09:00:00", periods=5, freq="us"))
         x.iloc[1] = np.nan
         result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="ns"))
+        x = pd.Series(pd.date_range("20130101 09:00:00", periods=5, freq="ns"))
         x.iloc[1] = np.nan
         result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000000"
@@ -2246,7 +2251,7 @@ class TestDatetime64Formatter:
         assert result[4].strip() == "2013-01-01 09:00:00.000000004"
 
     def test_datetime64formatter_yearmonth(self):
-        x = Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])._values
+        x = pd.Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])._values
 
         def format_func(x):
             return x.strftime("%Y-%m")
@@ -2256,7 +2261,7 @@ class TestDatetime64Formatter:
         assert result == ["2016-01", "2016-02"]
 
     def test_datetime64formatter_hoursecond(self):
-        x = Series(
+        x = pd.Series(
             pd.to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")
         )._values
 
@@ -2269,7 +2274,7 @@ class TestDatetime64Formatter:
 
     def test_datetime64formatter_tz_ms(self):
         x = (
-            Series(
+            pd.Series(
                 np.array(["2999-01-01", "2999-01-02", "NaT"], dtype="datetime64[ms]")
             )
             .dt.tz_localize("US/Pacific")
@@ -2357,7 +2362,7 @@ def test_filepath_or_buffer_arg(
     else:
         filepath_or_buffer = str(tmp_path / "foo")
 
-    df = DataFrame([data])
+    df = pd.DataFrame([data])
     if method in ["to_latex"]:  # uses styler implementation
         pytest.importorskip("jinja2")
 

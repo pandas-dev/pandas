@@ -19,10 +19,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 
-from pandas import (
-    Timedelta,
-    to_timedelta,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -51,11 +48,11 @@ class TestNonNano:
 
     @pytest.fixture
     def td(self, unit, val):
-        return Timedelta._from_value_and_reso(val, unit)
+        return pd.Timedelta._from_value_and_reso(val, unit)
 
     def test_from_value_and_reso(self, unit, val):
         # Just checking that the fixture is giving us what we asked for
-        td = Timedelta._from_value_and_reso(val, unit)
+        td = pd.Timedelta._from_value_and_reso(val, unit)
         assert td._value == val
         assert td._creso == unit
         assert td.days == 106752
@@ -67,7 +64,7 @@ class TestNonNano:
 
     def test_sub_preserves_reso(self, td, unit):
         res = td - td
-        expected = Timedelta._from_value_and_reso(0, unit)
+        expected = pd.Timedelta._from_value_and_reso(0, unit)
         assert res == expected
         assert res._creso == unit
 
@@ -80,7 +77,7 @@ class TestNonNano:
 
     def test_cmp_cross_reso(self, td):
         # numpy gets this wrong because of silent overflow
-        other = Timedelta(days=106751)
+        other = pd.Timedelta(days=106751)
         assert other < td
         assert td > other
         assert not other == td
@@ -105,7 +102,7 @@ class TestNonNano:
 
     def test_view(self):
         # GH#66608
-        td = Timedelta(seconds=1)
+        td = pd.Timedelta(seconds=1)
         with tm.assert_produces_warning(None):
             res = td.view(np.int64)
         assert res == td._value
@@ -114,7 +111,7 @@ class TestNonNano:
         assert td / td == 1
         assert (2.5 * td) / td == 2.5
 
-        other = Timedelta(td._value)
+        other = pd.Timedelta(td._value)
         msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td / other
@@ -127,8 +124,8 @@ class TestNonNano:
         assert res == expected
 
         # if there's no overflow, we cast to the higher reso
-        left = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_us.value)
-        right = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_ms.value)
+        left = pd.Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_us.value)
+        right = pd.Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_ms.value)
         result = left / right
         assert result == 0.001
 
@@ -163,7 +160,7 @@ class TestNonNano:
         assert td // td == 1
         assert (2.5 * td) // td == 2
 
-        other = Timedelta(td._value)
+        other = pd.Timedelta(td._value)
         msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td // other
@@ -175,8 +172,8 @@ class TestNonNano:
         assert res == 0
 
         # if there's no overflow, we cast to the higher reso
-        left = Timedelta._from_value_and_reso(50050, NpyDatetimeUnit.NPY_FR_us.value)
-        right = Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_ms.value)
+        left = pd.Timedelta._from_value_and_reso(50050, NpyDatetimeUnit.NPY_FR_us.value)
+        right = pd.Timedelta._from_value_and_reso(50, NpyDatetimeUnit.NPY_FR_ms.value)
         result = left // right
         assert result == 1
         result = right // left
@@ -219,7 +216,7 @@ class TestNonNano:
     def test_addsub_mismatched_reso(self, td):
         # need to cast to since td is out of bounds for ns, so
         #  so we would raise OverflowError without casting
-        other = Timedelta(days=1).as_unit("us")
+        other = pd.Timedelta(days=1).as_unit("us")
 
         # td is out of bounds for ns
         result = td + other
@@ -238,7 +235,7 @@ class TestNonNano:
         assert result._creso == other._creso
         assert result.days == 1 - td.days
 
-        other2 = Timedelta(500)
+        other2 = pd.Timedelta(500)
         msg = "Cannot cast 106752 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             td + other2
@@ -260,14 +257,14 @@ class TestNonNano:
         assert td.max._value == np.iinfo(np.int64).max
 
     def test_resolution(self, td):
-        expected = Timedelta._from_value_and_reso(1, td._creso)
+        expected = pd.Timedelta._from_value_and_reso(1, td._creso)
         result = td.resolution
         assert result == expected
         assert result._creso == expected._creso
 
     def test_hash(self) -> None:
         # GH#54037
-        second_resolution_max = Timedelta(0).as_unit("s").max
+        second_resolution_max = pd.Timedelta(0).as_unit("s").max
 
         assert hash(second_resolution_max)
 
@@ -275,19 +272,19 @@ class TestNonNano:
 def test_timedelta_class_min_max_resolution():
     # when accessed on the class (as opposed to an instance), we default
     #  to nanoseconds
-    assert Timedelta.min == Timedelta(NaT._value + 1)
-    assert Timedelta.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert pd.Timedelta.min == pd.Timedelta(NaT._value + 1)
+    assert pd.Timedelta.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
-    assert Timedelta.max == Timedelta(np.iinfo(np.int64).max)
-    assert Timedelta.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert pd.Timedelta.max == pd.Timedelta(np.iinfo(np.int64).max)
+    assert pd.Timedelta.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
-    assert Timedelta.resolution == Timedelta(1)
-    assert Timedelta.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert pd.Timedelta.resolution == pd.Timedelta(1)
+    assert pd.Timedelta.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
 
 class TestTimedeltaUnaryOps:
     def test_invert(self):
-        td = Timedelta(10, unit="D")
+        td = pd.Timedelta(10, unit="D")
 
         msg = "bad operand type for unary ~"
         with pytest.raises(TypeError, match=msg):
@@ -302,17 +299,17 @@ class TestTimedeltaUnaryOps:
             ~(td.to_timedelta64())
 
     def test_unary_ops(self):
-        td = Timedelta(10, unit="D")
+        td = pd.Timedelta(10, unit="D")
 
         # __neg__, __pos__
-        assert -td == Timedelta(-10, unit="D")
-        assert -td == Timedelta("-10D")
-        assert +td == Timedelta(10, unit="D")
+        assert -td == pd.Timedelta(-10, unit="D")
+        assert -td == pd.Timedelta("-10D")
+        assert +td == pd.Timedelta(10, unit="D")
 
         # __abs__, __abs__(__neg__)
         assert abs(td) == td
         assert abs(-td) == td
-        assert abs(-td) == Timedelta("10D")
+        assert abs(-td) == pd.Timedelta("10D")
 
 
 class TestTimedeltas:
@@ -326,27 +323,27 @@ class TestTimedeltas:
     )
     def test_rounding_on_int_unit_construction(self, unit, value, expected):
         # GH 12690
-        result = Timedelta(value, unit=unit)
+        result = pd.Timedelta(value, unit=unit)
         assert result._value == expected
-        result = Timedelta(str(value) + unit)
+        result = pd.Timedelta(str(value) + unit)
         assert result._value == expected
 
     def test_total_seconds_scalar(self):
         # see gh-10939
-        rng = Timedelta("1 days, 10:11:12.100123456")
+        rng = pd.Timedelta("1 days, 10:11:12.100123456")
         expt = 1 * 86400 + 10 * 3600 + 11 * 60 + 12 + 100123456.0 / 1e9
         tm.assert_almost_equal(rng.total_seconds(), expt)
 
-        rng = Timedelta(np.nan)
+        rng = pd.Timedelta(np.nan)
         assert np.isnan(rng.total_seconds())
 
     def test_conversion(self):
-        for td in [Timedelta(10, unit="D"), Timedelta("1 days, 10:11:12.012345")]:
+        for td in [pd.Timedelta(10, unit="D"), pd.Timedelta("1 days, 10:11:12.012345")]:
             td = td.as_unit("ns")
             pydt = td.to_pytimedelta()
-            assert td == Timedelta(pydt)
+            assert td == pd.Timedelta(pydt)
             assert td == pydt
-            assert isinstance(pydt, timedelta) and not isinstance(pydt, Timedelta)
+            assert isinstance(pydt, timedelta) and not isinstance(pydt, pd.Timedelta)
 
             assert td == np.timedelta64(td._value, "ns")
             td64 = td.to_timedelta64()
@@ -357,7 +354,7 @@ class TestTimedeltas:
             assert isinstance(td64, np.timedelta64)
 
         # this is NOT equal and cannot be roundtripped (because of the nanos)
-        td = Timedelta("1 days, 10:11:12.012345678")
+        td = pd.Timedelta("1 days, 10:11:12.012345678")
         assert td != td.to_pytimedelta()
 
     def test_fields(self):
@@ -366,7 +363,7 @@ class TestTimedeltas:
             assert isinstance(value, int)
 
         # compat to datetime.timedelta
-        rng = to_timedelta("1 days, 10:11:12")
+        rng = pd.to_timedelta("1 days, 10:11:12")
         assert rng.days == 1
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 0
@@ -386,14 +383,14 @@ class TestTimedeltas:
         check(rng.microseconds)
         check(rng.nanoseconds)
 
-        td = Timedelta("-1 days, 10:11:12")
-        assert abs(td) == Timedelta("13:48:48")
+        td = pd.Timedelta("-1 days, 10:11:12")
+        assert abs(td) == pd.Timedelta("13:48:48")
         assert str(td) == "-1 days +10:11:12"
-        assert -td == Timedelta("0 days 13:48:48")
-        assert -Timedelta("-1 days, 10:11:12")._value == 49728000000
-        assert Timedelta("-1 days, 10:11:12")._value == -49728000000
+        assert -td == pd.Timedelta("0 days 13:48:48")
+        assert -pd.Timedelta("-1 days, 10:11:12")._value == 49728000000
+        assert pd.Timedelta("-1 days, 10:11:12")._value == -49728000000
 
-        rng = to_timedelta("-1 days, 10:11:12.100123456")
+        rng = pd.to_timedelta("-1 days, 10:11:12.100123456")
         assert rng.days == -1
         assert rng.seconds == 10 * 3600 + 11 * 60 + 12
         assert rng.microseconds == 100 * 1000 + 123
@@ -407,7 +404,7 @@ class TestTimedeltas:
             rng.milliseconds
 
         # components
-        tup = to_timedelta(-1, "us").components
+        tup = pd.to_timedelta(-1, "us").components
         assert tup.days == -1
         assert tup.hours == 23
         assert tup.minutes == 59
@@ -425,7 +422,7 @@ class TestTimedeltas:
         check(tup.microseconds)
         check(tup.nanoseconds)
 
-        tup = Timedelta("-1 days 1 us").components
+        tup = pd.Timedelta("-1 days 1 us").components
         assert tup.days == -2
         assert tup.hours == 23
         assert tup.minutes == 59
@@ -437,41 +434,43 @@ class TestTimedeltas:
     # TODO: this is a test of to_timedelta string parsing
     def test_iso_conversion(self):
         # GH #21877
-        expected = Timedelta(1, unit="s")
-        assert to_timedelta("P0DT0H0M1S") == expected
+        expected = pd.Timedelta(1, unit="s")
+        assert pd.to_timedelta("P0DT0H0M1S") == expected
 
     # TODO: this is a test of to_timedelta returning NaT
     def test_nat_converters(self):
-        result = to_timedelta("nat").to_numpy()
+        result = pd.to_timedelta("nat").to_numpy()
         assert result.dtype.kind == "M"
         assert result.astype("int64") == iNaT
 
-        result = to_timedelta("nan").to_numpy()
+        result = pd.to_timedelta("nan").to_numpy()
         assert result.dtype.kind == "M"
         assert result.astype("int64") == iNaT
 
     def test_numeric_conversions(self):
-        assert Timedelta(0) == np.timedelta64(0, "ns")
-        assert Timedelta(10) == np.timedelta64(10, "ns")
-        assert Timedelta(10, unit="ns") == np.timedelta64(10, "ns")
+        assert pd.Timedelta(0) == np.timedelta64(0, "ns")
+        assert pd.Timedelta(10) == np.timedelta64(10, "ns")
+        assert pd.Timedelta(10, unit="ns") == np.timedelta64(10, "ns")
 
-        assert Timedelta(10, unit="us") == np.timedelta64(10, "us")
-        assert Timedelta(10, unit="ms") == np.timedelta64(10, "ms")
-        assert Timedelta(10, unit="s") == np.timedelta64(10, "s")
-        assert Timedelta(10, unit="D") == np.timedelta64(10, "D")
+        assert pd.Timedelta(10, unit="us") == np.timedelta64(10, "us")
+        assert pd.Timedelta(10, unit="ms") == np.timedelta64(10, "ms")
+        assert pd.Timedelta(10, unit="s") == np.timedelta64(10, "s")
+        assert pd.Timedelta(10, unit="D") == np.timedelta64(10, "D")
 
     def test_timedelta_conversions(self):
-        assert Timedelta(timedelta(seconds=1)) == np.timedelta64(1, "s").astype(
+        assert pd.Timedelta(timedelta(seconds=1)) == np.timedelta64(1, "s").astype(
             "m8[ns]"
         )
-        assert Timedelta(timedelta(microseconds=1)) == np.timedelta64(1, "us").astype(
+        assert pd.Timedelta(timedelta(microseconds=1)) == np.timedelta64(
+            1, "us"
+        ).astype("m8[ns]")
+        assert pd.Timedelta(timedelta(days=1)) == np.timedelta64(1, "D").astype(
             "m8[ns]"
         )
-        assert Timedelta(timedelta(days=1)) == np.timedelta64(1, "D").astype("m8[ns]")
 
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
-        td = Timedelta("10m7s")
+        td = pd.Timedelta("10m7s")
         assert td.to_timedelta64() == td.to_numpy()
 
         # GH#44460
@@ -482,64 +481,64 @@ class TestTimedeltas:
             td.to_numpy(copy=True)
 
     def test_identity(self):
-        td = Timedelta(10, unit="D")
-        assert isinstance(td, Timedelta)
+        td = pd.Timedelta(10, unit="D")
+        assert isinstance(td, pd.Timedelta)
         assert isinstance(td, timedelta)
 
     def test_short_format_converters(self):
         def conv(v):
             return v.astype("m8[ns]")
 
-        assert Timedelta("10") == np.timedelta64(10, "ns")
-        assert Timedelta("10ns") == np.timedelta64(10, "ns")
-        assert Timedelta("100") == np.timedelta64(100, "ns")
-        assert Timedelta("100ns") == np.timedelta64(100, "ns")
+        assert pd.Timedelta("10") == np.timedelta64(10, "ns")
+        assert pd.Timedelta("10ns") == np.timedelta64(10, "ns")
+        assert pd.Timedelta("100") == np.timedelta64(100, "ns")
+        assert pd.Timedelta("100ns") == np.timedelta64(100, "ns")
 
-        assert Timedelta("1000") == np.timedelta64(1000, "ns")
-        assert Timedelta("1000ns") == np.timedelta64(1000, "ns")
+        assert pd.Timedelta("1000") == np.timedelta64(1000, "ns")
+        assert pd.Timedelta("1000ns") == np.timedelta64(1000, "ns")
 
         msg = "'NS' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert Timedelta("1000NS") == np.timedelta64(1000, "ns")
+            assert pd.Timedelta("1000NS") == np.timedelta64(1000, "ns")
 
-        assert Timedelta("10us") == np.timedelta64(10000, "ns")
-        assert Timedelta("100us") == np.timedelta64(100000, "ns")
-        assert Timedelta("1000us") == np.timedelta64(1000000, "ns")
-        assert Timedelta("1000Us") == np.timedelta64(1000000, "ns")
-        assert Timedelta("1000uS") == np.timedelta64(1000000, "ns")
+        assert pd.Timedelta("10us") == np.timedelta64(10000, "ns")
+        assert pd.Timedelta("100us") == np.timedelta64(100000, "ns")
+        assert pd.Timedelta("1000us") == np.timedelta64(1000000, "ns")
+        assert pd.Timedelta("1000Us") == np.timedelta64(1000000, "ns")
+        assert pd.Timedelta("1000uS") == np.timedelta64(1000000, "ns")
 
-        assert Timedelta("1ms") == np.timedelta64(1000000, "ns")
-        assert Timedelta("10ms") == np.timedelta64(10000000, "ns")
-        assert Timedelta("100ms") == np.timedelta64(100000000, "ns")
-        assert Timedelta("1000ms") == np.timedelta64(1000000000, "ns")
+        assert pd.Timedelta("1ms") == np.timedelta64(1000000, "ns")
+        assert pd.Timedelta("10ms") == np.timedelta64(10000000, "ns")
+        assert pd.Timedelta("100ms") == np.timedelta64(100000000, "ns")
+        assert pd.Timedelta("1000ms") == np.timedelta64(1000000000, "ns")
 
-        assert Timedelta("-1s") == -np.timedelta64(1000000000, "ns")
-        assert Timedelta("1s") == np.timedelta64(1000000000, "ns")
-        assert Timedelta("10s") == np.timedelta64(10000000000, "ns")
-        assert Timedelta("100s") == np.timedelta64(100000000000, "ns")
-        assert Timedelta("1000s") == np.timedelta64(1000000000000, "ns")
+        assert pd.Timedelta("-1s") == -np.timedelta64(1000000000, "ns")
+        assert pd.Timedelta("1s") == np.timedelta64(1000000000, "ns")
+        assert pd.Timedelta("10s") == np.timedelta64(10000000000, "ns")
+        assert pd.Timedelta("100s") == np.timedelta64(100000000000, "ns")
+        assert pd.Timedelta("1000s") == np.timedelta64(1000000000000, "ns")
 
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert Timedelta("1d") == conv(np.timedelta64(1, "D"))
-        assert Timedelta("-1D") == -conv(np.timedelta64(1, "D"))
-        assert Timedelta("1D") == conv(np.timedelta64(1, "D"))
-        assert Timedelta("10D") == conv(np.timedelta64(10, "D"))
-        assert Timedelta("100D") == conv(np.timedelta64(100, "D"))
-        assert Timedelta("1000D") == conv(np.timedelta64(1000, "D"))
-        assert Timedelta("10000D") == conv(np.timedelta64(10000, "D"))
+            assert pd.Timedelta("1d") == conv(np.timedelta64(1, "D"))
+        assert pd.Timedelta("-1D") == -conv(np.timedelta64(1, "D"))
+        assert pd.Timedelta("1D") == conv(np.timedelta64(1, "D"))
+        assert pd.Timedelta("10D") == conv(np.timedelta64(10, "D"))
+        assert pd.Timedelta("100D") == conv(np.timedelta64(100, "D"))
+        assert pd.Timedelta("1000D") == conv(np.timedelta64(1000, "D"))
+        assert pd.Timedelta("10000D") == conv(np.timedelta64(10000, "D"))
 
         # space
-        assert Timedelta(" 10000D ") == conv(np.timedelta64(10000, "D"))
-        assert Timedelta(" - 10000D ") == -conv(np.timedelta64(10000, "D"))
+        assert pd.Timedelta(" 10000D ") == conv(np.timedelta64(10000, "D"))
+        assert pd.Timedelta(" - 10000D ") == -conv(np.timedelta64(10000, "D"))
 
         # invalid
         msg = "invalid unit abbreviation"
         with pytest.raises(ValueError, match=msg):
-            Timedelta("1foo")
+            pd.Timedelta("1foo")
         msg = "unit abbreviation w/o a number"
         with pytest.raises(ValueError, match=msg):
-            Timedelta("foo")
+            pd.Timedelta("foo")
 
     def test_full_format_converters(self):
         def conv(v):
@@ -547,59 +546,59 @@ class TestTimedeltas:
 
         d1 = np.timedelta64(1, "D")
 
-        assert Timedelta("1days") == conv(d1)
-        assert Timedelta("1days,") == conv(d1)
-        assert Timedelta("- 1days,") == -conv(d1)
+        assert pd.Timedelta("1days") == conv(d1)
+        assert pd.Timedelta("1days,") == conv(d1)
+        assert pd.Timedelta("- 1days,") == -conv(d1)
 
-        assert Timedelta("00:00:01") == conv(np.timedelta64(1, "s"))
-        assert Timedelta("06:00:01") == conv(np.timedelta64(6 * 3600 + 1, "s"))
-        assert Timedelta("06:00:01.0") == conv(np.timedelta64(6 * 3600 + 1, "s"))
-        assert Timedelta("06:00:01.01") == conv(
+        assert pd.Timedelta("00:00:01") == conv(np.timedelta64(1, "s"))
+        assert pd.Timedelta("06:00:01") == conv(np.timedelta64(6 * 3600 + 1, "s"))
+        assert pd.Timedelta("06:00:01.0") == conv(np.timedelta64(6 * 3600 + 1, "s"))
+        assert pd.Timedelta("06:00:01.01") == conv(
             np.timedelta64(1000 * (6 * 3600 + 1) + 10, "ms")
         )
 
-        assert Timedelta("- 1days, 00:00:01") == conv(-d1 + np.timedelta64(1, "s"))
-        assert Timedelta("1days, 06:00:01") == conv(
+        assert pd.Timedelta("- 1days, 00:00:01") == conv(-d1 + np.timedelta64(1, "s"))
+        assert pd.Timedelta("1days, 06:00:01") == conv(
             d1 + np.timedelta64(6 * 3600 + 1, "s")
         )
-        assert Timedelta("1days, 06:00:01.01") == conv(
+        assert pd.Timedelta("1days, 06:00:01.01") == conv(
             d1 + np.timedelta64(1000 * (6 * 3600 + 1) + 10, "ms")
         )
 
         # invalid
         msg = "have leftover units"
         with pytest.raises(ValueError, match=msg):
-            Timedelta("- 1days, 00")
+            pd.Timedelta("- 1days, 00")
 
     def test_pickle(self, temp_file):
-        v = Timedelta("1 days 10:11:12.0123456")
+        v = pd.Timedelta("1 days 10:11:12.0123456")
         v_p = tm.round_trip_pickle(v, temp_file)
         assert v == v_p
 
     def test_timedelta_hash_equality(self):
         # GH 11129
-        v = Timedelta(1, "D")
+        v = pd.Timedelta(1, "D")
         td = timedelta(days=1)
         assert hash(v) == hash(td)
 
         d = {td: 2}
         assert d[v] == 2
 
-        tds = [Timedelta(seconds=1) + Timedelta(days=n) for n in range(20)]
+        tds = [pd.Timedelta(seconds=1) + pd.Timedelta(days=n) for n in range(20)]
         assert all(hash(td) == hash(td.to_pytimedelta()) for td in tds)
 
         # python timedeltas drop ns resolution
-        ns_td = Timedelta(1, "ns")
+        ns_td = pd.Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
 
     @pytest.mark.parametrize(
         "pandas_timedelta, td",
         [
-            (Timedelta(0), timedelta(0)),
-            (Timedelta(-112, "s"), timedelta(seconds=-112)),
-            (Timedelta(99, "us"), timedelta(microseconds=99)),
+            (pd.Timedelta(0), timedelta(0)),
+            (pd.Timedelta(-112, "s"), timedelta(seconds=-112)),
+            (pd.Timedelta(99, "us"), timedelta(microseconds=99)),
             pytest.param(
-                Timedelta(0),
+                pd.Timedelta(0),
                 np.timedelta64(0, "ns"),
                 marks=pytest.mark.skipif(
                     not np_version_gt2_2 or WASM,
@@ -607,7 +606,7 @@ class TestTimedeltas:
                 ),
             ),
             pytest.param(
-                Timedelta(55, "s"),
+                pd.Timedelta(55, "s"),
                 np.timedelta64(55, "s"),
                 marks=pytest.mark.skipif(
                     not np_version_gt2_2 or WASM,
@@ -615,7 +614,7 @@ class TestTimedeltas:
                 ),
             ),
             pytest.param(
-                Timedelta(-44, "us"),
+                pd.Timedelta(-44, "us"),
                 np.timedelta64(-44, "us"),
                 marks=pytest.mark.skipif(
                     not np_version_gt2_2 or WASM,
@@ -623,7 +622,7 @@ class TestTimedeltas:
                 ),
             ),
             pytest.param(
-                Timedelta(123, "ns"),
+                pd.Timedelta(123, "ns"),
                 np.timedelta64(123, "ns"),
                 marks=pytest.mark.xfail(
                     np_version_gt2_2,
@@ -631,7 +630,7 @@ class TestTimedeltas:
                 ),
             ),
             pytest.param(
-                Timedelta(-42, "ns"),
+                pd.Timedelta(-42, "ns"),
                 np.timedelta64(-42, "ns"),
                 marks=pytest.mark.xfail(
                     np_version_gt2_2,
@@ -646,8 +645,8 @@ class TestTimedeltas:
         assert hash(pandas_timedelta) == hash(td)
 
     def test_implementation_limits(self):
-        min_td = Timedelta(Timedelta.min)
-        max_td = Timedelta(Timedelta.max)
+        min_td = pd.Timedelta(pd.Timedelta.min)
+        max_td = pd.Timedelta(pd.Timedelta.max)
 
         # GH 12727
         # timedelta limits correspond to int64 boundaries
@@ -657,43 +656,43 @@ class TestTimedeltas:
         # GH#66552 landing exactly on the NaT sentinel is out of bounds, not NaT
         msg2 = "Out of bounds nanosecond timedelta: -9223372036854775808"
         with pytest.raises(OutOfBoundsTimedelta, match=msg2):
-            min_td - Timedelta(1, "ns")
+            min_td - pd.Timedelta(1, "ns")
 
         msg = "int too (large|big) to convert"
         with pytest.raises(OverflowError, match=msg):
-            min_td - Timedelta(2, "ns")
+            min_td - pd.Timedelta(2, "ns")
 
         with pytest.raises(OverflowError, match=msg):
-            max_td + Timedelta(1, "ns")
+            max_td + pd.Timedelta(1, "ns")
 
         # Same tests using the internal nanosecond values
-        td = Timedelta(min_td._value - 1, "ns")
+        td = pd.Timedelta(min_td._value - 1, "ns")
         assert td is NaT
 
         msg = "Cannot cast -9223372036854775809 from ns to 'ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta(min_td._value - 2, "ns")
+            pd.Timedelta(min_td._value - 2, "ns")
 
         msg = "Cannot cast 9223372036854775808 from ns to 'ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            Timedelta(max_td._value + 1, "ns")
+            pd.Timedelta(max_td._value + 1, "ns")
 
     def test_total_seconds_precision(self):
         # GH 19458
-        assert Timedelta("30s").total_seconds() == 30.0
-        assert Timedelta("0").total_seconds() == 0.0
-        assert Timedelta("-2s").total_seconds() == -2.0
-        assert Timedelta("5.324s").total_seconds() == 5.324
-        assert (Timedelta("30s").total_seconds() - 30.0) < 1e-20
-        assert (30.0 - Timedelta("30s").total_seconds()) < 1e-20
+        assert pd.Timedelta("30s").total_seconds() == 30.0
+        assert pd.Timedelta("0").total_seconds() == 0.0
+        assert pd.Timedelta("-2s").total_seconds() == -2.0
+        assert pd.Timedelta("5.324s").total_seconds() == 5.324
+        assert (pd.Timedelta("30s").total_seconds() - 30.0) < 1e-20
+        assert (30.0 - pd.Timedelta("30s").total_seconds()) < 1e-20
 
     def test_total_seconds_includes_nanoseconds(self):
         # GH#46819 nanosecond component was silently dropped
-        assert Timedelta(nanoseconds=999).total_seconds() == 999e-9
-        assert Timedelta("1us 500ns").total_seconds() == 1.5e-6
+        assert pd.Timedelta(nanoseconds=999).total_seconds() == 999e-9
+        assert pd.Timedelta("1us 500ns").total_seconds() == 1.5e-6
         # negative timedelta with nanosecond residual: previously the
         # nanos were dropped entirely, so result was off by ~1us
-        result = Timedelta(nanoseconds=-1).total_seconds()
+        result = pd.Timedelta(nanoseconds=-1).total_seconds()
         assert abs(result - (-1e-9)) < 1e-15
 
     def test_total_seconds_stays_strictly_inside_integer_seconds(self):
@@ -702,16 +701,16 @@ class TestTimedeltas:
         # boundary, otherwise bisect-based lookups (e.g. dateutil DST,
         # GH#31043) misclassify the timestamp as on a transition.
         # 1 ns below 1552212000 s; naive float rounds up to 1552212000.0
-        below = Timedelta(1_552_211_999_999_999_999).total_seconds()
+        below = pd.Timedelta(1_552_211_999_999_999_999).total_seconds()
         assert below < 1_552_212_000
         # 1 ns above 1552212000 s; sub_ns is below the float ulp at this
         # magnitude (~238 ns), so naive float rounds down to 1552212000.0
-        above = Timedelta(1_552_212_000_000_000_001).total_seconds()
+        above = pd.Timedelta(1_552_212_000_000_000_001).total_seconds()
         assert above > 1_552_212_000
         # symmetric negative cases
-        neg_above = Timedelta(-1_552_211_999_999_999_999).total_seconds()
+        neg_above = pd.Timedelta(-1_552_211_999_999_999_999).total_seconds()
         assert neg_above > -1_552_212_000
-        neg_below = Timedelta(-1_552_212_000_000_000_001).total_seconds()
+        neg_below = pd.Timedelta(-1_552_212_000_000_000_001).total_seconds()
         assert neg_below < -1_552_212_000
 
     @pytest.mark.parametrize(
@@ -725,37 +724,37 @@ class TestTimedeltas:
         # GH#46819 the boundary guard applies at every resolution: here the
         # sub-second residual is smaller than half an ulp, so the naive sum
         # collapses onto the integer-second boundary
-        assert Timedelta(value, unit=unit).total_seconds() > boundary
-        assert Timedelta(-value, unit=unit).total_seconds() < -boundary
+        assert pd.Timedelta(value, unit=unit).total_seconds() > boundary
+        assert pd.Timedelta(-value, unit=unit).total_seconds() < -boundary
 
     def test_total_seconds_above_float64_integer_spacing(self):
         # Beyond 2**52 seconds every float64 is a whole number of seconds,
         # so the boundary cannot be avoided; return the nearest value rather
         # than nudging 2 full seconds away
-        result = Timedelta(2**53 * 1000 + 500, unit="ms").total_seconds()
+        result = pd.Timedelta(2**53 * 1000 + 500, unit="ms").total_seconds()
         assert result == float(2**53)
-        result = Timedelta(-(2**53) * 1000 - 500, unit="ms").total_seconds()
+        result = pd.Timedelta(-(2**53) * 1000 - 500, unit="ms").total_seconds()
         assert result == -float(2**53)
 
     def test_resolution_string(self):
-        assert Timedelta(days=1).resolution_string == "D"
-        assert Timedelta(days=1, hours=6).resolution_string == "h"
-        assert Timedelta(days=1, minutes=6).resolution_string == "min"
-        assert Timedelta(days=1, seconds=6).resolution_string == "s"
-        assert Timedelta(days=1, milliseconds=6).resolution_string == "ms"
-        assert Timedelta(days=1, microseconds=6).resolution_string == "us"
-        assert Timedelta(days=1, nanoseconds=6).resolution_string == "ns"
+        assert pd.Timedelta(days=1).resolution_string == "D"
+        assert pd.Timedelta(days=1, hours=6).resolution_string == "h"
+        assert pd.Timedelta(days=1, minutes=6).resolution_string == "min"
+        assert pd.Timedelta(days=1, seconds=6).resolution_string == "s"
+        assert pd.Timedelta(days=1, milliseconds=6).resolution_string == "ms"
+        assert pd.Timedelta(days=1, microseconds=6).resolution_string == "us"
+        assert pd.Timedelta(days=1, nanoseconds=6).resolution_string == "ns"
 
     def test_resolution_deprecated(self):
         # GH#21344
-        td = Timedelta(days=4, hours=3)
+        td = pd.Timedelta(days=4, hours=3)
         result = td.resolution
-        assert result == Timedelta(microseconds=1)
+        assert result == pd.Timedelta(microseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib timedelta behavior
-        result = Timedelta.resolution
-        assert result == Timedelta(nanoseconds=1)
+        result = pd.Timedelta.resolution
+        assert result == pd.Timedelta(nanoseconds=1)
 
     @pytest.mark.parametrize(
         "unit,unit_depr",
@@ -774,19 +773,19 @@ class TestTimedeltas:
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = Timedelta(1, unit_depr)
-        assert result == Timedelta(1, unit)
+            result = pd.Timedelta(1, unit_depr)
+        assert result == pd.Timedelta(1, unit)
 
 
 @pytest.mark.parametrize(
     "value, expected",
     [
-        (Timedelta("10s"), True),
-        (Timedelta("-10s"), True),
-        (Timedelta(10, unit="ns"), True),
-        (Timedelta(0, unit="ns"), False),
-        (Timedelta(-10, unit="ns"), True),
-        (Timedelta(None), True),
+        (pd.Timedelta("10s"), True),
+        (pd.Timedelta("-10s"), True),
+        (pd.Timedelta(10, unit="ns"), True),
+        (pd.Timedelta(0, unit="ns"), False),
+        (pd.Timedelta(-10, unit="ns"), True),
+        (pd.Timedelta(None), True),
         (NaT, True),
     ],
 )
@@ -797,7 +796,7 @@ def test_truthiness(value, expected):
 
 def test_timedelta_attribute_precision():
     # GH 31354
-    td = Timedelta(1552211999999999872, unit="ns")
+    td = pd.Timedelta(1552211999999999872, unit="ns")
     result = td.days * 86400
     result += td.seconds
     result *= 1000000
@@ -809,7 +808,7 @@ def test_timedelta_attribute_precision():
 
 
 def test_to_pytimedelta_large_values():
-    td = Timedelta(1152921504609987375, unit="ns")
+    td = pd.Timedelta(1152921504609987375, unit="ns")
     result = td.to_pytimedelta()
     expected = timedelta(days=13343, seconds=86304, microseconds=609987)
     assert result == expected
@@ -817,9 +816,9 @@ def test_to_pytimedelta_large_values():
 
 def test_timedelta_week_suffix():
     # GH#12691 ensure 'W' suffix works as a string passed to Timedelta
-    expected = Timedelta("7 days")
-    result = Timedelta(1, unit="W")
+    expected = pd.Timedelta("7 days")
+    result = pd.Timedelta(1, unit="W")
     assert result == expected
 
-    result = Timedelta("1W")
+    result = pd.Timedelta("1W")
     assert result == expected

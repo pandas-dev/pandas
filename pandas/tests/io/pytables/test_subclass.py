@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.pytables import (
@@ -21,7 +18,7 @@ class TestHDFStoreSubclass:
         data = {"a": [1, 2], "b": [3, 4]}
         sdf = tm.SubclassedDataFrame(data, dtype=np.intp)
 
-        expected = DataFrame(data, dtype=np.intp)
+        expected = pd.DataFrame(data, dtype=np.intp)
 
         sdf.to_hdf(temp_h5_path, key="df")
         result = read_hdf(temp_h5_path, "df")
@@ -36,7 +33,7 @@ class TestHDFStoreSubclass:
         data = [1, 2, 3]
         sser = tm.SubclassedSeries(data, dtype=np.intp)
 
-        expected = Series(data, dtype=np.intp)
+        expected = pd.Series(data, dtype=np.intp)
 
         sser.to_hdf(temp_h5_path, key="ser")
         result = read_hdf(temp_h5_path, "ser")

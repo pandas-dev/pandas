@@ -1,11 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -24,7 +20,7 @@ from pandas.tests.copy_view.util import get_array
     ids=["values", "array", "np.asarray", "np.array"],
 )
 def test_series_values(request, method):
-    ser = Series([1, 2, 3], name="name")
+    ser = pd.Series([1, 2, 3], name="name")
     ser_orig = ser.copy()
 
     arr = method(ser)
@@ -62,7 +58,7 @@ def test_series_values(request, method):
     ids=["values", "asarray", "array"],
 )
 def test_dataframe_values(method):
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
     arr = method(df)
@@ -82,7 +78,7 @@ def test_dataframe_values(method):
 
 
 def test_series_to_numpy():
-    ser = Series([1, 2, 3], name="name")
+    ser = pd.Series([1, 2, 3], name="name")
     ser_orig = ser.copy()
 
     # default: copy=False, no dtype or NAs
@@ -101,13 +97,13 @@ def test_series_to_numpy():
     assert ser.values[0] == 0
 
     # specify copy=True gives a writeable array
-    ser = Series([1, 2, 3], name="name")
+    ser = pd.Series([1, 2, 3], name="name")
     arr = ser.to_numpy(copy=True)
     assert not np.shares_memory(arr, get_array(ser, "name"))
     assert arr.flags.writeable is True
 
     # specifying a dtype that already causes a copy also gives a writeable array
-    ser = Series([1, 2, 3], name="name")
+    ser = pd.Series([1, 2, 3], name="name")
     arr = ser.to_numpy(dtype="float64")
     assert not np.shares_memory(arr, get_array(ser, "name"))
     assert arr.flags.writeable is True
@@ -125,7 +121,7 @@ def test_series_to_numpy():
     ids=["values", "array", "np.asarray", "np.asarray-dtype", "np.array"],
 )
 def test_series_values_ea_dtypes(request, method):
-    ser = Series([1, 2, 3], dtype="Int64")
+    ser = pd.Series([1, 2, 3], dtype="Int64")
     ser_orig = ser.copy()
 
     arr = method(ser)
@@ -164,7 +160,7 @@ def test_series_values_ea_dtypes(request, method):
     ids=["values", "np.asarray", "np.asarray-dtype", "np.array"],
 )
 def test_dataframe_array_ea_dtypes(method):
-    df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
+    df = pd.DataFrame({"a": [1, 2, 3]}, dtype="Int64")
     arr = method(df)
 
     assert np.shares_memory(arr, get_array(df, "a"))
@@ -172,14 +168,14 @@ def test_dataframe_array_ea_dtypes(method):
 
 
 def test_dataframe_array_string_dtype():
-    df = DataFrame({"a": ["a", "b"]}, dtype="string[python]")
+    df = pd.DataFrame({"a": ["a", "b"]}, dtype="string[python]")
     arr = np.asarray(df)
     assert np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is False
 
 
 def test_series_array_string_dtype(any_string_dtype):
-    ser = Series(["a", "b"], dtype=any_string_dtype)
+    ser = pd.Series(["a", "b"], dtype=any_string_dtype)
     arr = np.asarray(ser)
     if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
         # for pyarrow strings, the numpy arrays is not a view, so also does
@@ -192,7 +188,7 @@ def test_series_array_string_dtype(any_string_dtype):
 
 
 def test_dataframe_multiple_numpy_dtypes():
-    df = DataFrame({"a": [1, 2, 3], "b": 1.5})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": 1.5})
     arr = np.asarray(df)
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
@@ -206,19 +202,19 @@ def test_dataframe_multiple_numpy_dtypes():
 
 def test_dataframe_single_block_copy_true():
     # the copy=False/None cases are tested above in test_dataframe_values
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     arr = np.array(df, copy=True)
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
 
 
 def test_values_is_ea():
-    df = DataFrame({"a": date_range("2012-01-01", periods=3)})
+    df = pd.DataFrame({"a": pd.date_range("2012-01-01", periods=3)})
     arr = np.asarray(df)
     assert arr.flags.writeable is False
 
 
 def test_empty_dataframe():
-    df = DataFrame()
+    df = pd.DataFrame()
     arr = np.asarray(df)
     assert arr.flags.writeable is True

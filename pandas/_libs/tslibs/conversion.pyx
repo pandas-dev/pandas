@@ -3,14 +3,16 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
-from libc.math cimport log10
+from libc.math cimport (
+    isinf,
+    log10,
+)
 from libc.stdint cimport (
     INT32_MAX,
     INT32_MIN,
 )
 from libc.string cimport memset
 from numpy cimport (
-    PyDatetimeScalarObject,
     int32_t,
     int64_t,
 )
@@ -54,6 +56,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     dts_to_iso_string_ns,
     get_conversion_factor,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     get_implementation_bounds,
     import_pandas_datetime,
     npy_datetime,
@@ -103,6 +106,22 @@ TD64NS_DTYPE = np.dtype("m8[ns]")
 # ----------------------------------------------------------------------
 # Unit Conversion Helpers
 
+cdef _raise_if_outside_int64(ndarray values, ndarray nan_mask, str unit):
+    """
+    Reject values already outside the int64 domain, before an integer cast can
+    alias them to NPY_NAT. float(iNaT) is preserved as NaT.
+    """
+    nat_as_float = np.float64(NPY_NAT)
+    oob = (~nan_mask) & (values != nat_as_float) & (
+        (values >= np.float64(2**63)) | (values < nat_as_float)
+    )
+    if oob.any():
+        bad_idx = int(np.where(oob)[0][0])
+        raise OutOfBoundsDatetime(
+            f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
+        )
+
+
 def cast_from_unit_vectorized(
     ndarray values,
     str unit,
@@ -118,8 +137,16 @@ def cast_from_unit_vectorized(
 
     assert values.dtype.kind == "f"
 
-    if unit in "YM":
-        if not (((values % 1) == 0) | np.isnan(values)).all():
+    nan_mask = np.isnan(values)
+
+    # Tuple, not "YM": substring containment also matches "" and "YM" (GH#68640)
+    if unit in ("Y", "M"):
+        # Neither inf nor NaN is "ambiguous": inf is rejected by the bounds
+        #  check below, NaN becomes NaT. inf % 1 warns but is masked by
+        #  ~isfinite, so silence it (GH#68640).
+        with np.errstate(invalid="ignore"):
+            round_or_nonfinite = ((values % 1) == 0) | ~np.isfinite(values)
+        if not round_or_nonfinite.all():
             # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
             #  but not clear what 2.5 "M" corresponds to, so we will
             #  disallow that case.
@@ -127,6 +154,7 @@ def cast_from_unit_vectorized(
                 f"Conversion of non-round float with unit={unit} "
                 "is ambiguous"
             )
+        _raise_if_outside_int64(values, nan_mask, unit)
 
         # GH#47266 go through np.datetime64 to avoid weird results e.g. with "Y"
         #  and 150 we'd get 2120-01-01 09:00:00
@@ -138,19 +166,9 @@ def cast_from_unit_vectorized(
     out_reso = abbrev_to_npy_unit(out_unit)
     m, p = precision_from_unit(in_reso, out_reso)
 
-    nan_mask = np.isnan(values)
-    nat_as_float = np.float64(NPY_NAT)
+    _raise_if_outside_int64(values, nan_mask, unit)
 
-    # Preserve float(iNaT) -> NaT, but reject other values that are already
-    # outside the int64 domain before the integer cast can alias them to NPY_NAT.
-    oob = (~nan_mask) & (values != nat_as_float) & (
-        (values >= np.float64(2**63)) | (values < nat_as_float)
-    )
-    if oob.any():
-        bad_idx = int(np.where(oob)[0][0])
-        raise OutOfBoundsDatetime(
-            f"cannot convert input {values[bad_idx]} with the unit '{unit}'"
-        )
+    nat_as_float = np.float64(NPY_NAT)
 
     # Replace NaN with 0.0 for safe int casting; NaN positions set to NPY_NAT below
     safe = np.where(nan_mask, 0.0, values)
@@ -228,6 +246,12 @@ cdef int64_t cast_from_unit(
         ts = int(ts)
 
     if unit in ["Y", "M"]:
+        if is_float_object(ts) and isinf(ts):
+            # Not ambiguous, just unrepresentable; every other unit already
+            #  reports it this way.
+            raise OutOfBoundsDatetime(
+                f"cannot convert input {ts} with the unit '{unit}'"
+            )
         if is_float_object(ts) and not ts.is_integer():
             # GH#47267 it is clear that 2 "M" corresponds to 1970-02-01,
             #  but not clear what 2.5 "M" corresponds to, so we will
@@ -238,22 +262,19 @@ cdef int64_t cast_from_unit(
             )
         # GH#47266 go through np.datetime64 to avoid weird results e.g. with "Y"
         #  and 150 we'd get 2120-01-01 09:00:00
+        orig = ts
         if is_float_object(ts):
             ts = int(ts)
-        dt64obj = np.datetime64(ts, unit)
+        try:
+            dt64obj = np.datetime64(ts, unit)
+        except OverflowError as err:
+            raise OutOfBoundsDatetime(
+                f"cannot convert input {orig} with the unit '{unit}'"
+            ) from err
         return get_datetime64_nanos(dt64obj, out_reso)
 
     in_reso = abbrev_to_npy_unit(unit)
-    if out_reso < in_reso and in_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
-        # We will end up rounding (always *down*), so don't need the fractional
-        #  part of `ts`.
-        m, _ = precision_from_unit(out_reso, in_reso)
-        return (<int64_t>ts) // m
 
-    m, p = precision_from_unit(in_reso, out_reso)
-
-    # cast the unit, multiply base/frac separately
-    # to avoid precision issues from float -> int
     try:
         base = <int64_t>ts
     except OverflowError as err:
@@ -261,6 +282,16 @@ cdef int64_t cast_from_unit(
             f"cannot convert input {ts} with the unit '{unit}'"
         ) from err
 
+    if out_reso < in_reso and in_reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # We will end up rounding (always *down*), so don't need the fractional
+        #  part of `ts`.
+        m, _ = precision_from_unit(out_reso, in_reso)
+        return base // m
+
+    m, p = precision_from_unit(in_reso, out_reso)
+
+    # cast the unit, multiply base/frac separately
+    # to avoid precision issues from float -> int
     frac = ts - base
     if p:
         frac = round(frac, p)
@@ -489,7 +520,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif cnp.is_datetime64_object(ts):
-        num = (<PyDatetimeScalarObject*>ts).obmeta.num
+        num = get_datetime64_unit_count(ts)
         if num != 1:
             raise ValueError(
                 # GH#25611
@@ -678,10 +709,10 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
     if info.use_utc:
         pass
-    elif info.use_tzlocal:
+    elif info.use_tzinfo_api:
         info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
     elif info.use_dst and not info.use_pytz:
-        # i.e. dateutil
+        # i.e. zoneinfo, dateutil
         info.utc_val_to_local_val(obj.value, &pos, &obj.fold)
 
     # Keep the converter same as PyDateTime's
