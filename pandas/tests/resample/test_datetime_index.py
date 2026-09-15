@@ -2098,7 +2098,7 @@ def test_resample_c_b_default(freq: str, unit):
     dti = date_range(start="2020-01-31", freq="1h", periods=1000, unit=unit)
     df = DataFrame({"ts": dti}, index=dti)
     grouped_right_right = df.resample(freq, label="right", closed="right")
-    grouped_default = df.resample(freq, label="right", closed="right")
+    grouped_default = df.resample(freq)
 
     tm.assert_frame_equal(grouped_default.first(), grouped_right_right.first())
     tm.assert_frame_equal(grouped_default.last(), grouped_right_right.last())
