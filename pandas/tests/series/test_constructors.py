@@ -1995,7 +1995,7 @@ class TestSeriesConstructors:
         #  the dtype's unit, not as nanoseconds
         data = [pd.Timedelta(1, "s"), 2]
         result = pd.Series(data, dtype="timedelta64[s]")
-        expected = pd.Series(pd.to_timedelta(data, unit="s"))
+        expected = pd.Series(pd.to_timedelta([1, 2], unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
