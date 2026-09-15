@@ -382,6 +382,11 @@ cdef void del_rd_source_wrapper(void *src) noexcept nogil:
 # finds it cache-resident.  Flat from 16 KB to 128 KB, gone by 4 MB.  0 = off.
 _BLOCK_BYTES = 1 << 15
 
+# Byte ceiling for a string column's data under the int32-offset "arrow"
+# target; a column past it falls back to the object path.  Lowered by the
+# tests, which cannot produce 2 GiB of tokens.
+_STR_OFFSET_LIMIT = INT32_MAX
+
 cdef enum:
     BLOCK_KIND_INT64 = 1
     BLOCK_KIND_FLOAT64 = 2
@@ -404,6 +409,7 @@ cdef struct _BlockColState:
     # string kind: a `_PendingStringColumn`'s buffers, transferred to it once
     # the sweep succeeds
     bint large
+    Py_ssize_t offset_limit
     int64_t *offsets64_ptr
     int32_t *offsets32_ptr
     uint8_t *validity_ptr
@@ -1480,6 +1486,7 @@ cdef class TextReader:
                 st.na_hashset = <kh_str_starts_t *>hs_addr
                 if kind == BLOCK_KIND_STRING:
                     st.large = target == "str_nan"
+                    st.offset_limit = _STR_OFFSET_LIMIT
                     nstr += 1
                     continue
                 mask = np.zeros(lines, dtype=np.bool_)
@@ -3144,7 +3151,8 @@ cdef inline void _copy_token(char *dst, const char *src, int64_t seg,
 
 
 cdef inline Py_ssize_t _clamp_data_cap(int64_t want, parser_t *parser,
-                                       bint large) noexcept nogil:
+                                       bint large,
+                                       Py_ssize_t limit) noexcept nogil:
     """
     Narrow a proposed data-buffer capacity to what the column can ever fill.
 
@@ -3156,16 +3164,15 @@ cdef inline Py_ssize_t _clamp_data_cap(int64_t want, parser_t *parser,
     Every token is NUL-packed in the parser stream, so ``stream_len`` bounds
     this column's total bytes, and it is a live allocation's length so the
     result always fits ``Py_ssize_t``.  For the int32-offset target the sweep
-    returns the overflow status before ``total_bytes`` reaches ``INT32_MAX``,
-    so reserving past that only allocates bytes the column will never fill --
-    and a failure there raises ``MemoryError``, which the
-    ``except OverflowError`` fallback to the object path in
-    ``_string_convert_single`` does not catch.
+    returns the overflow status before ``total_bytes`` reaches ``limit``, so
+    reserving past that only allocates bytes the column will never fill -- and
+    a failure there raises ``MemoryError``, which the ``except OverflowError``
+    fallback to the object path in ``_string_convert_single`` does not catch.
     """
     if want > <int64_t>parser.stream_len:
         want = <int64_t>parser.stream_len
-    if not large and want > <int64_t>INT32_MAX:
-        want = <int64_t>INT32_MAX
+    if not large and want > <int64_t>limit:
+        want = <int64_t>limit
     return <Py_ssize_t>want
 
 
@@ -3211,6 +3218,7 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     st.na_filter = na_filter
     st.na_hashset = na_hashset
     st.large = target == "str_nan"
+    st.offset_limit = _STR_OFFSET_LIMIT
 
     with nogil:
         if _str_col_alloc(&st, parser, line_start, lines):
@@ -3332,7 +3340,7 @@ cdef bint _str_col_alloc(_BlockColState *st, parser_t *parser,
     if probe:
         data_est = <int64_t>lines * (probe_bytes // probe + 1)
     data_est += (data_est >> 2) + 64
-    st.data_cap = _clamp_data_cap(data_est, parser, st.large)
+    st.data_cap = _clamp_data_cap(data_est, parser, st.large, st.offset_limit)
     st.data_ptr = <char *>malloc(st.data_cap + WILDCOPY_SLACK)
     return st.data_ptr == NULL
 
@@ -3364,6 +3372,7 @@ cdef int _string_block_convert(parser_t *parser, _BlockColState *st,
         const char *word
         bint na_filter = st.na_filter
         bint large = st.large
+        Py_ssize_t limit = st.offset_limit
         kh_str_starts_t *na_hashset = st.na_hashset
         int64_t *offsets64_ptr = st.offsets64_ptr
         int32_t *offsets32_ptr = st.offsets32_ptr
@@ -3391,7 +3400,7 @@ cdef int _string_block_convert(parser_t *parser, _BlockColState *st,
             na_count += 1
             validity_ptr[row >> 3] &= <uint8_t>(~(1 << (row & 7)))
         else:
-            if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
+            if not large and total_bytes + wlen > limit:
                 st.data_ptr = data_ptr
                 st.data_cap = data_cap
                 return 1
@@ -3399,9 +3408,9 @@ cdef int _string_block_convert(parser_t *parser, _BlockColState *st,
                 # Same bounds as the initial reservation.  Neither clamp can
                 # undersize the buffer: total_bytes + wlen never exceeds
                 # stream_len, and for the int32 target the overflow return
-                # above has already fired if it exceeds INT32_MAX.
+                # above has already fired if it exceeds limit.
                 data_cap = _clamp_data_cap(
-                    <int64_t>data_cap * 2 + wlen, parser, large
+                    <int64_t>data_cap * 2 + wlen, parser, large, limit
                 )
                 grown = <char *>realloc(data_ptr, data_cap + WILDCOPY_SLACK)
                 if grown == NULL:

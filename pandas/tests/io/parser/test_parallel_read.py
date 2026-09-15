@@ -2084,6 +2084,30 @@ def test_row_blocked_conversion_leading_overflow(tmp_path, monkeypatch, threads)
 
 
 @pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_string_offset_overflow(tmp_path, monkeypatch, threads):
+    # A string column past the int32-offset target's byte ceiling leaves the
+    # sweep on its own, and the columns sharing its blocks must still convert
+    # from the sweep.  "big" needs 400 bytes a row against the 256 KiB ceiling
+    # below, the other string columns under 50 KiB for the whole frame.
+    pytest.importorskip("pyarrow")
+    df = _blocked_frame(n_rows=8_000)
+    df["big"] = ["x" * 400] * len(df)
+    path = tmp_path / "offsets.csv"
+    df.to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    # dtype_backend="pyarrow" is the int32-offset target; the default string
+    # dtype is large_string and has no ceiling.
+    with pd.option_context("mode.max_threads", threads):
+        expected = pd.read_csv(path, dtype_backend="pyarrow")
+    monkeypatch.setattr(_parsers, "_STR_OFFSET_LIMIT", 1 << 18)
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path, dtype_backend="pyarrow")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
 def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
     # A column whose leading block infers one kind but whose later rows do
     # not must fall back to the whole-column inference cascade.
