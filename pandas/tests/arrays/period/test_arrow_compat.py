@@ -8,11 +8,6 @@ from pandas.core.arrays import (
     PeriodArray,
 )
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
-
 pa = pytest.importorskip("pyarrow")
 
 

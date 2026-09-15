@@ -9,17 +9,15 @@ import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
-from pandas.errors import DtypeWarning
-
-from pandas import (
-    DataFrame,
-    concat,
+from pandas.errors import (
+    DtypeWarning,
+    ParserError,
 )
+
+import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.parametrize("index_col", [0, "index"])
@@ -34,7 +32,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             ["foo", 2, 3, 4, 5],
             ["bar", 7, 8, 9, 10],
@@ -103,7 +101,7 @@ bar2,12,13,14,15
 
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs) as reader:
-        tm.assert_frame_equal(concat(reader), expected)
+        tm.assert_frame_equal(pd.concat(reader), expected)
 
 
 def test_read_chunksize_and_nrows_changing_size(all_parsers):
@@ -151,7 +149,7 @@ def test_get_chunk_passed_chunksize(all_parsers):
     with parser.read_csv(StringIO(data), chunksize=2) as reader:
         result = reader.get_chunk()
 
-    expected = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
+    expected = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -173,11 +171,11 @@ bar2,12,13,14,15
         msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             with parser.read_csv(StringIO(data), chunksize=2, **kwargs) as reader:
-                concat(reader)
+                pd.concat(reader)
         return
 
     with parser.read_csv(StringIO(data), chunksize=2, **kwargs) as reader:
-        via_reader = concat(reader)
+        via_reader = pd.concat(reader)
     tm.assert_frame_equal(via_reader, result)
 
 
@@ -186,7 +184,7 @@ def test_read_chunksize_jagged_names(all_parsers):
     parser = all_parsers
     data = "\n".join(["0"] * 7 + [",".join(["0"] * 10)])
 
-    expected = DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
+    expected = pd.DataFrame([[0] + [np.nan] * 9] * 7 + [[0] * 10])
 
     if parser.engine == "pyarrow":
         msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
@@ -194,11 +192,11 @@ def test_read_chunksize_jagged_names(all_parsers):
             with parser.read_csv(
                 StringIO(data), names=range(10), chunksize=4
             ) as reader:
-                concat(reader)
+                pd.concat(reader)
         return
 
     with parser.read_csv(StringIO(data), names=range(10), chunksize=4) as reader:
-        result = concat(reader)
+        result = pd.concat(reader)
     tm.assert_frame_equal(result, expected)
 
 
@@ -208,7 +206,7 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
     data = "\n hello\nworld\n"
 
     result = parser.read_csv(StringIO(data), header=None)
-    expected = DataFrame([" hello", "world"])
+    expected = pd.DataFrame([" hello", "world"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -275,7 +273,7 @@ def test_warn_if_chunks_have_mismatched_type(
 def test_empty_with_nrows_chunksize(all_parsers, iterator):
     # see gh-9535
     parser = all_parsers
-    expected = DataFrame(columns=["foo", "bar"])
+    expected = pd.DataFrame(columns=["foo", "bar"])
 
     nrows = 10
     data = StringIO("foo,bar\n")
@@ -330,8 +328,8 @@ def test_chunksize_with_usecols_second_block_shorter(all_parsers):
     )
 
     expected_frames = [
-        DataFrame({"a": [1, 5], "b": [2, 6]}),
-        DataFrame({"a": [9], "b": [10]}, index=[2]),
+        pd.DataFrame({"a": [1, 5], "b": [2, 6]}),
+        pd.DataFrame({"a": [9], "b": [10]}, index=[2]),
     ]
 
     for i, result in enumerate(result_chunks):
@@ -356,9 +354,105 @@ def test_chunksize_second_block_shorter(all_parsers):
     result_chunks = parser.read_csv(StringIO(data), chunksize=2)
 
     expected_frames = [
-        DataFrame({"a": [1, 5], "b": [2, 6], "c": [3, 7], "d": [4, 8]}),
-        DataFrame({"a": [9], "b": [10], "c": [11], "d": [np.nan]}, index=[2]),
+        pd.DataFrame({"a": [1, 5], "b": [2, 6], "c": [3, 7], "d": [4, 8]}),
+        pd.DataFrame({"a": [9], "b": [10], "c": [11], "d": [np.nan]}, index=[2]),
     ]
 
     for i, result in enumerate(result_chunks):
         tm.assert_frame_equal(result, expected_frames[i])
+
+
+@skip_pyarrow  # MultiIndex columns are not supported by the pyarrow engine
+@pytest.mark.parametrize("run_start", [3, 4, 5, 6])
+def test_short_line_run_at_chunk_boundary(all_parsers, monkeypatch, run_start):
+    # GH#40587: with the C engine and low_memory=True, a run of consecutive
+    # lines with too few fields crossing an internal chunk boundary raised
+    # ParserError instead of NaN-padding the missing fields; parametrized so
+    # the run crosses the 4-row boundary at every possible offset
+    parser = all_parsers
+    heuristic = 2**5  # 4-row chunks at this table width
+    rows = ["0,1,2,3,4"] * 24
+    rows[run_start] = rows[run_start + 1] = "0,1,2"
+    data = "a,a,a,b,b\nx,y,z,w,v\n" + "\n".join(rows) + "\n"
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        result = parser.read_csv(StringIO(data), header=[0, 1])
+
+    expected = pd.DataFrame(
+        {
+            "0": [0] * 24,
+            "1": [1] * 24,
+            "2": [2] * 24,
+            "3": [3.0] * 24,
+            "4": [4.0] * 24,
+        }
+    )
+    expected.iloc[[run_start, run_start + 1], 3:] = np.nan
+    expected.columns = pd.MultiIndex.from_arrays(
+        [["a", "a", "a", "b", "b"], ["x", "y", "z", "w", "v"]]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # the pyarrow engine does not NaN-pad short lines
+@pytest.mark.parametrize("run_start", [3, 4, 5, 6])
+def test_short_line_run_at_chunk_boundary_single_header(
+    all_parsers, monkeypatch, run_start
+):
+    # GH#40587: the single-header variant of the case above never hit the
+    # bug (only a multi-row header leaves buffer slots exempt from padding),
+    # so this guards the fixed header bookkeeping in the common case instead
+    parser = all_parsers
+    heuristic = 2**5  # 4-row chunks at this table width
+    rows = ["0,1,2,3,4"] * 24
+    rows[run_start] = rows[run_start + 1] = "0,1,2"
+    data = "a,b,c,d,e\n" + "\n".join(rows) + "\n"
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        result = parser.read_csv(StringIO(data))
+
+    expected = pd.DataFrame(
+        {
+            "a": [0] * 24,
+            "b": [1] * 24,
+            "c": [2] * 24,
+            "d": [3.0] * 24,
+            "e": [4.0] * 24,
+        }
+    )
+    expected.iloc[[run_start, run_start + 1], 3:] = np.nan
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # the pyarrow engine does not support chunksize
+@pytest.mark.parametrize("on_bad_lines", ["error", "skip"])
+@pytest.mark.parametrize("chunksize", [1, 2])
+def test_bad_line_first_in_chunk(all_parsers, on_bad_lines, chunksize):
+    # GH#40587: reading with chunksize consumes each chunk's rows exactly, so
+    # the next line lands in buffer slot 0 with no predecessor left to
+    # compare against; a too-long line landing there escaped on_bad_lines
+    # handling and was silently truncated to the table width and kept
+    parser = all_parsers
+    data = "1,2,3\n4,5,6\n7,8,9,10\n11,12,13\n"
+
+    if on_bad_lines == "error":
+        with pytest.raises(ParserError, match="Expected 3 fields"):
+            with parser.read_csv(
+                StringIO(data),
+                header=None,
+                on_bad_lines="error",
+                chunksize=chunksize,
+            ) as reader:
+                pd.concat(reader)
+    else:
+        with parser.read_csv(
+            StringIO(data),
+            header=None,
+            on_bad_lines="skip",
+            chunksize=chunksize,
+        ) as reader:
+            result = pd.concat(reader)
+        expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [11, 12, 13]])
+        tm.assert_frame_equal(result, expected)

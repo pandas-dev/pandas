@@ -854,6 +854,40 @@ Here, ``side="right"`` returns the position just past ``"2000-01-02"``, and
 ``side="left"`` returns the position of ``"2000-01-04"`` itself. Since ``.iloc``
 uses standard Python half-open slicing, the result excludes both endpoints.
 
+.. _timeseries.at_time:
+
+Selecting a time of day
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Like :ref:`partial string indexing <timeseries.partialindexing>`, the methods
+:meth:`~DataFrame.at_time` and :meth:`~DataFrame.between_time` operate on the
+object's index, selecting rows by their time of day regardless of the date.
+:meth:`~DataFrame.at_time` selects all timestamps at a particular time:
+
+.. ipython:: python
+
+   rng_time = pd.date_range("2018-01-01", periods=10, freq="6h")
+   ts_time = pd.Series(range(10), index=rng_time)
+   ts_time
+   ts_time.at_time("12:00")
+
+:meth:`~DataFrame.between_time` selects the rows whose time of day falls
+between two times, including both endpoints by default; the ``inclusive``
+argument controls whether each endpoint is included:
+
+.. ipython:: python
+
+   ts_time.between_time("00:00", "12:00")
+   ts_time.between_time("00:00", "12:00", inclusive="left")
+
+Both methods also accept ``datetime.time`` objects:
+
+.. ipython:: python
+
+   import datetime
+
+   ts_time.at_time(datetime.time(12, 0))
+
 Truncating & fancy indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1031,6 +1065,22 @@ business offsets operate on the weekdays.
    offset.rollforward(ts)
    # Date is brought to the closest offset date first and then the hour is added
    ts + offset
+
+Both methods roll *conditionally*: a date that is already a valid offset date is
+returned unchanged, so :meth:`rollforward` and :meth:`rollback` give the same
+answer there. Use :meth:`is_on_offset` to check whether a date is already valid,
+and add or subtract the offset to move unconditionally.
+
+.. ipython:: python
+
+   # The last business day of July 2021, so already a valid BMonthEnd date
+   ts = pd.Timestamp("2021-07-30")
+   offset = pd.offsets.BMonthEnd()
+   offset.is_on_offset(ts)
+   offset.rollback(ts)
+   offset.rollforward(ts)
+   # Subtract the offset to always move to the previous business month end
+   ts - offset
 
 These operations preserve time (hour, minute, etc) information by default.
 To reset time to midnight, use :meth:`normalize` before or after applying
@@ -1590,8 +1640,8 @@ or some other non-observed day.  Defined observance rules are:
     :header: "Rule", "Description"
     :widths: 15, 70
 
-    "next_workday", "move Saturday and Sunday to Monday"
-    "previous_workday", "move Saturday and Sunday to Friday"
+    "next_workday", "move to the next weekday, always advancing by at least one day"
+    "previous_workday", "move to the previous weekday, always moving back by at least one day"
     "nearest_workday", "move Saturday to Friday and Sunday to Monday"
     "before_nearest_workday", "apply ``nearest_workday`` and then move to previous workday before that day"
     "after_nearest_workday", "apply ``nearest_workday`` and then move to next workday after that day"

@@ -1113,6 +1113,31 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         )
         return self._wrap_reduction_result(axis, result)
 
+    # Without these, NumpyExtensionArray's methods bypass _reduce's gate, GH#68389
+    def prod(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("prod", skipna=skipna, **kwargs)
+
+    def mean(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("mean", skipna=skipna, **kwargs)
+
+    def median(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("median", skipna=skipna, **kwargs)
+
+    def std(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("std", skipna=skipna, **kwargs)
+
+    def var(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("var", skipna=skipna, **kwargs)
+
+    def sem(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("sem", skipna=skipna, **kwargs)
+
+    def skew(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("skew", skipna=skipna, **kwargs)
+
+    def kurt(self, *, skipna: bool = True, **kwargs) -> Scalar:
+        return self._reduce("kurt", skipna=skipna, **kwargs)
+
     def value_counts(self, dropna: bool = True) -> Series:
         result = super().value_counts(dropna=dropna)
 
@@ -1270,7 +1295,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
-            if not lib.is_string_array(result, skipna=True):
+            # GH#40624 is_string_array is False for a length-zero array, but a
+            #  length-zero result should keep the string dtype
+            if len(result) and not lib.is_string_array(result, skipna=True):
                 return result
             return self._from_backing_data(result)
         else:

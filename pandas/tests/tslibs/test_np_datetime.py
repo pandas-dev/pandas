@@ -1,10 +1,15 @@
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import (
+    iNaT,
+    is_supported_dtype,
+)
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    add_overflowsafe,
     astype_overflowsafe,
     is_unitless,
     py_get_unit_from_dtype,
@@ -18,7 +23,6 @@ from pandas.compat.numpy import (
 import pandas._testing as tm
 
 
-@pytest.mark.filterwarnings("ignore:.*'generic' unit:DeprecationWarning")
 def test_is_unitless():
     dtype = np.dtype("M8[ns]")
     assert not is_unitless(dtype)
@@ -140,6 +144,65 @@ def test_td64_to_tdstruct():
     assert res4 == exp4
 
 
+# add_overflowsafe switches to a vectorized path once the input is large
+#  enough, so these use an array well past that threshold; the guards have to
+#  hold on both routes.
+LARGE = 5000
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_rejects_int64_overflow(size):
+    left = np.full(size, np.iinfo(np.int64).max, dtype="i8")
+    right = np.array(1, dtype="i8")
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        add_overflowsafe(left, right)
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_rejects_nat_sentinel_result(size):
+    # GH#66552 a sum landing on iNaT is indistinguishable from a missing value
+    left = np.full(size, iNaT + 1, dtype="i8")
+    right = np.array(-1, dtype="i8")
+
+    with pytest.raises(OverflowError, match="Overflow in int64 addition"):
+        add_overflowsafe(left, right)
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_allows_bounds(size):
+    # one step inside the range on either end is fine
+    left = np.full(size, iNaT + 2, dtype="i8")
+    result = add_overflowsafe(left, np.array(-1, dtype="i8"))
+    tm.assert_numpy_array_equal(result, np.full(size, iNaT + 1, dtype="i8"))
+
+    left = np.full(size, np.iinfo(np.int64).max - 1, dtype="i8")
+    result = add_overflowsafe(left, np.array(1, dtype="i8"))
+    expected = np.full(size, np.iinfo(np.int64).max, dtype="i8")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("size", [1, LARGE])
+def test_add_overflowsafe_propagates_nat(size):
+    left = np.full(size, iNaT, dtype="i8")
+    result = add_overflowsafe(left, np.array(1, dtype="i8"))
+    tm.assert_numpy_array_equal(result, np.full(size, iNaT, dtype="i8"))
+
+    left = np.arange(size, dtype="i8")
+    result = add_overflowsafe(left, np.array(iNaT, dtype="i8"))
+    tm.assert_numpy_array_equal(result, np.full(size, iNaT, dtype="i8"))
+
+
+def test_add_overflowsafe_elementwise_right():
+    # a bounds check on the operands has to hold for every pairing, and the
+    #  result keeps the shape of `left`
+    left = np.arange(LARGE, dtype="i8").reshape(50, -1)
+    right = np.full(left.shape, 7, dtype="i8")
+
+    result = add_overflowsafe(left, right)
+    tm.assert_numpy_array_equal(result, left + 7)
+
+
 class TestAstypeOverflowSafe:
     def test_pass_non_dt64_array(self):
         # check that we raise, not segfault
@@ -170,6 +233,22 @@ class TestAstypeOverflowSafe:
 
         with pytest.raises(TypeError, match=msg):
             astype_overflowsafe(arr, dtype, copy=False)
+
+    @pytest.mark.parametrize("kind", ["M", "m"])
+    def test_unit_multiplier_raises(self, kind):
+        # GH#25611 the multiplier is invisible to get_unit_from_dtype, so
+        #  converting from it would silently scale every value
+        arr = np.arange(5, dtype="i8").view(f"{kind}8[10s]")
+        name = "datetime64" if kind == "M" else "timedelta64"
+        msg = (
+            "units containing a multiplier are not supported, "
+            f"got dtype {name}\\[10s\\]"
+        )
+        with pytest.raises(ValueError, match=msg):
+            astype_overflowsafe(arr, np.dtype(f"{kind}8[s]"))
+
+        with pytest.raises(ValueError, match=msg):
+            astype_overflowsafe(arr.view(f"{kind}8[s]"), np.dtype(f"{kind}8[10s]"))
 
     def test_astype_overflowsafe_dt64(self):
         dtype = np.dtype("M8[ns]")
@@ -235,3 +314,11 @@ class TestAstypeOverflowSafe:
         result = astype_overflowsafe(arr, dtype, round_ok=True)
         expected = arr.astype(dtype)
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_is_supported_dtype_unit_multiplier(kind):
+    # GH#25611 a multiplier is not a resolution pandas can hold
+    assert is_supported_dtype(np.dtype(f"{kind}8[s]"))
+    assert not is_supported_dtype(np.dtype(f"{kind}8[10s]"))
+    assert not is_supported_dtype(np.dtype(f"{kind}8[2ns]"))

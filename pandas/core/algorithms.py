@@ -158,20 +158,21 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8")
         else:
-            # e.g. Sparse[bool, False]  # TODO: no test cases get here
+            # e.g. Sparse[bool, False], see test_mode_sparse_bool
             return np.asarray(values).astype("uint8", copy=False)
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values)
 
     elif is_float_dtype(values.dtype):
+        # itemsize comes off the values, not the dtype: an ExtensionDtype
+        # (e.g. Sparse[float64]) may not have one.
         # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
-        # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype, dtype[Any]]"
-        # has no attribute "itemsize"
-        if values.dtype.itemsize in [2, 12, 16]:  # type: ignore[union-attr]
+        float_values = np.asarray(values)
+        if float_values.dtype.itemsize in [2, 12, 16]:
             # we dont (yet) have float128 hashtable support
-            return ensure_float64(values)
-        return np.asarray(values)
+            return ensure_float64(float_values)
+        return float_values
 
     elif is_complex_dtype(values.dtype):
         # NumpyExtensionArray needs to be unwrapped to the underlying ndarray
@@ -507,6 +508,21 @@ _MINIMUM_COMP_ARR_LEN = 1_000_000
 _FLOAT64_INT_EXACT_MAX = 2**53
 
 
+def _may_lose_precision_as_float64(arr: np.ndarray) -> bool:
+    """
+    Whether casting ``arr`` to float64 could change an integer's identity.
+
+    Only 64-bit integers can carry a magnitude that float64 cannot represent
+    exactly; narrower widths always round-trip.
+    """
+    if arr.dtype.kind not in "iu" or arr.dtype.itemsize < 8 or arr.size == 0:
+        return False
+    return (
+        int(arr.min()) < -_FLOAT64_INT_EXACT_MAX
+        or int(arr.max()) > _FLOAT64_INT_EXACT_MAX
+    )
+
+
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
@@ -618,10 +634,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                     # values is an ndarray here (it came from the numeric
                     # branch of _ensure_arraylike above).
                     values_arr = cast("np.ndarray", values)
-                    needs_object = (
-                        int(values_arr.min()) < -_FLOAT64_INT_EXACT_MAX
-                        or int(values_arr.max()) > _FLOAT64_INT_EXACT_MAX
-                    )
+                    needs_object = _may_lose_precision_as_float64(values_arr)
                 else:
                     # float/complex values_dtype means _ensure_arraylike may
                     # already have rounded large ints in a mixed int/float
@@ -657,6 +670,23 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     elif isinstance(values.dtype, ExtensionDtype):
         return isin(np.asarray(comps_array), np.asarray(values))
 
+    # GH#59609: uint64 mixed with int64 has float64 as its common dtype, which
+    # is lossy above 2**53. Targets outside the other side's range can never
+    # match, so dropping them lets the rest be cast losslessly.
+    if comps_array.dtype == np.uint64 and values.dtype == np.int64:
+        values = values[values >= 0].astype(np.uint64)
+    elif comps_array.dtype == np.int64 and values.dtype == np.uint64:
+        values = values[values <= np.iinfo(np.int64).max].astype(np.int64)
+
+    # GH#46485, GH#59609: whatever remains may still have a float64/complex128
+    # common dtype, which cannot represent every 64-bit integer; comparing
+    # through it would report a match between distinct values above 2**53.
+    common = np_find_common_type(values.dtype, comps_array.dtype)
+    lossy_common = common.kind in "fc" and (
+        _may_lose_precision_as_float64(values)
+        or _may_lose_precision_as_float64(comps_array)
+    )
+
     # GH16012
     # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
@@ -669,6 +699,8 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
+        # np.isin would do the same lossy promotion internally
+        and not lossy_common
         and not any(v is NA for v in values)
     ):
         # If the values include nan we need to check for nan explicitly
@@ -682,7 +714,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f = lambda a, b: np.isin(a, b).ravel()
 
     else:
-        common = np_find_common_type(values.dtype, comps_array.dtype)
+        if lossy_common:
+            # Compare as Python ints instead of through the lossy float.
+            common = np.dtype(object)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
@@ -1285,6 +1319,35 @@ def is_monotonic(values: ArrayLike) -> tuple[bool, bool, bool]:
 # ---- #
 
 
+def occurrence_rank(codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]:
+    """
+    For each element, the number of earlier elements with the same code.
+
+    Parameters
+    ----------
+    codes : np.ndarray[intp]
+
+    Returns
+    -------
+    np.ndarray[intp]
+
+    Examples
+    --------
+    >>> occurrence_rank(np.array([0, 1, 0, 0, 1]))
+    array([0, 0, 1, 2, 1])
+    """
+    order = np.argsort(codes, kind="stable")
+    sorted_codes = codes[order]
+    n = len(codes)
+    is_start = np.empty(n, dtype=bool)
+    is_start[:1] = True
+    is_start[1:] = sorted_codes[1:] != sorted_codes[:-1]
+    group_start = np.maximum.accumulate(np.where(is_start, np.arange(n), 0))
+    rank = np.empty(n, dtype=np.intp)
+    rank[order] = np.arange(n) - group_start
+    return rank
+
+
 @set_module("pandas.api.extensions")
 def take(
     arr,
@@ -1506,8 +1569,6 @@ def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
         number of periods
     axis : {0, 1}
         axis to shift on
-    stacklevel : int, default 3
-        The stacklevel for the lost dtype warning.
 
     Returns
     -------

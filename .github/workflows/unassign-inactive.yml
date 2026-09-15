@@ -1,0 +1,47 @@
+name: Issue and PR maintenance
+on:
+  schedule:
+  - cron: "0 1 * * *"
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  maintenance:
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      (github.event_name == 'schedule' ||
+       (github.event.pull_request.merged == false &&
+        contains(github.event.pull_request.labels.*.name, 'Stale')))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts
+          persist-credentials: false
+      - name: Unassign inactive issues and sweep stale PRs
+        if: github.event_name == 'schedule'
+        run: >-
+          python3 -m scripts.issue_assignment.unassign_inactive sweep
+          --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Reconcile Awaiting Review labels
+        if: github.event_name == 'schedule'
+        run: >-
+          python3 -m scripts.issue_assignment.label_awaiting_review
+          --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Free issues linked to a closed stale PR
+        if: github.event_name != 'schedule'
+        run: >-
+          python3 -m scripts.issue_assignment.unassign_inactive pr-closed
+          --repo "$GITHUB_REPOSITORY" --event-path "$GITHUB_EVENT_PATH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

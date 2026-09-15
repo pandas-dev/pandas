@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import (
+    datetime,
+    tzinfo,
+)
 import functools
 from itertools import zip_longest
 import operator
@@ -42,10 +45,10 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
+from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
@@ -981,10 +984,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
         elif is_scalar(result):
             # e.g. matmul
-            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -2872,9 +2875,20 @@ class Index(IndexOpsMixin, PandasObject):
             raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
         if self.hasnans:
-            if not can_hold_element(self._values, value) and not is_valid_na_for_dtype(
-                value, self.dtype
-            ):
+            values = self._values
+            validate = getattr(values, "_validate_setitem_value", None)
+            if validate is not None and not isinstance(self.dtype, np.dtype):
+                # GH#25288 can_hold_element is permissive for most ExtensionArrays;
+                #  the array's own setitem validation is authoritative.
+                try:
+                    validate(value)
+                    can_hold = True
+                except (ValueError, TypeError):
+                    can_hold = False
+            else:
+                can_hold = can_hold_element(values, value)
+
+            if not can_hold and not is_valid_na_for_dtype(value, self.dtype):
                 # GH#45153 fillna with incompatible value requiring any
                 #  dtype casting is deprecated.
                 warnings.warn(
@@ -4275,7 +4289,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         form: Literal["slice", "positional"],
         key: object,
-        reraise: lib.NoDefault | None | Exception = lib.no_default,
+        reraise: lib.NoDefault | Exception | None = lib.no_default,
     ) -> None:
         """
         Raise consistent invalid indexer message.
@@ -6476,6 +6490,32 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _pairwise_indexer(self, target: Index) -> npt.NDArray[np.intp]:
+        """
+        Positions in self for each element of target, pairing the k-th
+        occurrence of a label in target with its k-th occurrence in self.
+
+        Unlike get_indexer, self may contain duplicates. target must contain
+        every label of self. Returns -1 where self has no k-th occurrence.
+
+        Parameters
+        ----------
+        target : Index
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+        """
+        labels = target.unique()
+        self_codes = labels.get_indexer_for(self)
+        target_codes = labels.get_indexer_for(target)
+        self_rank = algos.occurrence_rank(self_codes)
+        target_rank = algos.occurrence_rank(target_codes)
+        stride = max(self_rank.max(initial=0), target_rank.max(initial=0)) + 1
+        self_keys = Index(self_codes * stride + self_rank)
+        target_keys = target_codes * stride + target_rank
+        return self_keys.get_indexer(target_keys)
+
     def _get_indexer_strict(
         self, key: Axes, axis_name: str_t
     ) -> tuple[Index, np.ndarray]:
@@ -6634,7 +6674,8 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
                 result = type(other)(self)
-            except OutOfBoundsDatetime:
+            except ValueError:
+                # e.g. out of bounds, or dates mixed with tz-aware Timestamps
                 return self, other
             else:
                 if self.is_unique and not result.is_unique:
@@ -6862,7 +6903,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
     def replace(
-        self, to_replace: Any = None, value: Any = lib.no_default, regex: bool = False
+        self, to_replace: Any = None, value: Any = lib.no_default, regex: Any = False
     ) -> Index:
         """
         Replace values in the Index.
@@ -6872,12 +6913,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        to_replace : scalar, list, or dict
-            The value(s) to be replaced. If a dict is provided, value must be omitted.
-        value : scalar, default None
-            The value to replace occurrences of to_replace with.
-        regex : bool, default False
-            Whether to interpret to_replace as a regular expression.
+        to_replace : str, regex, list, dict, Series, scalar, or None
+            The value(s) to be replaced. If a dict is provided, `value` must be omitted.
+        value : scalar, dict, list, str, regex, default None
+            The value to replace occurrences of `to_replace` with.
+        regex : bool or same types as `to_replace`, default False
+            Whether to interpret `to_replace` and/or `value` as regular expressions.
 
         Returns
         -------
@@ -6898,10 +6939,14 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             raise NotImplementedError("replace is not implemented for MultiIndex")
 
-        ser = self.to_series()
+        from pandas import Series
+
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         replaced = ser.replace(to_replace, value, regex=regex)
 
-        return self._shallow_copy(replaced._values, name=self.name)
+        return Index(replaced, dtype=replaced.dtype, name=self.name, copy=False)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
@@ -7335,12 +7380,12 @@ class Index(IndexOpsMixin, PandasObject):
         # attempt to parse and check that the offsets are the same
         if isinstance(start, (str, datetime)) and isinstance(end, (str, datetime)):
             try:
-                ts_start = Timestamp(start)
-                ts_end = Timestamp(end)
+                tz_start = _slice_bound_tzinfo(start)
+                tz_end = _slice_bound_tzinfo(end)
             except (ValueError, TypeError):
                 pass
             else:
-                if not tz_compare(ts_start.tzinfo, ts_end.tzinfo):
+                if not tz_compare(tz_start, tz_end):
                     raise ValueError("Both dates must have the same UTC offset")
 
         start_slice = None
@@ -8066,7 +8111,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return maybe_unbox_numpy_scalar(first, dtype=self.dtype)
+                return maybe_unbox_numpy_scalar(first, object_with_dtype=self)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8078,7 +8123,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values._reduce(name="min", skipna=skipna)
 
         return maybe_unbox_numpy_scalar(
-            nanops.nanmin(self._values, skipna=skipna), dtype=self.dtype
+            nanops.nanmin(self._values, skipna=skipna), object_with_dtype=self
         )
 
     def max(
@@ -8141,7 +8186,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return maybe_unbox_numpy_scalar(last, dtype=self.dtype)
+                return maybe_unbox_numpy_scalar(last, object_with_dtype=self)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8153,7 +8198,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values._reduce(name="max", skipna=skipna)
 
         return maybe_unbox_numpy_scalar(
-            nanops.nanmax(self._values, skipna=skipna), dtype=self.dtype
+            nanops.nanmax(self._values, skipna=skipna), object_with_dtype=self
         )
 
     # --------------------------------------------------------------------
@@ -8195,7 +8240,6 @@ def maybe_sequence_to_range(sequence: Axes) -> Axes:
     Parameters
     ----------
     sequence : 1D sequence
-    names : sequence of str
 
     Returns
     -------
@@ -8364,6 +8408,25 @@ def trim_front(strings: list[str]) -> list[str]:
     if smallest_leading_space > 0:
         strings = [x[smallest_leading_space:] for x in strings]
     return strings
+
+
+def _slice_bound_tzinfo(bound: str | datetime) -> tzinfo | None:
+    """
+    tzinfo of a ``slice_locs`` bound, for the GH#16785 UTC-offset comparison.
+
+    GH#50907: this parse is internal, so a quarterly string bound must not emit
+    the deprecation -- on a :class:`DatetimeIndex` that would duplicate the one
+    ``get_slice_bound`` gives, and on a :class:`PeriodIndex` or an object Index
+    it would be spurious. A quarterly string is always naive, so the opted-out
+    parse is needed only to recognize one; anything else falls through to
+    ``Timestamp``, which does not warn.
+    """
+    if isinstance(bound, str) and ("Q" in bound or "q" in bound):
+        # GH#45580 parse_datetime_string_with_reso rejects a non-exact str
+        parsed, reso = parse_datetime_string_with_reso(str(bound), warn_quarter=False)
+        if reso == "quarter":
+            return parsed.tzinfo
+    return Timestamp(bound).tzinfo
 
 
 def _validate_join_method(method: str) -> None:

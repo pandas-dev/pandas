@@ -22,7 +22,6 @@ import pytest
 from pandas._config import using_string_dtype
 
 import pandas as pd
-from pandas import Categorical
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
@@ -51,28 +50,28 @@ def data():
     * data[0] and data[1] should both be non missing
     * data[0] and data[1] should not be equal
     """
-    return Categorical(make_data(10))
+    return pd.Categorical(make_data(10))
 
 
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return Categorical([np.nan, "A"])
+    return pd.Categorical([np.nan, "A"])
 
 
 @pytest.fixture
 def data_for_sorting():
-    return Categorical(["A", "B", "C"], categories=["C", "A", "B"], ordered=True)
+    return pd.Categorical(["A", "B", "C"], categories=["C", "A", "B"], ordered=True)
 
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return Categorical(["A", None, "B"], categories=["B", "A"], ordered=True)
+    return pd.Categorical(["A", None, "B"], categories=["B", "A"], ordered=True)
 
 
 @pytest.fixture
 def data_for_grouping():
-    return Categorical(["a", "a", None, None, "b", "b", "a", "c"])
+    return pd.Categorical(["a", "a", None, None, "b", "b", "a", "c"])
 
 
 class TestCategorical(base.ExtensionTests):
@@ -179,6 +178,12 @@ class TestCategorical(base.ExtensionTests):
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # Plotting categorical is supported by matplotlib, but not pandas at the moment
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(plot_data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

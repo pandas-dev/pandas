@@ -27,6 +27,7 @@ def compare_mismatched_resolutions(
 def add_overflowsafe(
     left: npt.NDArray[np.int64],
     right: npt.NDArray[np.int64],
+    sentinel_ok: bool = ...,
 ) -> npt.NDArray[np.int64]: ...
 def mul_overflowsafe(
     left: npt.NDArray[np.int64],

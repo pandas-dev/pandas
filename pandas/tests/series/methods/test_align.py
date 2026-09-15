@@ -4,11 +4,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Series,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 
 
@@ -97,8 +92,8 @@ def test_align_multiindex():
         [range(2), range(3), range(2)], names=("a", "b", "c")
     )
     idx = pd.Index(range(2), name="b")
-    s1 = Series(np.arange(12, dtype="int64"), index=midx)
-    s2 = Series(np.arange(2, dtype="int64"), index=idx)
+    s1 = pd.Series(np.arange(12, dtype="int64"), index=midx)
+    s2 = pd.Series(np.arange(2, dtype="int64"), index=idx)
 
     # these must be the same results (but flipped)
     res1l, res1r = s1.align(s2, join="left")
@@ -107,7 +102,7 @@ def test_align_multiindex():
     expl = s1
     tm.assert_series_equal(expl, res1l)
     tm.assert_series_equal(expl, res2r)
-    expr = Series([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
+    expr = pd.Series([0, 0, 1, 1, np.nan, np.nan] * 2, index=midx)
     tm.assert_series_equal(expr, res1r)
     tm.assert_series_equal(expr, res2l)
 
@@ -117,17 +112,17 @@ def test_align_multiindex():
     exp_idx = pd.MultiIndex.from_product(
         [range(2), range(2), range(2)], names=("a", "b", "c")
     )
-    expl = Series([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
+    expl = pd.Series([0, 1, 2, 3, 6, 7, 8, 9], index=exp_idx)
     tm.assert_series_equal(expl, res1l)
     tm.assert_series_equal(expl, res2r)
-    expr = Series([0, 0, 1, 1] * 2, index=exp_idx)
+    expr = pd.Series([0, 0, 1, 1] * 2, index=exp_idx)
     tm.assert_series_equal(expr, res1r)
     tm.assert_series_equal(expr, res2l)
 
 
 def test_align_dt64tzindex_mismatched_tzs():
-    idx1 = date_range("2001", periods=5, freq="h", tz="US/Eastern")
-    ser = Series(np.random.default_rng(2).standard_normal(len(idx1)), index=idx1)
+    idx1 = pd.date_range("2001", periods=5, freq="h", tz="US/Eastern")
+    ser = pd.Series(np.random.default_rng(2).standard_normal(len(idx1)), index=idx1)
     ser_central = ser.tz_convert("US/Central")
     # different timezones convert to UTC
 
@@ -137,21 +132,21 @@ def test_align_dt64tzindex_mismatched_tzs():
 
 
 def test_align_periodindex(join_type):
-    rng = period_range("1/1/2000", "1/1/2010", freq="Y")
-    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+    rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
+    ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     # TODO: assert something?
     ts.align(ts[::2], join=join_type)
 
 
 def test_align_stringindex(any_string_dtype):
-    left = Series(range(3), index=pd.Index(["a", "b", "d"], dtype=any_string_dtype))
-    right = Series(range(3), index=pd.Index(["a", "b", "c"], dtype=any_string_dtype))
+    left = pd.Series(range(3), index=pd.Index(["a", "b", "d"], dtype=any_string_dtype))
+    right = pd.Series(range(3), index=pd.Index(["a", "b", "c"], dtype=any_string_dtype))
     result_left, result_right = left.align(right)
 
     expected_idx = pd.Index(["a", "b", "c", "d"], dtype=any_string_dtype)
-    expected_left = Series([0, 1, np.nan, 2], index=expected_idx)
-    expected_right = Series([0, 1, 2, np.nan], index=expected_idx)
+    expected_left = pd.Series([0, 1, np.nan, 2], index=expected_idx)
+    expected_right = pd.Series([0, 1, 2, np.nan], index=expected_idx)
 
     tm.assert_series_equal(result_left, expected_left)
     tm.assert_series_equal(result_right, expected_right)
@@ -159,16 +154,16 @@ def test_align_stringindex(any_string_dtype):
 
 def test_align_left_fewer_levels():
     # GH#45224
-    left = Series([2], index=pd.MultiIndex.from_tuples([(1, 3)], names=["a", "c"]))
-    right = Series(
+    left = pd.Series([2], index=pd.MultiIndex.from_tuples([(1, 3)], names=["a", "c"]))
+    right = pd.Series(
         [1], index=pd.MultiIndex.from_tuples([(1, 2, 3)], names=["a", "b", "c"])
     )
     result_left, result_right = left.align(right)
 
-    expected_right = Series(
+    expected_right = pd.Series(
         [1], index=pd.MultiIndex.from_tuples([(1, 3, 2)], names=["a", "c", "b"])
     )
-    expected_left = Series(
+    expected_left = pd.Series(
         [2], index=pd.MultiIndex.from_tuples([(1, 3, 2)], names=["a", "c", "b"])
     )
     tm.assert_series_equal(result_left, expected_left)
@@ -177,18 +172,18 @@ def test_align_left_fewer_levels():
 
 def test_align_left_different_named_levels():
     # GH#45224
-    left = Series(
+    left = pd.Series(
         [2], index=pd.MultiIndex.from_tuples([(1, 4, 3)], names=["a", "d", "c"])
     )
-    right = Series(
+    right = pd.Series(
         [1], index=pd.MultiIndex.from_tuples([(1, 2, 3)], names=["a", "b", "c"])
     )
     result_left, result_right = left.align(right)
 
-    expected_left = Series(
+    expected_left = pd.Series(
         [2], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
-    expected_right = Series(
+    expected_right = pd.Series(
         [1], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     tm.assert_series_equal(result_left, expected_left)

@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
@@ -58,11 +57,11 @@ class TestSeriesToCSV:
             outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
         series = self.read_csv(path, sep="|", parse_dates=True)
-        check_series = Series({datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0})
+        check_series = pd.Series({datetime(1998, 1, 1): 1.0, datetime(1999, 1, 1): 2.0})
         tm.assert_series_equal(check_series, series)
 
         series = self.read_csv(path, sep="|", parse_dates=False)
-        check_series = Series({"1998-01-01": 1.0, "1999-01-01": 2.0})
+        check_series = pd.Series({"1998-01-01": 1.0, "1999-01-01": 2.0})
         tm.assert_series_equal(check_series, series)
 
     def test_to_csv(self, datetime_series, temp_file):
@@ -78,7 +77,7 @@ class TestSeriesToCSV:
 
     def test_to_csv_unicode_index(self):
         buf = StringIO()
-        s = Series(["\u05d0", "d2"], index=["\u05d0", "\u05d1"])
+        s = pd.Series(["\u05d0", "d2"], index=["\u05d0", "\u05d1"])
 
         s.to_csv(buf, encoding="UTF-8", header=False)
         buf.seek(0)
@@ -87,15 +86,15 @@ class TestSeriesToCSV:
         tm.assert_series_equal(s, s2)
 
     def test_to_csv_float_format(self, temp_file):
-        ser = Series([0.123456, 0.234567, 0.567567])
+        ser = pd.Series([0.123456, 0.234567, 0.567567])
         ser.to_csv(temp_file, float_format="%.2f", header=False)
 
         rs = self.read_csv(temp_file)
-        xp = Series([0.12, 0.23, 0.57])
+        xp = pd.Series([0.12, 0.23, 0.57])
         tm.assert_series_equal(rs, xp)
 
     def test_to_csv_list_entries(self):
-        s = Series(["jack and jill", "jesse and frank"])
+        s = pd.Series(["jack and jill", "jesse and frank"])
 
         split = s.str.split(r"\s+and\s+")
 
@@ -106,7 +105,7 @@ class TestSeriesToCSV:
         # GH 8215
         # Series.to_csv() was returning None, inconsistent with
         # DataFrame.to_csv() which returned string
-        s = Series([1, 2, 3])
+        s = pd.Series([1, 2, 3])
         csv_str = s.to_csv(path_or_buf=None, header=False)
         assert isinstance(csv_str, str)
 
@@ -114,14 +113,16 @@ class TestSeriesToCSV:
         "s,encoding",
         [
             (
-                Series([0.123456, 0.234567, 0.567567], index=["A", "B", "C"], name="X"),
+                pd.Series(
+                    [0.123456, 0.234567, 0.567567], index=["A", "B", "C"], name="X"
+                ),
                 None,
             ),
             # GH 21241, 21118
-            (Series(["abc", "def", "ghi"], name="X"), "ascii"),
-            (Series(["123", "你好", "世界"], name="中文"), "gb2312"),
+            (pd.Series(["abc", "def", "ghi"], name="X"), "ascii"),
+            (pd.Series(["123", "你好", "世界"], name="中文"), "gb2312"),
             (
-                Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"),  # noqa: RUF001
+                pd.Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"),  # noqa: RUF001
                 "cp737",
             ),
         ],
@@ -165,7 +166,7 @@ class TestSeriesToCSV:
 
     def test_to_csv_interval_index(self, using_infer_string, temp_file):
         # GH 28210
-        s = Series(["foo", "bar", "baz"], index=pd.interval_range(0, 3))
+        s = pd.Series(["foo", "bar", "baz"], index=pd.interval_range(0, 3))
 
         s.to_csv(temp_file, header=False)
         result = self.read_csv(temp_file, index_col=0)

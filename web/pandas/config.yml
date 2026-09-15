@@ -166,9 +166,6 @@ sponsors:
       kind: regular
       description: "Bodo's parallel computing platform uses pandas API, and Bodo financially supports pandas development to help improve pandas, in particular the pandas API"
   inkind: # not included in active so they don't appear in the home page
-    - name: "OVH"
-      url: https://us.ovhcloud.com/
-      description: "Website and documentation hosting."
     - name: "Indeed"
       url: https://opensource.indeedeng.io/
       description: "<i>pandas</i> logo design"

@@ -32,7 +32,6 @@ from pandas.core.construction import extract_array
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
-        Hashable,
         Iterable,
         Sequence,
     )
@@ -526,6 +525,11 @@ def _nanargminmax(
     """
     See nanargminmax.__doc__.
     """
+    if mask.size and mask.all():
+        # func would raise "empty sequence" for an array that is not empty;
+        # match the message nanops raises for the numpy-backed dtypes
+        raise ValueError("Encountered all NA values")
+
     idx = np.arange(values.shape[0])
     non_nans = values[~mask]
     non_nan_idx = idx[~mask]
@@ -636,35 +640,6 @@ def ensure_key_mapped(
     return result
 
 
-def get_indexer_dict(
-    label_list: list[np.ndarray], keys: list[Index]
-) -> dict[Hashable, npt.NDArray[np.intp]]:
-    """
-    Returns
-    -------
-    dict:
-        Labels mapped to indexers.
-    """
-    shape = tuple(len(x) for x in keys)
-
-    group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-    if np.all(group_index == -1):
-        # Short-circuit, lib.indices_fast will return the same
-        return {}
-    ngroups = (
-        ((group_index.size and group_index.max()) + 1)
-        if is_int64_overflow_possible(shape)
-        else np.prod(shape, dtype="i8")
-    )
-
-    sorter = get_group_index_sorter(group_index, ngroups)
-
-    sorted_labels = [lab.take(sorter) for lab in label_list]
-    group_index = group_index.take(sorter)
-
-    return lib.indices_fast(sorter, group_index, keys, sorted_labels)
-
-
 # ----------------------------------------------------------------------
 # sorting levels...cleverly?
 
@@ -696,15 +671,15 @@ def get_group_index_sorter(
     np.ndarray[np.intp]
     """
     if ngroups is None:
-        ngroups = 1 + group_index.max()
+        ngroups = 1 + group_index.max()  # type: ignore[assignment]
     count = len(group_index)
     alpha = 0.0  # taking complexities literally; there may be
     beta = 1.0  # some room for fine-tuning these parameters
-    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))
+    do_groupsort = count > 0 and ((alpha + beta * ngroups) < (count * np.log(count)))  # type: ignore[operator]
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(
             ensure_platform_int(group_index),
-            ngroups,
+            ngroups,  # type: ignore[arg-type]
         )
         # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
