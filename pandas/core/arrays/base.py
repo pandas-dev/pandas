@@ -3199,10 +3199,15 @@ class ExtensionOpsMixin:
             ("__divmod__", divmod),
             ("__rdivmod__", roperator.rdivmod),
         ]
+        # a subclass may pick up these dunders from either ExtensionArray's
+        # stubs or from OpsMixin, so check both before treating them as unset.
         for op_name, op_func in arithmetic_ops:
             existing = getattr(cls, op_name, None)
-            if existing is getattr(ExtensionArray, op_name, None):
-                setattr(cls, op_name, cls._create_arithmetic_method(op_func))
+            if existing is not getattr(
+                ExtensionArray, op_name, None
+            ) and existing is not getattr(arraylike.OpsMixin, op_name, None):
+                continue
+            setattr(cls, op_name, cls._create_arithmetic_method(op_func))
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -3220,8 +3225,11 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in comparison_ops:
             existing = getattr(cls, op_name, None)
-            if existing is getattr(ExtensionArray, op_name, None):
-                setattr(cls, op_name, cls._create_comparison_method(op_func))
+            if existing is not getattr(
+                ExtensionArray, op_name, None
+            ) and existing is not getattr(arraylike.OpsMixin, op_name, None):
+                continue
+            setattr(cls, op_name, cls._create_comparison_method(op_func))
 
     @classmethod
     def _create_logical_method(cls, op):
@@ -3239,8 +3247,11 @@ class ExtensionOpsMixin:
         ]
         for op_name, op_func in logical_ops:
             existing = getattr(cls, op_name, None)
-            if existing is getattr(ExtensionArray, op_name, None):
-                setattr(cls, op_name, cls._create_logical_method(op_func))
+            if existing is not getattr(
+                ExtensionArray, op_name, None
+            ) and existing is not getattr(arraylike.OpsMixin, op_name, None):
+                continue
+            setattr(cls, op_name, cls._create_logical_method(op_func))
 
 
 @set_module("pandas.api.extensions")
