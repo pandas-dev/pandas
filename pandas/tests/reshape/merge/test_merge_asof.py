@@ -3375,6 +3375,9 @@ class TestAsOfMerge:
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
     with pd.option_context("future.infer_string", infer_string):
