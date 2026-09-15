@@ -1,6 +1,5 @@
-import importlib.util
 import os
-import shutil
+import types
 import warnings
 
 import pytest
@@ -26,34 +25,33 @@ _SRC = (
         ("2/tests", "mod.py"),
     ],
 )
-def test_find_stack_level_pandas_prefixed_siblings(tmp_path, suffix, tail):
+def test_find_stack_level_pandas_prefixed_siblings(suffix, tail):
     # GH#67992: find_stack_level must not treat pandas-prefixed sibling
     # directories as pandas-internal, else the reported stacklevel points
     # past the caller and user code can end up with no warning at all.
     pue.find_stack_level()  # populate the _pkg_dir/_test_dir cache
 
     pkg_dir = os.path.normpath(os.fspath(pue._pkg_dir))
-    parent = os.path.dirname(pkg_dir)
-    pkg_name = os.path.basename(pkg_dir)
-    module_dir = os.path.join(parent, pkg_name + suffix)
-    module_path = os.path.join(module_dir, *tail.split("/"))
+    module_path = os.path.normpath(
+        os.path.join(
+            os.path.dirname(pkg_dir),
+            os.path.basename(pkg_dir) + suffix,
+            *tail.split("/"),
+        )
+    )
 
-    try:
-        os.makedirs(os.path.dirname(module_path), exist_ok=True)
-        with open(module_path, "w", encoding="utf-8") as fh:
-            fh.write(_SRC)
-        spec = importlib.util.spec_from_file_location(f"gh67992{suffix}", module_path)
-        assert spec is not None
-        assert spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        with warnings.catch_warnings(record=True) as record:
-            warnings.simplefilter("always")
-            module.caller()
-    except OSError:
-        pytest.skip(f"could not create {module_dir}")
-    finally:
-        shutil.rmtree(module_dir, ignore_errors=True)
+    # An installed pandas_ta/pandas_gbq has exactly module_path as its file,
+    # so instead of creating that file (which would clobber a real pandas_*
+    # install next to pandas) compile the source with module_path as its
+    # filename: the frame then reports the same co_filename it would have
+    # when imported from such an install.
+    module = types.ModuleType(f"gh67992{suffix}")
+    module.__file__ = module_path
+    exec(compile(_SRC, module_path, "exec"), module.__dict__)  # noqa: S102
+
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        module.caller()
 
     assert len(record) == 1
     assert record[0].filename == module_path
