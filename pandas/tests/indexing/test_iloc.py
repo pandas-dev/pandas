@@ -1996,26 +1996,42 @@ class TestILocSeries:
         tm.assert_series_equal(ser, expected)
 
 
+@pytest.mark.parametrize("mixed", [True, False])
 @pytest.mark.parametrize(
     "row_key",
     [
         [0, 1, 2],
         slice(0, 3),
         range(3),
-        np.array([True, True, True, False]),
+        np.array([0, 1, 2]),
         pd.Series([0, 1, 2]),
         pd.Index([0, 1, 2]),
+        pd.array([0, 1, 2], dtype="Int64"),
+        pd.Index([0, 1, 2], dtype="Int64"),
+        pd.Categorical([0, 1, 2]),
+        (0, 1, 2),
+        [True, True, True, False],
+        np.array([True, True, True, False]),
+        pd.array([True, True, True, False], dtype="boolean"),
+        pd.Index([True, True, True, False]),
+        pd.Index([True, True, True, False], dtype="boolean"),
     ],
 )
 @pytest.mark.parametrize("col_key", [[1], slice(1, 2), np.array([False, True, False])])
-def test_iloc_setitem_single_column_key_1d_value(row_key, col_key):
-    # GH#68021 a length-1 column key makes the selection (N, 1), which a
-    #  length-N 1-D value could not be broadcast into on a single-block frame
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+@pytest.mark.parametrize(
+    "value", [[1.0, 2.0, 3.0], [(1,), (2,), (3,)], np.array([[1.0], [2.0], [3.0]])]
+)
+def test_iloc_setitem_single_column_key(mixed, row_key, col_key, value):
+    # GH#68021 / GH#68813 various cases with a length-1 column key
+    if mixed:
+        df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
+    else:
+        df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    df_orig = df.copy()
 
-    df.iloc[row_key, col_key] = [1.0, 2.0, 3.0]
+    df.iloc[row_key, col_key] = value
 
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+    expected = df_orig.copy()
     expected["b"] = [1.0, 2.0, 3.0, 0.0]
     tm.assert_frame_equal(df, expected)
 
@@ -2046,41 +2062,18 @@ def test_iloc_setitem_single_column_key_list_of_tuples():
     tm.assert_frame_equal(df, expected)
 
 
-def test_iloc_setitem_single_column_key_tuples_matching_width_still_2d():
-    # GH#68021 length-1 tuples do match the one selected column, so they are a
-    #  2-D value and still flatten; the per-cell path must not swallow them
-    df = pd.DataFrame({col: np.array([1, 2, 3, 4], dtype=object) for col in "abc"})
+@pytest.mark.parametrize("mixed", [True, False])
+def test_iloc_setitem_single_column_key_length_mismatch(mixed):
+    # https://github.com/pandas-dev/pandas/pull/68813
+    # regardless of code path taken, we should give an informative error message
+    # (not leak numpy message)
+    if mixed:
+        df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
+    else:
+        df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
-    df.iloc[[0, 1, 2], [1]] = [(1,), (3,), (5,)]
-
-    expected = pd.DataFrame(
-        {col: np.array([1, 2, 3, 4], dtype=object) for col in "abc"}
-    )
-    expected["b"] = pd.array([1, 3, 5, 4], dtype=object)
-    tm.assert_frame_equal(df, expected)
-
-
-def test_iloc_setitem_single_column_key_length_mismatch_still_raises():
-    # GH#68021 the per-column path must not swallow a genuine length mismatch.
-    #  The message is numpy's rather than pandas' because a single-block frame
-    #  takes the non-split path; that divergence is deliberate, see GH#65241 and
-    #  test_loc_setitem_int_row_length_mismatch_message.
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
-    with pytest.raises(ValueError, match="setting an array element with a sequence"):
+    with pytest.raises(ValueError, match="Must have equal len keys and value"):
         df.iloc[[0, 1], [1]] = [1.0, 2.0, 3.0]
-
-
-def test_iloc_setitem_single_column_key_2d_value_unchanged():
-    # GH#68021 an (N, 1) value already matched the selection and must keep
-    #  taking the whole-block path
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
-    df.iloc[[0, 1, 2], [1]] = np.array([[1.0], [2.0], [3.0]])
-
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
 
 
 def test_iloc_setitem_single_column_key_length_one_value_broadcasts():
@@ -2120,33 +2113,8 @@ def test_iloc_setitem_scalar_row_single_column_unchanged():
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.parametrize(
-    "row_key",
-    [
-        pd.array([0, 1, 2], dtype="Int64"),
-        pd.array([True, True, True, False], dtype="boolean"),
-        pd.Categorical([0, 1, 2]),
-        (0, 1, 2),
-    ],
-)
-def test_iloc_setitem_single_column_key_row_key_length_of_indexer_cannot_measure(
-    row_key,
-):
-    # GH#68021 length_of_indexer does not know these row keys and raises
-    #  AssertionError for them, so they have to keep taking the whole-block
-    #  path instead of the per-column one
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
-    df.iloc[row_key, [1]] = [1.0, 2.0, 3.0]
-
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
-
-
 def test_iloc_setitem_boolean_column_key_selecting_one_column():
-    # GH#68021 _ensure_iterable_column_indexer leaves a list of bools alone, so
-    #  the per-column path would have taken True for a position
+    # GH#68021
     df = pd.DataFrame(np.zeros((5, 1)), columns=["a"])
 
     df.iloc[range(3), [True]] = [1.0, 2.0, 3.0]
@@ -2167,13 +2135,17 @@ def test_iloc_setitem_single_column_key_empty_selection_is_noop(row_key):
     tm.assert_frame_equal(df, pd.DataFrame(np.zeros((4, 3)), columns=list("abc")))
 
 
+@pytest.mark.parametrize("mixed", [True, False])
 @pytest.mark.parametrize("row_key", [np.array(0), np.array([[0], [1]])])
-def test_iloc_setitem_single_column_key_non_1d_row_key_keeps_clear_error(row_key):
-    # GH#68021 length_of_indexer cannot measure these, so they keep taking the
-    #  whole-block path and its clearer message
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
+def test_iloc_setitem_single_column_key_non_1d_row_key_error(mixed, row_key):
+    # GH#68021 / GH#68813 regardless of code path taken, this should give a clear
+    # error message
+    if mixed:
+        df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
+    else:
+        df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
 
-    with pytest.raises(ValueError, match="Cross index must be 1 dimensional"):
+    with pytest.raises(ValueError, match="indexer should be 1-dimensional"):
         df.iloc[row_key, [1]] = [1.0, 2.0]
 
 
@@ -2198,32 +2170,6 @@ def test_iloc_setitem_null_slice_column_key_single_column_frame():
     tm.assert_frame_equal(df, pd.DataFrame({"a": [10.0, 20.0, 30.0, 3.0]}))
 
 
-def test_iloc_setitem_boolean_index_row_key():
-    # GH#68021 on a single-block frame this raised the same
-    #  "setting an array element with a sequence" as every other row key; it
-    #  reaches length_of_indexer, and so the Index.sum() crash, only via the
-    #  new per-column route
-    df = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-
-    df.iloc[pd.Index([True, True, True, False]), [1]] = [1.0, 2.0, 3.0]
-
-    expected = pd.DataFrame(np.zeros((4, 3)), columns=list("abc"))
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
-
-
-def test_iloc_setitem_boolean_index_row_key_mixed_dtype():
-    # GH#68021 this is where the Index.sum() crash was already reachable: the
-    #  split path measures the row key, so it raised AttributeError on main
-    df = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
-
-    df.iloc[pd.Index([True, True, True, False]), [1]] = [1.0, 2.0, 3.0]
-
-    expected = pd.DataFrame({"a": np.zeros(4), "b": np.zeros(4), "c": list("wxyz")})
-    expected["b"] = [1.0, 2.0, 3.0, 0.0]
-    tm.assert_frame_equal(df, expected)
-
-
 def test_iloc_setitem_series_boolean_index_row_key():
     # GH#68021 an object-dtype Series reaches length_of_indexer from
     #  Block.setitem's num_set, a different call site than the DataFrame paths
@@ -2232,3 +2178,53 @@ def test_iloc_setitem_series_boolean_index_row_key():
     ser.iloc[pd.Index([True, True, False, False])] = ["a", "b"]
 
     tm.assert_series_equal(ser, pd.Series(["a", "b", 3, 4], dtype=object))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pd.StringDtype("python", na_value=np.nan),
+        pytest.param(
+            pd.StringDtype("pyarrow", na_value=np.nan), marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [list, np.array, pd.Series, pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.iloc[:, box([True])] = df * 2
+
+    expected = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = df.iloc[[0, 1], :] * 2
+
+    arr = pd.array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = pd.DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.iloc[:, box([True])] = scalar
+
+    expected = pd.DataFrame({"a": pd.array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = scalar * 2
+
+    expected = pd.DataFrame(
+        {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
+    )
+    tm.assert_frame_equal(df, expected)
