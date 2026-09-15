@@ -23,6 +23,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as _parsers
 from pandas.compat import WASM
 from pandas.errors import (
     EmptyDataError,
@@ -32,8 +33,6 @@ from pandas.errors import (
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-from pandas._libs import parsers as _parsers
 
 import pandas as pd
 import pandas._testing as tm
@@ -2062,6 +2061,26 @@ def test_row_blocked_conversion_matches_python_engine(tmp_path, monkeypatch, thr
         result = pd.read_csv(path)
     expected = pd.read_csv(path, engine="python")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_leading_overflow(tmp_path, monkeypatch, threads):
+    # A leading token that overflows int64 must still reach the uint64 and
+    # object steps of the cascade rather than being inferred as float64.
+    df = _blocked_frame().astype(object)
+    df["u0"] = 2**64 - 1
+    df["o0"] = 10**26
+    path = tmp_path / "overflow.csv"
+    df.to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path)
+    expected = pd.read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["u0"].dtype == np.uint64
+    assert result["o0"].dtype == object
 
 
 @pytest.mark.parametrize("threads", [1, 6])

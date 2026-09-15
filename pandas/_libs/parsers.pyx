@@ -1422,13 +1422,18 @@ cdef class TextReader:
         """
         cdef:
             bint try_int = self.dtype_cast_order[0].kind == "i"
-            int kind = 0
+            int kind = 0, int_err = 0
         with nogil:
-            if try_int and _probe_int64(self.parser, i, start, end,
-                                        na_filter, na_hashset) == 0:
-                kind = BLOCK_KIND_INT64
-            elif _probe_double(self.parser, i, start, end,
-                               na_filter, na_hashset) == 0:
+            if try_int:
+                int_err = _probe_int64(self.parser, i, start, end,
+                                       na_filter, na_hashset)
+                if int_err == 0:
+                    kind = BLOCK_KIND_INT64
+            # a token that overflows int64 still parses as a double, but
+            # the cascade lands on uint64 or object rather than float64
+            if (kind == 0 and int_err != ERROR_OVERFLOW
+                    and _probe_double(self.parser, i, start, end,
+                                      na_filter, na_hashset) == 0):
                 kind = BLOCK_KIND_FLOAT64
         return kind
 
@@ -3500,7 +3505,7 @@ cdef _PendingStringColumn _pending_from_state(_BlockColState *st,
 
 cdef int _convert_block(parser_t *parser, _BlockColState *st,
                         int64_t blk_start, int64_t blk_end, Py_ssize_t off,
-                        float64_t NA_f, int64_t NA_i) nogil:
+                        float64_t NA_f, int64_t NA_i) noexcept nogil:
     """
     Convert rows [blk_start, blk_end) of one batched column into its output
     at row offset ``off``.  Returns 0, or 1 when the column must leave the
