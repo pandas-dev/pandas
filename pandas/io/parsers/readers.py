@@ -1088,7 +1088,21 @@ def _read_csv_chunks(
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
-                fut.result()
+                try:
+                    fut.result()
+                except Exception as err:
+                    if (
+                        "SQLite objects created in a thread can only be used in "
+                        "that same thread" in str(err)
+                    ):
+                        raise RuntimeError(
+                            "A read_csv converter raised a SQLite thread-affinity "
+                            "error while running in a parallel parser worker. "
+                            "Use a thread-safe resource in the converter or "
+                            "disable parallel CSV reading with "
+                            "mode.max_threads=1."
+                        ) from err
+                    raise
 
             # A column of only NA tokens and ints too large for int64 converts
             # to no numeric dtype, and is then emitted with its NA tokens left
