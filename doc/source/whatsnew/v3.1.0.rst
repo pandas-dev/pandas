@@ -540,6 +540,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns, particularly for multi-threaded reads and chunked (``low_memory``) reads (:issue:`66277`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when ``na_filter`` is enabled (the default), largest for numeric and boolean columns and for wide files with many columns (:issue:`68314`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when an extension dtype is requested (e.g. ``dtype="Int64"``, ``dtype="boolean"``, or ``dtype="int64[pyarrow]"``) (:issue:`66279`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` when converting numeric columns of wide files and of parallel reads (:issue:`68380`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing float columns (:issue:`66457`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`, :issue:`66459`, :issue:`66487`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)

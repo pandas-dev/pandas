@@ -377,6 +377,48 @@ cdef void del_rd_source_wrapper(void *src) noexcept nogil:
     del_rd_source(src)
 
 
+# Row-blocked conversion (see TextReader._convert_batched): bytes of parser
+# state (tokens, word_ends, line_start) per block, so every column's pass
+# finds it cache-resident.  Flat from 16 KB to 128 KB, gone by 4 MB.  0 = off.
+_BLOCK_BYTES = 1 << 15
+
+# Byte ceiling for a string column's data under the int32-offset "arrow"
+# target; a column past it falls back to the object path.  Lowered by the
+# tests, which cannot produce 2 GiB of tokens.
+_STR_OFFSET_LIMIT = INT32_MAX
+
+cdef enum:
+    BLOCK_KIND_INT64 = 1
+    BLOCK_KIND_FLOAT64 = 2
+    BLOCK_KIND_STRING = 3
+
+
+cdef struct _BlockColState:
+    # One column's resumable state during `TextReader._convert_batched`.
+    int64_t col
+    int kind
+    int failed
+    bint na_filter
+    kh_str_starts_t *na_hashset
+    int na_count
+    # numeric kinds: output buffers owned by ndarrays the caller keeps alive
+    void *data
+    uint8_t *na_mask
+    const kh_float64_t *na_fhashset
+    bint use_na_flist
+    # string kind: a `_PendingStringColumn`'s buffers, transferred to it once
+    # the sweep succeeds
+    bint large
+    Py_ssize_t offset_limit
+    int64_t *offsets64_ptr
+    int32_t *offsets32_ptr
+    uint8_t *validity_ptr
+    char *data_ptr
+    Py_ssize_t data_cap
+    Py_ssize_t total_bytes
+    bint saw_non_ascii
+
+
 cdef class TextReader:
     """
 
@@ -430,14 +472,18 @@ cdef class TextReader:
         # handles instead of ExtensionArrays; the c_parser_wrapper layer
         # materializes them once per column at the end of the read.
         public bint defer_pa_wrap
-        # Columns whose pyarrow-target string conversion _string_convert has
-        # deferred to the batched sweep, as (column, na_filter, na_hashset
-        # address) tuples; None outside _convert_column_data, which owns the
-        # list.  See _string_pyarrow_batch.
-        list _batched_str_cols
-        # Columns in the widest batched sweep this reader ran; exists for
-        # test_pyarrow_string_fast_path_batches_columns_together and should go
-        # once this conversion path stops being restructured.
+        # Columns deferred to the batched sweep, as (kind, column, name,
+        # na_filter, na_hashset address, na_fset) tuples: the column loop
+        # queues numeric candidates, _string_convert queues pyarrow-target
+        # string columns.  None outside _convert_column_data, which owns the
+        # list.  See _convert_batched.
+        list _batched_cols
+        # worker count of the parallel read (0 = serial); numeric columns
+        # only batch once enough workers contend for bandwidth
+        public int block_workers
+        # String columns in the widest batched sweep this reader ran; exists
+        # for test_pyarrow_string_fast_path_batches_columns_together and should
+        # go once this conversion path stops being restructured.
         public int _largest_str_batch
         # Set by _close, which frees the tokenizer's buffers.  Reading from a
         # closed reader would dereference those freed pointers (GH#66622).
@@ -600,7 +646,8 @@ cdef class TextReader:
         self.na_filter = na_filter
         self.defer_pa_wrap = False
         self._pa_target = None
-        self._batched_str_cols = None
+        self._batched_cols = None
+        self.block_workers = 0
         self._largest_str_batch = 0
         self.trim_after_read = True
         self.warning_sink = None
@@ -1203,6 +1250,8 @@ cdef class TextReader:
             dict results
             list batch
             bint is_default_dict_dtype
+            int64_t block_rows
+            bint numeric_ok
 
         start = self.parser_start
 
@@ -1221,19 +1270,30 @@ cdef class TextReader:
 
         results = {}
         is_default_dict_dtype = isinstance(self.dtype, defaultdict)
+        block_rows = self._block_rows(end - start)
+        # Numeric converters are compute-bound at low worker counts unless the
+        # frame is wide enough that each pass drags a long row through cache,
+        # and a chunk of only a few blocks is cache-resident already.
+        numeric_ok = (
+            end - start >= 8 * block_rows
+            and (self.block_workers >= 6 or self.table_width >= 16)
+        )
 
-        # String columns on the pyarrow fast path are not converted inside
-        # the loop; _string_convert queues them here instead.  The queued
-        # hashsets are borrowed from `na_set_cache`, which outlives the sweep.
+        # Columns taken by the batched sweep are not converted inside the
+        # loop: it queues numeric candidates itself, and _string_convert
+        # queues pyarrow-target string columns.  The queued hashsets are
+        # borrowed from `na_set_cache`, which outlives the sweep.
         batch = []
-        self._batched_str_cols = batch
+        self._batched_cols = batch
         try:
             self._convert_columns(results, batch, start, end,
-                                  is_default_dict_dtype)
-            if batch:
-                self._string_convert_batch(results, batch, start, end)
+                                  is_default_dict_dtype, numeric_ok)
         finally:
-            self._batched_str_cols = None
+            # a column the sweep hands back to the whole-column path must
+            # convert there rather than queue again
+            self._batched_cols = None
+        if batch:
+            self._convert_batched(batch, start, end, block_rows, results)
 
         self.parser_start += end - start
 
@@ -1241,10 +1301,11 @@ cdef class TextReader:
 
     cdef _convert_columns(self, dict results, list batch,
                           int64_t start, int64_t end,
-                          bint is_default_dict_dtype):
+                          bint is_default_dict_dtype, bint numeric_ok):
         cdef:
             int64_t i
             int nused = 0
+            int kind
             Py_ssize_t nqueued
             kh_str_starts_t *na_hashset = NULL
             object name, col_dtype = None
@@ -1294,6 +1355,18 @@ cdef class TextReader:
             else:
                 na_filter = 0
 
+            if numeric_ok and col_dtype is None and i not in self.noconvert:
+                # The cascade's own first verdict; a later token that breaks
+                # it sends the column back through the whole cascade.
+                kind = self._first_token_kind(i, start, end, na_filter,
+                                              na_hashset)
+                if kind != 0:
+                    batch.append((kind, i, name, na_filter,
+                                  <uintptr_t>na_hashset, na_fset))
+                    # placeholder keeps the column order; the sweep replaces it
+                    results[i] = _BATCHED_COLUMN
+                    continue
+
             # Attempt to parse tokens and infer dtype of the column.
             # Should return as the desired dtype (inferred or specified).
             nqueued = len(batch)
@@ -1302,67 +1375,198 @@ cdef class TextReader:
                 na_fset, col_dtype)
 
             if len(batch) != nqueued:
-                # placeholder keeps the column order; the sweep replaces it
-                results[i] = _BATCHED_STRING
+                results[i] = _BATCHED_COLUMN
                 continue
 
-            # don't try to upcast EAs
-            if (
-                na_count > 0 and not isinstance(col_dtype, ExtensionDtype)
-                or self.dtype_backend != "numpy"
-            ):
-                use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
-                col_res = _maybe_upcast(
-                    col_res,
-                    use_dtype_backend=use_dtype_backend,
-                    dtype_backend=self.dtype_backend,
-                    na_mask=na_mask,
-                )
+            self._finish_column(i, col_dtype, col_res, na_count, na_mask,
+                                results)
 
-            if col_res is None:
-                raise ParserError(f"Unable to parse column {i}")
+    cdef _finish_column(self, Py_ssize_t i, object col_dtype, object col_res,
+                        object na_count, object na_mask, dict results):
+        # don't try to upcast EAs
+        if (
+            na_count > 0 and not isinstance(col_dtype, ExtensionDtype)
+            or self.dtype_backend != "numpy"
+        ):
+            use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
+            col_res = _maybe_upcast(
+                col_res,
+                use_dtype_backend=use_dtype_backend,
+                dtype_backend=self.dtype_backend,
+                na_mask=na_mask,
+            )
 
-            results[i] = col_res
+        if col_res is None:
+            raise ParserError(f"Unable to parse column {i}")
 
-    cdef _string_convert_batch(self, dict results, list batch,
-                               int64_t start, int64_t end):
+        results[i] = col_res
+
+    cdef int64_t _block_rows(self, int64_t lines):
         """
-        Convert the string columns `_string_convert` queued in `batch` into
-        `results`, all in one sweep over the chunk's tokens.
+        Rows per conversion block: about `_BLOCK_BYTES` of the chunk's parser
+        state (tokens, word_ends, line_start), so a block stays in L1 across
+        the columns' passes.  One block when blocking is off.
+        """
+        cdef int64_t bytes_per_row, block_rows, block_bytes = _BLOCK_BYTES
+        if block_bytes <= 0 or self.parser.lines == 0:
+            return lines if lines > 0 else 1
+        # per row: its tokens, one word_ends entry per field, one line_start
+        bytes_per_row = (
+            <int64_t>(self.parser.stream_len // self.parser.lines)
+            + 8 * self.table_width + 8
+        )
+        block_rows = block_bytes // bytes_per_row
+        return block_rows if block_rows >= 64 else 64
+
+    cdef int _first_token_kind(self, Py_ssize_t i, int64_t start,
+                               int64_t end, bint na_filter,
+                               kh_str_starts_t *na_hashset):
+        """
+        The numeric kind the inference cascade would try first for this
+        column, judged from its first non-NA token alone: BLOCK_KIND_INT64,
+        BLOCK_KIND_FLOAT64, or 0 when neither applies.
         """
         cdef:
-            Py_ssize_t j
-            str target = self._pa_target
-            list converted
-            int64_t col
+            bint try_int = self.dtype_cast_order[0].kind == "i"
+            int kind = 0, int_err = 0
+        with nogil:
+            if try_int:
+                int_err = _probe_int64(self.parser, i, start, end,
+                                       na_filter, na_hashset)
+                if int_err == 0:
+                    kind = BLOCK_KIND_INT64
+            # a token that overflows int64 still parses as a double, but
+            # the cascade lands on uint64 or object rather than float64
+            if (kind == 0 and int_err != ERROR_OVERFLOW
+                    and _probe_double(self.parser, i, start, end,
+                                      na_filter, na_hashset) == 0):
+                kind = BLOCK_KIND_FLOAT64
+        return kind
+
+    cdef _convert_batched(self, list batch, int64_t start, int64_t end,
+                          int64_t block_rows, dict results):
+        """
+        Convert the queued columns together, a block of rows at a time, so a
+        block of the chunk's `word_ends` and tokens is read from DRAM once and
+        then consumed by every column's pass from cache, rather than re-read
+        once per column.
+
+        A numeric column whose kind stops holding, or a string column that
+        overflows the "arrow" target's int32 offsets, leaves the sweep and is
+        re-converted whole on the ordinary path.
+        """
+        cdef:
+            Py_ssize_t lines = end - start
+            Py_ssize_t n = len(batch), k, off
+            int nstr = 0
+            _BlockColState *states
+            _BlockColState *st
+            int64_t blk, blk_end
+            float64_t NA_f = na_values[np.float64]
+            int64_t NA_i = na_values[np.int64]
+            list keep = [None] * n
+            ndarray arr, mask
+            int kind, status, error = 0
+            uintptr_t hs_addr
             bint na_filter
-            uintptr_t na_hashset_addr
+            parser_t *parser = self.parser
+            str target = self._pa_target
+            _PendingStringColumn pending
 
-        if len(batch) > self._largest_str_batch:
-            self._largest_str_batch = len(batch)
+        states = <_BlockColState *>calloc(n, sizeof(_BlockColState))
+        if states == NULL:
+            raise MemoryError()
+        try:
+            for k in range(n):
+                kind, i, name, na_filter, hs_addr, na_fset = batch[k]
+                st = &states[k]
+                st.col = i
+                st.kind = kind
+                st.na_filter = na_filter
+                st.na_hashset = <kh_str_starts_t *>hs_addr
+                if kind == BLOCK_KIND_STRING:
+                    st.large = target == "str_nan"
+                    st.offset_limit = _STR_OFFSET_LIMIT
+                    nstr += 1
+                    continue
+                mask = np.zeros(lines, dtype=np.bool_)
+                st.na_mask = <uint8_t *>mask.data
+                if kind == BLOCK_KIND_INT64:
+                    arr = np.empty(lines, dtype=np.int64)
+                else:
+                    arr = np.empty(lines, dtype=np.float64)
+                    st.use_na_flist = len(na_fset) > 0
+                    st.na_fhashset = kset_float64_from_set(na_fset)
+                st.data = <void *>arr.data
+                keep[k] = (arr, mask)
+            if nstr > self._largest_str_batch:
+                self._largest_str_batch = nstr
 
-        converted = _string_pyarrow_batch(self.parser, batch, start, end,
-                                          target, self.defer_pa_wrap)
-        for j in range(len(batch)):
-            col, na_filter, na_hashset_addr = batch[j]
-            if converted is None:
-                # a column overflowed the "arrow" target's int32 offsets, so
-                # the sweep discarded the whole batch; every column is redone
-                # here, and the per-column path chunks the big one as needed
-                col_res, _ = self._string_convert_single(
-                    col, start, end, na_filter,
-                    <kh_str_starts_t *>na_hashset_addr, target)
-            else:
-                col_res, _ = converted[j]
-            # Either path can fall back to an object array, which the column
-            # loop would have upcast.  Queueing needs `target`, which only an
-            # `allow_pyarrow=col_dtype is None` caller sets, so col_dtype is
-            # None here and use_dtype_backend follows dtype_backend alone.
-            results[col] = _maybe_upcast(
-                col_res,
-                use_dtype_backend=self.dtype_backend != "numpy",
-                dtype_backend=self.dtype_backend,
-            )
+            with nogil:
+                for k in range(n):
+                    st = &states[k]
+                    if st.kind == BLOCK_KIND_STRING and _str_col_alloc(
+                            st, parser, start, lines):
+                        error = 1
+                        break
+                blk = start
+                while blk < end and error == 0:
+                    blk_end = blk + block_rows
+                    if blk_end > end:
+                        blk_end = end
+                    off = blk - start
+                    for k in range(n):
+                        st = &states[k]
+                        if st.failed:
+                            continue
+                        status = _convert_block(parser, st, blk, blk_end, off,
+                                                NA_f, NA_i)
+                        if status == 2:
+                            error = 1
+                            break
+                        if status != 0:
+                            st.failed = 1
+                    blk = blk_end
+                if error == 0:
+                    for k in range(n):
+                        st = &states[k]
+                        if st.kind == BLOCK_KIND_STRING and not st.failed:
+                            _str_col_finish(st)
+            if error:
+                raise MemoryError()
+
+            for k in range(n):
+                kind, i, name, na_filter, hs_addr, na_fset = batch[k]
+                st = &states[k]
+                na_mask = None
+                if kind != BLOCK_KIND_STRING:
+                    if st.failed:
+                        col_res, na_count, na_mask = self._convert_tokens(
+                            i, start, end, name, na_filter, st.na_hashset,
+                            na_fset, None)
+                    else:
+                        col_res, na_mask = keep[k]
+                        na_count = st.na_count
+                elif st.failed:
+                    # the per-column path chunks the >2GiB column as needed
+                    _str_col_free(st)
+                    col_res, na_count = self._string_convert_single(
+                        i, start, end, na_filter, st.na_hashset, target)
+                else:
+                    pending = _pending_from_state(st, lines)
+                    col_res, na_count = _wrap_string_column(
+                        parser, i, start, end, na_filter, st.na_hashset,
+                        target, self.defer_pa_wrap, pending,
+                        st.saw_non_ascii)
+                self._finish_column(i, None, col_res, na_count, na_mask,
+                                    results)
+        finally:
+            for k in range(n):
+                st = &states[k]
+                _str_col_free(st)
+                if st.na_fhashset != NULL:
+                    kh_destroy_float64(<kh_float64_t *>st.na_fhashset)
+            free(states)
 
     # -> tuple["ArrayLike", int, np.ndarray | None]:
     cdef _convert_tokens(self, Py_ssize_t i, int64_t start,
@@ -1709,11 +1913,12 @@ cdef class TextReader:
                 self._pa_target = resolved
             target = self._pa_target
 
-        if target and self._batched_str_cols is not None:
+        if target and self._batched_cols is not None:
             # Queue for the batched sweep at the end of _convert_column_data.
-            self._batched_str_cols.append(
-                (i, na_filter, <uintptr_t>na_hashset))
-            return _BATCHED_STRING, 0
+            self._batched_cols.append(
+                (BLOCK_KIND_STRING, i, None, na_filter,
+                 <uintptr_t>na_hashset, None))
+            return _BATCHED_COLUMN, 0
 
         return self._string_convert_single(i, start, end, na_filter,
                                            na_hashset, target)
@@ -2292,10 +2497,10 @@ cdef void _free_malloc_capsule(object capsule) noexcept:
     free(PyCapsule_GetPointer(capsule, NULL))
 
 
-# Non-None placeholder `_string_convert` returns for a column it has queued
-# for the batched sweep, so the caller's cast order stops here; it holds the
-# column's slot in `results` until `_string_convert_batch` fills it.
-cdef object _BATCHED_STRING = object()
+# Non-None placeholder for a column queued for the batched sweep: returned
+# by `_string_convert` so the caller's cast order stops there, and holding the
+# column's slot in `results` until `_convert_batched` fills it.
+cdef object _BATCHED_COLUMN = object()
 
 
 cdef class _PendingStringColumn:
@@ -2946,7 +3151,8 @@ cdef inline void _copy_token(char *dst, const char *src, int64_t seg,
 
 
 cdef inline Py_ssize_t _clamp_data_cap(int64_t want, parser_t *parser,
-                                       bint large) noexcept nogil:
+                                       bint large,
+                                       Py_ssize_t limit) noexcept nogil:
     """
     Narrow a proposed data-buffer capacity to what the column can ever fill.
 
@@ -2958,16 +3164,15 @@ cdef inline Py_ssize_t _clamp_data_cap(int64_t want, parser_t *parser,
     Every token is NUL-packed in the parser stream, so ``stream_len`` bounds
     this column's total bytes, and it is a live allocation's length so the
     result always fits ``Py_ssize_t``.  For the int32-offset target the sweep
-    returns the overflow status before ``total_bytes`` reaches ``INT32_MAX``,
-    so reserving past that only allocates bytes the column will never fill --
-    and a failure there raises ``MemoryError``, which the
-    ``except OverflowError`` fallback to the object path in
-    ``_string_convert_single`` does not catch.
+    returns the overflow status before ``total_bytes`` reaches ``limit``, so
+    reserving past that only allocates bytes the column will never fill -- and
+    a failure there raises ``MemoryError``, which the ``except OverflowError``
+    fallback to the object path in ``_string_convert_single`` does not catch.
     """
     if want > <int64_t>parser.stream_len:
         want = <int64_t>parser.stream_len
-    if not large and want > <int64_t>INT32_MAX:
-        want = <int64_t>INT32_MAX
+    if not large and want > <int64_t>limit:
+        want = <int64_t>limit
     return <Py_ssize_t>want
 
 
@@ -2996,19 +3201,46 @@ cdef _string_pyarrow_utf8(parser_t *parser, int64_t col,
     c_parser_wrapper layer materializes them into one ExtensionArray per
     column at the end of the read.
 
-    Inferred string columns are converted together by `_string_pyarrow_batch`,
-    which does the work; this single-column form serves explicit pyarrow
-    dtypes and the int32-offset overflow fallback.
+    Inferred string columns are converted together by
+    `TextReader._convert_batched`, which runs this same block converter; this
+    single-column form serves explicit pyarrow dtypes and columns the sweep
+    hands back.
     """
-    converted = _string_pyarrow_batch(
-        parser, [(col, na_filter, <uintptr_t>na_hashset)], line_start,
-        line_end, target, defer)
-    if converted is None:
+    cdef:
+        _BlockColState st
+        Py_ssize_t lines = line_end - line_start
+        int status = 0
+        _PendingStringColumn pending
+
+    memset(&st, 0, sizeof(_BlockColState))
+    st.col = col
+    st.kind = BLOCK_KIND_STRING
+    st.na_filter = na_filter
+    st.na_hashset = na_hashset
+    st.large = target == "str_nan"
+    st.offset_limit = _STR_OFFSET_LIMIT
+
+    with nogil:
+        if _str_col_alloc(&st, parser, line_start, lines):
+            status = 2
+        else:
+            status = _string_block_convert(parser, &st, line_start, line_end, 0)
+        if status == 0:
+            _str_col_finish(&st)
+
+    if status != 0:
+        _str_col_free(&st)
+        if status == 2:
+            raise MemoryError()
         raise OverflowError(
             "String column exceeds 2GiB, which is the maximum supported "
             "by pyarrow's 'string' type."
         )
-    return converted[0]
+
+    pending = _pending_from_state(&st, lines)
+    return _wrap_string_column(parser, col, line_start, line_end, na_filter,
+                               na_hashset, target, defer, pending,
+                               st.saw_non_ascii)
 
 
 # -> tuple[ExtensionArray | _PendingStringColumn, int]
@@ -3057,25 +3289,8 @@ cdef _wrap_string_column(parser_t *parser, int64_t col,
     return arr, na_count
 
 
-cdef struct _StrColState:
-    # One column's state during `_string_pyarrow_batch`; the buffers are a
-    # `_PendingStringColumn`'s, transferred once the sweep succeeds.
-    int64_t col
-    bint na_filter
-    kh_str_starts_t *na_hashset
-    int64_t *offsets64_ptr
-    int32_t *offsets32_ptr
-    uint8_t *validity_ptr
-    char *data_ptr
-    Py_ssize_t data_cap
-    Py_ssize_t total_bytes
-    int na_count
-    bint saw_non_ascii
-
-
-cdef bint _str_col_alloc(_StrColState *st, parser_t *parser,
-                         int64_t line_start, Py_ssize_t lines,
-                         bint large) noexcept nogil:
+cdef bint _str_col_alloc(_BlockColState *st, parser_t *parser,
+                         int64_t line_start, Py_ssize_t lines) noexcept nogil:
     # Allocate the offsets, validity and data buffers.  Returns True if a
     # malloc failed.
     #
@@ -3092,7 +3307,7 @@ cdef bint _str_col_alloc(_StrColState *st, parser_t *parser,
         c_int64_t token_idx = 0
         coliter_t probe_it
 
-    if large:
+    if st.large:
         st.offsets64_ptr = <int64_t *>malloc((lines + 1) * sizeof(int64_t))
         if st.offsets64_ptr == NULL:
             return True
@@ -3125,118 +3340,104 @@ cdef bint _str_col_alloc(_StrColState *st, parser_t *parser,
     if probe:
         data_est = <int64_t>lines * (probe_bytes // probe + 1)
     data_est += (data_est >> 2) + 64
-    st.data_cap = _clamp_data_cap(data_est, parser, large)
+    st.data_cap = _clamp_data_cap(data_est, parser, st.large, st.offset_limit)
     st.data_ptr = <char *>malloc(st.data_cap + WILDCOPY_SLACK)
     return st.data_ptr == NULL
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef int _str_cols_sweep(parser_t *parser, _StrColState *cols,
-                         Py_ssize_t ncols, int64_t line_start,
-                         int64_t line_end, Py_ssize_t block_rows,
-                         bint large, const char *wild_limit) noexcept nogil:
-    # Fill every column's buffers in one pass over the rows, a block of rows
-    # at a time (see the caller's docstring).  The parser pointers and each
-    # column's state live in locals -- which is why `coliter_next_with_idx`
-    # and `_token_len` are inlined here -- since the `char *` stores would
-    # otherwise force reloads through `parser` and `cols`.  Returns 0, or 1
-    # when a column overflows the int32 offsets, or 2 when a realloc fails.
+cdef int _string_block_convert(parser_t *parser, _BlockColState *st,
+                               int64_t blk_start, int64_t blk_end,
+                               Py_ssize_t off) noexcept nogil:
+    # Append rows [blk_start, blk_end) of the column to its buffers, at row
+    # offset ``off``.  The parser pointers and the column's state live in
+    # locals -- which is why `coliter_next_with_idx` and `_token_len` are
+    # inlined here -- since the `char *` stores would otherwise force reloads
+    # through `parser` and `st`.  Returns 0, or 1 when the column overflows
+    # the int32 offsets, or 2 when a realloc fails.
     cdef:
-        Py_ssize_t i, j, lines = line_end - line_start
-        Py_ssize_t block_start = 0, block_end
+        Py_ssize_t i, row, nrows = blk_end - blk_start
         # cast: the header's int64_t is not numpy's on every platform
         const c_int64_t *row_starts = <const c_int64_t *>(
-            parser.line_start + line_start)
+            parser.line_start + blk_start)
         const c_int64_t *word_ends = <const c_int64_t *>parser.word_ends
         const char *stream = parser.stream
-        int64_t col, idx, wbeg, wlen
+        const char *wild_limit = (
+            parser.stream + parser.stream_cap - WILDCOPY_SLACK
+            if parser.stream_cap >= WILDCOPY_SLACK
+            else parser.stream
+        )
+        int64_t col = st.col, idx, wbeg, wlen
         const char *word
-        _StrColState *st
-        bint na_filter
-        kh_str_starts_t *na_hashset
-        int64_t *offsets64_ptr
-        int32_t *offsets32_ptr
-        uint8_t *validity_ptr
-        char *data_ptr
+        bint na_filter = st.na_filter
+        bint large = st.large
+        Py_ssize_t limit = st.offset_limit
+        kh_str_starts_t *na_hashset = st.na_hashset
+        int64_t *offsets64_ptr = st.offsets64_ptr
+        int32_t *offsets32_ptr = st.offsets32_ptr
+        uint8_t *validity_ptr = st.validity_ptr
+        char *data_ptr = st.data_ptr
         char *grown
-        Py_ssize_t data_cap, total_bytes
-        int na_count
+        Py_ssize_t data_cap = st.data_cap
+        Py_ssize_t total_bytes = st.total_bytes
+        int na_count = st.na_count
 
-    while block_start < lines:
-        block_end = block_start + block_rows
-        if block_end > lines:
-            block_end = lines
-        for j in range(ncols):
-            st = &cols[j]
-            col = st.col
-            na_filter = st.na_filter
-            na_hashset = st.na_hashset
-            offsets64_ptr = st.offsets64_ptr
-            offsets32_ptr = st.offsets32_ptr
-            validity_ptr = st.validity_ptr
-            data_ptr = st.data_ptr
-            data_cap = st.data_cap
-            total_bytes = st.total_bytes
-            na_count = st.na_count
+    for i in range(nrows):
+        row = off + i
+        idx = row_starts[i] + col
+        if idx < row_starts[i + 1]:
+            wbeg = word_ends[idx - 1] + 1 if idx > 0 else 0
+            word = stream + wbeg
+            wlen = word_ends[idx] - wbeg
+        else:
+            # a row short of this column reads as the "" literal
+            word = b""
+            wlen = 0
 
-            for i in range(block_start, block_end):
-                idx = row_starts[i] + col
-                if idx < row_starts[i + 1]:
-                    wbeg = word_ends[idx - 1] + 1 if idx > 0 else 0
-                    word = stream + wbeg
-                    wlen = word_ends[idx] - wbeg
-                else:
-                    # a row short of this column reads as the "" literal
-                    word = b""
-                    wlen = 0
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>wlen):
+            na_count += 1
+            validity_ptr[row >> 3] &= <uint8_t>(~(1 << (row & 7)))
+        else:
+            if not large and total_bytes + wlen > limit:
+                st.data_ptr = data_ptr
+                st.data_cap = data_cap
+                return 1
+            if total_bytes + wlen > data_cap:
+                # Same bounds as the initial reservation.  Neither clamp can
+                # undersize the buffer: total_bytes + wlen never exceeds
+                # stream_len, and for the int32 target the overflow return
+                # above has already fired if it exceeds limit.
+                data_cap = _clamp_data_cap(
+                    <int64_t>data_cap * 2 + wlen, parser, large, limit
+                )
+                grown = <char *>realloc(data_ptr, data_cap + WILDCOPY_SLACK)
+                if grown == NULL:
+                    st.data_ptr = data_ptr
+                    return 2
+                data_ptr = grown
+            if wlen:
+                # the "" literal must not reach the overshooting copy; a
+                # genuinely empty field has length 0 too
+                _copy_token(data_ptr + total_bytes, word, wlen, wild_limit)
+            total_bytes += wlen
 
-                if na_filter and kh_get_str_starts_item(na_hashset, word,
-                                                        <size_t>wlen):
-                    na_count += 1
-                    validity_ptr[i >> 3] &= <uint8_t>(~(1 << (i & 7)))
-                else:
-                    if not large and total_bytes + wlen > <Py_ssize_t>INT32_MAX:
-                        st.data_ptr = data_ptr
-                        return 1
-                    if total_bytes + wlen > data_cap:
-                        # Same bounds as the initial reservation.  Neither
-                        # clamp can undersize the buffer: total_bytes + wlen
-                        # never exceeds stream_len, and for the int32 target
-                        # the overflow return above has already fired if it
-                        # exceeds INT32_MAX.
-                        data_cap = _clamp_data_cap(
-                            <int64_t>data_cap * 2 + wlen, parser, large
-                        )
-                        grown = <char *>realloc(data_ptr,
-                                                data_cap + WILDCOPY_SLACK)
-                        if grown == NULL:
-                            st.data_ptr = data_ptr
-                            return 2
-                        data_ptr = grown
-                    if wlen:
-                        # the "" literal must not reach the overshooting
-                        # copy; a genuinely empty field has length 0 too
-                        _copy_token(data_ptr + total_bytes, word, wlen,
-                                    wild_limit)
-                    total_bytes += wlen
+        if large:
+            offsets64_ptr[row + 1] = <int64_t>total_bytes
+        else:
+            offsets32_ptr[row + 1] = <int32_t>total_bytes
 
-                if large:
-                    offsets64_ptr[i + 1] = <int64_t>total_bytes
-                else:
-                    offsets32_ptr[i + 1] = <int32_t>total_bytes
-
-            st.data_ptr = data_ptr
-            st.data_cap = data_cap
-            st.total_bytes = total_bytes
-            st.na_count = na_count
-        block_start = block_end
+    st.data_ptr = data_ptr
+    st.data_cap = data_cap
+    st.total_bytes = total_bytes
+    st.na_count = na_count
     return 0
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _str_col_finish(_StrColState *st) noexcept nogil:
+cdef void _str_col_finish(_BlockColState *st) noexcept nogil:
     # Trim a large overshoot and probe for non-ASCII bytes.
     cdef:
         char *grown
@@ -3279,115 +3480,67 @@ cdef void _str_col_finish(_StrColState *st) noexcept nogil:
         st.saw_non_ascii = (ascii_acc & HIGH_BITS) != 0
 
 
-cdef void _str_col_free(_StrColState *st) noexcept nogil:
+cdef void _str_col_free(_BlockColState *st) noexcept nogil:
     free(st.offsets64_ptr)
     free(st.offsets32_ptr)
     free(st.validity_ptr)
     free(st.data_ptr)
+    st.offsets64_ptr = NULL
+    st.offsets32_ptr = NULL
+    st.validity_ptr = NULL
+    st.data_ptr = NULL
 
 
-# -> list[tuple[ExtensionArray | _PendingStringColumn, int]] | None
-cdef _string_pyarrow_batch(parser_t *parser, list batch, int64_t line_start,
-                           int64_t line_end, str target, bint defer):
+cdef _PendingStringColumn _pending_from_state(_BlockColState *st,
+                                              Py_ssize_t lines):
+    """Move the string state's buffers into a `_PendingStringColumn`."""
+    cdef _PendingStringColumn pending
+    pending = _PendingStringColumn.__new__(_PendingStringColumn)
+    pending.offsets64_ptr = st.offsets64_ptr
+    pending.offsets32_ptr = st.offsets32_ptr
+    pending.validity_ptr = st.validity_ptr
+    pending.data_ptr = st.data_ptr
+    # owned by `pending` now
+    st.offsets64_ptr = NULL
+    st.offsets32_ptr = NULL
+    st.validity_ptr = NULL
+    st.data_ptr = NULL
+    pending.lines = lines
+    pending.total_bytes = st.total_bytes
+    pending.na_count = st.na_count
+    pending.large = st.large
+    return pending
+
+
+cdef int _convert_block(parser_t *parser, _BlockColState *st,
+                        int64_t blk_start, int64_t blk_end, Py_ssize_t off,
+                        float64_t NA_f, int64_t NA_i) noexcept nogil:
     """
-    Build pyarrow-backed string columns directly from the C parser buffers,
-    several at once: one sweep over the rows fills all of their buffers, so a
-    block of the chunk's `word_ends` and tokens is read from DRAM once and
-    then consumed by every column from cache, rather than re-read per column.
-    See `_string_pyarrow_utf8` for the targets.
-
-    `batch` holds (column, na_filter, NA hashset address) tuples, as queued
-    by `_string_convert`.  Returns None, with nothing allocated, if a column
-    overflows the "arrow" target's int32 offsets, and raises `MemoryError` if
-    an allocation fails.
+    Convert rows [blk_start, blk_end) of one batched column into its output
+    at row offset ``off``.  Returns 0, or 1 when the column must leave the
+    sweep (its numeric kind does not hold, or its int32 offsets overflow), or
+    2 when an allocation failed.
     """
     cdef:
-        Py_ssize_t j, ncols = len(batch)
-        Py_ssize_t lines = line_end - line_start
-        Py_ssize_t block_rows
-        _StrColState *cols
-        _StrColState *st
-        bint large = target == "str_nan"
-        int status = 0
-        int64_t col
-        bint na_filter
-        uintptr_t na_hashset_addr
-        const char *wild_limit = (
-            parser.stream + parser.stream_cap - WILDCOPY_SLACK
-            if parser.stream_cap >= WILDCOPY_SLACK
-            else parser.stream
-        )
-        _PendingStringColumn pending
-        bint saw_non_ascii
-        list out
+        int blk_na = 0
+        int error
 
-    # Rows per block: about 32 KiB of the chunk's tokens plus `word_ends`, so
-    # a block stays in L1 across the columns; at least a few rows.
-    block_rows = 16
-    if lines:
-        block_rows = 32768 // (
-            <Py_ssize_t>parser.stream_len // parser.lines
-            + 8 * <Py_ssize_t>parser.line_fields[line_start] + 1
-        )
-        if block_rows < 16:
-            block_rows = 16
-
-    cols = <_StrColState *>calloc(ncols, sizeof(_StrColState))
-    if cols == NULL:
-        raise MemoryError()
-    for j in range(ncols):
-        col, na_filter, na_hashset_addr = batch[j]
-        cols[j].col = col
-        cols[j].na_filter = na_filter
-        cols[j].na_hashset = <kh_str_starts_t *>na_hashset_addr
-
-    with nogil:
-        for j in range(ncols):
-            if _str_col_alloc(&cols[j], parser, line_start, lines, large):
-                status = 2
-                break
-        if status == 0:
-            status = _str_cols_sweep(parser, cols, ncols, line_start,
-                                     line_end, block_rows, large, wild_limit)
-        if status == 0:
-            for j in range(ncols):
-                _str_col_finish(&cols[j])
-
-    if status:
-        for j in range(ncols):
-            _str_col_free(&cols[j])
-        free(cols)
-        if status == 2:
-            raise MemoryError()
-        return None
-
-    out = []
-    try:
-        for j in range(ncols):
-            st = &cols[j]
-            pending = _PendingStringColumn.__new__(_PendingStringColumn)
-            pending.offsets64_ptr = st.offsets64_ptr
-            pending.offsets32_ptr = st.offsets32_ptr
-            pending.validity_ptr = st.validity_ptr
-            pending.data_ptr = st.data_ptr
-            pending.lines = lines
-            pending.total_bytes = st.total_bytes
-            pending.na_count = st.na_count
-            pending.large = large
-            saw_non_ascii = st.saw_non_ascii
-            # owned by `pending` now, whatever happens below
-            memset(st, 0, sizeof(_StrColState))
-            col, na_filter, na_hashset_addr = batch[j]
-            out.append(_wrap_string_column(
-                parser, col, line_start, line_end, na_filter,
-                <kh_str_starts_t *>na_hashset_addr, target, defer, pending,
-                saw_non_ascii))
-    finally:
-        # columns not yet handed over, if wrapping one raised
-        for j in range(ncols):
-            _str_col_free(&cols[j])
-        free(cols)
-    return out
+    if st.kind == BLOCK_KIND_STRING:
+        return _string_block_convert(parser, st, blk_start, blk_end, off)
+    if st.kind == BLOCK_KIND_INT64:
+        error = _try_int64_nogil(parser, st.col, blk_start, blk_end,
+                                 st.na_filter, st.na_hashset, NA_i,
+                                 <int64_t *>st.data + off, &blk_na,
+                                 st.na_mask + off)
+    else:
+        error = _try_double_nogil(parser, parser.double_converter, st.col,
+                                  blk_start, blk_end, st.na_filter,
+                                  st.na_hashset, st.use_na_flist,
+                                  st.na_fhashset, NA_f,
+                                  <float64_t *>st.data + off, &blk_na,
+                                  st.na_mask + off)
+    st.na_count += blk_na
+    return 1 if error != 0 else 0
 
 
 @cython.wraparound(False)
