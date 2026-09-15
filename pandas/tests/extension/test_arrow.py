@@ -4099,8 +4099,7 @@ def test_interpolate_linear_consecutive_na():
 
 
 def test_interpolate_linear_int_fractional():
-    # GH#65345 integer dtypes used integer division, truncating the
-    # interpolated value (1 instead of 1.5)
+    # GH#65345 result should not truncate the interpolated value (1 instead of 1.5)
     ser = pd.Series([1, None, 2], dtype="int64[pyarrow]")
     result = ser.interpolate(method="linear")
     expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
