@@ -1103,7 +1103,6 @@ linkcheck_ignore = [
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
             "https://nbviewer.ipython.org/gist/metakermit/5720498",
             "https://numpy.org/doc/stable/user/basics.byteswapping.html",
-            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
             "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
             "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
             "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",
