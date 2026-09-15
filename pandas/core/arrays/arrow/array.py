@@ -1903,17 +1903,12 @@ class ArrowExtensionArray(
         data = self._pa_array
 
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            elif any(chunk.dictionary.null_count > 0 for chunk in data.chunks):
+            if null_encoding == "encode" or any(
+                chunk.dictionary.null_count > 0 for chunk in data.chunks
+            ):
                 # GH 66490
-                # use_na_sentinel=True was requested (null_encoding="mask"), but
-                # the pre-encoded input stores nulls as a dictionary value
-                # (null_encoding="encode"). Cast back and re-encode so that the
-                # requested null encoding is honored rather than returning the
-                # input unchanged.
+                # Re-encode pre-encoded dictionary arrays so that the requested
+                # null encoding is honored rather than returning the input unchanged.
                 data = data.cast(data.type.value_type)
                 encoded = data.dictionary_encode(null_encoding=null_encoding)
             else:

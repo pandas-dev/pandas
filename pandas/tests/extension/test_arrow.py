@@ -4834,6 +4834,24 @@ def test_factorize_dictionary_array_null_encoding(null_encoding, use_na_sentinel
     tm.assert_extension_array_equal(uniques, exp_uniques)
 
 
+def test_factorize_chunked_dictionary_array_null_encoding():
+    # GH 66490
+    ca = pa.chunked_array(
+        [
+            pa.array(["a", "b"]).dictionary_encode(),
+            pa.array(["c", None]).dictionary_encode(null_encoding="encode"),
+        ]
+    )
+    arr = pd.array(ca, dtype=ArrowDtype(ca.type))
+
+    indices, uniques = arr.factorize()
+
+    expected = pd.array(["a", "b", "c", None], dtype=ArrowDtype(pa.string()))
+    exp_indices, exp_uniques = expected.factorize()
+    tm.assert_numpy_array_equal(indices, exp_indices)
+    tm.assert_extension_array_equal(uniques, exp_uniques)
+
+
 @pytest.mark.parametrize(
     ("codes", "uniques", "exp_indices", "exp_uniques"),
     [
