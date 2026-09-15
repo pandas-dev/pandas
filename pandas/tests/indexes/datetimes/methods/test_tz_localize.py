@@ -546,6 +546,60 @@ def test_dti_tz_localize_nonexistent_shift_past_last_transition():
     tm.assert_index_equal(result, dti.tz_localize(tz, nonexistent=shift))
 
 
+@pytest.mark.parametrize(
+    "tz, start_ts, shift_hours",
+    [
+        # east of UTC, shifting backward over the transition
+        ("Europe/Warsaw", "2011-03-27 02:30", -2),
+        ("Europe/Warsaw", "2011-03-27 02:30", -24),
+        ("Europe/Berlin", "2011-03-27 02:30", -5),
+        ("Asia/Tehran", "2011-03-22 00:30", -5),
+        ("Pacific/Auckland", "2011-09-25 02:30", -3),
+        ("Australia/Sydney", "2011-10-02 02:30", -3),
+        # west of UTC, shifting forward over it
+        ("US/Eastern", "2011-03-13 02:30", 5),
+        ("US/Eastern", "2011-03-13 02:30", 24),
+        ("America/Santiago", "2011-08-21 00:30", 5),
+        # GH#40705 fixed this zone for a one-hour shift only
+        ("Europe/London", "2021-03-28 01:20", 2),
+    ],
+)
+def test_dti_tz_localize_nonexistent_timedelta_shift_across_transition(
+    tz, start_ts, shift_hours, unit
+):
+    # GH#66820 the offset to apply was picked by bisecting the shifted *wall*
+    #  time against the *UTC* transition instants, so any shift large enough to
+    #  clear the transition took the offset from the wrong side of it and the
+    #  result came back off by the DST delta.  One-hour shifts happened to land
+    #  right, which is all the tests covered.
+    # two elements so the vectorized loop is what is under test: at length 1
+    #  tz_localize boxes element 0 to decide whether freq survives, which can
+    #  raise on its own and mask what tz_localize_to_utc returned
+    shift = pd.Timedelta(hours=shift_hours)
+    dti = pd.DatetimeIndex([pd.Timestamp(start_ts)] * 2).as_unit(unit)
+
+    result = dti.tz_localize(tz, nonexistent=shift)
+
+    expected = (
+        pd.DatetimeIndex([pd.Timestamp(start_ts) + shift] * 2)
+        .tz_localize(tz)
+        .as_unit(unit)
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_tz_localize_nonexistent_timedelta_shift_scalar_matches_index():
+    # GH#66820 the scalar path routes through the same block
+    ts = pd.Timestamp("2011-03-27 02:30")
+    shift = pd.Timedelta(hours=-2)
+
+    result = ts.tz_localize("Europe/Warsaw", nonexistent=shift)
+
+    assert result == pd.Timestamp("2011-03-27 00:30", tz="Europe/Warsaw")
+    dti = pd.DatetimeIndex([ts] * 2).tz_localize("Europe/Warsaw", nonexistent=shift)
+    assert (dti == result).all()
+
+
 def test_dti_tz_localize_nonexistent_timedelta_shift_onto_nat_sentinel():
     # GH#66697 shifting a nonexistent time to a wall time whose UTC instant is
     #  exactly the NaT sentinel, one below Timestamp.min, used to come back as a
@@ -598,6 +652,26 @@ def test_dti_tz_localize_nonexistent_shift_at_last_transition():
     ).tz_localize(tz)
     tm.assert_index_equal(result, expected)
     assert result[0].utcoffset() == timedelta(hours=11)
+
+
+@pytest.mark.parametrize("tz", ["America/Sao_Paulo", "dateutil/America/Sao_Paulo"])
+def test_dti_tz_localize_nonexistent_shift_into_last_interval(tz):
+    # GH#66820 the offset after the final transition is open-ended: a shifted
+    #  wall time landing there has no next transition to be checked against.
+    #  Brazil abolished DST in 2019, so neither backend has a rule that would
+    #  divert the lookup to the tzinfo API.
+    ts = pd.Timestamp("2018-11-04 00:30")
+    dti = pd.DatetimeIndex([ts, ts])
+    # the final transition is 2019-02-17 02:00 UTC; land 13 hours past it,
+    #  inside the one-day bracket the lookup searches
+    shift = pd.Timedelta(days=105, hours=11, minutes=30)
+
+    result = dti.tz_localize(tz, nonexistent=shift)
+
+    expected = pd.DatetimeIndex([ts + shift] * 2).tz_localize(tz)
+    tm.assert_index_equal(result, expected)
+    assert result[0] == pd.Timestamp("2019-02-17 12:00", tz=tz)
+    assert result[0].utcoffset() == timedelta(hours=-3)
 
 
 @pytest.mark.parametrize("freq", ["D", "MS", "W-SUN", "BME"])
