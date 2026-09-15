@@ -148,3 +148,16 @@ def assert_invalid_comparison(left, right, box):
         right > left
     with pytest.raises(TypeError, match=msg):
         right >= left
+
+
+class NoInitialMaxArray(np.ndarray):
+    """
+    ndarray subclass whose max() rejects the initial= and where= keywords, the
+    way np.ma.MaskedArray's does.
+
+    The datetimelike overflow guards reduce with those keywords, so they have to
+    hand an ndarray subclass off to numpy rather than reduce it (GH#66552).
+    """
+
+    def max(self, axis=None, out=None, keepdims=False):
+        return super().max(axis=axis, out=out, keepdims=keepdims)
