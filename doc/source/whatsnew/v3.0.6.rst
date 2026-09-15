@@ -25,6 +25,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :class:`RangeIndex` where missing Copy-on-Write reference tracking allowed external modification via a :class:`Series` to silently corrupt the index (:issue:`67060`)
 
 
 
