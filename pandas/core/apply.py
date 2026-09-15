@@ -15,6 +15,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
@@ -1234,13 +1235,15 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+            wrapped = wrap_function(self.func)
+            obj_iter = self.values.T if self.axis == 0 else self.values
+            res_list = [wrapped(val, *self.args, **self.kwargs) for val in obj_iter]
+            first_res = res_list[0]
+            dtype = np.asanyarray(first_res).dtype
+            res_list = [lib.item_from_zerodim(x) for x in res_list]
+            result = np.array(res_list, dtype=dtype)
+            if self.axis == 0 and result.ndim == 2:
+                result = result.T
 
         # TODO: mixed type case
         if result.ndim == 2:
