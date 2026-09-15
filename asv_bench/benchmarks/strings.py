@@ -27,6 +27,41 @@ class Dtypes:
             raise NotImplementedError from err
 
 
+def make_python_string_array(cardinality, has_nulls):
+    N = 500_000
+    unique = np.array([f"value-{i}" for i in range(cardinality)], dtype=object)
+    values = np.resize(unique, N)
+    if has_nulls:
+        values[::10] = NA
+    return StringArray(values, dtype=StringDtype("python"))
+
+
+class StringArrayDuplicated:
+    params = [
+        [256, 50_000, 500_000],
+        [False, True],
+        ["first", "last", False],
+    ]
+    param_names = ["cardinality", "has_nulls", "keep"]
+
+    def setup(self, cardinality, has_nulls, keep):
+        self.array = make_python_string_array(cardinality, has_nulls)
+
+    def time_duplicated(self, cardinality, has_nulls, keep):
+        self.array.duplicated(keep=keep)
+
+
+class StringArrayValueCounts:
+    params = [[256, 50_000, 500_000], [False, True]]
+    param_names = ["cardinality", "has_nulls"]
+
+    def setup(self, cardinality, has_nulls):
+        self.array = make_python_string_array(cardinality, has_nulls)
+
+    def time_value_counts(self, cardinality, has_nulls):
+        self.array.value_counts()
+
+
 class Construction:
     params = (
         ["series", "frame", "categorical_series"],
