@@ -19,7 +19,10 @@ from pandas.errors import (
 )
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_list_like,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.io.common import get_handle
@@ -300,10 +303,16 @@ class _BaseXMLFormatter:
             attr_name = self._get_flat_col_name(col)
             try:
                 if not isna(d[col]):
-                    elem_row.attrib[attr_name] = str(d[col])
+                    elem_row.attrib[attr_name] = self._get_xml_value(d[col])
             except KeyError as err:
                 raise KeyError(f"no valid column, {col}") from err
         return elem_row
+
+    @final
+    def _get_xml_value(self, val: Any) -> str:
+        if is_bool(val):
+            return "true" if val else "false"
+        return str(val)
 
     @final
     def _get_flat_col_name(self, col: str | tuple) -> str:
@@ -336,7 +345,11 @@ class _BaseXMLFormatter:
         for col in self.elem_cols:
             elem_name = self._get_flat_col_name(col)
             try:
-                val = None if isna(d[col]) or d[col] == "" else str(d[col])
+                val = (
+                    None
+                    if isna(d[col]) or d[col] == ""
+                    else self._get_xml_value(d[col])
+                )
                 sub_element_cls(elem_row, elem_name).text = val
             except KeyError as err:
                 raise KeyError(f"no valid column, {col}") from err
