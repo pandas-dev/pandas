@@ -35,12 +35,20 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         DtypeObj,
         JSONSerializable,
@@ -108,7 +116,9 @@ def set_default_names(data):
                 "Index name of 'index' is not round-trippable.",
                 stacklevel=find_stack_level(),
             )
-        elif len(nms) > 1 and any(x.startswith("level_") for x in nms):
+        elif len(nms) > 1 and any(
+            isinstance(x, str) and x.startswith("level_") for x in nms
+        ):
             warnings.warn(
                 "Index names beginning with 'level_' are not round-trippable.",
                 stacklevel=find_stack_level(),
@@ -340,6 +350,50 @@ def build_table_schema(
     return schema
 
 
+def _unmatched_names(
+    names: Sequence[Hashable], records: Sequence[Any]
+) -> list[Hashable]:
+    """
+    Non-string field names with no key holding their values in "data".
+    """
+    # JSON object keys are always strings, so a non-string field name is
+    #  keyed by its string form in "data" (GH#19129).
+    unmatched = []
+    for name in names:
+        if isinstance(name, str):
+            continue
+        key = str(name)
+        if not any(isinstance(record, dict) and key in record for record in records):
+            unmatched.append(name)
+    return unmatched
+
+
+def _float_names_from_keys(
+    perturbed: Sequence[Hashable], records: Sequence[Any]
+) -> dict[float, float]:
+    """
+    Map each perturbed float name to the exact label its "data" key spells.
+    """
+    # unless double_precision truncated it, the schema's float literal is the
+    #  same text as the "data" key, so the fast parser rounds both alike and
+    #  float() on the key recovers the label exactly (GH#19129)
+    wanted = set(perturbed)
+    matches: dict[float, list[float]] = {}
+    record_keys = {
+        key for record in records if isinstance(record, dict) for key in record
+    }
+    for key in record_keys:
+        try:
+            value = ujson_loads(key, precise_float=False)
+        except ValueError:
+            # not a JSON literal, so not the spelling of a float label
+            continue
+        if isinstance(value, float) and value in wanted:
+            matches.setdefault(value, []).append(float(key))
+    # a name two keys could spell is left alone, for the unmatched check to catch
+    return {value: keys[0] for value, keys in matches.items() if len(keys) == 1}
+
+
 def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     Builds a DataFrame from a given schema
@@ -360,6 +414,9 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     ------
     NotImplementedError
         If the JSON table schema contains either timezone or timedelta data
+    ValueError
+        If a non-string field name cannot be matched to the key that holds its
+        values in the "data" records, or if two field names share a string form
 
     Notes
     -----
@@ -377,12 +434,80 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     pandas.read_json
     """
     table = ujson_loads(json, precise_float=precise_float)
-    col_order = [field["name"] for field in table["schema"]["fields"]]
-    df = DataFrame(table["data"], columns=col_order)[col_order]
+    schema = table["schema"]
+    records = table["data"]
+    names = [field["name"] for field in schema["fields"]]
+    # only an object record is keyed by label; with none of them there is no
+    #  key to match a label against, so DataFrame takes the labels as they are
+    rows = records if isinstance(records, list) else []
+    keyed = any(isinstance(record, dict) for record in rows)
+    positional = isinstance(records, list) and not keyed
+    recovered: dict[float, float] = {}
+    if not precise_float:
+        # the fast parser perturbs a float label (0.3 reads back as
+        #  0.30000000000000004) so it no longer matches its key in "data";
+        #  precise_float governs the data values, not the labels (GH#19129)
+        float_names = [name for name in names if isinstance(name, float)]
+        perturbed = _unmatched_names(float_names, rows)
+        if perturbed and keyed:
+            recovered = _float_names_from_keys(perturbed, rows)
+            names = [
+                recovered.get(name, name) if isinstance(name, float) else name
+                for name in names
+            ]
+        elif perturbed:
+            # no key to recover the label from, so the label itself has to be
+            #  parsed exactly, which costs a second decode of the whole document
+            try:
+                schema = ujson_loads(json, precise_float=True)["schema"]
+            except ValueError as err:
+                raise ValueError(
+                    "Reading a float field name with no matching key in "
+                    f"'data' requires an exact parse, which failed: {err}"
+                ) from err
+            names = [field["name"] for field in schema["fields"]]
+    fields = schema["fields"]
+    # a keyed record is looked up by the label's string form, so the frame is
+    #  built under those keys and the labels restored at the end
+    col_order = list(names) if positional else [str(name) for name in names]
+    collisions: list[Hashable] = []
+    shared = ""
+    if keyed:
+        # two labels sharing that string form are indistinguishable in "data"
+        collisions = [
+            name
+            for name, col in zip(names, col_order, strict=True)
+            if col_order.count(col) > 1
+        ]
+        shared = "share a string form, which is how 'data' keys its values"
+    elif rows:
+        # positional labels are used as they are, and pandas conflates 1, 1.0
+        #  and True, so they collide on its own notion of equality instead
+        duplicated = Index(names).duplicated(keep=False)
+        collisions = [name for name, dup in zip(names, duplicated, strict=True) if dup]
+        shared = "are the same label to pandas"
+    if collisions:
+        raise ValueError(
+            f"Field names {collisions} {shared}, so they cannot be read back"
+        )
+    if keyed:
+        unmatched = _unmatched_names(names, rows)
+        if unmatched:
+            msg = f"Field names {unmatched} have no matching key in 'data'"
+            if any(isinstance(name, float) for name in unmatched):
+                msg += (
+                    "; to_json writes a float label at 'double_precision' "
+                    "digits, 15 at most, but keys its values by the full repr"
+                )
+            raise ValueError(msg)
+    df = DataFrame(records, columns=col_order)
+    if not positional:
+        # raw labels are unsafe to index with -- [True, False] is a row mask
+        df = df[col_order]
 
     dtypes = {
-        field["name"]: convert_json_field_to_pandas_type(field)
-        for field in table["schema"]["fields"]
+        col: convert_json_field_to_pandas_type(field)
+        for col, field in zip(col_order, fields, strict=True)
     }
 
     # No ISO constructor for Timedelta as of yet, so need to raise
@@ -394,14 +519,33 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
 
-    if "primaryKey" in table["schema"]:
-        df = df.set_index(table["schema"]["primaryKey"])
+    if "primaryKey" in schema:
+        pkey = schema["primaryKey"]
+        if not isinstance(pkey, list):
+            # the spec allows a bare field name as well as an array of them,
+            #  and build_table_schema(primary_key=0) writes a non-string one
+            pkey = [pkey]
+        # primaryKey repeats the field name, so it was perturbed the same way
+        pkey = [
+            recovered.get(key, key) if isinstance(key, float) else key for key in pkey
+        ]
+        primary_key = pkey if positional else [str(key) for key in pkey]
+        df = df.set_index(primary_key)
         if len(df.index.names) == 1:
             if df.index.name == "index":
                 df.index.name = None
         else:
             df.index.names = [
-                None if x.startswith("level_") else x for x in df.index.names
+                None if isinstance(name, str) and name.startswith("level_") else name
+                for name in df.index.names
             ]
+
+    # undo the stringification; rebuilding from a plain list also lets a
+    #  uniform label type infer its own dtype rather than staying object,
+    #  which an empty axis has nothing to infer from
+    restore: dict[Hashable, Any] = dict(zip(col_order, names, strict=True))
+    if not df.columns.empty:
+        df.columns = [restore[col] for col in df.columns]
+    df.index.names = [restore.get(name, name) for name in df.index.names]
 
     return df
