@@ -2034,7 +2034,7 @@ class MultiIndex(Index):
         MultiIndex([(2.0, 4.0)],
                    )
         >>> mi.dropna(how="all")
-        MultiIndex([(nan, 3.0),
+        MultiIndex([(NaN, 3.0),
                     (2.0, 4.0)],
                    )
         """
@@ -2138,7 +2138,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, NaN, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
