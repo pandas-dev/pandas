@@ -266,6 +266,8 @@ still raises ``ValueError`` for a ``fold=1`` (DST-ambiguous) timestamp
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_310.api_breaking.datetimelike_unit_numeric:
+
 Datetime/timedelta resolution for numeric input
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
