@@ -102,7 +102,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
 
     ctypedef struct kh_str_starts_t:
         kh_str_t *table
-        int starts[256]
+        uint64_t start_lens[256]
         int has_empty
 
     kh_str_starts_t* kh_init_str_starts() nogil

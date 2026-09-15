@@ -2208,6 +2208,50 @@ class TestToDatetimeUnit:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             pd.Timestamp(value, unit="ns")
 
+    @pytest.mark.parametrize("unit", ["Y", "M"])
+    def test_float_to_datetime_oob_year_month(self, unit):
+        # GH#68640 units Y/M skipped the int64-domain check, so a float below
+        # int64 min aliased to the NaT sentinel and came back as NaT.
+        arr = np.array([-1e19], dtype="float64")
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            pd.to_datetime(arr, unit=unit)
+        assert pd.to_datetime(arr, unit=unit, errors="coerce")[0] is pd.NaT
+
+    @pytest.mark.parametrize("unit", ["Y", "M"])
+    @pytest.mark.parametrize("value", [np.inf, -np.inf])
+    def test_inf_to_datetime_oob_year_month(self, unit, value):
+        # GH#68640 inf is unrepresentable, not "ambiguous": units Y/M raised
+        # ValueError where every other unit raised OutOfBoundsDatetime.
+        msg = "cannot convert input"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime(np.array([value]), unit=unit)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.to_datetime([value], unit=unit)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            pd.Timestamp(value, unit=unit)
+
+    def test_year_month_non_round_beats_oob(self):
+        # GH#68640 the int64-domain check must not preempt the ambiguity error,
+        # which an out-of-bounds neighbour would otherwise mask.
+        msg = "Conversion of non-round float with unit=Y is ambiguous"
+        with pytest.raises(ValueError, match=msg):
+            pd.to_datetime(np.array([1.5, 1e19]), unit="Y")
+
+    @pytest.mark.parametrize("unit", ["foo", "", "YM"])
+    @pytest.mark.parametrize("errors", ["raise", "coerce"])
+    def test_unrecognized_unit_beats_oob(self, unit, errors):
+        # GH#68640 an out-of-bounds value must not mask a misspelled unit
+        with pytest.raises(ValueError, match="Unrecognized unit"):
+            pd.to_datetime(np.array([1e19, 1.5]), unit=unit, errors=errors)
+
+    @pytest.mark.parametrize("unit", ["Y", "M", "D", "s", "ns"])
+    def test_round_float_to_datetime_oob_object_path(self, unit):
+        # GH#68640 a round float went through a cast at the call site, outside
+        # the guard that turns the overflow into OutOfBoundsDatetime.
+        with pytest.raises(OutOfBoundsDatetime, match="cannot convert input"):
+            pd.to_datetime([1e30], unit=unit)
+        assert pd.to_datetime([1e30], unit=unit, errors="coerce")[0] is pd.NaT
+
     def test_uint64_to_datetime_raise_oob(self):
         # GH#60677 uint64 values > int64 max overflow silently
         uint64_max = np.iinfo(np.uint64).max
@@ -3437,7 +3481,7 @@ class TestToDatetimeInferFormat:
 
     @pytest.mark.parametrize(
         "tz_name, offset",
-        [("UTC", 0), ("UTC-3", 180), ("UTC+3", -180)],
+        [("UTC", 0), ("GMT", 0), ("UTC-3", 180), ("UTC+3", -180)],
     )
     def test_infer_datetime_format_tz_name(self, tz_name, offset):
         # GH 33133
@@ -4154,6 +4198,10 @@ class TestShouldCacheEarlyBail:
                 pd.date_range("2020-01-01", periods=100, freq="s", tz="US/Eastern"),
                 {},
             ),
+            # ISO 8601 format, handled by the vectorized C parser
+            (["2020-01-01"] * 100, {"format": "%Y-%m-%d"}),
+            (["20200101"] * 100, {"format": "%Y%m%d"}),
+            (["2020-01-01T00:00:00-0800"] * 100, {"format": "%Y-%m-%dT%H:%M:%S%z"}),
         ],
     )
     def test_should_cache_returns_false(self, arg, kwargs):
@@ -4173,12 +4221,19 @@ class TestShouldCacheEarlyBail:
         idx = pd.Index(arr)
         assert tools.should_cache(idx) is False
 
-    def test_should_cache_explicit_format_not_skipped(self):
-        # GH#65380, asv-runner#137: an explicit ``format`` must NOT disable
-        # caching. Highly-duplicated strings still benefit from caching even
-        # with a (slow-parsing) strptime format, so should_cache returns True.
-        arg = pd.Index(["19MAY11"] * 100)
-        assert tools.should_cache(arg) is True
+    @pytest.mark.parametrize(
+        "arg, fmt",
+        [
+            (["19MAY11"] * 100, "%d%b%y"),
+            (["10/11/2018 00:00:00.045-07:00"] * 100, "%m/%d/%Y %H:%M:%S.%f%z"),
+            (["2020-01-01", "01/02/2020"] * 50, "mixed"),
+        ],
+    )
+    def test_should_cache_non_iso_format_not_skipped(self, arg, fmt):
+        # GH#65380, asv-runner#137: a non-ISO ``format`` must NOT disable
+        # caching. Highly-duplicated strings still benefit from caching with
+        # a (slow-parsing) strptime format, so should_cache returns True.
+        assert tools.should_cache(pd.Index(arg), format=fmt) is True
 
 
 def test_nullable_integer_to_datetime():
