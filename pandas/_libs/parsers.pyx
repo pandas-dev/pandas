@@ -1502,36 +1502,39 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
         khiter_t k
 
     table = kh_init_strbox()
-    lines = line_end - line_start
-    result = np.empty(lines, dtype=np.object_)
-    coliter_setup(&it, parser, col, line_start)
+    try:
+        lines = line_end - line_start
+        result = np.empty(lines, dtype=np.object_)
+        coliter_setup(&it, parser, col, line_start)
 
-    for i in range(lines):
-        COLITER_NEXT(it, word)
+        for i in range(lines):
+            COLITER_NEXT(it, word)
 
-        if na_filter:
-            if kh_get_str_starts_item(na_hashset, word):
-                # in the hash table
-                na_count += 1
-                result[i] = NA
-                continue
+            if na_filter:
+                if kh_get_str_starts_item(na_hashset, word):
+                    # in the hash table
+                    na_count += 1
+                    result[i] = NA
+                    continue
 
-        k = kh_get_strbox(table, word)
+            k = kh_get_strbox(table, word)
 
-        # in the hash table
-        if k != table.n_buckets:
-            # this increments the refcount, but need to test
-            pyval = <object>table.vals[k]
-        else:
-            # box it. new ref?
-            pyval = PyUnicode_Decode(word, strlen(word), "utf-8", encoding_errors)
+            # in the hash table
+            if k != table.n_buckets:
+                # this increments the refcount, but need to test
+                pyval = <object>table.vals[k]
+            else:
+                # box it. new ref?
+                # can raise for invalid UTF-8 under encoding_errors="strict"
+                # (GH#67931)
+                pyval = PyUnicode_Decode(word, strlen(word), "utf-8", encoding_errors)
 
-            k = kh_put_strbox(table, word, &ret)
-            table.vals[k] = <PyObject *>pyval
+                k = kh_put_strbox(table, word, &ret)
+                table.vals[k] = <PyObject *>pyval
 
-        result[i] = pyval
-
-    kh_destroy_strbox(table)
+            result[i] = pyval
+    finally:
+        kh_destroy_strbox(table)
 
     return result, na_count
 
@@ -1560,36 +1563,39 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
 
     # factorize parsed values, creating a hash table
     # bytes -> category code
-    with nogil:
-        table = kh_init_str()
-        coliter_setup(&it, parser, col, line_start)
+    table = kh_init_str()
+    try:
+        with nogil:
+            coliter_setup(&it, parser, col, line_start)
 
-        for i in range(lines):
-            COLITER_NEXT(it, word)
+            for i in range(lines):
+                COLITER_NEXT(it, word)
 
-            if na_filter:
-                if kh_get_str_starts_item(na_hashset, word):
-                    # is in NA values
-                    na_count += 1
-                    codes[i] = NA
-                    continue
+                if na_filter:
+                    if kh_get_str_starts_item(na_hashset, word):
+                        # is in NA values
+                        na_count += 1
+                        codes[i] = NA
+                        continue
 
-            k = kh_get_str(table, word)
-            # not in the hash table
-            if k == table.n_buckets:
-                k = kh_put_str(table, word, &ret)
-                table.vals[k] = current_category
-                current_category += 1
+                k = kh_get_str(table, word)
+                # not in the hash table
+                if k == table.n_buckets:
+                    k = kh_put_str(table, word, &ret)
+                    table.vals[k] = current_category
+                    current_category += 1
 
-            codes[i] = table.vals[k]
+                codes[i] = table.vals[k]
 
-    # parse and box categories to python strings
-    result = np.empty(table.n_occupied, dtype=np.object_)
-    for k in range(table.n_buckets):
-        if kh_exist_str(table, k):
-            result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
+        # parse and box categories to python strings
+        result = np.empty(table.n_occupied, dtype=np.object_)
+        for k in range(table.n_buckets):
+            if kh_exist_str(table, k):
+                # can raise; see _string_box_utf8 (GH#67931)
+                result[table.vals[k]] = PyUnicode_FromString(table.keys[k])
+    finally:
+        kh_destroy_str(table)
 
-    kh_destroy_str(table)
     return np.asarray(codes), result, na_count
 
 
