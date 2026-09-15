@@ -1706,6 +1706,10 @@ def test_to_csv_renders_differently_detected_through_object_and_categorical(df, 
             pd.DataFrame({"a": pd.Series([True, 5], dtype=object)}),
             id="bool-and-int",
         ),
+        pytest.param(
+            pd.DataFrame({"a": pd.Series([1, 2**63 + 5, 4], dtype=object)}),
+            id="out-of-range-int",
+        ),
     ],
 )
 def test_to_csv_object_column_probe_failure_defers_to_table_build(df, engine):

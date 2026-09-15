@@ -358,7 +358,7 @@ class CSVFormatter:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 arr_type = pa.array(col, from_pandas=True).type
-        except (pa.lib.ArrowException, TypeError, ValueError):
+        except (pa.lib.ArrowException, TypeError, ValueError, OverflowError):
             return pa.null()
         return self._unwrap_dictionary_type(pa, arr_type)
 
@@ -507,12 +507,12 @@ class CSVFormatter:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")  # pyarrow warns on tz-aware data
                 table = pa.Table.from_pandas(arrow_obj, preserve_index=False)
-        except (pa.lib.ArrowException, TypeError, ValueError):
+        except (pa.lib.ArrowException, TypeError, ValueError, OverflowError):
             reason = (
                 "The pyarrow engine cannot write one or more columns in "
                 "this data (e.g. Period/Interval dtype, a genuinely "
-                "mixed-type object column, or an object column of "
-                "list/dict values)."
+                "mixed-type object column, an out-of-range integer, or "
+                "an object column of list/dict values)."
             )
             if explicit:
                 raise ValueError(reason) from None
@@ -544,7 +544,13 @@ class CSVFormatter:
 
         try:
             pa_csv.write_csv(table.slice(0, 1), io.BytesIO(), write_options)
-        except (pa.lib.ArrowException, TypeError, ValueError, NotImplementedError):
+        except (
+            pa.lib.ArrowException,
+            TypeError,
+            ValueError,
+            NotImplementedError,
+            OverflowError,
+        ):
             reason = (
                 "The pyarrow engine cannot write one or more columns in "
                 "this data (e.g. Period/Interval dtype, or an object "
