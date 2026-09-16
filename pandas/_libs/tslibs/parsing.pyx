@@ -677,6 +677,83 @@ cdef void warn_quarter_deprecated(str date_string, str freq):
     )
 
 
+# Unit words that make dateutil spend a number's fraction on the next unit
+#  down, following it ("12,5h") or preceding it ("12h30,5").
+_HMS_WORDS = frozenset(word for group in DEFAULTPARSER.info.HMS for word in group)
+
+
+cdef bint _hms_label_at(str timestr, Py_ssize_t pos, int step):
+    """
+    Is the word next to timestr[pos], stepping outward by step, an _HMS_WORDS
+    one? dateutil allows a single space between the number and its label.
+    """
+    cdef:
+        Py_ssize_t end, length = len(timestr)
+
+    if 0 <= pos < length and timestr[pos] == " ":
+        pos += step
+    end = pos
+    while 0 <= end < length and timestr[end].isalpha():
+        end += step
+    if end == pos:
+        return False
+    if step > 0:
+        return timestr[pos:end].lower() in _HMS_WORDS
+    return timestr[end + 1:pos + 1].lower() in _HMS_WORDS
+
+
+cdef bint _has_decimal_comma_in_date(str timestr):
+    """
+    Check timestr for a comma that dateutil folds into a number and whose
+    fraction it then drops, e.g. "2013,11,04" -> 2013-04-01 and
+    "Nov 14,2013" -> year 1 (GH#17265).
+    """
+    cdef:
+        Py_ssize_t i, start, end, length = len(timestr)
+
+    if timestr.find(",") < 0:
+        return False
+
+    for i in range(2, length - 1):
+        if timestr[i] != "," or not timestr[i + 1].isdigit():
+            continue
+        # the digits the comma would join, timestr[start:i] and timestr[i+1:end]
+        start = i
+        while start > 0 and timestr[start - 1].isdigit():
+            start -= 1
+        end = i + 1
+        while end < length and timestr[end].isdigit():
+            end += 1
+
+        # does dateutil fold the comma in at all?
+        if i - start < 2:
+            # it needs two digits ahead of the comma, so e.g. "Nov 4,2013"
+            #  keeps the comma as punctuation
+            continue
+        if (
+            start >= 2
+            and timestr[start - 1] == "."
+            and (timestr[start - 2].isdigit() or timestr[start - 2].isalpha())
+        ):
+            # the digits continue a "Sep.12" style token, which the comma ends
+            #  rather than joins
+            continue
+        if end < length and timestr[end] == ".":
+            # the comma is not folded in either way: a trailing "." splits the
+            #  token ("Nov 14,2013."), digits after it make dateutil reject
+            continue
+
+        # it does; is the fraction spent or dropped?
+        if i - start == 6 or (start > 0 and timestr[start - 1] == ":"):
+            # spent on a time field, "01:02:03,456", "01:02,5" or "HHMMSS,fff"
+            continue
+        if _hms_label_at(timestr, end, 1) or _hms_label_at(timestr, start - 1, -1):
+            # spent on the unit below the label, e.g. "12,5h" -> 12:30
+            continue
+        return True
+    return False
+
+
 cdef datetime dateutil_parse(
     str timestr,
     datetime default,
@@ -694,6 +771,13 @@ cdef datetime dateutil_parse(
         object res
         str reso = None
         dict repl = {}
+
+    if _has_decimal_comma_in_date(timestr):
+        raise DateParseError(
+            f'Unable to parse "{timestr}": a comma between digits is read as a '
+            "decimal separator, discarding the digits after it. Add a space "
+            "after each comma."
+        )
 
     try:
         res, _ = DEFAULTPARSER._parse(timestr, dayfirst=dayfirst, yearfirst=yearfirst)
