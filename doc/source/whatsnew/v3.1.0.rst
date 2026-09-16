@@ -895,6 +895,7 @@ Indexing
 - Fixed bug in :meth:`DataFrame.loc` where assigning a :class:`Series` to a subset of rows of one column upcast the dtype of other columns in a single-dtype :class:`DataFrame` (:issue:`66105`)
 - Fixed bug in :meth:`DataFrame.loc` where assigning with duplicate column names and new columns corrupted unrelated columns (:issue:`58317`)
 - Fixed segfault in :meth:`DataFrame.loc` when repeatedly adding new rows to an object-dtype-indexed :class:`DataFrame` (:issue:`21968`)
+-
 
 Missing
 ^^^^^^^
@@ -1185,6 +1186,7 @@ ExtensionArray
 - Fixed bug in :meth:`Series.cummax` and :meth:`Series.cummin` (and their :class:`DataFrame` counterparts) with floating-point :class:`ArrowDtype` returning a finite sentinel value instead of the correct running maximum/minimum (:issue:`66257`)
 - Fixed the :attr:`~Series.is_monotonic_increasing` and :attr:`~Series.is_monotonic_decreasing` properties to dispatch to the underlying :class:`ExtensionArray` implementation (:issue:`65585`)
 - Bug in :meth:`Series.list` raising error when using negative indices with PyArrow list dtypes (:issue:`63221`)
+-
 
 Styler
 ^^^^^^
