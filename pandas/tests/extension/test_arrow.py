@@ -1502,10 +1502,10 @@ def unconvertible_object(request):
     return request.param
 
 
-def object_array_of(value, length=2):
-    # np.array([value] * length) would give a 2D array for array-like values
+def object_array_of(value):
+    # np.array([value, value]) would give a 2D array for array-like values
     #  such as Categorical
-    result = np.empty(length, dtype=object)
+    result = np.empty(2, dtype=object)
     result.fill(value)
     return result
 
@@ -1637,11 +1637,17 @@ def test_cmp_mixed_object_keeps_na():
     "dtype, values", [(ArrowDtype(pa.int64()), [1, None]), (None, ["a", None])]
 )
 def test_arith_dataframe_of_unconvertible_objects(unconvertible_object, dtype, values):
-    # GH#62682 the operand reaches ArrowExtensionArray as a DataFrame column,
-    #  as in the issue; dtype=None gives the arrow-backed str dtype
+    # GH#62682 the operand reaches ArrowExtensionArray as a DataFrame column, as
+    #  in the issue; dtype=object is required or the Interval param builds
+    #  interval columns and never reaches the code under test.
     arr = pd.array(values, dtype=dtype)
-    df = pd.DataFrame([[unconvertible_object, unconvertible_object]])
-    msg = "|".join(["can only concatenate str", "not supported"])
+    df = pd.DataFrame([[unconvertible_object, unconvertible_object]], dtype=object)
+    msg = "|".join(
+        [
+            "can only concatenate str",
+            re.escape(f"operation 'add' not supported for dtype '{arr.dtype}'"),
+        ]
+    )
     with pytest.raises(TypeError, match=msg):
         arr + df
 
