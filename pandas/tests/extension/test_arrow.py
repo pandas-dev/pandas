@@ -3911,6 +3911,35 @@ def test_from_sequence_of_strings_empty_string_int():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
+@pytest.mark.parametrize("pa_type", [pa.int64(), pa.uint64()])
+@pytest.mark.parametrize("box", [np.array, list, pd.Series, pd.Index])
+def test_from_sequence_of_strings_int_precision_with_na(pa_type, box):
+    # GH#56135 an NA must not route the integers through float64
+    strings = box(np.array(["1582218195625938945", None], dtype=object))
+    dtype = ArrowDtype(pa_type)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array([1582218195625938945, None], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_sequence_of_strings_pa_array_rejects_hex():
+    # GH#56135 pyarrow's own string cast reads "0x1F" as 31; to_numeric is what keeps
+    #  pa.Array input as strict as list input
+    strings = pa.array(["0x1F"], type=pa.string())
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_int_above_uint64():
+    # GH#56135 pins the unchanged fallback: too large for the nullable backend,
+    #  so the default one still reports the value pyarrow cannot hold
+    strings = np.array(["184467440737095516150", None], dtype=object)
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(pa.ArrowInvalid, match="truncated converting to int64"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
 def test_from_sequence_of_strings_none_float():
     # GH#66834
     strings = ["1.5", None, "2.0"]
