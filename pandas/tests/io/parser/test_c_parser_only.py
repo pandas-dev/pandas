@@ -274,6 +274,23 @@ def test_custom_lineterminator(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+@pytest.mark.parametrize(
+    "sep, term", [("\n", "~"), ("\r", "~"), ("\n", "\r"), ("\r", "\n")]
+)
+def test_line_break_as_separator_with_custom_lineterminator(
+    key, sep, term, c_parser_only
+):
+    # GH#51801 a custom lineterminator frees up "\n"/"\r" as a separator
+    parser = c_parser_only
+    data = f"a{sep}b{sep}c{term}1{sep}2{sep}3{term}4{sep}5{sep}6"
+
+    result = parser.read_csv(StringIO(data), lineterminator=term, **{key: sep})
+    expected = parser.read_csv(StringIO(data.replace(sep, ",").replace(term, "\n")))
+
+    tm.assert_frame_equal(result, expected)
+
+
 def test_parse_ragged_csv(c_parser_only):
     parser = c_parser_only
     data = """1,2,3
