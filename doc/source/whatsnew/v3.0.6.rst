@@ -20,6 +20,7 @@ Fixed regressions
 - Bug in full-slice assignment (``arr[:] = value``) into a PyArrow-backed array where the result shared memory with ``value``, so later modifying ``value`` also changed the assigned-to object (:issue:`67990`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine and ``low_memory=True`` where a mixed-dtype column selected by ``usecols`` raised ``IndexError`` instead of emitting a :class:`DtypeWarning` unless it was the first column in the file, and where that warning named the wrong column when the file had an index column (:issue:`67375`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine and ``low_memory=True`` where the number reported next to each column name in the mixed-type :class:`DtypeWarning` was a running count of the warned columns rather than the column's position in the file (:issue:`67375`)
+- Regression in :meth:`Series.interpolate` with ``method="linear"`` and a pyarrow-backed dtype leaving consecutive and trailing missing values unfilled, and truncating interpolated values for integer dtypes; the result now matches the equivalent masked (e.g. ``Int64``) dtype, including the upcast to ``float64[pyarrow]`` (:issue:`65345`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.bug_fixes:
