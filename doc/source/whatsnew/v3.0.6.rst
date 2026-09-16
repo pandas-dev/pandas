@@ -24,6 +24,7 @@ Fixed regressions
   select the columns into a 1-column DataFrame with an extension dtype, which
   surfaced as a regression for a DataFrame with string data (:issue:`66527`,
   :issue:`66255`)
+- Regression in :meth:`Series.interpolate` with ``method="linear"`` and a pyarrow-backed dtype leaving consecutive and trailing missing values unfilled, and truncating interpolated values for integer dtypes; the result now matches the equivalent masked (e.g. ``Int64``) dtype, including the upcast to ``float64[pyarrow]`` (:issue:`65345`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.bug_fixes:
