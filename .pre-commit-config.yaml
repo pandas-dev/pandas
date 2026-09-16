@@ -16,7 +16,7 @@ ci:
     autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
-    skip: [pyright, mypy]
+    skip: [cython-lint, pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.4
