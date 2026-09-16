@@ -737,6 +737,7 @@ Datetimelike
 - Bug in :func:`date_range` where ``inclusive`` parameter failed to filter endpoints when only ``start`` and ``periods`` or ``end`` and ``periods`` were specified (:issue:`46331`)
 - Bug in :func:`date_range` where ``periods=1`` with offsets that disallow ``n=0`` (e.g. :class:`offsets.LastWeekOfMonth`, :class:`offsets.FY5253`) raised ``ValueError`` (:issue:`41563`)
 - Bug in :func:`date_range` where passing ``end`` off the offset together with ``periods`` and an anchored offset (e.g. ``W-SUN``, ``ME``, ``MS``, ``QS``) silently returned fewer than ``periods`` dates (:issue:`64834`)
+- Bug in :func:`to_datetime` and :class:`Timestamp` parsing a time-only string with a one-digit minute (e.g. ``"11:0"``) as year 1 instead of relative to today's date, unlike the zero-padded ``"11:00"`` (:issue:`46509`)
 - Bug in :func:`to_datetime` and :class:`Timestamp` where a datetime near the implementation bounds with a fixed UTC offset silently wrapped when shifted to UTC instead of raising ``OutOfBoundsDatetime`` (:issue:`65353`)
 - Bug in :func:`to_datetime` and :class:`Timestamp` with ``unit="Y"`` or ``unit="M"`` and an infinite ``float``, raising ``ValueError`` instead of ``OutOfBoundsDatetime`` (:issue:`68640`)
 - Bug in :func:`to_datetime` and :func:`read_csv` with ``parse_dates`` returning timezone-naive results for datetime strings whose timezone is spelled ``"GMT"``, such as RFC 1123 / HTTP dates, and in :func:`tseries.api.guess_datetime_format` guessing such a timezone as a literal instead of ``%Z`` (:issue:`68193`)
