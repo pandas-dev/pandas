@@ -174,9 +174,7 @@ class ListAccessor(ArrowAccessor):
 
         if isinstance(key, int):
             pa_array = self._pa_array
-            chunks = (
-                pa_array.chunks if isinstance(pa_array, pa.ChunkedArray) else [pa_array]
-            )
+            chunks = pa_array.chunks
             if key < 0:
                 element = pa.chunked_array(
                     [_list_element_neg(chunk, key) for chunk in chunks],
