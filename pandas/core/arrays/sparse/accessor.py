@@ -479,8 +479,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         >>> df.sparse.density
         np.float64(0.5)
         """
-        tmp = np.mean([column.array.density for _, column in self._parent.items()])
-        return tmp
+        if len(self._parent.columns) == 0:
+            # mean of an empty list is undefined
+            return np.nan
+        return np.mean([column.array.density for _, column in self._parent.items()])
 
     @staticmethod
     def _prep_index(data, index, columns):

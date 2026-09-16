@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import re
 
 import numpy as np
 import pytest
@@ -707,21 +708,22 @@ def test_select_dtypes_dt64_td64_string_byteorder_unitless(kind):
 
 def test_select_dtypes_td64_non_native_column():
     # GH#40234 a string spec matches by resolution, an instance spec stays exact.
-    # Construction no longer yields a non-native column (GH#68342); the fixture
-    # leans on a unit-changing astype, itself a bug, so the assert is a tripwire
+    # Construction normalizes byteorder and GH#68565 stopped astype producing a
+    # non-native column, so ``view`` plus setitem is the route left -- the
+    # byteorder assert is a tripwire for that becoming unreachable too
     df = pd.DataFrame(
         {
-            "be": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
-            "le": pd.Series(np.array([1, 2], dtype="<m8[s]")),
-            "ms": pd.Series(np.array([1, 2], dtype="<m8[ms]")),
+            "le": pd.Series(np.array([1, 2], dtype="m8[s]")),
+            "ms": pd.Series(np.array([1, 2], dtype="m8[ms]")),
         }
-    ).astype({"be": ">m8[s]"})
+    )
+    df["be"] = pd.Series(np.array([1, 2], dtype="m8[s]")).array.view(">m8[s]")
     assert df["be"].dtype.byteorder == ">"
 
     # a string spec is byteorder-agnostic on both sides
     for spec in ("timedelta64[s]", ">timedelta64[s]", "<timedelta64[s]"):
         result = df.select_dtypes(include=[spec])
-        tm.assert_frame_equal(result, df[["be", "le"]])
+        tm.assert_frame_equal(result, df[["le", "be"]])
 
     result = df.select_dtypes(exclude=["timedelta64[s]"])
     tm.assert_frame_equal(result, df[["ms"]])
@@ -940,6 +942,17 @@ def test_select_dtypes_datetimetz_string_deprecated(spec, arg):
     with tm.assert_produces_warning(None):
         alt = df.select_dtypes(**{arg: pd.DatetimeTZDtype})
     tm.assert_frame_equal(alt, expected)
+
+
+@pytest.mark.parametrize("spec", ["datetimetz", "datetime64tz"])
+def test_select_dtypes_datetimetz_string_deprecated_ndarray_message(spec):
+    # GH#24558: an ndarray spec yields np.str_ elements, which must not reach
+    # the warning as np.str_('datetimetz')
+    df = pd.DataFrame({"a": pd.date_range("2016-01-01", periods=2, tz="UTC")})
+    msg = f"Passing {spec!r} to select_dtypes is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include=np.array([spec]))
+    tm.assert_frame_equal(result, df)
 
 
 def test_select_dtypes_datetimetz_string_overlaps_class():
@@ -1213,6 +1226,25 @@ def test_select_dtypes_arrow_date_no_tz_attribute(pa_type):
         tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[["num"]])
 
 
+@pytest.mark.parametrize("pa_type", ["date32", "date64"])
+def test_select_dtypes_arrow_date_skipped_by_unit_spec(pa_type):
+    # GH#68488: a date column is day-resolution, but numpy_dtype reports a
+    # datetime64 of whatever unit pyarrow picks, so a unit-qualified spec used
+    # to select it at a resolution it does not have
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    df = pd.DataFrame(
+        {
+            "date": pd.array([1, 2], dtype=dtype),
+            "ts": pd.array([1, 2], dtype=pd.ArrowDtype(pa.timestamp("ms"))),
+        }
+    )
+    for spec in ["datetime64[s]", "datetime64[ms]", "datetime64[us]", "datetime64[ns]"]:
+        result = df.select_dtypes(include=spec)
+        expected = df[["ts"]] if spec == "datetime64[ms]" else df[[]]
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("spec", ["interval[int64]", pd.IntervalDtype("int64")])
 def test_select_dtypes_interval_subtype_matches_any_closed(spec):
     # GH#66119, GH#66120: an interval spec with a subtype but no ``closed``
@@ -1272,6 +1304,57 @@ def test_select_dtypes_interval_family_string_and_bare_instance():
     tm.assert_frame_equal(df.select_dtypes(include=pd.IntervalDtype()), expected)
 
 
+def _interval_closed_frame():
+    return pd.DataFrame(
+        {
+            "int_left": pd.arrays.IntervalArray.from_breaks([0, 1, 2], closed="left"),
+            "float_right": pd.arrays.IntervalArray.from_breaks([0.0, 1.0, 2.0]),
+            "other": [1, 2],
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "closed, matched", [("left", ["int_left"]), ("right", ["float_right"])]
+)
+def test_select_dtypes_interval_closed_only_instance(closed, matched):
+    # GH#68491: IntervalDtype(closed=...) names one closed value but leaves the
+    # subtype open; it used to select every interval column, because
+    # IntervalDtype.__eq__ treats a None subtype on either side as a wildcard
+    df = _interval_closed_frame()
+    spec = pd.IntervalDtype(closed=closed)
+    tm.assert_frame_equal(df.select_dtypes(include=spec), df[matched])
+
+    rest = [col for col in df.columns if col not in matched]
+    tm.assert_frame_equal(df.select_dtypes(exclude=spec), df[rest])
+
+
+def test_select_dtypes_interval_closed_only_include_and_exclude():
+    # GH#68491: any two subtype-less specs str() to "interval", so they used to
+    # compare equal and trip the include/exclude overlap check
+    df = _interval_closed_frame()
+    result = df.select_dtypes(
+        include=pd.IntervalDtype(closed="left"),
+        exclude=pd.IntervalDtype(closed="right"),
+    )
+    tm.assert_frame_equal(result, df[["int_left"]])
+
+    result = df.select_dtypes(
+        include=pd.IntervalDtype(), exclude=pd.IntervalDtype(closed="left")
+    )
+    tm.assert_frame_equal(result, df[["float_right"]])
+
+    msg = (
+        r"include and exclude overlap on "
+        r"""frozenset\(\{"IntervalDtype\(closed='left'\)"\}\)"""
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.select_dtypes(
+            include=pd.IntervalDtype(closed="left"),
+            exclude=pd.IntervalDtype(closed="left"),
+        )
+
+
 def _interval_unit_frame():
     dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"])
     tdi = pd.to_timedelta([1, 2, 3, 4], unit="D")
@@ -1315,6 +1398,35 @@ def test_select_dtypes_interval_unitless_subtype_with_closed(spec):
     # GH#66120: leaving the subtype's unit open still honors an explicit closed
     df = _interval_unit_frame()
     tm.assert_frame_equal(df.select_dtypes(include=spec), df[["dt_us_left"]])
+
+
+@pytest.mark.parametrize(
+    "spec, unitless",
+    [
+        ("interval[datetime64[10s]]", "interval[datetime64]"),
+        ("interval[datetime64[Y], left]", "interval[datetime64, left]"),
+        ("interval[timedelta64[2ns]]", "interval[timedelta64]"),
+        (pd.IntervalDtype(np.dtype("M8[10s]")), "interval[datetime64]"),
+        (pd.IntervalDtype(np.dtype("M8[Y]"), "left"), "interval[datetime64, left]"),
+        (pd.IntervalDtype(np.dtype("m8[2ns]")), "interval[timedelta64]"),
+    ],
+)
+@pytest.mark.parametrize("kwarg", ["include", "exclude"])
+def test_select_dtypes_interval_unsupported_subtype_resolution_raises(
+    spec, unitless, kwarg
+):
+    # GH#40234 a subtype naming a resolution no column can have raises, as the
+    # same resolution does at the top level, instead of selecting nothing
+    df = _interval_unit_frame()
+    msg = (
+        f"{str(spec)!r} is not a supported datetime64/timedelta64 resolution; "
+        f"pass 's', 'ms', 'us', 'ns', or {unitless!r}"
+    )
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        df.select_dtypes(**{kwarg: spec})
+
+    # the remedy the message names selects interval columns
+    assert not df.select_dtypes(include=unitless).empty
 
 
 @pytest.mark.parametrize("kwarg", ["include", "exclude"])
@@ -1416,3 +1528,31 @@ def test_select_dtypes_include_object_with_explicit_str_no_warning(
     with tm.assert_produces_warning(None):
         result = df.select_dtypes(include=["object", str_spec])
     tm.assert_frame_equal(result, df[["a", "b"]])
+
+
+@pytest.mark.parametrize("object_spec", [object, "object", np.object_])
+def test_select_dtypes_sparse_object_subtype(object_spec):
+    # GH#68494: a Sparse[object] column is an object column, but SparseDtype
+    # does not compare equal to np.dtype(object)
+    df = pd.DataFrame(
+        {
+            "a": pd.arrays.SparseArray(["x", "y"], dtype=object),
+            "b": pd.arrays.SparseArray([1, 2], dtype="int64"),
+            "c": pd.Series([1, "z"], dtype=object),
+        }
+    )
+    tm.assert_frame_equal(df.select_dtypes(include=object_spec), df[["a", "c"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude=object_spec), df[["b"]])
+
+
+def test_select_dtypes_sparse_na_fill_value():
+    # GH#68567: "Sparse[float64]" names the NaN-fill parametrization, so it must
+    # not also match a column whose fill_value is a real number
+    df = pd.DataFrame(
+        {
+            "a": pd.arrays.SparseArray([1.0, np.nan]),
+            "b": pd.arrays.SparseArray([1.0, 0.0], fill_value=0.0),
+        }
+    )
+    tm.assert_frame_equal(df.select_dtypes(include="Sparse[float64]"), df[["a"]])
+    tm.assert_frame_equal(df.select_dtypes(exclude="Sparse[float64]"), df[["b"]])

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -288,3 +290,63 @@ class TestConstructors:
         dense = arr.to_dense()
         assert dense.dtype == np.float32
         tm.assert_numpy_array_equal(dense, data)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_constructor_unit_multiplier_raises(kind):
+    # GH#68522 constructing succeeded but the result could not be displayed
+    data = np.array([1, 2], dtype=f"{kind}8[10s]")
+    name = "datetime64" if kind == "M" else "timedelta64"
+    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
+
+    with pytest.raises(ValueError, match=msg):
+        SparseArray(data)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize(
+    "unit, expected_unit",
+    [
+        ("Y", "s"),
+        ("M", "s"),
+        ("W", "s"),
+        ("D", "s"),
+        ("h", "s"),
+        ("m", "s"),
+        ("ps", "ns"),
+    ],
+)
+def test_constructor_casts_unsupported_resolution(kind, unit, expected_unit):
+    # GH#68522 the resolution an unsupported unit lands on, and the values it
+    #  lands with, both follow pd.Series
+    data = np.array([1, 2], dtype=f"{kind}8[{unit}]")
+
+    result = SparseArray(data)
+    expected = pd.Series(data)
+
+    assert result.dtype.subtype == np.dtype(f"{kind}8[{expected_unit}]")
+    assert result.dtype.subtype == expected.dtype
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+    repr(result)  # m8[Y], m8[M] and m8[ps] raised here before GH#68522
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_constructor_unitless_data_raises(kind):
+    # GH#68522 only an empty array can carry a unitless dtype; numpy rejects
+    #  the rest, so this is the whole case
+    name = "datetime64" if kind == "M" else "timedelta64"
+    data = np.array([], dtype=name)
+
+    with pytest.raises(TypeError, match=f"{name} values must have a unit specified"):
+        SparseArray(data)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+@pytest.mark.parametrize("unit", ["10s", "Y", "D"])
+def test_constructor_unsupported_dtype_argument_raises(kind, unit):
+    # GH#68522 asking for the unit is rejected rather than silently kept
+    dtype = f"{kind}8[{unit}]"
+    msg = f"dtype={np.dtype(dtype)} is not supported. Supported resolutions are"
+
+    with pytest.raises(TypeError, match=re.escape(msg)):
+        SparseArray([1, 2], dtype=dtype)

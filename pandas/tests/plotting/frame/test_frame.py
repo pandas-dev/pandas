@@ -868,6 +868,9 @@ class TestDataFramePlots:
     )
     @pytest.mark.parametrize("x, y", [("a", "b"), (0, 1)])
     @pytest.mark.parametrize("b_col", [[2, 3, 4], ["a", "b", "c"]])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_scatterplot_object_data(self, b_col, x, y, infer_string):
         # GH 18755
         with pd.option_context("future.infer_string", infer_string):

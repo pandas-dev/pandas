@@ -3164,12 +3164,8 @@ def _adjust_dates_anchored(
             lresult_int = last._value + (freq_value - loffset)
         else:
             lresult_int = last._value + freq_value
-    fresult = Timestamp(fresult_int, unit=unit)
-    lresult = Timestamp(lresult_int, unit=unit)
-    if first_tzinfo is not None:
-        fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
-    if last_tzinfo is not None:
-        lresult = lresult.tz_localize("UTC").tz_convert(last_tzinfo)
+    fresult = Timestamp._from_value_and_reso(fresult_int, first._creso, first_tzinfo)
+    lresult = Timestamp._from_value_and_reso(lresult_int, last._creso, last_tzinfo)
     return fresult, lresult
 
 
