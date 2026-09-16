@@ -38,7 +38,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        DtypeObj,
         Scalar,
         npt,
     )
@@ -126,7 +125,7 @@ def _is_datetimelike_array(obj: object) -> bool:
     return _is_datetimelike_dtype(dtype)
 
 
-def _is_datetimelike_dtype(dtype: DtypeObj) -> bool:
+def _is_datetimelike_dtype(dtype: object) -> bool:
     kind = getattr(dtype, "kind", None)
     if kind is None or kind in "biufc":
         # no numeric or bool dtype is datetimelike, and logical_op is hot.  A
@@ -135,7 +134,7 @@ def _is_datetimelike_dtype(dtype: DtypeObj) -> bool:
         return False
     if isinstance(dtype, CategoricalDtype) and dtype.categories is not None:
         # a Categorical hides its categories behind kind "O"
-        dtype = dtype.categories.dtype
+        return _is_datetimelike_dtype(dtype.categories.dtype)
     if isinstance(dtype, ArrowDtype):
         import pyarrow as pa
 
@@ -148,7 +147,7 @@ def _is_datetimelike_dtype(dtype: DtypeObj) -> bool:
     # kind covers numpy M8/m8 and DatetimeTZDtype; PeriodDtype has kind "O" and needs
     #  naming.  Plain object dtype is excluded on purpose, see
     #  test_logical_op_object_dtype_still_truthy
-    return dtype.kind in "mM" or isinstance(dtype, PeriodDtype)
+    return kind in "mM" or isinstance(dtype, PeriodDtype)
 
 
 def _operand_repr(obj: object) -> str:
