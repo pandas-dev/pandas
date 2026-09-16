@@ -4183,10 +4183,8 @@ def test_loc_setitem_single_column_key_1d_value_non_unique_index():
 )
 @pytest.mark.parametrize(
     "box",
-    # TODO Series should also work?
-    # [list, np.array, pd.Series, pd.Index, pd.array],
-    [list, np.array, pd.Index, pd.array],
-    ids=["list", "ndarray", "Index", "pd.array"],
+    [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
 )
 def test_loc_setitem_single_column_frame_ea_dtype(dtype, box):
     # https://github.com/pandas-dev/pandas/issues/66527
@@ -4231,16 +4229,42 @@ def test_loc_setitem_single_column_frame_ea_dtype(dtype, box):
 )
 @pytest.mark.parametrize(
     "box",
-    # TODO Series should also work?
-    # [list, np.array, pd.Series, pd.Index, pd.array],
-    [list, np.array, pd.Index, pd.array],
-    ids=["list", "ndarray", "Index", "pd.array"],
+    [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
 )
 def test_loc_setitem_empty_boolean_column_mask(dtype, box):
     # https://github.com/pandas-dev/pandas/issues/66255
-    df = pd.DataFrame({"col": [1, 2, 3, np.nan]}, dtype=dtype)
+    df = pd.DataFrame({"a": [1, 2, 3, np.nan]}, dtype=dtype)
     df_orig = df.copy()
 
+    # setting scalar
     df.loc[:, box([False])] = 100
+
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        pytest.param(
+            "Float64",
+            marks=pytest.mark.xfail(reason="Setting frame causes AssertionError"),
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    # Series boolean key needs to be aligned with the indexed axis
+    [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_loc_setitem_empty_boolean_column_mask_frame_value(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66255
+    df = pd.DataFrame({"a": [1, 2, 3, np.nan]}, dtype=dtype)
+    df_orig = df.copy()
+
+    # setting frame
+    df.loc[:, box([False])] = df * 2
 
     tm.assert_frame_equal(df, df_orig)

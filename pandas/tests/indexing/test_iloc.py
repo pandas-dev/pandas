@@ -2245,7 +2245,8 @@ def test_iloc_setitem_series_boolean_index_row_key():
 )
 @pytest.mark.parametrize(
     "box",
-    # [list, np.array, pd.Series, pd.Index, pd.array],
+    # TODDO all those indexers should be supported
+    # [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
     [np.array],
     # ids=["list", "ndarray", "Series", "Index", "pd.array"],
 )
