@@ -67,7 +67,7 @@ cdef:
     # squared deviations would overflow anyway, so there is nothing to gain.
     float64_t MaxOriginMagnitude = np.sqrt(np.finfo(np.float64).max)
 
-    # GH#68920 limits on the two magnitudes a skew/kurt window's deviations get
+    # GH#68934 limits on the two magnitudes a skew/kurt window's deviations get
     # taken against, each applied as ``magnitude ** 2 * limit > m2``. Scaling the
     # magnitude rather than m2 is what keeps a huge deviation from overflowing
     # both sides to inf, where ``inf > inf`` is False and the test would never
@@ -570,7 +570,7 @@ cdef void add_skew(float64_t val, int64_t *nobs,
     # Not NaN
     if val == val:
         if nobs[0] == 0:
-            # GH#68920 anchor the accumulators to the window's first value, so an
+            # GH#68934 anchor the accumulators to the window's first value, so an
             # offset shared by the whole window cancels exactly instead of costing
             # precision in every deviation taken against a huge mean. Declining to
             # anchor on a huge value keeps `val - origin` from overflowing to
@@ -608,7 +608,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
     if val == val:
         nobs[0] -= 1
         if nobs[0] == 0:
-            # GH#68920 zero out rather than divide by nobs. The NaN arm below
+            # GH#68934 zero out rather than divide by nobs. The NaN arm below
             # would also catch the inf/NaN this otherwise produces, but only
             # where the compiler has not fused the removal's multiply and add.
             mean[0] = 0
@@ -746,7 +746,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
     if val == val:
         nobs[0] -= 1
         if nobs[0] == 0:
-            # GH#68920 zero out rather than divide by nobs. The NaN arm below
+            # GH#68934 zero out rather than divide by nobs. The NaN arm below
             # would also catch the inf/NaN this otherwise produces, but only
             # where the compiler has not fused the removal's multiply and add.
             mean[0] = 0
