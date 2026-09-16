@@ -135,6 +135,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
 
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        return self._maybe_convert_ufunc_result(result)
+
     def __init__(self, values, *, dtype: StringDtype | None = None) -> None:
         _check_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (

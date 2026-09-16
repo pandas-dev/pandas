@@ -656,24 +656,29 @@ def test_numpy_array_ufunc(dtype, box):
     # custom ufunc that works with string (object) input -> returning numeric
     str_len_ufunc = np.frompyfunc(lambda x: len(x), 1, 1)
     result = str_len_ufunc(arr)
-    expected_cls = pd.Series if box is pd.Series else np.array
-    # TODO we should infer int64 dtype here?
-    expected = expected_cls([1, 2, 3], dtype=object)
+    expected = box([1, 2, 3], dtype="Int64")
     tm.assert_equal(result, expected)
 
     # custom ufunc returning strings
     str_multiply_ufunc = np.frompyfunc(lambda x: x * 2, 1, 1)
     result = str_multiply_ufunc(arr)
     expected = box(["aa", "bbbb", "cccccc"], dtype=dtype)
-    if dtype.storage == "pyarrow":
-        # TODO ArrowStringArray should also preserve the class / dtype
-        if box is pd.array:
-            expected = np.array(["aa", "bbbb", "cccccc"], dtype=object)
-        else:
-            # not specifying the dtype because the exact dtype is not yet preserved
-            expected = pd.Series(["aa", "bbbb", "cccccc"])
-
     tm.assert_equal(result, expected)
+
+    # Mixed object results cannot be inferred to a more specific dtype.
+    mixed_ufunc = np.frompyfunc(lambda x: len(x) if len(x) == 1 else x, 1, 1)
+    result = mixed_ufunc(arr)
+    expected_cls = pd.Series if box is pd.Series else np.array
+    expected = expected_cls([1, "bb", "ccc"], dtype=object)
+    tm.assert_equal(result, expected)
+
+    # Multiple-output ufuncs should infer each result independently.
+    split_ufunc = np.frompyfunc(lambda x: (len(x), x * 2), 1, 2)
+    numeric_result, string_result = split_ufunc(arr)
+    expected_numeric = box([1, 2, 3], dtype="Int64")
+    expected_string = box(["aa", "bbbb", "cccccc"], dtype=dtype)
+    tm.assert_equal(numeric_result, expected_numeric)
+    tm.assert_equal(string_result, expected_string)
 
 
 @pytest.mark.parametrize("box", [pd.Series, pd.array])

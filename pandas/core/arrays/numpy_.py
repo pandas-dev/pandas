@@ -291,6 +291,9 @@ class NumpyExtensionArray(
 
         if ufunc.nout > 1:
             # multiple return values; re-box array-like results
+            if self.dtype.type is str:  # type: ignore[comparison-overlap]
+                self = cast("StringArray", self)
+                return self._maybe_convert_ufunc_result(result)
             return tuple(type(self)(x) for x in result)
         elif method == "at":
             # no return value
@@ -304,15 +307,8 @@ class NumpyExtensionArray(
             return result
         else:
             if self.dtype.type is str:  # type: ignore[comparison-overlap]
-                # StringDtype
                 self = cast("StringArray", self)
-                try:
-                    # specify dtype to preserve storage/na_value
-                    return type(self)(result, dtype=self.dtype)
-                except ValueError:
-                    # if validation of input fails (no strings)
-                    # -> fallback to returning raw numpy array
-                    return result
+                return self._maybe_convert_ufunc_result(result)
             # one return value; re-box array-like results
             return type(self)(result)
 
