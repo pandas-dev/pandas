@@ -1159,6 +1159,8 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` returning wildly incorrect results, and :meth:`.Rolling.corr` additionally returning ``NaN``, for every window following one that contained a value much larger than the rest of the data (:issue:`65739`)
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` (and their :class:`GroupBy` counterparts) returning ``0.0`` and ``-3.0`` respectively for degenerate windows or groups; these now return ``NaN`` (:issue:`62864`)
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for low-variance windows (:issue:`62946`)
+- Bug in :meth:`.Rolling.skew`, :meth:`.Rolling.kurt`, :meth:`.Expanding.skew`, and :meth:`.Expanding.kurt` losing most of their significant digits on data with a large offset shared by the whole series, such as prices or epoch timestamps (:issue:`68920`)
+- Bug in :meth:`.Rolling.skew`, :meth:`.Rolling.kurt`, :meth:`.Expanding.skew`, and :meth:`.Expanding.kurt` returning ``NaN`` for all later windows once a window held no observations, e.g. due to ``NaN`` values, or held values spanning nearly the whole ``float64`` range (:issue:`68920`)
 - Bug in :meth:`.Rolling.sum`, :meth:`.Rolling.mean`, :meth:`.Rolling.median`, :meth:`.Rolling.min`, and :meth:`.Rolling.max` with ``method="table"``, ``engine="numba"``, and ``engine_kwargs={"parallel": True}`` could cause a segfault (:issue:`40454`)
 - Bug in :meth:`.SeriesGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`65140`)
 - Bug in :meth:`DataFrame.groupby` with a :class:`Grouper` with ``freq`` raising ``AttributeError`` when all grouping keys are ``NaT`` (:issue:`43486`)
