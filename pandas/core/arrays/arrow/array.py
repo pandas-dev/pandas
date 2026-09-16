@@ -33,6 +33,7 @@ from pandas._libs.tslibs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
+    pa_version_under16p0,
     pa_version_under21p0,
 )
 from pandas.errors import Pandas4Warning
@@ -263,6 +264,12 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+def _is_string_or_binary_view(typ):
+    return not pa_version_under16p0 and (
+        pa.types.is_string_view(typ) or pa.types.is_binary_view(typ)
+    )
+
+
 def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
     """
     Whether ``pa.array`` on this type can return a view on caller-owned memory.
@@ -271,11 +278,7 @@ def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
     layouts always repack, so copying those would cost a full copy of the
     character data for no safety gain. Nested types may have a zero-copy child.
     """
-    return not (
-        _is_varbinary_type(pa_type)
-        or pa.types.is_string_view(pa_type)
-        or pa.types.is_binary_view(pa_type)
-    )
+    return not (_is_varbinary_type(pa_type) or _is_string_or_binary_view(pa_type))
 
 
 def _copy_pyarrow_buffers(
