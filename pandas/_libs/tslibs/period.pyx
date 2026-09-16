@@ -43,6 +43,7 @@ from libc.time cimport (
 
 from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeCode,
+    abbrev_to_npy_unit,
     c_OFFSET_TO_PERIOD_FREQSTR,
 )
 
@@ -2473,7 +2474,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, unit=unit)
+        return Timestamp._from_value_and_reso(dt64, abbrev_to_npy_unit(unit), None)
 
     @property
     def year(self) -> int:
