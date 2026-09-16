@@ -1235,6 +1235,13 @@ class TestTimestampConstructors:
         assert ts_comma.unit == ts_dot.unit
         assert ts_comma.microsecond == 567000
 
+    @pytest.mark.parametrize("arg", ["2013,11,04", "Nov 14,2013"])
+    def test_decimal_comma_in_date_raises(self, arg):
+        # GH#17265 these used to give 2013-04-01 and 0001-11-14 respectively
+        msg = re.escape(f'Unable to parse "{arg}"')
+        with pytest.raises(ValueError, match=msg):
+            pd.Timestamp(arg)
+
     @pytest.mark.parametrize("box", [datetime, pd.Timestamp])
     def test_raise_tz_and_tzinfo_in_datetime_input(self, box):
         # GH 23579
