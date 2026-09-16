@@ -26,7 +26,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 
-- Fixed memory leak in :func:`read_csv` with ``engine="c"`` when a string or ``category`` column failed to decode, for example invalid UTF-8 under ``encoding_errors="strict"`` (:issue:`67931`)
+- Fixed memory leak in :func:`read_csv` with ``engine="c"`` when a string or ``category`` column failed to decode, for example invalid UTF-8 under ``encoding="utf-8"`` and the default ``encoding_errors="strict"`` (:issue:`67931`)
 
 
 .. ---------------------------------------------------------------------------
