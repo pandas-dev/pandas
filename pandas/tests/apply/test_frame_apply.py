@@ -2017,6 +2017,37 @@ def test_agg_list_like_empty_frame_reduction():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["uint64", "UInt64", "uint64[pyarrow]"])
+@pytest.mark.parametrize("funcs", [["max", "count"], ["max", "count", "mean"]])
+def test_agg_list_like_unsigned_not_cast_to_float(dtype, funcs):
+    # GH#65031 max returns unsigned and count signed, and the dtype that holds
+    # both rounds away values above 2**53 (the pyarrow spelling raised
+    # ArrowInvalid on the same cast instead)
+    if dtype == "uint64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    big = 2**64 - 3
+    df = pd.DataFrame({"a": pd.Series([big, 1], dtype=dtype)})
+
+    result = df.agg(funcs)
+
+    # object is the fallback for results the stacked dtype cannot hold, not the
+    # goal; asserted entry-wise because mean's own result is not under test
+    assert result["a"].dtype == object
+    assert result.loc["max", "a"] == big
+    assert result.loc["count", "a"] == 2
+
+
+def test_agg_list_like_representable_results_keep_their_dtype():
+    # GH#65031 the object fallback above is only for results the stacked dtype
+    # cannot hold; ordinary magnitudes must stay on the fast path
+    df = pd.DataFrame({"a": pd.Series([5, 1], dtype="uint64")})
+
+    result = df.agg(["max", "count", "mean"])
+
+    expected = pd.DataFrame({"a": [5.0, 2.0, 3.0]}, index=["max", "count", "mean"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = pd.DataFrame(
