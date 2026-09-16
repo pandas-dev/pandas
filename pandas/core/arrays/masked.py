@@ -1441,7 +1441,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        if isinstance(value, ExtensionArray):
+        if isinstance(value, BaseMaskedArray):
             na_mask = value._mask
             if na_mask.any():
                 dum_min = self._data.min()
