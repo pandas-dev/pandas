@@ -1026,7 +1026,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
-        unique_index = new_index.unique()
+        unique_index = new_index.unique().dropna()
         new_levels.append(unique_index)
         # GH#64825 get_indexer_for so an overlapping IntervalIndex resolves
         single_codes = unique_index.get_indexer_for(new_index)
