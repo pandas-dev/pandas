@@ -7,6 +7,7 @@ from datetime import (
 )
 from functools import partial
 from operator import attrgetter
+import re
 import zoneinfo
 
 import dateutil
@@ -19,7 +20,11 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     timezones,
 )
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -1355,3 +1360,23 @@ def test_dti_noniso_ambiguous_pytz_raises():
         pd.Timestamp(dtstr, tz=tz)
     with pytest.raises(ValueError, match="2023-11-05 01:30:00"):
         pd.DatetimeIndex([dtstr], tz=tz)
+
+
+@pytest.mark.parametrize("value", [np.inf, -np.inf, 1e30, -1e30])
+@pytest.mark.parametrize("unit", ["s", "ns"])
+def test_dti_constructor_float_out_of_bounds(value, unit):
+    # GH#68926 the float is narrowed to int64, where an out-of-range value
+    #  saturates to a real-looking timestamp or lands on the NaT sentinel
+    arr = np.array([value])
+    dtype = f"M8[{unit}]"
+    msg = re.escape(f"cannot convert input {value} with the unit '{unit}'")
+
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        pd.DatetimeIndex(arr, dtype=dtype)
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        pd.Series(arr, dtype=dtype)
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        pd.array(arr, dtype=dtype)
+    # the timedelta64 peer already raised; the datetime64 message now matches it
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        pd.TimedeltaIndex(arr, dtype=f"m8[{unit}]")
