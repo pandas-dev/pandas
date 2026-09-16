@@ -2292,7 +2292,7 @@ def test_groupby_observed_false_expands_only_categorical_levels():
 
 
 def test_categorical_with_noncategorical_na_dropna_sort():
-    # GH#68920 dropping NA keys left the group ids negative, which sort=True
+    # GH#68931 dropping NA keys left the group ids negative, which sort=True
     #  then used to index
     df = pd.DataFrame(
         {
@@ -2313,7 +2313,7 @@ def test_categorical_with_noncategorical_na_dropna_sort():
 
 
 def test_categorical_with_noncategorical_na_dropna_no_sort():
-    # GH#68920 the same bad ids, which sort=False instead folded into the
+    # GH#68931 the same bad ids, which sort=False instead folded into the
     #  observed groups, duplicating ("X", 3) in the result
     df = pd.DataFrame(
         {
@@ -2336,7 +2336,7 @@ def test_categorical_with_noncategorical_na_dropna_no_sort():
 
 
 def test_categorical_with_noncategorical_all_na_dropna(sort):
-    # GH#68920 every row has an NA key, so no group survives dropna=True
+    # GH#68931 every row has an NA key, so no group survives dropna=True
     df = pd.DataFrame(
         {
             "dates": [None, None],
