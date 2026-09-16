@@ -216,7 +216,7 @@ class TestDataFrameClip:
     )
     @pytest.mark.parametrize("box", [pd.array, pd.Index])
     def test_clip_extension_dtype_bound_keeps_dtype(self, axis, expected, box):
-        # GH#68920 an extension-dtype bound must not push the result to object,
+        # GH#68929 an extension-dtype bound must not push the result to object,
         #  and with axis=None it aligns on the columns like a list bound does
         df = pd.DataFrame([[10, 20], [30, 40]])
 
@@ -225,7 +225,7 @@ class TestDataFrameClip:
         tm.assert_frame_equal(result, pd.DataFrame(expected))
 
     def test_clip_extension_dtype_bound_inplace(self):
-        # GH#68920
+        # GH#68929
         df = pd.DataFrame([[10, 20], [30, 40]])
         df.clip(lower=pd.array([15, 25], dtype="Int64"), axis=1, inplace=True)
         expected = pd.DataFrame([[15, 25], [30, 40]])

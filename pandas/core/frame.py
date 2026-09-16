@@ -10603,7 +10603,7 @@ class DataFrame(NDFrame, OpsMixin):
                 level=level,
             )
             # flex=None is clip, which passes `right` on to `where`; an
-            #  EA-columned frame would make that go through object (GH#68920)
+            #  EA-columned frame would make that go through object (GH#68929)
             if flex is not None:
                 right = left._maybe_align_series_as_frame(right, axis)
         return left, right
