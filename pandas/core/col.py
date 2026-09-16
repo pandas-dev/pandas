@@ -80,9 +80,38 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
 @set_module("pandas.api.typing")
 class Expression:
     """
-    Class representing a deferred column.
+    Class representing a deferred expression evaluated against a DataFrame.
+
+    Expressions are initially created via ``pd.col`` and can be composed
+    using arithmetic, comparison, and any method or attribute that the
+    underlying object supports. This includes NumPy ufuncs, indexing, and
+    the boolean operators ``&``, ``|``, and ``~``.
+
+    Expressions are solely intended for use in expression-based APIs, such
+    as :meth:`DataFrame.assign <pandas.DataFrame.assign>` and
+    :meth:`DataFrame.loc <pandas.DataFrame.loc>`, where they are
+    evaluated against the DataFrame they are passed to.
 
     This is not meant to be instantiated directly. Instead, use :meth:`pandas.col`.
+
+    See Also
+    --------
+    pandas.col : Create a deferred column reference.
+
+    Notes
+    -----
+    The attributes that are available depend on the expression and where it
+    is used. Attribute access is itself deferred: it is applied to the
+    result of evaluating the expression, so an attribute that is not
+    supported by that result raises when the expression is evaluated.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> df.assign(c=pd.col("a") + pd.col("b"))
+       a  b  c
+    0  1  3  4
+    1  2  4  6
     """
 
     def __init__(
@@ -384,7 +413,7 @@ def col(col_name: Hashable) -> Expression:
 
     Returns
     -------
-    `pandas.api.typing.Expression`
+    :class:`pandas.api.typing.Expression`
         A deferred object representing a column of a DataFrame.
 
     See Also
