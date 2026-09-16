@@ -3,6 +3,7 @@ from datetime import (
     timedelta,
 )
 from importlib import reload
+import re
 import string
 import sys
 
@@ -10,7 +11,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -778,3 +783,37 @@ def test_astype_object_to_datetimelike_no_unit(dtype):
 
     with pytest.raises(ValueError, match="dtype with no precision is not allowed"):
         ser.astype(dtype)
+
+
+@pytest.mark.parametrize("value", [np.inf, -np.inf, 1e30, -1e30, float(2**63)])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_astype_float_to_datetimelike_out_of_bounds(value, unit):
+    # GH#68926 the cast narrows to int64, where an out-of-range float saturates
+    #  to a real-looking timestamp or lands on the NaT sentinel
+    ser = pd.Series([value])
+
+    msg = f"cannot convert input {value} with the unit '{unit}'"
+    with pytest.raises(OutOfBoundsDatetime, match=re.escape(msg)):
+        ser.astype(f"M8[{unit}]")
+    with pytest.raises(OutOfBoundsTimedelta, match=re.escape(msg)):
+        ser.astype(f"m8[{unit}]")
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]", "datetime64[ns, UTC]"])
+def test_astype_float_to_datetimelike_in_bounds_unchanged(dtype):
+    # GH#68926 in-range floats still truncate toward zero, NaN and the NaT
+    #  sentinel still give NaT
+    ser = pd.Series([1.5, -1.5, np.nan, float(iNaT)])
+
+    result = ser.astype(dtype)
+
+    expected = pd.Series([1, -1, iNaT, iNaT]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_astype_float32_to_datetime64_out_of_bounds():
+    # GH#68926 every float width narrows to int64, not just float64
+    ser = pd.Series(np.array([np.inf], dtype=np.float32))
+
+    with pytest.raises(OutOfBoundsDatetime, match="cannot convert input inf"):
+        ser.astype("M8[ns]")

@@ -57,6 +57,7 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
+from pandas.core.dtypes.astype import raise_if_float_outside_int64
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
@@ -2655,13 +2656,13 @@ def _sequence_to_dt64(
     TypeError : PeriodDType data is passed
     """
 
-    # By this point we are assured to have either a numpy array or Index
-    data, copy = maybe_convert_dtype(data, copy, tz=tz)
-    data_dtype = getattr(data, "dtype", None)
-
     out_dtype = DT64NS_DTYPE
     if out_unit is not None:
         out_dtype = np.dtype(f"M8[{out_unit}]")
+
+    # By this point we are assured to have either a numpy array or Index
+    data, copy = maybe_convert_dtype(data, copy, tz=tz, out_dtype=out_dtype)
+    data_dtype = getattr(data, "dtype", None)
 
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
@@ -2847,7 +2848,9 @@ def objects_to_datetime64(
         raise TypeError(result)
 
 
-def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
+def maybe_convert_dtype(
+    data, copy: bool, tz: tzinfo | None = None, out_dtype: np.dtype = DT64NS_DTYPE
+):
     """
     Convert data based on dtype conventions, issuing
     errors where appropriate.
@@ -2857,6 +2860,8 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
     data : np.ndarray or pd.Index
     copy : bool
     tz : tzinfo or None, default None
+    out_dtype : np.dtype, default datetime64[ns]
+        The dtype float data is destined for; used for error reporting only.
 
     Returns
     -------
@@ -2872,6 +2877,7 @@ def maybe_convert_dtype(data, copy: bool, tz: tzinfo | None = None):
         return data, copy
 
     if is_float_dtype(data.dtype):
+        raise_if_float_outside_int64(np.asarray(data), out_dtype)
         # pre-2.0 we treated these as wall-times, inconsistent with ints
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes.
         # Note: data.astype(np.int64) fails ARM tests, see
