@@ -721,7 +721,12 @@ class TestNonNano:
 
     def test_timestamp(self, dt64, ts):
         alt = pd.Timestamp(dt64)
-        assert ts.timestamp() == alt.timestamp()
+        msg = "Timestamp.timestamp treating a tz-naive Timestamp as UTC"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ts.timestamp()
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = alt.timestamp()
+        assert result == expected
 
     def test_to_period(self, dt64, ts):
         alt = pd.Timestamp(dt64)
