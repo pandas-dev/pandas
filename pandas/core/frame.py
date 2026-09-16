@@ -10471,7 +10471,8 @@ class DataFrame(NDFrame, OpsMixin):
         axis : int
         flex : bool or None, default False
             Whether this is a flex op, in which case we reindex.
-            None indicates not to check for alignment.
+            None indicates not to check a DataFrame `other` for alignment, and
+            to leave a Series `other` 1-D rather than broadcasting it to a frame.
         level : int or level name, default None
 
         Returns
@@ -10601,13 +10602,15 @@ class DataFrame(NDFrame, OpsMixin):
                 axis=axis,
                 level=level,
             )
-            right = left._maybe_align_series_as_frame(right, axis)
+            # flex=None is clip, which passes `right` on to `where`; an
+            #  EA-columned frame would make that go through object (GH#68920)
+            if flex is not None:
+                right = left._maybe_align_series_as_frame(right, axis)
         return left, right
 
     def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
         """
-        If the Series operand is not EA-dtype, we can broadcast to 2D and operate
-        blockwise.
+        Broadcast the Series operand to 2D so we can operate blockwise.
         """
         rvalues = series._values
         if lib.is_np_dtype(rvalues.dtype):
