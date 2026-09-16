@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.arrays import SparseArray
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -258,6 +259,243 @@ class TestIndex:
         result = idx.replace("^ba", "x", regex=True)
         expected = Index(["foo", "xr", "xz"])
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "kwargs, expected",
+        [
+            ({"to_replace": "a", "value": "z"}, ["z", "b", "c"]),
+            ({"to_replace": ["a", "b"], "value": ["z", "y"]}, ["z", "y", "c"]),
+            ({"to_replace": ["a", "b"], "value": "z"}, ["z", "z", "c"]),
+            ({"to_replace": {"a": "z"}}, ["z", "b", "c"]),
+            ({"to_replace": pd.Series({"a": "z"})}, ["z", "b", "c"]),
+            ({"to_replace": "a", "value": "z", "regex": True}, ["z", "b", "c"]),
+            ({"regex": {"a": "z"}}, ["z", "b", "c"]),
+        ],
+    )
+    def test_index_replace_widens_dtype_that_cannot_hold_value(self, kwargs, expected):
+        # GH#68563 a Categorical cannot hold a new category, so replace widens to a
+        #  common dtype rather than raising, as Index.where/putmask/insert do
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        result = idx.replace(**kwargs)
+
+        tm.assert_index_equal(result, Index(expected))
+
+    def test_index_replace_widens_masked_dtype(self):
+        # GH#68563 replace widens a masked dtype that cannot hold the value rather
+        #  than raising, matching Index.where/putmask/insert
+        idx = Index([1, 2, 3], dtype="Int64")
+
+        result = idx.replace(1, 1.5)
+
+        tm.assert_index_equal(result, Index([1.5, 2.0, 3.0], dtype="Float64"))
+
+    @pytest.mark.parametrize(
+        "idx, value",
+        [
+            (pd.CategoricalIndex(["a", "b", "c"]), "z"),
+            (Index([1, 2, 3], dtype="Int64"), 1.5),
+        ],
+    )
+    def test_index_replace_no_match_keeps_dtype(self, idx, value):
+        # GH#68563 a replace that matches nothing must not widen
+        result = idx.replace("no_such_value", value)
+
+        tm.assert_index_equal(result, idx)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"to_replace": ["no_such_value", "a"], "value": [1.5, "z"]},
+            {"to_replace": {"no_such_value": 1.5, "a": "z"}},
+        ],
+    )
+    def test_index_replace_unmatched_pair_does_not_widen(self, kwargs):
+        # GH#68563 Block.replace skips a pair that matches nothing, so the 1.5 must
+        #  not drag the result to object
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        result = idx.replace(**kwargs)
+
+        expected = Index(["a", "b", "c"]).replace(**kwargs)
+        tm.assert_index_equal(result, expected)
+        assert result.dtype == Index(["z", "b", "c"]).dtype
+
+    def test_index_replace_widening_that_loses_the_match_raises(self):
+        # GH#68563 Categorical compares a str against datetime categories, object
+        #  does not; the retry must not hand back data with nothing replaced
+        idx = pd.CategoricalIndex(pd.date_range("2020", periods=3))
+
+        with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
+            idx.replace("2020-01-01", "z")
+
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_index_replace_widening_matches_like_block_replace(self, unit):
+        # GH#68563 object compares an ns Timestamp unequal where `in` says it is
+        #  present, so the guard has to match the way Block.replace does.  That
+        #  ns no-op is a pre-existing object-dtype bug; raising keeps it from
+        #  reaching the caller as data
+        idx = pd.CategoricalIndex(pd.date_range("2020", periods=3, unit=unit))
+
+        if unit == "ns":
+            with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
+                idx.replace(idx[0], "z")
+        else:
+            result = idx.replace(idx[0], "z")
+
+            expected = Index(["z", idx[1], idx[2]], dtype=object)
+            tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx, na, expected",
+        [
+            (
+                Index([1, 2, pd.NA], dtype="Int64"),
+                np.nan,
+                Index([1.0, 2.0, 1.5], dtype="Float64"),
+            ),
+            (
+                Index([1, 2, pd.NA], dtype="Int64"),
+                pd.NA,
+                Index([1.0, 2.0, 1.5], dtype="Float64"),
+            ),
+            (
+                pd.CategoricalIndex(pd.to_datetime(["2020-01-01", "2020-01-02", None])),
+                pd.NaT,
+                Index(
+                    [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02"), 1.5],
+                    dtype=object,
+                ),
+            ),
+        ],
+    )
+    def test_index_replace_na_to_replace_widens(self, idx, na, expected):
+        # GH#68563 an NA to_replace that the dtype cannot replace in place widens,
+        #  where before it raised
+        result = idx.replace(na, 1.5)
+
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "idx, kwargs, expected",
+        [
+            (
+                Index([1, 2, pd.NA], dtype="Int64"),
+                {"to_replace": [np.nan, 1], "value": ["x", 5]},
+                Index([5, 2, "x"], dtype=object),
+            ),
+            (
+                Index([1, 2, pd.NA], dtype="Int64"),
+                {"to_replace": {np.nan: "x", 1: 5}},
+                Index([5, 2, "x"], dtype=object),
+            ),
+            (
+                pd.CategoricalIndex(["a", "b", None]),
+                {"to_replace": [None, "a"], "value": [1.5, "z"]},
+                Index(["z", "b", 1.5], dtype=object),
+            ),
+            (
+                Index([1, 2, pd.NA], dtype="Int64"),
+                {"to_replace": [np.nan, "no_such_value"], "value": [1.5, "zzz"]},
+                Index([1.0, 2.0, 1.5], dtype="Float64"),
+            ),
+        ],
+    )
+    def test_index_replace_na_to_replace_mixed_with_literal(
+        self, idx, kwargs, expected
+    ):
+        # GH#68563 `in` finds an NA to_replace on some dtypes but not others, so
+        #  the pair is matched against hasnans instead; the literal paired with it
+        #  is still filtered on whether it matches
+        result = idx.replace(**kwargs)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_index_replace_na_to_replace_without_nans_stays_narrow(self):
+        # GH#68563 the NA pair matches nothing when the Index holds no NA, so it
+        #  must not widen the result the way it does for an Index that does
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        result = idx.replace([np.nan, "a"], [1.5, "z"])
+
+        tm.assert_index_equal(result, Index(["z", "b", "c"]))
+
+    def test_index_replace_value_equal_to_target(self):
+        # GH#68563 the replacement value compares equal to the value it replaces,
+        #  which must not stop the widening from happening
+        idx = Index([1, 2, 3], dtype="Int64")
+
+        result = idx.replace(1, True)
+
+        tm.assert_index_equal(result, Index([True, 2, 3], dtype=object))
+
+    def test_index_replace_sparse_densifies(self):
+        # GH#68563 SparseArray refuses setitem outright, so the retry reaches it too;
+        #  only a non-Sparse ExtensionDtype widens out of the Sparse family, where
+        #  a numpy dtype widens to Sparse again
+        idx = Index(SparseArray([1, 2, 3]))
+        value = pd.Timestamp("2016-01-01", tz="UTC")
+
+        result = idx.replace(1, value)
+
+        tm.assert_index_equal(result, Index([value, 2, 3], dtype=object))
+
+    @pytest.mark.parametrize("value", [5, 1.5])
+    def test_index_replace_sparse_narrow_still_raises(self, value):
+        # GH#68563 the widened dtype is Sparse too, and SparseArray refuses setitem
+        #  whatever the subtype, where Index.where and Index.putmask widen and stay
+        #  Sparse; retire once Sparse supports setitem, see GH#21818
+        idx = Index(SparseArray([1, 2, 3]))
+
+        with pytest.raises(TypeError, match="does not support item assignment"):
+            idx.replace(1, value)
+
+    def test_index_replace_numpy_bool_regex(self):
+        # GH#68563 np.False_ passes replace's is_bool check, so it must take the
+        #  same path as False rather than being read as an active pattern
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        result = idx.replace(["no_such_value", "a"], [1.5, "z"], regex=np.False_)
+
+        tm.assert_index_equal(result, idx.replace(["no_such_value", "a"], [1.5, "z"]))
+
+    def test_index_replace_regex_does_not_filter_unmatched_pair(self):
+        # GH#68563 a pattern is not pre-matched, so a regex pair that replaces
+        #  nothing still widens; the values are the same either way
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        result = idx.replace(["no_such_value", "a"], [1.5, "z"], regex=True)
+
+        tm.assert_index_equal(result, Index(["z", "b", "c"], dtype=object))
+
+    @pytest.mark.parametrize(
+        "kwargs, err, msg",
+        [
+            ({"to_replace": "a"}, ValueError, "must specify either 'value'"),
+            (
+                {"to_replace": {"a": "z"}, "value": "q"},
+                ValueError,
+                "cannot specify both",
+            ),
+            (
+                {"to_replace": ["a", "b"], "value": ["z"]},
+                ValueError,
+                "must match in length",
+            ),
+            ({"to_replace": object()}, TypeError, "Expecting 'to_replace' to be"),
+            (
+                {"to_replace": object(), "value": "z"},
+                TypeError,
+                "Expecting 'to_replace' to be",
+            ),
+        ],
+    )
+    def test_index_replace_invalid_arguments_do_not_widen(self, kwargs, err, msg):
+        # GH#68563 the widening retry must not swallow an argument-validation error
+        idx = pd.CategoricalIndex(["a", "b", "c"])
+
+        with pytest.raises(err, match=msg):
+            idx.replace(**kwargs)
 
     @pytest.mark.parametrize(
         "klass,dtype,na_val",
