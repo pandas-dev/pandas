@@ -1097,6 +1097,21 @@ def test_series_varied_multiindex_alignment():
     tm.assert_series_equal(result, expected)
 
 
+def test_series_multiindex_alignment_with_missing_level_value():
+    # GH#60908
+    midx = pd.MultiIndex.from_arrays(
+        [[np.nan, 81, 81, 82, 82], ["x", "a", "b", "c", "d"]],
+        names=["foo", "bar"],
+    )
+    left = pd.Series([10.0, 25.0, 22.5, 20.8, 21.6], index=midx)
+    right = pd.Series([28.3, 25.3, 22.2], index=pd.Index([81, 82, 83], name="foo"))
+
+    result = left - right
+
+    expected = pd.Series([np.nan, -3.3, -5.8, -4.5, -3.7], index=midx)
+    tm.assert_series_equal(result, expected)
+
+
 def test_rmod_consistent_large_series():
     # GH 29602
     result = pd.Series([2] * 10001).rmod(-1)
