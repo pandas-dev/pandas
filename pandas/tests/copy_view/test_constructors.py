@@ -10,6 +10,7 @@ from pandas import (
     Index,
     Period,
     PeriodIndex,
+    RangeIndex,
     Series,
     Timedelta,
     TimedeltaIndex,
@@ -91,7 +92,7 @@ def test_series_from_series_with_reindex():
 
 
 @pytest.mark.parametrize("dtype", [None, "int64"])
-@pytest.mark.parametrize("idx", [None, pd.RangeIndex(start=0, stop=3, step=1)])
+@pytest.mark.parametrize("idx", [None, RangeIndex(start=0, stop=3, step=1)])
 @pytest.mark.parametrize(
     "arr", [np.array([1, 2, 3], dtype="int64"), pd.array([1, 2, 3], dtype="Int64")]
 )
@@ -123,6 +124,7 @@ def test_series_from_array_different_dtype(copy):
     "idx",
     [
         Index([1, 2]),
+        RangeIndex(2),
         DatetimeIndex([Timestamp("2019-12-31"), Timestamp("2020-12-31")]),
         PeriodIndex([Period("2019-12-31"), Period("2020-12-31")]),
         TimedeltaIndex([Timedelta("1 days"), Timedelta("2 days")]),
@@ -135,6 +137,7 @@ def test_series_from_index(idx):
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+    tm.assert_numpy_array_equal(get_array(idx), get_array(expected))
 
     # forcing copy=False still gives a CoW shallow copy
     ser = Series(idx, copy=False)
@@ -142,6 +145,7 @@ def test_series_from_index(idx):
     assert not ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+    tm.assert_numpy_array_equal(get_array(idx), get_array(expected))
 
     # forcing copy=True still results in a copy
     ser = Series(idx, copy=True)
@@ -380,3 +384,18 @@ def test_frame_from_dict_of_index():
 
     df.iloc[0, 0] = 100
     tm.assert_index_equal(idx, expected)
+
+
+def test_rangeindex_cached_data():
+    # https://github.com/pandas-dev/pandas/issues/67055
+    # creating a Series from a RangeIndex should still track a reference because
+    # the RangeIndex caches the materialized _data used by the Series
+    idx = RangeIndex(3)
+    ser = Series(idx)
+
+    # idx2 takes a view of idx -> shares the cache and tracks a reference
+    idx2 = idx.rename("a")
+    del idx
+    ser.iloc[0] = 99
+
+    tm.assert_numpy_array_equal(idx2._data, np.array([0, 1, 2], dtype="int64"))
