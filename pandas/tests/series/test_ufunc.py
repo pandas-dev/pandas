@@ -645,6 +645,21 @@ def test_binary_logical_ufunc_datetimelike_arrow_nan_na(func, left_dtype):
 
 
 @pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@td.skip_if_no("pyarrow")
+def test_binary_logical_ufunc_nat_scalar_arrow_backed(func):
+    # GH#68524 arrow boxes an NA-like scalar as a null, so `&` takes NaT where the
+    #  other backends raise; np.datetime64("NaT") was truth-tested on its int64
+    left = pd.Series([True, False], dtype="bool[pyarrow]")
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    for scalar in [pd.NaT, np.datetime64("NaT")]:
+        with pytest.raises(TypeError, match=msg):
+            func(left, scalar)
+        with pytest.raises(TypeError, match=msg):
+            func(scalar, left)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
 @pytest.mark.parametrize(
     "dtype",
     ["datetime64[ns]", "timedelta64[ns]", "datetime64[ns, US/Pacific]", "period[D]"],
@@ -689,7 +704,7 @@ def test_logical_ufunc_third_party_datetimelike(box, dtype):
     left = box(pd.array([True, True]))
     foreign = _ThirdPartyArray(np.dtype(dtype))
 
-    # each order gets its own baseline; only a left-hand box re-wraps the result
+    # each order gets its own baseline; a left-hand Index re-wraps, the others do not
     tm.assert_equal(
         np.logical_and(left, foreign), np.logical_and(left, _ThirdPartyArray())
     )

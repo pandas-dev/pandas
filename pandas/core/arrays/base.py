@@ -2954,7 +2954,8 @@ class ExtensionArray:
         return type(self)._from_sequence(rounded, dtype=self.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        # the fallback at the end of this method np.asarray()s the values to object
+        # the fallback at the end of this method np.asarray()s the values: M8/m8
+        #  survive to be truth-tested, the rest flatten to object
         ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
 
         if any(
