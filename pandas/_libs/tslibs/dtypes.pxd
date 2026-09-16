@@ -9,6 +9,7 @@ cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) noexcept nogil
 cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=*) except? -1
 cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1
 cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso) noexcept nogil
+cpdef str get_default_reso(str reso_abbrev)
 cdef bint is_supported_unit(NPY_DATETIMEUNIT reso)
 
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR
