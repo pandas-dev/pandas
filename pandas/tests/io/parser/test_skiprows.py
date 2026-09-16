@@ -14,8 +14,6 @@ from pandas.errors import EmptyDataError
 import pandas as pd
 import pandas._testing as tm
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-
 
 @pytest.mark.parametrize("skiprows", [list(range(6)), 6])
 def test_skip_rows_bug(all_parsers, skiprows):
@@ -267,7 +265,6 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # AssertionError: DataFrame are different
 def test_skiprows_infield_quote(all_parsers):
     # see gh-14459
     parser = all_parsers
@@ -407,3 +404,56 @@ def test_skip_rows_with_chunks(all_parsers):
 
     tm.assert_frame_equal(df1, pd.DataFrame({"col_a": [20, 30, 60, 70]}))
     tm.assert_frame_equal(df2, pd.DataFrame({"col_a": [80, 90, 100]}, index=[4, 5, 6]))
+
+
+DATA_WITH_PREAMBLE = "j0,j0b\nj1,j1b\nj2,j2b\na,b\n1,2\n3,4\n"
+
+
+@pytest.mark.parametrize(
+    "skiprows,header", [(3, "infer"), (3, 0), (2, 1), (1, 2), (3, [0])]
+)
+def test_skiprows_with_header(all_parsers, skiprows, header):
+    # GH#48507 the pyarrow engine dropped skiprows whenever header was not None
+    parser = all_parsers
+
+    result = parser.read_csv(
+        StringIO(DATA_WITH_PREAMBLE), skiprows=skiprows, header=header
+    )
+    expected = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("skiprows,header", [(3, 0), (2, 1), (1, 2)])
+def test_skiprows_with_header_and_names(all_parsers, skiprows, header):
+    # GH#48507
+    parser = all_parsers
+
+    result = parser.read_csv(
+        StringIO(DATA_WITH_PREAMBLE), skiprows=skiprows, header=header, names=["x", "y"]
+    )
+    expected = pd.DataFrame({"x": [1, 3], "y": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"usecols": ["b"]}, {"index_col": "a"}])
+def test_skiprows_with_header_column_selection(all_parsers, kwargs):
+    # GH#48507 usecols/index_col were resolved against the wrong header row
+    parser = all_parsers
+
+    result = parser.read_csv(StringIO(DATA_WITH_PREAMBLE), skiprows=3, **kwargs)
+    expected = pd.DataFrame({"b": [2, 4]})
+    if "index_col" in kwargs:
+        expected.index = pd.Index([1, 3], name="a")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("header", ["infer", None])
+def test_skiprows_negative(all_parsers, header):
+    # GH#48507 a negative skiprows skips nothing, as range(-1) is empty for the
+    # c and python engines; pyarrow must not be handed it
+    parser = all_parsers
+    data = "a,b\n1,2\n"
+
+    result = parser.read_csv(StringIO(data), skiprows=-1, header=header)
+    expected = parser.read_csv(StringIO(data), header=header)
+    tm.assert_frame_equal(result, expected)
