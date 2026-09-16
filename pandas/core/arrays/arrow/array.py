@@ -5,6 +5,7 @@ from datetime import (
     datetime,
     time,
 )
+from decimal import Decimal
 import functools
 import operator
 import re
@@ -353,7 +354,7 @@ def _is_temporal_pa_type(pa_type: pa.DataType) -> bool | None:
         or pa.types.is_decimal(pa_type)
     ):
         return False
-    # null (all-NA), string (parseable to a timestamp), binary, list, struct
+    # a string can parse to a timestamp, and nothing else here rules either way
     return None
 
 
@@ -371,8 +372,7 @@ def _is_temporal_dtype(dtype: DtypeObj) -> bool | None:
         return True
     if dtype.kind in "iufbc":
         return False
-    # str/bytes, object, and EA dtypes that do not pin a scalar type down.
-    #  Anything unrecognized has to land here: a wrong False would reject a
+    # Anything unrecognized has to land here: a wrong False would reject a
     #  valid assignment, see test_setitem_temporal_still_accepted
     return None
 
@@ -400,6 +400,10 @@ def _is_temporal_value(value) -> bool | None:
         # NA of any flavor is settable into any dtype; a NaT scalar carries
         #  an M8/m8 dtype, so this has to come before the dtype lookup
         return None
+    if type(value) in (int, float, bool):
+        # the common scalar setitem: skips infer_dtype_from_scalar (~10%), and
+        #  settles an int too wide for any integer dtype, which it maps to object
+        return False
 
     value = extract_array(value, extract_numpy=True)
     if isinstance(value, pa.Scalar):
@@ -417,6 +421,9 @@ def _is_temporal_value(value) -> bool | None:
             # infer_dtype_from_scalar maps both to object, which would leave the
             #  scalar disagreeing with the date32/time64 array forms
             return True
+        if isinstance(value, Decimal):
+            # object again, this time disagreeing with the decimal128 array form
+            return False
         dtype = infer_dtype_from_scalar(value)[0]
     return _is_temporal_dtype(dtype)
 
@@ -3257,6 +3264,11 @@ class ArrowExtensionArray(
                 if value_temporal or not _is_all_na(value):
                     msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
                     raise TypeError(msg)
+                if is_list_like(value) and getattr(value, "ndim", 1) == 1:
+                    # _box_pa would still cast, and e.g. double -> timestamp has
+                    #  no cast kernel. len() is the element count only for a 1-D
+                    #  value, so anything else stays with _box_pa
+                    return pa.nulls(len(value), type=self._pa_array.type)
         try:
             value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:

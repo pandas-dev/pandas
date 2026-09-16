@@ -1770,6 +1770,33 @@ def test_setitem_numeric_into_temporal_raises(dtype, value):
         arr[:] = value
 
 
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+def test_setitem_oversized_int_scalar_into_temporal_raises(dtype):
+    # GH#68419 an int too wide for any integer dtype infers to object, which would
+    #  leave it unsettled; numpy M8/m8 raise this same TypeError for it
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = 2**70
+
+
+def test_setitem_decimal_scalar_into_temporal_raises():
+    # GH#68419 infer_dtype_from_scalar maps a Decimal to object, which would leave
+    #  the scalar reinterpreting while the decimal128 array form raises
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = Decimal(1)
+
+
+def test_setitem_decimal_scalar_into_decimal_self_accepted():
+    # GH#68419 counterpart of test_setitem_decimal_scalar_into_temporal_raises
+    dtype = ArrowDtype(pa.decimal128(10, 2))
+    arr = pd.array([Decimal("1.00")] * 2, dtype=dtype)
+    arr[0] = Decimal("2.00")
+    tm.assert_extension_array_equal(
+        arr, pd.array([Decimal("2.00"), Decimal("1.00")], dtype=dtype)
+    )
+
+
 @pytest.mark.parametrize(
     "value",
     [
@@ -1841,11 +1868,15 @@ def test_setitem_temporal_scalar_into_mismatched_self_raises(pa_type, value):
 
 
 @pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()])
-def test_setitem_timestamp_into_date_self(pa_type):
+@pytest.mark.parametrize(
+    "value", [pd.Timestamp("2016-01-05"), pd.Timestamp("2016-01-05 12:30:45")]
+)
+def test_setitem_timestamp_into_date_self(pa_type, value):
     # GH#68419 a Timestamp is a valid date value; reaching for date32's
-    #  nonexistent .unit used to make this an AttributeError
+    #  nonexistent .unit used to make this an AttributeError. A time component is
+    #  dropped, matching pd.array([value], dtype=ArrowDtype(pa_type))
     arr = pd.array([date(2016, 1, 1)] * 2, dtype=ArrowDtype(pa_type))
-    arr[0] = pd.Timestamp("2016-01-05")
+    arr[0] = value
     expected = pd.array([date(2016, 1, 5), date(2016, 1, 1)], dtype=ArrowDtype(pa_type))
     tm.assert_extension_array_equal(arr, expected)
 
@@ -1932,12 +1963,15 @@ def test_setitem_all_na_temporal_array_still_raises(value):
     [
         np.array([np.nan] * 3),
         np.array([np.nan] * 3, dtype="float32"),
+        pd.array([None] * 3, dtype="Float64"),
+        pd.array([None] * 3, dtype="double[pyarrow]"),
     ],
 )
 def test_setitem_all_na_float_array_not_rejected(dtype, value):
     # GH#68419 an all-NaN float array carries no values to reinterpret. Rejecting it
     #  would break where/fillna against an alignment-produced NaN column, which numpy
-    #  M8 upcasts to object; DatetimeArray setitem is stricter and is not followed here
+    #  M8 upcasts to object; DatetimeArray setitem is stricter and is not followed here.
+    #  The masked and pyarrow spellings work only because the escape returns typed nulls
     arr = pd.array([1, 2, 3], dtype=dtype)
     arr[:] = value
     assert arr.isna().all()
@@ -1951,6 +1985,14 @@ def test_setitem_empty_float_array_not_rejected(dtype):
     assert not arr.isna().any()
 
 
+def test_setitem_2d_all_na_float_array_still_raises():
+    # GH#68419 the all-NA escape sizes its nulls with len(), which reads only axis 0,
+    #  so a 2-D value has to stay with _box_pa rather than be flattened
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(ValueError, match="Mask must be 1D"):
+        arr[:] = np.full((3, 1), np.nan)
+
+
 def test_setitem_partial_na_float_array_still_raises():
     # GH#68419 the all-NA escape must not widen to "contains NA": the non-NA
     #  entry of [nan, 1.0, nan] is reinterpreted as 1ns past the epoch
@@ -1959,18 +2001,23 @@ def test_setitem_partial_na_float_array_still_raises():
         arr[:] = np.array([np.nan, 1.0, np.nan])
 
 
-def test_where_fillna_all_na_float_other_not_rejected():
+@pytest.mark.parametrize("other_dtype", ["float64", "Float64", "double[pyarrow]"])
+def test_where_fillna_all_na_float_other_not_rejected(other_dtype):
     # GH#68419 alignment routinely produces an all-NaN float column, and both
     #  reach _validate_setitem_value
     ser = pd.Series(
         pd.date_range("2016-01-01", periods=3), dtype="timestamp[ns][pyarrow]"
     )
-    result = ser.where(np.array([True, False, True]), pd.Series([np.nan] * 3))
+    # None, not np.nan: a masked or Arrow float built from np.nan holds NaN rather
+    #  than NA once future.distinguish_nan_and_na is on, which _is_all_na rejects
+    result = ser.where(
+        np.array([True, False, True]), pd.Series([None] * 3, dtype=other_dtype)
+    )
     assert result.dtype == "timestamp[ns][pyarrow]"
     assert result.isna().tolist() == [False, True, False]
 
     ser = pd.Series([pd.Timestamp("2016-01-01"), None], dtype="timestamp[ns][pyarrow]")
-    result = ser.fillna(pd.Series([np.nan, np.nan]))
+    result = ser.fillna(pd.Series([None] * 2, dtype=other_dtype))
     tm.assert_series_equal(result, ser)
 
 
@@ -1993,22 +2040,22 @@ def test_fillna_temporal_reinterpretation_raises():
     tm.assert_series_equal(result, expected)
 
 
-def test_where_mask_temporal_reinterpretation_raises():
+@pytest.mark.parametrize("meth", ["where", "mask"])
+def test_where_mask_temporal_reinterpretation_raises(meth):
     # GH#68419 where/mask reach the guard through setitem
     ser = pd.Series([1, 2, 3], dtype="int64[pyarrow]")
     other = pd.Series(pd.date_range("2016-01-01", periods=3))
-    for meth in ["where", "mask"]:
-        with pytest.raises(TypeError, match="Invalid value"):
-            getattr(ser, meth)(np.array([True, False, True]), other)
+    with pytest.raises(TypeError, match="Invalid value"):
+        getattr(ser, meth)(np.array([True, False, True]), other)
 
 
-def test_fillna_string_self_agrees_with_limit_path():
+@pytest.mark.parametrize("limit", [None, 1])
+def test_fillna_string_self_agrees_with_limit_path(limit):
     # GH#68419 fillna shares _validate_setitem_value with __setitem__, so the
     #  limit=None and limit=1 paths agree
-    for limit in [None, 1]:
-        arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
-        with pytest.raises(TypeError, match="Invalid value for dtype"):
-            arr.fillna(np.array([1, 2]), limit=limit)
+    arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
+    with pytest.raises(TypeError, match="Invalid value for dtype"):
+        arr.fillna(np.array([1, 2]), limit=limit)
 
 
 def test_from_arrow_respecting_given_dtype():
