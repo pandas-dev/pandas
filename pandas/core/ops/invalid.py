@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 
@@ -59,12 +60,22 @@ _DATETIMELIKE_SCALARS = (
     BaseOffset,
 )
 
-_PANDAS_OBJECTS = (ABCDataFrame, ABCExtensionArray, ABCIndex, ABCSeries)
+_PANDAS_OBJECTS = (
+    ABCDataFrame,
+    ABCExtensionArray,
+    # NumpyExtensionArray's _typ is not one of ABCExtensionArray's
+    ABCNumpyExtensionArray,
+    ABCIndex,
+    ABCSeries,
+)
 
 
 def _defers_to(obj: object) -> bool:
     """
     Whether a ufunc operand is one pandas hands the operation off to.
+
+    Deliberately coarser than array_ufunc's own rule, which defers to anything
+    outside ``_HANDLED_TYPES``.
     """
     array_ufunc = getattr(type(obj), "__array_ufunc__", None)
     return (
@@ -120,8 +131,8 @@ def _is_datetimelike_dtype(dtype: DtypeObj) -> bool:
     kind = getattr(dtype, "kind", None)
     if kind is None or kind in "biufc":
         # no numeric or bool dtype is datetimelike, and logical_op is hot.  A
-        #  third-party dtype has no kind; crashing on it would keep us from
-        #  deferring to that operand, see test_logical_op_third_party
+        #  third-party dtype has no kind and must fall through rather than
+        #  crash, see test_logical_op_third_party
         return False
     if isinstance(dtype, CategoricalDtype) and dtype.categories is not None:
         # a Categorical hides its categories behind kind "O"
@@ -199,7 +210,8 @@ def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
     for obj in inputs:
         if _defers_to(obj):
             # raising here would take the op away from an operand we do not own,
-            #  see test_logical_ufunc_third_party_datetimelike
+            #  see test_logical_ufunc_third_party_datetimelike.  This has to
+            #  precede the dtype checks below, which read a dtype we do not own.
             continue
 
         if isinstance(obj, ABCDataFrame):
