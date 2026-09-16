@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import (
     ABCNDFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
@@ -115,6 +116,27 @@ _frame_reduction_names = frozenset(
         "var",
     }
 )
+
+
+def _keeps_values(stacked_row: Series, row: Series) -> bool:
+    """
+    Whether stacking left every aggregation result in ``row`` unchanged.
+
+    Compared as Python scalars: numpy would widen the original back to the
+    stacked dtype and so compare a rounded value against itself.
+    """
+    if stacked_row.dtype == row.dtype:
+        # nothing was cast, so nothing was reconciled away. Also the only rows
+        # holding list-likes (an object column's sum) are ones already at the
+        # stacked dtype, so the scalar comparison below never sees one.
+        return True
+    for stacked, original in zip(stacked_row.tolist(), row.tolist(), strict=True):
+        if isna(stacked) or isna(original):
+            if not (isna(stacked) and isna(original)):
+                return False
+        elif stacked != original:
+            return False
+    return True
 
 
 @set_module("pandas.api.executors")
@@ -1128,7 +1150,7 @@ class FrameApply(NDFrameApply):
         for dtype in groups:
             cols = groups[dtype]
             sub = obj[cols]
-            group_pieces: list[DataFrame] = []
+            rows: list[Series] = []
             for func_name in func_names:
                 try:
                     row = getattr(sub, func_name)(*self.args, **self.kwargs)
@@ -1141,11 +1163,36 @@ class FrameApply(NDFrameApply):
                 if not row.index.equals(sub.columns):
                     # Backstop: a genuine column-wise reduction is indexed
                     # by the columns; anything else would silently misalign
-                    # in the concat below.
+                    # in the stacking below.
                     return None
-                # to_frame().T avoids the slow DataFrame(list-of-Series) path
-                group_pieces.append(row.to_frame(func_name).T)
-            pieces.append(concat(group_pieces))
+                rows.append(row)
+
+            # to_frame().T avoids the slow DataFrame(list-of-Series) path
+            frames = [
+                row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
+            ]
+            if len({row.dtype for row in rows}) == 1:
+                pieces.append(concat(frames))
+                continue
+
+            # GH#65031 the funcs disagree on dtype, so stacking reconciles them
+            # to one that may not hold every result; see
+            # test_agg_list_like_unsigned_not_cast_to_float
+            try:
+                stacked = concat(frames)
+            except (TypeError, ValueError):
+                # pyarrow refuses the cast outright rather than rounding
+                stacked = None
+            if stacked is not None and all(
+                _keeps_values(stacked.iloc[pos], row) for pos, row in enumerate(rows)
+            ):
+                pieces.append(stacked)
+                continue
+
+            values = np.empty((len(rows), len(cols)), dtype=object)
+            for pos, row in enumerate(rows):
+                values[pos] = row.to_numpy(dtype=object)
+            pieces.append(obj._constructor(values, index=func_names, columns=cols))
 
         result = concat(pieces, axis=1)
         result = result.reindex(columns=obj.columns)
