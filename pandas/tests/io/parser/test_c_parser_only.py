@@ -14,11 +14,13 @@ from io import (
 import mmap
 import os
 import tarfile
+import tracemalloc
 
 import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
+from pandas._libs.hashtable import get_hashtable_trace_domain
 from pandas.compat import WASM
 from pandas.errors import (
     DtypeWarning,
@@ -644,6 +646,43 @@ def test_float_precision_options(c_parser_only):
 
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(s), float_precision="junk")
+
+
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_decode_failure_frees_string_table(c_parser_only, dtype, tmp_path):
+    # GH#67931
+    # the string columns are interned through a khash table that was freed only
+    # on the success path, so a decode failure part-way through a column leaked
+    # the whole table -- ~100 KiB per failed parse here, so ~5 MiB over the loop
+    parser = c_parser_only
+    rows = "\n".join(f"s{i}" for i in range(2000)).encode()
+    path = tmp_path / "invalid_utf8.csv"
+    path.write_bytes(b"a\n" + rows + b"\n\xff\n")
+
+    def read():
+        # a path plus an explicit encoding is what hands the tokenizer
+        # undecoded bytes, so the column is the first thing to decode them
+        with pytest.raises(UnicodeDecodeError):
+            parser.read_csv(
+                path, dtype=dtype, encoding="utf-8", encoding_errors="strict"
+            )
+
+    # measure only the khash domain, so unrelated allocations cannot mask or
+    # fake the leak
+    khash_only = (tracemalloc.DomainFilter(True, get_hashtable_trace_domain()),)
+
+    tracemalloc.start()
+    try:
+        # warm up, so first-call caching lands outside the measured window
+        read()
+        before = tracemalloc.take_snapshot().filter_traces(khash_only)
+        for _ in range(50):
+            read()
+        after = tracemalloc.take_snapshot().filter_traces(khash_only)
+    finally:
+        tracemalloc.stop()
+
+    assert sum(stat.size_diff for stat in after.compare_to(before, "filename")) == 0
 
 
 # small enough that DEFAULT_BUFFER_HEURISTIC // table_width leaves one line per
