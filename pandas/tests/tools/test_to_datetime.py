@@ -1140,6 +1140,29 @@ class TestToDatetime:
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
 
+    @pytest.mark.parametrize(
+        "string, padded, time_of_day",
+        [
+            ("11:0", "11:00", Timedelta(hours=11)),
+            ("9:5", "09:05", Timedelta(hours=9, minutes=5)),
+            ("1:2:3", "01:02:03", Timedelta(hours=1, minutes=2, seconds=3)),
+        ],
+    )
+    def test_to_datetime_time_string_one_digit_minute(
+        self, string, padded, time_of_day
+    ):
+        # GH#46509 a time-only string with a one-digit minute is parsed
+        #  relative to today, just like its zero-padded equivalent
+        expected = Timestamp.today().normalize() + time_of_day
+        assert to_datetime(string) == expected
+        assert to_datetime(padded) == expected
+        assert Timestamp(string) == expected
+
+        msg = "Could not infer format"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            result = to_datetime([string, padded])
+        tm.assert_index_equal(result, DatetimeIndex([expected, expected]))
+
     @pytest.mark.parametrize("arg", ["now", "today"])
     def test_to_datetime_today_now_unicode_bytes(self, arg):
         to_datetime([arg])
