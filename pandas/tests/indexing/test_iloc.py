@@ -2245,10 +2245,18 @@ def test_iloc_setitem_series_boolean_index_row_key():
 )
 @pytest.mark.parametrize(
     "box",
-    # TODDO all those indexers should be supported
-    # [list, np.array, lambda x: pd.Series(x, index=["a"]), pd.Index, pd.array],
-    [np.array],
-    # ids=["list", "ndarray", "Series", "Index", "pd.array"],
+    [
+        list,
+        np.array,
+        pytest.param(
+            lambda x: pd.Series(x, index=["a"]),
+            marks=pytest.mark.xfail(reason="Series indexer fails"),
+        ),
+        pd.Index,
+        pd.array,
+    ],
+    # [np.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
 )
 def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
     # https://github.com/pandas-dev/pandas/issues/66527
