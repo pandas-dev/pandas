@@ -612,6 +612,23 @@ def test_binary_logical_ufunc_datetimelike_left_operand_boxes(func, left_dtype, 
 
 
 @pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_binary_logical_ufunc_datetimelike_numpy_extension_array(func, dtype):
+    # GH#68524 NumpyExtensionArray has its own __array_ufunc__ but is in
+    #  _HANDLED_TYPES, so pandas computes the result instead of deferring to it
+    left = pd.Series([True, False])
+    right = pd.arrays.NumpyExtensionArray(np.array([1, 2], dtype=dtype))
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, right)
+    with pytest.raises(TypeError, match=msg):
+        func(right, left)
+    with pytest.raises(TypeError, match="cannot perform the numpy op logical_not"):
+        np.logical_not(right)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
 @pytest.mark.parametrize("left_dtype", ["double[pyarrow]", "int64[pyarrow]"])
 @td.skip_if_no("pyarrow")
 def test_binary_logical_ufunc_datetimelike_arrow_nan_na(func, left_dtype):
