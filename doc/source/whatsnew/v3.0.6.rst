@@ -14,6 +14,8 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Bug in full-slice assignment (``arr[:] = value``) into a PyArrow-backed array where the result shared memory with ``value``, so later modifying ``value`` also changed the assigned-to object (:issue:`67990`)
+
 
 
 .. ---------------------------------------------------------------------------
