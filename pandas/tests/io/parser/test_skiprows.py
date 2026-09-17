@@ -9,7 +9,10 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.errors import EmptyDataError
+from pandas.errors import (
+    EmptyDataError,
+    ParserError,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -456,4 +459,35 @@ def test_skiprows_negative(all_parsers, header):
 
     result = parser.read_csv(StringIO(data), skiprows=-1, header=header)
     expected = parser.read_csv(StringIO(data), header=header)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skiprows_past_end_of_file(all_parsers):
+    # GH#48507 skiprows reaches pyarrow's skip_rows on the default header path,
+    # where skipping past the end of the file raises instead of EmptyDataError
+    parser = all_parsers
+    data = "a,b\n1,2\n"
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(ParserError, match="Could not skip initial 5 rows"):
+            parser.read_csv(StringIO(data), skiprows=5)
+        return
+
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        parser.read_csv(StringIO(data), skiprows=5)
+
+
+def test_skiprows_to_final_line_without_newline(all_parsers):
+    # GH#48507 pyarrow's skip_rows cannot skip past a final line lacking a
+    # trailing newline; skip_rows_after_names covers only the header row
+    parser = all_parsers
+    data = "j0\na,b"
+
+    if parser.engine == "pyarrow":
+        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+            parser.read_csv(StringIO(data), skiprows=1)
+        return
+
+    result = parser.read_csv(StringIO(data), skiprows=1)
+    expected = pd.DataFrame(columns=["a", "b"], dtype=object)
     tm.assert_frame_equal(result, expected)
