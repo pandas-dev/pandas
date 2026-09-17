@@ -111,7 +111,10 @@ class TestDecimalArray(base.ExtensionTests):
             # https://github.com/pandas-dev/pandas/pull/63512
             # DecimalArray does not overwrite the base reduction methods to forward
             # them to _reduce.
-            msg = f"'DecimalArray' with dtype decimal does not support operation '{op_name}'"
+            msg = (
+                f"'DecimalArray' with dtype decimal does not support operation "
+                f"'{op_name}'"
+            )
             with pytest.raises(TypeError, match=msg):
                 getattr(ser.array, op_name)()
         else:
