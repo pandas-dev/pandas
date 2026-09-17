@@ -65,12 +65,12 @@ filepath_or_buffer : various
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
-  the separator, but the Python parsing engine can, meaning the latter will be
-  used and automatically detect the separator by Python's builtin sniffer tool,
-  :class:`python:csv.Sniffer`. In addition, separators longer than 1 character and
-  different from ``'\s+'`` will be interpreted as regular expressions and
-  will also force the use of the Python parsing engine. Note that regex
+  Delimiter to use. ``sep=None`` detects the separator from the first valid row
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
+  is supported only by the Python parsing engine, which will be used
+  automatically. In addition, separators longer than 1 character
+  and different from ``'\s+'`` will be interpreted as regular expressions and
+  will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, default ``None``
   Alternative argument name for sep.
@@ -1418,7 +1418,9 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``.
+class of the csv module. For this, you have to specify ``sep=None``. Passing
+``engine='python'`` as well avoids the ``ParserWarning`` raised by the
+fallback.
 
 .. ipython:: python
 
@@ -1495,12 +1497,6 @@ Currently, options unsupported by the C and pyarrow engines include:
 
 * ``sep`` other than a single character (e.g. regex separators)
 * ``skipfooter``
-
-Specifying any of the above options will produce a ``ParserWarning`` unless the
-python engine is selected explicitly using ``engine='python'``.
-
-Options that are unsupported by the pyarrow engine which are not covered by the list above include:
-
 * ``float_precision``
 * ``chunksize``
 * ``comment``
