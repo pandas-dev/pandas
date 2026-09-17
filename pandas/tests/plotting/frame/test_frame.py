@@ -868,6 +868,9 @@ class TestDataFramePlots:
     )
     @pytest.mark.parametrize("x, y", [("a", "b"), (0, 1)])
     @pytest.mark.parametrize("b_col", [[2, 3, 4], ["a", "b", "c"]])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_scatterplot_object_data(self, b_col, x, y, infer_string):
         # GH 18755
         with pd.option_context("future.infer_string", infer_string):
@@ -1886,8 +1889,8 @@ class TestDataFramePlots:
             np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
         )
         ix = pd.date_range("1/1/2000", periods=10, freq="ME")
-        df.set_index(ix, inplace=True)
-        df_err.set_index(ix, inplace=True)
+        df = df.set_index(ix)
+        df_err = df_err.set_index(ix)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         _check_has_errorbars(ax, xerr=0, yerr=2)
 

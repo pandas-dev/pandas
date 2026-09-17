@@ -3200,20 +3200,6 @@ def _generate_range(
         else:
             start = offset.rollback(start)  # type: ignore[assignment]
 
-    # GH#35342: For offsets that preserve start's time-of-day (e.g. MonthBegin,
-    # QuarterBegin), adjust end to use the same time so that the boundary
-    # comparison doesn't incorrectly exclude the last offset boundary.
-    if start is not None and end is not None:
-        start_tod: Timedelta = start - start.normalize()
-        if (
-            start_tod
-            # Check if the offset preserves start's time-of-day
-            and (offset._add_datetime(start) - offset._add_datetime(start).normalize())
-            == start_tod
-        ):
-            if (offset.n >= 0 and end >= start) or (offset.n < 0 and end <= start):
-                end = end.normalize() + start_tod
-
     # Unsupported operand types for < ("Timestamp" and "None")
     if periods is None and end < start and offset.n >= 0:  # type: ignore[operator]
         end = None
