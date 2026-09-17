@@ -309,13 +309,11 @@ def to_numeric(
             # GH 52588
             mask = new_mask
         elif new_mask is not None:
-            # `new_mask` was computed over the entries not already known
-            # missing via `mask` (e.g. ArrowDtype input dropped its nulls
-            # before parsing), so it is shorter than `mask`; scatter it back
-            # into the full-length positions before combining (GH#67949).
-            full_new_mask = np.zeros(mask.shape, dtype=np.bool_)
-            full_new_mask[~mask] = new_mask
-            mask = mask | full_new_mask
+            # `new_mask` was computed only over the not-yet-missing entries
+            # (e.g. ArrowDtype input dropped its nulls before parsing), so
+            # scatter it back into those positions instead (GH#67949).
+            mask = mask.copy()
+            mask[~mask] = new_mask
         else:
             mask = mask.copy()
         assert isinstance(mask, np.ndarray)
