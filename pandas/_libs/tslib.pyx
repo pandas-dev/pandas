@@ -29,6 +29,7 @@ cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
+    get_default_reso,
     get_supported_reso,
     npy_unit_to_abbrev,
     periods_per_day,
@@ -37,6 +38,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -374,10 +376,7 @@ cpdef array_to_datetime(
     bint warned_quarter=False,
 ):
     """
-    Converts a 1D array of date-like values to a numpy array of either:
-        1) datetime64[ns] data
-        2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
-           is encountered
+    Converts a 1D array of date-like values to a numpy array of datetime64 data.
 
     Also returns a fixed-offset tzinfo object if an array of strings with the same
     timezone offset is passed and utc=True is not passed. Otherwise, None
@@ -408,7 +407,7 @@ cpdef array_to_datetime(
     Returns
     -------
     np.ndarray
-        May be datetime64[creso_unit] or object dtype
+        datetime64[creso_unit] dtype
     tzinfo or None
     """
     cdef:
@@ -436,10 +435,15 @@ cpdef array_to_datetime(
         abbrev = npy_unit_to_abbrev(creso)
 
     if unit_for_numerics is None:
+        # if no unit specified specifically for numeric input, then either
+        # use the specified output unit or if inferring, default to ns
         unit_for_numerics = abbrev
-        int_reso = NPY_FR_ns
+        if infer_reso:
+            int_reso = NPY_FR_ns
+        else:
+            int_reso = creso
     else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(unit_for_numerics))
+        int_reso = abbrev_to_npy_unit(get_default_reso(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
@@ -473,6 +477,12 @@ cpdef array_to_datetime(
                 state.found_other = True
 
             elif cnp.is_datetime64_object(val):
+                if get_datetime64_unit_count(val) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.datetime64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:
@@ -509,8 +519,10 @@ cpdef array_to_datetime(
                     if infer_reso:
                         creso = state.creso
 
+                    # Not <int64_t>: casting here would overflow outside
+                    #  cast_from_unit's guard, leaking OverflowError
                     iresult[i] = cast_from_unit(
-                        <int64_t>val, unit_for_numerics, out_reso=creso
+                        val, unit_for_numerics, out_reso=creso
                     )
 
                     state.found_other = True
@@ -583,9 +595,9 @@ cpdef array_to_datetime(
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            elif is_raise:
+            else:
+                # is_raise
                 raise
-            return values, None
 
     tz_out = state.check_for_mixed_inputs(tz_out, utc)
 
@@ -707,6 +719,7 @@ def array_to_datetime_with_tz(
                     yearfirst=yearfirst,
                     nanos=0,
                     warned_quarter=&warned_quarter,
+                    out_unit=abbrev,
                 )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)

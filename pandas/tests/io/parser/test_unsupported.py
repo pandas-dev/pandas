@@ -18,7 +18,7 @@ from pandas.errors import (
     ParserError,
 )
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
@@ -28,6 +28,18 @@ import pandas.io.parsers.readers as parsers
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
 def python_engine(request):
     return request.param
+
+
+# A non-default value for each bool option below; a placeholder object would be
+# rejected by the bool validation before the engine check runs.
+_non_default_bools = {
+    "dayfirst": True,
+    "iterator": True,
+    "low_memory": False,
+    "memory_map": True,
+    "na_filter": False,
+    "skipinitialspace": True,
+}
 
 
 class TestUnsupportedFeatures:
@@ -105,7 +117,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 f"supported with the {python_engine!r} engine"
             )
 
-            kwargs = {default: object()}
+            kwargs = {default: _non_default_bools.get(default, object())}
             warn = Pandas4Warning if default == "float_precision" else None
             with pytest.raises(ValueError, match=msg):
                 with tm.assert_produces_warning(
@@ -147,12 +159,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for default in pa_unsupported:
             msg = f"The {default!r} option is not supported with the 'pyarrow' engine"
-            kwargs = {default: object()}
-            default_needs_bool = {"warn_bad_lines", "error_bad_lines"}
+            kwargs = {default: _non_default_bools.get(default, object())}
             if default == "dialect":
                 kwargs[default] = "excel"  # test a random dialect
-            elif default in default_needs_bool:
-                kwargs[default] = True
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
 
@@ -214,7 +223,7 @@ def test_sep_none_falls_back_to_python_engine():
     # GH#66639 sniffing the separator is python-engine only, so the default
     # engine falls back to it rather than handing sep=None to the C parser
     data = "a;b\n1;2\n"
-    expected = DataFrame({"a": [1], "b": [2]})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
 
     with tm.assert_produces_warning(parsers.ParserWarning, match="sep=None"):
         result = read_csv(StringIO(data), sep=None)

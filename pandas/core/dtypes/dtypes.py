@@ -39,6 +39,8 @@ from pandas._libs.tslibs import (
     Period,
     Timedelta,
     Timestamp,
+    is_supported_dtype,
+    is_unitless,
     timezones,
     to_offset,
     tz_compare,
@@ -1736,7 +1738,9 @@ class SparseDtype(ExtensionDtype):
     ``SparseDtype`` is used as the data type for :class:`SparseArray`, enabling
     more efficient storage of data that contains a significant number of
     repetitive values typically represented by a fill value. It supports any
-    scalar dtype as the underlying data type of the non-fill values.
+    scalar dtype as the underlying data type of the non-fill values, except
+    that a datetime64 or timedelta64 subtype is limited to the ``'s'``,
+    ``'ms'``, ``'us'`` and ``'ns'`` resolutions.
 
     Parameters
     ----------
@@ -1753,8 +1757,8 @@ class SparseDtype(ExtensionDtype):
         complex     ``np.nan``
         int         ``0``
         bool        ``False``
-        datetime64  ``pd.NaT``
-        timedelta64 ``pd.NaT``
+        datetime64  ``np.datetime64("NaT")``
+        timedelta64 ``np.timedelta64("NaT")``
         =========== ==========
 
         The default value may be overridden by specifying a ``fill_value``.
@@ -1802,7 +1806,10 @@ class SparseDtype(ExtensionDtype):
             is_string_dtype,
             pandas_dtype,
         )
-        from pandas.core.dtypes.missing import na_value_for_dtype
+        from pandas.core.dtypes.missing import (
+            is_valid_na_for_dtype,
+            na_value_for_dtype,
+        )
 
         dtype = pandas_dtype(dtype)
         if is_string_dtype(dtype):
@@ -1810,17 +1817,46 @@ class SparseDtype(ExtensionDtype):
         if not isinstance(dtype, np.dtype):
             # GH#53160
             raise TypeError("SparseDtype subtype must be a numpy dtype")
+        if dtype.kind in "mM" and not is_supported_dtype(dtype):
+            # GH#68522 hold the subtype to what the dense constructors accept.
+            #  Their own check is cast._ensure_nanosecond_dtype, which this
+            #  module cannot import; keep the messages identical.
+            if is_unitless(dtype):
+                raise ValueError(
+                    f"The '{dtype.name}' dtype has no unit. "
+                    f"Please pass in '{dtype.name}[ns]' instead."
+                )
+            raise TypeError(
+                f"dtype={dtype} is not supported. Supported resolutions are 's', "
+                "'ms', 'us', and 'ns'"
+            )
 
         if fill_value is None:
+            fill_value = na_value_for_dtype(dtype)
+        elif dtype.kind in "mM" and is_valid_na_for_dtype(fill_value, dtype):
+            # GH#68449, GH#68558 store the subtype's own NaT, so that every
+            #  spelling of an NA fill value behaves identically downstream
             fill_value = na_value_for_dtype(dtype)
 
         self._dtype = dtype
         self._fill_value = fill_value
         self._check_fill_value()
 
+        if isinstance(fill_value, (Timestamp, Timedelta)) and dtype.kind in "mM":
+            # GH#68589 store the subtype's own scalar, like the NaT case above:
+            #  numpy converts a boxed scalar through datetime, truncating a
+            #  nanosecond fill value wherever it reaches numpy
+            self._fill_value = fill_value.asm8.astype(dtype)
+
     def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
         # __eq__, so we explicitly do it here.
+        if self._is_na_fill_value:
+            # GH#68449 a numpy NA scalar such as np.datetime64("NaT") hashes by
+            #  identity, so hashing _metadata puts equal dtypes in different
+            #  buckets. One token per subtype can only over-collide, never
+            #  split a pair that __eq__ calls equal.
+            return hash((self.subtype, "_is_na_fill_value"))
         return super().__hash__()
 
     def __eq__(self, other: object) -> bool:
@@ -1834,15 +1870,22 @@ class SparseDtype(ExtensionDtype):
 
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
+            if not subtype:
+                # comparing fill values across subtypes cannot change the result
+                # and can warn, e.g. numpy deprecates timedelta64 == int
+                return False
             if self._is_na_fill_value or other._is_na_fill_value:
-                # this case is complicated by two things:
-                # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
-                # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
-                # i.e. we want to treat any floating-point NaN as equal, but
+                # GH#68582 an NA fill value is equal only to another NA fill
+                # value: we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = isinstance(
-                    self.fill_value, type(other.fill_value)
-                ) or isinstance(other.fill_value, type(self.fill_value))
+                fill_value = (
+                    self._is_na_fill_value
+                    and other._is_na_fill_value
+                    and (
+                        isinstance(self.fill_value, type(other.fill_value))
+                        or isinstance(other.fill_value, type(self.fill_value))
+                    )
+                )
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning

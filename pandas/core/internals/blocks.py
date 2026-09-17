@@ -1566,7 +1566,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            if self.dtype.kind not in "iubS" or not is_valid_na_for_dtype(
+            if self.dtype.kind not in "iubSUV" or not is_valid_na_for_dtype(
                 fill_value, self.dtype
             ):
                 # GH#53802
@@ -2157,6 +2157,12 @@ class ExtensionBlock(EABackedBlock):
 
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
+
+            elif com.is_bool_indexer(indexer[1]) and len(indexer[1]) == 1:
+                if indexer[1][0]:
+                    indexer = indexer[0]
+                else:
+                    indexer = []
 
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]

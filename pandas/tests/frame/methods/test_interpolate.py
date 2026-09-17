@@ -3,23 +3,18 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DataFrame,
-    NaT,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
     def test_interpolate_complex(self):
         # GH#53635
-        ser = Series([complex("1+1j"), float("nan"), complex("2+2j")])
+        ser = pd.Series([complex("1+1j"), float("nan"), complex("2+2j")])
         assert ser.dtype.kind == "c"
 
         res = ser.interpolate()
-        expected = Series([ser[0], ser[0] * 1.5, ser[2]])
+        expected = pd.Series([ser[0], ser[0] * 1.5, ser[2]])
         tm.assert_series_equal(res, expected)
 
         df = ser.to_frame()
@@ -29,9 +24,9 @@ class TestDataFrameInterpolate:
 
     def test_interpolate_datetimelike_values(self, frame_or_series):
         # GH#11312, GH#51005
-        orig = Series(date_range("2012-01-01", periods=5))
+        orig = pd.Series(pd.date_range("2012-01-01", periods=5))
         ser = orig.copy()
-        ser[2] = NaT
+        ser[2] = pd.NaT
 
         res = frame_or_series(ser).interpolate()
         expected = frame_or_series(orig)
@@ -67,7 +62,7 @@ class TestDataFrameInterpolate:
     def test_interp_with_non_numeric(self, dtype, using_infer_string):
         if not using_infer_string:
             dtype = "object"
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
@@ -77,7 +72,7 @@ class TestDataFrameInterpolate:
         )
         df["D"] = df["D"].astype(dtype)
         df_orig = df.copy()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0],
                 "B": [1.0, 4.0, 9.0, 9.0],
@@ -103,7 +98,7 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(df, expected)
 
     def test_interp_basic(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
@@ -111,7 +106,7 @@ class TestDataFrameInterpolate:
             }
         )
         df_orig = df.copy()
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0],
                 "B": [1.0, 4.0, 9.0, 9.0],
@@ -137,7 +132,7 @@ class TestDataFrameInterpolate:
         assert tm.shares_memory(df["C"]._values, cvalues)
 
     def test_interp_basic_with_non_range_index(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
@@ -152,14 +147,14 @@ class TestDataFrameInterpolate:
 
     def test_interp_empty(self):
         # https://github.com/pandas-dev/pandas/issues/35598
-        df = DataFrame()
+        df = pd.DataFrame()
         result = df.interpolate()
         assert result is not df
         expected = df
         tm.assert_frame_equal(result, expected)
 
     def test_interp_bad_method(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
@@ -171,7 +166,7 @@ class TestDataFrameInterpolate:
             df.interpolate(method="not_a_method")
 
     def test_interp_combo(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1.0, 2.0, np.nan, 4.0],
                 "B": [1, 4, 9, np.nan],
@@ -181,11 +176,11 @@ class TestDataFrameInterpolate:
         )
 
         result = df["A"].interpolate()
-        expected = Series([1.0, 2.0, 3.0, 4.0], name="A")
+        expected = pd.Series([1.0, 2.0, 3.0, 4.0], name="A")
         tm.assert_series_equal(result, expected)
 
     def test_interp_nan_idx(self):
-        df = DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
+        df = pd.DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
         df = df.set_index("A")
         msg = (
             "Interpolation with NaNs in the index has not been implemented. "
@@ -196,7 +191,7 @@ class TestDataFrameInterpolate:
 
     def test_interp_various(self):
         pytest.importorskip("scipy")
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [1, 2, np.nan, 4, 5, np.nan, 7], "C": [1, 2, 3, 5, 8, 13, 21]}
         )
         df = df.set_index("C")
@@ -235,7 +230,7 @@ class TestDataFrameInterpolate:
 
     def test_interp_alt_scipy(self):
         pytest.importorskip("scipy")
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [1, 2, np.nan, 4, 5, np.nan, 7], "C": [1, 2, 3, 5, 8, 13, 21]}
         )
         result = df.interpolate(method="barycentric")
@@ -256,7 +251,7 @@ class TestDataFrameInterpolate:
         tm.assert_frame_equal(result, expected)
 
     def test_interp_rowwise(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 0: [1, 2, np.nan, 4],
                 1: [2, 3, 4, np.nan],
@@ -292,13 +287,13 @@ class TestDataFrameInterpolate:
         # GH 29132: test axis names
         data = {0: [0, np.nan, 6], 1: [1, np.nan, 7], 2: [2, 5, 8]}
 
-        df = DataFrame(data, dtype=np.float64)
+        df = pd.DataFrame(data, dtype=np.float64)
         result = df.interpolate(axis=axis_name, method="linear")
         expected = df.interpolate(axis=axis_number, method="linear")
         tm.assert_frame_equal(result, expected)
 
     def test_rowwise_alt(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 0: [0, 0.5, 1.0, np.nan, 4, 8, np.nan, np.nan, 64],
                 1: [1, 2, 3, 4, 3, 2, 1, 0, -1],
@@ -311,7 +306,7 @@ class TestDataFrameInterpolate:
         "check_scipy", [False, pytest.param(True, marks=td.skip_if_no("scipy"))]
     )
     def test_interp_leading_nans(self, check_scipy):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"A": [np.nan, np.nan, 0.5, 0.25, 0], "B": [np.nan, -3, -3.5, np.nan, -4]}
         )
         result = df.interpolate()
@@ -324,7 +319,7 @@ class TestDataFrameInterpolate:
             tm.assert_frame_equal(result, expected)
 
     def test_interp_raise_on_only_mixed(self, axis):
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": ["a", "b", "c", "d"],
@@ -339,13 +334,13 @@ class TestDataFrameInterpolate:
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, dtype="object")
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, dtype="object")
         msg = "DataFrame cannot interpolate with object dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
     def test_interp_inplace(self):
-        df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
+        df = pd.DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
         df_orig = df.copy()
         expected = df.copy().interpolate()
 
@@ -356,7 +351,7 @@ class TestDataFrameInterpolate:
 
     def test_interp_inplace_row(self):
         # GH 10395
-        df = DataFrame(
+        df = pd.DataFrame(
             {"a": [1.0, 2.0, 3.0, 4.0], "b": [np.nan, 2.0, 3.0, 4.0], "c": [3, 2, 2, 2]}
         )
         expected = df.interpolate(method="linear", axis=1, inplace=False)
@@ -366,7 +361,7 @@ class TestDataFrameInterpolate:
 
     def test_interp_ignore_all_good(self):
         # GH#6290
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 2, 3, 4],
@@ -374,7 +369,7 @@ class TestDataFrameInterpolate:
                 "D": [1.0, 2.0, 3.0, 4.0],
             }
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "A": np.array([1, 2, 3, 4], dtype="float64"),
                 "B": np.array([1, 2, 3, 4], dtype="int64"),
@@ -392,10 +387,10 @@ class TestDataFrameInterpolate:
     def test_interp_time_inplace_axis(self):
         # GH 9687
         periods = 5
-        idx = date_range(start="2014-01-01", periods=periods)
+        idx = pd.date_range(start="2014-01-01", periods=periods)
         data = np.random.default_rng(2).random((periods, periods))
         data[data < 0.5] = np.nan
-        df = DataFrame(index=idx, columns=idx, data=data)
+        df = pd.DataFrame(index=idx, columns=idx, data=data)
 
         expected = df.interpolate(axis=0, method="time")
         result = df.interpolate(axis=0, method="time", inplace=True)
@@ -407,7 +402,7 @@ class TestDataFrameInterpolate:
         # https://github.com/pandas-dev/pandas/issues/25190
         x = np.linspace(0, 100, 3)
         y = np.sin(x)
-        df = DataFrame(
+        df = pd.DataFrame(
             data=np.tile(y, (10, 1)), index=np.arange(10), columns=x
         ).reindex(columns=x * 1.005)
         result = df.interpolate(method="linear", axis=axis_name)
@@ -418,7 +413,7 @@ class TestDataFrameInterpolate:
     @pytest.mark.parametrize("method", ["ffill", "bfill", "pad"])
     def test_interp_fillna_methods(self, axis, multiblock, method):
         # GH 12918
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": [1.0, 2.0, 3.0, 4.0, np.nan, 5.0],
                 "B": [2.0, 4.0, 6.0, np.nan, 8.0, 10.0],
@@ -435,7 +430,7 @@ class TestDataFrameInterpolate:
 
     def test_interpolate_empty_df(self):
         # GH#53199
-        df = DataFrame()
+        df = pd.DataFrame()
         expected = df.copy()
         result = df.interpolate(inplace=True)
         assert result is df
@@ -443,10 +438,10 @@ class TestDataFrameInterpolate:
 
     def test_interpolate_ea(self, any_int_ea_dtype):
         # GH#55347
-        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=any_int_ea_dtype)
+        df = pd.DataFrame({"a": [1, None, None, None, 3]}, dtype=any_int_ea_dtype)
         orig = df.copy()
         result = df.interpolate(limit=2)
-        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="Float64")
+        expected = pd.DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="Float64")
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(df, orig)
 
@@ -461,10 +456,10 @@ class TestDataFrameInterpolate:
     )
     def test_interpolate_ea_float(self, dtype):
         # GH#55347
-        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype)
+        df = pd.DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype)
         orig = df.copy()
         result = df.interpolate(limit=2)
-        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype=dtype)
+        expected = pd.DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(df, orig)
 
@@ -475,9 +470,9 @@ class TestDataFrameInterpolate:
     def test_interpolate_arrow(self, dtype):
         # GH#55347
         pytest.importorskip("pyarrow")
-        df = DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype + "[pyarrow]")
+        df = pd.DataFrame({"a": [1, None, None, None, 3]}, dtype=dtype + "[pyarrow]")
         result = df.interpolate(limit=2)
-        expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
+        expected = pd.DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -489,9 +484,9 @@ class TestDataFrameInterpolate:
     )
     def test_interpolate_time_nullable_int_float(self, dtype):
         # GH#40252
-        idx = date_range("1970-01-02", periods=3, freq="D")
+        idx = pd.date_range("1970-01-02", periods=3, freq="D")
 
-        df = DataFrame({"a": [1, None, 2]}, index=idx, dtype=dtype)
+        df = pd.DataFrame({"a": [1, None, 2]}, index=idx, dtype=dtype)
         result = df.interpolate(method="time")
-        expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
+        expected = pd.DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
         tm.assert_frame_equal(result, expected)

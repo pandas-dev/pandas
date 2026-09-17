@@ -102,6 +102,7 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_array(self, request, data, all_reductions, skipna: bool):
         op_name = all_reductions
         ser = pd.Series(data)

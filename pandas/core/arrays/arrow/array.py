@@ -340,6 +340,44 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
+    """
+    Whether ``pa.array`` on this type can return a view on caller-owned memory.
+
+    Zero-copy over numpy/masked arrays for fixed-width layouts; character
+    layouts always repack, so copying those would cost a full copy of the
+    character data for no safety gain. Nested types may have a zero-copy child.
+    """
+    return not (
+        _is_varbinary_type(pa_type)
+        or pa.types.is_string_view(pa_type)
+        or pa.types.is_binary_view(pa_type)
+    )
+
+
+def _copy_pyarrow_buffers(
+    pa_array: pa.Array | pa.ChunkedArray,
+) -> pa.Array | pa.ChunkedArray:
+    """
+    Return an equal array that owns its buffers (GH#67990).
+
+    ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
+    so dictionary types are rebuilt from copies of both halves.
+    """
+    if isinstance(pa_array, pa.ChunkedArray):
+        return pa.chunked_array(
+            [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
+            type=pa_array.type,
+        )
+    if pa.types.is_dictionary(pa_array.type):
+        return pa.DictionaryArray.from_arrays(
+            _copy_pyarrow_buffers(pa_array.indices),
+            _copy_pyarrow_buffers(pa_array.dictionary),
+            ordered=pa_array.type.ordered,
+        )
+    return pa.concat_arrays([pa_array])
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -1117,6 +1155,14 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
+        if isinstance(other, range):
+            # GH#63429 our callers defer both of these to the EA for EA-backed
+            #  values, and ops.comparison_op's length check does not see
+            #  through a range.
+            ops.maybe_warn_listlike(other)
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
@@ -1126,10 +1172,8 @@ class ArrowExtensionArray(
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
-                if (
-                    (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype))
-                    or (pa.types.is_timestamp(rtype) and pa.types.is_date(ltype))
-                    or isinstance(other, range)
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
                 ):
                     # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
@@ -1220,7 +1264,12 @@ class ArrowExtensionArray(
                     other = other.cast(pa.large_string())
 
                 sep = pa.scalar("", type=self_array.type)
-                if isinstance(other, pa.Scalar) and pc.is_null(other).as_py():
+                if isinstance(other, pa.Scalar):
+                    if pc.is_null(other).as_py():
+                        other = other.cast(self_array.type)
+                elif len(other) == 0 and pa.types.is_null(other.type):
+                    # GH#40624 a length-zero object-dtype other boxes to the
+                    #  pyarrow null type, which has no join kernel
                     other = other.cast(self_array.type)
                 try:
                     if op is operator.add:
@@ -2790,10 +2839,11 @@ class ArrowExtensionArray(
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        ddof: int = 1,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("sem", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
 
     def skew(
         self,
@@ -2925,6 +2975,10 @@ class ArrowExtensionArray(
                 and value.type == self._pa_array.type
                 and len(value) == len(self)
             ):
+                # GH#67990 this adopts ``value`` as our backing array, so copy
+                #  first if the caller may still own and mutate its buffers.
+                if _boxing_may_borrow_memory(value.type):
+                    value = _copy_pyarrow_buffers(value)
                 data = value
             else:
                 data = self._if_else(True, value, self._pa_array)
@@ -3198,18 +3252,11 @@ class ArrowExtensionArray(
         if not self.dtype._is_numeric:
             raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
 
-        if (
-            method == "linear"
-            and limit_area is None
-            and limit is None
-            and limit_direction == "forward"
-        ):
-            values = self._pa_array.combine_chunks()
-            na_value = pa.array([None], type=values.type)
-            y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
-            prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
-            interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
-            return self._from_pyarrow_array(pc.coalesce(self._pa_array, interps))
+        # GH#65345: a pyarrow-native fast path for
+        # method="linear"/limit_direction="forward" was removed here because
+        # it only handled isolated NAs (leaving consecutive and trailing NAs
+        # unfilled), truncated interpolated values for integer dtypes, and
+        # did not upcast to float64 like the general path below.
 
         mask = self.isna()
         if self.dtype.kind == "f":
@@ -3327,6 +3374,11 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
+        if pa_version_under25p0 and pa.types.is_null(values.type):
+            # GH#66703 pc.replace_with_mask aborts the process for null dtype
+            # (apache/arrow#47447, fixed in pyarrow 25.0.0). The null type
+            # has no non-null values to replace; return it unchanged.
+            return values
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:

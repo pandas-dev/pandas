@@ -1077,7 +1077,7 @@ class SQLTable(PandasObject):
             temp = self.frame.copy(deep=False)
             temp.index.names = self.index
             try:
-                temp.reset_index(inplace=True)
+                temp = temp.reset_index()
             except ValueError as err:
                 raise ValueError(f"duplicate name in index/columns: {err}") from err
         else:
@@ -1201,7 +1201,7 @@ class SQLTable(PandasObject):
                 )
 
                 if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+                    self.frame = self.frame.set_index(self.index)
 
                 yield self.frame
 
@@ -1248,7 +1248,7 @@ class SQLTable(PandasObject):
             )
 
             if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                self.frame = self.frame.set_index(self.index)
 
             return self.frame
 

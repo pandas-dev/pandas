@@ -6,13 +6,6 @@ from pandas.compat import HAS_PYARROW
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
@@ -41,9 +34,9 @@ class TestToIterable:
         ("float16", float),
         ("float32", float),
         ("float64", float),
-        ("datetime64[ns]", Timestamp),
-        ("datetime64[ns, US/Eastern]", Timestamp),
-        ("timedelta64[ns]", Timedelta),
+        ("datetime64[ns]", pd.Timestamp),
+        ("datetime64[ns, US/Eastern]", pd.Timestamp),
+        ("timedelta64[ns]", pd.Timedelta),
     ]
 
     @pytest.mark.parametrize("dtype, rdtype", dtypes)
@@ -105,7 +98,7 @@ class TestToIterable:
         # gh-13258
         # test if items yields the correct boxed scalars
         # this only applies to series
-        s = Series([1], dtype=dtype)
+        s = pd.Series([1], dtype=dtype)
         _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
@@ -140,49 +133,51 @@ class TestToIterable:
         ids=["tolist", "to_list", "list", "iter"],
     )
     def test_categorical_datetimelike(self, method):
-        i = CategoricalIndex([Timestamp("1999-12-31"), Timestamp("2000-12-31")])
+        i = pd.CategoricalIndex(
+            [pd.Timestamp("1999-12-31"), pd.Timestamp("2000-12-31")]
+        )
 
         result = method(i)[0]
-        assert isinstance(result, Timestamp)
+        assert isinstance(result, pd.Timestamp)
 
     def test_iter_box_dt64(self, unit):
-        vals = [Timestamp("2011-01-01"), Timestamp("2011-01-02")]
-        ser = Series(vals).dt.as_unit(unit)
+        vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
+        ser = pd.Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"datetime64[{unit}]"
         for res, exp in zip(ser, vals, strict=True):
-            assert isinstance(res, Timestamp)
+            assert isinstance(res, pd.Timestamp)
             assert res.tz is None
             assert res == exp
             assert res.unit == unit
 
     def test_iter_box_dt64tz(self, unit):
         vals = [
-            Timestamp("2011-01-01", tz="US/Eastern"),
-            Timestamp("2011-01-02", tz="US/Eastern"),
+            pd.Timestamp("2011-01-01", tz="US/Eastern"),
+            pd.Timestamp("2011-01-02", tz="US/Eastern"),
         ]
-        ser = Series(vals).dt.as_unit(unit)
+        ser = pd.Series(vals).dt.as_unit(unit)
 
         assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
         for res, exp in zip(ser, vals, strict=True):
-            assert isinstance(res, Timestamp)
+            assert isinstance(res, pd.Timestamp)
             assert res.tz == exp.tz
             assert res == exp
             assert res.unit == unit
 
     def test_iter_box_timedelta64(self, unit):
         # timedelta
-        vals = [Timedelta("1 days"), Timedelta("2 days")]
-        ser = Series(vals).dt.as_unit(unit)
+        vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
+        ser = pd.Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"timedelta64[{unit}]"
         for res, exp in zip(ser, vals, strict=True):
-            assert isinstance(res, Timedelta)
+            assert isinstance(res, pd.Timedelta)
             assert res == exp
             assert res.unit == unit
 
     def test_iter_box_period(self):
         # period
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
-        s = Series(vals)
+        s = pd.Series(vals)
         assert s.dtype == "Period[M]"
         for res, exp in zip(s, vals, strict=True):
             assert isinstance(res, pd.Period)
@@ -222,7 +217,7 @@ class TestToIterable:
 def test_values_consistent(arr, expected_type, dtype, using_infer_string):
     if using_infer_string and dtype == "object":
         expected_type = ArrowStringArray if HAS_PYARROW else StringArray
-    l_values = Series(arr)._values
+    l_values = pd.Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
     assert type(l_values) is type(r_values)
@@ -232,14 +227,14 @@ def test_values_consistent(arr, expected_type, dtype, using_infer_string):
 
 @pytest.mark.parametrize("arr", [np.array([1, 2, 3])])
 def test_numpy_array(arr):
-    ser = Series(arr)
+    ser = pd.Series(arr)
     result = ser.array
     expected = NumpyExtensionArray(arr)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_numpy_array_all_dtypes(any_numpy_dtype):
-    ser = Series(dtype=any_numpy_dtype)
+    ser = pd.Series(dtype=any_numpy_dtype)
     result = ser.array
     if np.dtype(any_numpy_dtype).kind == "M":
         assert isinstance(result, DatetimeArray)
@@ -324,8 +319,8 @@ def test_array_multiindex_raises():
             .tz_convert("US/Central"),
             np.array(
                 [
-                    Timestamp("2000-01-01", tz="US/Central"),
-                    Timestamp("2000-01-02", tz="US/Central"),
+                    pd.Timestamp("2000-01-01", tz="US/Central"),
+                    pd.Timestamp("2000-01-02", tz="US/Central"),
                 ]
             ),
             False,
@@ -341,11 +336,11 @@ def test_array_multiindex_raises():
         ),
         # GH#26406 tz is preserved in Categorical[dt64tz]
         (
-            pd.Categorical(date_range("2016-01-01", periods=2, tz="US/Pacific")),
+            pd.Categorical(pd.date_range("2016-01-01", periods=2, tz="US/Pacific")),
             np.array(
                 [
-                    Timestamp("2016-01-01", tz="US/Pacific"),
-                    Timestamp("2016-01-02", tz="US/Pacific"),
+                    pd.Timestamp("2016-01-01", tz="US/Pacific"),
+                    pd.Timestamp("2016-01-02", tz="US/Pacific"),
                 ]
             ),
             False,
@@ -393,7 +388,7 @@ def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array, using_nan_
 def test_to_numpy_copy(arr, as_series, using_infer_string):
     obj = pd.Index(arr, copy=False)
     if as_series:
-        obj = Series(obj.values, copy=False)
+        obj = pd.Series(obj.values, copy=False)
 
     # no copy by default
     result = obj.to_numpy()
@@ -418,12 +413,12 @@ def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
-        obj = Series(obj)
+        obj = pd.Series(obj)
 
     # preserve tz by default
     result = obj.to_numpy()
     expected = np.array(
-        [Timestamp("2000", tz=tz), Timestamp("2001", tz=tz)], dtype=object
+        [pd.Timestamp("2000", tz=tz), pd.Timestamp("2001", tz=tz)], dtype=object
     )
     tm.assert_numpy_array_equal(result, expected)
 
@@ -440,9 +435,13 @@ def test_to_numpy_dtype(as_series):
     [
         ([1, 2, None], "float64", 0, [1.0, 2.0, 0.0]),
         (
-            [Timestamp("2000").as_unit("s"), Timestamp("2000").as_unit("s"), pd.NaT],
+            [
+                pd.Timestamp("2000").as_unit("s"),
+                pd.Timestamp("2000").as_unit("s"),
+                pd.NaT,
+            ],
             None,
-            Timestamp("2000").as_unit("s"),
+            pd.Timestamp("2000").as_unit("s"),
             [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
@@ -481,14 +480,18 @@ def test_to_numpy_na_value_numpy_dtype(
             [1, 2, 0, 4],
         ),
         (
-            [Timestamp("2000").as_unit("s"), Timestamp("2000").as_unit("s"), pd.NaT],
             [
-                (0, Timestamp("2021").as_unit("s")),
-                (0, Timestamp("2022").as_unit("s")),
-                (1, Timestamp("2000").as_unit("s")),
+                pd.Timestamp("2000").as_unit("s"),
+                pd.Timestamp("2000").as_unit("s"),
+                pd.NaT,
+            ],
+            [
+                (0, pd.Timestamp("2021").as_unit("s")),
+                (0, pd.Timestamp("2022").as_unit("s")),
+                (1, pd.Timestamp("2000").as_unit("s")),
             ],
             None,
-            Timestamp("2000").as_unit("s"),
+            pd.Timestamp("2000").as_unit("s"),
             [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
@@ -497,7 +500,7 @@ def test_to_numpy_multiindex_series_na_value(
     data, multiindex, dtype, na_value, expected
 ):
     index = pd.MultiIndex.from_tuples(multiindex)
-    series = Series(data, index=index)
+    series = pd.Series(data, index=index)
     result = series.to_numpy(dtype=dtype, na_value=na_value)
     expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
@@ -505,13 +508,13 @@ def test_to_numpy_multiindex_series_na_value(
 
 def test_to_numpy_kwargs_raises():
     # numpy
-    s = Series([1, 2, 3])
+    s = pd.Series([1, 2, 3])
     msg = r"to_numpy\(\) got an unexpected keyword argument 'foo'"
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
     # extension
-    s = Series([1, 2, 3], dtype="Int64")
+    s = pd.Series([1, 2, 3], dtype="Int64")
     with pytest.raises(TypeError, match=msg):
         s.to_numpy(foo=True)
 
@@ -565,20 +568,20 @@ def test_to_numpy_dataframe_single_block_no_mutate():
 class TestAsArray:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_asarray_object_dt64(self, tz):
-        ser = Series(date_range("2000", periods=2, tz=tz))
+        ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
 
         with tm.assert_produces_warning(None):
             # Future behavior (for tzaware case) with no warning
             result = np.asarray(ser, dtype=object)
 
         expected = np.array(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
+            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
         )
         tm.assert_numpy_array_equal(result, expected)
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        ser = Series(date_range("2000", periods=2, unit="ns"))
+        ser = pd.Series(pd.date_range("2000", periods=2, unit="ns"))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         result = np.asarray(ser)
 
@@ -586,7 +589,7 @@ class TestAsArray:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        ser = Series(date_range("2000", periods=2, tz=tz))
+        ser = pd.Series(pd.date_range("2000", periods=2, tz=tz))
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(ser, dtype="datetime64[ns]")
 
