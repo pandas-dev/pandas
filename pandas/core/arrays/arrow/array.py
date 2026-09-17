@@ -546,14 +546,35 @@ class ArrowExtensionArray(
         ):
             from pandas.core.tools.numeric import to_numeric
 
-            scalars = to_numeric(strings, errors="raise")
             if is_pa_array:
+                # to_numeric only to reject spellings pyarrow's cast accepts
+                #  but we do not, e.g. "0x1F"
+                to_numeric(strings, errors="raise")
                 scalars = strings.cast(pa_type)
             else:
+                if pa.types.is_integer(pa_type):
+                    # GH#56135: the default backend widens to float64 as soon
+                    #  as an NA is present, rounding integers above 2**53
+                    scalars = extract_array(
+                        to_numeric(
+                            strings, errors="raise", dtype_backend="numpy_nullable"
+                        ),
+                        extract_numpy=True,
+                    )
+                    if not isinstance(scalars, BaseMaskedArray):
+                        # the nullable backend returns object outside int64,
+                        #  and outside uint64 it also drops the NAs
+                        scalars = to_numeric(strings, errors="raise")
+                else:
+                    scalars = to_numeric(strings, errors="raise")
+
                 mask = isna(strings)
                 # GH#66834: to_numeric coerces "" to NaN instead of raising
                 if (isna(scalars) & ~mask).any():
                     raise ValueError(f"could not convert string to {pa_type}: ''")
+                if isinstance(scalars, BaseMaskedArray):
+                    # the check above leaves scalars._mask a subset of mask
+                    scalars = scalars._data
                 scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
