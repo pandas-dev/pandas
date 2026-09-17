@@ -648,11 +648,11 @@ def test_binary_logical_ufunc_datetimelike_arrow_nan_na(func, left_dtype):
 @td.skip_if_no("pyarrow")
 def test_binary_logical_ufunc_nat_scalar_arrow_backed(func):
     # GH#68524 arrow boxes an NA-like scalar as a null, so `&` takes NaT where the
-    #  other backends raise; np.datetime64("NaT") was truth-tested on its int64
+    #  other backends raise; an NaT datetime64 was truth-tested on its int64
     left = pd.Series([True, False], dtype="bool[pyarrow]")
 
     msg = f"cannot perform the numpy op {func.__name__}"
-    for scalar in [pd.NaT, np.datetime64("NaT")]:
+    for scalar in [pd.NaT, np.datetime64("NaT", "ns")]:
         with pytest.raises(TypeError, match=msg):
             func(left, scalar)
         with pytest.raises(TypeError, match=msg):
