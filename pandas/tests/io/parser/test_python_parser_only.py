@@ -535,31 +535,57 @@ def test_on_bad_lines_index_col_inferred(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+def test_on_bad_lines_callable_index_col_false(python_parser_only):
+    # GH#49279
+    parser = python_parser_only
+    data = "a,b\n1,2\n3,4,5\n6,7"
+    bad_lines = []
+
+    result = parser.read_csv(
+        StringIO(data), index_col=False, on_bad_lines=bad_lines.append
+    )
+    expected = pd.DataFrame({"a": [1, 6], "b": [2, 7]})
+    tm.assert_frame_equal(result, expected)
+    assert bad_lines == [["3", "4", "5"]]
+
+
 def test_index_col_false_and_header_none(python_parser_only):
-    # GH#46955
+    # GH#46955, GH#49279 - the wide row is a bad line, as it is for the c engine
     parser = python_parser_only
     data = """
 0.5,0.03
 0.1,0.2,0.3,2
 """
+    with pytest.raises(ParserError, match="Expected 2 fields in line 3, saw 4"):
+        parser.read_csv(StringIO(data), sep=",", header=None, index_col=False)
+
     result = parser.read_csv_check_warnings(
         ParserWarning,
-        "Length of header",
+        "from bad_lines callable",
         StringIO(data),
         sep=",",
         header=None,
         index_col=False,
+        on_bad_lines=lambda line: line,
     )
     expected = pd.DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
     tm.assert_frame_equal(result, expected)
 
 
 def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parser_only):
-    # GH#46569
+    # GH#46569, GH#49279 - the wide rows are bad lines, as they are for the c engine
     parser = python_parser_only
-    data = StringIO("a\na,b\nc,d,e\nf,g,h")
+    data = "a\na,b\nc,d,e\nf,g,h"
+    with pytest.raises(ParserError, match="Expected 2 fields in line 3, saw 3"):
+        parser.read_csv(StringIO(data), index_col=False)
+
     result = parser.read_csv_check_warnings(
-        ParserWarning, "Length of header", data, engine="python", index_col=False
+        ParserWarning,
+        "from bad_lines callable",
+        StringIO(data),
+        engine="python",
+        index_col=False,
+        on_bad_lines=lambda line: line,
     )
     expected = pd.DataFrame({"a": ["a", "c", "f"]})
     tm.assert_frame_equal(result, expected)
