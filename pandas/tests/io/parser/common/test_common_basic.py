@@ -879,13 +879,14 @@ def test_read_csv_names_not_accepting_sets(all_parsers):
         parser.read_csv(StringIO(data), names=set("QAZ"))
 
 
-def test_read_csv_delimiter_and_sep_no_default(all_parsers):
-    # GH#39823
+@pytest.mark.parametrize("delimiter", [".", None])
+def test_read_csv_delimiter_and_sep_no_default(all_parsers, delimiter):
+    # GH#39823, GH#47024
     f = StringIO("a,b\n1,2")
     parser = all_parsers
     msg = "Specified a sep and a delimiter; you can only specify one."
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, sep=" ", delimiter=".")
+        parser.read_csv(f, sep=" ", delimiter=delimiter)
 
 
 @pytest.mark.parametrize("key", ["sep", "delimiter"])
