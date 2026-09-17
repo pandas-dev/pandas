@@ -2501,7 +2501,12 @@ class ExtensionArray:
         >>> pd.array([1, 2, 3])._reduce("median")
         np.float64(2.0)
         """
-        meth = getattr(self, name)
+        meth = getattr(self, name, None)
+        if meth is None:
+            raise TypeError(
+                f"'{type(self).__name__}' with dtype {self.dtype} "
+                f"does not support operation '{name}'"
+            )
         if name != "count":
             kwargs["skipna"] = skipna
         result = meth(**kwargs)
