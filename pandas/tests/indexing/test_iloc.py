@@ -2194,10 +2194,7 @@ def test_iloc_setitem_series_boolean_index_row_key():
     [
         list,
         np.array,
-        pytest.param(
-            lambda x: pd.Series(x, index=["a"]),
-            marks=pytest.mark.xfail(reason="Series indexer fails"),
-        ),
+        lambda x: pd.Series(x, index=["a"]),
         pd.Index,
         pd.array,
     ],
