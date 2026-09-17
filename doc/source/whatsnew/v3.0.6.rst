@@ -22,16 +22,11 @@ Python 3.15, and binary wheels will be available on PyPI for all supported platf
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed a regression in :func:`read_csv` where a mixed-dtype column selected by ``usecols`` raised ``IndexError`` instead of emitting a ``DtypeWarning``, and where that warning named the wrong column or the wrong index (:issue:`67375`)
 - Fixed a regression in :meth:`DataFrame.plot.bar` and :meth:`DataFrame.plot.barh` raising ``AttributeError`` for a regularly-spaced :class:`DatetimeIndex` whose ``freq`` attribute is unset (:issue:`66771`)
 - Fixed a regression in :meth:`Series.str.split`, :meth:`Series.str.rsplit`, :meth:`Series.str.partition`, and :meth:`Series.str.rpartition` on :class:`CategoricalDtype` Series with ``expand=False`` returning stringified lists/tuples instead of actual lists/tuples (:issue:`66341`)
 - Fixed a regression in :meth:`Timestamp.tz_convert` and :meth:`Timestamp.tz_localize` and their :class:`Index` and :class:`Series` counterparts returning a UTC offset a few minutes off for dates before the specified timezone adopted a standard time (typically early 20th century); this only affected older systems whose ``tzdata`` was compiled with a toolchain from between 2013 and 2018, such as Amazon Linux 2 and RHEL 8 and its derivatives (:issue:`67066`)
-- Fixed a regression in full-slice assignment (``arr[:] = value``) into a PyArrow-backed array
-  where the result shared memory with ``value``, so later modifying ``value``
-  also changed the assigned-to object, violating Copy-on-Write semantics (:issue:`67990`)
-- Fixed a regression in :func:`read_csv` where a mixed-dtype column selected by
-  ``usecols`` raised ``IndexError`` instead of emitting a
-  :class:`DtypeWarning`, and where that warning named the wrong column or
-  the wrong index (:issue:`67375`)
+- Fixed a regression in full-slice assignment (``df.loc[:, "col"] = value``) into a PyArrow-backed array where the result shared memory with ``value``, so later modifying ``value`` also changed the assigned-to object, violating Copy-on-Write semantics (:issue:`67990`)
 - Fixed a bug in setting with ``.loc`` or ``.iloc`` using a boolean mask to
   select the columns into a 1-column DataFrame with an extension dtype, which
   surfaced as a regression for a DataFrame with string data (:issue:`66527`,
