@@ -205,6 +205,10 @@ class DocBuilder:
                     continue
 
                 path = os.path.join(html_path, *row[0].split("/")) + ".html"
+                path = os.path.abspath(path)
+
+                if not path.startswith(os.path.abspath(html_path) + os.sep):
+                    raise ValueError(f"Redirect target {row[0]!r} escapes {html_path!r}")
 
                 if not self.include_api and (
                     os.path.join(html_path, "reference") in path
