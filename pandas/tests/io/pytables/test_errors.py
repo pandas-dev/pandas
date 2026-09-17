@@ -48,6 +48,63 @@ def test_table_index_incompatible_dtypes(temp_hdfstore):
         temp_hdfstore.put("frame", df2, format="table", append=True, track_times=False)
 
 
+@pytest.mark.parametrize(
+    "first, second, msg",
+    [
+        (
+            pd.Index([0, 1]),
+            pd.period_range("2000-01-01", periods=2, freq="D"),
+            "cannot append a period index to a non-period index",
+        ),
+        (
+            pd.period_range("2000-01-01", periods=2, freq="D"),
+            pd.Index([0, 1]),
+            "cannot append a non-period index to a period index",
+        ),
+        (
+            pd.period_range("2000-01-01", periods=2, freq="D"),
+            pd.period_range("2001-01-01", periods=2, freq="M"),
+            re.escape("incompatible freq in col [D - M]"),
+        ),
+        # anchored freqs, whose period alias differs from the offset's
+        # datetime alias ("Q-DEC"/"Y-JUN", not "QE-DEC"/"YE-JUN")
+        (
+            pd.period_range("2000-01-01", periods=2, freq="Q-DEC"),
+            pd.period_range("2001-01-01", periods=2, freq="Y-JUN"),
+            re.escape("incompatible freq in col [Q-DEC - Y-JUN]"),
+        ),
+    ],
+)
+def test_table_index_period_freq_mismatch(first, second, msg, temp_h5_path):
+    # GH#68523 - the append used to be accepted, and the already-stored values
+    # read back reinterpreted, as Periods or as raw ordinals.
+    pd.DataFrame({"v": [1.0, 2.0]}, index=first).to_hdf(
+        temp_h5_path, key="df", format="table"
+    )
+
+    other = pd.DataFrame({"v": [3.0, 4.0]}, index=second)
+    with pytest.raises(TypeError, match=msg):
+        other.to_hdf(temp_h5_path, key="df", format="table", append=True)
+
+
+def test_table_index_period_freq_mismatch_deprecated_freq(temp_h5_path):
+    # GH#68523 - building the message looks up PeriodDtype's alias, and for a
+    # period[B] index that lookup is itself deprecated; its warning must not
+    # escape the error path, where pytest would turn it into a failure.
+    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+        first = pd.DataFrame(
+            {"v": [1.0, 2.0]},
+            index=pd.period_range("2000-01-03", periods=2, freq="B"),
+        )
+        first.to_hdf(temp_h5_path, key="df", format="table")
+
+    other = pd.DataFrame(
+        {"v": [3.0, 4.0]}, index=pd.period_range("2010-01-01", periods=2, freq="D")
+    )
+    with pytest.raises(TypeError, match=re.escape("incompatible freq in col [B - D]")):
+        other.to_hdf(temp_h5_path, key="df", format="table", append=True)
+
+
 def test_unimplemented_dtypes_table_columns(temp_hdfstore):
     dtypes = [("date", datetime.date(2001, 1, 2))]
 

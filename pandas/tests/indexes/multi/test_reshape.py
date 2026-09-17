@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    date,
+    datetime,
+)
 import zoneinfo
 
 import numpy as np
@@ -160,6 +163,26 @@ def test_append_names_dont_match():
     midx2 = pd.MultiIndex.from_arrays([[3], [5]], names=["x", "y"])
     result = midx.append(midx2)
     expected = pd.MultiIndex.from_arrays([[1, 2, 3], [3, 4, 5]], names=None)
+    tm.assert_index_equal(result, expected)
+
+
+def test_append_mixed_date_tzaware_timestamp():
+    # GH#68577 the combined level cannot be converted to datetime64, so it
+    #  stays object instead of raising "Mixed timezones detected"
+    ts = pd.Timestamp("2001-01-01", tz="UTC")
+    mi1 = pd.MultiIndex.from_arrays(
+        [pd.Index([date(2001, 1, 1)], dtype=object), pd.Index(["foo"], dtype=object)]
+    )
+    mi2 = pd.MultiIndex.from_arrays([pd.Index([ts]), pd.Index(["bar"], dtype=object)])
+
+    result = mi1.append(mi2)
+
+    expected = pd.MultiIndex.from_arrays(
+        [
+            pd.Index([date(2001, 1, 1), ts], dtype=object),
+            pd.Index(["foo", "bar"], dtype=object),
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 

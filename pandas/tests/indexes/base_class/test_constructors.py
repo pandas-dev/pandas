@@ -40,6 +40,9 @@ class TestIndexConstructor:
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_index_string_inference(self):
         # GH#54430
         expected = pd.Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan))

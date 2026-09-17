@@ -29,6 +29,7 @@ cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
+    get_default_reso,
     get_supported_reso,
     npy_unit_to_abbrev,
     periods_per_day,
@@ -434,10 +435,15 @@ cpdef array_to_datetime(
         abbrev = npy_unit_to_abbrev(creso)
 
     if unit_for_numerics is None:
+        # if no unit specified specifically for numeric input, then either
+        # use the specified output unit or if inferring, default to ns
         unit_for_numerics = abbrev
-        int_reso = NPY_FR_ns
+        if infer_reso:
+            int_reso = NPY_FR_ns
+        else:
+            int_reso = creso
     else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(unit_for_numerics))
+        int_reso = abbrev_to_npy_unit(get_default_reso(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
@@ -513,8 +519,10 @@ cpdef array_to_datetime(
                     if infer_reso:
                         creso = state.creso
 
+                    # Not <int64_t>: casting here would overflow outside
+                    #  cast_from_unit's guard, leaking OverflowError
                     iresult[i] = cast_from_unit(
-                        <int64_t>val, unit_for_numerics, out_reso=creso
+                        val, unit_for_numerics, out_reso=creso
                     )
 
                     state.found_other = True
@@ -711,6 +719,7 @@ def array_to_datetime_with_tz(
                     yearfirst=yearfirst,
                     nanos=0,
                     warned_quarter=&warned_quarter,
+                    out_unit=abbrev,
                 )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)

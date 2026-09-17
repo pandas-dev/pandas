@@ -450,6 +450,9 @@ The general rules for the various types of input:
   the supported range of seconds to nanoseconds).
 - For integer input, the resolution used to interpret the integer value is used
   as the resulting resolution (or capped to the supported range of seconds to nanoseconds).
+  Note: this has been changed in pandas 3.1.0 to also default to microseconds for the
+  resulting resolution (or nanoseconds when the precision requires it). See
+  :ref:`whatsnew_310.api_breaking.datetimelike_unit_numeric` for more details.
 
 For example, the following would always have given nanosecond resolution previously,
 but now infer:
@@ -1319,6 +1322,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta` with a string outside the representable range returning a wrong value, or raising ``OutOfBoundsDatetime`` or ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`68560`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
@@ -1560,6 +1564,7 @@ Sparse
 - Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
 - Bug in :meth:`DataFrame.sparse.to_dense` which ignored subclassing and always returned an instance of :class:`DataFrame` (:issue:`59913`)
 - Bug in :meth:`SparseArray.cumsum` with integer data caused max recursion depth error. (:issue:`62669`)
+- Bug in :meth:`SparseArray.shift` raising for a datetimelike subtype or a boolean subtype with the default ``fill_value``, and otherwise choosing a result dtype from ``fill_value`` that disagreed with :meth:`Series.shift` (:issue:`68580`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^

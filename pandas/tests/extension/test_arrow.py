@@ -1801,6 +1801,144 @@ def test_setitem_null_slice(data):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, np_dtype",
+    [
+        ("int64[pyarrow]", "int64"),
+        ("uint8[pyarrow]", "uint8"),
+        ("double[pyarrow]", "float64"),
+        ("timestamp[ns][pyarrow]", "M8[ns]"),
+        ("duration[ns][pyarrow]", "m8[ns]"),
+    ],
+)
+def test_setitem_null_slice_no_alias(dtype, np_dtype):
+    # GH#67990 the null-slice fast path must not adopt a buffer the caller owns
+    expected = pd.array(np.array([10, 20, 30]).astype(np_dtype), dtype=dtype)
+
+    np_values = np.array([10, 20, 30]).astype(np_dtype)
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = np_values
+    np_values[0] = np_values[1]
+    tm.assert_extension_array_equal(arr, expected)
+
+    ser = pd.Series(np.array([10, 20, 30]).astype(np_dtype))
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = ser
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_null_slice_no_alias_masked():
+    # GH#67990 masked arrays are zero-copy through __arrow_array__
+    arr = pd.array([None] * 3, dtype="int64[pyarrow]")
+    values = pd.array([10, 20, 30], dtype="Int64")
+    arr[:] = values
+    values[0] = -1
+    expected = pd.array([10, 20, 30], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize(
+    "wrap",
+    [
+        lambda np_values: pa.array(np_values),
+        lambda np_values: pa.chunked_array([pa.array(np_values)]),
+        lambda np_values: pa.chunked_array(
+            [pa.array(np_values[:1]), pa.array(np_values[1:])]
+        ),
+        lambda np_values: ArrowExtensionArray(pa.array(np_values)),
+        lambda np_values: pd.Series(ArrowExtensionArray(pa.array(np_values))),
+    ],
+    ids=["array", "chunked", "chunked_multi", "extension_array", "series"],
+)
+def test_setitem_null_slice_no_alias_pyarrow(wrap):
+    # GH#67990 a pyarrow array is immutable, but its buffers can still be
+    #  zero-copy over a numpy array the caller owns
+    np_values = np.array([10, 20, 30], dtype="int64")
+    arr = pd.array([None] * 3, dtype="int64[pyarrow]")
+    value = wrap(np_values)
+    arr[:] = value
+    np_values[0] = -1
+    expected = pd.array([10, 20, 30], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+    # assert_extension_array_equal ignores chunking, so pin it separately
+    assert arr._pa_array.num_chunks == getattr(value, "num_chunks", 1)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.StringDtype("pyarrow", na_value=np.nan),
+        "string[pyarrow]",
+        "binary[pyarrow]",
+        ArrowDtype(pa.large_string()),
+        ArrowDtype(pa.large_binary()),
+    ],
+)
+def test_setitem_null_slice_string_stays_zero_copy(dtype):
+    # GH#67990 the aliasing fix must not undo GH#64529/GH#64530: pa.array never
+    #  packs character data into caller-owned memory, so it is not copied here
+    is_binary = "binary" in str(dtype)
+    values = pd.array(
+        [b"a", b"bb", b"ccc"] if is_binary else ["a", "bb", "ccc"], dtype=dtype
+    )
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = values
+    # the character data is the last buffer for every one of these layouts
+    assert (
+        arr._pa_array.chunks[0].buffers()[-1].address
+        == values._pa_array.chunks[0].buffers()[-1].address
+    )
+
+
+def test_setitem_null_slice_no_alias_dictionary():
+    # GH#67990 pa.concat_arrays reuses the dictionary child, so the values half
+    #  of a dictionary type needs copying too
+    dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.int64()))
+    np_values = np.array([100, 200], dtype="int64")
+    indices = pa.array(np.array([0, 1, 0], dtype="int32"))
+    value = pa.DictionaryArray.from_arrays(indices, pa.array(np_values))
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    expected = pd.array(
+        pa.DictionaryArray.from_arrays(indices, pa.array([100, 200], type=pa.int64())),
+        dtype=dtype,
+    )
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("kind", ["list", "struct"])
+def test_setitem_null_slice_no_alias_nested(kind):
+    # GH#67990 pa.concat_arrays does copy a nested type's children, which is why
+    #  only dictionary needs the special case above
+    np_values = np.array([1, 2, 3, 4], dtype="int64")
+    child = pa.array(np_values)
+    if kind == "list":
+        value = pa.ListArray.from_arrays(pa.array([0, 2, 4], type=pa.int32()), child)
+        expected_data = [[1, 2], [3, 4]]
+    else:
+        value = pa.StructArray.from_arrays([child], names=["x"])
+        expected_data = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}]
+    dtype = ArrowDtype(value.type)
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    assert arr.tolist() == expected_data
+
+
+def test_setitem_null_slice_cow():
+    # GH#67990 full-slice assignment must not tie the two frames together
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="int64[pyarrow]")})
+    other = pd.DataFrame({"b": [10, 20, 30]})
+    df.loc[:, "a"] = other["b"]
+    other.iloc[0, 0] = -777
+    expected = pd.DataFrame({"a": pd.array([10, 20, 30], dtype="int64[pyarrow]")})
+    tm.assert_frame_equal(df, expected)
+
+
 def test_setitem_invalid_dtype(data):
     # GH50248
     pa_type = data._pa_array.type
@@ -4948,9 +5086,27 @@ def test_interpolate_not_numeric(data):
 
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
+    # GH#65345 results should match the masked (e.g. Int64) dtypes:
+    # upcast to float, and fill the trailing NA going forward
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
     result = ser.interpolate()
-    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    expected = pd.Series([None, 1.0, 2.0, 3.0, 4.0, 4.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_consecutive_na():
+    # GH#65345 consecutive interior NAs were left unfilled
+    ser = pd.Series([1, 2, 3, None, None, 6, 7], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear", limit_direction="forward")
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_int_fractional():
+    # GH#65345 result should not truncate the interpolated value (1 instead of 1.5)
+    ser = pd.Series([1, None, 2], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear")
+    expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 
