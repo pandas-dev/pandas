@@ -6036,6 +6036,54 @@ def test_reduction_axis_valid(method, axis):
     assert result == expected or (pd.isna(result) and pd.isna(expected))
 
 
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+@pytest.mark.parametrize("bias", [True, False])
+def test_skew_kurt_bias_array_method(name, sp_func, bias):
+    if pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    data = [1.0, 2.0, 2.0, 3.0, 10.0]
+    arr = pd.array(data, dtype="float64[pyarrow]")
+    result = getattr(arr, name)(bias=bias)
+    expected = getattr(sp_stats, sp_func)(data, bias=bias)
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize("name", ["skew", "kurt"])
+@pytest.mark.parametrize("bias", [True, False])
+def test_skew_kurt_bias_single_value(name, bias):
+    if pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
+    arr = pd.array([5.0], dtype="float64[pyarrow]")
+    assert getattr(arr, name)(bias=bias) is pd.NA
+
+
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+@pytest.mark.parametrize(
+    "kwargs, expected_bias",
+    [
+        ({}, False),
+        ({"bias": True}, True),
+        ({"bias": False}, False),
+        ({"biased": True}, True),
+        ({"biased": False}, False),
+        ({"bias": True, "biased": False}, False),
+        ({"bias": False, "biased": True}, True),
+    ],
+)
+def test_skew_kurt_reduce_bias_and_biased(name, sp_func, kwargs, expected_bias):
+    if pa_version_under20p0:
+        pytest.skip("pyarrow.compute.skew added in pyarrow 20.0.0")
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    data = [1.0, 2.0, 2.0, 3.0, 10.0]
+    arr = pd.array(data, dtype="float64[pyarrow]")
+    result = arr._reduce(name, skipna=True, **kwargs)
+    expected = getattr(sp_stats, sp_func)(data, bias=expected_bias)
+    tm.assert_almost_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "method",
     ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
