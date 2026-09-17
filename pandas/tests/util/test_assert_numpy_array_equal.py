@@ -275,3 +275,13 @@ numpy array dtypes are different
 \\[right\\]: timedelta64\\[us\\]"""
     with pytest.raises(AssertionError, match=msg):
         tm.assert_numpy_array_equal(arr1, arr2)
+
+
+def test_assert_numpy_array_equal_incompatible_unit_check_dtype_false():
+    # GH#68459
+    left = np.array([1], dtype="m8[M]")
+    right = np.array([1], dtype="m8[D]")
+    msg = "numpy array values are different"
+
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_numpy_array_equal(left, right, check_dtype=False)
