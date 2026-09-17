@@ -168,15 +168,16 @@ class TestSetitemDT64Values:
 
 
 class TestSetitemScalarIndexer:
-    def test_setitem_bytes_dtype_with_na(self):
+    @pytest.mark.parametrize("dtype", ["S1", "V1"])
+    def test_setitem_cannot_hold_na_dtype(self, dtype):
         # GH#52373
-        ser = pd.Series([b"a", b"b", b"c"], dtype="S1")
+        ser = pd.Series(np.array([b"a", b"b", b"c"], dtype=dtype))
 
         msg = "Invalid value 'nan' for dtype"
         with pytest.raises(TypeError, match=msg):
             ser[1] = np.nan
 
-        expected = pd.Series([b"a", b"b", b"c"], dtype="S1")
+        expected = pd.Series(np.array([b"a", b"b", b"c"], dtype=dtype))
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_negative_out_of_bounds(self):
@@ -2009,6 +2010,18 @@ def test_setitem_enlarge_within_int64_range():
     ser.loc[2] = 2**62
 
     expected = pd.Series([1, 2, 2**62], dtype="int64")
+    tm.assert_series_equal(ser, expected)
+
+
+def test_setitem_enlarge_float16_no_overflow_warning():
+    # GH#68315 floats_fit_integer_dtype's float16 overflow warning (see
+    #  test_downcast.py) fires here too, on setitem-with-expansion
+    ser = pd.Series([1, 2], dtype="int64")
+
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = np.float16(3.0)
+
+    expected = pd.Series([1, 2, 3], dtype="int64")
     tm.assert_series_equal(ser, expected)
 
 

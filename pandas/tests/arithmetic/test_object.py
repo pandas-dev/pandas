@@ -32,6 +32,9 @@ class TestObjectComparisons:
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_object_comparisons(self, infer_string):
         with pd.option_context("future.infer_string", infer_string):
             ser = pd.Series(["a", "b", np.nan, "c", "a"])

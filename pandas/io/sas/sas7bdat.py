@@ -676,6 +676,15 @@ class SAS7BDATReader(SASReader):
         )
         mx = const.row_count_on_mix_page_offset_multiplier * int_len
         self._mix_page_row_count = self._read_uint(offset + mx, int_len)
+        # A mix page hands out this many rows, so a count the page cannot hold
+        #  walks off the rows into the padding and the metadata subheaders stored
+        #  behind them. Written as a product so row_length 0 cannot divide by zero.
+        if self._mix_page_row_count * self.row_length > self._page_length:
+            raise ValueError(
+                f"mix page row count ({self._mix_page_row_count}) does not fit in "
+                f"a {self._page_length}-byte page at {self.row_length} bytes per "
+                f"row; the file is corrupt"
+            )
         self._lcs = self._read_uint(lcs_offset, 2)
         self._lcp = self._read_uint(lcp_offset, 2)
 

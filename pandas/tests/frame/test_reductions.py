@@ -1410,7 +1410,7 @@ class TestDataFrameAnalytics:
         ]
         df = pd.DataFrame({"A": float_data, "B": datetime_data})
 
-        msg = "datetime64 type does not support operation 'any'"
+        msg = "'any' with datetime64 dtypes is not supported"
         with pytest.raises(TypeError, match=msg):
             df.any(axis=1)
 
@@ -1506,7 +1506,7 @@ class TestDataFrameAnalytics:
                 getattr(pd.DataFrame(data), func.__name__)(axis=None)
         if data.dtypes.apply(lambda x: x.kind == "M").any():
             # GH#34479
-            msg = "datetime64 type does not support operation '(any|all)'"
+            msg = "'(any|all)' with datetime64 dtypes is not supported"
             with pytest.raises(TypeError, match=msg):
                 func(data)
 
@@ -2147,6 +2147,22 @@ class TestDataFrameReductions:
         result = getattr(df, method)(axis=1, skipna=False)
         expected = pd.Series([winner, pd.NaT], dtype=df["dz1"].dtype)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.date_range("2020-01-01", periods=1),
+            pd.date_range("2020-01-01", periods=1, tz="US/Pacific"),
+            pd.timedelta_range("1 day", periods=1),
+            pd.period_range("2020-01-01", periods=1, freq="D"),
+        ],
+        ids=["dt64", "dt64tz", "td64", "period"],
+    )
+    def test_reduce_axis1_median_single_row_single_col(self, values):
+        # GH#68191: the result held a 0-dim array that repr could not render
+        df = pd.DataFrame({"a": values})
+        result = df.median(axis=1)
+        tm.assert_series_equal(result, df["a"], check_names=False)
 
     def test_reduce_axis1_dt64tz_mixed_tz_falls_back(self):
         # GH#65500: different tz across blocks must not enter the EA fast
@@ -3141,3 +3157,21 @@ def test_numeric_only_validates_bool():
     df_num.mean(numeric_only=False)
     df_num.sum(numeric_only=True)
     df_num.std(numeric_only=True)
+
+
+@pytest.mark.parametrize("na_first", [True, False])
+def test_median_skipna_false_keeps_complex(na_first):
+    # GH#68487 the NaN propagated for a column holding an NA was real, so
+    #  whenever that column was reduced first the others were cast down to it
+    #  and lost their imaginary part
+    cols = {"a": [1 + 2j, np.nan], "b": [1 + 2j, 3 + 4j]}
+    if not na_first:
+        cols = dict(reversed(cols.items()))
+    df = pd.DataFrame(cols)
+
+    expected = pd.Series(
+        [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
+        index=list(cols),
+    )
+    tm.assert_series_equal(df.median(skipna=False), expected)
+    tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)

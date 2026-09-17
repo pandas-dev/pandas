@@ -22,6 +22,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
+    iNaT,
 )
 from pandas.errors import UndefinedVariableError
 
@@ -184,6 +185,10 @@ class BinOp(ops.BinOp):
     def conform(self, rhs):
         """inplace conform rhs"""
         rhs = rhs.value
+        if rhs is None:
+            # Guarded here rather than in convert_value so both query paths are
+            #  covered; bool(None) is False, Timestamp(None) is NaT. GH#64348
+            raise TypeError(f"Cannot compare [{self.lhs.value}] to None")
         if not is_list_like(rhs):
             rhs = [rhs]
         if isinstance(rhs, np.ndarray):
@@ -218,14 +223,19 @@ class BinOp(ops.BinOp):
         """the metadata of my field"""
         return getattr(self.queryables.get(self.lhs.value), "metadata", None)
 
+    @property
+    def ordered(self):
+        """whether my field is an ordered Categorical (None if unrecorded)"""
+        return getattr(self.queryables.get(self.lhs.value), "ordered", None)
+
     def generate(self, v) -> str:
         """create and return the op string for this TermValue"""
         val = v.tostring(self.encoding)
+        lhs = self.lhs.value
         if v.truncated:
             # The requested value fell strictly between `val` and the next
             # storable one, so no row can equal it. Compare against `val` with
             # an adjusted operator rather than against the value we truncated to.
-            lhs = self.lhs.value
             if self.op == "==":
                 # matches nothing
                 return f"(({lhs} > {val}) & ({lhs} <= {val}))"
@@ -234,7 +244,13 @@ class BinOp(ops.BinOp):
                 return f"(({lhs} <= {val}) | ({lhs} > {val}))"
             op = "<=" if self.op in ("<", "<=") else ">"
             return f"({lhs} {op} {val})"
-        return f"({self.lhs.value} {self.op} {val})"
+        kind = ensure_decoded(self.kind) or ""
+        if self.op in ("<", "<=") and kind.startswith(("datetime", "timedelta")):
+            # datetime64/timedelta64 columns are stored as int64 with NaT as
+            # iNaT, which sorts below every real value, so an unguarded "less
+            # than" would match the NaT rows. ">"/">=" need no such guard.
+            return f"(({lhs} != {iNaT}) & ({lhs} {self.op} {val}))"
+        return f"({lhs} {self.op} {val})"
 
     def convert_value(self, conv_val) -> TermValue:
         """
@@ -274,6 +290,16 @@ class BinOp(ops.BinOp):
             return TermValue(int(conv_val), conv_val, kind)
 
         elif meta == "category":
+            # `ordered` may be a np.bool_, and is None for files written before
+            #  the flag was recorded, where we cannot tell.
+            ordered = self.ordered
+            is_unordered = ordered is not None and not ordered
+            if is_unordered and self.op in ["<", "<=", ">", ">="]:
+                # GH#68040 the stored codes are orderable, but the categories
+                #  they stand for are not; match the in-memory comparison.
+                raise TypeError(
+                    "Unordered Categoricals can only compare equality or not"
+                )
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
             if conv_val not in metadata:
