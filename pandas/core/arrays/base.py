@@ -136,6 +136,8 @@ class ExtensionArray:
 
     Methods
     -------
+    all
+    any
     argsort
     astype
     copy
@@ -150,14 +152,25 @@ class ExtensionArray:
     isin
     isna
     item
+    kurt
+    max
+    mean
+    median
+    min
+    prod
     ravel
     repeat
     searchsorted
+    sem
     shift
+    skew
     sort
+    std
+    sum
     take
     tolist
     unique
+    var
     view
     _accumulate
     _concat_same_type
@@ -227,6 +240,19 @@ class ExtensionArray:
 
     * _accumulate
     * _reduce
+    * all
+    * any
+    * kurt
+    * max
+    * mean
+    * median
+    * min
+    * prod
+    * sem
+    * skew
+    * std
+    * sum
+    * var
 
     One can implement methods to handle parsing from strings that will be used
     in methods such as ``pandas.io.parsers.read_csv``.
@@ -2475,12 +2501,7 @@ class ExtensionArray:
         >>> pd.array([1, 2, 3])._reduce("median")
         np.float64(2.0)
         """
-        meth = getattr(self, name, None)
-        if meth is None:
-            raise TypeError(
-                f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support operation '{name}'"
-            )
+        meth = getattr(self, name)
         if name != "count":
             kwargs["skipna"] = skipna
         result = meth(**kwargs)
@@ -2491,6 +2512,32 @@ class ExtensionArray:
                 result = np.array([result])
 
         return result
+
+    def all(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'all'"
+        )
+
+    def any(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'any'"
+        )
 
     def count(self):
         """
@@ -2515,6 +2562,143 @@ class ExtensionArray:
         np.int64(2)
         """
         return (~self.isna()).sum()
+
+    def kurt(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'kurt'"
+        )
+
+    def max(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'max'"
+        )
+
+    def mean(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'mean'"
+        )
+
+    def median(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'median'"
+        )
+
+    def min(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'min'"
+        )
+
+    def prod(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'prod'"
+        )
+
+    def sem(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'sem'"
+        )
+
+    def skew(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'skew'"
+        )
+
+    def std(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'std'"
+        )
+
+    def sum(
+        self,
+        *,
+        skipna: bool = True,
+        min_count: int = 0,
+        axis: AxisInt | None = 0,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'sum'"
+        )
+
+    def var(
+        self,
+        *,
+        skipna: bool = True,
+        axis: AxisInt | None = 0,
+        ddof: int = 1,
+        **kwargs,
+    ):
+        raise TypeError(
+            f"'{type(self).__name__}' with dtype {self.dtype} "
+            f"does not support operation 'var'"
+        )
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
