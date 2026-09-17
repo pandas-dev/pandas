@@ -2433,7 +2433,7 @@ class ExtensionArray:
             If True, the result has dimension with size one along the reduced axis.
         **kwargs
             Additional keyword arguments passed to the reduction function.
-            Currently, `ddof` is the only supported kwarg.
+            Currently, `ddof` and `bias` are the only supported kwargs.
 
         Returns
         -------
