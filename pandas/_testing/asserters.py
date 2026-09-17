@@ -876,7 +876,10 @@ def assert_numpy_array_equal(
         and left.dtype.kind == right.dtype.kind
         and left.dtype != right.dtype
     ):
-        values_equivalent = np.array_equal(left, right, equal_nan=True)
+        try:
+            values_equivalent = np.array_equal(left, right, equal_nan=True)
+        except TypeError:
+            values_equivalent = False
     else:
         values_equivalent = array_equivalent(left, right, strict_nan=strict_nan)
 
