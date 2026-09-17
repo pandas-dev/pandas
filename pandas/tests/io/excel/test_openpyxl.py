@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import DataFrame
 import pandas._testing as tm
 
 from pandas.io.excel import (
@@ -113,13 +112,13 @@ def test_engine_kwargs_write(tmp_excel, iso_dates):
     ) as writer:
         assert writer.book.iso_dates == iso_dates
         # ExcelWriter won't allow us to close without writing something
-        DataFrame().to_excel(writer)
+        pd.DataFrame().to_excel(writer)
 
 
 def test_engine_kwargs_append_invalid(tmp_excel):
     # GH 43445
     # test whether an invalid engine kwargs actually raises
-    DataFrame(["hello", "world"]).to_excel(tmp_excel)
+    pd.DataFrame(["hello", "world"]).to_excel(tmp_excel)
     with pytest.raises(
         TypeError,
         match=re.escape(
@@ -133,7 +132,7 @@ def test_engine_kwargs_append_invalid(tmp_excel):
             engine_kwargs={"apple_banana": "fruit"},
         ) as writer:
             # ExcelWriter needs us to write something to close properly
-            DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
+            pd.DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
 
 
 @pytest.mark.parametrize("data_only, expected", [(True, 0), (False, "=1+1")])
@@ -141,13 +140,13 @@ def test_engine_kwargs_append_data_only(tmp_excel, data_only, expected):
     # GH 43445
     # tests whether the data_only engine_kwarg actually works well for
     # openpyxl's load_workbook
-    DataFrame(["=1+1"]).to_excel(tmp_excel)
+    pd.DataFrame(["=1+1"]).to_excel(tmp_excel)
     with ExcelWriter(
         tmp_excel, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
     ) as writer:
         assert writer.sheets["Sheet1"]["B2"].value == expected
         # ExcelWriter needs us to writer something to close properly?
-        DataFrame().to_excel(writer, sheet_name="Sheet2")
+        pd.DataFrame().to_excel(writer, sheet_name="Sheet2")
 
     # ensure that data_only also works for reading
     #  and that formulas/values roundtrip
@@ -179,7 +178,7 @@ def test_engine_kwargs_append_reader(datapath, ext, kwarg_name, kwarg_value):
     "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
 )
 def test_write_append_mode(tmp_excel, mode, expected):
-    df = DataFrame([1], columns=["baz"])
+    df = pd.DataFrame([1], columns=["baz"])
 
     wb = openpyxl.Workbook()
     wb.worksheets[0].title = "foo"
@@ -209,8 +208,8 @@ def test_write_append_mode(tmp_excel, mode, expected):
 )
 def test_if_sheet_exists_append_modes(tmp_excel, if_sheet_exists, num_sheets, expected):
     # GH 40230
-    df1 = DataFrame({"fruit": ["apple", "banana"]})
-    df2 = DataFrame({"fruit": ["pear"]})
+    df1 = pd.DataFrame({"fruit": ["apple", "banana"]})
+    df2 = pd.DataFrame({"fruit": ["pear"]})
 
     df1.to_excel(tmp_excel, engine="openpyxl", sheet_name="foo", index=False)
     with ExcelWriter(
@@ -240,8 +239,10 @@ def test_if_sheet_exists_append_modes(tmp_excel, if_sheet_exists, num_sheets, ex
 def test_append_overlay_startrow_startcol(
     tmp_excel, startrow, startcol, greeting, goodbye
 ):
-    df1 = DataFrame({"greeting": ["hello", "world"], "goodbye": ["goodbye", "people"]})
-    df2 = DataFrame(["poop"])
+    df1 = pd.DataFrame(
+        {"greeting": ["hello", "world"], "goodbye": ["goodbye", "people"]}
+    )
+    df2 = pd.DataFrame(["poop"])
 
     df1.to_excel(tmp_excel, engine="openpyxl", sheet_name="poo", index=False)
     with ExcelWriter(
@@ -258,7 +259,7 @@ def test_append_overlay_startrow_startcol(
         )
 
     result = pd.read_excel(tmp_excel, sheet_name="poo", engine="openpyxl")
-    expected = DataFrame({"greeting": greeting, "goodbye": goodbye})
+    expected = pd.DataFrame({"greeting": greeting, "goodbye": goodbye})
     tm.assert_frame_equal(result, expected)
 
 
@@ -282,7 +283,7 @@ def test_append_overlay_startrow_startcol(
 )
 def test_if_sheet_exists_raises(tmp_excel, if_sheet_exists, msg):
     # GH 40230
-    df = DataFrame({"fruit": ["pear"]})
+    df = pd.DataFrame({"fruit": ["pear"]})
     df.to_excel(tmp_excel, sheet_name="foo", engine="openpyxl")
     with pytest.raises(ValueError, match=re.escape(msg)):
         with ExcelWriter(
@@ -293,8 +294,8 @@ def test_if_sheet_exists_raises(tmp_excel, if_sheet_exists, msg):
 
 def test_to_excel_with_openpyxl_engine(tmp_excel):
     # GH 29854
-    df1 = DataFrame({"A": np.linspace(1, 10, 10)})
-    df2 = DataFrame({"B": np.linspace(1, 20, 10)})
+    df1 = pd.DataFrame({"A": np.linspace(1, 10, 10)})
+    df2 = pd.DataFrame({"B": np.linspace(1, 20, 10)})
     df = pd.concat([df1, df2], axis=1)
     styled = df.style.map(
         lambda val: f"color: {'red' if val < 0 else 'black'}"
@@ -346,7 +347,7 @@ def test_read_with_bad_dimension(
             openpyxl.load_workbook(path, read_only=read_only)
         ) as wb:
             result = pd.read_excel(wb, engine="openpyxl", header=header)
-    expected = DataFrame(expected_data)
+    expected = pd.DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
 
 
@@ -361,13 +362,13 @@ def test_read_with_bad_dimension_skiprows_callable_all(
     with monkeypatch.context() as m:
         m.setattr(_excel_base, "EXCEL_ROWS_MAX", 10)
         result = pd.read_excel(path, skiprows=lambda _: True, nrows=1)
-    expected = DataFrame()
+    expected = pd.DataFrame()
     tm.assert_frame_equal(result, expected)
 
 
 def test_append_mode_file(tmp_excel):
     # GH 39576
-    df = DataFrame()
+    df = pd.DataFrame()
 
     df.to_excel(tmp_excel, engine="openpyxl")
 
@@ -397,7 +398,7 @@ def test_read_with_empty_trailing_rows(datapath, ext, read_only):
             openpyxl.load_workbook(path, read_only=read_only)
         ) as wb:
             result = pd.read_excel(wb, engine="openpyxl")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "Title": [np.nan, "A", 1, 2, 3],
             "Unnamed: 1": [np.nan, "B", 4, 5, 6],
@@ -419,7 +420,7 @@ def test_read_empty_with_blank_row(datapath, ext, read_only):
             openpyxl.load_workbook(path, read_only=read_only)
         ) as wb:
             result = pd.read_excel(wb, engine="openpyxl")
-    expected = DataFrame()
+    expected = pd.DataFrame()
     tm.assert_frame_equal(result, expected)
 
 
@@ -435,7 +436,7 @@ def test_ints_spelled_with_decimals(datapath, ext):
     # GH 46988 - openpyxl returns this sheet with floats
     path = datapath("io", "data", "excel", f"ints_spelled_with_decimals{ext}")
     result = pd.read_excel(path)
-    expected = DataFrame(range(2, 12), columns=[1])
+    expected = pd.DataFrame(range(2, 12), columns=[1])
     tm.assert_frame_equal(result, expected)
 
 
@@ -443,7 +444,7 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
     # GH#47487
     path = datapath("io", "data", "excel", f"multiindex_no_index_names{ext}")
     result = pd.read_excel(path, index_col=[0, 1, 2], header=[0, 1, 2])
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[np.nan, "x", "x", "x"], ["x", np.nan, np.nan, np.nan]],
         columns=pd.MultiIndex.from_tuples(
             [("X", "Y", "A1"), ("X", "Y", "A2"), ("XX", "YY", "B1"), ("XX", "YY", "B2")]
@@ -456,7 +457,7 @@ def test_read_multiindex_header_no_index_names(datapath, ext):
 def test_read_excel_book_dimensions_preserved(tmp_excel):
     # GH#63010 - reading should not permanently reset the dimensions of the
     # worksheet handle available through ExcelFile.book
-    df = DataFrame({"a": [1, 2], "b": [3, 4]})
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
     df.to_excel(tmp_excel, index=False)
 
     with pd.ExcelFile(tmp_excel, engine="openpyxl") as excel_file:
@@ -476,24 +477,24 @@ class TestWriteOnly:
     def test_write_only_not_default(self, tmp_excel):
         with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
             assert writer.book.write_only is False
-            DataFrame().to_excel(writer)
+            pd.DataFrame().to_excel(writer)
 
     def test_write_only_opt_in(self, tmp_excel):
         with ExcelWriter(
             tmp_excel, engine="openpyxl", engine_kwargs={"write_only": True}
         ) as writer:
             assert writer.book.write_only is True
-            DataFrame().to_excel(writer)
+            pd.DataFrame().to_excel(writer)
 
     def test_write_only_not_set_in_append_mode(self, tmp_excel):
-        DataFrame().to_excel(tmp_excel, engine="openpyxl")
+        pd.DataFrame().to_excel(tmp_excel, engine="openpyxl")
         with ExcelWriter(tmp_excel, engine="openpyxl", mode="a") as writer:
             assert writer.book.write_only is False
-            DataFrame().to_excel(writer, sheet_name="Sheet2")
+            pd.DataFrame().to_excel(writer, sheet_name="Sheet2")
 
     def test_write_only_roundtrip(self, tmp_excel):
         # Verify basic data integrity through write-only path
-        df = DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+        df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
         df.to_excel(
             tmp_excel,
             engine="openpyxl",
@@ -504,8 +505,8 @@ class TestWriteOnly:
         tm.assert_frame_equal(result, df)
 
     def test_write_only_multiple_sheets(self, tmp_excel):
-        df1 = DataFrame({"a": [1, 2]})
-        df2 = DataFrame({"b": [3, 4]})
+        df1 = pd.DataFrame({"a": [1, 2]})
+        df2 = pd.DataFrame({"b": [3, 4]})
         with ExcelWriter(
             tmp_excel, engine="openpyxl", engine_kwargs={"write_only": True}
         ) as writer:
@@ -517,7 +518,7 @@ class TestWriteOnly:
         tm.assert_frame_equal(result2, df2)
 
     def test_write_only_freeze_panes(self, tmp_excel):
-        df = DataFrame({"a": [1, 2], "b": [3, 4]})
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         df.to_excel(
             tmp_excel,
             engine="openpyxl",
@@ -530,7 +531,7 @@ class TestWriteOnly:
 
     def test_write_only_merge_cells(self, tmp_excel):
         # MultiIndex columns produce merged header cells
-        df = DataFrame(
+        df = pd.DataFrame(
             [[1, 2]],
             columns=pd.MultiIndex.from_tuples([("a", "x"), ("a", "y")]),
         )
@@ -565,7 +566,7 @@ class TestWriteOnly:
         assert cell.font.color.rgb == "00FF0000"
 
     def test_write_only_startrow_startcol(self, tmp_excel):
-        df = DataFrame({"a": [1]})
+        df = pd.DataFrame({"a": [1]})
         df.to_excel(
             tmp_excel,
             engine="openpyxl",

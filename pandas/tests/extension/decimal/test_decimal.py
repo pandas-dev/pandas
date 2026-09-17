@@ -102,6 +102,7 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_array(self, request, data, all_reductions, skipna: bool):
         op_name = all_reductions
         ser = pd.Series(data)
@@ -459,3 +460,31 @@ def test_array_copy_on_write():
         {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
     )
     tm.assert_equal(df2.values, expected.values)
+
+
+def test_dataframe_arith_with_numpy_dtype_frame(all_arithmetic_operators):
+    # GH#28506 the numpy-dtype operand is a single 2D block that has to be
+    #  split up to be combined with the 1D decimal blocks
+    op = tm.get_op_from_name(all_arithmetic_operators)
+    ea_df = pd.DataFrame({"a": to_decimal([1, 2, 3]), "b": to_decimal([4, 5, 6])})
+    np_df = pd.DataFrame({"a": np.arange(1, 4), "b": np.arange(4, 7)})
+
+    result = op(ea_df, np_df)
+    expected = pd.DataFrame({col: op(ea_df[col], np_df[col]) for col in ea_df.columns})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("ea_frame", [True, False])
+def test_dataframe_arith_with_series_axis0(all_arithmetic_operators, ea_frame):
+    # GH#28506 decimal dtype on either the frame or the series side
+    op_name = all_arithmetic_operators.strip("_")
+    if ea_frame:
+        df = pd.DataFrame({"a": to_decimal([1, 2, 3]), "b": to_decimal([4, 5, 6])})
+        ser = pd.Series(np.arange(7, 10))
+    else:
+        df = pd.DataFrame({"a": np.arange(1, 4), "b": np.arange(4, 7)})
+        ser = pd.Series(to_decimal([7, 8, 9]))
+
+    result = getattr(df, op_name)(ser, axis=0)
+    expected = pd.DataFrame({col: getattr(df[col], op_name)(ser) for col in df.columns})
+    tm.assert_frame_equal(result, expected)

@@ -6,10 +6,6 @@ from pandas.errors import Pandas4Warning
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    MultiIndex,
-)
 import pandas._testing as tm
 
 
@@ -26,7 +22,7 @@ def test_get_level_number_integer(idx):
 
 def test_get_dtypes(using_infer_string):
     # Test MultiIndex.dtypes (# Gh37062)
-    idx_multitype = MultiIndex.from_product(
+    idx_multitype = pd.MultiIndex.from_product(
         [
             [1, 2, 3],
             ["a", "b", "c"],
@@ -48,7 +44,7 @@ def test_get_dtypes(using_infer_string):
 
 def test_get_dtypes_no_level_name(using_infer_string):
     # Test MultiIndex.dtypes (# GH38580 )
-    idx_multitype = MultiIndex.from_product(
+    idx_multitype = pd.MultiIndex.from_product(
         [
             [1, 2, 3],
             ["a", "b", "c"],
@@ -68,7 +64,7 @@ def test_get_dtypes_no_level_name(using_infer_string):
 
 def test_get_dtypes_duplicate_level_names(using_infer_string):
     # Test MultiIndex.dtypes with non-unique level names (# GH45174)
-    result = MultiIndex.from_product(
+    result = pd.MultiIndex.from_product(
         [
             [1, 2, 3],
             ["a", "b", "c"],
@@ -160,24 +156,28 @@ def test_set_levels(idx):
 
     # level changing [w/o mutation]
     result = idx.set_levels(new_levels)
-    expected = MultiIndex(levels=new_levels, codes=codes, names=names)
+    expected = pd.MultiIndex(levels=new_levels, codes=codes, names=names)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     # level changing specific level [w/o mutation]
     result = idx.set_levels(new_levels[0], level=0)
-    expected = MultiIndex(levels=[new_levels[0], levels[1]], codes=codes, names=names)
+    expected = pd.MultiIndex(
+        levels=[new_levels[0], levels[1]], codes=codes, names=names
+    )
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     result = idx.set_levels(new_levels[1], level=1)
-    expected = MultiIndex(levels=[levels[0], new_levels[1]], codes=codes, names=names)
+    expected = pd.MultiIndex(
+        levels=[levels[0], new_levels[1]], codes=codes, names=names
+    )
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     # level changing multiple levels [w/o mutation]
     result = idx.set_levels(new_levels, level=[0, 1])
-    expected = MultiIndex(levels=new_levels, codes=codes, names=names)
+    expected = pd.MultiIndex(levels=new_levels, codes=codes, names=names)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
@@ -214,31 +214,31 @@ def test_set_codes(idx):
 
     # changing codes w/o mutation
     result = idx.set_codes(new_codes)
-    expected = MultiIndex(levels=levels, codes=new_codes, names=names)
+    expected = pd.MultiIndex(levels=levels, codes=new_codes, names=names)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     # codes changing specific level w/o mutation
     result = idx.set_codes(new_codes[0], level=0)
-    expected = MultiIndex(levels=levels, codes=[new_codes[0], codes[1]], names=names)
+    expected = pd.MultiIndex(levels=levels, codes=[new_codes[0], codes[1]], names=names)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     result = idx.set_codes(new_codes[1], level=1)
-    expected = MultiIndex(levels=levels, codes=[codes[0], new_codes[1]], names=names)
+    expected = pd.MultiIndex(levels=levels, codes=[codes[0], new_codes[1]], names=names)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     # codes changing multiple levels w/o mutation
     result = idx.set_codes(new_codes, level=[0, 1])
-    expected = MultiIndex(levels=levels, codes=new_codes, names=names)
+    expected = pd.MultiIndex(levels=levels, codes=new_codes, names=names)
     tm.assert_index_equal(result, expected)
     tm.assert_index_equal(idx, original_index)
 
     # label changing for levels of different magnitude of categories
-    ind = MultiIndex.from_tuples([(0, i) for i in range(130)])
+    ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
     new_codes = range(129, -1, -1)
-    expected = MultiIndex.from_tuples([(0, i) for i in new_codes])
+    expected = pd.MultiIndex.from_tuples([(0, i) for i in new_codes])
 
     # [w/o mutation]
     result = ind.set_codes(codes=new_codes, level=1)
@@ -297,8 +297,8 @@ def test_set_names_with_nlevel_1(inplace):
     # GH 21149
     # Ensure that .set_names for MultiIndex with
     # nlevels == 1 does not raise any errors
-    expected = MultiIndex(levels=[[0, 1]], codes=[[0, 1]], names=["first"])
-    m = MultiIndex.from_product([[0, 1]])
+    expected = pd.MultiIndex(levels=[[0, 1]], codes=[[0, 1]], names=["first"])
+    m = pd.MultiIndex.from_product([[0, 1]])
     result = m.set_names("first", level=0, inplace=inplace)
 
     if inplace:
@@ -310,15 +310,15 @@ def test_set_names_with_nlevel_1(inplace):
 @pytest.mark.parametrize("ordered", [True, False])
 def test_set_levels_categorical(ordered):
     # GH13854
-    index = MultiIndex.from_arrays([list("xyzx"), [0, 1, 2, 3]])
+    index = pd.MultiIndex.from_arrays([list("xyzx"), [0, 1, 2, 3]])
 
-    cidx = CategoricalIndex(list("bac"), ordered=ordered)
+    cidx = pd.CategoricalIndex(list("bac"), ordered=ordered)
     result = index.set_levels(cidx, level=0)
-    expected = MultiIndex(levels=[cidx, [0, 1, 2, 3]], codes=index.codes)
+    expected = pd.MultiIndex(levels=[cidx, [0, 1, 2, 3]], codes=index.codes)
     tm.assert_index_equal(result, expected)
 
     result_lvl = result.get_level_values(0)
-    expected_lvl = CategoricalIndex(
+    expected_lvl = pd.CategoricalIndex(
         list("bacb"), categories=cidx.categories, ordered=cidx.ordered
     )
     tm.assert_index_equal(result_lvl, expected_lvl)
@@ -328,7 +328,7 @@ def test_set_value_keeps_names():
     # motivating example from #3742
     lev1 = ["hans", "hans", "hans", "grethe", "grethe", "grethe"]
     lev2 = ["1", "2", "3"] * 2
-    idx = MultiIndex.from_arrays([lev1, lev2], names=["Name", "Number"])
+    idx = pd.MultiIndex.from_arrays([lev1, lev2], names=["Name", "Number"])
     df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((6, 4)),
         columns=["one", "two", "three", "four"],
@@ -345,20 +345,22 @@ def test_set_levels_with_iterable():
     # GH23273
     sizes = [1, 2, 3]
     colors = ["black"] * 3
-    index = MultiIndex.from_arrays([sizes, colors], names=["size", "color"])
+    index = pd.MultiIndex.from_arrays([sizes, colors], names=["size", "color"])
 
     result = index.set_levels(map(int, ["3", "2", "1"]), level="size")
 
     expected_sizes = [3, 2, 1]
-    expected = MultiIndex.from_arrays([expected_sizes, colors], names=["size", "color"])
+    expected = pd.MultiIndex.from_arrays(
+        [expected_sizes, colors], names=["size", "color"]
+    )
     tm.assert_index_equal(result, expected)
 
 
 def test_set_empty_level():
     # GH#48636
-    midx = MultiIndex.from_arrays([[]], names=["A"])
+    midx = pd.MultiIndex.from_arrays([[]], names=["A"])
     result = midx.set_levels(pd.DatetimeIndex([]), level=0)
-    expected = MultiIndex.from_arrays([pd.DatetimeIndex([])], names=["A"])
+    expected = pd.MultiIndex.from_arrays([pd.DatetimeIndex([])], names=["A"])
     tm.assert_index_equal(result, expected)
 
 
@@ -366,7 +368,7 @@ def test_set_empty_level():
 def test_set_levels_codes_empty_outer_raises(level):
     # GH#16147 an empty outer sequence should raise a clear ValueError
     #  rather than IndexError when level is None or list-like
-    midx = MultiIndex(levels=[[], []], codes=[[], []], names=["A", "B"])
+    midx = pd.MultiIndex(levels=[[], []], codes=[[], []], names=["A", "B"])
     with pytest.raises(ValueError, match="non-zero number of levels"):
         midx.set_levels([], level=level)
     with pytest.raises(ValueError, match="Length of codes must match"):
@@ -375,7 +377,7 @@ def test_set_levels_codes_empty_outer_raises(level):
 
 def test_set_levels_pos_args_removal():
     # https://github.com/pandas-dev/pandas/issues/41485
-    idx = MultiIndex.from_tuples(
+    idx = pd.MultiIndex.from_tuples(
         [
             (1, "one"),
             (3, "one"),
@@ -391,7 +393,7 @@ def test_set_levels_pos_args_removal():
 
 def test_set_levels_categorical_keep_dtype():
     # GH#52125
-    midx = MultiIndex.from_arrays([[5, 6]])
+    midx = pd.MultiIndex.from_arrays([[5, 6]])
     result = midx.set_levels(levels=pd.Categorical([1, 2]), level=0)
-    expected = MultiIndex.from_arrays([pd.Categorical([1, 2])])
+    expected = pd.MultiIndex.from_arrays([pd.Categorical([1, 2])])
     tm.assert_index_equal(result, expected)

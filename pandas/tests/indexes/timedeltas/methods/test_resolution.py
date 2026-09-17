@@ -1,6 +1,6 @@
 import pytest
 
-from pandas import TimedeltaIndex
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -16,14 +16,14 @@ from pandas import TimedeltaIndex
 )
 def test_tdi_resolution(timedelta_val, expected):
     # GH#65186
-    tdi = TimedeltaIndex([timedelta_val])
+    tdi = pd.TimedeltaIndex([timedelta_val])
     assert tdi.resolution == expected
 
 
 def test_tdi_resolution_no_freq():
     # GH#65186 resolution should work even without a freq
-    tdi = TimedeltaIndex(["1 day", "2 days", "4 days"])
+    tdi = pd.TimedeltaIndex(["1 day", "2 days", "4 days"])
     assert tdi.resolution == "day"
 
-    tdi = TimedeltaIndex(["1 day 2 hours", "3 days"])
+    tdi = pd.TimedeltaIndex(["1 day 2 hours", "3 days"])
     assert tdi.resolution == "hour"

@@ -6,13 +6,6 @@ from pandas._libs import lib
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timestamp,
-    date_range,
-)
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
@@ -24,17 +17,17 @@ class TestNumericOnly:
     def df(self):
         # GH3668
         # GH5724
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "group": [1, 1, 2],
                 "int": [1, 2, 3],
                 "float": [4.0, 5.0, 6.0],
-                "string": Series(["a", "b", "c"], dtype="str"),
-                "object": Series(["a", "b", "c"], dtype=object),
-                "category_string": Series(list("abc")).astype("category"),
+                "string": pd.Series(["a", "b", "c"], dtype="str"),
+                "object": pd.Series(["a", "b", "c"], dtype=object),
+                "category_string": pd.Series(list("abc")).astype("category"),
                 "category_int": [7, 8, 9],
-                "datetime": date_range("20130101", periods=3),
-                "datetimetz": date_range("20130101", periods=3, tz="US/Eastern"),
+                "datetime": pd.date_range("20130101", periods=3),
+                "datetimetz": pd.date_range("20130101", periods=3, tz="US/Eastern"),
                 "timedelta": pd.timedelta_range("1 s", periods=3, freq="s"),
             },
             columns=[
@@ -55,25 +48,25 @@ class TestNumericOnly:
     @pytest.mark.parametrize("method", ["mean", "median"])
     def test_averages(self, df, method):
         # mean / median
-        expected_columns_numeric = Index(["int", "float", "category_int"])
+        expected_columns_numeric = pd.Index(["int", "float", "category_int"])
 
         gb = df.groupby("group")
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {
                 "category_int": [7.5, 9],
                 "float": [4.5, 6.0],
                 "timedelta": [pd.Timedelta("1.5s"), pd.Timedelta("3s")],
                 "int": [1.5, 3],
                 "datetime": [
-                    Timestamp("2013-01-01 12:00:00"),
-                    Timestamp("2013-01-03 00:00:00"),
+                    pd.Timestamp("2013-01-01 12:00:00"),
+                    pd.Timestamp("2013-01-03 00:00:00"),
                 ],
                 "datetimetz": [
-                    Timestamp("2013-01-01 12:00:00", tz="US/Eastern"),
-                    Timestamp("2013-01-03 00:00:00", tz="US/Eastern"),
+                    pd.Timestamp("2013-01-01 12:00:00", tz="US/Eastern"),
+                    pd.Timestamp("2013-01-03 00:00:00", tz="US/Eastern"),
                 ],
             },
-            index=Index([1, 2], name="group"),
+            index=pd.Index([1, 2], name="group"),
             columns=[
                 "int",
                 "float",
@@ -93,7 +86,7 @@ class TestNumericOnly:
         # TODO: min, max *should* handle
         # categorical (ordered) dtype
 
-        expected_columns = Index(
+        expected_columns = pd.Index(
             [
                 "int",
                 "float",
@@ -110,7 +103,7 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["first", "last"])
     def test_first_last(self, df, method):
-        expected_columns = Index(
+        expected_columns = pd.Index(
             [
                 "int",
                 "float",
@@ -129,19 +122,19 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["sum", "cumsum"])
     def test_sum_cumsum(self, df, method):
-        expected_columns_numeric = Index(["int", "float", "category_int"])
-        expected_columns = Index(
+        expected_columns_numeric = pd.Index(["int", "float", "category_int"])
+        expected_columns = pd.Index(
             ["int", "float", "string", "category_int", "timedelta"]
         )
         if method == "cumsum":
             # cumsum loses string
-            expected_columns = Index(["int", "float", "category_int", "timedelta"])
+            expected_columns = pd.Index(["int", "float", "category_int", "timedelta"])
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
     @pytest.mark.parametrize("method", ["prod", "cumprod"])
     def test_prod_cumprod(self, df, method):
-        expected_columns = Index(["int", "float", "category_int"])
+        expected_columns = pd.Index(["int", "float", "category_int"])
         expected_columns_numeric = expected_columns
 
         self._check(df, method, expected_columns, expected_columns_numeric)
@@ -149,7 +142,7 @@ class TestNumericOnly:
     @pytest.mark.parametrize("method", ["cummin", "cummax"])
     def test_cummin_cummax(self, df, method):
         # like min, max, but don't include strings
-        expected_columns = Index(
+        expected_columns = pd.Index(
             ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
         )
 
@@ -257,7 +250,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     # GH#46072
     # drops_nuisance: Whether the op drops nuisance columns even when numeric_only=False
     # has_arg: Whether the op has a numeric_only arg
-    df = DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
+    df = pd.DataFrame({"a1": [1, 1], "a2": [2, 2], "a3": [5, 6], "b": 2 * [object]})
 
     args = get_groupby_method_args(kernel, df)
     kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
@@ -337,7 +330,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
     grouper = [0, 0, 1]
 
-    ser = Series([1, 0, 0], dtype=dtype)
+    ser = pd.Series([1, 0, 0], dtype=dtype)
     gb = ser.groupby(grouper)
 
     if groupby_func == "corrwith":
@@ -347,7 +340,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
 
     method = getattr(gb, groupby_func)
 
-    expected_ser = Series([1, 0, 0])
+    expected_ser = pd.Series([1, 0, 0])
     expected_gb = expected_ser.groupby(grouper)
     expected_method = getattr(expected_gb, groupby_func)
 

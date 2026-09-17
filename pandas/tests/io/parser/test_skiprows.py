@@ -11,10 +11,7 @@ import pytest
 
 from pandas.errors import EmptyDataError
 
-from pandas import (
-    DataFrame,
-    Index,
-)
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -49,13 +46,13 @@ def test_skip_rows_bug(all_parsers, skiprows):
     result = parser.read_csv(
         StringIO(text), skiprows=skiprows, header=None, index_col=0, parse_dates=True
     )
-    index = Index(
+    index = pd.Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
         dtype="M8[us]",
         name=0,
     )
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=index
     )
     tm.assert_frame_equal(result, expected)
@@ -98,13 +95,13 @@ def test_skip_rows_blank(all_parsers):
     data = parser.read_csv(
         StringIO(text), skiprows=6, header=None, index_col=0, parse_dates=True
     )
-    index = Index(
+    index = pd.Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
         dtype="M8[us]",
         name=0,
     )
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=index
     )
     tm.assert_frame_equal(data, expected)
@@ -121,7 +118,7 @@ line 12",2
 line 22",2
 3,"line 31",1""",
             {"skiprows": [1]},
-            DataFrame(
+            pd.DataFrame(
                 [[2, "line 21\nline 22", 2], [3, "line 31", 1]],
                 columns=["id", "text", "num_lines"],
             ),
@@ -129,7 +126,7 @@ line 22",2
         (
             "a,b,c\n~a\n b~,~e\n d~,~f\n f~\n1,2,~12\n 13\n 14~",
             {"quotechar": "~", "skiprows": [2]},
-            DataFrame([["a\n b", "e\n d", "f\n f"]], columns=["a", "b", "c"]),
+            pd.DataFrame([["a\n b", "e\n d", "f\n f"]], columns=["a", "b", "c"]),
         ),
         (
             (
@@ -139,7 +136,9 @@ line 22",2
                 "example\n sentence\n three~,url3"
             ),
             {"quotechar": "~", "skiprows": [1, 3]},
-            DataFrame([["example\n sentence\n two", "url2"]], columns=["Text", "url"]),
+            pd.DataFrame(
+                [["example\n sentence\n two", "url2"]], columns=["Text", "url"]
+            ),
         ),
     ],
 )
@@ -171,7 +170,7 @@ def test_skip_row_with_quote(all_parsers):
         return
 
     exp_data = [[2, "line '21' line 22", 2], [3, "line '31' line 32", 1]]
-    expected = DataFrame(exp_data, columns=["id", "text", "num_lines"])
+    expected = pd.DataFrame(exp_data, columns=["id", "text", "num_lines"])
 
     result = parser.read_csv(StringIO(data), skiprows=[1])
     tm.assert_frame_equal(result, expected)
@@ -214,7 +213,7 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
 
     result = parser.read_csv(StringIO(data), skiprows=[1])
 
-    expected = DataFrame(exp_data, columns=["id", "text", "num_lines"])
+    expected = pd.DataFrame(exp_data, columns=["id", "text", "num_lines"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -233,7 +232,7 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
             "2007/01/01 04:00   0.2142 D M ",
         ]
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             ["2007/01/01", "01:00", 0.2140, "U", "M"],
             ["2007/01/01", "02:00", 0.2141, "M", "O"],
@@ -273,7 +272,7 @@ def test_skiprows_infield_quote(all_parsers):
     # see gh-14459
     parser = all_parsers
     data = 'a"\nb"\na\n1'
-    expected = DataFrame({"a": [1]})
+    expected = pd.DataFrame({"a": [1]})
 
     result = parser.read_csv(StringIO(data), skiprows=2)
     tm.assert_frame_equal(result, expected)
@@ -297,14 +296,14 @@ def test_skip_rows_callable(all_parsers, kwargs, expected):
         return
 
     result = parser.read_csv(StringIO(data), skiprows=lambda x: x % 2 == 0, **kwargs)
-    expected = DataFrame({expected: [3, 5]})
+    expected = pd.DataFrame({expected: [3, 5]})
     tm.assert_frame_equal(result, expected)
 
 
 def test_skip_rows_callable_not_in(all_parsers):
     parser = all_parsers
     data = "0,a\n1,b\n2,c\n3,d\n4,e"
-    expected = DataFrame([[1, "b"], [3, "d"]])
+    expected = pd.DataFrame([[1, "b"], [3, "d"]])
 
     if parser.engine == "pyarrow":
         msg = "skiprows argument must be an integer when using engine='pyarrow'"
@@ -370,7 +369,7 @@ def test_skip_rows_and_n_rows(all_parsers):
         return
 
     result = parser.read_csv(StringIO(data), nrows=5, skiprows=[2, 4, 6])
-    expected = DataFrame({"a": [1, 3, 5, 7, 8], "b": ["a", "c", "e", "g", "h"]})
+    expected = pd.DataFrame({"a": [1, 3, 5, 7, 8], "b": ["a", "c", "e", "g", "h"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -406,5 +405,5 @@ def test_skip_rows_with_chunks(all_parsers):
     df1 = next(reader)
     df2 = next(reader)
 
-    tm.assert_frame_equal(df1, DataFrame({"col_a": [20, 30, 60, 70]}))
-    tm.assert_frame_equal(df2, DataFrame({"col_a": [80, 90, 100]}, index=[4, 5, 6]))
+    tm.assert_frame_equal(df1, pd.DataFrame({"col_a": [20, 30, 60, 70]}))
+    tm.assert_frame_equal(df2, pd.DataFrame({"col_a": [80, 90, 100]}, index=[4, 5, 6]))
