@@ -336,6 +336,16 @@ def _box_as_indexlike(
     return Index(dt_array, name=name, dtype=dt_array.dtype)
 
 
+def _map_cache(values: Series, cache_array: Series) -> Series:
+    """
+    Look up ``values`` in a cache of already-converted dates.
+
+    ``map`` can give back the input's own container, e.g. a ``Categorical``, or
+    object dtype, so cast to what the uncached conversion produced (GH#28629).
+    """
+    return values.map(cache_array).astype(cache_array.dtype)
+
+
 def _convert_and_box_cache(
     arg: DatetimeScalarOrArrayConvertible,
     cache_array: Series,
@@ -358,7 +368,7 @@ def _convert_and_box_cache(
     """
     from pandas import Series
 
-    result = Series(arg, dtype=cache_array.index.dtype).map(cache_array)
+    result = _map_cache(Series(arg, dtype=cache_array.index.dtype), cache_array)
     return _box_as_indexlike(result._values, utc=False, name=name)
 
 
@@ -1230,7 +1240,7 @@ def to_datetime(
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
-            result = arg.map(cache_array)
+            result = _map_cache(arg, cache_array)
         else:
             values = convert_listlike(arg._values, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)
