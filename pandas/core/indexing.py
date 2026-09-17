@@ -2328,10 +2328,10 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
             ilocs = range(len(self.obj.columns))[column_indexer]
-        elif (
-            isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
-        ):
-            ilocs = np.arange(len(column_indexer))[column_indexer]
+        elif com.is_bool_indexer(column_indexer):
+            ilocs = np.arange(len(column_indexer))[
+                np.asarray(column_indexer, dtype=bool)
+            ]
         else:
             ilocs = column_indexer
         return ilocs

@@ -2020,6 +2020,12 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
+            elif com.is_bool_indexer(indexer[1]) and len(indexer[1]) == 1:
+                if indexer[1][0]:
+                    indexer = indexer[0]
+                else:
+                    indexer = []
+
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
 

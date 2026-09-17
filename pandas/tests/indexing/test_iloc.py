@@ -19,6 +19,7 @@ from pandas import (
     Interval,
     NaT,
     Series,
+    StringDtype,
     Timestamp,
     array,
     concat,
@@ -1590,3 +1591,62 @@ class TestILocSeries:
 
         expected = Series([7, 8, 3], dtype="int64[pyarrow]")
         tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        # string dtypes
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [
+        list,
+        np.array,
+        pytest.param(
+            lambda x: Series(x, index=["a"]),
+            marks=pytest.mark.xfail(reason="Series indexer fails"),
+        ),
+        Index,
+        array,
+    ],
+    # [np.array],
+    ids=["list", "ndarray", "Series", "Index", "array"],
+)
+def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    if isinstance(dtype, tuple):
+        dtype = StringDtype(*dtype)
+    df = DataFrame({"a": array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.iloc[:, box([True])] = df * 2
+
+    expected = DataFrame({"a": array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = df.iloc[[0, 1], :] * 2
+
+    arr = array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = DataFrame({"a": array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.iloc[:, box([True])] = scalar
+
+    expected = DataFrame({"a": array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = scalar * 2
+
+    expected = DataFrame({"a": array([scalar * 2, scalar * 2, scalar], dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
