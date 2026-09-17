@@ -450,6 +450,9 @@ The general rules for the various types of input:
   the supported range of seconds to nanoseconds).
 - For integer input, the resolution used to interpret the integer value is used
   as the resulting resolution (or capped to the supported range of seconds to nanoseconds).
+  Note: this has been changed in pandas 3.1.0 to also default to microseconds for the
+  resulting resolution (or nanoseconds when the precision requires it). See
+  :ref:`whatsnew_310.api_breaking.datetimelike_unit_numeric` for more details.
 
 For example, the following would always have given nanosecond resolution previously,
 but now infer:
