@@ -604,6 +604,7 @@ class IntervalIndex(ExtensionIndex):
 
         Two intervals overlap if they share a common point, including closed
         endpoints. Intervals that only have an open endpoint in common do not
+        overlap, and empty intervals contain no points at all, so they never
         overlap.
 
         Returns
@@ -640,6 +641,15 @@ class IntervalIndex(ExtensionIndex):
         >>> index = pd.interval_range(0, 3, closed="left")
         >>> index
         IntervalIndex([[0, 1), [1, 2), [2, 3)],
+              dtype='interval[int64, left]')
+        >>> index.is_overlapping
+        False
+
+        Empty intervals never overlap, even when nested inside another interval:
+
+        >>> index = pd.IntervalIndex.from_tuples([(0, 3), (1, 1)], closed="left")
+        >>> index
+        IntervalIndex([[0, 3), [1, 1)],
               dtype='interval[int64, left]')
         >>> index.is_overlapping
         False
@@ -865,9 +875,11 @@ class IntervalIndex(ExtensionIndex):
         elif not (is_object_dtype(target.dtype) or is_string_dtype(target.dtype)):
             # homogeneous scalar index
             # we should always have self._should_partial_index(target) here
-            if self.is_monotonic_increasing:
+            if self.is_monotonic_increasing and self.right.is_monotonic_increasing:
                 # GH#47614 - use searchsorted for O(n*log(m)) instead of
-                # IntervalTree which scales poorly for large target arrays
+                # IntervalTree which scales poorly for large target arrays.
+                # right is checked too: an empty interval can nest inside
+                # another without overlapping it (GH#26893)
                 indexer = self._get_indexer_monotonic(target)
             else:
                 target = self._maybe_convert_i8(target)

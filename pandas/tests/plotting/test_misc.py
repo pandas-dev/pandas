@@ -872,6 +872,36 @@ def test_bar_subplots_stacking_bool(df_bar_data, df_bar_df):
         )
 
 
+@pytest.mark.parametrize("kind", ["bar", "barh"])
+@pytest.mark.parametrize("align", ["center", "edge"])
+@pytest.mark.parametrize("width, position", [(0.5, 0.5), (0.9, 0.2)])
+def test_grouped_subplots_bar_geometry(kind, align, width, position):
+    # GH 67727
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [2, 4, 6], "c": [3, 6, 9]})
+    groups = [("a",), ("c", "b")]
+    kwargs = {
+        "kind": kind,
+        "stacked": False,
+        "align": align,
+        "width": width,
+        "position": position,
+        "legend": False,
+    }
+    axes = df.plot(subplots=groups, **kwargs)
+    _, expected_axes = plt.subplots(len(groups), sharex=True)
+    for expected_ax, columns in zip(expected_axes, groups, strict=True):
+        df[list(columns)].plot(ax=expected_ax, **kwargs)
+
+    for ax, expected_ax in zip(axes, expected_axes, strict=True):
+        result = sorted(tuple(patch.get_bbox().extents) for patch in ax.patches)
+        expected = sorted(
+            tuple(patch.get_bbox().extents) for patch in expected_ax.patches
+        )
+        tm.assert_almost_equal(result, expected)
+        tm.assert_almost_equal(ax.get_xlim(), expected_ax.get_xlim())
+        tm.assert_almost_equal(ax.get_ylim(), expected_ax.get_ylim())
+
+
 def test_plot_bar_label_count_default():
     df = pd.DataFrame(
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")

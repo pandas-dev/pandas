@@ -113,18 +113,13 @@ _iso_format_re = re.compile(
 )
 
 
-cdef bint format_is_iso(f: str):
+cpdef bint format_is_iso(str f):
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
     but must be consistent.  Leading 0s in dates and times are optional.
     """
     return _iso_format_re.match(f) is not None and f != "%Y%m"
-
-
-def _test_format_is_iso(f: str) -> bool:
-    """Only used in testing."""
-    return format_is_iso(f)
 
 
 cdef bint parse_today_now(

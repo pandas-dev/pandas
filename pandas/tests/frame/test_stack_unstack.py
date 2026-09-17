@@ -18,6 +18,21 @@ def future_stack(request):
     return request.param
 
 
+@pytest.fixture
+def mock_unstacker(monkeypatch):
+    """Stop _Unstacker as soon as __init__ has emitted the size warning."""
+
+    class MockUnstacker(reshape_lib._Unstacker):
+        def __init__(self, *args, **kwargs) -> None:
+            super().__init__(*args, **kwargs)
+            raise Exception("Don't compute final result.")
+
+        def _make_selectors(self) -> None:
+            pass
+
+    monkeypatch.setattr(reshape_lib, "_Unstacker", MockUnstacker)
+
+
 class TestDataFrameReshape:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
@@ -1632,6 +1647,80 @@ def test_unstack_monotonic_values_unsorted_codes():
     assert result.loc["a", 1] == 10
 
 
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "mixed"])
+@pytest.mark.parametrize(
+    "level, level_codes",
+    [(["x", np.nan], [0, -1]), ([np.nan, "x"], [1, -1])],
+    ids=["unused-last", "unused-first"],
+)
+def test_unstack_level_with_unused_entry(sort, dtype, level, level_codes):
+    # GH#68588 remove_unused_levels returns the index unpruned when a level holds
+    #  NaN as a value (GH#37510), so the unstacked level can keep a value no row
+    #  uses. That entry used to get a column of its own, duplicating the NaN
+    #  column under sort=True and leaving the blocks out of step with the columns
+    #  under sort=False.
+    index = pd.MultiIndex(
+        levels=[["a", "b"], level], codes=[[0, 1], level_codes], names=["i", "j"]
+    )
+    if dtype == "mixed":
+        # two numpy blocks: the one shape that used to corrupt silently rather
+        #  than raise, so the to_numpy check below has something to catch
+        df = pd.DataFrame({"A": [1, 2], "B": [3.0, 4.0]}, index=index)
+    else:
+        df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=index, dtype=dtype)
+
+    result = df.unstack("j", sort=sort)
+
+    if sort:
+        # the unused entry stays in the level, but no code points at it
+        col_level, x_pos = level, level.index("x")
+        codes = [-1, x_pos, -1, x_pos]
+        values = [[np.nan, 1.0, np.nan, 3.0], [2.0, np.nan, 4.0, np.nan]]
+    else:
+        col_level = ["x"]
+        codes = [0, -1, 0, -1]
+        values = [[1.0, np.nan, 3.0, np.nan], [np.nan, 2.0, np.nan, 4.0]]
+    expected = pd.DataFrame(
+        values,
+        index=pd.Index(["a", "b"], name="i"),
+        columns=pd.MultiIndex(
+            levels=[["A", "B"], col_level],
+            codes=[[0, 0, 1, 1], codes],
+            names=[None, "j"],
+        ),
+    )
+    if dtype == "Int64":
+        # an EA column keeps its dtype, and unstacks through ExtensionBlock
+        expected = expected.astype(dtype)
+    tm.assert_frame_equal(result, expected)
+    # assert_frame_equal reads the columns one at a time, so it does not notice
+    #  blocks that are wider than the placement they were given
+    tm.assert_numpy_array_equal(result.to_numpy(), expected.to_numpy())
+
+
+@pytest.mark.parametrize("sort", [True, False])
+def test_unstack_unused_entry_from_nan_in_other_level(sort):
+    # GH#68588 The NaN that stops remove_unused_levels can sit in a different
+    #  level, leaving the unstacked level holding an ordinary unused value.
+    index = pd.MultiIndex(
+        levels=[["x", np.nan], ["a", "b", "c"]],
+        codes=[[0, -1, 0], [0, 1, 1]],
+        names=["i", "j"],
+    )
+    ser = pd.Series([1.0, 2.0, 3.0], index=index)
+
+    result = ser.unstack("j", sort=sort)
+
+    order = [np.nan, "x"] if sort else ["x", np.nan]
+    expected = pd.DataFrame(
+        [[np.nan, 2.0], [1.0, 3.0]] if sort else [[1.0, 3.0], [np.nan, 2.0]],
+        index=pd.Index(order, name="i"),
+        columns=pd.Index(["a", "b"], name="j"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_unstack_fill_frame_object():
     # GH12815 Test unstacking with object.
     data = pd.Series(["a", "b", "c", "a"], dtype="object")
@@ -2506,32 +2595,64 @@ class TestStackUnstackMultiLevel:
         recons = result.stack(future_stack=future_stack)
         tm.assert_frame_equal(recons, df)
 
-    @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32_warns(
-        self, performance_warning, monkeypatch
+        self, performance_warning, mock_unstacker
     ):
         # GH#20601
-        # GH 26314: Change ValueError to PerformanceWarning
+        # GH#26314: Change ValueError to PerformanceWarning
+        df = pd.DataFrame(
+            np.zeros((2**16, 1)),
+            index=[np.arange(2**16), np.arange(2**16)],
+        )
+        msg = f"may generate {2**32} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
-        class MockUnstacker(reshape_lib._Unstacker):
-            def __init__(self, *args, **kwargs) -> None:
-                # __init__ will raise the warning
-                super().__init__(*args, **kwargs)
-                raise Exception("Don't compute final result.")
+    def test_unstack_number_of_levels_larger_than_int32_warns_multi_level(
+        self, performance_warning, mock_unstacker
+    ):
+        # GH#10582 the rows are the observed combinations of the remaining
+        #  levels, not the size of the largest of them
+        # 16 two-valued levels, so 2**16 combinations, times 2**16 columns
+        codes = np.arange(2**16)
+        bits = (codes[:, None] >> np.arange(16)) & 1
+        index = pd.MultiIndex.from_arrays([*bits.T, codes])
+        df = pd.DataFrame(np.zeros((2**16, 1)), index=index)
+        msg = f"may generate {2**32} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
-            def _make_selectors(self) -> None:
-                pass
+    def test_unstack_number_of_levels_larger_than_int32_warns_nan_column(
+        self, performance_warning, mock_unstacker
+    ):
+        # GH#10582 the NaN in the unstacked level gets a column of its own,
+        #  which is what tips this just over the threshold
+        rows = np.arange(2**16 - 1)
+        columns = (rows % 2**15).astype(float)
+        columns[0] = np.nan
+        index = pd.MultiIndex.from_arrays([rows, columns])
+        df = pd.DataFrame(np.zeros((2**16 - 1, 1)), index=index)
+        msg = f"may generate {(2**16 - 1) * (2**15 + 1)} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
-        with monkeypatch.context() as m:
-            m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
-            df = pd.DataFrame(
-                np.zeros((2**16, 2)),
-                index=[np.arange(2**16), np.arange(2**16)],
-            )
-            msg = "The following operation may generate"
-            with tm.assert_produces_warning(performance_warning, match=msg):
-                with pytest.raises(Exception, match="Don't compute final result."):
-                    df.unstack()
+    def test_unstack_number_of_levels_larger_than_int32_warns_nan_row(
+        self, performance_warning, mock_unstacker
+    ):
+        # GH#10582 the NaN in a level that is kept gets a row of its own,
+        #  which is what tips this just over the threshold
+        columns = np.arange(2**16 - 1)
+        rows = (columns % 2**15).astype(float)
+        rows[0] = np.nan
+        index = pd.MultiIndex.from_arrays([rows, columns])
+        df = pd.DataFrame(np.zeros((2**16 - 1, 1)), index=index)
+        msg = f"may generate {(2**15 + 1) * (2**16 - 1)} cells"
+        with tm.assert_produces_warning(performance_warning, match=msg):
+            with pytest.raises(Exception, match="Don't compute final result."):
+                df.unstack()
 
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
