@@ -1280,6 +1280,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
+- Bug in :meth:`.Styler.to_typst` leaving empty cells for hidden index levels and columns (:issue:`64663`)
 - Fixed bug in :meth:`.Styler.to_excel` where quoted strings in CSS properties were incorrectly lowercased, causing the exported Excel styling to use the wrong values; now quoted strings are left as-is (:issue:`63101`)
 
 Other
