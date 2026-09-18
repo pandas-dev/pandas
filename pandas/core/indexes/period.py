@@ -415,25 +415,27 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. At least one field must be
-        array-like; scalar fields are broadcast to its length. The frequency
-        is inferred from the fields provided or can be given explicitly.
+        specified as a scalar or array-like. The array-like input must be one
+        of type ``list``, ``tuple``, ``np.ndarray``, or ``Series``. At
+        least one field must be array-like; scalar fields are broadcast to
+        its length. The frequency is inferred from the fields provided or can
+        be given explicitly.
 
         Parameters
         ----------
-        year : int, array, or Series, default None
+        year : int, list, tuple, np.ndarray, or Series, default None
             Year for the PeriodIndex.
-        quarter : int, array, or Series, default None
+        quarter : int, list, tuple, np.ndarray, or Series, default None
             Quarter for the PeriodIndex.
-        month : int, array, or Series, default None
+        month : int, list, tuple, np.ndarray, or Series, default None
             Month for the PeriodIndex.
-        day : int, array, or Series, default None
+        day : int, list, tuple, np.ndarray, or Series, default None
             Day for the PeriodIndex.
-        hour : int, array, or Series, default None
+        hour : int, list, tuple, np.ndarray, or Series, default None
             Hour for the PeriodIndex.
-        minute : int, array, or Series, default None
+        minute : int, list, tuple, np.ndarray, or Series, default None
             Minute for the PeriodIndex.
-        second : int, array, or Series, default None
+        second : int, list, tuple, np.ndarray, or Series, default None
             Second for the PeriodIndex.
         freq : str or period object, optional
             One of pandas period strings or corresponding objects.
