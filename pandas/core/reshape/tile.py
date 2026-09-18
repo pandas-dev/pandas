@@ -623,7 +623,7 @@ def _format_labels(
     breaks = [formatter(b) for b in bins]
     if right and include_lowest:
         # adjust lhs of first interval by precision to account for being right closed
-        breaks[0] = adjust(breaks[0])
+        breaks[0] = formatter(adjust(breaks[0]))
 
     if _is_dt_or_td(bins.dtype):
         # error: "Index" has no attribute "as_unit"
