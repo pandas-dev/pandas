@@ -2203,8 +2203,20 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if not self._null_fill_value:
             return SparseArray(self.to_dense(), fill_value=np.nan).cumsum()
 
+        sp_values = self.sp_values
+        mask = isna(sp_values)
+        if not mask.any():
+            result = sp_values.cumsum()
+        else:
+            # NA stored in sp_values rather than left as a gap would otherwise
+            # propagate into every later entry, see GH#68972
+            filled = sp_values.copy()
+            filled[mask] = 0
+            result = filled.cumsum()
+            result[mask] = sp_values[mask]
+
         return SparseArray(
-            self.sp_values.cumsum(),
+            result,
             sparse_index=self.sp_index,
             fill_value=self.fill_value,
         )
