@@ -1620,12 +1620,12 @@ class TestParquetChunksize(Base):
         assert not isinstance(result, pd.DataFrame)
         assert hasattr(result, "__next__")
 
-    def test_read_parquet_no_chunksize_returns_dataframe(self, tmp_path):
+    def test_read_parquet_no_chunksize_returns_dataframe(self, engine, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(10)})
-        df.to_parquet(path)
+        df.to_parquet(path, engine=engine)
 
-        result = read_parquet(path)
+        result = read_parquet(path, engine=engine)
         assert isinstance(result, pd.DataFrame)
 
     def test_read_parquet_chunksize_yields_dataframes(self, pa, tmp_path):
@@ -1658,12 +1658,12 @@ class TestParquetChunksize(Base):
         chunks = list(read_parquet(path, engine=pa, chunksize=300))
         assert [len(c) for c in chunks] == [300, 200]
 
-    def test_read_parquet_chunksize_fastparquet_not_implemented(self, tmp_path):
+    def test_read_parquet_chunksize_fastparquet_not_implemented(self, fp, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path, engine="fastparquet")
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=fp)
 
         with pytest.raises(NotImplementedError, match="chunksize"):
-            read_parquet(path, engine="fastparquet", chunksize=5)
+            read_parquet(path, engine=fp, chunksize=5)
 
     def test_read_parquet_chunksize_context_manager(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
