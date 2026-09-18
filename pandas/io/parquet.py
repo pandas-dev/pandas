@@ -244,7 +244,7 @@ class ParquetFileReader(abc.Iterator):
         handles: IOHandles[bytes] | None,
     ) -> None:
         self._batch_iter = batch_iter
-        self._dtype_backend = dtype_backend
+        self._dtype_backend: DtypeBackend | lib.NoDefault = dtype_backend
         self._to_pandas_kwargs = to_pandas_kwargs
         self._handles = handles
         self._closed = False
@@ -256,6 +256,10 @@ class ParquetFileReader(abc.Iterator):
         except StopIteration:
             self.close()
             raise
+        df_metadata = None
+        if batch.schema.metadata:
+            if b"PANDAS_ATTRS" in batch.schema.metadata:
+                df_metadata = batch.schema.metadata[b"PANDAS_ATTRS"]
         with catch_warnings():
             filterwarnings("ignore", "make_block is deprecated", Pandas4Warning)
             df = arrow_table_to_pandas(
@@ -263,6 +267,8 @@ class ParquetFileReader(abc.Iterator):
                 dtype_backend=self._dtype_backend,
                 to_pandas_kwargs=self._to_pandas_kwargs,
             )
+        if df_metadata is not None:
+            df.attrs = json.loads(df_metadata)
         # Each batch's default RangeIndex is reconstructed independently from
         # the file's pandas index metadata, so it restarts at the metadata's
         # original start for every chunk. Chain it into a running position
@@ -432,8 +438,9 @@ class PyArrowImpl(BaseImpl):
                     "filters is not supported when chunksize is set"
                 )
             # use_pandas_metadata is a read_table()-only option; Table.to_pandas()
-            # already restores pandas metadata (e.g. the index, df.attrs) from the
-            # batch's schema regardless, and dataset.to_batches() doesn't accept it.
+            # already restores the index from the batch's schema regardless, and
+            # dataset.to_batches() doesn't accept it. df.attrs is restored
+            # separately below since it isn't part of that standard metadata.
             kwargs.pop("use_pandas_metadata", None)
             try:
                 if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
