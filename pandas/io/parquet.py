@@ -197,11 +197,43 @@ class ParquetFileReader(abc.Iterator):
     to a DataFrame lazily, one at a time, closing the underlying file handle
     once the iterator is exhausted or used as a context manager.
 
+    Parameters
+    ----------
+    batch_iter : Iterator[pyarrow.RecordBatch]
+        Iterator over pyarrow record batches, from either
+        ``pyarrow.parquet.ParquetFile.iter_batches()`` or
+        ``pyarrow.dataset.Dataset.to_batches()``.
+    dtype_backend : {'numpy_nullable', 'pyarrow'} or lib.no_default
+        Back-end data type applied to each yielded DataFrame. See
+        :func:`~pandas.read_parquet` for details.
+    to_pandas_kwargs : dict or None
+        Keyword arguments forwarded to ``pyarrow.Table.to_pandas`` when
+        converting each batch.
+    handles : IOHandles or None
+        Open file handle(s) to close once the iterator is exhausted or
+        used as a context manager.
+
+    See Also
+    --------
+    read_parquet : Load a parquet object from the file path.
+
     Notes
     -----
     Only returned when ``engine="pyarrow"``; :func:`~pandas.read_parquet`
     raises ``NotImplementedError`` for ``chunksize`` with
     ``engine="fastparquet"`` or together with ``filters``.
+
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> from io import BytesIO
+    >>> df = pd.DataFrame({"a": range(10)})
+    >>> buf = BytesIO(df.to_parquet())
+    >>> reader = pd.read_parquet(buf, chunksize=5)
+    >>> for chunk in reader:
+    ...     print(len(chunk))
+    5
+    5
     """
 
     def __init__(
@@ -251,6 +283,21 @@ class ParquetFileReader(abc.Iterator):
         self.close()
 
     def close(self) -> None:
+        """
+        Close the underlying file handle, if one is open.
+
+        Called automatically when the iterator is exhausted or when the
+        ``ParquetFileReader`` is used as a context manager.
+
+        See Also
+        --------
+        read_parquet : Load a parquet object from the file path.
+
+        Examples
+        --------
+        >>> reader = pd.read_parquet("data.parquet", chunksize=5)  # doctest: +SKIP
+        >>> reader.close()  # doctest: +SKIP
+        """
         if not self._closed and self._handles is not None:
             self._handles.close()
         self._closed = True
