@@ -1128,6 +1128,99 @@ class TestArrowArray(base.ExtensionTests):
         else:
             super().test_json_roundtrip(data)
 
+    def test_plot_on_x_axis(self, plot_data):
+        # GH 64535
+        # Setup expected exception and message for expected failures
+        err_cls = None
+        err_msg = ""
+
+        # Set expected values for certain dtypes
+        pa_dtype = plot_data["Data"].dtype.pyarrow_dtype
+
+        # Certain dtypes fail with NA values
+        if plot_data["Data"].isna().any():
+            if (
+                pa.types.is_integer(pa_dtype)
+                or pa.types.is_floating(pa_dtype)
+                or pa.types.is_time(pa_dtype)
+            ):
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                )
+            elif (
+                pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
+            ) or pa.types.is_decimal(pa_dtype):
+                err_cls = TypeError
+                err_msg = re.escape("Failed to convert value(s) to axis units: array(")
+
+        # Call test, errors should only be raised for unsupported dtypes set above
+        if err_cls:
+            with pytest.raises(err_cls, match=err_msg):
+                super().test_plot_on_x_axis(plot_data)
+        else:
+            super().test_plot_on_x_axis(plot_data)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # Setup expected exception and message for expected failures
+        err_cls = None
+        err_msg = ""
+        wrn_cls = None
+        wrn_msg = ""
+
+        # Set expected values for certain dtypes
+        pa_dtype = plot_data["Data"].dtype.pyarrow_dtype
+
+        # str and binary are supported by matplotlib, but not pandas at the moment
+        if pa.types.is_string(pa_dtype):
+            err_cls = TypeError
+            err_msg = "no numeric data to plot"
+        elif pa.types.is_binary(pa_dtype):
+            err_cls = TypeError
+            err_msg = "no numeric data to plot"
+
+        # Certain dtypes fail with NA values
+        if plot_data["Data"].isna().any():
+            if pa.types.is_time(pa_dtype):
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                )
+                # tm.assert_produces_warning raises if the warning is not produced even
+                # if the test is skipped further down in the call stack, so skip here
+                # already to avoid the test failing due to the warning not being raised
+                pytest.importorskip("matplotlib")
+                wrn_cls = UserWarning
+                wrn_msg = "Warning: converting a masked element to nan."
+            elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "Failed to convert value(s) to axis units: masked_array(data="
+                )
+            elif pa.types.is_duration(pa_dtype):
+                err_cls = AssertionError
+                err_msg = "numpy array are different"
+            elif pa.types.is_boolean(pa_dtype):
+                err_cls = TypeError
+                err_msg = re.escape(
+                    "float() argument must be a string or a real number, not 'NAType'"
+                )
+
+        # Call test, errors and warnings should only be raised for unsupported dtypes
+        # set above
+        if err_cls and wrn_cls:
+            with tm.assert_produces_warning(
+                wrn_cls, check_stacklevel=False, match=wrn_msg
+            ):
+                with pytest.raises(err_cls, match=err_msg):
+                    super().test_plot_on_y_axis(plot_data)
+        elif err_cls:
+            with pytest.raises(err_cls, match=err_msg):
+                super().test_plot_on_y_axis(plot_data)
+        else:
+            super().test_plot_on_y_axis(plot_data)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""
@@ -1706,6 +1799,144 @@ def test_setitem_null_slice(data):
     result[:] = data.tolist()
     expected = data
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, np_dtype",
+    [
+        ("int64[pyarrow]", "int64"),
+        ("uint8[pyarrow]", "uint8"),
+        ("double[pyarrow]", "float64"),
+        ("timestamp[ns][pyarrow]", "M8[ns]"),
+        ("duration[ns][pyarrow]", "m8[ns]"),
+    ],
+)
+def test_setitem_null_slice_no_alias(dtype, np_dtype):
+    # GH#67990 the null-slice fast path must not adopt a buffer the caller owns
+    expected = pd.array(np.array([10, 20, 30]).astype(np_dtype), dtype=dtype)
+
+    np_values = np.array([10, 20, 30]).astype(np_dtype)
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = np_values
+    np_values[0] = np_values[1]
+    tm.assert_extension_array_equal(arr, expected)
+
+    ser = pd.Series(np.array([10, 20, 30]).astype(np_dtype))
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = ser
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_null_slice_no_alias_masked():
+    # GH#67990 masked arrays are zero-copy through __arrow_array__
+    arr = pd.array([None] * 3, dtype="int64[pyarrow]")
+    values = pd.array([10, 20, 30], dtype="Int64")
+    arr[:] = values
+    values[0] = -1
+    expected = pd.array([10, 20, 30], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize(
+    "wrap",
+    [
+        lambda np_values: pa.array(np_values),
+        lambda np_values: pa.chunked_array([pa.array(np_values)]),
+        lambda np_values: pa.chunked_array(
+            [pa.array(np_values[:1]), pa.array(np_values[1:])]
+        ),
+        lambda np_values: ArrowExtensionArray(pa.array(np_values)),
+        lambda np_values: pd.Series(ArrowExtensionArray(pa.array(np_values))),
+    ],
+    ids=["array", "chunked", "chunked_multi", "extension_array", "series"],
+)
+def test_setitem_null_slice_no_alias_pyarrow(wrap):
+    # GH#67990 a pyarrow array is immutable, but its buffers can still be
+    #  zero-copy over a numpy array the caller owns
+    np_values = np.array([10, 20, 30], dtype="int64")
+    arr = pd.array([None] * 3, dtype="int64[pyarrow]")
+    value = wrap(np_values)
+    arr[:] = value
+    np_values[0] = -1
+    expected = pd.array([10, 20, 30], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+    # assert_extension_array_equal ignores chunking, so pin it separately
+    assert arr._pa_array.num_chunks == getattr(value, "num_chunks", 1)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.StringDtype("pyarrow", na_value=np.nan),
+        "string[pyarrow]",
+        "binary[pyarrow]",
+        ArrowDtype(pa.large_string()),
+        ArrowDtype(pa.large_binary()),
+    ],
+)
+def test_setitem_null_slice_string_stays_zero_copy(dtype):
+    # GH#67990 the aliasing fix must not undo GH#64529/GH#64530: pa.array never
+    #  packs character data into caller-owned memory, so it is not copied here
+    is_binary = "binary" in str(dtype)
+    values = pd.array(
+        [b"a", b"bb", b"ccc"] if is_binary else ["a", "bb", "ccc"], dtype=dtype
+    )
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = values
+    # the character data is the last buffer for every one of these layouts
+    assert (
+        arr._pa_array.chunks[0].buffers()[-1].address
+        == values._pa_array.chunks[0].buffers()[-1].address
+    )
+
+
+def test_setitem_null_slice_no_alias_dictionary():
+    # GH#67990 pa.concat_arrays reuses the dictionary child, so the values half
+    #  of a dictionary type needs copying too
+    dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.int64()))
+    np_values = np.array([100, 200], dtype="int64")
+    indices = pa.array(np.array([0, 1, 0], dtype="int32"))
+    value = pa.DictionaryArray.from_arrays(indices, pa.array(np_values))
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    expected = pd.array(
+        pa.DictionaryArray.from_arrays(indices, pa.array([100, 200], type=pa.int64())),
+        dtype=dtype,
+    )
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("kind", ["list", "struct"])
+def test_setitem_null_slice_no_alias_nested(kind):
+    # GH#67990 pa.concat_arrays does copy a nested type's children, which is why
+    #  only dictionary needs the special case above
+    np_values = np.array([1, 2, 3, 4], dtype="int64")
+    child = pa.array(np_values)
+    if kind == "list":
+        value = pa.ListArray.from_arrays(pa.array([0, 2, 4], type=pa.int32()), child)
+        expected_data = [[1, 2], [3, 4]]
+    else:
+        value = pa.StructArray.from_arrays([child], names=["x"])
+        expected_data = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}]
+    dtype = ArrowDtype(value.type)
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    assert arr.tolist() == expected_data
+
+
+def test_setitem_null_slice_cow():
+    # GH#67990 full-slice assignment must not tie the two frames together
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="int64[pyarrow]")})
+    other = pd.DataFrame({"b": [10, 20, 30]})
+    df.loc[:, "a"] = other["b"]
+    other.iloc[0, 0] = -777
+    expected = pd.DataFrame({"a": pd.array([10, 20, 30], dtype="int64[pyarrow]")})
+    tm.assert_frame_equal(df, expected)
 
 
 def test_setitem_invalid_dtype(data):
@@ -3680,6 +3911,35 @@ def test_from_sequence_of_strings_empty_string_int():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
+@pytest.mark.parametrize("pa_type", [pa.int64(), pa.uint64()])
+@pytest.mark.parametrize("box", [np.array, list, pd.Series, pd.Index])
+def test_from_sequence_of_strings_int_precision_with_na(pa_type, box):
+    # GH#56135 an NA must not route the integers through float64
+    strings = box(np.array(["1582218195625938945", None], dtype=object))
+    dtype = ArrowDtype(pa_type)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array([1582218195625938945, None], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_sequence_of_strings_pa_array_rejects_hex():
+    # GH#56135 pyarrow's own string cast reads "0x1F" as 31; to_numeric is what keeps
+    #  pa.Array input as strict as list input
+    strings = pa.array(["0x1F"], type=pa.string())
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_int_above_uint64():
+    # GH#56135 pins the unchanged fallback: too large for the nullable backend,
+    #  so the default one still reports the value pyarrow cannot hold
+    strings = np.array(["184467440737095516150", None], dtype=object)
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(pa.ArrowInvalid, match="truncated converting to int64"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
 def test_from_sequence_of_strings_none_float():
     # GH#66834
     strings = ["1.5", None, "2.0"]
@@ -3731,6 +3991,32 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+def test_setitem_null_dtype_replace_with_mask_abort():
+    # GH#66703 pc.replace_with_mask aborts for null dtype (apache/arrow#47447).
+    # Operations routed through _replace_with_mask must not crash the process.
+    ser = pd.Series(
+        pa.array([None, None, None], type=pa.null()), dtype=ArrowDtype(pa.null())
+    )
+    mask = np.array([True, False, False])
+
+    # boolean-mask setitem
+    result = ser.copy()
+    result[mask] = None
+    tm.assert_series_equal(result, ser)
+
+    # where / mask
+    tm.assert_series_equal(ser.where(~mask), ser)
+    tm.assert_series_equal(ser.mask(mask), ser)
+
+    # combine_first
+    tm.assert_series_equal(ser.combine_first(ser), ser)
+
+    # DataFrame.loc setitem
+    df = ser.to_frame("a")
+    df.loc[mask, "a"] = None
+    tm.assert_frame_equal(df, ser.to_frame("a"))
+
+
 def test_setitem_na_chunked_string_if_else():
     # GH#64320
     df = pd.concat(
@@ -3772,8 +4058,8 @@ def test_setitem_na_sliced_chunk_if_else(pa_type, extra_chunk):
 @pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
 @pytest.mark.parametrize("chunked", [True, False])
 def test_from_sequence_of_strings_duration_sliced(chunked, pa_type):
-    # GH#64320: the non-ns duration path routes strings through pc.if_else,
-    # which truncated them when they were read through a non-zero offset
+    # GH#64320: the non-ns duration path used to route strings through pc.if_else,
+    # which silently truncated values at a non-zero array offset
     values = ["11", "22", "33", "444444444", None]
     # seconds, not the nanoseconds to_timedelta would infer from a bare integer
     seconds = [11, 22, 33, 444444444, None]
@@ -4829,9 +5115,27 @@ def test_interpolate_not_numeric(data):
 
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
+    # GH#65345 results should match the masked (e.g. Int64) dtypes:
+    # upcast to float, and fill the trailing NA going forward
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
     result = ser.interpolate()
-    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    expected = pd.Series([None, 1.0, 2.0, 3.0, 4.0, 4.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_consecutive_na():
+    # GH#65345 consecutive interior NAs were left unfilled
+    ser = pd.Series([1, 2, 3, None, None, 6, 7], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear", limit_direction="forward")
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_int_fractional():
+    # GH#65345 result should not truncate the interpolated value (1 instead of 1.5)
+    ser = pd.Series([1, None, 2], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear")
+    expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 

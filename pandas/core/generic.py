@@ -2718,9 +2718,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Write DataFrame index as a column.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
-        nan_rep : Any, optional
-            How to represent null values as str.
-            Not allowed with append=True.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns
+            (``format="table"`` only).
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
+            Only used when the table is created; ignored on later appends,
+            which reuse whatever the table already stores.
         dropna : bool, default False, optional
             Remove missing values.
 
@@ -10733,7 +10738,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10817,14 +10821,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if periods == 0:
-            return self.copy(deep=False)
-
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
-                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+                periods=periods,
+                freq=freq,
+                axis=axis,
+                fill_value=fill_value,
+                suffix=suffix,
             )
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast("int", periods)
+
+        if periods == 0:
+            return self.copy(deep=False)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
