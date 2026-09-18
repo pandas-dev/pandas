@@ -384,6 +384,10 @@ class PyArrowImpl(BaseImpl):
                 raise NotImplementedError(
                     "filters is not supported when chunksize is set"
                 )
+            # use_pandas_metadata is a read_table()-only option; Table.to_pandas()
+            # already restores pandas metadata (e.g. the index, df.attrs) from the
+            # batch's schema regardless, and dataset.to_batches() doesn't accept it.
+            kwargs.pop("use_pandas_metadata", None)
             try:
                 if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
                     dataset = self.api.dataset.dataset(
@@ -392,6 +396,7 @@ class PyArrowImpl(BaseImpl):
                     batch_iter = dataset.to_batches(
                         columns=columns,
                         batch_size=chunksize,
+                        **kwargs,
                     )
                 else:
                     parquet_file = self.api.parquet.ParquetFile(
@@ -400,6 +405,7 @@ class PyArrowImpl(BaseImpl):
                     batch_iter = parquet_file.iter_batches(
                         batch_size=chunksize,
                         columns=columns,
+                        **kwargs,
                     )
             except Exception:
                 if handles is not None:

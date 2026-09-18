@@ -1709,3 +1709,28 @@ class TestParquetChunksize(Base):
 
         with pytest.raises(NotImplementedError, match="filters"):
             list(read_parquet(path, chunksize=5, filters=[("b", "==", "x")]))
+
+    def test_read_parquet_chunksize_unsupported_kwarg_raises(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path)
+
+        with pytest.raises(TypeError, match="this_is_bogus"):
+            list(read_parquet(path, chunksize=5, this_is_bogus=True))
+
+    def test_read_parquet_chunksize_forwards_kwargs(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.to_parquet(path)
+
+        chunks = list(read_parquet(path, chunksize=5, use_threads=False))
+        result = pd.concat(chunks)
+        tm.assert_frame_equal(result, df)
+
+    def test_read_parquet_chunksize_forwards_kwargs_partitioned_directory(
+        self, tmp_path
+    ):
+        df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
+        df.to_parquet(tmp_path, partition_cols=["part"])
+
+        chunks = list(read_parquet(tmp_path, chunksize=5, use_threads=False))
+        assert sum(len(chunk) for chunk in chunks) == 20
