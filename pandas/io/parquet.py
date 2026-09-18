@@ -828,6 +828,15 @@ def read_parquet(
 
         .. versionadded:: 3.0.0
 
+    chunksize : int, optional
+        If specified, return a ``ParquetFileReader`` object that lazily
+        reads and yields DataFrames of at most ``chunksize`` rows each,
+        instead of loading the whole file into memory at once. Only
+        supported with ``engine="pyarrow"``, and not supported together
+        with ``filters``.
+
+        .. versionadded:: 3.1.0
+
     **kwargs
         Additional keyword arguments passed to the engine:
 
@@ -837,8 +846,9 @@ def read_parquet(
 
     Returns
     -------
-    DataFrame
-        DataFrame based on parquet file.
+    DataFrame or ParquetFileReader
+        DataFrame based on parquet file, or an iterator of DataFrames if
+        ``chunksize`` is specified.
 
     See Also
     --------
