@@ -255,7 +255,7 @@ _PARALLEL_TAPER_RATIO = 0.2
 # sees diminishing returns beyond a handful of workers, and a low default
 # avoids oversubscribing the machine.  mode.max_threads overrides it in either
 # direction.
-_MAX_DEFAULT_WORKERS = 4
+_MAX_DEFAULT_WORKERS = 6
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",

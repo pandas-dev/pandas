@@ -1557,7 +1557,7 @@ Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
 The number of threads is controlled with the ``mode.max_threads`` option, which
-defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+defaults to the number of CPU cores, capped at ``6`` and limited to the CPUs
 available to the process -- CPU affinity, and the cgroup CPU quota when the
 process runs in its own cgroup namespace, as it does under Docker and
 Kubernetes. Set the option to ``1`` to disable parallel reading, e.g. when
