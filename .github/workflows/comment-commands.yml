@@ -6,6 +6,9 @@ on:
 permissions: {}
 
 env:
+  # Open issues a contributor may hold at once; owners, members, and
+  # collaborators are exempt.
+  TAKE_LIMIT: 2
   DOCS_URL: https://pandas.pydata.org/docs/dev/development/contributing.html#issue-assignment-and-the-pull-request-lifecycle
   TAKE_BLOCKED: >-
     Thanks for your interest, @{user}! This issue is still labeled
@@ -15,6 +18,12 @@ env:
   TAKE_ALREADY_YOURS: >-
     You already have this one, @{user} — it's assigned to you and you're all
     set to work on it.
+  TAKE_LIMIT_REACHED: >-
+    Thanks for your interest, @{user}! You're already assigned to {count} open
+    issues ({issues}), and contributors can hold at most {limit} at a time — so
+    this one isn't available to claim right now. Once you've finished one of
+    those, or released it with `/untake`, you're welcome to `/take` this
+    issue. See the [contributing guide]({docs}) for more.
   TAKE_ASSIGNED_OTHER: >-
     Thanks @{user}! This issue is currently assigned to @{assignee}, who's
     already on it — so to avoid two people doing the same work, please pick a
@@ -81,6 +90,19 @@ jobs:
             if (assignees.length > 0) {
               await comment(msg('TAKE_ASSIGNED_OTHER', { user, assignee: assignees[0] }));
               return;
+            }
+            const exempt = ['OWNER', 'MEMBER', 'COLLABORATOR']
+              .includes(context.payload.comment.author_association);
+            if (!exempt) {
+              const limit = Number(process.env.TAKE_LIMIT);
+              const held = (await github.paginate(github.rest.issues.listForRepo, {
+                owner: context.repo.owner, repo: context.repo.repo, assignee: user, state: 'open', per_page: 100,
+              })).filter(item => !item.pull_request);
+              if (held.length >= limit) {
+                const issues = held.map(item => `#${item.number}`).join(', ');
+                await comment(msg('TAKE_LIMIT_REACHED', { user, count: held.length, issues, limit }));
+                return;
+              }
             }
             await github.rest.issues.addAssignees({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, assignees: [user],

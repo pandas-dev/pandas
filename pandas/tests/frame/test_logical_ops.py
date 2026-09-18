@@ -205,3 +205,17 @@ class TestDataFrameLogicalOperators:
         df2 = pd.DataFrame([3, 4], index=["b", "c"])
         with pytest.raises(TypeError, match="unsupported operand type"):
             df1 & df2
+
+
+@pytest.mark.parametrize("op", [operator.and_, operator.or_, operator.xor])
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+def test_logical_op_datetimelike_raises(op, dtype):
+    # GH#68452 the frame path goes through _dispatch_frame_op, not the Series one
+    left = pd.DataFrame({"a": [True, False, True]})
+    right = pd.DataFrame({"a": np.array(["NaT", 1, 2], dtype=dtype)})
+
+    msg = f"operation 'r?{op.__name__}' not supported for dtype"
+    with pytest.raises(TypeError, match=msg):
+        op(left, right)
+    with pytest.raises(TypeError, match=msg):
+        op(right, left)
