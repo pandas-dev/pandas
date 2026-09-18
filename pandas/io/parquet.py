@@ -225,7 +225,6 @@ class ParquetFileReader(abc.Iterator):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> from io import BytesIO
     >>> df = pd.DataFrame({"a": range(10)})
     >>> buf = BytesIO(df.to_parquet())
