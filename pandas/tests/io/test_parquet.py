@@ -1609,3 +1609,66 @@ def test_to_parquet_uuid_supported(temp_file):
     result = read_parquet(temp_file, engine="pyarrow")
 
     tm.assert_frame_equal(result, expected)
+
+
+class TestParquetChunksize(Base):
+    def test_read_parquet_chunksize_returns_iterator(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path)
+
+        result = read_parquet(path, chunksize=5)
+        assert not isinstance(result, pd.DataFrame)
+        assert hasattr(result, "__next__")
+
+    def test_read_parquet_no_chunksize_returns_dataframe(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.to_parquet(path)
+
+        result = read_parquet(path)
+        assert isinstance(result, pd.DataFrame)
+
+    def test_read_parquet_chunksize_yields_dataframes(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path)
+
+        for chunk in read_parquet(path, chunksize=5):
+            assert isinstance(chunk, pd.DataFrame)
+
+    def test_read_parquet_chunksize_preserves_all_rows(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(100)})
+        df.to_parquet(path)
+
+        chunks = list(read_parquet(path, chunksize=30))
+        result = pd.concat(chunks, ignore_index=True)
+        tm.assert_frame_equal(result, df)
+
+    def test_read_parquet_chunksize_respects_max_size(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(100)}).to_parquet(path)
+
+        for chunk in read_parquet(path, chunksize=30):
+            assert len(chunk) <= 30
+
+    def test_read_parquet_chunksize_spans_row_groups(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(500)}).to_parquet(path, row_group_size=200)
+
+        chunks = list(read_parquet(path, chunksize=300))
+        assert [len(c) for c in chunks] == [300, 200]
+
+    def test_read_parquet_chunksize_fastparquet_not_implemented(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine="fastparquet")
+
+        with pytest.raises(NotImplementedError, match="chunksize"):
+            read_parquet(path, engine="fastparquet", chunksize=5)
+
+    def test_read_parquet_chunksize_context_manager(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path)
+
+        with read_parquet(path, chunksize=5) as reader:
+            chunks = list(reader)
+        assert len(chunks) == 2
