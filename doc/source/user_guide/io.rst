@@ -88,11 +88,12 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). Note that this parameter ignores commented lines and empty
-  lines if ``skip_blank_lines=True``, so header=0 denotes the first
-  line of data rather than the first line of the file.
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Rows above the row
+  at ``min(header)``, and intervening rows that are not specified, will
+  be skipped (rows 0 and 2 in this example are skipped). Note that this
+  parameter ignores commented lines and empty lines if
+  ``skip_blank_lines=True``, so header=0 denotes the first line of data
+  rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
@@ -3518,6 +3519,11 @@ Reading a ``MultiIndex``
 and a ``MultiIndex`` column by passing a list of rows to ``header``.  If either the ``index``
 or ``columns`` have serialized level names those will be read in as well by specifying
 the rows/columns that make up the levels.
+
+As with ``read_csv``, when ``header`` is a list, the rows above ``min(header)`` and any rows
+between the listed header rows are skipped and do not appear in the result. Columns given in
+``index_col`` are not skipped: they are moved out of the data columns and become the row
+index, while all other columns are retained unchanged.
 
 For example, to read in a ``MultiIndex`` index without names:
 
