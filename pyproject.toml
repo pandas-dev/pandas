@@ -405,8 +405,8 @@ exclude = [
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
-# numpy.random is banned but np.random is not. Is this intentional?
-# "numpy.random".msg = "Do not use numpy.random"
+# numpy.random is intentionally not banned: seeded default_rng() is legitimate,
+# and unseeded default_rng() in tests is already forbidden by a pre-commit pygrep hook.
 "pytest.warns".msg = "Use tm.assert_produces_warning instead of pytest.warns"
 "pytest.xfail".msg = "Use pytest.mark.xfail instead of pytest.xfail"
 "conftest".msg = "No direct imports from conftest"
