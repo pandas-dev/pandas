@@ -188,6 +188,15 @@ Parquet
    read_parquet
    DataFrame.to_parquet
 
+.. currentmodule:: pandas.api.typing
+
+.. autosummary::
+   :toctree: api/
+
+   ParquetFileReader
+
+.. currentmodule:: pandas
+
 Iceberg
 ~~~~~~~
 .. autosummary::

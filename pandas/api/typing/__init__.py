@@ -32,6 +32,7 @@ from pandas.core.window import (
 # TODO: Can't import Styler without importing jinja2
 # from pandas.io.formats.style import Styler
 from pandas.io.json._json import JsonReader
+from pandas.io.parquet import ParquetFileReader
 from pandas.io.sas.sasreader import SASReader
 from pandas.io.stata import StataReader
 
@@ -48,6 +49,7 @@ __all__ = [
     "NAType",
     "NaTType",
     "NoDefault",
+    "ParquetFileReader",
     "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",

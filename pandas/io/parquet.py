@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import abc
 import io
 import json
 import os
@@ -9,6 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
+    overload,
 )
 import warnings
 from warnings import (
@@ -28,7 +31,10 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    RangeIndex,
+)
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
@@ -179,11 +185,135 @@ class BaseImpl:
         raise AbstractMethodError(self)
 
 
+@set_module("pandas.api.typing")
+class ParquetFileReader(abc.Iterator):
+    """
+    Iterator over DataFrame chunks read from a parquet file or dataset.
+
+    A ``ParquetFileReader`` is returned by :func:`~pandas.read_parquet` when
+    ``chunksize`` is passed; it is not usually instantiated directly. It
+    wraps pyarrow's ``ParquetFile.iter_batches()`` (single file) or
+    ``Dataset.to_batches()`` (partitioned directory) and converts each batch
+    to a DataFrame lazily, one at a time, closing the underlying file handle
+    once the iterator is exhausted or used as a context manager.
+
+    Parameters
+    ----------
+    batch_iter : Iterator[pyarrow.RecordBatch]
+        Iterator over pyarrow record batches, from either
+        ``pyarrow.parquet.ParquetFile.iter_batches()`` or
+        ``pyarrow.dataset.Dataset.to_batches()``.
+    dtype_backend : {'numpy_nullable', 'pyarrow'} or lib.no_default
+        Back-end data type applied to each yielded DataFrame. See
+        :func:`~pandas.read_parquet` for details.
+    to_pandas_kwargs : dict or None
+        Keyword arguments forwarded to ``pyarrow.Table.to_pandas`` when
+        converting each batch.
+    handles : IOHandles or None
+        Open file handle(s) to close once the iterator is exhausted or
+        used as a context manager.
+
+    See Also
+    --------
+    read_parquet : Load a parquet object from the file path.
+
+    Notes
+    -----
+    Only returned when ``engine="pyarrow"``; :func:`~pandas.read_parquet`
+    raises ``NotImplementedError`` for ``chunksize`` with
+    ``engine="fastparquet"`` or together with ``filters``.
+
+    Examples
+    --------
+    >>> from io import BytesIO
+    >>> df = pd.DataFrame({"a": range(10)})
+    >>> buf = BytesIO(df.to_parquet())
+    >>> reader = pd.read_parquet(buf, chunksize=5)
+    >>> for chunk in reader:
+    ...     print(len(chunk))
+    5
+    5
+    """
+
+    def __init__(
+        self,
+        batch_iter,
+        dtype_backend: DtypeBackend | lib.NoDefault,
+        to_pandas_kwargs: dict[str, Any] | None,
+        handles: IOHandles[bytes] | None,
+    ) -> None:
+        self._batch_iter = batch_iter
+        self._dtype_backend: DtypeBackend | lib.NoDefault = dtype_backend
+        self._to_pandas_kwargs = to_pandas_kwargs
+        self._handles = handles
+        self._closed = False
+        self._next_start: int | None = None
+
+    def __next__(self) -> DataFrame:
+        try:
+            batch = next(self._batch_iter)
+        except StopIteration:
+            self.close()
+            raise
+        df_metadata = None
+        if batch.schema.metadata:
+            if b"PANDAS_ATTRS" in batch.schema.metadata:
+                df_metadata = batch.schema.metadata[b"PANDAS_ATTRS"]
+        with catch_warnings():
+            filterwarnings("ignore", "make_block is deprecated", Pandas4Warning)
+            df = arrow_table_to_pandas(
+                batch,
+                dtype_backend=self._dtype_backend,
+                to_pandas_kwargs=self._to_pandas_kwargs,
+            )
+        if df_metadata is not None:
+            df.attrs = json.loads(df_metadata)
+        # Each batch's default RangeIndex is reconstructed independently from
+        # the file's pandas index metadata, so it restarts at the metadata's
+        # original start for every chunk. Chain it into a running position
+        # across chunks instead, matching read_csv(chunksize=...) semantics.
+        index = df.index
+        if isinstance(index, RangeIndex):
+            step = index.step
+            start = index.start if self._next_start is None else self._next_start
+            stop = start + len(df) * step
+            df.index = RangeIndex(start, stop, step)
+            self._next_start = stop
+        return df
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args) -> None:
+        self.close()
+
+    def close(self) -> None:
+        """
+        Close the underlying file handle, if one is open.
+
+        Called automatically when the iterator is exhausted or when the
+        ``ParquetFileReader`` is used as a context manager.
+
+        See Also
+        --------
+        read_parquet : Load a parquet object from the file path.
+
+        Examples
+        --------
+        >>> reader = pd.read_parquet("data.parquet", chunksize=5)  # doctest: +SKIP
+        >>> reader.close()  # doctest: +SKIP
+        """
+        if not self._closed and self._handles is not None:
+            self._handles.close()
+        self._closed = True
+
+
 class PyArrowImpl(BaseImpl):
     def __init__(self) -> None:
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
+        import pyarrow.dataset
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
@@ -247,6 +377,36 @@ class PyArrowImpl(BaseImpl):
             if handles is not None:
                 handles.close()
 
+    @overload
+    def read(
+        self,
+        path,
+        columns=None,
+        filters=None,
+        dtype_backend: DtypeBackend | lib.NoDefault = ...,
+        storage_options: StorageOptions | None = ...,
+        filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = ...,
+        *,
+        chunksize: None = ...,
+        **kwargs,
+    ) -> DataFrame: ...
+
+    @overload
+    def read(
+        self,
+        path,
+        columns=None,
+        filters=None,
+        dtype_backend: DtypeBackend | lib.NoDefault = ...,
+        storage_options: StorageOptions | None = ...,
+        filesystem=None,
+        to_pandas_kwargs: dict[str, Any] | None = ...,
+        *,
+        chunksize: int,
+        **kwargs,
+    ) -> ParquetFileReader: ...
+
     def read(
         self,
         path,
@@ -256,8 +416,10 @@ class PyArrowImpl(BaseImpl):
         storage_options: StorageOptions | None = None,
         filesystem=None,
         to_pandas_kwargs: dict[str, Any] | None = None,
+        *,
+        chunksize: int | None = None,
         **kwargs,
-    ) -> DataFrame:
+    ) -> DataFrame | ParquetFileReader:
         kwargs["use_pandas_metadata"] = True
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
@@ -266,6 +428,50 @@ class PyArrowImpl(BaseImpl):
             storage_options=storage_options,
             mode="rb",
         )
+
+        if chunksize is not None:
+            if filters is not None:
+                if handles is not None:
+                    handles.close()
+                raise NotImplementedError(
+                    "filters is not supported when chunksize is set"
+                )
+            # use_pandas_metadata is a read_table()-only option; Table.to_pandas()
+            # already restores the index from the batch's schema regardless, and
+            # dataset.to_batches() doesn't accept it. df.attrs is restored
+            # separately below since it isn't part of that standard metadata.
+            kwargs.pop("use_pandas_metadata", None)
+            try:
+                if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
+                    dataset = self.api.dataset.dataset(
+                        path_or_handle, filesystem=filesystem
+                    )
+                    batch_iter = dataset.to_batches(
+                        columns=columns,
+                        batch_size=chunksize,
+                        **kwargs,
+                    )
+                else:
+                    parquet_file = self.api.parquet.ParquetFile(
+                        path_or_handle, filesystem=filesystem
+                    )
+                    batch_iter = parquet_file.iter_batches(
+                        batch_size=chunksize,
+                        columns=columns,
+                        **kwargs,
+                    )
+            except Exception:
+                if handles is not None:
+                    handles.close()
+                raise
+
+            return ParquetFileReader(
+                batch_iter,
+                dtype_backend=dtype_backend,
+                to_pandas_kwargs=to_pandas_kwargs,
+                handles=handles,
+            )
+
         try:
             pa_table = self.api.parquet.read_table(
                 path_or_handle,
@@ -370,8 +576,14 @@ class FastParquetImpl(BaseImpl):
         storage_options: StorageOptions | None = None,
         filesystem=None,
         to_pandas_kwargs: dict | None = None,
+        *,
+        chunksize: int | None = None,
         **kwargs,
     ) -> DataFrame:
+        if chunksize is not None:
+            raise NotImplementedError(
+                "chunksize is only supported with engine='pyarrow'"
+            )
         parquet_kwargs: dict[str, Any] = {}
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
         # We are disabling nullable dtypes for fastparquet pending discussion
@@ -544,6 +756,38 @@ def to_parquet(
         return None
 
 
+@overload
+def read_parquet(
+    path: FilePath | ReadBuffer[bytes],
+    engine: str | lib.NoDefault = ...,
+    columns: list[str] | None = ...,
+    storage_options: StorageOptions | None = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    filesystem: Any = ...,
+    filters: list[tuple] | list[list[tuple]] | None = ...,
+    to_pandas_kwargs: dict | None = ...,
+    *,
+    chunksize: None = ...,
+    **kwargs,
+) -> DataFrame: ...
+
+
+@overload
+def read_parquet(
+    path: FilePath | ReadBuffer[bytes],
+    engine: str | lib.NoDefault = ...,
+    columns: list[str] | None = ...,
+    storage_options: StorageOptions | None = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    filesystem: Any = ...,
+    filters: list[tuple] | list[list[tuple]] | None = ...,
+    to_pandas_kwargs: dict | None = ...,
+    *,
+    chunksize: int,
+    **kwargs,
+) -> ParquetFileReader: ...
+
+
 @set_module("pandas")
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],
@@ -554,8 +798,10 @@ def read_parquet(
     filesystem: Any = None,
     filters: list[tuple] | list[list[tuple]] | None = None,
     to_pandas_kwargs: dict | None = None,
+    *,
+    chunksize: int | None = None,
     **kwargs,
-) -> DataFrame:
+) -> DataFrame | ParquetFileReader:
     """
     Load a parquet object from the file path, returning a DataFrame.
 
@@ -652,6 +898,15 @@ def read_parquet(
 
         .. versionadded:: 3.0.0
 
+    chunksize : int, optional
+        If specified, return a ``ParquetFileReader`` object that lazily
+        reads and yields DataFrames of at most ``chunksize`` rows each,
+        instead of loading the whole file into memory at once. Only
+        supported with ``engine="pyarrow"``, and not supported together
+        with ``filters``.
+
+        .. versionadded:: 3.1.0
+
     **kwargs
         Additional keyword arguments passed to the engine:
 
@@ -661,8 +916,9 @@ def read_parquet(
 
     Returns
     -------
-    DataFrame
-        DataFrame based on parquet file.
+    DataFrame or ParquetFileReader
+        DataFrame based on parquet file, or an iterator of DataFrames if
+        ``chunksize`` is specified.
 
     See Also
     --------
@@ -739,5 +995,6 @@ def read_parquet(
         dtype_backend=dtype_backend,
         filesystem=filesystem,
         to_pandas_kwargs=to_pandas_kwargs,
+        chunksize=chunksize,
         **kwargs,
     )
