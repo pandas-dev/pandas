@@ -5719,12 +5719,14 @@ def test_construction_from_arrow_array_without_extension_type():
 @pytest.mark.skipif(
     pa_version_under19p0, reason="pa.bool8()/pa.json_() need pyarrow v19.0"
 )
-def test_construction_from_other_arrow_extension_types():
+def test_construction_from_other_arrow_extension_types(using_infer_string: bool):
     # GH#63511 only pa.uuid() is special-cased: Arrow extension types that do have
     #  an equivalent default pandas dtype keep converting to it (GH#56994)
     bool8 = pa.array([1, 0], type=pa.int8()).view(pa.bool8())
     assert pd.Series(bool8).dtype == np.dtype(bool)
-    assert pd.Series(pa.array(["{}"], type=pa.json_())).dtype == "str"
+    assert pd.Series(pa.array(["{}"], type=pa.json_())).dtype == (
+        "str" if using_infer_string else object
+    )
 
 
 @uuid_mark
