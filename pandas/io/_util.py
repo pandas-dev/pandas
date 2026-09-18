@@ -17,6 +17,7 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     pa_version_under18p0,
     pa_version_under19p0,
+    pa_version_under25p0,
 )
 from pandas.compat._optional import import_optional_dependency
 
@@ -189,6 +190,37 @@ def _post_convert_dtypes(
             # GH#44901 reraise to keep api consistent
             raise ValueError(str(err)) from err
 
+        # GH#56136 IntegerDtype was used above to avoid lossy float64
+        #  conversion in pyarrow; convert back to numpy now that the data
+        #  is categorical
+        # runtime import to avoid circular import; core.dtypes.cast imports
+        #  this module at module scope
+        from pandas.core.arrays.integer import IntegerDtype
+
+        col_dtypes = df.dtypes
+        for i in range(len(df.columns)):
+            col_dtype = col_dtypes.iloc[i]
+            if not isinstance(col_dtype, pd.CategoricalDtype):
+                continue
+            cat_arr_dtype = col_dtype.categories.dtype
+            if not isinstance(cat_arr_dtype, IntegerDtype):
+                continue
+            if isinstance(dtype, dict):
+                requested = dtype.get(df.columns[i])
+            else:
+                requested = dtype
+            if (
+                isinstance(requested, pd.CategoricalDtype)
+                and requested.categories is not None
+            ):
+                # the user explicitly asked for these categories
+                continue
+            new_cat_dtype = pd.CategoricalDtype(
+                categories=col_dtype.categories.astype(cat_arr_dtype.numpy_dtype),
+                ordered=col_dtype.ordered,
+            )
+            df.isetitem(i, df.iloc[:, i].astype(new_cat_dtype))
+
     if (
         not using_string_dtype()
         and dtype != "str"
@@ -219,11 +251,13 @@ def _maybe_convert_string_to_object(
     elif isinstance(data.dtype, pd.CategoricalDtype):
         cat_dtype = data.dtype.categories.dtype
         if isinstance(cat_dtype, pd.StringDtype) and cat_dtype.na_value is np.nan:
-            cat_dtype = pd.CategoricalDtype(
-                categories=data.dtype.categories.astype("object"),
-                ordered=data.dtype.ordered,
-            )
-            return data.astype(cat_dtype)
+            # not astype: for ordered categoricals CategoricalDtype.__eq__
+            #  ignores the categories' dtype, so astype would no-op
+            cat_arr = cast("pd.Categorical", data._values)
+            new_arr = cat_arr.set_categories(data.dtype.categories.astype("object"))
+            if isinstance(data, pd.Index):
+                return pd.CategoricalIndex(new_arr, name=data.name)
+            return pd.Series(new_arr, index=data.index, name=data.name, copy=False)
 
     # no conversion needed
     return None
@@ -299,13 +333,13 @@ def _normalize_timezone_index(index: pd.Index) -> pd.Index:
 
 def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     """
-    PyArrow uses pytz by default for timezones, but pandas uses
+    PyArrow below version 25 uses pytz by default for timezones, but pandas uses
     zoneinfo / datetime.timezone since pandas 3.0.
 
-    TODO: Starting with pyarrow 25, it will use zoneinfo by default, and then
-    this normalization can be skipped (https://github.com/apache/arrow/pull/49694).
+    Can be dropped once the minimum supported pyarrow is 25, which uses zoneinfo
+    itself (https://github.com/apache/arrow/pull/49694).
     """
-    if pytz is not None:
+    if pytz is not None and pa_version_under25p0:
         # Convert any pytz timezones to zoneinfo / fixed offset timezones
         if any(
             isinstance(dtype, pd.DatetimeTZDtype)

@@ -4,16 +4,15 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import CategoricalIndex
 import pandas._testing as tm
 
 
 class TestFillNA:
     def test_fillna_categorical(self):
         # GH#11343
-        idx = CategoricalIndex([1.0, np.nan, 3.0, 1.0], name="x")
+        idx = pd.CategoricalIndex([1.0, np.nan, 3.0, 1.0], name="x")
         # fill by value in categories
-        exp = CategoricalIndex([1.0, 1.0, 3.0, 1.0], name="x")
+        exp = pd.CategoricalIndex([1.0, 1.0, 3.0, 1.0], name="x")
         tm.assert_index_equal(idx.fillna(1.0), exp)
 
         cat = idx._data
@@ -32,7 +31,7 @@ class TestFillNA:
     def test_fillna_copies_with_no_nas(self):
         # Nothing to fill, should still get a copy for the Categorical method,
         #  but OK to get a view on CategoricalIndex method
-        ci = CategoricalIndex([0, 1, 1])
+        ci = pd.CategoricalIndex([0, 1, 1])
         result = ci.fillna(0)
         assert result is not ci
         assert tm.shares_memory(result, ci)
@@ -46,9 +45,9 @@ class TestFillNA:
 
     def test_fillna_tuple_category(self):
         # GH#37681 fillna with a tuple that is a valid category
-        ci = CategoricalIndex([(0, 1), (1, 2), pd.NA])
+        ci = pd.CategoricalIndex([(0, 1), (1, 2), pd.NA])
         result = ci.fillna((0, 1))
-        expected = CategoricalIndex([(0, 1), (1, 2), (0, 1)])
+        expected = pd.CategoricalIndex([(0, 1), (1, 2), (0, 1)])
         tm.assert_index_equal(result, expected)
 
         # tuple not in categories -> casts to object, same as scalar behavior
@@ -60,7 +59,7 @@ class TestFillNA:
 
     def test_fillna_validates_with_no_nas(self):
         # We validate the fill value even if fillna is a no-op
-        ci = CategoricalIndex([2, 3, 3])
+        ci = pd.CategoricalIndex([2, 3, 3])
         cat = ci._data
 
         msg = "Cannot setitem on a Categorical with a new category"

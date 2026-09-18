@@ -59,7 +59,6 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport get_nat
 
 cdef:
-    float64_t FP_ERR = 1e-13
     float64_t NaN = <float64_t>np.nan
     int64_t NPY_NAT = get_nat()
 

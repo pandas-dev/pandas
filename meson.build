@@ -43,6 +43,7 @@ add_project_arguments(
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
+cy = meson.get_compiler('cython')
 if cc.get_id() == 'msvc'
     # Tracking issue: https://github.com/pandas-dev/pandas/issues/63701
     # Ignore some MSVC specific warnings:
@@ -55,6 +56,15 @@ if cc.get_id() == 'msvc'
         ['/wd4244', '/wd4267', '/wd4551', '/wd4146'],
         language: ['c', 'cpp'],
     )
+endif
+
+# Fixed in Cython in https://github.com/cython/cython/commit/da31db56e54ca528c5bc5ee7f00b0fad636e7564
+# and https://github.com/cython/cython/commit/8208a1658bb6
+cy_emits_unused_template = cy.version().version_compare('<3.3.1')
+if cy_emits_unused_template and cxx.has_argument('-Wunused-template')
+    cython_cpp_args = ['-Wno-unused-template']
+else
+    cython_cpp_args = []
 endif
 
 if fs.exists('_version_meson.py')
@@ -72,7 +82,6 @@ else
     meson.add_dist_script(py, versioneer, '-o', '_version_meson.py')
 endif
 
-cy = meson.get_compiler('cython')
 if cy.version().version_compare('>=3.1.0')
     add_project_arguments('-Xfreethreading_compatible=true', language: 'cython')
 

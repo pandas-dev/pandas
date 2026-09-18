@@ -21,11 +21,17 @@ API changes
 
 - ``s.dt.hour`` and other ``.dt`` accessors will now return ``np.nan`` for missing values (rather than previously -1), (:issue:`8689`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
-     s.iloc[2] = np.nan
-     s
+     >>> s = pd.Series(pd.date_range("20130101", periods=5, freq="D"))
+     >>> s.iloc[2] = np.nan
+     >>> s
+     0   2013-01-01
+     1   2013-01-02
+     2          NaT
+     3   2013-01-04
+     4   2013-01-05
+     dtype: datetime64[us]
 
   previous behavior:
 
@@ -42,20 +48,32 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     s.dt.hour
+     >>> s.dt.hour
+     0    0.0
+     1    0.0
+     2    NaN
+     3    0.0
+     4    0.0
+     dtype: float64
 
 - ``groupby`` with ``as_index=False`` will not add erroneous extra columns to
   result (:issue:`8582`):
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     np.random.seed(2718281)
-     df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
-     df.head()
+     >>> np.random.seed(2718281)
+     >>> df = pd.DataFrame(np.random.randint(0, 100, (10, 2)), columns=["jim", "joe"])
+     >>> df.head()
+        jim  joe
+     0   61   81
+     1   96   49
+     2   55   65
+     3   72   51
+     4   77   12
 
-     ts = pd.Series(5 * np.random.randint(0, 3, 10))
+     >>> ts = pd.Series(5 * np.random.randint(0, 3, 10))
 
   previous behavior:
 
@@ -82,11 +100,17 @@ API changes
 - ``groupby`` will not erroneously exclude columns if the column name conflicts
   with the grouper name (:issue:`8112`):
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
-     df
-     gr = df.groupby(df["jim"] < 2)
+     >>> df = pd.DataFrame({"jim": range(5), "joe": range(5, 10)})
+     >>> df
+        jim  joe
+     0    0    5
+     1    1    6
+     2    2    7
+     3    3    8
+     4    4    9
+     >>> gr = df.groupby(df["jim"] < 2)
 
   previous behavior (excludes 1st column from output):
 
@@ -101,17 +125,26 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     gr.apply("sum")
+     >>> gr.apply("sum")
+            jim  joe
+     jim
+     False    9   24
+     True     1   11
 
 - Support for slicing with monotonic decreasing indexes, even if ``start`` or ``stop`` is
   not found in the index (:issue:`7860`):
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-    s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
-    s
+     >>> s = pd.Series(["a", "b", "c", "d"], [4, 3, 2, 1])
+     >>> s
+     4    a
+     3    b
+     2    c
+     1    d
+     dtype: str
 
   previous behavior:
 
@@ -122,9 +155,12 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     s.loc[3.5:1.5]
+     >>> s.loc[3.5:1.5]
+     3    b
+     2    c
+     dtype: str
 
 - ``io.data.Options`` has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`), (:issue:`8741`)
 
@@ -209,12 +245,12 @@ Enhancements
 - ``concat`` permits a wider variety of iterables of pandas objects to be
   passed as the first parameter (:issue:`8645`):
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     from collections import deque
+     >>> from collections import deque
 
-     df1 = pd.DataFrame([1, 2, 3])
-     df2 = pd.DataFrame([4, 5, 6])
+     >>> df1 = pd.DataFrame([1, 2, 3])
+     >>> df2 = pd.DataFrame([4, 5, 6])
 
   previous behavior:
 
@@ -225,17 +261,24 @@ Enhancements
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     pd.concat(deque((df1, df2)))
+     >>> pd.concat(deque((df1, df2)))
+        0
+     0  1
+     1  2
+     2  3
+     0  4
+     1  5
+     2  6
 
 - Represent ``MultiIndex`` labels with a dtype that utilizes memory based on the level size. In prior versions, the memory usage was a constant 8 bytes per element in each level. In addition, in prior versions, the *reported* memory usage was incorrect as it didn't show the usage for the memory occupied by the underling data array. (:issue:`8456`)
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     dfi = pd.DataFrame(
-         1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
-     )
+     >>> dfi = pd.DataFrame(
+     ...     1, index=pd.MultiIndex.from_product([["a"], range(1000)]), columns=["A"]
+     ... )
 
   previous behavior:
 
@@ -251,9 +294,12 @@ Enhancements
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: pycon
 
-     dfi.memory_usage(index=True)
+     >>> dfi.memory_usage(index=True)
+     Index    3174
+     A        8000
+     dtype: int64
 
 - Added Index properties ``is_monotonic_increasing`` and ``is_monotonic_decreasing`` (:issue:`8680`).
 
