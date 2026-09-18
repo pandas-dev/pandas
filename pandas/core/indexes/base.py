@@ -7152,13 +7152,17 @@ class Index(IndexOpsMixin, PandasObject):
             # is object dtype (coercing to string dtype will alter the missing values)
             target_index = Index(target, dtype=self.dtype)
         elif (
-            not hasattr(target, "dtype")
-            and isinstance(self.dtype, StringDtype)
+            isinstance(self.dtype, StringDtype)
             and self.dtype.na_value is np.nan
             and using_string_dtype()
+            and not isinstance(target_index, ABCMultiIndex)
+            and target_index.hasnans
         ):
-            # Fill missing values to ensure consistent missing value representation
-            target_index = target_index.fillna(np.nan)
+            # Fill missing values to ensure consistent missing value
+            # representation. Coerce to object first so that datetime-like and
+            # period missing values (NaT) are also normalized to np.nan, matching
+            # the scalar get_loc semantics (GH#65419).
+            target_index = target_index.astype(object).fillna(np.nan)
         return target_index
 
     @final
