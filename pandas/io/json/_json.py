@@ -504,7 +504,7 @@ def _validate_pyarrow_engine_options(
         raise_unsupported("convert_dates")
     if keep_default_dates is not True and keep_default_dates is not lib.no_default:
         raise_unsupported("keep_default_dates")
-    if precise_float is not False:
+    if precise_float is not False and precise_float is not lib.no_default:
         raise_unsupported("precise_float")
     if date_unit is not None:
         raise_unsupported("date_unit")
@@ -546,7 +546,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -570,7 +570,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -594,7 +594,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -618,7 +618,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -642,7 +642,7 @@ def read_json(
     convert_axes: bool | None = None,
     convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
     keep_default_dates: bool | lib.NoDefault = lib.no_default,
-    precise_float: bool = False,
+    precise_float: bool | lib.NoDefault = lib.no_default,
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
@@ -773,6 +773,10 @@ def read_json(
         Set to enable usage of higher precision (strtod) function when
         decoding string to double values. Default (False) is to use fast but
         less precise builtin functionality.
+
+        .. deprecated:: 3.1.0
+            In a future version, floating point values will always be parsed
+            with full precision.
 
     date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
@@ -979,6 +983,18 @@ def read_json(
         )
     else:
         keep_default_dates = True
+
+    if precise_float is not lib.no_default:
+        # GH#62464
+        warnings.warn(
+            "The 'precise_float' keyword in read_json is deprecated and will be "
+            "removed in a future version. Floating point values will then always "
+            "be parsed with full precision.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        precise_float = False
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
