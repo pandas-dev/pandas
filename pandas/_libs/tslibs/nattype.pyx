@@ -1240,6 +1240,12 @@ class NaTType(_NaT):
         """
         Return POSIX timestamp as float.
 
+        .. deprecated:: 3.1.0
+            Treating a tz-naive ``Timestamp`` as UTC is deprecated; a future
+            version will treat it as local time, matching
+            :meth:`datetime.datetime.timestamp`. Use
+            ``ts.tz_localize("UTC").timestamp()`` to keep the current behavior.
+
         This method converts the `Timestamp` object to a POSIX timestamp, which is
         the number of seconds since the Unix epoch (January 1, 1970). The returned
         value is a floating-point number, where the integer part represents the
@@ -1253,13 +1259,13 @@ class NaTType(_NaT):
         See Also
         --------
         Timestamp.fromtimestamp : Construct a `Timestamp` from a POSIX timestamp.
-        datetime.datetime.timestamp : Equivalent method from the `datetime` module.
+        datetime.datetime.timestamp : Standard library counterpart.
         Timestamp.to_pydatetime : Convert the `Timestamp` to a `datetime` object.
         Timestamp.to_datetime64 : Converts `Timestamp` to `numpy.datetime64`.
 
         Examples
         --------
-        >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548')
+        >>> ts = pd.Timestamp("2020-03-14T15:32:52.192548", tz="UTC")
         >>> ts.timestamp()
         1584199972.192548
         """

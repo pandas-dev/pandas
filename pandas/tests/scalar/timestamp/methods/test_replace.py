@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.compat import WASM
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -129,8 +130,11 @@ class TestTimestampReplace:
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
         # datetime.timestamp() converts in the local timezone
+        msg = "Timestamp.timestamp treating a tz-naive Timestamp as UTC"
         with tm.set_timezone("UTC"):
-            assert result_dt.timestamp() == result_pd.timestamp()
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                result = result_pd.timestamp()
+            assert result_dt.timestamp() == result
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()

@@ -401,7 +401,8 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
    about treating a timezone-naive value as UTC: :meth:`Timestamp.timestamp`
    treats a naive ``Timestamp`` as UTC, which does *not* match the standard
    library ``datetime.datetime.timestamp``, where a naive value is
-   interpreted as local time.
+   interpreted as local time. That behavior is deprecated as of pandas 3.1.0;
+   a future version will match the standard library.
 
 Another common way to perform this conversion is to convert directly to an integer dtype. Note that the exact integers this produces will depend on the specific unit
 or resolution of the datetime64 dtype:
