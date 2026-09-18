@@ -57,11 +57,7 @@ def main() -> None:
                 f"Got: {args.outfile} as filename instead"
             )
 
-        # Reuse the version write_version_info already resolved, rather
-        # than re-deriving it below in the `--print` branch. Re-deriving
-        # would mean a second (and, in the versioneer fallback path, a
-        # third) shell-out to `git describe`/`git rev-parse` when both
-        # `--outfile` and `--print` are passed together, for no benefit.
+       
         version = write_version_info(args.outfile)
 
     if args.print:
