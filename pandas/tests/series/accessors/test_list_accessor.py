@@ -148,6 +148,7 @@ def test_list_accessor_not_iterable():
     with pytest.raises(TypeError, match="'ListAccessor' object is not iterable"):
         iter(ser.list)
 
+
 # GH#63221
 def test_list_get_negative_index():
     ser = pd.Series(
@@ -166,6 +167,7 @@ LIST_DTYPES = (
     pa.list_(pa.string()),
     pa.large_list(pa.string()),
 )
+
 
 @pytest.mark.parametrize("list_dtype", LIST_DTYPES)
 @pytest.mark.parametrize("data", ([["A", "B"], ["C", "D"]], [["A", "B"], []]))
