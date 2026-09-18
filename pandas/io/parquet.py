@@ -185,6 +185,7 @@ class BaseImpl:
         raise AbstractMethodError(self)
 
 
+@set_module("pandas.api.typing")
 class ParquetFileReader(abc.Iterator):
     """
     Iterator returned by read_parquet(..., chunksize=...).
