@@ -286,6 +286,9 @@ class DocBuilder:
         """
         shutil.rmtree(BUILD_PATH, ignore_errors=True)
         shutil.rmtree(os.path.join(SOURCE_PATH, "reference", "api"), ignore_errors=True)
+        # jupyterlite-sphinx staging dir (recreated on every docs build);
+        # must not linger or later steps pick up its notebooks as sources
+        shutil.rmtree(os.path.join(SOURCE_PATH, "_contents"), ignore_errors=True)
 
     def zip_html(self) -> None:
         """
