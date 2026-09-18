@@ -488,3 +488,13 @@ def test_dataframe_arith_with_series_axis0(all_arithmetic_operators, ea_frame):
     result = getattr(df, op_name)(ser, axis=0)
     expected = pd.DataFrame({col: getattr(df[col], op_name)(ser) for col in df.columns})
     tm.assert_frame_equal(result, expected)
+
+
+def test_scalar_ops_mixin_iterator_is_scalar_like():
+    # GH#31646 ExtensionScalarOpsMixin zipped the operand, draining an iterator
+    #  and computing element-wise instead of treating it as a scalar
+    arr = DecimalArray([decimal.Decimal(num) for num in range(3)])
+    other = (decimal.Decimal(num) for num in range(3))
+    with pytest.raises(TypeError, match="unsupported operand type"):
+        arr + other
+    assert list(other), "the iterator was consumed instead of treated as a scalar"
