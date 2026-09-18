@@ -1612,11 +1612,11 @@ def test_to_parquet_uuid_supported(temp_file):
 
 
 class TestParquetChunksize(Base):
-    def test_read_parquet_chunksize_returns_iterator(self, tmp_path):
+    def test_read_parquet_chunksize_returns_iterator(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path)
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
 
-        result = read_parquet(path, chunksize=5)
+        result = read_parquet(path, engine=pa, chunksize=5)
         assert not isinstance(result, pd.DataFrame)
         assert hasattr(result, "__next__")
 
@@ -1628,34 +1628,34 @@ class TestParquetChunksize(Base):
         result = read_parquet(path)
         assert isinstance(result, pd.DataFrame)
 
-    def test_read_parquet_chunksize_yields_dataframes(self, tmp_path):
+    def test_read_parquet_chunksize_yields_dataframes(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path)
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
 
-        for chunk in read_parquet(path, chunksize=5):
+        for chunk in read_parquet(path, engine=pa, chunksize=5):
             assert isinstance(chunk, pd.DataFrame)
 
-    def test_read_parquet_chunksize_preserves_all_rows(self, tmp_path):
+    def test_read_parquet_chunksize_preserves_all_rows(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(100)})
-        df.to_parquet(path)
+        df.to_parquet(path, engine=pa)
 
-        chunks = list(read_parquet(path, chunksize=30))
+        chunks = list(read_parquet(path, engine=pa, chunksize=30))
         result = pd.concat(chunks, ignore_index=True)
         tm.assert_frame_equal(result, df)
 
-    def test_read_parquet_chunksize_respects_max_size(self, tmp_path):
+    def test_read_parquet_chunksize_respects_max_size(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(100)}).to_parquet(path)
+        pd.DataFrame({"a": range(100)}).to_parquet(path, engine=pa)
 
-        for chunk in read_parquet(path, chunksize=30):
+        for chunk in read_parquet(path, engine=pa, chunksize=30):
             assert len(chunk) <= 30
 
-    def test_read_parquet_chunksize_spans_row_groups(self, tmp_path):
+    def test_read_parquet_chunksize_spans_row_groups(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(500)}).to_parquet(path, row_group_size=200)
+        pd.DataFrame({"a": range(500)}).to_parquet(path, engine=pa, row_group_size=200)
 
-        chunks = list(read_parquet(path, chunksize=300))
+        chunks = list(read_parquet(path, engine=pa, chunksize=300))
         assert [len(c) for c in chunks] == [300, 200]
 
     def test_read_parquet_chunksize_fastparquet_not_implemented(self, tmp_path):
@@ -1665,72 +1665,72 @@ class TestParquetChunksize(Base):
         with pytest.raises(NotImplementedError, match="chunksize"):
             read_parquet(path, engine="fastparquet", chunksize=5)
 
-    def test_read_parquet_chunksize_context_manager(self, tmp_path):
+    def test_read_parquet_chunksize_context_manager(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path)
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
 
-        with read_parquet(path, chunksize=5) as reader:
+        with read_parquet(path, engine=pa, chunksize=5) as reader:
             chunks = list(reader)
         assert len(chunks) == 2
 
-    def test_read_parquet_chunksize_continues_index(self, tmp_path):
+    def test_read_parquet_chunksize_continues_index(self, pa, tmp_path):
         # Chunked readers (read_csv, read_json, ...) yield a running row
         # position across chunks rather than restarting at 0 each time.
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(10)})
-        df.to_parquet(path)
+        df.to_parquet(path, engine=pa)
 
-        chunks = list(read_parquet(path, chunksize=5))
+        chunks = list(read_parquet(path, engine=pa, chunksize=5))
         result = pd.concat(chunks)
         tm.assert_index_equal(result.index, df.index, exact=True)
 
-    def test_read_parquet_chunksize_preserves_attrs(self, tmp_path):
+    def test_read_parquet_chunksize_preserves_attrs(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(10)})
         df.attrs["foo"] = "bar"
-        df.to_parquet(path)
+        df.to_parquet(path, engine=pa)
 
-        chunk = next(read_parquet(path, chunksize=5))
+        chunk = next(read_parquet(path, engine=pa, chunksize=5))
         assert chunk.attrs == {"foo": "bar"}
 
-    def test_read_parquet_chunksize_partitioned_directory(self, tmp_path):
+    def test_read_parquet_chunksize_partitioned_directory(self, pa, tmp_path):
         df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
-        df.to_parquet(tmp_path, partition_cols=["part"])
+        df.to_parquet(tmp_path, engine=pa, partition_cols=["part"])
 
-        chunks = list(read_parquet(tmp_path, chunksize=5))
+        chunks = list(read_parquet(tmp_path, engine=pa, chunksize=5))
         assert sum(len(chunk) for chunk in chunks) == 20
         for chunk in chunks:
             assert len(chunk) <= 5
 
-    def test_read_parquet_chunksize_filters_not_implemented(self, tmp_path):
+    def test_read_parquet_chunksize_filters_not_implemented(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(10), "b": ["x"] * 5 + ["y"] * 5})
-        df.to_parquet(path)
+        df.to_parquet(path, engine=pa)
 
         with pytest.raises(NotImplementedError, match="filters"):
-            list(read_parquet(path, chunksize=5, filters=[("b", "==", "x")]))
+            list(read_parquet(path, engine=pa, chunksize=5, filters=[("b", "==", "x")]))
 
-    def test_read_parquet_chunksize_unsupported_kwarg_raises(self, tmp_path):
+    def test_read_parquet_chunksize_unsupported_kwarg_raises(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
-        pd.DataFrame({"a": range(10)}).to_parquet(path)
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
 
         with pytest.raises(TypeError, match="this_is_bogus"):
-            list(read_parquet(path, chunksize=5, this_is_bogus=True))
+            list(read_parquet(path, engine=pa, chunksize=5, this_is_bogus=True))
 
-    def test_read_parquet_chunksize_forwards_kwargs(self, tmp_path):
+    def test_read_parquet_chunksize_forwards_kwargs(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         df = pd.DataFrame({"a": range(10)})
-        df.to_parquet(path)
+        df.to_parquet(path, engine=pa)
 
-        chunks = list(read_parquet(path, chunksize=5, use_threads=False))
+        chunks = list(read_parquet(path, engine=pa, chunksize=5, use_threads=False))
         result = pd.concat(chunks)
         tm.assert_frame_equal(result, df)
 
     def test_read_parquet_chunksize_forwards_kwargs_partitioned_directory(
-        self, tmp_path
+        self, pa, tmp_path
     ):
         df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
-        df.to_parquet(tmp_path, partition_cols=["part"])
+        df.to_parquet(tmp_path, engine=pa, partition_cols=["part"])
 
-        chunks = list(read_parquet(tmp_path, chunksize=5, use_threads=False))
+        chunks = list(read_parquet(tmp_path, engine=pa, chunksize=5, use_threads=False))
         assert sum(len(chunk) for chunk in chunks) == 20
