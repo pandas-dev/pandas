@@ -3910,6 +3910,39 @@ def test_valueerror_exception(sqlite_engine):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
 
 
+@pytest.mark.parametrize("params", [(1,), [1], {"x": 1}])
+def test_dbapi_params_passed_through_unchanged(params):
+    # GH#11683 - pandas shouldn't coerce the user's params
+    received = []
+
+    class Cursor:
+        description = [("a",)]
+
+        def execute(self, sql, *args):
+            received.extend(args)
+
+        def fetchall(self):
+            return [(1,)]
+
+        def close(self):
+            pass
+
+    class Con:
+        def cursor(self):
+            return Cursor()
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+    with tm.assert_produces_warning(UserWarning, match="Other DBAPI2 objects"):
+        sql.read_sql("select 1", Con(), params=params)
+    assert len(received) == 1
+    assert received[0] is params
+
+
 def test_row_object_is_named_tuple(sqlite_engine):
     conn = sqlite_engine
     # GH 40682
