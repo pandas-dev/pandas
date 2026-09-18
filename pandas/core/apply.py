@@ -1490,7 +1490,19 @@ class FrameColumnApply(FrameApply):
                 # clear it so Series.array sees the new values.
                 blk._cache.pop("array_values", None)
                 object.__setattr__(ser, "_name", obj.index[row_idx])
-                blk.refs = BlockValuesRefs(blk)
+                if not is_view:
+                    # Mirrors the same-purpose guard in the non-EA branch
+                    # below (GH#56212): only reset refs when the original
+                    # block was NOT already a view, avoiding an unnecessary
+                    # CoW copy on every row when it's not needed.
+                    # UNVERIFIED: this asymmetry with the non-EA branch was
+                    # found by reading the code, not by running it against
+                    # a matching pandas build; please confirm with pandas'
+                    # actual CoW test suite that the EA-specific fast path
+                    # (GH#61747) doesn't have its own reason to always
+                    # need a fresh ref regardless of `is_view` before
+                    # relying on this change.
+                    blk.refs = BlockValuesRefs(blk)
                 yield ser
 
         else:
