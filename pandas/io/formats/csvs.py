@@ -75,6 +75,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions | None = None,
+        excel_sep_hint: bool = False,
     ) -> None:
         self.fmt = formatter
 
@@ -87,6 +88,7 @@ class CSVFormatter:
         self.storage_options = storage_options
 
         self.sep = sep
+        self.excel_sep_hint = excel_sep_hint
         self.index_label = self._initialize_index_label(index_label)
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
@@ -256,6 +258,9 @@ class CSVFormatter:
             compression=self.compression,
             storage_options=self.storage_options,
         ) as handles:
+            if self.excel_sep_hint:
+                handles.handle.write(f"sep={self.sep}{self.lineterminator}")
+
             # Note: self.encoding is irrelevant here
             # error: Argument "quoting" to "writer" has incompatible type "int";
             # expected "Literal[0, 1, 2, 3]"
