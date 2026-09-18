@@ -188,10 +188,20 @@ class BaseImpl:
 @set_module("pandas.api.typing")
 class ParquetFileReader(abc.Iterator):
     """
-    Iterator returned by read_parquet(..., chunksize=...).
+    Iterator over DataFrame chunks read from a parquet file or dataset.
 
-    Wraps pyarrow's ParquetFile.iter_batches() and converts each batch
-    to a DataFrame lazily, one at a time.
+    A ``ParquetFileReader`` is returned by :func:`~pandas.read_parquet` when
+    ``chunksize`` is passed; it is not usually instantiated directly. It
+    wraps pyarrow's ``ParquetFile.iter_batches()`` (single file) or
+    ``Dataset.to_batches()`` (partitioned directory) and converts each batch
+    to a DataFrame lazily, one at a time, closing the underlying file handle
+    once the iterator is exhausted or used as a context manager.
+
+    Notes
+    -----
+    Only returned when ``engine="pyarrow"``; :func:`~pandas.read_parquet`
+    raises ``NotImplementedError`` for ``chunksize`` with
+    ``engine="fastparquet"`` or together with ``filters``.
     """
 
     def __init__(
