@@ -1,3 +1,5 @@
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
@@ -152,3 +154,34 @@ def test_from_arrow_from_raw_struct_array():
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("subtype", ["Int64", "datetime64[us, Europe/Brussels]"])
+def test_from_arrow_extension_subtype(subtype):
+    # GH#64297 an ExtensionDtype subtype cannot be passed to np.asarray
+    pa = pytest.importorskip("pyarrow")
+
+    if subtype == "Int64":
+        pa_subtype = pa.int64()
+        breaks = pd.array([0, 1, 2], dtype=subtype)
+    else:
+        pa_subtype = pa.timestamp("us", tz="Europe/Brussels")
+        breaks = pd.array(["2012", "2013", "2014"], dtype=subtype)
+
+    dtype = pd.IntervalDtype(subtype, closed="right")
+    expected = IntervalArray.from_breaks(breaks, closed="right")
+    assert expected.dtype == dtype
+
+    arr = pa.array(
+        [{"left": left, "right": right} for left, right in pairwise(breaks)],
+        type=pa.struct([("left", pa_subtype), ("right", pa_subtype)]),
+    )
+
+    result = dtype.__from_arrow__(arr)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
+    tm.assert_extension_array_equal(result, expected[:0])
