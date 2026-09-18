@@ -198,6 +198,20 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
 
         expected = (
             "MultiIndex([('cccccccccccccccccccccccccccccccccccccccc"
-            "cccccccccccccccccccccc',)],\n           )"
+            "cccccccccccccccccccccc',)])"
         )
         assert str(data) == expected
+
+    def test_repr_no_names(self):
+        # GH#66374 the repr must not end with a dangling separator when the
+        # index has no names, i.e. when there are no attrs to print at all
+        mi = MultiIndex.from_tuples([("h1", "h3"), ("h2", "h4")])
+
+        expected = "MultiIndex([('h1', 'h3'),\n            ('h2', 'h4')])"
+        assert repr(mi) == expected
+
+    def test_repr_no_names_empty(self):
+        # GH#66374
+        mi = MultiIndex.from_tuples([], names=[None])
+
+        assert repr(mi) == "MultiIndex([])"
