@@ -161,7 +161,13 @@ def test_list_get_negative_index():
     )
     tm.assert_series_equal(result, expected)
 
-@pytest.mark.parametrize("list_dtype", (pa.list_(pa.string()), pa.large_list(pa.string())))
+
+LIST_DTYPES = (
+    pa.list_(pa.string()),
+    pa.large_list(pa.string()),
+)
+
+@pytest.mark.parametrize("list_dtype", LIST_DTYPES)
 @pytest.mark.parametrize("data", ([["A", "B"], ["C", "D"]], [["A", "B"], []]))
 def test_list_getitem_negative_out_of_range(list_dtype, data):
     # GH#63221
@@ -172,12 +178,16 @@ def test_list_getitem_negative_out_of_range(list_dtype, data):
 
 def test_list_getitem_negative_sliced_and_chunked():
     # GH#63221
-    ser = pd.Series([["A", "B"], ["C", "D", "F"], None], dtype=pd.ArrowDtype(pa.list_(pa.string())))
+    char_series = [["A", "B"], ["C", "D", "F"], None]
+    ser = pd.Series(char_series, dtype=pd.ArrowDtype(pa.list_(pa.string())))
     result = ser.iloc[1:].list[-1]
-    expected = pd.Series(["F", None], dtype=pd.ArrowDtype(pa.string()), index=[1, 2])
+    index = [1, 2]
+    expected = pd.Series(["F", None], dtype=pd.ArrowDtype(pa.string()), index=index)
     tm.assert_series_equal(result, expected)
 
     chunked = pd.concat([ser, ser], ignore_index=True)
     result = chunked.list[-1]
-    expected = pd.Series(["B", "F", None, "B", "F", None], dtype=pd.ArrowDtype(pa.string()))
+    expected = pd.Series(
+        ["B", "F", None, "B", "F", None], dtype=pd.ArrowDtype(pa.string())
+    )
     tm.assert_series_equal(result, expected)
