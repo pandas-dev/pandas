@@ -31,7 +31,10 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    RangeIndex,
+)
 
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
@@ -202,6 +205,7 @@ class ParquetFileReader(abc.Iterator):
         self._to_pandas_kwargs = to_pandas_kwargs
         self._handles = handles
         self._closed = False
+        self._next_start: int | None = None
 
     def __next__(self) -> DataFrame:
         try:
@@ -211,11 +215,23 @@ class ParquetFileReader(abc.Iterator):
             raise
         with catch_warnings():
             filterwarnings("ignore", "make_block is deprecated", Pandas4Warning)
-            return arrow_table_to_pandas(
+            df = arrow_table_to_pandas(
                 batch,
                 dtype_backend=self._dtype_backend,
                 to_pandas_kwargs=self._to_pandas_kwargs,
             )
+        # Each batch's default RangeIndex is reconstructed independently from
+        # the file's pandas index metadata, so it restarts at the metadata's
+        # original start for every chunk. Chain it into a running position
+        # across chunks instead, matching read_csv(chunksize=...) semantics.
+        index = df.index
+        if isinstance(index, RangeIndex):
+            step = index.step
+            start = index.start if self._next_start is None else self._next_start
+            stop = start + len(df) * step
+            df.index = RangeIndex(start, stop, step)
+            self._next_start = stop
+        return df
 
     def __enter__(self) -> Self:
         return self
@@ -234,6 +250,7 @@ class PyArrowImpl(BaseImpl):
         import_optional_dependency(
             "pyarrow", extra="pyarrow is required for parquet support."
         )
+        import pyarrow.dataset
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
@@ -350,6 +367,12 @@ class PyArrowImpl(BaseImpl):
         )
 
         if chunksize is not None:
+            if filters is not None:
+                if handles is not None:
+                    handles.close()
+                raise NotImplementedError(
+                    "filters is not supported when chunksize is set"
+                )
             try:
                 if isinstance(path_or_handle, str) and os.path.isdir(path_or_handle):
                     dataset = self.api.dataset.dataset(

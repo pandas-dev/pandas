@@ -1672,3 +1672,40 @@ class TestParquetChunksize(Base):
         with read_parquet(path, chunksize=5) as reader:
             chunks = list(reader)
         assert len(chunks) == 2
+
+    def test_read_parquet_chunksize_continues_index(self, tmp_path):
+        # Chunked readers (read_csv, read_json, ...) yield a running row
+        # position across chunks rather than restarting at 0 each time.
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.to_parquet(path)
+
+        chunks = list(read_parquet(path, chunksize=5))
+        result = pd.concat(chunks)
+        tm.assert_index_equal(result.index, df.index, exact=True)
+
+    def test_read_parquet_chunksize_preserves_attrs(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10)})
+        df.attrs["foo"] = "bar"
+        df.to_parquet(path)
+
+        chunk = next(read_parquet(path, chunksize=5))
+        assert chunk.attrs == {"foo": "bar"}
+
+    def test_read_parquet_chunksize_partitioned_directory(self, tmp_path):
+        df = pd.DataFrame({"a": range(20), "part": [0] * 10 + [1] * 10})
+        df.to_parquet(tmp_path, partition_cols=["part"])
+
+        chunks = list(read_parquet(tmp_path, chunksize=5))
+        assert sum(len(chunk) for chunk in chunks) == 20
+        for chunk in chunks:
+            assert len(chunk) <= 5
+
+    def test_read_parquet_chunksize_filters_not_implemented(self, tmp_path):
+        path = tmp_path / "test.parquet"
+        df = pd.DataFrame({"a": range(10), "b": ["x"] * 5 + ["y"] * 5})
+        df.to_parquet(path)
+
+        with pytest.raises(NotImplementedError, match="filters"):
+            list(read_parquet(path, chunksize=5, filters=[("b", "==", "x")]))
