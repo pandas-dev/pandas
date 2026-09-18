@@ -1451,9 +1451,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return res
             value = value._data
         elif value is libmissing.NA:
-            return np.array([len(self)])
+            return np.array([len(self)]) # type: ignore[comparison-overlap]
         # Base class searchsorted would cast to object, which is *much* slower.
-        return self._data.searchsorted(value, side=side, sorter=sorter)
+        return self._data.searchsorted(value, side=side, sorter=sorter) # type: ignore[arg-type]
 
     def factorize(
         self,
