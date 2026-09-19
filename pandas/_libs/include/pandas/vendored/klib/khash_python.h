@@ -3,8 +3,8 @@
 #pragma once
 
 #include <Python.h>
-
 #include <pymem.h>
+#include <stdbool.h>
 #include <string.h>
 
 typedef struct {
@@ -221,9 +221,13 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   if (a == b) {
     return 1;
   }
+
   if (Py_TYPE(a) == Py_TYPE(b)) {
     // special handling for some built-in types which could have NaNs
     // as we would like to have them equivalent, but the usual
@@ -241,11 +245,26 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     // frozenset isn't yet supported
   }
 
-  int result = PyObject_RichCompareBool(a, b, Py_EQ);
-  if (result < 0) {
-    PyErr_Clear();
+  // a.__eq__(b)
+  PyObject *cmp_result = PyObject_RichCompare(a, b, Py_EQ);
+  if (cmp_result == NULL) {
     return 0;
   }
+
+  int result = 0;
+  if (PyBool_Check(cmp_result)) {
+    result = Py_IsTrue(cmp_result);
+  } else {
+    // __eq__ did not return a bool, check if it is truthy
+    result = PyObject_IsTrue(cmp_result);
+    if (result < 0) {
+      // converting the result to a bool failed,
+      // assume false and clear exception
+      PyErr_Clear();
+      result = 0;
+    }
+  }
+  Py_XDECREF(cmp_result);
   return result;
 }
 
@@ -319,7 +338,26 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
   return acc;
 }
 
+// True if the given PyObject* is hashable.
+// Assumes its type has been finalized with PyType_Ready.
+// CPython only hashes if tp->tp_hash is not NULL:
+// https://github.com/python/cpython/blob/9eaf48a56547872b86de5cecbaa7edd3279159ed/Objects/object.c#L774-L775
+// However, unhashable builtin types (for example list) set their tp_hash
+// function pointer directly to PyObject_HashNotImplemented:
+// https://github.com/python/cpython/blob/9eaf48a56547872b86de5cecbaa7edd3279159ed/Objects/listobject.c#L3141
+static inline bool is_hashable(PyObject *o) {
+  if (o == NULL) {
+    return false;
+  }
+  PyTypeObject *tp = Py_TYPE(o);
+  hashfunc tp_hash_slot = (hashfunc)PyType_GetSlot(tp, Py_tp_hash);
+  return tp_hash_slot != NULL && tp_hash_slot != PyObject_HashNotImplemented;
+}
+
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -338,12 +376,21 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   } else if (PyTuple_Check(key)) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
+  } else if (!is_hashable(key)) {
+    // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were
+    // silently suppressed. Examples of existing code that relies on this
+    // behaviour:
+    //   * _libs.hashtable.value_count_object via DataFrame.describe
+    //   * _libs.hashtable.ismember_object via Series.isin
+    // Using hash = 0 puts all unhashable objects (for example dict, list, set)
+    // in the same bucket, which is bad for performance but that is how it
+    // worked before.
+    hash = 0;
   } else {
     hash = PyObject_Hash(key);
   }
 
   if (hash == -1) {
-    PyErr_Clear();
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4
