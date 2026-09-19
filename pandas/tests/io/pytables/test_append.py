@@ -1039,3 +1039,21 @@ def test_append_string_nan_rep(temp_hdfstore):
     result = temp_hdfstore["sc"]
     expected = pd.concat([df["A"], df_nan["A"]])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["D", "2D", "W-SUN", "Q-DEC"])
+def test_append_period_index(temp_hdfstore, freq):
+    # GH#68523 - appending to a period-indexed table keeps working; the freq
+    # guard added for the mismatch cases must not over-fire on a matching one.
+    first = pd.DataFrame(
+        {"v": [1.0, 2.0]}, index=pd.period_range("2000", periods=2, freq=freq)
+    )
+    second = pd.DataFrame(
+        {"v": [3.0, 4.0]}, index=pd.period_range("2010", periods=2, freq=freq)
+    )
+
+    temp_hdfstore.append("df", first)
+    temp_hdfstore.append("df", second)
+
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, pd.concat([first, second]))

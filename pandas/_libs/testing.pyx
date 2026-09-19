@@ -165,8 +165,17 @@ cpdef assert_almost_equal(a, b,
                 ):
                     return True
 
+                # array_equivalent compared after a lossy cast to float64; redo
+                #  it at full integer precision. A float outside the integer
+                #  dtype's range has no exact cast, so leave that to the loop.
+                flt_arr = b if int_arr is a else a
+                info = np.iinfo(int_arr.dtype)
+                if ((flt_arr >= info.min) & (flt_arr < info.max + 1)).all():
+                    if np.array_equal(int_arr, flt_arr.astype(int_arr.dtype)):
+                        return True
+
             # flatten so the loop compares values, not rows; see GH#68366 and
-            #  test_assert_almost_equal_2d_large_mixed_integer_float
+            #  test_assert_almost_equal_value_mismatch_2d_percentage
             a = a.ravel()
             b = b.ravel()
 

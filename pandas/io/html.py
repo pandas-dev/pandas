@@ -7,9 +7,7 @@ HTML IO.
 from __future__ import annotations
 
 from collections import abc
-import errno
 import numbers
-import os
 import re
 from re import Pattern
 from typing import (
@@ -130,17 +128,10 @@ def _read(
     -------
     raw_text : str
     """
-    try:
-        with get_handle(
-            obj, "r", encoding=encoding, storage_options=storage_options
-        ) as handles:
-            return handles.handle.read()
-    except OSError as err:
-        if not is_url(obj):
-            raise FileNotFoundError(
-                f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {obj}"
-            ) from err
-        raise
+    with get_handle(
+        obj, "r", encoding=encoding, storage_options=storage_options
+    ) as handles:
+        return handles.handle.read()
 
 
 class _HtmlFrameParser:
@@ -761,6 +752,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def _equals_tag(self, obj, tag) -> bool:
         return obj.tag == tag
 
+    def _raise_if_unreadable(self) -> None:
+        # lxml does not report an unreadable local file consistently -- some
+        # builds raise an errno-less OSError, others parse it as an empty
+        # document -- so reopen the path to let the real error escape. GH#29125
+        if isinstance(self.io, (str, bytes)) and not is_url(self.io):
+            with open(self.io, "rb"):
+                pass
+
     def _build_doc(self):
         """
         Raises
@@ -792,16 +791,16 @@ class _LxmlFrameParser(_HtmlFrameParser):
             # try to parse the input in the simplest way
             try:
                 r = parse(self.io, parser=parser)
-            except OSError as err:
-                raise FileNotFoundError(
-                    f"[Errno {errno.ENOENT}] {os.strerror(errno.ENOENT)}: {self.io}"
-                ) from err
+            except OSError:
+                self._raise_if_unreadable()
+                raise
         try:
             r = r.getroot()
         except AttributeError:
             pass
         else:
             if not hasattr(r, "text_content"):
+                self._raise_if_unreadable()
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
 
         for br in r.xpath("*//br"):

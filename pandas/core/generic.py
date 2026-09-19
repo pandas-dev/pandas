@@ -885,7 +885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -4288,7 +4288,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # if we encounter an array-like and we only have 1 dim
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
-                return self._values[loc]
+                return self._ixs(loc, axis=0)
 
             if not drop_level and isinstance(index, MultiIndex):
                 # GH#6507 - honor drop_level=False for fully specified keys
@@ -10738,7 +10738,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10822,14 +10821,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if periods == 0:
-            return self.copy(deep=False)
-
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
-                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+                periods=periods,
+                freq=freq,
+                axis=axis,
+                fill_value=fill_value,
+                suffix=suffix,
             )
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast("int", periods)
+
+        if periods == 0:
+            return self.copy(deep=False)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

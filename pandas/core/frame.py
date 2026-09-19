@@ -75,6 +75,7 @@ from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
     construct_1d_arraylike_from_scalar,
+    construct_1d_object_array_from_listlike,
     construct_2d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from_scalar,
@@ -108,12 +109,14 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    array_equivalent,
     isna,
     notna,
 )
@@ -1347,7 +1350,7 @@ class DataFrame(NDFrame, OpsMixin):
         int      1.0
         float    1.5
         Name: 0, dtype: float64
-        >>> print(row["int"].dtype)
+        >>> print(row.dtype)
         float64
         >>> print(df["int"].dtype)
         int64
@@ -4438,8 +4441,8 @@ class DataFrame(NDFrame, OpsMixin):
         `self.columns._index_as_unique`; Caller is responsible for checking.
         """
         if takeable:
-            series = self._ixs(col, axis=1)
-            return series._values[index]
+            values = self._get_column_array(col)
+            return maybe_unbox_numpy_scalar(values[index], object_with_dtype=values)
 
         series = self._get_item(col)
 
@@ -4448,7 +4451,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  results if our categories are integers that dont match our codes
             # IntervalIndex: IntervalTree has no get_loc
             row = self.index.get_loc(index)
-            return series._values[row]
+            values = series._values
+            return maybe_unbox_numpy_scalar(values[row], object_with_dtype=values)
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
@@ -4458,7 +4462,7 @@ class DataFrame(NDFrame, OpsMixin):
             # e.g. partial string slicing on DatetimeIndex level;
             #  see GH#43395
             loc = self.index.get_loc(index)
-        return series._values[loc]
+        return series._ixs(loc)
 
     def isetitem(self, loc, value) -> None:
         """
@@ -4601,8 +4605,13 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         """
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
-                self
+            # the cheaper opcode check is deliberately last: on Python 3.14
+            # a plain `df[col] = value` reaches the refcount check, and
+            # is_local_in_caller_frame already short-circuits it there
+            if (
+                sys.getrefcount(self) <= REF_COUNT
+                and not com.is_local_in_caller_frame(self)
+                and com.is_setitem_syntax_in_caller_frame()
             ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -5934,11 +5943,14 @@ class DataFrame(NDFrame, OpsMixin):
                 # and EA-subclass specs (GH#65366) are all checked against the
                 # raw dtype before the ArrowDtype -> numpy_dtype normalization
                 # below.
-                if any(dtype_obj == instance for instance in instances):
-                    return True
-                if any(func(dtype_obj) for func in ea_funcs):
-                    return True
-                if isinstance(dtype_obj, klass_tuple):
+                # GH#68501 - dont use generators for these checks; too much overhead.
+                for instance in instances:
+                    if dtype_obj == instance:
+                        return True
+                for ea_func in ea_funcs:
+                    if ea_func(dtype_obj):
+                        return True
+                if klass_tuple and isinstance(dtype_obj, klass_tuple):
                     return True
                 if isinstance(dtype_obj, ArrowDtype):
                     pa_type = dtype_obj.pyarrow_dtype
@@ -5957,7 +5969,10 @@ class DataFrame(NDFrame, OpsMixin):
                         # invents varies by pyarrow version), so only a unitless
                         # spec may match it
                         dtype_obj = np.dtype(f"{dtype_obj.kind}8")
-                return any(func(dtype_obj) for func in funcs)
+                for func in funcs:
+                    if func(dtype_obj):
+                        return True
+                return False
 
             return matches_any, frozenset(resolved)
 
@@ -7559,7 +7574,6 @@ class DataFrame(NDFrame, OpsMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10481,9 +10495,11 @@ class DataFrame(NDFrame, OpsMixin):
             # pass dtype to avoid doing inference, which would break consistency
             #  with Index/Series ops
             dtype = None
-            if getattr(right, "dtype", None) == object:
+            rdtype = getattr(right, "dtype", None)
+            if isinstance(rdtype, (np.dtype, NumpyEADtype)) and rdtype.kind == "O":
                 # can't pass right.dtype unconditionally as that would break on e.g.
-                #  datetime64[h] ndarray
+                #  datetime64[h] ndarray; other extension dtypes with kind "O"
+                #  (e.g. SparseDtype) must not be densified to object
                 dtype = object
 
             if axis == 0:
@@ -15728,13 +15744,15 @@ class DataFrame(NDFrame, OpsMixin):
         #  test_append_empty_frame_to_series_with_dateutil_tz
         row_df = row_df.infer_objects().rename_axis(index.names)
 
-        if len(row_df.columns) == len(self.columns):
+        if row_df.columns.equals(self.columns):
             # Pre-cast the row's value to the original column dtype where the
             # row's inferred dtype would otherwise force concat to widen the
             # whole column. This avoids an O(N) materialize-and-rebuild
             # roundtrip in _post_expansion_casting, and (for EA dtypes that
             # carry array-level state not encoded in the dtype, e.g. geopandas
             # CRS) preserves that state through concat. GH#65094.
+            # The loop matches the frames positionally, so it needs equal
+            # columns to agree with concat's label-based alignment.
             orig_dtypes = self._mgr.get_dtypes()
             row_dtypes = row_df._mgr.get_dtypes()
             object_dtype = np.dtype(object)
@@ -15751,12 +15769,35 @@ class DataFrame(NDFrame, OpsMixin):
                     # infer_and_maybe_downcast expects an EA as its first
                     # argument so it can dispatch to _cast_pointwise_result.
                     arr = NumpyExtensionArray(arr)
-                casted = infer_and_maybe_downcast(
-                    arr,
-                    row_df._mgr.iget_values(i),
-                    warn_if_cast=False,
-                )
-                row_df.isetitem(i, casted)
+                row_vals = row_df._mgr.iget_values(i)
+                try:
+                    with warnings.catch_warnings():
+                        # the pre-cast is speculative, so warning about it
+                        #  is noise whether or not we adopt it
+                        warnings.simplefilter("ignore")
+                        casted = infer_and_maybe_downcast(
+                            arr, row_vals, warn_if_cast=False
+                        )
+                    casted_dtype = casted.dtype
+                    if isinstance(casted_dtype, NumpyEADtype):
+                        # NumpyEADtype never == the np.dtype the manager
+                        #  reports, so unwrap before comparing.
+                        casted_dtype = casted_dtype.numpy_dtype
+                    # GH#65431 adopt only where the pre-cast is a pure
+                    #  optimization: same dtype (else it saves nothing) and every
+                    #  value preserved, see
+                    #  test_append_internal_pre_cast_declines_narrowing.
+                    adopt = casted_dtype == orig_dtype and _values_unchanged(
+                        row_vals, casted
+                    )
+                except Exception:
+                    # Deliberately broad, and around the checks too:
+                    #  _cast_pointwise_result makes no promise about what it
+                    #  raises for a value the dtype cannot hold, and an
+                    #  optimization must not make a working append raise.
+                    adopt = False
+                if adopt:
+                    row_df.isetitem(i, casted)
 
         from pandas.core.reshape.concat import concat
 
@@ -20394,6 +20435,20 @@ class DataFrame(NDFrame, OpsMixin):
                [ 2., nan]], dtype=float32)
         """
         return self._mgr.as_array()
+
+
+def _values_unchanged(before: ArrayLike, after: ArrayLike) -> bool:
+    """
+    Whether every value in `before` still compares equal in `after`.
+
+    Equality, not identity of type -- 3.0 matching 3 is the point.
+    """
+    # np.asarray would read an array of sequence-valued scalars as 2-D, so box
+    #  each side one element at a time.  list() is only for the typing.
+    left = construct_1d_object_array_from_listlike(list(before))
+    right = construct_1d_object_array_from_listlike(list(after))
+    both_na = isna(left) & isna(right)
+    return array_equivalent(left[~both_na], right[~both_na], strict_nan=True)
 
 
 class _DuplicateColumnRecorder(dict):
