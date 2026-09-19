@@ -86,7 +86,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Iterable,
-        Sequence,
     )
     from contextlib import AbstractContextManager
 
@@ -273,6 +272,36 @@ arithmetic_dunder_methods = [
 
 comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
 
+comparison_ops = [
+    operator.eq,
+    operator.ne,
+    operator.gt,
+    operator.ge,
+    operator.lt,
+    operator.le,
+]
+
+numeric_reductions = [
+    "count",
+    "sum",
+    "max",
+    "min",
+    "mean",
+    "prod",
+    "std",
+    "var",
+    "median",
+    "kurt",
+    "skew",
+    "sem",
+]
+
+boolean_reductions = ["all", "any"]
+
+all_reductions = numeric_reductions + boolean_reductions
+
+numeric_accumulations = ["cumsum", "cumprod", "cummin", "cummax"]
+
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -403,32 +432,6 @@ def external_error_raised(
     return pytest.raises(expected_exception, match=None)
 
 
-def get_cython_table_params(
-    ndframe: DataFrame | Series,
-    func_names_and_expected: Iterable[Sequence[Any]],
-) -> list[tuple[DataFrame | Series, str, Any]]:
-    """
-    Combine frame, functions from com._cython_table
-    keys and expected result.
-
-    Parameters
-    ----------
-    ndframe : DataFrame or Series
-    func_names_and_expected : Sequence of two items
-        The first item is a name of an NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value.
-
-    Returns
-    -------
-    list
-        List of three items (DataFrame, function, expected result)
-    """
-    results = []
-    for func_name, expected in func_names_and_expected:
-        results.append((ndframe, func_name, expected))
-    return results
-
-
 def get_op_from_name(op_name: str) -> Callable:
     """
     The operator function for a given op name.
@@ -496,6 +499,21 @@ def get_finest_unit(left: str, right: str) -> str:
     return right
 
 
+def _pa_buffer_addresses(pa_data: pa.ChunkedArray) -> set[int]:
+    """
+    Addresses of the non-empty buffers backing a pyarrow ChunkedArray.
+
+    Zero-length buffers are excluded because distinct empty arrays can be
+    handed out the same address, which would look like sharing.
+    """
+    return {
+        buf.address
+        for chunk in pa_data.iterchunks()
+        for buf in chunk.buffers()
+        if buf is not None and buf.size > 0
+    }
+
+
 def shares_memory(left: Any, right: Any) -> bool:
     """
     Pandas-compat for np.shares_memory.
@@ -509,7 +527,7 @@ def shares_memory(left: Any, right: Any) -> bool:
     if isinstance(left, RangeIndex):
         return False
     if isinstance(left, MultiIndex):
-        return shares_memory(left._codes, right)
+        return any(shares_memory(codes, right) for codes in left._codes)
     if isinstance(left, (Index, Series)):
         if isinstance(right, (Index, Series)):
             return shares_memory(left._values, right._values)
@@ -525,22 +543,22 @@ def shares_memory(left: Any, right: Any) -> bool:
     if isinstance(left, ArrowExtensionArray):
         if isinstance(right, ArrowExtensionArray):
             # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-            left_pa_data = left._pa_array
-            right_pa_data = right._pa_array
-            left_buf1 = left_pa_data.chunk(0).buffers()[1]
-            right_buf1 = right_pa_data.chunk(0).buffers()[1]
-            return left_buf1.address == right_buf1.address
+            left_addrs = _pa_buffer_addresses(left._pa_array)
+            right_addrs = _pa_buffer_addresses(right._pa_array)
+            return not left_addrs.isdisjoint(right_addrs)
         else:
             # if we have one ArrowExtensionArray and one other array, assume
             # they can only share memory if they share the same numpy buffer
             return np.shares_memory(left, right)
 
-    if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
+    if isinstance(left, BaseMaskedArray):
         # By convention, we'll say these share memory if they share *either*
         #  the _data or the _mask
-        return np.shares_memory(left._data, right._data) or np.shares_memory(
-            left._mask, right._mask
-        )
+        if isinstance(right, BaseMaskedArray):
+            return shares_memory(left._data, right._data) or shares_memory(
+                left._mask, right._mask
+            )
+        return shares_memory(left._data, right) or shares_memory(left._mask, right)
 
     if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
         arr = left._mgr.blocks[0].values
@@ -636,7 +654,6 @@ __all__ = [
     "convert_rows_list_to_csv_str",
     "decompress_file",
     "external_error_raised",
-    "get_cython_table_params",
     "get_dtype",
     "get_finest_unit",
     "get_locales",

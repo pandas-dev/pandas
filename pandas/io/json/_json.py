@@ -1661,7 +1661,7 @@ class Parser:
                 return data
 
         if new_data.dtype == "string":
-            for format in (None, "iso8601", "mixed"):
+            for format in (None, "ISO8601", "mixed"):
                 converted = None
                 with warnings.catch_warnings(record=True) as record:
                     warnings.simplefilter("always")
@@ -1669,9 +1669,15 @@ class Parser:
                         converted = to_datetime(new_data, errors="raise", format=format)
                     except Exception:
                         pass
-                if converted is not None:
-                    _reemit_parse_warnings(record, ignore_user_warnings=True)
-                    return converted
+                if converted is None:
+                    continue
+                if format != "ISO8601" and _is_default_filled(converted):
+                    # only a strict ISO8601 parse proves a year-1 result came
+                    #  from the strings themselves rather than from dateutil's
+                    #  defaults, so keep looking
+                    continue
+                _reemit_parse_warnings(record, ignore_user_warnings=True)
+                return converted
         else:
             # numeric or mixed objects
             date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
@@ -1702,13 +1708,57 @@ class Parser:
                     data = converted
                     break
             else:
-                if converted is not None:
+                if converted is not None and (
+                    not _is_default_filled(converted)
+                    or _parses_strict_iso8601(new_data)
+                ):
                     # all units failed to cast to ns (eg with mixed string / int)
                     # but to_datetime still returned a result -> use this this
                     # result (with the last unit) and re-emit any warning
                     _reemit_parse_warnings(record)
                     data = converted
         return data
+
+
+def _is_default_filled(converted: Series) -> bool:
+    """
+    Whether a speculative string date parse only succeeded by filling in defaults.
+
+    GH#63473: ``to_datetime`` falls back to ``dateutil`` for strings it cannot
+    match against a format, and ``dateutil`` takes the year absent from the
+    string from ``datetime(1, 1, 1)``. Strings like ``"Jan"`` or ``"1st"`` parse
+    that way, so accepting the result would silently turn ordinary labels into
+    year 1 timestamps. Strings carrying only a time of day are filled from
+    *today* instead and so are not caught here.
+
+    A year-1 result is genuine when the strings parse under a strict ISO8601
+    format, which rejects ``"Jan"`` outright; callers check that separately,
+    either by having attempted ``format="ISO8601"`` themselves or via
+    ``_parses_strict_iso8601``.
+    """
+    if converted.dtype.kind != "M":
+        # defensive; the parses attempted above all give datetime64
+        return False
+    return bool((converted.dt.year == 1).any())
+
+
+def _parses_strict_iso8601(data: Series) -> bool:
+    """
+    Whether every entry of ``data`` parses under a strict ISO8601 format.
+
+    Used to tell a genuine out-of-nanosecond-bounds date apart from a
+    default-filled parse on the object-dtype path, which -- unlike the
+    string-dtype path -- does not attempt ``format="ISO8601"`` itself.
+    """
+    with warnings.catch_warnings():
+        # a speculative probe whose result is discarded; anything it emits
+        #  would be about a parse the caller never adopts
+        warnings.simplefilter("ignore")
+        try:
+            to_datetime(data, errors="raise", format="ISO8601")
+        except Exception:
+            return False
+    return True
 
 
 def _reemit_parse_warnings(

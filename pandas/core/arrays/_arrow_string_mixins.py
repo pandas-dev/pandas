@@ -206,7 +206,9 @@ class ArrowStringArrayMixin:
         if pa_version_under21p0:
             predicate = lambda val: val.zfill(width)
             result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
         return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
@@ -218,7 +220,9 @@ class ArrowStringArrayMixin:
             #  output. Fall back to unicodedata for these.
             predicate = lambda val: unicodedata.normalize(form, val)
             result = self._apply_elementwise(predicate)
-            return self._from_pyarrow_array(pa.chunked_array(result))
+            return self._from_pyarrow_array(
+                pa.chunked_array(result, type=self._pa_array.type)
+            )
         return self._from_pyarrow_array(pc.utf8_normalize(self._pa_array, form=form))
 
     def _str_get(self, i: int) -> Self:

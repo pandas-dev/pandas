@@ -89,6 +89,7 @@ query($owner: String!, $name: String!, $cursor: String) {
         ) {
           nodes { ... on ReviewRequestedEvent { createdAt actor { login } } }
         }
+        pendingReviewRequests: reviewRequests(first: 1) { totalCount }
         labelEvents: timelineItems(last: 50, itemTypes: [LABELED_EVENT]) {
           nodes {
             ... on LabeledEvent { createdAt actor { login } label { name } }
@@ -234,6 +235,9 @@ class GitHubClient:
                     "author_association": node.get("authorAssociation"),
                     "reviews": reviews,
                     "review_requests": review_requests,
+                    "has_pending_review_requests": (
+                        node["pendingReviewRequests"]["totalCount"] > 0
+                    ),
                     "last_commit_at": last_commit_at,
                     "comments": comments,
                     "comments_truncated": node["comments"]["totalCount"]

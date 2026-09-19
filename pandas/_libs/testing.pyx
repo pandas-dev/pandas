@@ -14,6 +14,7 @@ from pandas._libs.missing cimport (
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
+    is_float_object,
     is_integer_object,
     is_real_number_object,
 )
@@ -21,9 +22,20 @@ from pandas._libs.util cimport (
 
 from pandas.core.dtypes.missing import array_equivalent
 
+from pandas.io.formats.printing import pprint_thing
+
 
 cdef bint isiterable(obj):
-    return hasattr(obj, "__iter__")
+    if not hasattr(obj, "__iter__"):
+        return False
+
+    if is_array(obj):
+        return True
+
+    # GH#45240 exclude zero-dimensional duck-arrays, effectively scalars, as
+    #  lib.c_is_list_like does. pint's scalar Quantity is one of these: it
+    #  defines __iter__ and __len__ that delegate to its scalar magnitude.
+    return not (hasattr(obj, "ndim") and obj.ndim == 0)
 
 
 cdef bint has_length(obj):
@@ -63,9 +75,11 @@ cpdef assert_almost_equal(a, b,
     a : object
     b : object
     rtol : float, default 1e-5
-        Relative tolerance.
+        Relative tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     atol : float, default 1e-8
-        Absolute tolerance.
+        Absolute tolerance. Only applied to numeric dtypes; values of other
+        dtypes, such as interval, are always compared exactly.
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -138,7 +152,23 @@ cpdef assert_almost_equal(a, b,
                 assert_attr_equal("dtype", a, b, obj=obj)
 
             if array_equivalent(a, b, strict_nan=True):
-                return True
+                if a.dtype.kind in "iu" and b.dtype.kind == "f":
+                    int_arr = a
+                elif a.dtype.kind == "f" and b.dtype.kind in "iu":
+                    int_arr = b
+                else:
+                    return True
+
+                if not int_arr.size or (
+                    int_arr.max() <= 2**53
+                    and (int_arr.dtype.kind == "u" or int_arr.min() >= -(2**53))
+                ):
+                    return True
+
+            # flatten so the loop compares values, not rows; see GH#68366 and
+            #  test_assert_almost_equal_2d_large_mixed_integer_float
+            a = a.ravel()
+            b = b.ravel()
 
         else:
             na, nb = len(a), len(b)
@@ -156,13 +186,17 @@ cpdef assert_almost_equal(a, b,
 
         for i in range(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], rtol=rtol, atol=atol)
+                assert_almost_equal(
+                    a[i], b[i], check_dtype=check_dtype, rtol=rtol, atol=atol
+                )
             except AssertionError:
                 is_unequal = True
                 diff += 1
                 if not first_diff:
                     first_diff = (
-                        f"At positional index {i}, first diff: {a[i]} != {b[i]}"
+                        f"At positional index {i}, first diff: "
+                        f"{pprint_thing(a[i], quote_strings=True)} != "
+                        f"{pprint_thing(b[i], quote_strings=True)}"
                     )
 
         if is_unequal:
@@ -191,6 +225,28 @@ cpdef assert_almost_equal(a, b,
         raise AssertionError(f"{a} != {b}")
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")
+
+    # GH#66699 avoid casting a large integer to float64 before applying
+    #  tolerances when the float operand is itself an integer value.
+    if rtol >= 0 and atol >= 0 and (
+        (
+            is_integer_object(a)
+            and is_float_object(b)
+            and b.is_integer()
+        )
+        or (
+            is_float_object(a)
+            and a.is_integer()
+            and is_integer_object(b)
+        )
+    ):
+        ia = int(a)
+        ib = int(b)
+
+        if abs(ia - ib) > max(rtol * max(abs(ia), abs(ib)), atol):
+            assert False, (f"expected {ib}.00000 but got {ia}.00000, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
 
     if a == b:
         # object comparison

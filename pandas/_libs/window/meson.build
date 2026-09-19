@@ -9,6 +9,7 @@ py.extension_module(
     'aggregations',
     ['aggregations.pyx'],
     cython_args: cy_args,
+    cpp_args: cython_cpp_args,
     include_directories: [inc_np, inc_pd],
     subdir: 'pandas/_libs/window',
     override_options: ['cython_language=cpp'],

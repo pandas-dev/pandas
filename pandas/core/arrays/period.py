@@ -40,7 +40,6 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
 )
-from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
     Tick,
     delta_to_tick,
@@ -302,6 +301,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             scalars = scalars.to_numpy(dtype=object, na_value=NaT)
 
         arrdata = np.asarray(scalars)
+        if (
+            arrdata.dtype.kind == "u"
+            and arrdata.size
+            and arrdata.max() > np.iinfo(np.int64).max
+        ):
+            # GH#64231 the int64 cast below would wrap these silently; read
+            #  them through the object path, which rejects them the way the
+            #  Period(int) scalar constructor does.
+            arrdata = arrdata.astype(object)
+
         if arrdata.dtype.kind == "f" and len(arrdata) > 0:
             if not lib.all_nans(arrdata):
                 raise TypeError(
@@ -909,7 +918,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         >>> idx.is_leap_year
         array([False,  True, False])
         """
-        return isleapyear_arr(np.asarray(self.year))
+        # NaT gives year == -1, which the modulo below reports as not-leap
+        year = np.asarray(self.year)
+        return (year % 400 == 0) | ((year % 4 == 0) & (year % 100 > 0))
 
     def to_timestamp(self, freq=None, how: str = "start") -> DatetimeArray:
         """

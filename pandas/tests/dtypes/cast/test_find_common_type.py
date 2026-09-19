@@ -10,10 +10,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import (
-    Categorical,
-    Index,
-)
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -167,9 +164,9 @@ def test_interval_dtype(left, right):
 
 @pytest.mark.parametrize("dtype", interval_dtypes)
 def test_interval_dtype_with_categorical(dtype):
-    obj = Index([], dtype=dtype)
+    obj = pd.Index([], dtype=dtype)
 
-    cat = Categorical([], categories=obj)
+    cat = pd.Categorical([], categories=obj)
 
     result = find_common_type([dtype, cat.dtype])
     assert result == dtype
