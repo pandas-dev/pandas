@@ -147,8 +147,27 @@ class TestIndexRendering:
         assert "{other}%s" in result
 
     def test_index_repr_bool_nan(self):
-        # GH32146
+        # GH32146, GH64733
         arr = pd.Index([True, False, np.nan], dtype=object)
         exp2 = repr(arr)
-        out2 = "Index([True, False, nan], dtype='object')"
+        out2 = "Index([True, False, NaN], dtype='object')"
         assert out2 == exp2
+
+    @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+    @pytest.mark.parametrize(
+        "value,expected_last",
+        [
+            (complex(np.nan, 1), "NaN+1.0j"),
+            (complex(1, np.nan), "1.0+NaNj"),
+            (complex(np.nan, -1), "NaN-1.0j"),
+            (complex(-1, np.nan), "-1.0+NaNj"),
+            (complex(np.nan, np.nan), "NaN+NaNj"),
+        ],
+    )
+    def test_index_repr_complex_nan(self, dtype, value, expected_last):
+        # GH64733: only the NaN component should render as NaN, matching
+        # the Series/DataFrame repr, instead of collapsing the whole value
+        idx = pd.Index([1 + 2j, value], dtype=dtype)
+        result = repr(idx)
+        expected = f"Index([(1+2j), {expected_last}], dtype='{dtype}')"
+        assert result == expected
