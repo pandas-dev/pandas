@@ -948,6 +948,105 @@ def test_shift_datetimelike_subtype(kind, unit):
     tm.assert_sp_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("boxed", [True, False])
+@pytest.mark.parametrize("na_fill", [True, False])
+def test_fillna_datetimelike_boxed_value(kind, unit, boxed, na_fill):
+    # GH#69027 numpy resolved a boxed Timestamp/Timedelta against an M8/m8
+    #  array as object, so the stored values came back unboxed
+    dtype = f"{kind}[{unit}]"
+    values = np.array([1, 2, 3], dtype="i8").astype(dtype)
+    values[1] = "NaT"
+    box = pd.Timestamp if kind == "M8" else pd.Timedelta
+    value = box(values[2])
+    # a non-NA fill_value keeps the NaT in sp_values, so the fill is written
+    #  there rather than only reaching the result's dtype
+    arr = SparseArray(values, fill_value=None if na_fill else values[0])
+
+    result = arr.fillna(value if boxed else value.asm8)
+
+    assert result.sp_values.dtype == values.dtype
+    expected = values.copy()
+    expected[1] = values[2]
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+    expected_fill = values[2] if na_fill else values[0]
+    assert result.dtype == pd.SparseDtype(values.dtype, fill_value=expected_fill)
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("value", [pd.NaT, None, np.nan, pd.NA])
+def test_fillna_datetimelike_na_value(kind, value):
+    # GH#69027 NaT, None, and pd.NA went through np.where as object like a
+    #  Timestamp; only np.nan raised DTypePromotionError
+    dtype = f"{kind}[ns]"
+    values = np.array([1, 2, 3], dtype="i8").astype(dtype)
+    values[1] = "NaT"
+    arr = SparseArray(values, fill_value=values[0])
+
+    result = arr.fillna(value)
+
+    assert result.sp_values.dtype == values.dtype
+    tm.assert_numpy_array_equal(result.to_dense(), values)
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize(
+    "spelling", ["boxed", "numpy", "numpy_other_unit", "stdlib", "string"]
+)
+def test_fillna_datetimelike_value_spellings(kind, unit, spelling):
+    # GH#69027 only a numpy scalar in the subtype's own unit or a coarser one
+    #  reached np.where in a form it could resolve -- a finer-unit one widened
+    #  the stored values
+    dtype = f"{kind}[{unit}]"
+    values = np.array([1, 2, 3], dtype="i8").astype(dtype)
+    values[1] = "NaT"
+    arr = SparseArray(values, fill_value=values[0])
+
+    # a whole second, so every spelling below represents it exactly
+    other_unit = "s" if unit == "ns" else "ns"
+    if kind == "M8":
+        fill = pd.Timestamp("2020-01-02").as_unit(unit)
+        spellings = {
+            "boxed": fill,
+            "numpy": fill.asm8,
+            "numpy_other_unit": fill.as_unit(other_unit).asm8,
+            "stdlib": fill.to_pydatetime(),
+            "string": "2020-01-02",
+        }
+    else:
+        fill = pd.Timedelta(1, unit="s").as_unit(unit)
+        spellings = {
+            "boxed": fill,
+            "numpy": fill.asm8,
+            "numpy_other_unit": fill.as_unit(other_unit).asm8,
+            "stdlib": fill.to_pytimedelta(),
+            "string": "1 second",
+        }
+
+    result = arr.fillna(spellings[spelling])
+
+    assert result.sp_values.dtype == values.dtype
+    expected = values.copy()
+    expected[1] = fill.asm8
+    tm.assert_numpy_array_equal(result.to_dense(), expected)
+
+
+@pytest.mark.parametrize("unit, fill_unit", [("s", "ms"), ("ms", "ns"), ("us", "ns")])
+def test_fillna_timedelta_lossy_numpy_fill(unit, fill_unit):
+    # GH#69027 a fill the subtype cannot hold has to reach numpy's own promotion
+    #  untouched: _promote_for_fill raises "Cannot losslessly convert units" for
+    #  a timedelta64 it would have to widen
+    values = np.array([1, 2, 3], dtype="i8").astype(f"m8[{unit}]")
+    values[1] = "NaT"
+    arr = SparseArray(values, fill_value=values[0])
+
+    result = arr.fillna(np.timedelta64(2, fill_unit))
+
+    assert result.sp_values.dtype == np.dtype(f"m8[{fill_unit}]")
+
+
 def test_value_counts_object_subtype_with_na():
     # GH#68586 the fill_value mask took the truth of an object comparison, which
     #  pd.NA makes ambiguous

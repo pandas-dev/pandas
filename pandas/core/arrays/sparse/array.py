@@ -454,6 +454,32 @@ _BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
 _BOOL_SPARSE_DTYPE_TRUE_FILL = SparseDtype(bool, True)
 
 
+def _can_hold_for_fill(dtype: np.dtype, fill_value) -> bool:
+    """
+    Whether a dense ``dtype`` array can hold ``fill_value`` without promoting.
+    """
+    dummy = ensure_wrapped_if_datetimelike(np.empty(0, dtype=dtype))
+    return can_hold_element(dummy, fill_value)
+
+
+def _unbox_for_fill(dtype: np.dtype, fill_value):
+    """
+    ``fill_value`` unboxed — for a datetimelike ``dtype``, as a numpy scalar in
+    that dtype's own unit. Only valid once ``_can_hold_for_fill`` has accepted it.
+    """
+    if dtype.kind not in "mM":
+        # an object dtype holds these as-is; only a datetimelike array needs
+        #  the numpy scalar, and only it rejects np.nan in place of NaT
+        return fill_value
+    if isna(fill_value):
+        # a unitless NaT is deprecated as of numpy 2.5
+        return dtype.type("NaT", np.datetime_data(dtype)[0])
+    # numpy routes a boxed scalar through the stdlib datetime protocol and
+    #  truncates; can_hold_element has already ruled out a lossy conversion
+    box = Timestamp if dtype.kind == "M" else Timedelta
+    return box(fill_value).asm8.astype(dtype)
+
+
 def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
     """
     Dense dtype wide enough to hold ``fill_value``, and ``fill_value`` unboxed —
@@ -463,20 +489,8 @@ def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
     whenever the fill value's unit differs, so a ``Timestamp`` would pull a
     ``Sparse[M8[s]]`` up to nanoseconds.
     """
-    dummy = ensure_wrapped_if_datetimelike(np.empty(0, dtype=dtype))
-    if can_hold_element(dummy, fill_value):
-        if dtype.kind in "mM":
-            # an object dtype holds these as-is; only a datetimelike array needs
-            #  the numpy scalar, and only it rejects np.nan in place of NaT
-            if isna(fill_value):
-                # a unitless NaT is deprecated as of numpy 2.5
-                fill_value = dtype.type("NaT", np.datetime_data(dtype)[0])
-            else:
-                # np.full truncates a Timestamp/Timedelta to microseconds;
-                #  can_hold_element has already ruled out a lossy conversion
-                box = Timestamp if dtype.kind == "M" else Timedelta
-                fill_value = box(fill_value).asm8.astype(dtype)
-        return dtype, fill_value
+    if _can_hold_for_fill(dtype, fill_value):
+        return dtype, _unbox_for_fill(dtype, fill_value)
     return maybe_promote(dtype, fill_value)
 
 
@@ -1105,6 +1119,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
         if limit is not None:
             raise ValueError("limit must be None")
+
+        subtype = self.sp_values.dtype
+        if (
+            subtype.kind in "mM"
+            and is_scalar(value)
+            and _can_hold_for_fill(subtype, value)
+        ):
+            # np.where resolves a scalar it cannot match against an M8/m8 array
+            #  as object, or in the scalar's own unit, either way leaving
+            #  sp_values disagreeing with the dtype
+            value = _unbox_for_fill(subtype, value)
+
         new_values = np.where(isna(self.sp_values), value, self.sp_values)
 
         if self._null_fill_value:
