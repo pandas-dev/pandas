@@ -1176,12 +1176,18 @@ class ArrowExtensionArray(
                 boxed = self._box_pa(other)
             except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError):
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
-                # GH#62682 bool() matches Int64/object: a length-1 array is a
-                #  real answer, a longer one raises numpy's ambiguity ValueError
-                mask = isna(self) | isna(other)
+                # GH#62682, see test_cmp_array_valued_pointwise_result
+                # isna on a list of array-likes returns a 2-D mask, so build an
+                #  object array first; the two masks stay separate so a length
+                #  mismatch is reported by zip rather than by broadcasting
+                other_arr = np.empty(len(other), dtype=object)
+                for pos, val in enumerate(other):
+                    other_arr[pos] = val
                 res_values = [
-                    None if na else bool(op(left, right))
-                    for left, right, na in zip(self, other, mask, strict=True)
+                    None if (left_na or right_na) else bool(op(left, right))
+                    for left, right, left_na, right_na in zip(
+                        self, other, isna(self), isna(other_arr), strict=True
+                    )
                 ]
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
@@ -1219,9 +1225,11 @@ class ArrowExtensionArray(
                     result = np.zeros(len(self), dtype="bool")
                     np_array = np.array(self)
                     try:
-                        if op is operator.ne:
+                        if op is operator.ne and isinstance(other, BaseOffset):
                             # GH#62682 a reflected BaseOffset.__ne__ is
-                            #  `not self == other`, which raises on an array
+                            #  `not self == other`, which raises on an array.
+                            #  Narrow, so that a type with an independent
+                            #  __ne__ still gets to define it
                             result[valid] = operator.eq(np_array[valid], other)
                             result[valid] = ~result[valid]
                         else:

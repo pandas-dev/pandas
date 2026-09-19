@@ -1608,6 +1608,28 @@ def test_cmp_array_valued_pointwise_result():
         arr == object_array_of(pd.Categorical([1, 2]))
 
 
+def test_cmp_list_of_array_likes_matches_masked():
+    # GH#62682 isna on a LIST of array-likes returns a 2-D mask, which the
+    #  object_array_of spelling above never produces
+    other = [pd.Categorical(["a"]), pd.Categorical(["b"])]
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+
+    result = arr == other
+
+    expected = pd.array(
+        list(pd.array([1, 2], dtype="Int64") == other), dtype=ArrowDtype(pa.bool_())
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_unconvertible_length_mismatch_message():
+    # GH#62682 the mask must not broadcast-fail first: zip reports the mismatch
+    arr = pd.array([1, 2, 3], dtype=ArrowDtype(pa.int64()))
+
+    with pytest.raises(ValueError, match="zip"):
+        arr == [1, "b"]
+
+
 def test_cmp_unconvertible_object_keeps_na():
     # GH#62682 an NA entry stays NA rather than becoming a concrete bool,
     #  on whichever side it appears
