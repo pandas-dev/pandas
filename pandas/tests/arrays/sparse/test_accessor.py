@@ -226,6 +226,13 @@ class TestFrameAccessor:
         df = pd.DataFrame({"A": SparseArray(np.array([], dtype="float64"))})
         assert np.isnan(df.sparse.density)
 
+    def test_density_no_columns(self):
+        # GH#68564 - np.mean of an empty list warns; the nan result was already correct
+        df = pd.DataFrame(index=[0, 1])
+        with tm.assert_produces_warning(None):
+            result = df.sparse.density
+        assert np.isnan(result)
+
     @pytest.mark.parametrize("dtype", ["int64", "float64"])
     @pytest.mark.parametrize("dense_index", [True, False])
     def test_series_from_coo(self, dtype, dense_index):

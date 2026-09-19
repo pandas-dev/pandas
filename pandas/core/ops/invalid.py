@@ -24,6 +24,7 @@ from pandas.core.dtypes.dtypes import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from pandas._libs.missing import NAType
     from pandas._typing import (
         ArrayLike,
         Scalar,
@@ -33,7 +34,7 @@ if TYPE_CHECKING:
 
 def invalid_comparison(
     left: ArrayLike,
-    right: ArrayLike | list | range | Scalar,
+    right: ArrayLike | list | range | Scalar | NAType,
     op: Callable[[Any, Any], bool],
 ) -> npt.NDArray[np.bool_]:
     """

@@ -1290,7 +1290,7 @@ class TestDataFrameQueryStrings:
     def test_query_str_slice_negative_index(self, parser, engine):
         # GH#49905 visit_Call's unary argument, as in
         #  test_eval.py::test_unary_in_function; the a.str[-1:] spelling in the
-        #  same issue still raises, see visit_Slice
+        #  same issue is test_eval.py::test_slice_subscript_with_unary_bound
         df = pd.DataFrame({"a": ["example", "zzz"]})
 
         result = df.query(

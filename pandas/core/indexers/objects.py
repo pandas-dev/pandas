@@ -521,7 +521,7 @@ class FixedForwardWindowIndexer(BaseIndexer):
         return start, end
 
 
-class GroupbyIndexer(BaseIndexer):
+class GroupByIndexer(BaseIndexer):
     """Calculate bounds to compute groupby rolling, mimicking df.groupby().rolling()"""
 
     def __init__(

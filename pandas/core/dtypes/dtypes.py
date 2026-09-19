@@ -1804,7 +1804,10 @@ class SparseDtype(ExtensionDtype):
             is_string_dtype,
             pandas_dtype,
         )
-        from pandas.core.dtypes.missing import na_value_for_dtype
+        from pandas.core.dtypes.missing import (
+            is_valid_na_for_dtype,
+            na_value_for_dtype,
+        )
 
         dtype = pandas_dtype(dtype)
         if is_string_dtype(dtype):
@@ -1828,14 +1831,20 @@ class SparseDtype(ExtensionDtype):
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
-        elif fill_value is NaT and dtype.kind in "mM":
-            # GH#68449 store the subtype's own NaT, so that the two spellings
-            #  of the fill value behave identically downstream
+        elif dtype.kind in "mM" and is_valid_na_for_dtype(fill_value, dtype):
+            # GH#68449, GH#68558 store the subtype's own NaT, so that every
+            #  spelling of an NA fill value behaves identically downstream
             fill_value = na_value_for_dtype(dtype)
 
         self._dtype = dtype
         self._fill_value = fill_value
         self._check_fill_value()
+
+        if isinstance(fill_value, (Timestamp, Timedelta)) and dtype.kind in "mM":
+            # GH#68589 store the subtype's own scalar, like the NaT case above:
+            #  numpy converts a boxed scalar through datetime, truncating a
+            #  nanosecond fill value wherever it reaches numpy
+            self._fill_value = fill_value.asm8.astype(dtype)
 
     def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
@@ -1864,14 +1873,17 @@ class SparseDtype(ExtensionDtype):
                 # and can warn, e.g. numpy deprecates timedelta64 == int
                 return False
             if self._is_na_fill_value or other._is_na_fill_value:
-                # this case is complicated by two things:
-                # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
-                # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
-                # i.e. we want to treat any floating-point NaN as equal, but
+                # GH#68582 an NA fill value is equal only to another NA fill
+                # value: we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = isinstance(
-                    self.fill_value, type(other.fill_value)
-                ) or isinstance(other.fill_value, type(self.fill_value))
+                fill_value = (
+                    self._is_na_fill_value
+                    and other._is_na_fill_value
+                    and (
+                        isinstance(self.fill_value, type(other.fill_value))
+                        or isinstance(other.fill_value, type(self.fill_value))
+                    )
+                )
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning
