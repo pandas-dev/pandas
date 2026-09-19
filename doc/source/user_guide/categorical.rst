@@ -817,7 +817,7 @@ categories results in ``category`` dtype, otherwise results will depend on the
 dtype of the underlying categories. Merges that result in non-categorical
 dtypes will likely have higher memory usage. Use ``.astype`` or
 ``union_categoricals`` to ensure ``category`` results, or ``union_categories=True``,
-which keeps them wherever the categories can be combined.
+which keeps the result categorical wherever the categories can be combined.
 
 .. ipython:: python
 

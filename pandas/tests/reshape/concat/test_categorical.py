@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import IntEnum
 
 import numpy as np
 
@@ -613,6 +614,47 @@ def test_union_categories_bool_and_numeric_object_categories():
     )
     result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
     expected = pd.Series(np.array([1, 2, True], dtype=object))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_equal_object_dtypes_still_fall_back():
+    # GH#68440 two object-dtype CategoricalDtypes compare equal whenever their
+    #  categories do, so the dtypes_all_equal fastpath would re-merge exactly
+    #  what the union just rejected
+    s1 = pd.Series(
+        pd.Categorical([1], dtype=CategoricalDtype(pd.Index([1], dtype=object)))
+    )
+    s2 = pd.Series(
+        pd.Categorical([True], dtype=CategoricalDtype(pd.Index([True], dtype=object)))
+    )
+    assert s1.dtype == s2.dtype
+
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+
+    expected = pd.Series(np.array([1, True], dtype=object))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_subclassed_category_type():
+    # GH#68440 an IntEnum infers as "integer" just as int does, so a check that
+    #  short-circuits on inferred_type cannot see the collision
+    class Color(IntEnum):
+        RED = 1
+
+    s1 = pd.Series(
+        pd.Categorical(
+            [1, 2, 3], dtype=CategoricalDtype(pd.Index([1, 2, 3], dtype=object))
+        )
+    )
+    s2 = pd.Series(
+        pd.Categorical(
+            [Color.RED], dtype=CategoricalDtype(pd.Index([Color.RED], dtype=object))
+        )
+    )
+
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+
+    expected = pd.Series(np.array([1, 2, 3, Color.RED], dtype=object))
     tm.assert_series_equal(result, expected)
 
 

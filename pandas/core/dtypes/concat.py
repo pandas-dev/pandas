@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
 )
 
@@ -88,8 +89,12 @@ def concat_compat(
         unioned = union_categories_compat(cast("Sequence[Categorical]", to_concat))
         if unioned is not None:
             return unioned
+        # GH#65098 the categories cannot be merged, and the fastpath below would
+        #  merge them anyway: two object-dtype CategoricalDtypes compare equal
+        #  whenever their categories do, which is what was just rejected
+        to_concat = [x.astype(object) for x in to_concat]
 
-    if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
+    if to_concat and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
         obj = to_concat[0]
         if isinstance(obj, np.ndarray):
@@ -155,14 +160,12 @@ def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     Whether unioning these object-dtype categories would merge values that the
     inputs keep apart, e.g. True and 1, which compare and hash equal.
     """
-    inferred = {x.categories.inferred_type for x in to_union}
-    if len(inferred) == 1 and not inferred.pop().startswith("mixed"):
-        # one inferred type throughout: categories then meet only where equal,
-        #  unless one subclasses the other's type (e.g. IntEnum vs int)
-        return False
-
-    cats = [cat for obj in to_union for cat in obj.categories]
-    return len(set(cats)) != len({(type(cat), cat) for cat in cats})
+    seen: dict[Any, type] = {}
+    for obj in to_union:
+        for cat in obj.categories:
+            if seen.setdefault(cat, type(cat)) is not type(cat):
+                return True
+    return False
 
 
 def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | None:
@@ -175,8 +178,7 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | No
     the same dtype after this cast.
 
     Returns None when the union would merge categories that the inputs keep
-    apart, e.g. True and 1 under object dtype; the caller then falls back to
-    the non-categorical result.
+    apart, e.g. True and 1 under object dtype; the caller then casts to object.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
