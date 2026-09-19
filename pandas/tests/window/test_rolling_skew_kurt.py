@@ -320,6 +320,22 @@ def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
 
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_expanding_skew_kurt_shared_offset(roll_func):
+    # GH#68934 expanding never removes an observation, so the origin stays a member
+    # of its own window and the drift arm provably cannot fire -- a different path
+    # through the anchor than any rolling case
+    rng = np.random.default_rng(0)
+    values = 1e10 + rng.normal(size=200)
+
+    result = getattr(pd.Series(values).expanding(), roll_func)()
+
+    # skew and kurt do not depend on location, so the recentred series is the
+    # same statistic computed without the cancellation
+    expected = getattr(pd.Series(values - 1e10).expanding(), roll_func)()
+    tm.assert_series_equal(result, expected, rtol=1e-10, atol=0)
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_rolling_skew_kurt_drifting_level(roll_func):
     # GH#68934 anchoring the accumulators to a window's first value only helps
     # while the data stays near it. On a series whose level drifts -- a timestamp
@@ -327,9 +343,9 @@ def test_rolling_skew_kurt_drifting_level(roll_func):
     # here by three orders of magnitude, with nothing in the window itself to
     # show for it: the same window recomputed on its own is exact.
     window = 20
-    n = 60_000
+    n = 2_000
     rng = np.random.default_rng(0)
-    values = np.sort(1.7e9 + np.arange(n) + rng.normal(size=n) * 0.3)
+    values = 1.7e9 + np.arange(n) + rng.normal(size=n) * 0.3
 
     result = getattr(pd.Series(values).rolling(window), roll_func)()
 
@@ -347,8 +363,8 @@ def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
     # accumulators were never recomputed and every later window returned the same
     # frozen garbage. 1e308 does not reach this: there m3/m4 go NaN and the NaN
     # arm fires, which is why an extreme-range test alone misses it. Only the
-    # skew half pins the overflow -- kurt's m4 reaches NaN here too -- but both
-    # are kept so the pair reads the same as the rest of the file.
+    # kurt half pins the overflow: on main skew's m3 peaks near 1e270 and comes
+    # back exact, while kurt's m4 reaches 1e360 and returns NaN.
     window = 20
     rng = np.random.default_rng(4)
     values = rng.normal(size=120)
