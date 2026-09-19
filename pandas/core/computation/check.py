@@ -39,7 +39,6 @@ def warn_numexpr_blocked() -> None:
     if NUMEXPR_BLOCKED_VERSION is None or _warned_blocked:
         return
 
-    _warned_blocked = True
     warnings.warn(
         f"numexpr version '{NUMEXPR_BLOCKED_VERSION}' can silently return incorrect "
         "results and will not be used by pandas. Install numexpr 2.14.2 or "
@@ -47,6 +46,9 @@ def warn_numexpr_blocked() -> None:
         UserWarning,
         stacklevel=find_stack_level(),
     )
+    # set after warning, so that a caller suppressing warnings does not use up
+    #  the one-shot
+    _warned_blocked = True
 
 
 __all__ = [

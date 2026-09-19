@@ -85,16 +85,17 @@ def _check_engine(engine: str | None) -> str:
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
     if engine == "numexpr" and not NUMEXPR_INSTALLED:
-        msg = (
-            "'numexpr' is not installed or an unsupported version. Cannot use "
-            "engine='numexpr' for query/eval if 'numexpr' is not installed"
-        )
         if NUMEXPR_BLOCKED_VERSION is not None:
             # the deferred warning does not fire here, so the raise names the version
-            msg += (
-                f" (numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can "
-                "silently return incorrect results, so pandas does not use it; "
-                "install numexpr 2.14.2 or newer)"
+            msg = (
+                f"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can silently "
+                "return incorrect results, so pandas does not use it. Install "
+                "numexpr 2.14.2 or newer to use engine='numexpr'."
+            )
+        else:
+            msg = (
+                "'numexpr' is not installed or an unsupported version. Cannot use "
+                "engine='numexpr' for query/eval if 'numexpr' is not installed"
             )
         raise ImportError(msg)
 

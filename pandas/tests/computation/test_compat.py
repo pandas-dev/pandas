@@ -112,6 +112,30 @@ def test_blocked_numexpr_warns_on_where(blocked_numexpr, monkeypatch):
         expressions.where(cond, arr, arr)
 
 
+def test_blocked_numexpr_warns_on_frame_op(blocked_numexpr, monkeypatch):
+    # GH#66956 the warning reaches ordinary DataFrame ops, not just direct
+    #  expressions.evaluate calls
+    monkeypatch.setattr(expressions, "_MIN_ELEMENTS", 10)
+    expressions.set_use_numexpr(True)
+
+    df = pd.DataFrame(np.ones((11, 1)))
+    with tm.assert_produces_warning(UserWarning, match="can silently return incorrect"):
+        result = df + df
+    tm.assert_frame_equal(result, pd.DataFrame(np.full((11, 1), 2.0)))
+
+
+def test_blocked_numexpr_no_frame_op_warning_if_disabled(blocked_numexpr, monkeypatch):
+    # GH#66956 the arithmetic path, like eval, stays quiet for a user who has
+    #  turned numexpr off
+    monkeypatch.setattr(expressions, "_MIN_ELEMENTS", 10)
+
+    df = pd.DataFrame(np.ones((11, 1)))
+    with pd.option_context("compute.use_numexpr", False):
+        with tm.assert_produces_warning(None):
+            result = df + df
+    tm.assert_frame_equal(result, pd.DataFrame(np.full((11, 1), 2.0)))
+
+
 def test_blocked_numexpr_warns_on_eval(blocked_numexpr):
     # GH#66956 eval falls back to the python engine and reports why
     a, b = 1, 2  # noqa: F841
