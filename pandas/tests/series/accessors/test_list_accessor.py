@@ -127,11 +127,17 @@ def test_list_getitem_invalid_index(list_dtype):
         dtype=pd.ArrowDtype(list_dtype),
     )
     with tm.external_error_raised(pa.ArrowInvalid):
-        ser.list[-1]
-    with tm.external_error_raised(pa.ArrowInvalid):
         ser.list[5]
+    with pytest.raises(IndexError, match="list index -4 out of range"):
+        ser.list[-4]
     with pytest.raises(ValueError, match="key must be an int or slice, got str"):
         ser.list["abc"]
+    result = ser.list[-1]
+    expected = pd.Series(
+        [3, 5, None],
+        dtype=pd.ArrowDtype(pa.int64()),
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_list_accessor_not_iterable():
@@ -141,3 +147,49 @@ def test_list_accessor_not_iterable():
     )
     with pytest.raises(TypeError, match="'ListAccessor' object is not iterable"):
         iter(ser.list)
+
+
+# GH#63221
+def test_list_get_negative_index():
+    ser = pd.Series(
+        [["A", "B"], ["C", "D"]], dtype=pd.ArrowDtype(pa.list_(pa.string())), name="a"
+    )
+    result = ser.list[-1]
+    expected = pd.Series(
+        ["B", "D"],
+        dtype=pd.ArrowDtype(pa.string()),  # item type, not list_dtype
+        name="a",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+LIST_DTYPES = (
+    pa.list_(pa.string()),
+    pa.large_list(pa.string()),
+)
+
+
+@pytest.mark.parametrize("list_dtype", LIST_DTYPES)
+@pytest.mark.parametrize("data", ([["A", "B"], ["C", "D"]], [["A", "B"], []]))
+def test_list_getitem_negative_out_of_range(list_dtype, data):
+    # GH#63221
+    ser = pd.Series(data, dtype=pd.ArrowDtype(list_dtype))
+    with pytest.raises(IndexError, match="list index -5 out of range"):
+        ser.list[-5]
+
+
+def test_list_getitem_negative_sliced_and_chunked():
+    # GH#63221
+    char_series = [["A", "B"], ["C", "D", "F"], None]
+    ser = pd.Series(char_series, dtype=pd.ArrowDtype(pa.list_(pa.string())))
+    result = ser.iloc[1:].list[-1]
+    index = [1, 2]
+    expected = pd.Series(["F", None], dtype=pd.ArrowDtype(pa.string()), index=index)
+    tm.assert_series_equal(result, expected)
+
+    chunked = pd.concat([ser, ser], ignore_index=True)
+    result = chunked.list[-1]
+    expected = pd.Series(
+        ["B", "F", None, "B", "F", None], dtype=pd.ArrowDtype(pa.string())
+    )
+    tm.assert_series_equal(result, expected)
