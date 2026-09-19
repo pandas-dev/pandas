@@ -1558,8 +1558,6 @@ def test_setitem_boolean_mask_length_mismatch_message_gh45593():
 @pytest.mark.parametrize(
     "value, ncols",
     [
-        (pd.Series(pd.date_range("2030", periods=3, tz="UTC")), 1),
-        (pd.Series(pd.period_range("2030", periods=3, freq="D")), 1),
         (np.arange(3).reshape(3, 1), 1),
         (np.arange(9).reshape(3, 3), 3),
     ],
@@ -1580,4 +1578,53 @@ def test_setitem_key_matching_several_columns_mismatched_value(value, ncols, col
     msg = f"Got 2 positions but value has {ncols} columns"
     with pytest.raises(ValueError, match=msg):
         df["a"] = value
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.Series(pd.date_range("2030", periods=3, tz="UTC")),
+        pd.Series(pd.period_range("2030", periods=3, freq="D")),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_2d_capable_ea(value, columns):
+    # GH#68445 these two dtypes fell between _set_item's broadcast and the
+    #  manager's 1-D EA path, so they used to corrupt the frame; they now
+    #  broadcast like every other dtype
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+
+    df["a"] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    for pos in positions:
+        assert df.dtypes.iloc[pos] == value.dtype
+        tm.assert_series_equal(
+            df.iloc[:, pos], value, check_names=False, check_index=False
+        )
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["a", "a", "b"], ["a", "b", "a"]],
+)
+def test_setitem_key_matching_several_columns_matching_width(columns):
+    # GH#68445 positive control for the check above; the boolean-mask loc is the
+    #  one where the value's columns could be placed out of order
+    df = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+
+    df["a"] = np.arange(6).reshape(3, 2)
+
+    expected = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+    positions = [i for i, col in enumerate(columns) if col == "a"]
+    for offset, pos in enumerate(positions):
+        expected.isetitem(pos, np.arange(6).reshape(3, 2)[:, offset])
     tm.assert_frame_equal(df, expected)
