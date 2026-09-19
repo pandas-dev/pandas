@@ -989,6 +989,32 @@ class TestTableOrientReader:
         with pytest.raises(ValueError, match=msg):
             pd.read_json(StringIO(json.dumps(table)), orient="table")
 
+    @pytest.mark.parametrize("labels", [[1, True], [1, 1.0], [0, False]])
+    def test_read_json_table_orient_positional_colliding_labels_no_records(
+        self, labels
+    ):
+        # GH#19129 with no records the duplicate check used to be skipped, and
+        #  the label-keyed restore silently collapsed the two into the last one
+        table = {
+            "schema": {
+                "fields": [{"name": label, "type": "number"} for label in labels]
+            },
+            "data": [],
+        }
+        msg = re.escape(f"Field names {labels} are the same label to pandas")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(StringIO(json.dumps(table)), orient="table")
+
+    def test_read_json_table_orient_repeated_label_no_records(self):
+        # GH#19129 the same label twice is not a collision: either one restores
+        #  to the same value, and duplicate columns are allowed
+        table = {
+            "schema": {"fields": [{"name": 1, "type": "number"}] * 2},
+            "data": [],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        assert list(result.columns) == [1, 1]
+
     def test_read_json_table_orient_float_label_strict_parse_no_records(self):
         # GH#19129 with no records there is no key to recover the label from,
         #  so a schema the precise parser rejects has to raise rather than
