@@ -252,6 +252,7 @@ class StylerRenderer:
         column_header_rows = (
             self.columns.nlevels - sum(self.hide_columns_) if len(self.columns) else 0
         )
+        hidden_columns_set = set(self.hidden_columns)
         for r, row in enumerate(d["head"]):
             if r < column_header_rows:
                 # Keep sparse column placeholders, but remove explicitly hidden columns.
@@ -260,7 +261,7 @@ class StylerRenderer:
                 ] + [
                     cell
                     for c, cell in enumerate(row[visible_index_levels:])
-                    if cell["is_visible"] or c not in self.hidden_columns
+                    if cell["is_visible"] or c not in hidden_columns_set
                 ]
             else:
                 d["head"][r] = [cell for cell in row if cell["is_visible"]]
