@@ -4983,6 +4983,153 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        pa.array(["a", "b"], type=pa.string_view()),
+        pa.array([b"a", b"b"], type=pa.binary_view()),
+        pa.array([[1], [2]], type=pa.list_(pa.int64())),
+        pa.array(np.array([1, 2], dtype=np.float16)),
+    ],
+)
+def test_factorize_dictionary_unsupported_value_type(values):
+    # GH#69024 re-factorizing needs a dictionary_encode kernel for the value type,
+    #  which list and float16 lack, and a take kernel, which the view types lack.
+    #  factorize keeps the stored dictionary for those rather than raising.
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()), values
+    )
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    expected = np.array([0, 1, 0], dtype=np.intp)
+    for use_na_sentinel in [True, False]:
+        indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+        tm.assert_numpy_array_equal(indices, expected)
+        # compared as pyarrow, since ArrowDtype.type raises for the view types
+        assert uniques._pa_array.combine_chunks().equals(values)
+
+
+@pytest.mark.parametrize("use_na_sentinel", [True, False])
+@pytest.mark.parametrize("empty", [False, True])
+def test_factorize_dictionary_chunked_null_in_dictionary(empty, use_na_sentinel):
+    # GH#69024 pyarrow refuses to unify chunk dictionaries when one holds a null,
+    #  so re-factorizing in index space has to fall back rather than raise
+    enc = pa.array(["a", None, "a"]).dictionary_encode(null_encoding="encode")
+    dtype = ArrowDtype(enc.type)
+    pieces = [
+        pd.Series(pd.array(enc, dtype=dtype)),
+        pd.Series(pd.array(pa.array(["b"]).dictionary_encode(), dtype=dtype)),
+    ]
+    if empty:
+        pieces = [piece.iloc[:0] for piece in pieces]
+    arr = pd.concat(pieces, ignore_index=True).array
+    assert arr._pa_array.num_chunks == 2
+
+    indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    if empty:
+        expected_indices = np.array([], dtype=np.intp)
+        expected_uniques = []
+    elif use_na_sentinel:
+        expected_indices = np.array([0, -1, 0, 1], dtype=np.intp)
+        expected_uniques = ["a", "b"]
+    else:
+        expected_indices = np.array([0, 1, 0, 2], dtype=np.intp)
+        expected_uniques = ["a", None, "b"]
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(
+        uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
+    )
+
+
+def test_factorize_dictionary_null_in_dictionary():
+    # GH#69024 a null stored in the dictionary rather than the indices must still
+    #  reach the sentinel, and must not show up in uniques
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()), pa.array(["a", None])
+    )
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, -1, 0], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["a"], dtype=ArrowDtype(pa.string()))
+    )
+
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["a", None], dtype=ArrowDtype(pa.string()))
+    )
+
+
+def test_factorize_dictionary_null_in_dictionary_and_indices():
+    # GH#69024 a null entry and a null index are the same missing value, so they
+    #  share one code rather than splitting NA across two groups
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, None, 1], type=pa.int32()), pa.array(["a", None])
+    )
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 1], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["a", None], dtype=ArrowDtype(pa.string()))
+    )
+
+
+def test_factorize_dictionary_of_dictionary():
+    # GH#69024 a dictionary-typed value type cannot be re-encoded in index space,
+    #  because the inner dictionary_encode takes no null_encoding
+    inner = pa.array(["a", "b"]).dictionary_encode()
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()), inner
+    )
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+    )
+
+
+def test_factorize_dictionary_unreferenced_entries():
+    # GH#69024 a dictionary may keep entries no index points at, e.g. after a
+    #  filter, and those are not uniques of the values that remain
+    enc = pa.array(["a", "b", "c", "a"]).dictionary_encode()
+    arr = pd.array(enc, dtype=ArrowDtype(enc.type))[2:]
+
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 1], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["c", "a"], dtype=ArrowDtype(pa.string()))
+    )
+
+    df = pd.DataFrame({"k": arr, "v": [3, 4]})
+    result = df.groupby("k", sort=False)["v"].sum()
+    expected = pd.Series(
+        [3, 4],
+        name="v",
+        index=pd.Index(pd.array(["c", "a"], dtype=arr.dtype), name="k"),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_factorize_dictionary_duplicate_entries():
+    # GH#69024 a dictionary may hold the same value twice, which would otherwise
+    #  split one group in two
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()), pa.array(["a", "a", "b"])
+    )
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 0, 0], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["a"], dtype=ArrowDtype(pa.string()))
+    )
+
+
 def test_dictionary_astype_categorical():
     # GH#56672
     arrs = [
