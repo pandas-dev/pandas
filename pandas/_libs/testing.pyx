@@ -190,7 +190,7 @@ cpdef assert_almost_equal(a, b,
                 try:
                     r = list(set(a) ^ set(b))
                 except TypeError:
-                    # Nested sequences can contain unhashable elements.
+                    # GH#69014: Nested sequences can contain unhashable elements.
                     r = None
             else:
                 r = None
