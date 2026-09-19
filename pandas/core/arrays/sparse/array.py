@@ -78,6 +78,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
     notna,
@@ -454,6 +455,17 @@ _BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
 _BOOL_SPARSE_DTYPE_TRUE_FILL = SparseDtype(bool, True)
 
 
+def _dense_can_hold(dtype: np.dtype, value) -> bool:
+    """
+    Whether an ndarray of ``dtype`` can hold ``value`` without casting it.
+
+    ``can_hold_element`` dispatches on the array, not the dtype, so a datetimelike
+    ``dtype`` has to reach it as a DatetimeArray/TimedeltaArray to be validated at all.
+    """
+    dummy = ensure_wrapped_if_datetimelike(np.empty(0, dtype=dtype))
+    return can_hold_element(dummy, value)
+
+
 def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
     """
     Dense dtype wide enough to hold ``fill_value``, and ``fill_value`` unboxed —
@@ -463,8 +475,7 @@ def _promote_for_fill(dtype: np.dtype, fill_value) -> tuple[np.dtype, Any]:
     whenever the fill value's unit differs, so a ``Timestamp`` would pull a
     ``Sparse[M8[s]]`` up to nanoseconds.
     """
-    dummy = ensure_wrapped_if_datetimelike(np.empty(0, dtype=dtype))
-    if can_hold_element(dummy, fill_value):
+    if _dense_can_hold(dtype, fill_value):
         if dtype.kind in "mM":
             # an object dtype holds these as-is; only a datetimelike array needs
             #  the numpy scalar, and only it rejects np.nan in place of NaT
@@ -1569,7 +1580,18 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             sp_index = BlockIndex(length, blocs_arr, blengths_arr)
 
-        return cls(data, sparse_index=sp_index, fill_value=fill_value)
+        # GH#69028 _simple_new, not the constructor: sanitize_array would re-infer an
+        #  object array of datetimelikes back to M8/m8, which the fill value need not
+        #  be valid for
+        return cls._simple_new(data, sp_index, SparseDtype(data.dtype, fill_value))
+
+    def insert(self, loc: int, item) -> Self:
+        if not is_valid_na_for_dtype(item, self.dtype):
+            # GH#69028 our _from_sequence casts to the subtype instead of
+            #  raising, so validate here; Index.insert widens on the raise
+            if not _dense_can_hold(self.dtype.subtype, item):
+                raise TypeError(f"Invalid value '{item!s}' for dtype '{self.dtype}'")
+        return super().insert(loc, item)
 
     def astype(self, dtype: AstypeArg | None = None, copy: bool = True):
         """

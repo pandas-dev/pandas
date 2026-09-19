@@ -957,3 +957,28 @@ def test_value_counts_object_subtype_with_na():
     result = arr.value_counts(dropna=False)
     expected = pd.Series([1, 2, 1], index=pd.Index([0, 1, pd.NA], dtype=object))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "subtype, item",
+    [
+        ("int64", 1.5),
+        ("int64", 2**63),
+        ("int64", pd.Timestamp("2016-01-01")),
+        ("bool", 1.5),
+        ("M8[ns]", 1.5),
+        ("m8[ns]", 1.5),
+    ],
+)
+def test_insert_lossy_raises(subtype, item):
+    # GH#69028 a value the subtype cannot hold must raise, not be cast
+    arr = SparseArray(np.array([1, 2, 3]).astype(subtype))
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr.insert(0, item)
+
+
+def test_insert_lossless_float_into_int_subtype():
+    # GH#69028 a float the subtype can hold exactly is not rejected
+    arr = SparseArray([1, 2, 3])
+    result = arr.insert(0, 1.0)
+    tm.assert_extension_array_equal(result, SparseArray([1, 1, 2, 3]))

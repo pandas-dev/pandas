@@ -2177,7 +2177,7 @@ class SparseDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatible extension dtypes
-        from pandas.core.dtypes.cast import np_find_common_type
+        from pandas.core.dtypes.cast import find_common_type
 
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
@@ -2202,11 +2202,11 @@ class SparseDtype(ExtensionDtype):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
-        # error: Argument 1 to "np_find_common_type" has incompatible type
-        # "*Generator[Any | dtype[Any] | ExtensionDtype, None, None]";
-        # expected "dtype[Any]"  [arg-type]
-        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)  # type: ignore [arg-type]
+        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        # GH#69028 find_common_type rather than np_find_common_type: numpy widens
+        #  bool with a numeric to that numeric, and drops the subtype for two
+        #  datetime64/timedelta64 dtypes; pandas gets both right
+        return SparseDtype(find_common_type(np_dtypes), fill_value=fill_value)
 
 
 @register_extension_dtype
