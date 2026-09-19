@@ -1975,7 +1975,7 @@ def test_setitem_timestamp_tz_mismatch_raises(target_tz, value_tz, as_pydatetime
     value = pd.Timestamp("2016-01-01", tz=value_tz)
     if as_pydatetime:
         value = value.to_pydatetime()
-    msg = "Cannot compare tz-naive and tz-aware datetime-like objects"
+    msg = re.escape(f"Invalid value '{value}' for dtype '{arr.dtype}'")
 
     with pytest.raises(TypeError, match=msg):
         arr[0] = value
@@ -1985,6 +1985,11 @@ def test_setitem_timestamp_tz_mismatch_raises(target_tz, value_tz, as_pydatetime
         pd.Series(arr).fillna(value)
     with pytest.raises(TypeError, match=msg):
         pd.Series(arr).where([False, True], value)
+    with pytest.raises(TypeError, match=msg):
+        pd.Series(arr).mask([True, False], value)
+    with pytest.raises(TypeError, match=msg):
+        # to_replace has to match, or nothing reaches the boxing step
+        pd.Series(arr).replace(arr[0], value)
     with pytest.raises(TypeError, match=msg):
         # take() fills through _validate_setitem_value, so reindex is guarded too
         pd.Series(arr).reindex([0, 1, 2], fill_value=value)
@@ -1999,9 +2004,8 @@ def test_setitem_pa_scalar_tz_mismatch_raises(target_tz, value_tz):
     arr = pd.array([1, None], dtype=ArrowDtype(pa.timestamp("ns", tz=target_tz)))
     value = pa.scalar(pd.Timestamp("2016-01-01", tz=value_tz))
 
-    with pytest.raises(
-        TypeError, match="Cannot compare tz-naive and tz-aware datetime-like objects"
-    ):
+    msg = re.escape(f"Invalid value '{value}' for dtype '{arr.dtype}'")
+    with pytest.raises(TypeError, match=msg):
         arr[0] = value
 
     arr[0] = pa.scalar(None, type=pa.timestamp("ns", tz=value_tz))
@@ -2075,6 +2079,22 @@ def test_get_common_dtype_timestamp_tz(other, expected):
     dtype = ArrowDtype(pa.timestamp("ns", tz="US/Eastern"))
     result = dtype._get_common_dtype([dtype, other])
     assert result == (None if expected is None else ArrowDtype(expected))
+
+
+def test_concat_null_and_numpy_tz_aware():
+    # GH#69029 a null[pyarrow] column names no type, so the tz-aware column decides
+    #  the result; it arrow-ifies, as a numpy int64 column beside a null[pyarrow]
+    #  one already does
+    nullcol = pd.Series(pd.array([None], dtype=ArrowDtype(pa.null())))
+    numpy_tz = pd.Series(
+        pd.DatetimeIndex(["2016-01-06"]).tz_localize("US/Eastern").as_unit("us")
+    )
+
+    result = pd.concat([numpy_tz, nullcol], ignore_index=True)
+
+    assert result.dtype == ArrowDtype(pa.timestamp("us", tz="US/Eastern"))
+    assert result[0] == pd.Timestamp("2016-01-06", tz="US/Eastern")
+    assert result[1] is pd.NA
 
 
 def test_concat_timestamp_tz_arrow_and_numpy():

@@ -728,9 +728,10 @@ class ArrowExtensionArray(
             ):
                 # a Timestamp and a plain datetime both store their UTC epoch
                 #  under pa_type, so a mismatch names a different instant
-                #  (GH#69029)
-                raise TypeError(
-                    "Cannot compare tz-naive and tz-aware datetime-like objects"
+                #  (GH#69029). ArrowTypeError so the callers that normalize it
+                #  report this like any other rejected value
+                raise pa.ArrowTypeError(
+                    "Cannot mix tz-aware and tz-naive datetime-like values"
                 )
 
             # Workaround https://github.com/apache/arrow/issues/37291
@@ -759,8 +760,8 @@ class ArrowExtensionArray(
                 # the cast keeps the UTC epoch, so it would name a different
                 #  instant; a pa.Scalar value reaches the boundary only here
                 #  (GH#69029)
-                raise TypeError(
-                    "Cannot compare tz-naive and tz-aware datetime-like objects"
+                raise pa.ArrowTypeError(
+                    "Cannot mix tz-aware and tz-naive datetime-like values"
                 )
             pa_scalar = pa_scalar.cast(pa_type)
 
