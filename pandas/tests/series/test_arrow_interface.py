@@ -123,6 +123,9 @@ def test_series_from_arrow_pyarrow_name():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_series_from_arrow_custom_conversion():
     # ensuring that we use our custom conversion and not the default pyarrow to_pandas
     arr = pa.array([1, 2, 3], type=pa.timestamp("ns", tz="America/New_York"))
