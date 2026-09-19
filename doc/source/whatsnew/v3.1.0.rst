@@ -981,6 +981,7 @@ MultiIndex
 I/O
 ^^^
 - :func:`read_csv` and :func:`read_table` now raise an informative ``ValueError`` for ``sep="\r"`` or ``delimiter="\r"``, which were silently mis-parsed into a frame of one column plus all-NaN padding, matching the error already raised for ``"\n"``; the error message no longer misattributes the failure to the ``python`` engine (:issue:`43528`, :issue:`51801`)
+- :func:`read_csv` and :func:`read_table` now apply ``na_values`` and the default NA strings to the values a ``converters`` entry returns; previously the default ``c`` engine silently ignored both for a converter column, so an empty field under ``converters={"a": str}`` now reads as ``NaN`` (:issue:`13302`)
 - :func:`read_csv` and :func:`read_table` with ``thousands`` no longer lose significant digits from a value with leading zeros after the decimal point; previously ``0.0001234567890123456789`` kept only 14 of them and ``0.0000000000000000000000005`` came back as ``0.0`` (:issue:`68311`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``EmptyDataError`` (matching the ``c`` and ``python`` engines) instead of a cryptic ``ParserError`` reporting ``Empty CSV file or block`` when no columns can be parsed from the input (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
