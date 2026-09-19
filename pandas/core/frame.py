@@ -17152,9 +17152,10 @@ class DataFrame(NDFrame, OpsMixin):
             )
         elif axis == 1:
             if len(df.index) == 0:
-                # Taking a transpose would result in no columns, losing the dtype.
-                # In the empty case, reducing along axis 0 or 1 gives the same
-                # result dtype, so reduce with axis=0 and ignore values
+                # Taking a transpose would result in no columns, losing the dtype
+                # (GH#32802). In the empty case, reducing along axis 0 or 1
+                # gives the same result dtype, so reduce with axis=0 and ignore
+                # values.
                 result = df._reduce(
                     op,
                     name,

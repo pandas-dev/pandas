@@ -1064,6 +1064,12 @@ class FrameApply(NDFrameApply):
         obj = self.obj
         axis = self.axis
 
+        # GH#32802: transposing a 0-row frame produces 0 columns and
+        # drops dtypes (e.g. datetime64[ns, UTC] -> float64). Named
+        # reductions already preserve dtype via DataFrame._reduce.
+        if axis == 1 and len(obj.index) == 0 and isinstance(self.func, str):
+            return self.apply_str()
+
         # TODO: Avoid having to change state
         self.obj = self.obj if self.axis == 0 else self.obj.T
         self.axis = 0
