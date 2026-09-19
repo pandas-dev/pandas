@@ -17296,22 +17296,15 @@ class DataFrame(NDFrame, OpsMixin):
             # overflows or combines lossily (see
             # test_reduce_axis1_int_block_does_not_wrap). np.result_type, not
             # find_common_type, which gives object for a bool mix.
-            arrays = [
-                blk.values
-                for blk in self._mgr.blocks
-                if isinstance(blk.values, np.ndarray)
-            ]
-            if len(arrays) == len(self._mgr.blocks) and all(
-                arr.dtype.kind in "biufc" for arr in arrays
-            ):
-                acc_dtype = np.result_type(*[arr.dtype for arr in arrays])
+            dtypes = [blk.dtype for blk in self._mgr.blocks]
+            if all(dtype.kind in "biufc" for dtype in dtypes):
+                acc_dtype = np.result_type(*dtypes)
                 if name == "mean" and (
-                    acc_dtype.kind != "f" or acc_dtype == np.float16
+                    acc_dtype.kind not in "fc" or acc_dtype == np.float16
                 ):
-                    # nanmean's result widens for all but float32/float64
-                    acc_dtype = np.dtype(
-                        np.complex128 if acc_dtype.kind == "c" else np.float64
-                    )
+                    # nanmean sums in the input dtype for float and complex and
+                    # widens only the division; everything else it sums as f8
+                    acc_dtype = np.dtype(np.float64)
 
         if name == "all":
             result = np.ones(len(self), dtype=bool)
@@ -17372,15 +17365,15 @@ class DataFrame(NDFrame, OpsMixin):
                         non_null_count += vals.shape[0] - isna(vals).sum(axis=0)
                 if name == "mean":
                     null_mask = non_null_count == 0
-                    if result.dtype.kind not in "fc":
-                        result = result.astype("float64")
+                    # nanmean divides by a float64 count, so c8 widens to c16
+                    result = _widen_for_nan(result)
                     result[~null_mask] /= non_null_count[~null_mask]
                     result[null_mask] = np.nan
                 else:
                     null_mask = non_null_count < min_count
                     if null_mask.any():
-                        if result.dtype.kind not in "fc":
-                            result = result.astype("float64")
+                        # _maybe_null_out widens complex the same way
+                        result = _widen_for_nan(result)
                         result[null_mask] = np.nan
 
         assert result is not None
@@ -20518,6 +20511,18 @@ class _DuplicateColumnRecorder(dict):
         if key in self.names:
             self.referenced = True
         raise KeyError(key)
+
+
+def _widen_for_nan(result: np.ndarray) -> np.ndarray:
+    """
+    Widen a reduction result to the dtype that can hold the NaN about to be
+    written into it, matching what nanops does (GH#68641).
+    """
+    if result.dtype.kind not in "fc":
+        return result.astype("float64")
+    if result.dtype == np.complex64:
+        return result.astype("complex128")
+    return result
 
 
 def _from_nested_dict(

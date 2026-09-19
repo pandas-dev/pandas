@@ -3271,6 +3271,32 @@ def test_reduce_axis1_bool_block_keeps_common_dtype(method, expected):
     tm.assert_series_equal(result, pd.Series([expected]))
 
 
+def test_reduce_axis1_complex64_matches_transpose():
+    # GH#68641 nanmean accumulates in the input dtype and widens only for the
+    #  division, so complex64 must not be summed as complex128 here either
+    df = pd.DataFrame(
+        {
+            "a": np.array([32767], dtype="int16"),
+            "b": np.array([2**62], dtype="complex64"),
+        }
+    )
+
+    tm.assert_series_equal(df.mean(axis=1), df.T.mean())
+
+
+def test_reduce_axis1_min_count_complex64_matches_transpose():
+    # GH#68641 _maybe_null_out widens complex64 before writing NaN; the axis=1
+    #  path has to widen the same way
+    df = pd.DataFrame(
+        {
+            "a": np.array([1 + 2j, np.nan], dtype="complex64"),
+            "b": np.array([1.0, 2.0], dtype="float32"),
+        }
+    )
+
+    tm.assert_series_equal(df.sum(axis=1, min_count=2), df.T.sum(min_count=2))
+
+
 def test_reduce_axis1_mean_complex_keeps_imaginary_part():
     # GH#68641: mean unconditionally cast the combined result to float64,
     # silently discarding the imaginary part
