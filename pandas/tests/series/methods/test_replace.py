@@ -779,3 +779,49 @@ def test_replace_datetime_out_of_bounds_for_ns():
     ser = pd.Series([np.nan], dtype="datetime64[ns]")
     with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
         ser.replace(np.nan, datetime(3000, 1, 1))
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_compiled_regex_arrow_dtype(pa_type):
+    # GH#69026 a compiled pattern was discarded on ArrowDtype strings
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    ser = pd.Series(["ab", "b", None], dtype=dtype)
+    expected = pd.Series(["zb", "b", None], dtype=dtype)
+
+    original = ser.copy()
+
+    tm.assert_series_equal(ser.replace(re.compile("^a"), "z"), expected)
+    # the same guard is reached through replace_list
+    tm.assert_series_equal(ser.replace(regex={re.compile("^a"): "z"}), expected)
+    # both asserts above would pass even if ser were mutated: "^a" no longer
+    #  matches a substituted value
+    tm.assert_series_equal(ser, original)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_compiled_regex_arrow_dtype_non_string_value(pa_type):
+    # GH#69026 a replacement the arrow column cannot hold upcasts to object, as it
+    #  does for the other string dtypes, rather than raising or stringifying
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["ab", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+    expected = pd.Series([1, "b"], dtype=object)
+
+    tm.assert_series_equal(ser.replace(re.compile("^a"), 1), expected)
+    # replace_list reaches the same guard, and used to store the string "1"
+    tm.assert_series_equal(ser.replace(regex={re.compile("^a"): 1}), expected)
+
+
+def test_replace_compiled_regex_string_dtype_non_string_value():
+    # GH#69026 the behavior ArrowDtype is matched against
+    ser = pd.Series(["ab", "b"], dtype=pd.StringDtype("pyarrow"))
+    expected = pd.Series([1, "b"], dtype=object)
+
+    tm.assert_series_equal(ser.replace(re.compile("^a"), 1), expected)
+    tm.assert_series_equal(ser.replace(regex={re.compile("^a"): 1}), expected)
+
+
+def test_replace_compiled_regex_bytes_dtype():
+    # GH#69026 a regex never matches bytes, so this must stay a dtype-preserving no-op
+    ser = pd.Series(np.array([b"ab", b"b"], dtype="S2"))
+    tm.assert_series_equal(ser.replace(re.compile("^a"), "z"), ser)

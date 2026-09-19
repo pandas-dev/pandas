@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -790,17 +791,28 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and _regex_target_dtype(self.dtype) not in [
-            object,
-            "string",
-        ]:
-            # only object or string dtype can hold strings, and a regex object
-            # will only match strings
+        target_dtype = _regex_target_dtype(self.dtype)
+        if is_re(to_replace) and not (
+            is_string_dtype(target_dtype) and target_dtype.kind != "S"
+        ):
+            # a regex only matches strings; is_string_dtype counts numpy bytes,
+            # which never match
             return [self.copy(deep=False)]
 
-        if not (
-            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
-        ):
+        if isinstance(self.dtype, ArrowDtype) and not is_re(value):
+            # can_hold_element returns True for every ArrowDtype, so it cannot
+            #  answer this; ask the array itself (GH#69026)
+            try:
+                self.values._validate_setitem_value(value)  # type: ignore[union-attr]
+                can_hold_value = True
+            except (ValueError, TypeError):
+                can_hold_value = False
+        else:
+            can_hold_value = self._can_hold_element(value) or (
+                is_string_dtype(self.dtype) and is_re(value)
+            )
+
+        if not can_hold_value:
             # GH#57733 - astype to object may return a block sharing memory
             # with self (e.g. StringArray backed by object ndarray). Since
             # replace_regex mutates values in-place, we must ensure the
