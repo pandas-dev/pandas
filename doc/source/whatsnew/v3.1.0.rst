@@ -907,6 +907,7 @@ Interval
 - Bug in :func:`cut` and other operations building an :class:`IntervalIndex` engine raising ``TypeError`` on 32-bit platforms when there were more than 100 intervals (:issue:`44075`, :issue:`23440`)
 - Bug in :attr:`IntervalIndex.is_overlapping` returning ``True`` for an index containing an empty interval nested inside another interval, e.g. ``IntervalIndex.from_tuples([(0, 3), (1, 1)], closed="left")``; such an index is now also usable with :meth:`IntervalIndex.get_indexer` and as ``bins`` in :func:`cut` (:issue:`68069`)
 - Bug in :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` reporting an overlap with an empty interval such as ``Interval(0, 0, closed="left")``, which contains no points; empty intervals now never overlap (:issue:`26893`)
+- Bug in :meth:`IntervalDtype.__from_arrow__` returning incorrect (non-NA) intervals for null struct entries because the parent struct's validity bitmap was not applied to the child ``left``/``right`` arrays (:issue:`67754`)
 
 Indexing
 ^^^^^^^^
