@@ -1450,8 +1450,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 res[na_mask] = len(self)
                 return res
             value = value._data
-        elif value is libmissing.NA:
-            return np.array([len(self)])  # type: ignore[comparison-overlap]
+        elif value is libmissing.NA:  # type: ignore[comparison-overlap]
+            return np.array([len(self)])
         # Base class searchsorted would cast to object, which is *much* slower.
         return self._data.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
