@@ -764,7 +764,7 @@ def test_assert_almost_equal_zero_dim_duck_array():
 
 def test_assert_almost_equal_zero_dim_numpy_subclass():
     # Similar to GH#45240, but with a subclass of ndarray that returns a 0-dim array
-    # of itself as common in astropy's Quantity
+    #  of itself as common in astropy's Quantity; see GH#68927
     class AstropyQuantity(np.ndarray):
         # mimics astropy's Quantity: Uses a subclass of ndarray, with custom
         # __getitem__ so that it returns a zerodim array of itself instead of scalar
@@ -783,3 +783,36 @@ def test_assert_almost_equal_zero_dim_numpy_subclass():
 
     _assert_almost_equal_both(left, left.copy())
     _assert_not_almost_equal_both(left, right)
+
+
+def test_assert_almost_equal_zero_dim_numpy_dtype():
+    # GH#68927 By default dtype should be checked
+    a = np.array(5)
+    b = np.array(5.0)
+    msg = 'numpy array are different\n\nAttribute "dtype" are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+        tm.assert_almost_equal(b, a)
+
+    # Without check_dtype, they are considered equal
+    _assert_almost_equal_both(a, b, check_dtype=False)
+
+
+def test_assert_almost_equal_zero_dim_numpy_ndim():
+    # GH#68927 Arrays of same size but different ndim should be different
+    a = np.array(5)
+    b = np.array([5])
+    msg = "numpy array are different\n\nnumpy array shapes are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+        tm.assert_almost_equal(b, a)
+
+
+def test_assert_almost_equal_zero_dim_numpy_size():
+    # GH#68927 Arrays of different size should be different
+    a = np.array(5)
+    b = np.array([5, 5])
+    msg = "numpy array are different\n\nnumpy array shapes are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+        tm.assert_almost_equal(b, a)

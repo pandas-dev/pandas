@@ -30,8 +30,8 @@ cdef bint isiterable(obj):
         return False
 
     # GH#45240 exclude zero-dimensional duck-arrays, effectively scalars, as
-    # lib.c_is_list_like does. pint's and astropy's scalar Quantity are one of these:
-    # they define __iter__ and __len__ that delegate to their scalar magnitude.
+    #  lib.c_is_list_like does. pint's and astropy's scalar Quantity are one of these:
+    #  they define __iter__ and __len__ that delegate to their scalar magnitude.
     return not (hasattr(obj, "ndim") and obj.ndim == 0)
 
 
@@ -125,6 +125,48 @@ cpdef assert_almost_equal(a, b,
         else:
             obj = "Iterable"
 
+    if a_is_ndarray and b_is_ndarray:
+        na, nb = a.size, b.size
+        if a.shape != b.shape:
+            from pandas._testing import raise_assert_detail
+            raise_assert_detail(
+                obj, f"{obj} shapes are different", a.shape, b.shape)
+
+        if check_dtype and a.dtype != b.dtype:
+            from pandas._testing import assert_attr_equal
+            assert_attr_equal("dtype", a, b, obj=obj)
+
+        if array_equivalent(a, b, strict_nan=True):
+            if a.dtype.kind in "iu" and b.dtype.kind == "f":
+                int_arr = a
+            elif a.dtype.kind == "f" and b.dtype.kind in "iu":
+                int_arr = b
+            else:
+                return True
+
+            if not int_arr.size or (
+                int_arr.max() <= 2**53
+                and (int_arr.dtype.kind == "u" or int_arr.min() >= -(2**53))
+            ):
+                return True
+
+            # array_equivalent compared after a lossy cast to float64; redo
+            #  it at full integer precision. A float outside the integer
+            #  dtype's range has no exact cast, so leave that to the loop.
+            flt_arr = b if int_arr is a else a
+            info = np.iinfo(int_arr.dtype)
+            if ((flt_arr >= info.min) & (flt_arr < info.max + 1)).all():
+                if np.array_equal(int_arr, flt_arr.astype(int_arr.dtype)):
+                    return True
+
+        # flatten so the loop compares values, not rows; see GH#68366 and
+        #  test_assert_almost_equal_value_mismatch_2d_percentage
+        # A zerodim array is converted to a 1-D array by ravel,
+        #  check prevents RecursionError on loop; see GH#68927
+        if a.ndim != 0:
+            a = a.ravel()
+            b = b.ravel()
+
     if isiterable(a):
 
         if not isiterable(b):
@@ -137,46 +179,7 @@ cpdef assert_almost_equal(a, b,
             f"Can't compare objects without length, one or both is invalid: ({a}, {b})"
         )
 
-        if a_is_ndarray and b_is_ndarray:
-            na, nb = a.size, b.size
-            if a.shape != b.shape:
-                from pandas._testing import raise_assert_detail
-                raise_assert_detail(
-                    obj, f"{obj} shapes are different", a.shape, b.shape)
-
-            if check_dtype and a.dtype != b.dtype:
-                from pandas._testing import assert_attr_equal
-                assert_attr_equal("dtype", a, b, obj=obj)
-
-            if array_equivalent(a, b, strict_nan=True):
-                if a.dtype.kind in "iu" and b.dtype.kind == "f":
-                    int_arr = a
-                elif a.dtype.kind == "f" and b.dtype.kind in "iu":
-                    int_arr = b
-                else:
-                    return True
-
-                if not int_arr.size or (
-                    int_arr.max() <= 2**53
-                    and (int_arr.dtype.kind == "u" or int_arr.min() >= -(2**53))
-                ):
-                    return True
-
-                # array_equivalent compared after a lossy cast to float64; redo
-                #  it at full integer precision. A float outside the integer
-                #  dtype's range has no exact cast, so leave that to the loop.
-                flt_arr = b if int_arr is a else a
-                info = np.iinfo(int_arr.dtype)
-                if ((flt_arr >= info.min) & (flt_arr < info.max + 1)).all():
-                    if np.array_equal(int_arr, flt_arr.astype(int_arr.dtype)):
-                        return True
-
-            # flatten so the loop compares values, not rows; see GH#68366 and
-            #  test_assert_almost_equal_value_mismatch_2d_percentage
-            a = a.ravel()
-            b = b.ravel()
-
-        else:
+        if not (a_is_ndarray and b_is_ndarray):
             na, nb = len(a), len(b)
 
         if na != nb:
