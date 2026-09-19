@@ -63,3 +63,22 @@ class TestDataFrameSetItem:
         with pytest.raises(ValueError, match=msg):
             df.isetitem([0, 1, 2], value)
         tm.assert_frame_equal(df, expected)
+
+    def test_isetitem_array_matching_width_still_writes(self):
+        # GH#68445 positive control for the check above: the positions and the
+        #  value's columns line up in order
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+
+        df.isetitem([0, 2], np.arange(6).reshape(3, 2))
+
+        expected = pd.DataFrame({"a": [0, 2, 4], "b": [4, 5, 6], "c": [1, 3, 5]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_isetitem_scalar_fills_every_position(self):
+        # GH#68445 `value : scalar or arraylike` per the docstring; a scalar
+        #  sanitizes to one column and must not trip the column-count check
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+        df.isetitem([0, 1], 5)
+
+        tm.assert_frame_equal(df, pd.DataFrame({"a": [5, 5, 5], "b": [5, 5, 5]}))
