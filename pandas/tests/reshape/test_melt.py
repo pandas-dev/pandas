@@ -1288,3 +1288,18 @@ def test_wide_to_long_string_columns(string_storage):
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_wide_to_long_no_values_deprecation():
+    # GH#69025 the list-`i` uniqueness check goes through DataFrame.duplicated,
+    # which must not self-trigger the .values deprecation
+    df = pd.DataFrame(
+        {
+            "id1": pd.date_range("2020", periods=3, tz="UTC"),
+            "id2": range(3),
+            "A1": [1.0, 2.0, 3.0],
+            "A2": [4.0, 5.0, 6.0],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        pd.wide_to_long(df, ["A"], i=["id1", "id2"], j="n")

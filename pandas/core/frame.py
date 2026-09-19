@@ -9154,7 +9154,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = self[next(iter(subset))].duplicated(keep)
             result.name = None
         else:
-            vals = (col.values for name, col in self.items() if name in subset)
+            vals = (col._values for name, col in self.items() if name in subset)
             labels, shape = map(list, zip(*map(f, vals), strict=True))
 
             ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
