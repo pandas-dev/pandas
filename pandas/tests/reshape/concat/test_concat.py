@@ -1098,3 +1098,31 @@ def test_concat_tuple_index_series_axis1_not_multiindex():
         index=pd.Index(index_arr),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_multiindex_int64_na():
+    # GH#62903: concat creates valid MultiIndex when levels have Int64Dtype with NAs
+    v = pd.Series(
+        [1, 2, 3],
+        index=pd.Index([1, 2, pd.NA], dtype="Int64"),
+    )
+    s = pd.Series(
+        [4, 5, 6],
+        index=pd.Index([1, 2, pd.NA], dtype="Int64"),
+    )
+
+    result = pd.concat({"a": v, "b": s})
+
+    assert result.at[("a", pd.NA)] == 3
+    assert result.at[("b", pd.NA)] == 6
+
+
+def test_concat_multiindex_int64_without_na():
+    # GH#62903: verify MultiIndex concat behavior without NAs
+    v = pd.Series([1, 2], index=pd.Index([1, 2], dtype="Int64"))
+    s = pd.Series([3, 4], index=pd.Index([1, 2], dtype="Int64"))
+
+    result = pd.concat({"a": v, "b": s})
+
+    assert result.loc[("a", 2)] == 2
+    assert result.loc[("b", 1)] == 3
