@@ -115,6 +115,18 @@ def test_hide(styler, hide_index, hide_column):
     assert result == expected
 
 
+@pytest.mark.parametrize("hide_headers", [True, False])
+def test_hide_all_columns(styler, hide_headers):
+    # GH 64663
+    styler.hide(axis="index").hide(styler.columns, axis="columns")
+    if hide_headers:
+        styler.hide(axis="columns")
+    result = styler.to_typst()
+    # Typst requires a positive column count even when there are no cells.
+    expected = "#table( columns: 1, )"
+    assert result.split() == expected.split()
+
+
 @pytest.mark.parametrize("sparse_index", [True, False])
 @pytest.mark.parametrize("level", [None, 0, 1, [0, 1]])
 def test_hide_multiindex(level, sparse_index):
