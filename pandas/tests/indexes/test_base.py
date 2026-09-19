@@ -331,10 +331,10 @@ class TestIndex:
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_index_replace_widening_matches_like_block_replace(self, unit):
-        # GH#68563 object compares an ns Timestamp unequal where `in` says it is
-        #  present, so the guard has to match the way Block.replace does.  That
-        #  ns no-op is a pre-existing object-dtype bug; raising keeps it from
-        #  reaching the caller as data
+        # GH#68563 mask_missing compares an ns Timestamp unequal against object,
+        #  so the widened dtype would replace nothing.  That ns no-op is a
+        #  pre-existing object-dtype bug; raising keeps it from reaching the
+        #  caller as data
         idx = pd.CategoricalIndex(pd.date_range("2020", periods=3, unit=unit))
 
         if unit == "ns":
@@ -404,8 +404,8 @@ class TestIndex:
     def test_index_replace_na_to_replace_mixed_with_literal(
         self, idx, kwargs, expected
     ):
-        # GH#68563 `in` finds an NA to_replace on some dtypes but not others, so
-        #  the pair is matched against hasnans instead; the literal paired with it
+        # GH#68563 an NA to_replace is matched through hasnans rather than
+        #  compared, which is what Block.replace does; the literal paired with it
         #  is still filtered on whether it matches
         result = idx.replace(**kwargs)
 
@@ -449,6 +449,36 @@ class TestIndex:
 
         with pytest.raises(TypeError, match="does not support item assignment"):
             idx.replace(1, value)
+
+    def test_index_replace_arrow_narrow_still_raises(self):
+        # GH#68563 pyarrow raises ArrowInvalid, a ValueError, so the retry never
+        #  fires and the value is refused where Index.where widens; blocked on
+        #  Series.replace being a no-op on arrow dtypes
+        pa = pytest.importorskip("pyarrow")
+        idx = Index([1, 2, 3], dtype="int64[pyarrow]")
+
+        with pytest.raises(pa.ArrowInvalid, match="Could not convert"):
+            idx.replace(1, "zzz")
+
+        # the widening spelling this one is expected to match one day
+        assert idx.where([False, True, True], "zzz").dtype == object
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"regex": {"2020": "z"}},
+            {"to_replace": ["2020"], "value": ["z"], "regex": True},
+        ],
+    )
+    def test_index_replace_regex_unrelated_type_error_propagates(self, kwargs):
+        # GH#68563 the regex paths fill no keys, so the retry cannot check that
+        #  the replacement landed; a TypeError from elsewhere (here mask_missing
+        #  comparing datetime categories against a partial datetime string) must
+        #  not come back as a widened Index with nothing replaced
+        idx = pd.CategoricalIndex(pd.date_range("2020", periods=3))
+
+        with pytest.raises(TypeError, match="int\\(\\) argument"):
+            idx.replace(**kwargs)
 
     def test_index_replace_numpy_bool_regex(self):
         # GH#68563 np.False_ passes replace's is_bool check, so it must take the

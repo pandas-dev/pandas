@@ -7022,7 +7022,15 @@ class Index(IndexOpsMixin, PandasObject):
                 #  ns-resolution Timestamp against datetime categories; re-raise
                 #  rather than hand back data with the replacement silently dropped
                 raise
-            return widened.replace(to_replace, value, regex=regex)
+            result = widened.replace(to_replace, value, regex=regex)
+            if not keys and result.equals(widened):
+                # keys is empty on the regex paths, where a pattern is matched
+                #  rather than compared, so the check above cannot run. The
+                #  caught TypeError need not have been a can't-hold error at
+                #  all, and a retry that replaced nothing would return an Index
+                #  whose only change is its dtype
+                raise
+            return result
 
         return Index(replaced, dtype=replaced.dtype, name=self.name, copy=False)
 
