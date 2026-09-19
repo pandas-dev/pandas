@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 
@@ -46,7 +47,12 @@ def raise_if_2d(other) -> None:
     Reject a multi-dimensional operand before any dtype-specific conversion,
     matching BaseMaskedArray (GH#62682).
     """
-    if isinstance(other, (np.ndarray, ABCExtensionArray)) and other.ndim > 1:
+    # ABCExtensionArray does not match NumpyExtensionArray, whose _typ is
+    #  "npy_extension" -- and that is the EA most likely to be 2-D (GH#62682)
+    if (
+        isinstance(other, (np.ndarray, ABCExtensionArray, ABCNumpyExtensionArray))
+        and other.ndim > 1
+    ):
         raise NotImplementedError("can only perform ops with 1-d structures")
 
 
