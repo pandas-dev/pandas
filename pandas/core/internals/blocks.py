@@ -789,9 +789,11 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and self.dtype not in [object, "string"]:
-            # only object or string dtype can hold strings, and a regex object
-            # will only match strings
+        if is_re(to_replace) and not (
+            is_string_dtype(self.dtype) and self.dtype.kind != "S"
+        ):
+            # a regex only matches strings; is_string_dtype counts numpy bytes,
+            # which never match
             return [self.copy(deep=False)]
 
         if not (
