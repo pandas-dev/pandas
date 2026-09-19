@@ -1632,7 +1632,15 @@ cdef class _Timestamp(ABCTimestamp):
         '2020-03-14T15:32:52.192548'
         """
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
-        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        try:
+            base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        except NotImplementedError:
+            # GH#68009 embedding the UTC offset for a non-fixed tzinfo requires
+            #  looking up the true year via toordinal(), which is not supported
+            #  outside the range of the stdlib datetime; approximate the offset
+            #  using an in-range year, as __repr__ does.
+            year2000 = self.replace(year=2000)
+            base = super(_Timestamp, year2000).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
         year_str = f"{self._year:04d}"
         base = year_str + "-" + base.split("-", 1)[1]
@@ -1667,7 +1675,10 @@ cdef class _Timestamp(ABCTimestamp):
         if self.tzinfo is not None:
             try:
                 stamp += self.strftime("%z")
-            except ValueError:
+            except (ValueError, NotImplementedError):
+                # GH#68009 strftime raises NotImplementedError (not ValueError)
+                #  for years outside the range of the stdlib datetime it builds
+                #  internally; approximate the offset using an in-range year.
                 year2000 = self.replace(year=2000)
                 stamp += year2000.strftime("%z")
 
@@ -2711,7 +2722,14 @@ class Timestamp(_Timestamp):
         >>> ts.utcoffset()
         datetime.timedelta(seconds=3600)
         """
-        return super().utcoffset()
+        try:
+            return super().utcoffset()
+        except NotImplementedError:
+            # GH#68009 a non-fixed tzinfo needs the true year (via toordinal)
+            #  to look up its offset, which is not supported outside the
+            #  range of the stdlib datetime; approximate using an in-range
+            #  year, as __repr__/isoformat do.
+            return self.replace(year=2000).utcoffset()
 
     def utctimetuple(self):
         """
