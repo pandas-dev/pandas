@@ -1823,10 +1823,9 @@ cdef class TextReader:
                 na_count = 0
 
             if result is not None and user_dtype and result.dtype != dtype:
-                # GH#55232 a value the user's dtype cannot hold must raise
-                #  instead of silently wrapping around.  Gated on user_dtype:
-                #  inference must keep a uint64 result from the overflow
-                #  fallback above, not wrap it into the int64 it asked to try.
+                # GH#55232 gated on user_dtype: inference must keep a uint64
+                #  result from the overflow fallback above, not wrap it into
+                #  the int64 it asked to try.
                 casted = result.astype(dtype)
                 if (casted != result).any():
                     raise ValueError(

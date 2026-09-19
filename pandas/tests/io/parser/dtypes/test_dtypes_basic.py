@@ -993,7 +993,7 @@ GH,100102040,202,0205"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pyarrow engine casts the parsed frame, silently wrapping around
+@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
 @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
 @pytest.mark.parametrize(
     "dtype, err, msg",
@@ -1016,7 +1016,7 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_b
         parser.read_csv(StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend)
 
 
-@xfail_pyarrow  # pyarrow engine casts the parsed frame, silently wrapping around
+@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
 @pytest.mark.parametrize(
     "data, dtype",
     [

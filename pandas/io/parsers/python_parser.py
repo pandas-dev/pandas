@@ -563,8 +563,9 @@ class PythonParser(ParserBase):
 
         elif isinstance(values, ExtensionArray):
             casted: ArrayLike = values.astype(cast_type, copy=False)
-            # _infer_types has already applied dtype_backend, so an explicit
-            #  integer dtype reaches this branch rather than the one below
+            # with dtype_backend="pyarrow", _infer_types has already boxed the
+            #  column, so an explicit numpy integer dtype reaches this branch,
+            #  not the one below
             _validate_integer_cast(values, casted, cast_type, column)
             values = casted
         elif issubclass(cast_type.type, str):
