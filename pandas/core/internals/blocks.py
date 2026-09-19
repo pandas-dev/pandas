@@ -1848,27 +1848,30 @@ class EABackedBlock(Block):
         arg = com.asarray_tuplesafe(arg)
 
         nrows = self.shape[-1]
-        if mask is not None and len(arg) == mask.sum() != nrows:
+        if mask is not None and len(arg) == mask.sum():
             # One entry per selected position; putmask dispatches this itself.
-            return arg
-
-        if target.ndim == 2:
-            # TODO(EA2D): unnecessary with 2D EAs
-            if len(arg) == nrows:
-                # Column-like, not row-like: the same reshape (and the same
-                #  raise for a multi-column block) as in Block.where.
-                return arg.reshape(target.shape)
-            # Any other length is left to np.where's broadcasting, as it is
-            #  for numpy dtypes.
+            #  Not excluding mask.sum() == nrows, so that a mask which happens
+            #  to select that many cells is treated the same way
+            #  putmask_without_repeat treats it for numpy dtypes (GH#63842).
             return arg
 
         if len(arg) == 1 and nrows != 1:
-            arg = arg.repeat(nrows)
-        elif len(arg) != nrows:
+            if target.ndim == 2:
+                # left to np.where's broadcasting, as for numpy dtypes
+                return arg
+            return arg.repeat(nrows)
+
+        if len(arg) != nrows:
             raise ValueError(
                 f"Length of value ({len(arg)}) does not match length of "
                 f"the array ({nrows})"
             )
+
+        if target.ndim == 2:
+            # TODO(EA2D): unnecessary with 2D EAs
+            # Column-like, not row-like: the same reshape (and the same raise
+            #  for a multi-column block) as in Block.where.
+            return arg.reshape(target.shape)
         return arg
 
     @final
@@ -1980,15 +1983,24 @@ class EABackedBlock(Block):
 
         try:
             if (
-                (self.ndim == 1 or self.shape[0] == 1)
-                and isinstance(new, (np.ndarray, ExtensionArray))
+                isinstance(new, (np.ndarray, ExtensionArray))
                 and new.ndim == 1
-                and len(new) == mask.sum() != self.shape[-1]
+                and len(new) == mask.sum()
             ):
                 # One entry per selected position rather than one per row.
                 #  This is the EA analogue of the np.place call that
                 #  putmask_without_repeat makes for numpy dtypes; EA._putmask
                 #  itself takes only a full-length value.
+                if values.ndim == 2:
+                    # np.place consumes the value in the frame's row-major
+                    #  order, and this block stores (ncols, nrows) (GH#63842)
+                    block_rows, block_cols = np.nonzero(mask)
+                    frame_order = np.argsort(
+                        block_cols * mask.shape[0] + block_rows, kind="stable"
+                    )
+                    reordered = np.empty(len(new), dtype=np.intp)
+                    reordered[frame_order] = np.arange(len(new))
+                    new = new[reordered]
                 values[mask] = new
             else:
                 values._putmask(mask, new)

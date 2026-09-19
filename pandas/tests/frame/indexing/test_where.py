@@ -880,6 +880,58 @@ def test_where_listlike_other_wrong_length_raises(any_numeric_ea_and_arrow_dtype
         ser.where(pd.Series([True, False, True, False]), [9, 8])
 
 
+def test_mask_listlike_other_one_per_selected_cell_matches_numpy():
+    # GH#63842 a mask that happens to select exactly len(df) cells across a
+    #  multi-column datetimelike block used to fall into the 2-D reshape and
+    #  raise; it now fills like np.place does for the numpy dtypes, in the
+    #  frame's row-major order rather than the block's
+    vals = pd.date_range("2016-01-01", periods=4)
+    cond = pd.DataFrame(
+        {"a": [False, True, False, True], "b": [False, False, True, True]}
+    )
+
+    df = pd.DataFrame({"a": vals, "b": vals})
+    df.mask(cond, list(vals), inplace=True)
+
+    numeric = pd.DataFrame({"a": [0, 1, 2, 3], "b": [0, 1, 2, 3]})
+    numeric.mask(cond, [0, 1, 2, 3], inplace=True)
+    for col in "ab":
+        assert [ts.day - 1 for ts in df[col]] == numeric[col].tolist()
+
+
+def test_where_listlike_other_wrong_length_raises_2d_block():
+    # GH#63842 the 2-D branch returned before the length check, so a mismatched
+    #  length silently filled every masked slot with other[0]
+    cond = pd.DataFrame({"a": [True, False, True, False]})
+    vals = pd.date_range("2016-01-01", periods=4, tz="UTC")
+    msg = r"Length of value \(2\) does not match length of the array \(4\)"
+
+    with pytest.raises(ValueError, match=msg):
+        pd.DataFrame({"a": vals}).where(cond, list(vals[:2]))
+
+
+def test_setitem_boolean_frame_listlike_value_multi_column_ea():
+    # GH#63842 EA columns are one block each, so a row-length list is lined up
+    #  per column. NumPy dtypes consolidate into one block and reject it, so
+    #  the two backends deliberately differ here
+    key = pd.DataFrame({"a": [False, True, False], "b": [False, False, True]})
+    df = pd.DataFrame(
+        {
+            "a": pd.array([1, 2, 3], dtype="Int64"),
+            "b": pd.array([4, 5, 6], dtype="Int64"),
+        }
+    )
+
+    df[key] = [10, 20, 30]
+
+    assert df["a"].tolist() == [1, 20, 3]
+    assert df["b"].tolist() == [4, 5, 30]
+
+    numpy_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    with pytest.raises(ValueError, match="does not match the number of True"):
+        numpy_df[key] = [10, 20, 30]
+
+
 def test_where_listlike_other_keeps_string_dtype(frame_or_series, any_string_dtype):
     # GH#63842
     obj = frame_or_series(pd.array(["a", "bc", "cde", "fghi"], dtype=any_string_dtype))
