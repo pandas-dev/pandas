@@ -78,6 +78,7 @@ from pandas.core.algorithms import (
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.missing import _fill_limit_area_1d
+from pandas.core.ops.common import is_listlike_for_op
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -3397,7 +3398,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
         def _binop(self, other):
             def convert_values(param):
-                if isinstance(param, ExtensionArray) or is_list_like(param):
+                if isinstance(param, ExtensionArray) or is_listlike_for_op(param):
                     ovalues = param
                 else:  # Assume its an object
                     ovalues = [param] * len(self)

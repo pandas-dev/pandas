@@ -36,7 +36,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_list_like,
     is_numeric_v_string_like,
     is_object_dtype,
     is_scalar,
@@ -58,6 +57,10 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.ops import missing
+from pandas.core.ops.common import (
+    is_listlike_for_op,
+    is_scalar_for_op,
+)
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import (
     disallow_datetimelike_logical_op,
@@ -384,7 +387,7 @@ def na_logical_op(x: np.ndarray, y, op):
             result = libops.vec_binop(x.ravel(), y.ravel(), op)
         else:
             # let null fall thru
-            assert lib.is_scalar(y)
+            assert is_scalar_for_op(y)
             if not isna(y):
                 y = bool(y)
             try:
@@ -436,8 +439,9 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         return x
 
     right = lib.item_from_zerodim(right)
-    if is_list_like(right) and not hasattr(right, "dtype"):
-        # e.g. list, tuple
+    if is_listlike_for_op(right) and not hasattr(right, "dtype"):
+        # e.g. list, tuple. An iterator is scalar-like here too (GH#31646), so
+        #  it reaches the operand's own message rather than this one
         raise TypeError(
             # GH#52264
             "Logical ops (and, or, xor) between Pandas objects and dtype-less "

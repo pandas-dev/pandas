@@ -133,7 +133,7 @@ def _cat_compare_op(op):
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
         hashable = is_hashable(other)
-        if is_list_like(other) and len(other) != len(self) and not hashable:
+        if ops.is_listlike_for_op(other) and len(other) != len(self) and not hashable:
             # in hashable case we may have a tuple that is itself a category
             raise ValueError("Lengths must match.")
 

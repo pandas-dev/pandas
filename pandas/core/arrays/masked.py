@@ -956,7 +956,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
                 mask = mask | True
-            elif is_list_like(other) and len(other) == len(mask):
+            elif ops.is_listlike_for_op(other) and len(other) == len(mask):
                 mask = mask | isna(other)
         else:
             mask = self._mask | mask
@@ -967,7 +967,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         omask = None
 
         if (
-            is_list_like(other)
+            ops.is_listlike_for_op(other)
             and not isinstance(other, (list, np.ndarray, ExtensionArray))
             and not ops.has_castable_attr(other)
         ):
@@ -982,7 +982,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if (
             not hasattr(other, "dtype")
-            and is_list_like(other)
+            and ops.is_listlike_for_op(other)
             and len(other) == len(self)
         ):
             # Try inferring masked dtype instead of casting to object
@@ -992,7 +992,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if isinstance(other, BaseMaskedArray):
             other, omask = other._data, other._mask
 
-        elif is_list_like(other):
+        elif ops.is_listlike_for_op(other):
             if not isinstance(other, ExtensionArray):
                 other = np.asarray(other)
             if other.ndim > 1:
@@ -1091,7 +1091,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         elif isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
-        elif is_list_like(other):
+        elif ops.is_listlike_for_op(other):
             if not isinstance(
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):

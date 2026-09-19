@@ -503,7 +503,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 # e.g. tzawareness mismatch
                 raise InvalidComparison(other) from err
 
-        elif not is_list_like(other):
+        elif not ops.is_listlike_for_op(other):
             raise InvalidComparison(other)
 
         elif len(other) != len(self):
@@ -942,7 +942,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # TODO: handle 2D-like listlikes
             return op(self.ravel(), other.ravel()).reshape(self.shape)
 
-        if is_list_like(other):
+        if ops.is_listlike_for_op(other):
             if not isinstance(
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):
