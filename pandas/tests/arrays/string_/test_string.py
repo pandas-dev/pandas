@@ -466,6 +466,85 @@ def test_value_counts_na(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "keep, expected",
+    [
+        ("first", [False, False, False, True, True, False, True]),
+        ("last", [True, True, True, False, False, False, False]),
+        (False, [True, True, True, True, True, False, True]),
+    ],
+)
+def test_duplicated(dtype, keep, expected):
+    arr = pd.array(["a", "猫", pd.NA, "a", pd.NA, "é", "猫"], dtype=dtype)
+
+    result = arr.duplicated(keep=keep)
+
+    expected = np.array(expected)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_duplicated_empty(dtype):
+    arr = pd.array([], dtype=dtype)
+
+    result = arr.duplicated()
+
+    expected = np.array([], dtype=bool)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "na_value, uses_fastpath",
+    [(pd.NA, True), (np.nan, False)],
+    ids=["NA", "NaN"],
+)
+def test_duplicated_fastpath(monkeypatch, na_value, uses_fastpath):
+    arr = pd.array(["a", None, "a"], dtype=pd.StringDtype("python", na_value=na_value))
+    original = string_module.duplicated
+    calls = []
+
+    def mocked_duplicated(values, keep="first"):
+        calls.append(values)
+        return original(values, keep=keep)
+
+    monkeypatch.setattr(string_module, "duplicated", mocked_duplicated)
+
+    result = arr.duplicated()
+
+    expected = np.array([False, False, True])
+    tm.assert_numpy_array_equal(result, expected)
+    assert bool(calls) is uses_fastpath
+    if uses_fastpath:
+        assert calls[0] is arr._ndarray
+
+
+@pytest.mark.parametrize(
+    "na_value, dropna, uses_fastpath",
+    [(pd.NA, True, True), (pd.NA, False, False), (np.nan, True, False)],
+    ids=["NA-dropna", "NA-keepna", "NaN-dropna"],
+)
+def test_value_counts_fastpath(monkeypatch, na_value, dropna, uses_fastpath):
+    arr = pd.array(
+        ["猫", None, "猫", "é"],
+        dtype=pd.StringDtype("python", na_value=na_value),
+    )
+    expected = arr.value_counts(dropna=dropna)
+    original = string_module.value_counts_internal
+    calls = []
+
+    def mocked_value_counts(values, **kwargs):
+        calls.append(values)
+        return original(values, **kwargs)
+
+    monkeypatch.setattr(string_module, "value_counts_internal", mocked_value_counts)
+
+    result = arr.value_counts(dropna=dropna)
+
+    tm.assert_series_equal(result, expected)
+    assert bool(calls) is uses_fastpath
+    if uses_fastpath:
+        assert calls[0] is arr._ndarray
+
+
 def test_value_counts_with_normalize(dtype):
     if dtype.na_value is np.nan:
         exp_dtype = np.float64

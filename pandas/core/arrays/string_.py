@@ -55,7 +55,11 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.algorithms import isin
+from pandas.core.algorithms import (
+    duplicated,
+    isin,
+    value_counts_internal,
+)
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import (
@@ -833,6 +837,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def isna(self) -> np.ndarray:
         return libmissing.isna_string(self._ndarray)
 
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        if self.dtype.na_value is libmissing.NA:
+            return duplicated(self._ndarray, keep=keep)
+        return super().duplicated(keep=keep)
+
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
 
@@ -1139,7 +1150,18 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return self._reduce("kurt", skipna=skipna, **kwargs)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        result = super().value_counts(dropna=dropna)
+        if self.dtype.na_value is libmissing.NA and dropna:
+            from pandas import (
+                Index,
+                Series,
+            )
+
+            result = value_counts_internal(self._ndarray, sort=False, dropna=dropna)
+            index_arr = self._from_backing_data(np.asarray(result.index._data))
+            index = Index(index_arr, name=result.index.name, copy=False)
+            result = Series(result._values, index=index, name=result.name, copy=False)
+        else:
+            result = super().value_counts(dropna=dropna)
 
         if self.dtype.na_value is libmissing.NA:
             result = result.astype("Int64")
