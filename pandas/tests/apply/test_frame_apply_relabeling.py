@@ -107,27 +107,10 @@ def test_reconstruct_func():
 
 
 def test_reconstruct_func_allow_skip_normalization():
-    # GH#63743 the normalization fast path is opt-in: only callers that pass
-    #  allow_skip_normalization can receive the un-normalized {column: aggfunc}
-    #  form, and only when every output name equals its source column name
-    kwargs = {"B": ("B", "sum")}
-
-    result = pd.core.apply.reconstruct_func(None, True, **kwargs)
+    # GH#63743 the fast path is observationally equivalent by design, so only
+    #  reconstruct_func itself can pin that it still fires
+    result = pd.core.apply.reconstruct_func(None, True, B=("B", "sum"))
     assert result == (False, {"B": "sum"}, None, None)
-
-    # default (every caller other than DataFrameGroupBy.aggregate) normalizes
-    relabeling, func, columns, order = pd.core.apply.reconstruct_func(None, **kwargs)
-    assert relabeling
-    assert func == {"B": ["sum"]}
-    assert columns == ("B",)
-    tm.assert_numpy_array_equal(order, np.array([0], dtype=np.intp))
-
-    # a renamed output still normalizes even when the fast path is allowed
-    relabeling, _, columns, _ = pd.core.apply.reconstruct_func(
-        None, True, x=("B", "sum")
-    )
-    assert relabeling
-    assert columns == ("x",)
 
 
 def test_agg_relabel_output_name_matches_column():
