@@ -1887,6 +1887,48 @@ class ArrowExtensionArray(
         values = self._pa_array.to_numpy()
         return values, self.dtype.na_value
 
+    @staticmethod
+    def _refactorize_dictionary(
+        data: pa.ChunkedArray, null_encoding: Literal["mask", "encode"]
+    ) -> pa.ChunkedArray:
+        """
+        Re-encode dictionary-typed ``data`` so that its dictionary is a factorization
+        of the values it holds.
+
+        A stored dictionary is not one: entries can be unreferenced or duplicated, and
+        a null can live in the dictionary rather than the indices. See GH#69024.
+        """
+        # A dictionary-typed value type cannot go through index space, because the
+        # inner dictionary_encode takes no null_encoding; the cast below strips a level.
+        if not pa.types.is_dictionary(data.type.value_type):
+            try:
+                # Re-factorize in index space. Decoding instead materializes the values,
+                # which silently overflows the 32-bit offsets past 2GiB of them.
+                combined = data.combine_chunks()
+                # masked, so a null entry becomes a null id, merging with a null index
+                deduped = combined.dictionary.dictionary_encode(null_encoding="mask")
+                ids = pc.take(deduped.indices, combined.indices).dictionary_encode(
+                    null_encoding=null_encoding
+                )
+                return pa.chunked_array(
+                    [
+                        pa.DictionaryArray.from_arrays(
+                            ids.indices, pc.take(deduped.dictionary, ids.dictionary)
+                        )
+                    ]
+                )
+            except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
+                # Index space needs kernels for the value type, and needs pyarrow to
+                # unify the chunks' dictionaries, which it refuses when one holds a null
+                pass
+        try:
+            return data.cast(data.type.value_type).dictionary_encode(
+                null_encoding=null_encoding
+            )
+        except pa.ArrowNotImplementedError:
+            # see test_factorize_dictionary_unsupported_value_type
+            return data
+
     def factorize(
         self,
         use_na_sentinel: bool = True,
@@ -1936,17 +1978,14 @@ class ArrowExtensionArray(
         ['Ant', 'Badger', 'Cobra', 'Deer']
         Length: 4, dtype: str
         """
-        null_encoding = "mask" if use_na_sentinel else "encode"
+        null_encoding: Literal["mask", "encode"] = (
+            "mask" if use_na_sentinel else "encode"
+        )
 
         data = self._pa_array
 
         if pa.types.is_dictionary(data.type):
-            if null_encoding == "encode":
-                # dictionary encode does nothing if an already encoded array is given
-                data = data.cast(data.type.value_type)
-                encoded = data.dictionary_encode(null_encoding=null_encoding)
-            else:
-                encoded = data
+            encoded = self._refactorize_dictionary(data, null_encoding)
         else:
             encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
