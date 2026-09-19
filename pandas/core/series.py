@@ -1174,8 +1174,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
-                self
+            # the cheaper opcode check is deliberately last: on Python 3.14
+            # a plain `df[col] = value` reaches the refcount check, and
+            # is_local_in_caller_frame already short-circuits it there
+            if (
+                sys.getrefcount(self) <= REF_COUNT
+                and not com.is_local_in_caller_frame(self)
+                and com.is_setitem_syntax_in_caller_frame()
             ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2

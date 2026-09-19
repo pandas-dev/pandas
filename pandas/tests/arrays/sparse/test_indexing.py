@@ -275,6 +275,17 @@ class TestTake:
         result = sparse.take(np.array([0, 1, 2]), allow_fill=True)
         tm.assert_sp_array_equal(result, sparse)
 
+    @pytest.mark.parametrize("unit", ["M8[s]", "m8[s]"])
+    def test_take_fill_datetimelike_string(self, unit):
+        # GH#68590 a string fill value was parsed for a datetime64 subtype but
+        #  raised for timedelta64; both go through the same conversion now
+        data = np.array([1, 3, 5], dtype=unit)
+        fill = "1970-01-02" if unit[0] == "M" else "1 days"
+        result = SparseArray(data).take(
+            np.array([0, -1]), allow_fill=True, fill_value=fill
+        )
+        tm.assert_numpy_array_equal(result.to_dense(), np.array([1, 86400], dtype=unit))
+
     @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
     def test_take_fill_datetimelike_new_fill_is_nat(self, unit):
         # GH#68469 a new fill position takes NaT in the subtype, as dense

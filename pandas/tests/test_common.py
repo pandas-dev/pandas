@@ -1,5 +1,6 @@
 import collections
 from functools import partial
+import operator
 import string
 import subprocess
 import sys
@@ -279,3 +280,22 @@ def test_str_size():
     ]
     result = subprocess.check_output(call).decode()[-4:-1].strip("\n")
     assert int(result) == int(expected)
+
+
+def test_is_setitem_syntax_in_caller_frame():
+    # GH#51315 only a subscript assignment in the calling frame can be
+    # chained assignment; a plain call (e.g. from Cython compiled code, which
+    # leaves no Python frame) cannot be
+    results = []
+
+    class Recorder:
+        def __setitem__(self, key, value):
+            results.append(com.is_setitem_syntax_in_caller_frame())
+
+    obj = Recorder()
+    obj[0] = 1
+    obj[0:1] = 1
+    obj.__setitem__(0, 1)
+    operator.setitem(obj, 0, 1)
+
+    assert results == [True, True, False, False]

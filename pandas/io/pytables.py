@@ -4997,6 +4997,15 @@ class Table(Fixed):
                     f"incompatible freq in col [{existing_str} - {new_str}]"
                 )
 
+        # tz can only differ within a matching kind; a differing one already
+        # gets validate_attr's more specific message.
+        if table_exists and new_index.kind == existing_index_col.kind:
+            _check_tz_conflict(
+                new_index.name,
+                new_info.get(new_index.name, {}).get("tz"),
+                new_index.tz,
+            )
+
         new_index.update_info(new_info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
@@ -5118,6 +5127,11 @@ class Table(Fixed):
                 meta = str(blk.dtype)
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
+
+            # A new tz-aware data column's kind carries the tz while the
+            # stored one's does not, so gate on the dtype actually persisted.
+            if existing_col is not None and existing_col.dtype == dtype_name:
+                _check_tz_conflict(new_name, new_info.get(new_name, {}).get("tz"), tz)
 
             col = klass(
                 name=new_name,
@@ -5997,6 +6011,22 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     """for a tz-aware type, return an encoded zone"""
     zone = timezones.get_timezone(tz)
     return zone
+
+
+def _check_tz_conflict(
+    name: str, existing_tz: str | tzinfo | None, tz: str | tzinfo | None
+) -> None:
+    """
+    Raise if an append would add or drop the timezone of a stored column.
+
+    The read path localizes the whole stored column with this single tz, so
+    changing it reinterprets the rows already written. update_info raises only
+    when both sides are set, leaving the None cases silent. GH#68583
+    """
+    if existing_tz is None and tz is not None:
+        raise TypeError(f"cannot append tz-aware data to tz-naive col [{name}]")
+    if existing_tz is not None and tz is None:
+        raise TypeError(f"cannot append tz-naive data to tz-aware col [{name}]")
 
 
 def _set_tz(

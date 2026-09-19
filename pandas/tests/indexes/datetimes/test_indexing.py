@@ -642,6 +642,19 @@ class TestGetIndexer:
         expected = np.array(positions, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_mixed_date_tzaware(self):
+        # GH#68577 target is not convertible to datetime64, so it is compared
+        #  as object instead of raising "Mixed timezones detected"
+        ts = pd.Timestamp("2020-01-01", tz="UTC")
+        values = pd.DatetimeIndex([ts])
+        target = pd.Index([date(2020, 1, 1), ts], dtype=object)
+
+        msg = "Inferring datetime64 from data containing datetime.date objects"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = values.get_indexer(target)
+        expected = np.array([-1, 0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("method", ["pad", "backfill", "nearest"])
     def test_get_indexer_nat_target(self, tz, method):

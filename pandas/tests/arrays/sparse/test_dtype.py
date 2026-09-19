@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
@@ -66,18 +67,28 @@ def test_nans_equal():
     assert b == a
 
 
+@pytest.mark.parametrize("fill", [pd.NaT, np.nan, np.float64("nan"), pd.NA])
 @pytest.mark.parametrize("kind", ["M8", "m8"])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_nat_fill_value_normalized(kind, unit):
-    # GH#68449 a pd.NaT fill value is stored as the subtype's own NaT, so it is
-    #  interchangeable with the numpy spelling and with the default
+def test_na_fill_value_normalized(fill, kind, unit):
+    # GH#68449, GH#68558 any NA fill value is stored as the subtype's own NaT,
+    #  so it is interchangeable with the numpy spelling and with the default
     values = np.array([1], dtype="i8").astype(f"{kind}[{unit}]")
     values[0] = "NaT"
 
-    dtype = pd.SparseDtype(values.dtype, pd.NaT)
-    assert dtype.fill_value is not pd.NaT
+    dtype = pd.SparseDtype(values.dtype, fill)
+    assert dtype.fill_value.dtype == values.dtype
     assert dtype == pd.SparseDtype(values.dtype, values[0])
     assert dtype == pd.SparseDtype(values.dtype)
+
+
+@pytest.mark.parametrize("kind", ["M8", "m8"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_na_fill_value_unit_normalized(kind, unit):
+    # GH#68558 a NaT of the wrong unit is normalized too, multiplier units
+    #  included; == is unit-blind for an NA fill, so check the fill value
+    dtype = np.dtype(f"{kind}[{unit}]")
+    assert pd.SparseDtype(dtype, dtype.type("NaT", "10s")).fill_value.dtype == dtype
 
 
 @pytest.mark.parametrize("subtype", ["M8[ns]", "m8[s]", "float64"])
@@ -98,6 +109,32 @@ def test_nans_not_equal():
     b = pd.SparseDtype(float, pd.NA)
     assert a != b
     assert b != a
+
+
+@pytest.mark.parametrize(
+    "subtype, fill_value",
+    [
+        ("float64", 0.0),
+        ("float64", 1.5),
+        ("datetime64[ns]", np.datetime64("2016-01-01", "ns")),
+        ("timedelta64[ns]", np.timedelta64(1, "ns")),
+    ],
+)
+def test_na_fill_value_not_equal_to_value_fill(subtype, fill_value):
+    # GH#68582 an NA fill value must not compare equal to a real fill value of
+    #  the same Python type
+    a = pd.SparseDtype(subtype)
+    b = pd.SparseDtype(subtype, fill_value)
+    assert a != b
+    assert b != a
+
+
+def test_na_fill_value_astype_not_ignored():
+    # GH#68582 astype short-circuits on dtype equality
+    arr = pd.arrays.SparseArray([1.0, np.nan, 2.0])
+    result = arr.astype(pd.SparseDtype("float64", 0.0))
+    expected = pd.arrays.SparseArray(np.array([1.0, np.nan, 2.0]), fill_value=0.0)
+    tm.assert_sp_array_equal(result, expected)
 
 
 tups = [
