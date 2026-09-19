@@ -476,7 +476,11 @@ def _convert_listlike_datetimes(
             raise
         # GH#68926 one bad float failed the whole array. NaN maps to NaT here,
         #  so blanking just those entries leaves every other element unchanged.
-        arg = np.where(float_outside_int64(np.asarray(arg)), np.nan, arg)
+        oob = float_outside_int64(np.asarray(arg))
+        if not oob.any():
+            # some other out-of-bounds raise, which we have nothing to blank for
+            raise
+        arg = np.where(oob, np.nan, arg)
         arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))
 
     arg = ensure_object(arg)

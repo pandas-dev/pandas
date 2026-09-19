@@ -34,7 +34,10 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_is_view,
+    raise_if_float_outside_int64,
+)
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -799,6 +802,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             na_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
         else:
             na_value = lib.no_default
+
+        if self.dtype.kind == "f" and dtype.kind in "mM":
+            # to_numpy narrows through int64 without checking (GH#68926)
+            raise_if_float_outside_int64(self._data[~self._mask], dtype)
 
         # to_numpy will also raise, but we get somewhat nicer exception messages here
         if dtype.kind in "iu" and self._hasna:

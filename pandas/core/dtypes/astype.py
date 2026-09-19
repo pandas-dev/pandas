@@ -79,6 +79,8 @@ def _astype_nansafe(
     ------
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
+    OutOfBoundsDatetime or OutOfBoundsTimedelta
+        Float values outside the int64 domain were cast to datetime64/timedelta64.
     """
 
     # dispatch on extension dtype if needed

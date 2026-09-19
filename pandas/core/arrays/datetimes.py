@@ -2654,15 +2654,16 @@ def _sequence_to_dt64(
     Raises
     ------
     TypeError : PeriodDType data is passed
+    OutOfBoundsDatetime : float data outside the int64 domain is passed
     """
+
+    # By this point we are assured to have either a numpy array or Index
+    data, copy = maybe_convert_dtype(data, copy, tz=tz, out_unit=out_unit)
+    data_dtype = getattr(data, "dtype", None)
 
     out_dtype = DT64NS_DTYPE
     if out_unit is not None:
         out_dtype = np.dtype(f"M8[{out_unit}]")
-
-    # By this point we are assured to have either a numpy array or Index
-    data, copy = maybe_convert_dtype(data, copy, tz=tz, out_dtype=out_dtype)
-    data_dtype = getattr(data, "dtype", None)
 
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
@@ -2849,7 +2850,7 @@ def objects_to_datetime64(
 
 
 def maybe_convert_dtype(
-    data, copy: bool, tz: tzinfo | None = None, out_dtype: np.dtype = DT64NS_DTYPE
+    data, copy: bool, tz: tzinfo | None = None, out_unit: str | None = None
 ):
     """
     Convert data based on dtype conventions, issuing
@@ -2860,8 +2861,8 @@ def maybe_convert_dtype(
     data : np.ndarray or pd.Index
     copy : bool
     tz : tzinfo or None, default None
-    out_dtype : np.dtype, default datetime64[ns]
-        The dtype float data is destined for; used for error reporting only.
+    out_unit : str or None, default None
+        Resolution the float data is destined for; named in the error message.
 
     Returns
     -------
@@ -2871,12 +2872,14 @@ def maybe_convert_dtype(
     Raises
     ------
     TypeError : PeriodDType data is passed
+    OutOfBoundsDatetime : float data outside the int64 domain is passed
     """
     if not hasattr(data, "dtype"):
         # e.g. collections.deque
         return data, copy
 
     if is_float_dtype(data.dtype):
+        out_dtype = DT64NS_DTYPE if out_unit is None else np.dtype(f"M8[{out_unit}]")
         raise_if_float_outside_int64(np.asarray(data), out_dtype)
         # pre-2.0 we treated these as wall-times, inconsistent with ints
         # GH#23675, GH#45573 deprecated to treat symmetrically with integer dtypes.

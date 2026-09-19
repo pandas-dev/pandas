@@ -51,6 +51,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
+from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_float_dtype,
@@ -1317,11 +1318,9 @@ def sequence_to_td64ns(
             # On ARM, float-to-int64 overflow saturates to INT64_MAX
             # instead of wrapping, which makes the data == int_data
             # check pass incorrectly for OOB values like float(2**63).
-            # Exclude values outside the int64 domain from the check.
-            i64 = np.iinfo(np.int64)
-            in_int64_range = (data >= np.float64(i64.min)) & (
-                data < np.float64(i64.max)
-            )
+            # Exclude values outside the int64 domain from the check; NaN is
+            # not outside it by that predicate, but mask already covers NaN.
+            in_int64_range = ~float_outside_int64(data)
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
                 result = sequence_to_td64ns(

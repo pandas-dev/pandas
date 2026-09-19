@@ -811,6 +811,32 @@ def test_astype_float_to_datetimelike_in_bounds_unchanged(dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["Float64", "Float32"])
+@pytest.mark.parametrize("spelling", ["astype", "constructor", "index"])
+def test_astype_masked_float_to_datetime64_out_of_bounds(dtype, spelling):
+    # GH#68926 the masked spellings narrow through the same int64 cast, so they
+    #  have to agree with the numpy ones rather than with each other
+    arr = pd.array([np.inf], dtype=dtype)
+
+    with pytest.raises(OutOfBoundsDatetime, match="cannot convert input inf"):
+        if spelling == "astype":
+            pd.Series(arr).astype("M8[ns]")
+        elif spelling == "constructor":
+            pd.Series(arr, dtype="M8[ns]")
+        else:
+            pd.DatetimeIndex(arr)
+
+
+def test_astype_masked_float_to_datetime64_in_bounds_unchanged():
+    # GH#68926 the guard is on the out-of-range values only; NA still gives NaT
+    ser = pd.Series(pd.array([1.5, None], dtype="Float64"))
+
+    result = ser.astype("M8[ns]")
+
+    expected = pd.Series([1, iNaT]).astype("M8[ns]")
+    tm.assert_series_equal(result, expected)
+
+
 def test_astype_float32_to_datetime64_out_of_bounds():
     # GH#68926 every float width narrows to int64, not just float64
     ser = pd.Series(np.array([np.inf], dtype=np.float32))
