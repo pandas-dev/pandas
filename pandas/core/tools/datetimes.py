@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_supported_dtype,
     iNaT,
     is_supported_dtype,
     periods_per_second,
@@ -37,11 +36,15 @@ from pandas._libs.tslibs.conversion import (
     cast_from_unit_vectorized,
     datetime_from_fields,
 )
+from pandas._libs.tslibs.dtypes import get_default_reso
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
 )
-from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs.strptime import (
+    array_strptime,
+    format_is_iso,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -168,6 +171,7 @@ def should_cache(
     arg: ArrayConvertible,
     unique_share: float = 0.7,
     check_count: int | None = None,
+    format: str | None = None,
     unit: str | None = None,
 ) -> bool:
     """
@@ -183,6 +187,8 @@ def should_cache(
         0 < unique_share < 1
     check_count: int, optional
         0 <= check_count <= len(arg)
+    format : str or None, default None
+        Strftime format to parse time.
     unit : str or None, default None
         The unit of the arg (e.g. 's', 'ms').
 
@@ -199,12 +205,15 @@ def should_cache(
     All constants were chosen empirically by.
     """
     # GH#65380 O(1) bail for input shapes where caching cannot help: a
-    # numeric+unit cast or an already-datetime dtype is a vectorized
+    # numeric+unit cast, an already-datetime dtype, or an ISO 8601 format
+    # (parsed by the C parser rather than strptime) is a vectorized
     # conversion, so deduplicating the input only adds overhead.
-    # NB: an explicit ``format`` is intentionally *not* a bail condition --
+    # NB: a non-ISO ``format`` is intentionally *not* a bail condition --
     # strptime parsing of highly-duplicated strings is exactly where caching
-    # pays off (GH#65380 originally bailed here and regressed those inputs).
+    # pays off (GH#65380 originally bailed on any format and regressed those).
     if unit is not None:
+        return False
+    if format is not None and format_is_iso(format):
         return False
     arg_dtype = getattr(arg, "dtype", None)
     if (
@@ -278,7 +287,7 @@ def _maybe_cache(
 
     if cache:
         # Perform a quicker unique check
-        if not should_cache(arg, unit=unit):
+        if not should_cache(arg, format=format, unit=unit):
             return cache_array
 
         if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
@@ -568,18 +577,19 @@ def _to_datetime_with_unit(
                     arg, unit, name, utc, errors, dayfirst, yearfirst
                 )
         arr = arg.astype(f"datetime64[{unit}]", copy=False)
-        dtype = get_supported_dtype(arr.dtype)
-        try:
-            arr = astype_overflowsafe(arr, dtype, copy=False)
-        except OutOfBoundsDatetime:
-            if errors == "raise":
-                raise
-            arg = arg.astype(object)
-            if mask is not None:
-                arg[mask] = None
-            return _to_datetime_with_unit(
-                arg, unit, name, utc, errors, dayfirst, yearfirst
-            )
+        if unit not in ["us", "ns"]:
+            out_unit = get_default_reso(unit)
+            try:
+                arr = astype_overflowsafe(arr, np.dtype(f"M8[{out_unit}]"), copy=False)
+            except OutOfBoundsDatetime:
+                if errors == "raise":
+                    raise
+                arg = arg.astype(object)
+                if mask is not None:
+                    arg[mask] = None
+                return _to_datetime_with_unit(
+                    arg, unit, name, utc, errors, dayfirst, yearfirst
+                )
         if mask is not None:
             arr[mask] = iNaT
         tz_parsed = None

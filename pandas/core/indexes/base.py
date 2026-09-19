@@ -45,7 +45,6 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
@@ -6491,6 +6490,32 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _pairwise_indexer(self, target: Index) -> npt.NDArray[np.intp]:
+        """
+        Positions in self for each element of target, pairing the k-th
+        occurrence of a label in target with its k-th occurrence in self.
+
+        Unlike get_indexer, self may contain duplicates. target must contain
+        every label of self. Returns -1 where self has no k-th occurrence.
+
+        Parameters
+        ----------
+        target : Index
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+        """
+        labels = target.unique()
+        self_codes = labels.get_indexer_for(self)
+        target_codes = labels.get_indexer_for(target)
+        self_rank = algos.occurrence_rank(self_codes)
+        target_rank = algos.occurrence_rank(target_codes)
+        stride = max(self_rank.max(initial=0), target_rank.max(initial=0)) + 1
+        self_keys = Index(self_codes * stride + self_rank)
+        target_keys = target_codes * stride + target_rank
+        return self_keys.get_indexer(target_keys)
+
     def _get_indexer_strict(
         self, key: Axes, axis_name: str_t
     ) -> tuple[Index, np.ndarray]:
@@ -6649,7 +6674,8 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
                 result = type(other)(self)
-            except OutOfBoundsDatetime:
+            except ValueError:
+                # e.g. out of bounds, or dates mixed with tz-aware Timestamps
                 return self, other
             else:
                 if self.is_unique and not result.is_unique:

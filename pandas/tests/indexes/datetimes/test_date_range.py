@@ -1247,29 +1247,34 @@ class TestBusinessDateRange:
         expected = pd.DatetimeIndex(["2026-03-12", "2026-03-17", "2026-03-20"])
         tm.assert_index_equal(result, expected, check_freq=False)
 
-    @pytest.mark.parametrize("freq", ["B", "C", "2B", "2C"])
-    def test_date_range_business_freq_start_end_time_of_day(self, freq):
-        # GH#64648 (post-merge): the business-day fast path must apply the
-        # GH#35342/GH#64790 time-of-day fix -- when end's time-of-day is
-        # earlier than start's, the last on-offset date must not be excluded.
+    @pytest.mark.parametrize(
+        "freq, last",
+        [
+            ("B", "2024-01-08 09:00"),
+            ("C", "2024-01-08 09:00"),
+            ("2B", "2024-01-05 09:00"),
+            ("2C", "2024-01-05 09:00"),
+        ],
+    )
+    def test_date_range_business_freq_start_end_time_of_day(self, freq, last):
+        # GH#64790: the business-day fast path must not stretch end to start's
+        # time-of-day, so an end earlier in the day than start drops that boundary
         result = pd.date_range("2024-01-01 09:00", "2024-01-09 08:00", freq=freq)
-        # identical to giving end the same time-of-day as start (no boundary lost)
-        expected = pd.date_range("2024-01-01 09:00", "2024-01-09 09:00", freq=freq)
+        expected = pd.date_range("2024-01-01 09:00", last, freq=freq)
         tm.assert_index_equal(result, expected)
-        assert result[-1] == pd.Timestamp("2024-01-09 09:00")
+        assert result[-1] == pd.Timestamp(last)
 
     def test_date_range_business_start_end_near_timestamp_max(self):
-        # GH#64648 (post-merge): the GH#64790 time-of-day fix must not raise
-        # OutOfBoundsDatetime when start is a business day with time-of-day
-        # within one offset step of Timestamp.max (2262-04-11 is a Friday)
+        # GH#64648 (post-merge): endpoint arithmetic must not overflow when
+        # start and end sit within one offset step of Timestamp.max
+        # (2262-04-11 is a Friday)
         start = pd.Timestamp("2262-04-11 10:00").as_unit("ns")
         end = pd.Timestamp("2262-04-11 15:00").as_unit("ns")
         result = pd.date_range(start, end, freq="B")
         expected = pd.DatetimeIndex([start], freq="B")
         tm.assert_index_equal(result, expected)
 
-        # aligning end to start's time-of-day would exceed Timestamp.max; the
-        # unrepresentable boundary element is excluded, not raised on
+        # one daily step past this start is unrepresentable
         start = pd.Timestamp("2262-04-10 23:59:59.999999").as_unit("ns")
         end = pd.Timestamp("2262-04-11 01:00").as_unit("ns")
         result = pd.date_range(start, end, freq="B")
@@ -2023,6 +2028,12 @@ class TestDateRangeNonTickFreq:
                 "MS",
                 "2020-02-01 15:00",
                 "2020-05-01 01:00",
+                ["2020-02-01 15:00", "2020-03-01 15:00", "2020-04-01 15:00"],
+            ),
+            (
+                "MS",
+                "2020-02-01 15:00",
+                "2020-05-01 23:00",
                 [
                     "2020-02-01 15:00",
                     "2020-03-01 15:00",
@@ -2034,36 +2045,23 @@ class TestDateRangeNonTickFreq:
                 "ME",
                 "2020-01-31 15:00",
                 "2020-04-30 01:00",
-                [
-                    "2020-01-31 15:00",
-                    "2020-02-29 15:00",
-                    "2020-03-31 15:00",
-                    "2020-04-30 15:00",
-                ],
+                ["2020-01-31 15:00", "2020-02-29 15:00", "2020-03-31 15:00"],
             ),
             (
                 "QS",
                 "2020-01-01 15:00",
                 "2020-10-01 01:00",
-                [
-                    "2020-01-01 15:00",
-                    "2020-04-01 15:00",
-                    "2020-07-01 15:00",
-                    "2020-10-01 15:00",
-                ],
+                ["2020-01-01 15:00", "2020-04-01 15:00", "2020-07-01 15:00"],
             ),
             (
                 "YS",
                 "2020-01-01 15:00",
                 "2023-01-01 01:00",
-                [
-                    "2020-01-01 15:00",
-                    "2021-01-01 15:00",
-                    "2022-01-01 15:00",
-                    "2023-01-01 15:00",
-                ],
+                ["2020-01-01 15:00", "2021-01-01 15:00", "2022-01-01 15:00"],
             ),
             (
+                # negative freq: end is the lower bound, so the 15:00 boundary
+                # on end's date is inside [end, start] and is kept
                 "-1MS",
                 "2020-05-01 15:00",
                 "2020-02-01 01:00",
@@ -2074,16 +2072,34 @@ class TestDateRangeNonTickFreq:
                     "2020-02-01 15:00",
                 ],
             ),
+            (
+                "-1MS",
+                "2020-05-01 15:00",
+                "2020-02-01 16:00",
+                ["2020-05-01 15:00", "2020-04-01 15:00", "2020-03-01 15:00"],
+            ),
         ],
     )
     def test_date_range_end_time_earlier_than_start_time(
         self, unit, freq, start, end, expected_dates
     ):
-        # GH#35342 - end's time-of-day should not cause the last offset
-        # boundary to be excluded
+        # GH#64790: end's time-of-day is not stretched to start's, so every
+        # entry satisfies start <= date <= end -- GH#35342 wanted a point outside it
         result = pd.date_range(start, end, freq=freq, unit=unit)
         expected = pd.DatetimeIndex(expected_dates, dtype=f"M8[{unit}]", freq=freq)
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("inclusive", ["both", "left", "right", "neither"])
+@pytest.mark.parametrize("freq", ["MS", "ME", "QS", "YS", "B", "C", "D", "12h"])
+def test_date_range_never_exceeds_end(freq, inclusive):
+    # GH#64790: every offset family obeys the same closed-interval contract;
+    # the non-Tick paths used to overshoot end, escaping the inclusive= trim
+    start = pd.Timestamp("2021-01-01 09:00")
+    end = pd.Timestamp("2022-03-01 08:00")
+    result = pd.date_range(start, end, freq=freq, inclusive=inclusive)
+    assert result[0] >= start
+    assert result[-1] <= end
 
 
 class TestDateRangeUnitInference:
