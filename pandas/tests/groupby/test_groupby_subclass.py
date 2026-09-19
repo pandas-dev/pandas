@@ -147,7 +147,7 @@ def test_groupby_resample_preserves_subclass(obj):
 def test_groupby_apply_pins_name_over_subclass_metadata():
     # GH#41090 - a subclass carrying "name" in _metadata gets it propagated
     #  onto each group by __finalize__; the pinned group key must still win
-    class MyFrame(DataFrame):
+    class MyFrame(pd.DataFrame):
         _metadata = ["name"]
 
         @property
@@ -159,5 +159,5 @@ def test_groupby_apply_pins_name_over_subclass_metadata():
     msg = "Pinning the group key"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.groupby("a").apply(lambda g: g.name)
-    expected = Series([1, 2], index=Index([1, 2], name="a"))
+    expected = pd.Series([1, 2], index=pd.Index([1, 2], name="a"))
     tm.assert_series_equal(result, expected)

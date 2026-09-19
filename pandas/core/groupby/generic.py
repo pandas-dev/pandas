@@ -281,18 +281,18 @@ class SeriesGroupBy(GroupBy[Series]):
 
         The resulting dtype will reflect the return value of the passed ``func``.
 
-        >>> g1.apply(lambda x: x * 2 if len(x) > 1 else x / 2)
+        >>> g1.apply(lambda x: x / x.sum())
         a    0.0
-        a    2.0
+        a    1.0
         b    1.0
         dtype: float64
 
         In the above, the groups are not part of the index. We can have them included
         by using ``g2`` where ``group_keys=True``:
 
-        >>> g2.apply(lambda x: x * 2 if len(x) > 1 else x / 2)
+        >>> g2.apply(lambda x: x / x.sum())
         a  a    0.0
-           a    2.0
+           a    1.0
         b  b    1.0
         dtype: float64
 

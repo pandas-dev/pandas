@@ -38,6 +38,24 @@ _pkg_dir: str | None = None
 _test_dir: str | None = None
 
 
+def frame_is_pandas_internal(frame: FrameType) -> bool:
+    """
+    Whether ``frame`` belongs to pandas' own code (tests notwithstanding).
+
+    One frame lookup, for callers that need the classification of a single
+    known frame rather than the walk find_stack_level performs.
+    """
+    global _pkg_dir, _test_dir
+    if _pkg_dir is None or _test_dir is None:
+        import pandas as pd
+
+        _pkg_dir = os.path.dirname(pd.__file__) + os.sep
+        _test_dir = os.path.join(_pkg_dir, "tests") + os.sep
+
+    filename = frame.f_code.co_filename
+    return filename.startswith(_pkg_dir) and not filename.startswith(_test_dir)
+
+
 def find_stack_level() -> int:
     """
     Find the first place in the stack that is not inside pandas

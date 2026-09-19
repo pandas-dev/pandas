@@ -1038,7 +1038,7 @@ def test_resample_group_name_is_deprecated(method):
     #  machinery, so they pin the group key too. apply/aggregate only take
     #  that path for a non-reducing func; a reducing one is an aggregation,
     #  which never pinned the key.
-    ser = Series(range(6), index=date_range("2020", periods=6, freq="D"), name="ser")
+    ser = pd.Series(range(6), index=date_range("2020", periods=6, freq="D"), name="ser")
     seen = []
 
     def func(group):

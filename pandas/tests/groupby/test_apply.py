@@ -190,13 +190,13 @@ def test_group_apply_once_per_group(df, group_names):
 def test_apply_series_name_is_group_key():
     # GH#41090 - on a Series group, the deprecated pinned name must still be
     #  the group key (not the column name), with a warning
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
     msg = "Pinning the group key"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.groupby("a")["b"].apply(
             lambda x: x.sum() if x.name == 1 else -x.sum()
         )
-    expected = Series([7, -5], index=Index([1, 2], name="a"), name="b")
+    expected = pd.Series([7, -5], index=pd.Index([1, 2], name="a"), name="b")
     tm.assert_series_equal(result, expected)
 
 
@@ -219,7 +219,7 @@ def test_apply_no_name_access_no_warning():
 def test_apply_setting_name_unpins_group_key():
     # GH#41090 - a name explicitly set inside the UDF is not the pinned group
     #  key, so reading it back should not warn
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
 
     def func(x):
         x.name = "foo"
@@ -227,7 +227,7 @@ def test_apply_setting_name_unpins_group_key():
 
     with tm.assert_produces_warning(None):
         result = df.groupby("a")["b"].apply(func)
-    expected = Series(["foo", "foo"], index=Index([1, 2], name="a"), name="b")
+    expected = pd.Series(["foo", "foo"], index=pd.Index([1, 2], name="a"), name="b")
     tm.assert_series_equal(result, expected)
 
 
@@ -235,7 +235,7 @@ def test_apply_setting_name_does_not_write_name_column():
     # GH#41090 - the pinned key is served by __getattr__ rather than from the
     #  instance __dict__, so setting it must still set an attribute and not
     #  fall through to assigning a column that happens to be called "name"
-    df = DataFrame({"a": [1, 1, 2], "name": [3, 4, 5]})
+    df = pd.DataFrame({"a": [1, 1, 2], "name": [3, 4, 5]})
 
     def func(group):
         group.name = "zzz"
@@ -244,7 +244,7 @@ def test_apply_setting_name_does_not_write_name_column():
 
     with tm.assert_produces_warning(None):
         result = df.groupby("a", group_keys=False).apply(func)
-    expected = Series([[3, 4], [5]], index=Index([1, 2], name="a"))
+    expected = pd.Series([[3, 4], [5]], index=pd.Index([1, 2], name="a"))
     tm.assert_series_equal(result, expected)
 
 

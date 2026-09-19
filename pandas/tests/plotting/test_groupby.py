@@ -146,15 +146,9 @@ class TestDataFrameGroupByPlots:
 
     def test_groupby_plot_series_with_legend(self):
         # GH#41090 - legend labels are the group keys, with no reliance on
-<<<<<<< HEAD
         #  the name attribute being pinned to the group key as a side effect
         index = pd.Index(15 * ["1"] + 15 * ["2"], name="c")
         df = pd.DataFrame(
-=======
-        #  the deprecated pinning of the key to the name attribute
-        index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(
->>>>>>> 20d2470bde7 (DEPR: warn on access of pinned group key instead of pin-and-retry)
             np.random.default_rng(2).standard_normal((30, 2)),
             index=index,
             columns=["a", "b"],

@@ -52,6 +52,7 @@ from pandas.errors.cow import _chained_assignment_method_msg
 from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import (
     find_stack_level,
+    frame_is_pandas_internal,
     rewrite_warning,
 )
 from pandas.util._validators import (
@@ -6259,10 +6260,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def _maybe_warn_pinned_group_name(self) -> None:
-        # GH#41090 - a read above the UDF's own frame is pandas bookkeeping,
-        #  not user reliance; see test_apply_no_name_access_no_warning.
-        level = find_stack_level()
-        if level > 3:
+        # GH#41090 - a read from pandas' own code is bookkeeping, not user
+        #  reliance; see test_apply_no_name_access_no_warning. Asked one frame
+        #  at a time rather than through find_stack_level, whose walk runs on
+        #  every read of a pinned group's name
+        if frame_is_pandas_internal(sys._getframe(2)):
             return
         warnings.warn(
             "Pinning the group key to the 'name' attribute of "
@@ -6271,12 +6273,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ".filter()) is deprecated and will not be done in a "
             "future version of pandas. When you need the key "
             "inside the function, iterate over the groupby object "
-            "directly and combine the results yourself, e.g. "
+            "directly and combine the results yourself. For .apply() that is "
             "'pd.concat({key: func(group) for key, group in gb})' when func "
             "returns a Series or DataFrame, or 'pd.Series({key: func(group) "
-            "for key, group in gb})' when it returns a scalar.",
+            "for key, group in gb})' when it returns a scalar; .transform() "
+            "and .filter() need their own recombination, since they return an "
+            "object indexed like the original rather than keyed by group.",
             Pandas4Warning,
-            stacklevel=level,
+            stacklevel=find_stack_level(),
         )
 
     @final

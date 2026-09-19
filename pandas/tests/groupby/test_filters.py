@@ -647,7 +647,7 @@ def test_filter_with_non_values_multi_index():
 
 def test_filter_group_name_is_deprecated():
     # GH#41090 - reading the pinned group key inside a filter UDF warns
-    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
     msg = "Pinning the group key"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.groupby("a").filter(lambda g: g.name == 1)

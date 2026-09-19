@@ -1474,12 +1474,8 @@ def test_set_group_name(df, grouper):
 
 def test_group_name_available_in_inference_pass():
     # gh-15062
-<<<<<<< HEAD
-    df = pd.DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
-=======
     # GH#41090 - name pinning is deprecated
-    df = DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
->>>>>>> 92b33ade2fb (DEPR: pinning group key to name attribute in groupby UDFs)
+    df = pd.DataFrame({"a": [0, 0, 1, 1, 2, 2], "b": np.arange(6)})
 
     names = []
 

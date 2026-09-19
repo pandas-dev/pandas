@@ -609,12 +609,8 @@ class TestGroupBy:
 
     def test_groupby_multi_timezone(self):
         # combining multiple / different timezones yields UTC
-<<<<<<< HEAD
-        df = pd.DataFrame(
-=======
         # GH#41090 - name pinning is deprecated
-        df = DataFrame(
->>>>>>> 92b33ade2fb (DEPR: pinning group key to name attribute in groupby UDFs)
+        df = pd.DataFrame(
             {
                 "value": range(5),
                 "date": [
