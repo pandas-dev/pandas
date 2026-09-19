@@ -741,6 +741,19 @@ class ArrowExtensionArray(
         elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
+            if (
+                pa_type is not None
+                and pa.types.is_timestamp(pa_type)
+                and isinstance(value, datetime)
+                and (value.tzinfo is None) != (pa_type.tz is None)
+            ):
+                # a Timestamp and a plain datetime both store their UTC epoch
+                #  under pa_type, so a mismatch names a different instant
+                #  (GH#69029)
+                raise TypeError(
+                    "Cannot compare tz-naive and tz-aware datetime-like objects"
+                )
+
             # Workaround https://github.com/apache/arrow/issues/37291
             if isinstance(value, Timedelta):
                 if pa_type is None:
@@ -758,6 +771,18 @@ class ArrowExtensionArray(
             pa_scalar = pa.scalar(value, type=pa_type)
 
         if pa_type is not None and pa_scalar.type != pa_type:
+            if (
+                pa_scalar.is_valid
+                and pa.types.is_timestamp(pa_scalar.type)
+                and pa.types.is_timestamp(pa_type)
+                and (pa_scalar.type.tz is None) != (pa_type.tz is None)
+            ):
+                # the cast keeps the UTC epoch, so it would name a different
+                #  instant; a pa.Scalar value reaches the boundary only here
+                #  (GH#69029)
+                raise TypeError(
+                    "Cannot compare tz-naive and tz-aware datetime-like objects"
+                )
             pa_scalar = pa_scalar.cast(pa_type)
 
         return pa_scalar
