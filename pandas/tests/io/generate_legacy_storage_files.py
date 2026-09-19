@@ -44,23 +44,7 @@ sys.path.pop(0)
 
 import numpy as np
 
-import pandas
-from pandas import (
-    Categorical,
-    DataFrame,
-    Index,
-    MultiIndex,
-    NaT,
-    Period,
-    RangeIndex,
-    Series,
-    Timestamp,
-    bdate_range,
-    date_range,
-    interval_range,
-    period_range,
-    timedelta_range,
-)
+import pandas as pd
 from pandas.arrays import SparseArray
 
 from pandas.tseries.offsets import (
@@ -95,7 +79,7 @@ def _create_sp_series():
     arr[7:12] = nan
     arr[-1:] = nan
 
-    bseries = Series(SparseArray(arr, kind="block"))
+    bseries = pd.Series(SparseArray(arr, kind="block"))
     bseries.name = "bseries"
     return bseries
 
@@ -108,8 +92,8 @@ def _create_sp_tsseries():
     arr[7:12] = nan
     arr[-1:] = nan
 
-    date_index = bdate_range("1/1/2011", periods=len(arr))
-    bseries = Series(SparseArray(arr, kind="block"), index=date_index)
+    date_index = pd.bdate_range("1/1/2011", periods=len(arr))
+    bseries = pd.Series(SparseArray(arr, kind="block"), index=date_index)
     bseries.name = "btsseries"
     return bseries
 
@@ -124,8 +108,8 @@ def _create_sp_frame():
         "D": [0, 1, 2, 3, 4, 5, nan, nan, nan, nan],
     }
 
-    dates = bdate_range("1/1/2011", periods=10)
-    return DataFrame(data, index=dates).apply(SparseArray)
+    dates = pd.bdate_range("1/1/2011", periods=10)
+    return pd.DataFrame(data, index=dates).apply(SparseArray)
 
 
 def create_pickle_data(test: bool = True):
@@ -134,28 +118,28 @@ def create_pickle_data(test: bool = True):
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
         "B": [0, 1, 0, 1, 0],
         "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
-        "D": date_range("1/1/2009", periods=5),
-        "E": [0.0, 1, Timestamp("20100101"), "foo", 2.0],
+        "D": pd.date_range("1/1/2009", periods=5),
+        "E": [0.0, 1, pd.Timestamp("20100101"), "foo", 2.0],
     }
 
-    scalars = {"timestamp": Timestamp("20130101"), "period": Period("2012", "M")}
+    scalars = {"timestamp": pd.Timestamp("20130101"), "period": pd.Period("2012", "M")}
 
     index = {
-        "int": Index(np.arange(10)),
-        "date": date_range("20130101", periods=10),
-        "period": period_range("2013-01-01", freq="M", periods=10),
-        "float": Index(np.arange(10, dtype=np.float64)),
-        "uint": Index(np.arange(10, dtype=np.uint64)),
-        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
-        "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
+        "int": pd.Index(np.arange(10)),
+        "date": pd.date_range("20130101", periods=10),
+        "period": pd.period_range("2013-01-01", freq="M", periods=10),
+        "float": pd.Index(np.arange(10, dtype=np.float64)),
+        "uint": pd.Index(np.arange(10, dtype=np.uint64)),
+        "timedelta": pd.timedelta_range("00:00:00", freq="30min", periods=10),
+        "string": pd.Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
-    index["range"] = RangeIndex(10)
+    index["range"] = pd.RangeIndex(10)
 
-    index["interval"] = interval_range(0, periods=10)
+    index["interval"] = pd.interval_range(0, periods=10)
 
     mi = {
-        "reg2": MultiIndex.from_tuples(
+        "reg2": pd.MultiIndex.from_tuples(
             tuple(
                 zip(
                     *[
@@ -170,36 +154,38 @@ def create_pickle_data(test: bool = True):
     }
 
     series = {
-        "float": Series(data["A"]),
-        "int": Series(data["B"]),
-        "mixed": Series(data["E"]),
-        "ts": Series(
-            np.arange(10).astype(np.int64), index=date_range("20130101", periods=10)
+        "float": pd.Series(data["A"]),
+        "int": pd.Series(data["B"]),
+        "mixed": pd.Series(data["E"]),
+        "ts": pd.Series(
+            np.arange(10).astype(np.int64), index=pd.date_range("20130101", periods=10)
         ),
-        "mi": Series(
+        "mi": pd.Series(
             np.arange(5).astype(np.float64),
-            index=MultiIndex.from_tuples(
+            index=pd.MultiIndex.from_tuples(
                 tuple(zip(*[[1, 1, 2, 2, 2], [3, 4, 3, 4, 5]], strict=True)),
                 names=["one", "two"],
             ),
         ),
-        "dup": Series(np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]),
-        "cat": Series(Categorical(["foo", "bar", "baz"])),
-        "dt": Series(date_range("20130101", periods=5)),
-        "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
-        "period": Series([Period("2000Q1")] * 5),
-        "string": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
+        "dup": pd.Series(
+            np.arange(5).astype(np.float64), index=["A", "B", "C", "D", "A"]
+        ),
+        "cat": pd.Series(pd.Categorical(["foo", "bar", "baz"])),
+        "dt": pd.Series(pd.date_range("20130101", periods=5)),
+        "dt_tz": pd.Series(pd.date_range("20130101", periods=5, tz="US/Eastern")),
+        "period": pd.Series([pd.Period("2000Q1")] * 5),
+        "string": pd.Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
-    mixed_dup_df = DataFrame(data)
+    mixed_dup_df = pd.DataFrame(data)
     mixed_dup_df.columns = list("ABCDA")
     frame = {
-        "float": DataFrame({"A": series["float"], "B": series["float"] + 1}),
-        "int": DataFrame({"A": series["int"], "B": series["int"] + 1}),
-        "mixed": DataFrame({k: data[k] for k in ["A", "B", "C", "D"]}),
-        "mi": DataFrame(
+        "float": pd.DataFrame({"A": series["float"], "B": series["float"] + 1}),
+        "int": pd.DataFrame({"A": series["int"], "B": series["int"] + 1}),
+        "mixed": pd.DataFrame({k: data[k] for k in ["A", "B", "C", "D"]}),
+        "mi": pd.DataFrame(
             {"A": np.arange(5).astype(np.float64), "B": np.arange(5).astype(np.int64)},
-            index=MultiIndex.from_tuples(
+            index=pd.MultiIndex.from_tuples(
                 tuple(
                     zip(
                         *[
@@ -212,55 +198,55 @@ def create_pickle_data(test: bool = True):
                 names=["first", "second"],
             ),
         ),
-        "dup": DataFrame(
+        "dup": pd.DataFrame(
             np.arange(15).reshape(5, 3).astype(np.float64), columns=["A", "B", "A"]
         ),
-        "cat_onecol": DataFrame({"A": Categorical(["foo", "bar"])}),
-        "cat_and_float": DataFrame(
+        "cat_onecol": pd.DataFrame({"A": pd.Categorical(["foo", "bar"])}),
+        "cat_and_float": pd.DataFrame(
             {
-                "A": Categorical(["foo", "bar", "baz"]),
+                "A": pd.Categorical(["foo", "bar", "baz"]),
                 "B": np.arange(3).astype(np.int64),
             }
         ),
         "mixed_dup": mixed_dup_df,
-        "dt_mixed_tzs": DataFrame(
+        "dt_mixed_tzs": pd.DataFrame(
             {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130603", tz="CET"),
+                "A": pd.Timestamp("20130102", tz="US/Eastern"),
+                "B": pd.Timestamp("20130603", tz="CET"),
             },
             index=range(5),
         ),
-        "dt_mixed2_tzs": DataFrame(
+        "dt_mixed2_tzs": pd.DataFrame(
             {
-                "A": Timestamp("20130102", tz="US/Eastern"),
-                "B": Timestamp("20130603", tz="CET"),
-                "C": Timestamp("20130603", tz="UTC"),
+                "A": pd.Timestamp("20130102", tz="US/Eastern"),
+                "B": pd.Timestamp("20130603", tz="CET"),
+                "C": pd.Timestamp("20130603", tz="UTC"),
             },
             index=range(5),
         ),
-        "string": DataFrame(
+        "string": pd.DataFrame(
             {
-                "A": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
-                "B": Series(["one", "two", "one", "two", "three"], dtype="string"),
+                "A": pd.Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
+                "B": pd.Series(["one", "two", "one", "two", "three"], dtype="string"),
             }
         ),
     }
 
     cat = {
-        "int8": Categorical(list("abcdefg")),
-        "int16": Categorical(np.arange(1000)),
-        "int32": Categorical(np.arange(10000)),
+        "int8": pd.Categorical(list("abcdefg")),
+        "int16": pd.Categorical(np.arange(1000)),
+        "int32": pd.Categorical(np.arange(10000)),
     }
 
     timestamp = {
-        "normal": Timestamp("2011-01-01"),
-        "nat": NaT,
-        "tz": Timestamp("2011-01-01", tz="US/Eastern"),
+        "normal": pd.Timestamp("2011-01-01"),
+        "nat": pd.NaT,
+        "tz": pd.Timestamp("2011-01-01", tz="US/Eastern"),
     }
     if test:
         # kept because those are present in the legacy pickles (<= 1.4)
-        timestamp["freq"] = Timestamp("2011-01-01")
-        timestamp["both"] = Timestamp("2011-01-01", tz="Asia/Tokyo")
+        timestamp["freq"] = pd.Timestamp("2011-01-01")
+        timestamp["both"] = pd.Timestamp("2011-01-01", tz="Asia/Tokyo")
 
     off = {
         "DateOffset": DateOffset(years=1),
@@ -302,13 +288,13 @@ def create_pickle_data(test: bool = True):
 
 
 def create_dataframe_all_types():
-    timestamps = Series(
+    timestamps = pd.Series(
         [
-            Timestamp("2013-01-01"),
-            NaT,
-            Timestamp("2013-01-03"),
-            Timestamp("2013-01-04"),
-            Timestamp("2013-01-05"),
+            pd.Timestamp("2013-01-01"),
+            pd.NaT,
+            pd.Timestamp("2013-01-03"),
+            pd.Timestamp("2013-01-04"),
+            pd.Timestamp("2013-01-05"),
         ]
     )
     timedeltas = timestamps - timestamps[0]
@@ -322,7 +308,7 @@ def create_dataframe_all_types():
         "int": list(range(1, 6)),
         "uint64": np.arange(3, 8).astype("uint64"),
         "float": [0.1, 0.2, 0.3, 0.4, np.nan],
-        "float32": Series([0.1, 0.2, 0.3, 0.4, np.nan], dtype="float32"),
+        "float32": pd.Series([0.1, 0.2, 0.3, 0.4, np.nan], dtype="float32"),
         "bool": [True, False, True, False, True],
         "datetime_ns": timestamps.dt.as_unit("ns"),
         "datetime_us": timestamps.dt.as_unit("us"),
@@ -342,15 +328,15 @@ def create_dataframe_all_types():
         # "categorical_object": Categorical(
         #     Series(["foo", "bar", "baz", np.nan, "foo"], dtype=object)
         # ),
-        "categorical_int": Categorical([1, 2, 3, np.nan, 1]),
+        "categorical_int": pd.Categorical([1, 2, 3, np.nan, 1]),
     }
-    return DataFrame(data)
+    return pd.DataFrame(data)
 
 
 def platform_name():
     return "_".join(
         [
-            str(pandas.__version__),
+            str(pd.__version__),
             str(pl.machine()),
             str(pl.system().lower()),
             str(pl.python_version()),
@@ -404,7 +390,7 @@ def write_legacy_file():
         "This script generates a storage file for the current arch, system, "
         "and python version"
     )
-    print(f"  pandas version: {pandas.__version__}")
+    print(f"  pandas version: {pd.__version__}")
     print(f"  output dir    : {output_dir}")
     print(f"  storage format: {storage_type}")
 

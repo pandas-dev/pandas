@@ -12,6 +12,7 @@ from collections import (
     defaultdict,
 )
 import contextlib
+import dis
 from functools import partial
 import inspect
 import sys
@@ -667,6 +668,37 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+# opcodes through which the interpreter calls ``__setitem__``
+# (STORE_SLICE only exists on Python 3.12+, before that slices went through
+#  BUILD_SLICE + STORE_SUBSCR)
+_SETITEM_OPCODES = frozenset(
+    dis.opmap[name] for name in ("STORE_SUBSCR", "STORE_SLICE") if name in dis.opmap
+)
+
+
+def is_setitem_syntax_in_caller_frame() -> bool:
+    """
+    Helper function used in detecting chained assignment.
+
+    Whether the frame calling ``__setitem__`` is executing a subscript
+    assignment (``obj[key] = value``) right now.
+
+    The refcount check can only tell a temporary apart from a named object for
+    calls coming from the interpreter, because it relies on the extra
+    reference the interpreter holds on its value stack. Code compiled with
+    Cython calls ``PyObject_SetItem`` directly, so it has one reference less
+    and a perfectly valid ``df[col] = value`` there looks exactly like chained
+    assignment (GH#51315). Such a call leaves no Python frame of its own, and
+    the nearest Python frame is executing a call rather than a subscript
+    assignment, so checking the opcode filters those out.
+    """
+    try:
+        frame = sys._getframe(2)
+    except ValueError:
+        return False
+    return frame.f_code.co_code[frame.f_lasti] in _SETITEM_OPCODES
 
 
 def is_local_in_caller_frame(obj: NDFrame) -> bool:

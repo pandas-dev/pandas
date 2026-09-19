@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -126,6 +127,16 @@ if TYPE_CHECKING:
     from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
+
+
+@cache
+def _integer_bounds(dtype: np.dtype) -> tuple[int, int]:
+    """
+    The inclusive bounds of an integer dtype, memoized because np.iinfo builds a
+    fresh object per call and _validate_setitem_value runs once per setitem.
+    """
+    info = np.iinfo(dtype)
+    return info.min, info.max
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
@@ -412,8 +423,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
 
         elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-            return value
-            # TODO: unsigned checks
+            # numpy range-checks a python int but C-casts a numpy scalar, so
+            #  bounds-check here (GH#48867).  int() keeps the comparison exact
+            #  against a float, see test_setitem_float_just_out_of_bounds_raises.
+            low, high = _integer_bounds(self.dtype.numpy_dtype)
+            if low <= int(value) <= high:
+                return value
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
@@ -1847,9 +1862,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
-    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def sem(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce("sem", skipna=skipna, axis=axis, ddof=ddof, **kwargs)
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
     def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):

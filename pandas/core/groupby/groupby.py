@@ -148,9 +148,9 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.window import (
-        ExpandingGroupby,
-        ExponentialMovingWindowGroupby,
-        RollingGroupby,
+        ExpandingGroupBy,
+        ExponentialMovingWindowGroupBy,
+        RollingGroupBy,
     )
 
 
@@ -3699,7 +3699,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         on: str | None = None,
         closed: IntervalClosedType | None = None,
         method: str = "single",
-    ) -> RollingGroupby:
+    ) -> RollingGroupBy:
         """
         Return a rolling grouper, providing rolling functionality per group.
 
@@ -3790,7 +3790,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.RollingGroupby
+        pandas.api.typing.RollingGroupBy
             Return a new grouper with our rolling appended.
 
         See Also
@@ -3840,9 +3840,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2 2  3    NaN
           3  4  0.705
         """
-        from pandas.core.window import RollingGroupby
+        from pandas.core.window import RollingGroupBy
 
-        return RollingGroupby(
+        return RollingGroupBy(
             self._selected_obj,
             window=window,
             min_periods=min_periods,
@@ -3860,7 +3860,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         min_periods: int = 1,
         method: str = "single",
-    ) -> ExpandingGroupby:
+    ) -> ExpandingGroupBy:
         """
         Return an expanding grouper, providing expanding functionality per group.
 
@@ -3882,7 +3882,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.ExpandingGroupby
+        pandas.api.typing.ExpandingGroupBy
             An object that supports expanding transformations over each group.
 
         See Also
@@ -3919,9 +3919,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               4   45.0
               5   50.0
         """
-        from pandas.core.window import ExpandingGroupby
+        from pandas.core.window import ExpandingGroupBy
 
-        return ExpandingGroupby(
+        return ExpandingGroupBy(
             self._selected_obj,
             min_periods=min_periods,
             method=method,
@@ -3940,7 +3940,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ignore_na: bool = False,
         times: np.ndarray | Series | None = None,
         method: str = "single",
-    ) -> ExponentialMovingWindowGroupby:
+    ) -> ExponentialMovingWindowGroupBy:
         """
         Return an ewm grouper, providing ewm functionality per group.
 
@@ -3983,7 +3983,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.ExponentialMovingWindowGroupby
+        pandas.api.typing.ExponentialMovingWindowGroupBy
             An object that supports exponentially weighted moving transformations over
             each group.
 
@@ -4021,9 +4021,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               4  47.500000
               5  56.153846
         """
-        from pandas.core.window import ExponentialMovingWindowGroupby
+        from pandas.core.window import ExponentialMovingWindowGroupBy
 
-        return ExponentialMovingWindowGroupby(
+        return ExponentialMovingWindowGroupBy(
             self._selected_obj,
             com=com,
             span=span,
@@ -4298,8 +4298,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
-        Can be either a call or an index. dropna is not available with index notation.
-        Index notation accepts a comma separated list of integers and slices.
+        .. deprecated:: 3.1.0
+
+            Index notation (``g.nth[n]``) is deprecated in favor of calling
+            ``g.nth(n)`` and will be removed in a future version of pandas.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -4341,20 +4343,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  2 3.0
         4  2 5.0
         >>> g.nth(slice(None, -1))
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-
-        Index notation may also be used
-
-        >>> g.nth[0, 1]
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-        4  2 5.0
-        >>> g.nth[:-1]
            A   B
         0  1 NaN
         1  1 2.0
