@@ -2875,19 +2875,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat below
                 return obj.sum(skipna=skipna)
 
-            # If we are grouping on categoricals we want unobserved categories to
-            # return zero, rather than the default of NaN which the reindexing in
-            # _agg_general() returns. GH #31422
-            with com.temp_setattr(self, "observed", True):
-                result = self._agg_general(
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                    alias="sum",
-                    npfunc=sum_compat,
-                    skipna=skipna,
-                )
-
-            return result
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="sum",
+                npfunc=sum_compat,
+                skipna=skipna,
+            )
 
     @final
     def prod(
