@@ -799,14 +799,16 @@ class Block(PandasObject, libinternals.Block):
             # which never match
             return [self.copy(deep=False)]
 
-        if isinstance(self.dtype, ArrowDtype) and not is_re(value):
+        if isinstance(self.dtype, ArrowDtype):
             # can_hold_element returns True for every ArrowDtype, so it cannot
-            #  answer this; ask the array itself (GH#69026)
-            try:
-                self.values._validate_setitem_value(value)  # type: ignore[union-attr]
-                can_hold_value = True
-            except (ValueError, TypeError):
-                can_hold_value = False
+            #  answer this (GH#69026). The gate above already guarantees a
+            #  string-typed arrow array, so only a string fits; a regex value is
+            #  left to raise on write, as it does for StringDtype
+            can_hold_value = (
+                isinstance(value, str)
+                or is_re(value)
+                or (is_scalar(value) and isna(value))
+            )
         else:
             can_hold_value = self._can_hold_element(value) or (
                 is_string_dtype(self.dtype) and is_re(value)

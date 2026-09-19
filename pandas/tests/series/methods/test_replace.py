@@ -812,6 +812,7 @@ def test_replace_compiled_regex_arrow_dtype_non_string_value(pa_type):
     tm.assert_series_equal(ser.replace(regex={re.compile("^a"): 1}), expected)
 
 
+@td.skip_if_no("pyarrow")
 def test_replace_compiled_regex_string_dtype_non_string_value():
     # GH#69026 the behavior ArrowDtype is matched against
     ser = pd.Series(["ab", "b"], dtype=pd.StringDtype("pyarrow"))
@@ -819,6 +820,23 @@ def test_replace_compiled_regex_string_dtype_non_string_value():
 
     tm.assert_series_equal(ser.replace(re.compile("^a"), 1), expected)
     tm.assert_series_equal(ser.replace(regex={re.compile("^a"): 1}), expected)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_compiled_regex_arrow_dtype_bytes_value(pa_type):
+    # GH#69026 pyarrow converts bytes by decoding them, so asking whether it can
+    #  convert the value is not the same as asking whether the column can hold it
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["ab", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+    expected = pd.Series([b"z", "b"], dtype=object)
+
+    tm.assert_series_equal(ser.replace(re.compile("^a"), b"z"), expected)
+    tm.assert_series_equal(
+        pd.Series(["ab", "b"], dtype=pd.StringDtype("python")).replace(
+            re.compile("^a"), b"z"
+        ),
+        expected,
+    )
 
 
 def test_replace_compiled_regex_bytes_dtype():

@@ -92,6 +92,27 @@ def test_replace_regex_existing_category(kwargs):
 @pytest.mark.parametrize(
     "kwargs",
     [
+        {"regex": {"^a": "b"}},
+        {"to_replace": "^a", "value": "b", "regex": True},
+        {"to_replace": re.compile("^a"), "value": "b"},
+    ],
+)
+def test_replace_regex_existing_category_arrow_strings(kwargs):
+    # GH#69026 the gate resolves through _regex_target_dtype, so a Categorical of
+    #  arrow strings stops being a silent no-op like every other Categorical
+    pa = pytest.importorskip("pyarrow")
+    cats = pd.array(["a", "b", "c"], dtype=pd.ArrowDtype(pa.string()))
+    ser = pd.Series(pd.Categorical(cats))
+
+    result = ser.replace(**kwargs)
+
+    expected = pd.Series(pd.Categorical(cats.take([1, 1, 2]), categories=cats))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
         {"regex": {"^a": "z"}},
         {"to_replace": "^a", "value": "z", "regex": True},
         {"to_replace": ["^a"], "value": ["z"], "regex": True},
