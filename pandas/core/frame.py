@@ -4517,6 +4517,15 @@ class DataFrame(NDFrame, OpsMixin):
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
+        if is_list_like(loc) and is_scalar(value) and len(loc) > 1:
+            # GH#65491 a scalar fills every selected column, as the label
+            #  spelling df[cols] = 5 does; the manager's column-count check
+            #  would otherwise reject a one-column value for many positions
+            for idx in loc:
+                arraylike, refs = self._sanitize_column(value)
+                self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
+            return
+
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
@@ -4880,13 +4889,19 @@ class DataFrame(NDFrame, OpsMixin):
         if (
             key in self.columns
             and value.ndim == 1
-            and not isinstance(value.dtype, ExtensionDtype)
+            and not is_1d_only_ea_dtype(value.dtype)
         ):
             # broadcast across multiple columns if necessary
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
-                    value = np.tile(value, (len(existing_piece.columns), 1)).T
+                    ncols = len(existing_piece.columns)
+                    if isinstance(value.dtype, ExtensionDtype):
+                        # GH#65491 np.tile would degrade a 2-D-capable EA (tz-aware
+                        #  datetime64, period) to object
+                        value = value.reshape(-1, 1).repeat(ncols, axis=1)
+                    else:
+                        value = np.tile(value, (ncols, 1)).T
                     refs = None
 
         self._set_item_mgr(key, value, refs)
