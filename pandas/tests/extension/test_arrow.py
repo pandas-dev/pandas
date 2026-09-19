@@ -5426,6 +5426,39 @@ def test_setitem_lossy_float_raises(value):
     assert arr[1] == 2
 
 
+@pytest.mark.parametrize("value", [[9.5, 8.5], (9.5, 8.5), np.array([9.5, 8.5])])
+def test_setitem_lossy_float_list_like_raises(value):
+    # GH#68638 pa.array's safe cast catches a numpy array but truncates a list,
+    #  so every container has to reach the same TypeError the scalar does
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:2] = value
+    assert list(arr) == [1, 2, 3]
+
+
+def test_setitem_integral_list_like_still_accepted():
+    # GH#68638 the list path must not reject values the column can hold
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:2] = [9, 8]
+    assert list(arr) == [9, 8, 3]
+
+
+@pytest.mark.parametrize("value", [float("inf"), Decimal("Infinity")])
+def test_setitem_non_finite_raises_type_error(value):
+    # GH#68638 a non-finite value has no integral form, whichever type spells it
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = value
+
+
+def test_arrow_string_fillna_pyarrow_scalar():
+    # GH#68638 routing fillna through _validate_setitem_value must not lose the
+    #  pa.Scalar short-circuit _box_pa had; the string override rejects one
+    arr = pd.array(["a", None], dtype="string[pyarrow]")
+    result = arr.fillna(pa.scalar("x"))
+    assert list(result) == ["a", "x"]
+
+
 @pytest.mark.parametrize("value", [4, 4.0, Decimal("4"), np.array(4)])
 def test_setitem_integral_value_still_accepted(value):
     # GH#68638 only a fractional value is refused

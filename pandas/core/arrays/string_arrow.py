@@ -328,7 +328,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        if is_scalar(value):
+        if isinstance(value, pa.Scalar):
+            # already pyarrow-typed; super() checks it against the column type
+            pass
+        elif is_scalar(value):
             if isna(value):
                 value = None
             elif not isinstance(value, str):

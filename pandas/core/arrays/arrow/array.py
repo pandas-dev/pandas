@@ -3222,16 +3222,12 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         if pa.types.is_integer(pa_type):
             # GH#68638 pyarrow truncates the fractional part instead of refusing
-            #  the value; the masked dtypes raise.
+            #  the value; the masked dtypes raise. Its safe cast catches a numpy
+            #  array but not a list, so every container is checked here
             value = lib.item_from_zerodim(value)
-            if lib.is_float(value):
-                lossy = not isna(value) and not value.is_integer()
-            elif isinstance(value, Decimal):
-                lossy = value.is_finite() and value != value.to_integral_value()
-            else:
-                lossy = False
-            if lossy:
-                raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+            bad = _first_truncated_to_integer(value)
+            if bad is not None:
+                raise TypeError(f"Invalid value '{bad!s}' for dtype '{self.dtype}'")
         try:
             value = self._box_pa(value, pa_type)
         except pa.ArrowTypeError as err:
@@ -4538,6 +4534,44 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return self._from_pyarrow_array(result)
+
+
+def _truncates_to_integer(value) -> bool:
+    """
+    Whether an integer-typed pyarrow column would silently drop part of ``value``.
+
+    A missing value is not lossy; a non-finite one has no integral form at all.
+    See GH#68638.
+    """
+    if lib.is_float(value):
+        return not isna(value) and not value.is_integer()
+    if isinstance(value, Decimal):
+        if isna(value):
+            return False
+        return not value.is_finite() or value != value.to_integral_value()
+    return False
+
+
+def _first_truncated_to_integer(value):
+    """
+    The first entry of ``value`` an integer-typed pyarrow column would truncate,
+    or None if there is none. See GH#68638.
+    """
+    if not is_list_like(value) or isinstance(value, (pa.Array, pa.ChunkedArray)):
+        return value if _truncates_to_integer(value) else None
+
+    arr = value if isinstance(value, np.ndarray) else np.asarray(value)
+    if arr.dtype.kind == "f":
+        with np.errstate(invalid="ignore"):
+            lossy = ~isna(arr) & ((arr != np.trunc(arr)) | np.isinf(arr))
+        return arr[lossy].flat[0] if lossy.any() else None
+    if arr.dtype.kind != "O":
+        # no other numpy dtype has a fractional part to drop
+        return None
+    for item in arr.ravel():
+        if _truncates_to_integer(item):
+            return item
+    return None
 
 
 def transpose_homogeneous_pyarrow(
