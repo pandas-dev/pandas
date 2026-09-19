@@ -2392,6 +2392,40 @@ def test_iloc_setitem_2d_ea_block_shape_mismatch_message(col_key):
         df.iloc[[2, 0], col_key] = np.array([100, 101], dtype="i8").view("M8[s]")
 
 
+@pytest.mark.parametrize("key", [..., (..., [0, 1])])
+def test_iloc_setitem_2d_ea_block_ellipsis_row_key(key):
+    # GH#68521 np.ndim(Ellipsis) is 0, so it read as an axis-dropping scalar;
+    #  it stands in for the full slice and does transpose
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    ncols = 3 if key is ... else 2
+
+    value = np.arange(100, 100 + 4 * ncols).reshape(4, ncols).astype("i8")
+    df.iloc[key] = value.view("M8[s]")
+
+    arr[key] = value
+    tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_2d_ea_block_2d_row_key_does_not_write():
+    # GH#68521 a 2-D row key makes the selection 3-D, which neither .T nor
+    #  reshape(-1, 1) reorients; reshaping anyway broadcast a 1-D value in
+    #  silently, where every other frame dtype raises
+    df = pd.DataFrame(
+        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
+    )
+    numeric = pd.DataFrame(np.arange(12).reshape(4, 3))
+
+    original = df.copy()
+
+    with pytest.raises(ValueError, match="setting an array element"):
+        numeric.iloc[np.array([[1], [2]])] = np.array([100, 101])
+    # the datetimelike block reports it as main does, rather than writing
+    with pytest.raises(OutOfBoundsDatetime, match="Incompatible"):
+        df.iloc[np.array([[1], [2]])] = np.array([100, 101], dtype="i8").view("M8[s]")
+    tm.assert_frame_equal(df, original)
+
+
 def test_iloc_setitem_2d_ea_block_length_one_value_is_not_a_shape_error():
     # GH#68521 assignment drops a leading length-1 axis that broadcasting alone
     #  does not, so a length-1 value into one cell is not a shape failure. The

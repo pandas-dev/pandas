@@ -1789,12 +1789,21 @@ class EABackedBlock(Block):
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
                 indexer = (indexer, slice(None))
+            # np.ndim(Ellipsis) is 0, so it would read as a scalar below; it
+            #  stands in for the full slice and does transpose (GH#68521)
+            indexer = tuple(slice(None) if x is Ellipsis else x for x in indexer)
             if len(indexer) == 2:
                 # GH#68521 the swap transposes the selection only when the
                 #  entries index separate axes: a scalar entry drops one, and
-                #  two advanced indexers broadcast against each other.
-                transposed = any(isinstance(x, slice) for x in indexer) and not any(
-                    not isinstance(x, slice) and np.ndim(x) == 0 for x in indexer
+                #  two advanced indexers broadcast against each other. A key of
+                #  2 or more dimensions makes the selection 3-D, which neither
+                #  .T nor reshape(-1, 1) reorients, so leave it alone
+                transposed = (
+                    any(isinstance(x, slice) for x in indexer)
+                    and not any(
+                        not isinstance(x, slice) and np.ndim(x) == 0 for x in indexer
+                    )
+                    and all(np.ndim(x) <= 1 for x in indexer)
                 )
                 indexer = indexer[::-1]
             if transposed:
@@ -1827,7 +1836,9 @@ class EABackedBlock(Block):
                     #  giving it this one would change the exception type of
                     #  Series setitem for four dtypes, so it is left alone here.
                     target_shape = _unbroadcastable_shape(values, indexer, value)
-                    if target_shape is not None:
+                    if target_shape is not None and len(target_shape) <= 2:
+                        # a deeper selection, e.g. from a 2-D key, has no shape
+                        #  the caller could map back onto their frame
                         if transposed:
                             target_shape = target_shape[::-1]
                         raise ValueError(
