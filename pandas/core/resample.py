@@ -2115,8 +2115,8 @@ class DatetimeIndexResampler(Resampler):
     ax: DatetimeIndex
 
     @property
-    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupby]:
-        return DatetimeIndexResamplerGroupby
+    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupBy]:
+        return DatetimeIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
@@ -2222,7 +2222,7 @@ class DatetimeIndexResampler(Resampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
-class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+class DatetimeIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, DatetimeIndexResampler
 ):
     """
@@ -2241,7 +2241,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return PeriodIndexResamplerGroupby
+        return PeriodIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_period_bins(self.ax)
@@ -2322,7 +2322,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
-class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+class PeriodIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, PeriodIndexResampler
 ):
     """
@@ -2341,7 +2341,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return TimedeltaIndexResamplerGroupby
+        return TimedeltaIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_time_delta_bins(self.ax)
@@ -2359,7 +2359,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
-class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, TimedeltaIndexResampler
 ):
     """

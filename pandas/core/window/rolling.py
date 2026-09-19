@@ -58,7 +58,7 @@ import pandas.core.common as com
 from pandas.core.indexers.objects import (
     BaseIndexer,
     FixedWindowIndexer,
-    GroupbyIndexer,
+    GroupByIndexer,
     VariableWindowIndexer,
 )
 from pandas.core.indexes.api import (
@@ -657,7 +657,7 @@ class BaseWindow(SelectionMixin):
     agg = aggregate
 
 
-class BaseWindowGroupby(BaseWindow):
+class BaseWindowGroupBy(BaseWindow):
     """
     Provide the groupby windowing facilities.
     """
@@ -3537,20 +3537,20 @@ Rolling.__doc__ = Window.__doc__
 
 
 @set_module("pandas.api.typing")
-class RollingGroupby(BaseWindowGroupby, Rolling):
+class RollingGroupBy(BaseWindowGroupBy, Rolling):
     """
     Provide a rolling groupby implementation.
     """
 
-    _attributes = Rolling._attributes + BaseWindowGroupby._attributes
+    _attributes = Rolling._attributes + BaseWindowGroupBy._attributes
 
-    def _get_window_indexer(self) -> GroupbyIndexer:
+    def _get_window_indexer(self) -> GroupByIndexer:
         """
         Return an indexer class that will compute the window start and end bounds
 
         Returns
         -------
-        GroupbyIndexer
+        GroupByIndexer
         """
         rolling_indexer: type[BaseIndexer]
         indexer_kwargs: dict[str, Any] | None = None
@@ -3570,7 +3570,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
         else:
             rolling_indexer = FixedWindowIndexer
             window = self.window
-        window_indexer = GroupbyIndexer(
+        window_indexer = GroupByIndexer(
             index_array=index_array,
             window_size=window,
             groupby_indices=self._grouper.indices,
