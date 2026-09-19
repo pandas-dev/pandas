@@ -649,8 +649,7 @@ class TestiLocBaseIndependent:
     ):
         # GH#65446 a slice column indexer selects the cross product with the
         #  row indexer; on a referenced frame it was re-expressed as an array,
-        #  which broadcasts against the rows instead. The forward slice pins
-        #  the direction, which nothing else covers.
+        #  which broadcasts against the rows instead
         df = pd.DataFrame(
             np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
         )
@@ -675,10 +674,8 @@ class TestiLocBaseIndependent:
         self, row_indexer, col_indexer
     ):
         # GH#65446 an increasing column indexer was collapsed to a slice, which
-        #  takes the cross product, and an ndarray row indexer was reshaped to
-        #  take one as well; each pair here is one np.ix_ misses, so both keys
-        #  have to keep broadcasting against each other as they do with no
-        #  reference alive.
+        #  takes the cross product; both keys have to keep broadcasting against
+        #  each other, as they do with no reference alive
         df = pd.DataFrame(
             np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
         )
@@ -691,6 +688,33 @@ class TestiLocBaseIndependent:
         expected.loc[1, "c"] = 99.0
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("shape", [(2, 2), (3, 2)])
+    def test_iloc_setitem_datetimelike_two_advanced_keys_referenced_block(self, shape):
+        # GH#65446 two advanced keys broadcast, so reversing them for the (nblocks,
+        #  nrows) storage layout must not also transpose the value. The square
+        #  shape wrote transposed data; the non-square one raised
+        n_rows = shape[0] + 1
+        df = pd.DataFrame(
+            {col: pd.date_range("2020-01-01", periods=n_rows) for col in "abc"}
+        )
+        oracle = pd.DataFrame({col: np.arange(float(n_rows)) for col in "abc"})
+        value = pd.date_range("2000-01-01", periods=shape[0] * shape[1]).to_numpy()
+        value = value.reshape(shape)
+        rows = list(range(n_rows - 1, n_rows - 1 - shape[0], -1))
+
+        ref = df[["a", "b", "c"]]  # noqa: F841
+        oracle_ref = oracle[["a", "b", "c"]]  # noqa: F841
+        df.iloc[rows, [0, 2]] = value
+        oracle.iloc[rows, [0, 2]] = np.arange(float(shape[0] * shape[1])).reshape(shape)
+
+        # the datetimelike block must land the same cells as the float block
+        written = value.reshape(shape)
+        for pos, row in enumerate(rows):
+            assert df.loc[row, "a"] == written[pos, 0]
+            assert df.loc[row, "c"] == written[pos, 1]
+            assert oracle.loc[row, "a"] == float(pos * shape[1])
+            assert oracle.loc[row, "c"] == float(pos * shape[1] + 1)
 
     def test_iloc_setitem_2d_row_indexer_referenced_block(self):
         # GH#65446 a 2d row indexer selects the cross product with a slice

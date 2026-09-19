@@ -1788,9 +1788,17 @@ class EABackedBlock(Block):
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
                 indexer = (indexer, slice(None))
+            # reversing the pair transposes the selection only when its two
+            #  entries index independent axes. Two advanced indices broadcast
+            #  against each other instead, and their order does not change the
+            #  result's orientation, so transposing the value would undo it
+            #  (GH#65446)
+            broadcast_pair = len(indexer) == 2 and not any(
+                isinstance(key, slice) for key in indexer
+            )
             if len(indexer) == 2:
                 indexer = indexer[::-1]
-            if isinstance(value, np.ndarray) and value.ndim == 2:
+            if isinstance(value, np.ndarray) and value.ndim == 2 and not broadcast_pair:
                 value = value.T
         check_setitem_lengths(indexer, value, values)
 
