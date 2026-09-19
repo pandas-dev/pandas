@@ -37,7 +37,6 @@ from pandas.core.dtypes.dtypes import (
 
 from pandas import (
     DataFrame,
-    Index,
 )
 import pandas.core.common as com
 
@@ -457,13 +456,16 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             ]
         elif perturbed:
             # no key to recover the label from, so the label itself has to be
-            #  parsed exactly, which costs a second decode of the whole document
+            #  parsed exactly, which costs a second decode of the whole document.
+            #  Positional data has no keys at all, so every float label reads as
+            #  perturbed and pays this; pandas never writes positional data
             try:
                 schema = ujson_loads(json, precise_float=True)["schema"]
             except ValueError as err:
                 raise ValueError(
-                    "Reading a float field name with no matching key in "
-                    f"'data' requires an exact parse, which failed: {err}"
+                    "Reading a float field name with nothing in 'data' to "
+                    f"match it against requires an exact parse, which "
+                    f"failed: {err}"
                 ) from err
             names = [field["name"] for field in schema["fields"]]
     fields = schema["fields"]
@@ -480,11 +482,18 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             if col_order.count(col) > 1
         ]
         shared = "share a string form, which is how 'data' keys its values"
-    elif rows:
+    elif positional:
         # positional labels are used as they are, and pandas conflates 1, 1.0
-        #  and True, so they collide on its own notion of equality instead
-        duplicated = Index(names).duplicated(keep=False)
-        collisions = [name for name, dup in zip(names, duplicated, strict=True) if dup]
+        #  and True, so two DIFFERENT labels can share one key in the restore
+        #  mapping below and silently collapse into one. Two identical labels
+        #  are fine: either one restores to the same value. Checked with no
+        #  records too, since the restore runs either way
+        first_seen: dict[Hashable, Any] = {}
+        for name in names:
+            first = first_seen.setdefault(name, name)
+            if first is not name and not (type(first) is type(name) and first == name):
+                collisions = [first, name]
+                break
         shared = "are the same label to pandas"
     if collisions:
         raise ValueError(
