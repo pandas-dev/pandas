@@ -206,13 +206,12 @@ def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
     if ufunc not in _LOGICAL_UFUNCS:
         return
 
-    for obj in inputs:
-        if _defers_to(obj):
-            # raising here would take the op away from an operand we do not own,
-            #  see test_logical_ufunc_third_party_datetimelike.  This has to
-            #  precede the dtype checks below, which read a dtype we do not own.
-            continue
+    if any(_defers_to(obj) for obj in inputs):
+        # pandas defers the whole op, so raising for any operand takes it away,
+        #  see test_logical_ufunc_third_party_datetimelike
+        return
 
+    for obj in inputs:
         if isinstance(obj, ABCDataFrame):
             # a DataFrame has no dtype of its own, and with two inputs
             #  array_ufunc np.asarray()s it before any column-level guard runs

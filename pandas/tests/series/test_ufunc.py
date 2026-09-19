@@ -711,3 +711,18 @@ def test_logical_ufunc_third_party_datetimelike(box, dtype):
     tm.assert_equal(
         np.logical_and(foreign, left), np.logical_and(_ThirdPartyArray(), left)
     )
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_logical_ufunc_third_party_pandas_datetimelike(box, dtype):
+    # GH#68524 the deferral is of the whole op, so it holds when the
+    #  datetimelike operand is the pandas one too
+    values = ["1D", "2D"] if dtype.startswith("m") else ["2016-01-01", "2016-01-02"]
+    left = box(pd.array(values, dtype=dtype))
+    control = box(pd.array([True, True]))
+    foreign = _ThirdPartyArray()
+
+    # baselines as in the test above
+    tm.assert_equal(np.logical_and(left, foreign), np.logical_and(control, foreign))
+    tm.assert_equal(np.logical_and(foreign, left), np.logical_and(foreign, control))
