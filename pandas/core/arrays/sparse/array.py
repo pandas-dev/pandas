@@ -78,6 +78,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
     notna,
@@ -1747,6 +1748,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         sparse_dtype = SparseDtype(data.dtype, fill_value)
         return cls._simple_new(data, sp_index, sparse_dtype)
+
+    def insert(self, loc: int, item) -> Self:
+        if not is_valid_na_for_dtype(item, self.dtype):
+            # GH#69028 our _from_sequence casts to the subtype instead of
+            #  raising, so validate here; Index.insert widens on the raise
+            if not _can_hold_for_fill(self.dtype.subtype, item):
+                raise TypeError(f"Invalid value '{item!s}' for dtype '{self.dtype}'")
+        return super().insert(loc, item)
 
     def astype(self, dtype: AstypeArg | None = None, copy: bool = True):
         """
