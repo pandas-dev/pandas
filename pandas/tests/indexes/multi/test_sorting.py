@@ -36,6 +36,41 @@ def test_sortlevel_not_sort_remaining():
     assert sorted_idx.equals(mi)
 
 
+@pytest.mark.parametrize("sort_remaining", [True, False])
+@pytest.mark.parametrize("empty", [True, False])
+def test_sortlevel_empty_level(sort_remaining, empty, ascending):
+    # GH#25831
+    index = pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"])
+    if empty:
+        index = index[:0]
+
+    result, indexer = index.sortlevel(
+        level=[], ascending=ascending, sort_remaining=sort_remaining
+    )
+
+    if sort_remaining and not empty:
+        positions = [0, 2, 1] if ascending else [1, 2, 0]
+        expected_indexer = np.array(positions, dtype=np.intp)
+    else:
+        expected_indexer = np.arange(len(index), dtype=np.intp)
+    tm.assert_index_equal(result, index.take(expected_indexer))
+    tm.assert_numpy_array_equal(indexer, expected_indexer)
+
+
+@pytest.mark.parametrize("sort_remaining", [True, False])
+@pytest.mark.parametrize("ascending", [True, False, []])
+def test_sortlevel_empty_level_invalid_na_position(sort_remaining, ascending):
+    # GH#25831
+    index = pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)])
+    with pytest.raises(ValueError, match="invalid na_position: invalid"):
+        index.sortlevel(
+            level=[],
+            ascending=ascending,
+            sort_remaining=sort_remaining,
+            na_position="invalid",
+        )
+
+
 def test_sortlevel_deterministic():
     tuples = [
         ("bar", "one"),
