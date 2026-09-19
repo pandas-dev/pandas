@@ -15,6 +15,7 @@ from datetime import (
     timedelta,
 )
 from decimal import Decimal
+from enum import Enum
 from fractions import Fraction
 from io import StringIO
 import itertools
@@ -246,6 +247,28 @@ def test_is_list_like_native_container_types():
     assert not inference.is_list_like(list[str])
     assert not inference.is_list_like(tuple[int])
     assert not inference.is_list_like(tuple[str])
+
+
+def test_is_list_like_enum_class():
+    # GH 54386
+    # an Enum subclass iterates through its metaclass, so the class itself is
+    # list-like even though it is a class. the members are not
+    class Color(Enum):
+        RED = 1
+        GREEN = 2
+
+    assert list(Color) == [Color.RED, Color.GREEN]
+    assert inference.is_list_like(Color)
+    assert not inference.is_list_like(Color.RED)
+
+    # a class whose metaclass has no __iter__ stays scalar. list.__iter__ exists
+    # but iter(list) raises, so this is the case the class check was there for
+    class Plain:
+        pass
+
+    assert not inference.is_list_like(Plain)
+    assert not inference.is_list_like(list)
+    assert not inference.is_list_like(dict)
 
 
 def test_is_sequence():
