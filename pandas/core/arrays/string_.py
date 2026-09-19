@@ -461,6 +461,29 @@ class BaseStringArray(ExtensionArray):
         )
         return formatter
 
+    def _maybe_convert_ufunc_result(self, result: Any) -> Any:
+        """Infer a pandas array for NumPy ufunc results when possible."""
+        if isinstance(result, tuple):
+            return tuple(self._maybe_convert_ufunc_result(value) for value in result)
+        if not isinstance(result, np.ndarray):
+            return result
+
+        if len(result) == 0 or (
+            result.dtype.kind in "OU" and lib.is_string_array(result, skipna=True)
+        ):
+            return type(self)._from_sequence(result, dtype=self.dtype)
+
+        if result.dtype.kind != "O":
+            if result.dtype.kind in "mM":
+                from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+                return ensure_wrapped_if_datetimelike(result)
+            return result
+
+        return lib.maybe_convert_objects(
+            result, convert_non_numeric=True, convert_to_nullable_dtype=True
+        )
+
     def _str_map(
         self,
         f,
