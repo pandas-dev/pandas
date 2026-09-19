@@ -4954,6 +4954,7 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize("use_na_sentinel", [True, False])
 @pytest.mark.parametrize(
     "values",
     [
@@ -4963,7 +4964,7 @@ def test_factorize_dictionary_with_na():
         pa.array(np.array([1, 2], dtype=np.float16)),
     ],
 )
-def test_factorize_dictionary_unsupported_value_type(values):
+def test_factorize_dictionary_unsupported_value_type(values, use_na_sentinel):
     # GH#69024 re-factorizing needs a dictionary_encode kernel for the value type,
     #  which list and float16 lack, and a take kernel, which the view types lack.
     #  factorize keeps the stored dictionary for those rather than raising.
@@ -4972,12 +4973,36 @@ def test_factorize_dictionary_unsupported_value_type(values):
     )
     arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
 
-    expected = np.array([0, 1, 0], dtype=np.intp)
-    for use_na_sentinel in [True, False]:
-        indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
-        tm.assert_numpy_array_equal(indices, expected)
-        # compared as pyarrow, since ArrowDtype.type raises for the view types
-        assert uniques._pa_array.combine_chunks().equals(values)
+    indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+    # compared as pyarrow, since ArrowDtype.type raises for the view types
+    assert uniques._pa_array.combine_chunks().equals(values)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        pa.array(["a", "b"], type=pa.string_view()),
+        pa.array([b"a", b"b"], type=pa.binary_view()),
+        pa.array([[1], [2]], type=pa.list_(pa.int64())),
+        pa.array(np.array([1, 2], dtype=np.float16)),
+    ],
+)
+def test_factorize_dictionary_unsupported_value_type_with_na(values):
+    # GH#69024 keeping the stored dictionary leaves the null in index space, which
+    #  the sentinel can express and use_na_sentinel=False cannot, so that leg raises
+    #  rather than handing back a -1 it promised not to use
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, None, 1], type=pa.int32()), values
+    )
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, -1, 1], dtype=np.intp))
+    assert uniques._pa_array.combine_chunks().equals(values)
+
+    with pytest.raises(pa.ArrowNotImplementedError):
+        arr.factorize(use_na_sentinel=False)
 
 
 @pytest.mark.parametrize("use_na_sentinel", [True, False])
@@ -5050,15 +5075,17 @@ def test_factorize_dictionary_null_in_dictionary_and_indices():
 
 def test_factorize_dictionary_of_dictionary():
     # GH#69024 a dictionary-typed value type cannot be re-encoded in index space,
-    #  because the inner dictionary_encode takes no null_encoding
+    #  because the inner dictionary_encode takes no null_encoding. The cast strips
+    #  the outer level only, so the INNER dictionary is still taken on trust and
+    #  "b", which no index points at, is still reported as a unique
     inner = pa.array(["a", "b"]).dictionary_encode()
     dict_arr = pa.DictionaryArray.from_arrays(
-        pa.array([0, 1, 0], type=pa.int32()), inner
+        pa.array([0, 0, 0], type=pa.int32()), inner
     )
     arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
 
     indices, uniques = arr.factorize()
-    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+    tm.assert_numpy_array_equal(indices, np.array([0, 0, 0], dtype=np.intp))
     tm.assert_extension_array_equal(
         uniques, pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
     )

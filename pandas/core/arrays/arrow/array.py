@@ -1910,22 +1910,31 @@ class ArrowExtensionArray(
                 ids = pc.take(deduped.indices, combined.indices).dictionary_encode(
                     null_encoding=null_encoding
                 )
-                return pa.chunked_array(
-                    [
-                        pa.DictionaryArray.from_arrays(
-                            ids.indices, pc.take(deduped.dictionary, ids.dictionary)
-                        )
-                    ]
-                )
+                dictionary = pc.take(deduped.dictionary, ids.dictionary)
             except (pa.ArrowInvalid, pa.ArrowNotImplementedError):
-                # Index space needs kernels for the value type, and needs pyarrow to
-                # unify the chunks' dictionaries, which it refuses when one holds a null
+                # Index space needs dictionary_encode and take kernels for the value
+                # type, and needs pyarrow to unify the chunks' dictionaries, which it
+                # refuses when one holds a null. Assembling the result is kept out of
+                # the try, so an unexpected failure there is not read as a missing
+                # kernel and answered by decoding the column.
                 pass
+            else:
+                return pa.chunked_array(
+                    [pa.DictionaryArray.from_arrays(ids.indices, dictionary)]
+                )
         try:
             return data.cast(data.type.value_type).dictionary_encode(
                 null_encoding=null_encoding
             )
         except pa.ArrowNotImplementedError:
+            if null_encoding == "encode" and (
+                data.null_count > 0
+                or any(chunk.dictionary.null_count > 0 for chunk in data.chunks)
+            ):
+                # returning data unencoded would leave the nulls in index space,
+                #  where factorize replaces them with the -1 sentinel that
+                #  use_na_sentinel=False promises not to use
+                raise
             # see test_factorize_dictionary_unsupported_value_type
             return data
 
