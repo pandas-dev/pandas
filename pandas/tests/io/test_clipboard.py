@@ -284,7 +284,10 @@ class TestClipboard:
     def test_clipboard_copy_tabs_default(self, sep, excel, df, clipboard):
         kwargs = build_kwargs(sep, excel)
         df.to_clipboard(**kwargs)
-        assert clipboard.text() == df.to_csv(sep="\t")
+        # engine="python": to_clipboard always writes through a text
+        # buffer internally, which the pyarrow engine cannot use, so its
+        # output always matches the python engine's rendering
+        assert clipboard.text() == df.to_csv(sep="\t", engine="python")
 
     # Tests reading of white space separated tables
     @pytest.mark.parametrize("sep", [None, "default"])
