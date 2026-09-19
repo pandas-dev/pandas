@@ -257,6 +257,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     Notes
     -----
     Please reference the :ref:`User Guide <basics.series>` for more information.
+    If a dict is provided for data, the keys become the index of the Series and the values become data.
 
     NumPy arrays with ``dtype=object`` may be inferred to a more specific dtype
     (e.g. strings or datetimes) rather than keeping object dtype, similar to
