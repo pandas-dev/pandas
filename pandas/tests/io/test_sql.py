@@ -995,6 +995,30 @@ adbc_connectable_types = [
 ]
 
 
+def test_adbc_has_table_schema_with_no_tables():
+    # GH 59841
+    class Column:
+        def to_pylist(self):
+            return [[{"db_schema_name": "empty_schema", "db_schema_tables": None}]]
+
+    class Metadata:
+        def __getitem__(self, key):
+            assert key == "catalog_db_schemas"
+            return Column()
+
+    class Objects:
+        def read_all(self):
+            return Metadata()
+
+    class Connection:
+        def adbc_get_objects(self, **kwargs):
+            return Objects()
+
+    pandas_sql = sql.ADBCDatabase(Connection())
+
+    assert not pandas_sql.has_table("test_table", schema="empty_schema")
+
+
 all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
 
 all_connectable_iris = [
