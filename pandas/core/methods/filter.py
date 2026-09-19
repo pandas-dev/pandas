@@ -72,6 +72,9 @@ def filter_mask(
 ) -> NDFrameT:
     """
     Select the entries of ``obj`` along ``axis`` where ``mask`` is True.
+
+    ``mask`` must already satisfy ``is_mask``, so its values are booleans or
+    missing and can be coerced to a nullable boolean array without loss.
     """
     labels = obj._get_axis(axis)
 
@@ -81,14 +84,12 @@ def filter_mask(
         )
 
     values = extract_array(mask, extract_numpy=True)
-    if isinstance(values, list):
-        values = np.asarray(values, dtype=object)
     if isinstance(values, np.ndarray) and values.dtype == np.bool_:
         # A NumPy bool array cannot hold missing values, so skip the copy
         # through BooleanArray that the NA handling below requires.
         np_mask = values
     else:
-        values = pd_array(values, dtype="boolean")
+        values = pd_array(values, dtype="boolean", copy=False)
         if values.isna().any():
             if na == "raise":
                 raise ValueError("The mask contains missing values")
@@ -99,5 +100,5 @@ def filter_mask(
         key = mask._constructor(np_mask, index=mask.index, copy=False)
     else:
         key = np_mask
-    indexer = check_bool_indexer(labels, key)
-    return obj.loc(axis=axis)[indexer]
+    aligned_mask = check_bool_indexer(labels, key)
+    return obj.loc(axis=axis)[aligned_mask]

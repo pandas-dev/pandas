@@ -5641,9 +5641,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ``Series`` this parameter is unused and defaults to ``None``.
         items : list-like, optional
             Keep labels from axis which are in ``items``. This will be
-            deprecated in a future version; use
-            ``obj.loc[:, pd.Index(labels).intersection(obj.columns)]`` (or
-            the equivalent for the index) instead.
+            deprecated in a future version; use :meth:`DataFrame.select`
+            when all of ``items`` are present in the columns, or
+            ``obj.loc[:, pd.Index(items).intersection(obj.columns)]`` (or
+            the equivalent for the index) otherwise.
         cond : array-like of bool, callable, or expression, optional
             A boolean mask selecting the entries to keep. A :class:`Series`
             is aligned with the labels of the filtered axis; any other

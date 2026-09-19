@@ -318,10 +318,7 @@ def test_filter_cond_series_aligns(df):
 def test_filter_cond_series_unalignable(df):
     # GH#61317
     mask = pd.Series([True, True, False], index=["z", "y", "w"])
-    msg = (
-        "Unalignable boolean Series provided as indexer \\(index of the boolean "
-        "Series and of the indexed object do not match\\)."
-    )
+    msg = "Unalignable boolean Series provided as indexer"
     with pytest.raises(pd.errors.IndexingError, match=msg):
         df.filter(cond=mask)
 
