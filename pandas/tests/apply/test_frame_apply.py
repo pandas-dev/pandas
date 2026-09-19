@@ -2048,6 +2048,38 @@ def test_agg_list_like_representable_results_keep_their_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["uint64", "UInt64", "uint64[pyarrow]"])
+def test_agg_list_like_object_fallback_is_per_column(dtype):
+    # GH#65031 a column whose result the stacked dtype cannot hold must not
+    # decide the dtype of its neighbours
+    if dtype == "uint64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    big = 2**64 - 3
+    df = pd.DataFrame(
+        {"a": pd.Series([big, 1], dtype=dtype), "b": pd.Series([5, 1], dtype=dtype)}
+    )
+
+    result = df.agg(["max", "count"])
+
+    assert result["a"].dtype == object
+    assert result.loc["max", "a"] == big
+    # "b" is whatever it would have been on its own, whichever backend that is
+    alone = pd.DataFrame({"b": df["b"]}).agg(["max", "count"])
+    tm.assert_series_equal(result["b"], alone["b"])
+
+
+def test_agg_list_like_exact_sum_falls_back_to_object():
+    # GH#65031 the fallback is not about unsignedness: a sum past 2**53 beside a
+    # float-valued reduction is the same loss, and pandas 3.0 returned the
+    # rounded float64
+    df = pd.DataFrame({"a": pd.Series([2**60, 2**60 + 1], dtype="int64")})
+
+    result = df.agg(["sum", "mean"])
+
+    assert result["a"].dtype == object
+    assert result.loc["sum", "a"] == 2**61 + 1
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = pd.DataFrame(

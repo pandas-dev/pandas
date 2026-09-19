@@ -118,25 +118,33 @@ _frame_reduction_names = frozenset(
 )
 
 
-def _keeps_values(stacked_row: Series, row: Series) -> bool:
+def _lost_values(stacked: DataFrame, rows: list[Series]) -> npt.NDArray[np.bool_]:
     """
-    Whether stacking left every aggregation result in ``row`` unchanged.
+    Which columns stacking did not leave every aggregation result unchanged in.
+
+    Per column rather than per row, so that one column whose result the stacked
+    dtype cannot hold does not demote the rest of its dtype group.
 
     Compared as Python scalars: numpy would widen the original back to the
     stacked dtype and so compare a rounded value against itself.
     """
-    if stacked_row.dtype == row.dtype:
-        # nothing was cast, so nothing was reconciled away. Also the only rows
-        # holding list-likes (an object column's sum) are ones already at the
-        # stacked dtype, so the scalar comparison below never sees one.
-        return True
-    for stacked, original in zip(stacked_row.tolist(), row.tolist(), strict=True):
-        if isna(stacked) or isna(original):
-            if not (isna(stacked) and isna(original)):
-                return False
-        elif stacked != original:
-            return False
-    return True
+    lost = np.zeros(stacked.shape[1], dtype=bool)
+    for pos, row in enumerate(rows):
+        stacked_row = stacked.iloc[pos]
+        if stacked_row.dtype == row.dtype:
+            # nothing was cast, so nothing was reconciled away. Also the only rows
+            # holding list-likes (an object column's sum) are ones already at the
+            # stacked dtype, so the scalar comparison below never sees one.
+            continue
+        for col, (value, original) in enumerate(
+            zip(stacked_row.tolist(), row.tolist(), strict=True)
+        ):
+            if isna(value) or isna(original):
+                if not (isna(value) and isna(original)):
+                    lost[col] = True
+            elif value != original:
+                lost[col] = True
+    return lost
 
 
 @set_module("pandas.api.executors")
@@ -1180,19 +1188,40 @@ class FrameApply(NDFrameApply):
             # test_agg_list_like_unsigned_not_cast_to_float
             try:
                 stacked = concat(frames)
-            except (TypeError, ValueError):
+            except ValueError:
                 # pyarrow refuses the cast outright rather than rounding
                 stacked = None
-            if stacked is not None and all(
-                _keeps_values(stacked.iloc[pos], row) for pos, row in enumerate(rows)
-            ):
+
+            if stacked is not None:
+                lost = _lost_values(stacked, rows)
+                if not lost.any():
+                    pieces.append(stacked)
+                    continue
+                for pos in np.nonzero(lost)[0]:
+                    stacked.isetitem(
+                        pos, np.array([row.iloc[pos] for row in rows], dtype=object)
+                    )
                 pieces.append(stacked)
                 continue
 
             values = np.empty((len(rows), len(cols)), dtype=object)
             for pos, row in enumerate(rows):
                 values[pos] = row.to_numpy(dtype=object)
-            pieces.append(obj._constructor(values, index=func_names, columns=cols))
+            piece = obj._constructor(values, index=func_names, columns=cols)
+            # the refused cast may have been another column's, so give each one
+            # its own chance rather than demoting the whole group
+            for pos in range(len(cols)):
+                try:
+                    col_stacked = concat(
+                        [frame.iloc[:, pos : pos + 1] for frame in frames]
+                    )
+                except ValueError:
+                    continue
+                if not _lost_values(
+                    col_stacked, [row.iloc[pos : pos + 1] for row in rows]
+                ).any():
+                    piece.isetitem(pos, col_stacked.iloc[:, 0])
+            pieces.append(piece)
 
         result = concat(pieces, axis=1)
         result = result.reindex(columns=obj.columns)
