@@ -5637,9 +5637,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The axis to filter on, expressed either as an index (int)
             or axis name (str). Defaults to the index for a boolean mask,
             and to the info axis ('columns' for ``DataFrame``) when
-            selecting labels. A callable or expression only supports the
-            index. For ``Series`` this parameter is unused and defaults to
-            ``None``.
+            selecting labels. An expression only supports the index. For
+            ``Series`` this parameter is unused and defaults to ``None``.
         items : list-like, optional
             Keep labels from axis which are in ``items``. This will be
             deprecated in a future version; use
@@ -5651,8 +5650,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             array-like must have the same length as that axis. A callable is
             called with the object and must return a boolean mask. An
             expression such as ``pd.col("a") > 1`` is evaluated against the
-            DataFrame. A callable or expression is only supported with
-            ``axis=0``.
+            DataFrame and is only supported with ``axis=0``.
         na : {"raise", True, False}, default False
             How to treat missing values in a boolean mask. ``True`` or
             ``False`` treats missing values as that value, matching
@@ -5672,8 +5670,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             not a one-dimensional boolean mask.
         ValueError
             If a mask contains missing values and ``na="raise"``, if a
-            boolean array is not one-dimensional, or if a callable or
-            expression is passed with ``axis=1``.
+            boolean array is not one-dimensional, or if an expression is
+            passed with ``axis=1``.
         IndexError
             If a mask that is not a Series has a different length than the
             filtered axis.
@@ -5802,15 +5800,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     "Expressions such as pd.col(...) are only supported by "
                     "DataFrame.filter"
                 )
+            if isinstance(cond, Expression) and mask_axis != 0:
+                raise ValueError(
+                    "Expressions such as pd.col(...) are only supported by "
+                    f"{type(self).__name__}.filter with axis=0, since they "
+                    "evaluate to a mask aligned with the index"
+                )
             if callable(cond):
                 # Expression defines __call__, so it enters here too
-                if mask_axis != 0:
-                    raise ValueError(
-                        f"{type(self).__name__}.filter only supports axis=0 with "
-                        "a callable or expression, since the mask they return is "
-                        "aligned with the index. Use obj.loc[:, mask] to select "
-                        "columns with a boolean mask."
-                    )
                 mask = common.apply_if_callable(cond, self)
                 if not is_mask(mask):
                     kind = "expression" if isinstance(cond, Expression) else "callable"

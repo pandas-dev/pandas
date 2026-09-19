@@ -342,14 +342,23 @@ def test_filter_cond_columns(df, axis):
 
 
 @pytest.mark.parametrize("axis", [1, "columns"])
-@pytest.mark.parametrize(
-    "cond", [lambda df: df.columns.str.startswith("a"), pd.col("a") > 1]
-)
-def test_filter_callable_columns_raises(df, cond, axis):
+def test_filter_callable_columns(df, axis):
     # GH#61317
+    result = df.filter(lambda df: df.columns == "b", axis=axis)
+    expected = df[["b"]]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.filter(cond=lambda df: df.columns == "b", axis=axis)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", [1, "columns"])
+def test_filter_expression_columns_raises(df, axis):
+    # GH#61317
+    cond = pd.col("a") > 1
     msg = (
-        "DataFrame.filter only supports axis=0 with a callable or expression, "
-        "since the mask they return is aligned with the index"
+        "Expressions such as pd.col\\(...\\) are only supported by DataFrame.filter "
+        "with axis=0"
     )
     with pytest.raises(ValueError, match=msg):
         df.filter(cond, axis=axis)
