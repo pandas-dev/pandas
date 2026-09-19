@@ -2417,10 +2417,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         *,
         axis: AxisInt = 0,
         skipna: bool = True,
+        bias: bool = False,
         **kwargs,
     ):
         """
-        Unbiased skew of non-NA/null values.
+        Skew of non-NA/null values, optionally corrected for statistical bias.
 
         Parameters
         ----------
@@ -2428,6 +2429,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False and NA is present, return NA.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
         **kwargs
             Not Used. NumPy compatibility.
 
@@ -2447,17 +2450,19 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("skew", skipna=skipna)
+        bias = validate_bool_kwarg(bias, "bias")
+        return self._dense_reduce("skew", skipna=skipna, bias=bias)
 
     def kurt(
         self,
         *,
         axis: AxisInt = 0,
         skipna: bool = True,
+        bias: bool = False,
         **kwargs,
     ):
         """
-        Unbiased kurtosis of non-NA/null values.
+        Kurtosis of non-NA/null values, optionally corrected for statistical bias.
 
         Parameters
         ----------
@@ -2465,6 +2470,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             Not Used. NumPy compatibility.
         skipna : bool, default True
             Exclude NA/null values. If False and NA is present, return NA.
+        bias : bool, default False
+            If False, the calculations are corrected for statistical bias.
         **kwargs
             Not Used. NumPy compatibility.
 
@@ -2484,7 +2491,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         nv.validate_stat_ddof_func((), kwargs, fname="kurt")
         skipna = validate_bool_kwarg(skipna, "skipna")
-        return self._dense_reduce("kurt", skipna=skipna)
+        bias = validate_bool_kwarg(bias, "bias")
+        return self._dense_reduce("kurt", skipna=skipna, bias=bias)
 
     def max(self, *, axis: AxisInt | None = None, skipna: bool = True):
         """
