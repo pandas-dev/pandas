@@ -2521,9 +2521,9 @@ class ExtensionArray:
     def all(
         self,
         *,
-        skipna: bool = True,
-        min_count: int = 0,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2534,9 +2534,9 @@ class ExtensionArray:
     def any(
         self,
         *,
-        skipna: bool = True,
-        min_count: int = 0,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2571,8 +2571,9 @@ class ExtensionArray:
     def kurt(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2583,8 +2584,9 @@ class ExtensionArray:
     def max(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2595,8 +2597,9 @@ class ExtensionArray:
     def mean(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2607,8 +2610,9 @@ class ExtensionArray:
     def median(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2619,8 +2623,9 @@ class ExtensionArray:
     def min(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2631,9 +2636,10 @@ class ExtensionArray:
     def prod(
         self,
         *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         raise TypeError(
@@ -2644,8 +2650,9 @@ class ExtensionArray:
     def sem(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         ddof: int = 1,
         **kwargs,
     ):
@@ -2657,8 +2664,9 @@ class ExtensionArray:
     def skew(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         **kwargs,
     ):
         raise TypeError(
@@ -2669,8 +2677,9 @@ class ExtensionArray:
     def std(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         ddof: int = 1,
         **kwargs,
     ):
@@ -2682,9 +2691,10 @@ class ExtensionArray:
     def sum(
         self,
         *,
+        axis: AxisInt | None = 0,
+        keepdims: bool = False,
         skipna: bool = True,
         min_count: int = 0,
-        axis: AxisInt | None = 0,
         **kwargs,
     ):
         raise TypeError(
@@ -2695,8 +2705,9 @@ class ExtensionArray:
     def var(
         self,
         *,
-        skipna: bool = True,
         axis: AxisInt | None = 0,
+        keepdims: bool = False,
+        skipna: bool = True,
         ddof: int = 1,
         **kwargs,
     ):
