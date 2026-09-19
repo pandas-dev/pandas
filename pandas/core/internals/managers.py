@@ -582,9 +582,9 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
-                    # Block.delete in _iset_split_block requires sorted unique
-                    # locs; inverse maps the requested column order onto the
-                    # new block (GH#65446)
+                    # _iset_split_block needs sorted unique locs, or _blklocs is
+                    # left stale; inverse maps the requested column order onto
+                    # the new block (GH#65446)
                     blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
@@ -1472,7 +1472,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if self._blklocs is None:
             self._rebuild_blknos_and_blklocs()
 
-        nbs_tup = tuple(blk.delete(blk_locs))
+        # Block.delete requires sorted unique locs; blk_locs keeps the caller's
+        # order below, where it pairs with value.
+        nbs_tup = tuple(blk.delete(np.unique(blk_locs)))
         if value is not None:
             locs = blk.mgr_locs.as_array[blk_locs]
             first_nb = new_block_2d(value, BlockPlacement(locs), refs=refs)
