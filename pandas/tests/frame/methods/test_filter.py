@@ -341,6 +341,22 @@ def test_filter_cond_columns(df, axis):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("axis", [1, "columns"])
+@pytest.mark.parametrize(
+    "cond", [lambda df: df.columns.str.startswith("a"), pd.col("a") > 1]
+)
+def test_filter_callable_columns_raises(df, cond, axis):
+    # GH#61317
+    msg = (
+        "DataFrame.filter only supports axis=0 with a callable or expression, "
+        "since the mask they return is aligned with the index"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.filter(cond, axis=axis)
+    with pytest.raises(ValueError, match=msg):
+        df.filter(cond=cond, axis=axis)
+
+
 def test_filter_cond_2d_raises(df):
     # GH#61317
     msg = "cond passed to DataFrame.filter must be a one-dimensional boolean mask"
