@@ -114,13 +114,16 @@ ARRAYS = [
 def test_cmp_iterator_treated_as_scalar(arr, box):
     # GH#31646 an iterator has no length, so we cannot compare element-wise;
     #  it is treated as scalar-like, matching ndarray behavior
+    # the shape matters as much as the values: a scalar False would satisfy
+    #  .any() too, and that is the failure mode the scalar path can produce
+    expected = np.zeros(len(arr), dtype=bool)
     with tm.assert_produces_warning(None):
         result = arr == box()
-    assert not np.asarray(result).any()
+    tm.assert_numpy_array_equal(np.asarray(result), expected)
 
     with tm.assert_produces_warning(None):
         result = arr != box()
-    assert np.asarray(result).all()
+    tm.assert_numpy_array_equal(np.asarray(result), ~expected)
 
 
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
@@ -131,10 +134,14 @@ def test_cmp_iterator_treated_as_scalar(arr, box):
         pd.array(pd.to_timedelta([1, 2, 3], unit="D")),
         pd.arrays.IntervalArray.from_breaks([1, 2, 3, 4]),
         pd.arrays.SparseArray([1, 2, 3]),
+        pd.array([1, 2, 3], dtype="Int64"),
+        pd.array([1.0, 2.0, 3.0], dtype="Float64"),
     ],
 )
 def test_arith_iterator_raises(arr, box):
-    # GH#31646 scalar-like treatment means the operation is simply invalid
+    # GH#31646 scalar-like treatment means the operation is simply invalid.
+    #  Only sparse and the masked dtypes change here: the datetimelike and
+    #  interval boxes already raised on main, from Python rather than pandas
     with pytest.raises(TypeError, match="unsupported operand type"):
         arr + box()
 
@@ -245,6 +252,22 @@ def test_arrow_arith_endless_iterator_raises():
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
     with pytest.raises(pa.ArrowInvalid, match="Could not convert"):
         arr + itertools.count()
+
+
+@pytest.mark.parametrize("box", ITERATOR_BOXES)
+def test_logical_op_iterator_reaches_the_operand_message(box):
+    # GH#31646 logical_op gated on bare is_list_like, so an iterator was called a
+    #  "dtype-less sequence" and never reached the scalar path the rest of the
+    #  operators put it on
+    msg = "'other' should be pandas.NA or a bool"
+    with pytest.raises(TypeError, match=msg):
+        pd.array([True, False, True]) & box()
+    with pytest.raises(TypeError, match=msg):
+        pd.Series([True, False, True], dtype="boolean") & box()
+
+    # numpy-backed reports it as the scalar it now is, not as a sequence
+    with pytest.raises(TypeError, match="Cannot perform 'and_'"):
+        pd.Series([True, False, True]) & box()
 
 
 def test_sparse_cmp_unrecognized_scalar():
