@@ -10605,10 +10605,10 @@ class DataFrame(NDFrame, OpsMixin):
             # flex=None is clip, which passes `right` on to `where`; an
             #  EA-columned frame would make that go through object (GH#68929)
             if flex is not None:
-                right = left._maybe_align_series_as_frame(right, axis)
+                right = left._align_series_as_frame(right, axis)
         return left, right
 
-    def _maybe_align_series_as_frame(self, series: Series, axis: AxisInt):
+    def _align_series_as_frame(self, series: Series, axis: AxisInt):
         """
         Broadcast the Series operand to 2D so we can operate blockwise.
         """

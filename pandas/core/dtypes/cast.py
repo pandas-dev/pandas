@@ -1781,7 +1781,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            if dtype.itemsize < tipo.itemsize:  # type: ignore[union-attr]
+            if dtype.itemsize < getattr(tipo, "itemsize", 0):
+                # a dtype carrying no itemsize, e.g. SparseDtype, is checked by
+                #  value in the branch below instead (GH#68929)
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
