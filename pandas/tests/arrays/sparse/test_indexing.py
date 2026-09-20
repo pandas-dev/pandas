@@ -235,6 +235,21 @@ class TestTake:
         result = sparse.take([2, 1, 0], allow_fill=True)
         assert result.dtype == sparse.dtype
 
+    @pytest.mark.parametrize("subtype", ["float16", "float32"])
+    @pytest.mark.parametrize("fill_value", [np.nan, 0])
+    def test_reindex_preserves_narrow_float_subtype(self, subtype, fill_value):
+        # GH#26123 a fill position used to promote the subtype on
+        #  type(fill_value), widening a narrow float to float64
+        ser = pd.Series(
+            SparseArray(np.array([1, 0], dtype=subtype), fill_value=fill_value)
+        )
+        result = ser.reindex([0, 1, 2])
+        expected = pd.Series(
+            SparseArray(np.array([1, 0, np.nan], dtype=subtype), fill_value=fill_value),
+            index=[0, 1, 2],
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_reindex_empty_bool_upcasts_to_object(self):
         # GH#32119 the user-visible path onto the branch above
         ser = pd.Series(SparseArray(np.array([], dtype=bool)))
