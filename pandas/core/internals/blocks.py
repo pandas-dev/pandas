@@ -792,18 +792,16 @@ class Block(PandasObject, libinternals.Block):
             return [self.copy(deep=False)]
 
         target_dtype = _regex_target_dtype(self.dtype)
-        if is_re(to_replace) and not (
-            is_string_dtype(target_dtype) and target_dtype.kind != "S"
-        ):
-            # a regex only matches strings; is_string_dtype counts numpy bytes,
-            # which never match
+        # a regex only matches strings; is_string_dtype counts numpy bytes,
+        #  which never match
+        regex_can_match = is_string_dtype(target_dtype) and target_dtype.kind != "S"
+        if is_re(to_replace) and not regex_can_match:
             return [self.copy(deep=False)]
 
-        if isinstance(self.dtype, ArrowDtype):
+        if isinstance(self.dtype, ArrowDtype) and regex_can_match:
             # can_hold_element returns True for every ArrowDtype, so it cannot
-            #  answer this (GH#69026). The gate above already guarantees a
-            #  string-typed arrow array, so only a string fits; a regex value is
-            #  left to raise on write, as it does for StringDtype
+            #  answer this (GH#69026). Only a string or NA fits an arrow string
+            #  array; a regex value is left to raise on write, as StringDtype does
             can_hold_value = (
                 isinstance(value, str)
                 or is_re(value)
@@ -811,7 +809,7 @@ class Block(PandasObject, libinternals.Block):
             )
         else:
             can_hold_value = self._can_hold_element(value) or (
-                is_string_dtype(self.dtype) and is_re(value)
+                self.dtype == "string" and is_re(value)
             )
 
         if not can_hold_value:
