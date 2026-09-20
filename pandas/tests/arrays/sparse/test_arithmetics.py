@@ -392,7 +392,7 @@ class TestSparseArrayArithmetics:
         expected = SparseArray._simple_new(
             np.array([False, True, True]),
             sp_index,
-            SparseDtype(bool, False),
+            pd.SparseDtype(bool, False),
         )
         tm.assert_sp_array_equal(result, expected)
 

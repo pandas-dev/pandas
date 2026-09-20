@@ -445,6 +445,10 @@ def _wrap_result(
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
+    if sparse_index is None:
+        # a dense result, e.g. from _wrap_dense_result: sparsify it here
+        return SparseArray(data, fill_value=fill_value, dtype=dtype, kind=kind)
+
     if dtype is not None:
         data = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
     else:

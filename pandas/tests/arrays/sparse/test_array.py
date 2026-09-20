@@ -279,7 +279,7 @@ class TestSparseArrayAnalytics:
         result = SparseArray._simple_new(
             np.array([1, 2, 2], dtype=np.int64),
             sparse.sp_index,
-            SparseDtype(np.int64, 1),
+            pd.SparseDtype(np.int64, 1),
         )
         tm.assert_sp_array_equal(abs(sparse), result)
         tm.assert_sp_array_equal(np.abs(sparse), result)
@@ -481,13 +481,16 @@ def test_cumsum_float_fill_value_zero():
 def test_cumsum_na_stored_in_sp_values(subtype, values, expected_values, na_value):
     # GH#68972 an NA stored in sp_values used to propagate into every later entry
     sp_values = np.array(values, dtype=subtype)
-    sparse_index = IntIndex(len(sp_values), np.arange(len(sp_values), dtype=np.int32))
-    arr = SparseArray(sp_values, sparse_index=sparse_index, fill_value=na_value)
+    indices = np.arange(len(sp_values), dtype=np.int32)
+    arr = SparseArray.from_indices(
+        sp_values, indices=indices, length=len(sp_values), fill_value=na_value
+    )
 
     result = arr.cumsum()
-    expected = SparseArray(
+    expected = SparseArray.from_indices(
         np.array(expected_values, dtype=subtype),
-        sparse_index=sparse_index,
+        indices=indices,
+        length=len(sp_values),
         fill_value=na_value,
     )
     tm.assert_sp_array_equal(result, expected)
@@ -498,9 +501,10 @@ def test_cumsum_na_stored_complex_imaginary_nan():
     #  an imaginary-only NaN loses its real part exactly as it does when dense.
     #  tm.assert_* reads any two NAs as equal, so this compares the components
     values = np.array([1 + 1j, complex(1, np.nan), 2 + 0j])
-    arr = SparseArray(
+    arr = SparseArray.from_indices(
         values,
-        sparse_index=IntIndex(3, np.arange(3, dtype=np.int32)),
+        indices=np.arange(3, dtype=np.int32),
+        length=3,
         fill_value=np.nan,
     )
 
@@ -513,9 +517,10 @@ def test_cumsum_na_stored_complex_imaginary_nan():
 def test_cumsum_na_stored_and_gap():
     # GH#68972 a stored NA and a gap NA in one array is the interaction the fix is
     #  about; both have to reach the result
-    arr = SparseArray(
+    arr = SparseArray.from_indices(
         np.array([1.0, np.nan, 5.0]),
-        sparse_index=IntIndex(5, np.array([0, 1, 3], dtype=np.int32)),
+        indices=np.array([0, 1, 3], dtype=np.int32),
+        length=5,
         fill_value=np.nan,
     )
 
