@@ -568,10 +568,13 @@ def test_logical_not_ufunc_datetimelike_raises(box, dtype):
     ],
     ids=lambda x: type(x).__name__,
 )
-def test_binary_logical_ufunc_datetimelike_scalar_raises(func, scalar):
+@pytest.mark.parametrize("left_dtype", ["bool", object])
+def test_binary_logical_ufunc_datetimelike_scalar_raises(func, scalar, left_dtype):
     # GH#68524 -- GH#68452 left scalar operands to the paths that already rejected
-    #  them for &/|/^, and the ufuncs have no such path
-    left = pd.Series([True, False])
+    #  them for &/|/^, and the ufuncs have no such path.  The object-dtype left
+    #  operand raises here where `&` truth-tests it, because what it used to return
+    #  was the scalar broadcast to a datetimelike result, not a logical one
+    left = pd.Series([True, False], dtype=left_dtype)
 
     msg = f"cannot perform the numpy op {func.__name__}"
     with pytest.raises(TypeError, match=msg):
@@ -660,18 +663,19 @@ def test_binary_logical_ufunc_nat_scalar_arrow_backed(func):
 
 
 @pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("method", ["reduce", "accumulate"])
 @pytest.mark.parametrize(
     "dtype",
     ["datetime64[ns]", "timedelta64[ns]", "datetime64[ns, US/Pacific]", "period[D]"],
 )
-def test_binary_logical_ufunc_reduce_datetimelike_raises(func, dtype):
-    # GH#68524 the reduce method took the same fallback as __call__
+def test_logical_ufunc_methods_datetimelike_raise(func, method, dtype):
+    # GH#68524 reduce and accumulate take the same fallback as __call__
     values = ["1D", "2D"] if "timedelta" in dtype else ["2016-01-01", "2016-01-02"]
     ser = pd.Series(pd.array(values, dtype=dtype))
 
     msg = f"cannot perform the numpy op {func.__name__}"
     with pytest.raises(TypeError, match=msg):
-        func.reduce(ser)
+        getattr(func, method)(ser)
 
 
 class _ThirdPartyArray:
@@ -683,11 +687,47 @@ class _ThirdPartyArray:
         return np.array([True, False])
 
 
-def test_logical_op_third_party():
+class _ThirdPartyArrayNoUfunc:
+    # without __array_ufunc__ nothing defers, so this is the shape the guard
+    #  actually reads an unrecognized dtype off
+    def __init__(self, dtype) -> None:
+        self.dtype = dtype
+
+    def __array__(self, dtype=None, copy=None) -> np.ndarray:
+        return np.array([True, False])
+
+
+class _NonStringKindDtype:
+    # a dtype whose "kind" is not one of numpy's single-character codes
+    kind = 0
+
+
+class _SymbolicArray:
+    # a symbolic array, as pd.col builds one: every attribute it is asked for is
+    #  another expression, and an expression has no truth value
+    __hash__ = object.__hash__
+
+    def __getattr__(self, name):
+        return self
+
+    def __eq__(self, other):
+        return self
+
+    def __bool__(self) -> bool:
+        raise TypeError("an expression has no truth value")
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        return np.array([True, False])
+
+
+@pytest.mark.parametrize(
+    "dtype", ["bool", _NonStringKindDtype()], ids=["no-kind", "non-string-kind"]
+)
+def test_logical_op_third_party(dtype):
     # GH#68524 the datetimelike guard must not crash on a dtype it does not
-    #  recognize
+    #  recognize, whether that dtype has no "kind" or a non-string one
     left = pd.Series([True, True])
-    right = _ThirdPartyArray()
+    right = _ThirdPartyArray(dtype)
     expected = np.array([True, False])
 
     tm.assert_numpy_array_equal(np.logical_and(left, right), expected)
@@ -726,3 +766,78 @@ def test_logical_ufunc_third_party_pandas_datetimelike(box, dtype):
     # baselines as in the test above
     tm.assert_equal(np.logical_and(left, foreign), np.logical_and(control, foreign))
     tm.assert_equal(np.logical_and(foreign, left), np.logical_and(foreign, control))
+
+
+class _NdarraySubclass(np.ndarray):
+    # unwraps itself and re-dispatches, the usual ndarray-wrapper shape
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        inputs = tuple(
+            np.asarray(obj) if isinstance(obj, _NdarraySubclass) else obj
+            for obj in inputs
+        )
+        return getattr(ufunc, method)(*inputs, **kwargs)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
+def test_logical_ufunc_ndarray_subclass_datetimelike(func, box, dtype):
+    # GH#68524 np.ndarray is in every _HANDLED_TYPES, so pandas computes against a
+    #  subclass of one rather than deferring to it, and the guard has to stay on
+    left = box(pd.array([True, True]))
+    right = np.array([1, 2], dtype=dtype).view(_NdarraySubclass)
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, right)
+    with pytest.raises(TypeError, match=msg):
+        func(right, left)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]", "period[D]"])
+def test_logical_ufunc_na_scalar_datetimelike(func, box, dtype):
+    # GH#68524 NA carries an __array_ufunc__ of its own, but Index and the bare
+    #  arrays compute against it rather than defer, so it must not exempt the op
+    values = ["1D", "2D"] if dtype.startswith("m") else ["2016-01-01", "2016-01-02"]
+    obj = box(pd.array(values, dtype=dtype))
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(obj, pd.NA)
+    with pytest.raises(TypeError, match=msg):
+        func(pd.NA, obj)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+def test_logical_ufunc_out_kwarg_datetimelike_raises(func):
+    # GH#68524 out= took the same fallback as __call__, and the datetimelike
+    #  values were truth-tested into it
+    left = pd.Series([True, False])
+    right = np.array(["2016-01-01", "2016-01-02"], dtype="M8[ns]")
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(left, right, out=np.zeros(2, dtype=bool))
+
+
+@pytest.mark.parametrize(
+    "dtype", ["bool", _NonStringKindDtype()], ids=["no-kind", "non-string-kind"]
+)
+def test_logical_ufunc_third_party_no_array_ufunc(dtype):
+    # GH#68524 the ufunc half of test_logical_op_third_party: an operand pandas
+    #  does not defer to is the one whose dtype the guard has to read
+    result = np.logical_and(pd.Series([True, True]), _ThirdPartyArrayNoUfunc(dtype))
+    tm.assert_series_equal(result, pd.Series([True, False]))
+
+
+@pytest.mark.parametrize("box", [pd.array, pd.arrays.SparseArray])
+def test_logical_ufunc_symbolic_operand(box):
+    # GH#68524 deciding whether pandas defers must not read an attribute off the
+    #  instance: the ABCs probe `_typ`, which an expression answers with itself
+    left = box([True, True])
+    expected = np.array([True, False])
+
+    tm.assert_numpy_array_equal(np.logical_and(left, _SymbolicArray()), expected)
+    tm.assert_numpy_array_equal(np.logical_and(_SymbolicArray(), left), expected)

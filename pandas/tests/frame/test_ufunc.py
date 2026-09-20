@@ -342,6 +342,18 @@ def test_binary_logical_ufunc_datetimelike_raises(func, dtype):
         func(df, other)
 
 
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+def test_binary_logical_ufunc_categorical_column_raises(func):
+    # GH#68524 the frame scan reads each block's dtype, and a Categorical hides
+    #  its datetimes behind kind "O"
+    values = pd.Categorical(pd.to_datetime(["2016-01-01", "2016-01-02"]))
+    df = pd.DataFrame({"A": values})
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(df, True)
+
+
 @pytest.mark.parametrize("dtype", ["datetime64[ns, US/Pacific]", "period[D]"])
 def test_logical_not_ufunc_datetimelike_raises(dtype):
     # GH#68524 one input takes the BlockManager.apply path instead, and these two

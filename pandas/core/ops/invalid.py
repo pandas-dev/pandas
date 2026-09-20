@@ -15,6 +15,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs import (
     BaseOffset,
     Period,
@@ -59,28 +60,33 @@ _DATETIMELIKE_SCALARS = (
     BaseOffset,
 )
 
-_PANDAS_OBJECTS = (
+# a ufunc against one of these stays inside pandas: every _HANDLED_TYPES contains
+#  np.ndarray, NA matches no ABC (see test_logical_ufunc_na_scalar_datetimelike),
+#  and a pandas operand that one array does defer to re-enters this guard
+_NON_DEFERRING = (
+    np.ndarray,
     ABCDataFrame,
     ABCExtensionArray,
     # NumpyExtensionArray's _typ is not one of ABCExtensionArray's
     ABCNumpyExtensionArray,
     ABCIndex,
     ABCSeries,
+    NAType,
 )
 
 
 def _defers_to(obj: object) -> bool:
     """
     Whether a ufunc operand is one pandas hands the operation off to.
-
-    Deliberately coarser than array_ufunc's own rule, which defers to anything
-    outside ``_HANDLED_TYPES``.
     """
     array_ufunc = getattr(type(obj), "__array_ufunc__", None)
     return (
         array_ufunc is not None
         and array_ufunc is not np.ndarray.__array_ufunc__
-        and not isinstance(obj, _PANDAS_OBJECTS)
+        # issubclass, not isinstance: the ABCs read `_typ` off whatever they are
+        #  handed, and a symbolic operand answers that with an expression that
+        #  then has no truth value, see test_logical_ufunc_symbolic_operand
+        and not issubclass(type(obj), _NON_DEFERRING)
     )
 
 
@@ -128,10 +134,10 @@ def _is_datetimelike_array(obj: object) -> bool:
 
 def _is_datetimelike_dtype(dtype: object) -> bool:
     kind = getattr(dtype, "kind", None)
-    if kind is None or kind in "biufc":
+    if not isinstance(kind, str) or kind in "biufc":
         # no numeric or bool dtype is datetimelike, and logical_op is hot.  A
-        #  third-party dtype has no kind and must fall through rather than
-        #  crash, see test_logical_op_third_party
+        #  third-party dtype may have no kind at all, or one that is not a string,
+        #  and must fall through rather than crash, see test_logical_op_third_party
         return False
     if isinstance(dtype, CategoricalDtype) and dtype.categories is not None:
         # a Categorical hides its categories behind kind "O"
@@ -214,9 +220,16 @@ def disallow_datetimelike_logical_ufunc(ufunc: np.ufunc, inputs: tuple) -> None:
     for obj in inputs:
         if isinstance(obj, ABCDataFrame):
             # a DataFrame has no dtype of its own, and with two inputs
-            #  array_ufunc np.asarray()s it before any column-level guard runs
+            #  array_ufunc np.asarray()s it before any column-level guard runs.
+            #  Scanned per block rather than per column: this runs on every
+            #  logical ufunc call
             dtype = next(
-                (dtype for dtype in obj.dtypes if _is_datetimelike_dtype(dtype)), None
+                (
+                    blk.dtype
+                    for blk in obj._mgr.blocks
+                    if _is_datetimelike_dtype(blk.dtype)
+                ),
+                None,
             )
             if dtype is None:
                 continue
