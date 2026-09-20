@@ -911,8 +911,6 @@ def get_grouper(
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if obj.ndim != 1 and gpr in obj:
-                if validate:
-                    obj._check_label_or_level_ambiguity(gpr, axis=0)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 if gpr.ndim != 1:
                     # non-unique columns; raise here to get the name in the

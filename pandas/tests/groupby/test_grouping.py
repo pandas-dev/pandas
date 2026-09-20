@@ -370,6 +370,28 @@ class TestGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_groupby_column_preferred_over_index_level(self):
+        df = pd.DataFrame(
+            2,
+            index=pd.MultiIndex.from_product(
+                [range(4), list("abcd")], names=["I", "II"]
+            ),
+            columns=["I"],
+        )
+
+        result = df.groupby("I").size()
+        expected = pd.Series([16], index=pd.Index([2], name="I"))
+
+        tm.assert_series_equal(result, expected)
+
+        result = df.groupby(level="I").size()
+        expected = pd.Series(
+            [4, 4, 4, 4],
+            index=pd.Index(range(4), name="I"),
+        )
+
+        tm.assert_series_equal(result, expected)
+
     def test_groupby_levels_and_columns(self):
         # GH9344, GH9049
         idx_names = ["x", "y"]
