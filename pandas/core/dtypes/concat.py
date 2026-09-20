@@ -157,8 +157,8 @@ def concat_compat(
 
 def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     """
-    Whether these object-dtype categories cannot be shown to be all distinct,
-    e.g. True and 1, which compare equal but differ in type.
+    Whether any of these object-dtype categories appears under two different
+    types, e.g. True and 1, which compare and hash equal.
     """
     # a single categories Index cannot collide with itself: Categorical rejects
     #  categories that are not unique, and uniqueness is checked by hash
@@ -188,8 +188,8 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | No
     returns a Categorical.  Orderedness is preserved only if every input shares
     the same dtype after this cast.
 
-    Returns None when the categories cannot be shown to be all distinct, e.g.
-    True and 1 under object dtype; the caller then casts to object.
+    Returns None when a category appears under two different types, e.g. True
+    and 1 under object dtype; the caller then casts to object.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
