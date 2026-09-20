@@ -1783,45 +1783,61 @@ class EABackedBlock(Block):
             #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
             #  whose __setitem__ does not check the flag.
             raise ValueError("Cannot modify read-only array")
-        transposed = values.ndim == 2
+        transposed = newaxis = False
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
-                indexer = (indexer, slice(None))
+                indexer = (indexer,)
+            # GH#68521 np.newaxis adds an axis instead of consuming one, so
+            #  none of the reasoning below applies to a key that has one:
+            #  Ellipsis no longer stands for a single axis either
+            newaxis = any(x is None for x in indexer)
             # np.ndim(Ellipsis) is 0, so it would read as a scalar below; it
-            #  stands in for the full slice and does transpose (GH#68521)
-            indexer = tuple(slice(None) if x is Ellipsis else x for x in indexer)
+            #  stands in for the full slice and does transpose. A second one is
+            #  invalid, so leave numpy to reject it (GH#68521)
+            if not newaxis and sum(x is Ellipsis for x in indexer) == 1:
+                indexer = tuple(slice(None) if x is Ellipsis else x for x in indexer)
+            if not newaxis:
+                # GH#68521 a tuple short of the column axis, e.g. from a
+                #  trailing comma, leaves it implicit; the swap needs it spelled
+                indexer = indexer + (slice(None),) * (2 - len(indexer))
             if len(indexer) == 2:
-                # GH#68521 the swap transposes the selection only when the
-                #  entries index separate axes: a scalar entry drops one, and
-                #  two advanced indexers broadcast against each other. A key of
-                #  2 or more dimensions makes the selection 3-D, which neither
-                #  .T nor reshape(-1, 1) reorients, so leave it alone
-                transposed = (
-                    any(isinstance(x, slice) for x in indexer)
-                    and not any(
-                        not isinstance(x, slice) and np.ndim(x) == 0 for x in indexer
+                if not newaxis:
+                    ndims = tuple(_indexer_entry_ndim(x) for x in indexer)
+                    # GH#68521 the swap transposes the selection only when the
+                    #  entries index separate axes: a scalar entry drops one,
+                    #  and two advanced indexers broadcast against each other.
+                    #  A key of 2 or more dimensions makes the selection 3-D,
+                    #  which neither .T nor reshape(-1, 1) reorients
+                    transposed = (
+                        None in ndims
+                        and 0 not in ndims
+                        and not any(nd is not None and nd > 1 for nd in ndims)
                     )
-                    and all(np.ndim(x) <= 1 for x in indexer)
-                )
                 indexer = indexer[::-1]
             if transposed:
                 if is_list_like(value) and not isinstance(value, np.ndarray):
-                    # GH#68521 the reorientation below needs a reshape. Not
+                    # GH#68521 the reshape below needs an array. Not
                     #  _validate_setitem_value: it unboxes, so the assignment
                     #  would re-validate i8 ordinals against PeriodDtype.
                     try:
                         # error: "ExtensionArray" has no attribute
                         # "_validate_listlike"
                         value = values._validate_listlike(value)  # type: ignore[attr-defined]
-                    except (TypeError, ValueError):
+                    except (AttributeError, TypeError, ValueError):
                         pass  # let the assignment below raise or coerce, as before
+                # assignment drops leading length-1 axes, so strip them before
+                #  dispatching on ndim (GH#68521)
+                while getattr(value, "ndim", 0) > 2 and value.shape[0] == 1:
+                    value = value[0]
                 if getattr(value, "ndim", 0) == 2:
                     value = value.T
                 elif getattr(value, "ndim", 0) == 1:
                     # a 1D value is per-column, repeated across the selected rows
                     value = value.reshape(-1, 1)
+            elif newaxis and isinstance(value, np.ndarray) and value.ndim == 2:
+                value = value.T
         check_setitem_lengths(indexer, value, values)
 
         try:
@@ -1831,14 +1847,17 @@ class EABackedBlock(Block):
             if isinstance(self.dtype, IntervalDtype) or isinstance(
                 self, NDArrayBackedExtensionBlock
             ):
-                if values.ndim == 2:
-                    # GH#68521 a 1D block leaks the same misleading report, but
-                    #  giving it this one would change the exception type of
-                    #  Series setitem for four dtypes, so it is left alone here.
+                if values.ndim == 2 and not newaxis:
+                    # GH#68521 a 1D block reports a shape failure the same
+                    #  way, but giving it this message would change the
+                    #  exception type of Series setitem; see
+                    #  test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message.
+                    #  An np.newaxis key leaves target_shape in block layout,
+                    #  which would name axes the caller cannot see.
                     target_shape = _unbroadcastable_shape(values, indexer, value)
+                    # a deeper selection, e.g. from a 2-D key, has no shape the
+                    #  caller could map back onto their frame
                     if target_shape is not None and len(target_shape) <= 2:
-                        # a deeper selection, e.g. from a 2-D key, has no shape
-                        #  the caller could map back onto their frame
                         if transposed:
                             target_shape = target_shape[::-1]
                         raise ValueError(
@@ -1951,9 +1970,9 @@ class EABackedBlock(Block):
             #  transpose self.values: EA.T is only zero-copy when
             #  dtype._can_fast_transpose, so a transpose could yield a copy and
             #  _putmask would silently mutate that throwaway instead of self.
-            #  mask/new are read-only, so transposing them is always correct
-            #  (mirrors value = value.T in EABackedBlock.setitem); failing to
-            #  transpose new fills masked cells from the wrong column.
+            #  mask/new are read-only, so transposing them is always
+            #  correct; failing to transpose new fills masked cells from the
+            #  wrong column.
             mask = mask.T
             if isinstance(new, (np.ndarray, ExtensionArray)) and new.ndim == 2:
                 new = new.T
@@ -2366,6 +2385,26 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+
+def _indexer_entry_ndim(key) -> int | None:
+    """
+    How many axes ``key`` indexes, or None for a slice.
+
+    ``np.ndim(key)``, except that it never materializes a list key and does not
+    distinguish nesting deeper than 2.
+    """
+    if isinstance(key, slice):
+        return None
+    ndim = getattr(key, "ndim", None)
+    if ndim is not None:
+        return ndim
+    if isinstance(key, (list, tuple, range)):
+        # np.ndim would build the whole array just to count its axes (GH#68521)
+        if len(key) and is_list_like(key[0]):
+            return 2
+        return 1
+    return np.ndim(key)
 
 
 def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> Shape | None:
