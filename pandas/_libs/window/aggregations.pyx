@@ -68,17 +68,17 @@ cdef:
     float64_t MaxOriginMagnitude = np.sqrt(np.finfo(np.float64).max)
 
     # GH#68934 limits on the two magnitudes a skew/kurt window's deviations get
-    # taken against, each applied as ``magnitude ** 2 * limit > m2``. Scaling the
-    # magnitude rather than m2 raises the overflow threshold from ~1e77 to
-    # ~1e154, beyond which both sides are inf, ``inf > inf`` is False and the
+    # taken against, each applied as ``magnitude ** 2 * limit > m2``. Past a
+    # deviation of ~1e154 both sides are inf, ``inf > inf`` is False, and the
     # NaN arm takes over.
     #
-    # PeakDevLimit carries InvCondTol's condition-number bound over to m4/m2**2.
+    # PeakDevLimit fires once m2's own round-off, of order
+    # ``EpsF64 * peak_dev ** 2``, has grown past InvCondTol relative to m2.
     # AnchorDriftLimit retires an anchor once the window's centre has drifted
     # more than 4*sqrt(m2) away from it. The 4 is margin over the 1*sqrt(m2) a
     # freshly anchored window can reach -- the origin is one of its own members,
     # so its deviation is already counted in m2.
-    float64_t PeakDevLimit = np.sqrt(EpsF64 * 1e3)
+    float64_t PeakDevLimit = EpsF64 / InvCondTol
     float64_t AnchorDriftLimit = 1.0 / 16.0
 
 cdef bint is_monotonic_increasing_start_end_bounds(
@@ -509,10 +509,9 @@ cdef inline void track_moment_dev(
     Grow the margin the cancellation test measures m2 against.
 
     ``val`` is already shifted by the accumulators' origin, so this is a
-    deviation within the window rather than an absolute magnitude. It is a
-    high-water mark rather than a record of what the accumulators still hold:
-    the remove side offers the deviation of a value leaving the window, which
-    was already counted when it was added.
+    deviation within the window rather than an absolute magnitude. The remove
+    side calls this too: ``mean`` has moved by then, so a value's deviation
+    against the new mean can exceed what was recorded when it was added.
     """
     cdef float64_t dev = fabs(val - mean)
 
@@ -526,13 +525,10 @@ cdef inline bint moment_cancellation_suspected(
     """
     Whether the accumulators have lost the significance calc_skew/calc_kurt need.
 
-    Both statistics divide m3 or m4 by a power of m2, and those numerators carry
-    round-off of order ``eps * scale ** 3`` and ``eps * scale ** 4``, where scale
-    is the largest magnitude a deviation was taken against. What decides whether
-    the ratio survives is therefore how far m2 has fallen below that scale -- m3
-    and m4 are useless to test directly, since a window of symmetric data holds
-    m3 == 0 legitimately and would recompute every time. The bound below is m4's,
-    applied to skew too, where it is merely stricter than that statistic needs.
+    Both statistics divide m3 or m4 by a power of m2, so what decides whether the
+    ratio survives is how far m2 has fallen below the largest deviation it
+    absorbed. m3 is useless to test directly, since a window of symmetric data
+    holds m3 == 0 legitimately and would recompute every time.
     """
     if m2 != m2 or m3 != m3 or m4 != m4:
         # NaN, e.g. from a window that emptied; the comparisons below would be
@@ -603,9 +599,8 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
     if val == val:
         nobs[0] -= 1
         if nobs[0] == 0:
-            # GH#68934 zero out rather than divide by nobs. The NaN arm below
-            # would also catch the inf/NaN this otherwise produces, but only
-            # where the compiler has not fused the removal's multiply and add.
+            # GH#68934 zero out rather than divide by nobs: keeps an emptied
+            # window out of inf arithmetic the detector would have to recognise
             mean[0] = 0
             origin[0] = 0
             m2[0] = 0
@@ -741,9 +736,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
     if val == val:
         nobs[0] -= 1
         if nobs[0] == 0:
-            # GH#68934 zero out rather than divide by nobs. The NaN arm below
-            # would also catch the inf/NaN this otherwise produces, but only
-            # where the compiler has not fused the removal's multiply and add.
+            # see remove_skew
             mean[0] = 0
             origin[0] = 0
             m2[0] = 0
@@ -829,10 +822,6 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
                     add_kurt(values[j], &nobs, &mean, &origin, &m2, &m3, &m4,
                              &peak_dev, &numerically_unstable)
 
-                # main never cleared this, so one trip recomputed every later
-                # window -- accidental, but accurate on mixed-magnitude data.
-                # Correctness rests on the detector instead now; keeping both
-                # recomputes almost every window once the drift arm exists
                 numerically_unstable = False
 
             output[i] = NaN if nobs < minp else calc_kurt(nobs, m2, m4)
