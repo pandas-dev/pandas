@@ -89,7 +89,7 @@ def concat_compat(
         unioned = union_categories_compat(cast("Sequence[Categorical]", to_concat))
         if unioned is not None:
             return unioned
-        # GH#65098 the categories cannot be merged, and the fastpath below would
+        # GH#68440 the categories cannot be merged, and the fastpath below would
         #  merge them anyway: two object-dtype CategoricalDtypes compare equal
         #  whenever their categories do, which is what was just rejected
         to_concat = [x.astype(object) for x in to_concat]
@@ -157,13 +157,24 @@ def concat_compat(
 
 def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     """
-    Whether unioning these object-dtype categories would merge values that the
-    inputs keep apart, e.g. True and 1, which compare and hash equal.
+    Whether these object-dtype categories cannot be shown to be all distinct,
+    e.g. True and 1, which compare equal but differ in type.
     """
+    # a single categories Index cannot collide with itself: Categorical rejects
+    #  categories that are not unique, and uniqueness is checked by hash
+    distinct = {id(obj.categories): obj.categories for obj in to_union}
+    if len(distinct) < 2:
+        return False
+
     seen: dict[Any, type] = {}
-    for obj in to_union:
-        for cat in obj.categories:
-            if seen.setdefault(cat, type(cat)) is not type(cat):
+    for categories in distinct.values():
+        for cat in categories:
+            try:
+                if seen.setdefault(cat, type(cat)) is not type(cat):
+                    return True
+            except Exception:
+                # a comparison that raises, e.g. Decimal("1") == np.int64(1),
+                #  cannot show that the two are distinct
                 return True
     return False
 
@@ -177,8 +188,8 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | No
     returns a Categorical.  Orderedness is preserved only if every input shares
     the same dtype after this cast.
 
-    Returns None when the union would merge categories that the inputs keep
-    apart, e.g. True and 1 under object dtype; the caller then casts to object.
+    Returns None when the categories cannot be shown to be all distinct, e.g.
+    True and 1 under object dtype; the caller then casts to object.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
@@ -209,7 +220,8 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | No
         and to_union[0].categories.dtype == object
         and _categories_would_collide(to_union)
     ):
-        # GH#68440 an object-dtype Index holds only one of True and 1
+        # GH#68440 categories must be unique, and True and 1 are not distinct
+        #  by hash, so there is no Categorical to return
         return None
 
     ignore_order = not lib.dtypes_all_equal([x.dtype for x in to_union])

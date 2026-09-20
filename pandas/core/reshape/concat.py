@@ -234,8 +234,8 @@ def concat(
         the resulting column will preserve categorical dtype with the
         union of the categories, rather than casting to the underlying
         dtype. Categories whose dtypes differ are cast to a common dtype. The
-        result is not categorical when the categories cannot all be kept apart,
-        as ``True`` and ``1`` cannot.
+        result is not categorical when categories of differing types compare
+        equal, as ``True`` and ``1`` do.
         The result is unordered unless every input is ordered with the
         same categories (after any casting to a common dtype) in the same
         order, in which case the result is ordered.

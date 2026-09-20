@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from enum import IntEnum
 
 import numpy as np
@@ -635,9 +636,27 @@ def test_union_categories_equal_object_dtypes_still_fall_back():
     tm.assert_series_equal(result, expected)
 
 
+def test_union_categories_equal_object_dtypes_column_missing():
+    # GH#68440 the only shape that rejects the union twice, once for the
+    #  all-NA filler's dtype and once for the concatenation itself
+    d1 = CategoricalDtype(pd.Index([1], dtype=object))
+    d2 = CategoricalDtype(pd.Index([True], dtype=object))
+    df1 = pd.DataFrame({"x": pd.Categorical([1], dtype=d1), "y": [1]})
+    df2 = pd.DataFrame({"x": pd.Categorical([True], dtype=d2), "y": [2]})
+    df3 = pd.DataFrame({"y": [3]})
+    result = pd.concat([df1, df2, df3], ignore_index=True, union_categories=True)
+    expected = pd.DataFrame(
+        {
+            "x": np.array([1, True, np.nan], dtype=object),
+            "y": [1, 2, 3],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_union_categories_subclassed_category_type():
-    # GH#68440 an IntEnum infers as "integer" just as int does, so a check that
-    #  short-circuits on inferred_type cannot see the collision
+    # GH#68440 an instance of a subclass of a category's type is a distinct
+    #  category, though it compares and hashes equal
     class Color(IntEnum):
         RED = 1
 
@@ -675,8 +694,8 @@ def test_union_categories_bool_and_numeric_categories_column_missing():
 
 
 def test_union_categories_int_and_float_object_categories():
-    # GH#68440 1 and 1.0 collide in an object-dtype Index the same way True and
-    #  1 do, even though appending the categories infers them to float64
+    # GH#68440 1 and 1.0 collide the same way True and 1 do, even though
+    #  appending the categories infers them to float64
     s1 = pd.Series(
         pd.Categorical(
             [1.0, 2.0], dtype=CategoricalDtype(pd.Index([1.0, 2.0], dtype=object))
@@ -687,4 +706,22 @@ def test_union_categories_int_and_float_object_categories():
     )
     result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
     expected = pd.Series(np.array([1.0, 2.0, 1], dtype=object))
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_uncomparable_categories():
+    # GH#68440 Decimal("1") and np.int64(1) hash equal but raise on ==, so the
+    #  comparison cannot show they are distinct
+    one = Decimal("1")
+    s1 = pd.Series(
+        pd.Categorical([one], dtype=CategoricalDtype(pd.Index([one], dtype=object)))
+    )
+    s2 = pd.Series(
+        pd.Categorical(
+            [np.int64(1)],
+            dtype=CategoricalDtype(pd.Index([np.int64(1)], dtype=object)),
+        )
+    )
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(np.array([one, np.int64(1)], dtype=object))
     tm.assert_series_equal(result, expected)
