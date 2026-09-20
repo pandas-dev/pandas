@@ -329,8 +329,18 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
         if isinstance(value, pa.Scalar):
-            # already pyarrow-typed; super() checks it against the column type
-            pass
+            # GH#68638 super() casts rather than checks, and pyarrow casts a
+            #  number or a bool to its string form
+            if not (
+                pa.types.is_string(value.type)
+                or pa.types.is_large_string(value.type)
+                or pa.types.is_string_view(value.type)
+                or pa.types.is_null(value.type)
+            ):
+                raise TypeError(
+                    f"Invalid value '{value}' for dtype 'str'. Value should be a "
+                    f"string or missing value, got '{type(value).__name__}' instead."
+                )
         elif is_scalar(value):
             if isna(value):
                 value = None

@@ -6,6 +6,7 @@ from datetime import (
 )
 from decimal import Decimal
 import functools
+from numbers import Rational
 import operator
 import re
 import textwrap
@@ -3223,7 +3224,7 @@ class ArrowExtensionArray(
         if pa.types.is_integer(pa_type):
             # GH#68638 pyarrow truncates the fractional part instead of refusing
             #  the value; the masked dtypes raise. Its safe cast catches a numpy
-            #  array but not a list, so every container is checked here
+            #  array but not a list, so list-likes are checked here too
             value = lib.item_from_zerodim(value)
             bad = _first_truncated_to_integer(value)
             if bad is not None:
@@ -4545,11 +4546,29 @@ def _truncates_to_integer(value) -> bool:
     """
     if lib.is_float(value):
         return not isna(value) and not value.is_integer()
+    if lib.is_integer(value):
+        return False
     if isinstance(value, Decimal):
         if isna(value):
             return False
         return not value.is_finite() or value != value.to_integral_value()
+    if isinstance(value, Rational):
+        # Fraction; the integers short-circuit above rather than pay this ABC lookup
+        return value.denominator != 1
     return False
+
+
+def _may_truncate_to_integer(values) -> bool:
+    """
+    Whether ``values`` could hold anything an integer-typed pyarrow column would
+    truncate. Cheaper than inspecting the entries. See GH#68638.
+    """
+    return lib.infer_dtype(values, skipna=True) not in (
+        "integer",
+        "boolean",
+        "string",
+        "empty",
+    )
 
 
 def _first_truncated_to_integer(value):
@@ -4558,17 +4577,37 @@ def _first_truncated_to_integer(value):
     or None if there is none. See GH#68638.
     """
     if not is_list_like(value) or isinstance(value, (pa.Array, pa.ChunkedArray)):
+        # a pyarrow container is cast, not converted, so pyarrow rejects a lossy
+        #  value itself; see test_setitem_lossy_float_pyarrow_container_raises
         return value if _truncates_to_integer(value) else None
 
-    arr = value if isinstance(value, np.ndarray) else np.asarray(value)
+    dtype = getattr(value, "dtype", None)
+    if getattr(dtype, "kind", None) in ("i", "u", "b"):
+        # skip materializing a container whose own dtype has nothing to drop
+        return None
+    if isinstance(value, (list, tuple)) and not _may_truncate_to_integer(value):
+        # same, for a container that has no dtype to ask
+        return None
+
+    if isinstance(value, np.ndarray):
+        arr = value
+    else:
+        try:
+            arr = np.asarray(value)
+        except ValueError:
+            # ragged, handled the way _box_pa_array handles it
+            arr = construct_1d_object_array_from_listlike(value)
     if arr.dtype.kind == "f":
-        with np.errstate(invalid="ignore"):
-            lossy = ~isna(arr) & ((arr != np.trunc(arr)) | np.isinf(arr))
+        lossy = ~isna(arr) & ((arr != np.trunc(arr)) | np.isinf(arr))
         return arr[lossy].flat[0] if lossy.any() else None
     if arr.dtype.kind != "O":
-        # no other numpy dtype has a fractional part to drop
+        # pyarrow refuses every other numpy dtype that could have one
         return None
-    for item in arr.ravel():
+    flat = arr.ravel()
+    if not _may_truncate_to_integer(flat):
+        return None
+    for item in flat:
+        item = lib.item_from_zerodim(item)
         if _truncates_to_integer(item):
             return item
     return None
