@@ -7,6 +7,7 @@ from datetime import (
 )
 from io import StringIO
 import json
+import re
 
 import numpy as np
 import pytest
@@ -925,3 +926,366 @@ class TestTableOrientReader:
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize(
+        "columns",
+        [
+            [5, 6, 7, 8],
+            [1.5, 2.5],
+            [0.1, 0.3, 0.7],
+            [True, False],
+            ["a", 7],
+            pd.RangeIndex(2),
+        ],
+    )
+    def test_read_json_table_orient_non_string_columns(self, columns):
+        # GH#19129
+        df = pd.DataFrame(
+            np.arange(2 * len(columns), dtype=np.float64).reshape(2, len(columns)),
+            columns=columns,
+        )
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize(
+        "columns, collisions",
+        [
+            ([5, "5"], "[5, '5']"),
+            (["a", "a"], "['a', 'a']"),
+        ],
+    )
+    def test_read_json_table_orient_colliding_string_form(self, columns, collisions):
+        # GH#19129 labels sharing one key in "data" are not recoverable; raise
+        #  rather than return the wrong values
+        df = pd.DataFrame([[1, 2]], columns=columns)
+        out = StringIO(df.to_json(orient="table"))
+        msg = re.escape(f"Field names {collisions} share a string form")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
+
+    @pytest.mark.parametrize("columns", [[5, "5"], ["a", "a"]])
+    def test_read_json_table_orient_colliding_labels_no_records(self, columns):
+        # GH#19129 with no records nothing is keyed by the shared string form,
+        #  so the labels are unambiguous and the frame reads back
+        df = pd.DataFrame(columns=columns, dtype=np.float64)
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(result, df, check_index_type=False)
+
+    @pytest.mark.parametrize("labels", [[1, True], [1, 1.0]])
+    @pytest.mark.parametrize("pkey", [0, 1])
+    def test_read_json_table_orient_positional_conflated_labels(self, labels, pkey):
+        # GH#19129 pandas conflates 1, 1.0 and True, so the frame is addressed
+        #  by position and "primaryKey" picks its field by type as well as
+        #  value -- matching on value alone would always pick the first
+        table = {
+            "schema": {
+                "fields": [{"name": label, "type": "number"} for label in labels],
+                "primaryKey": [labels[pkey]],
+            },
+            "data": [[1.5, 2.5]],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        values = [1.5, 2.5]
+        other = 1 - pkey
+        expected = pd.DataFrame(
+            {labels[other]: [values[other]]},
+            index=pd.Index([values[pkey]], name=labels[pkey]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("labels", [[1, True], [1, 1.0], [0, False]])
+    def test_read_json_table_orient_positional_conflated_labels_no_records(
+        self, labels
+    ):
+        # GH#19129 the labels survive with no records too, coerced only as far
+        #  as an Index of them coerces on its own
+        table = {
+            "schema": {
+                "fields": [{"name": label, "type": "number"} for label in labels]
+            },
+            "data": [],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        assert list(result.columns) == list(pd.Index(labels))
+
+    def test_read_json_table_orient_repeated_label_no_records(self):
+        # GH#19129 the same label twice is not a collision: either one restores
+        #  to the same value, and duplicate columns are allowed
+        table = {
+            "schema": {"fields": [{"name": 1, "type": "number"}] * 2},
+            "data": [],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        assert list(result.columns) == [1, 1]
+
+    @pytest.mark.parametrize(
+        "data, rows", [("[]", []), ("[[1e400,1.0]]", [[np.inf, 1.0]])]
+    )
+    def test_read_json_table_orient_exact_parse_falls_back(self, data, rows):
+        # GH#19129 the exact re-parse is best effort: a literal out of range
+        #  for it must not fail the read, so the fast parse's labels are used
+        table = (
+            '{"schema":{"fields":[{"name":1.5,"type":"number"},'
+            '{"name":"b","type":"number"}]},"data":' + data + "}"
+        )
+        result = pd.read_json(StringIO(table), orient="table")
+        expected = pd.DataFrame(rows, columns=[1.5, "b"], dtype=np.float64)
+        tm.assert_frame_equal(result, expected, check_index_type=False)
+
+    def test_read_json_table_orient_column_absent_from_every_record(self):
+        # GH#19129 with no key left over that could belong to it, a label
+        #  absent from every record reads as all-missing, which is what a
+        #  string label in the same document already does
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": "idx", "type": "integer"},
+                    {"name": 5, "type": "number"},
+                    {"name": "b", "type": "number"},
+                ],
+                "primaryKey": ["idx"],
+            },
+            "data": [{"idx": 1}, {"idx": 2}],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame(
+            {5: [np.nan, np.nan], "b": [np.nan, np.nan]},
+            index=pd.Index([1, 2], name="idx"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_json_table_orient_orphan_key_raises(self):
+        # GH#19129 a key belonging to no field is what tells a column that is
+        #  simply missing apart from one whose label "data" spells differently
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": "idx", "type": "integer"},
+                    {"name": 5, "type": "number"},
+                ],
+                "primaryKey": ["idx"],
+            },
+            "data": [{"idx": 1, "5.0": 1.5}],
+        }
+        msg = re.escape("have no matching key in 'data'")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(StringIO(json.dumps(table)), orient="table")
+
+    # a non-string scalar is what build_table_schema(primary_key=0) writes
+    @pytest.mark.parametrize("pkey", ["idx", 0])
+    def test_read_json_table_orient_scalar_primary_key(self, pkey):
+        # GH#19129 the spec allows a bare field name as well as an array
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": pkey, "type": "integer"},
+                    {"name": "a", "type": "integer"},
+                ],
+                "primaryKey": pkey,
+            },
+            "data": [{str(pkey): 1, "a": 2}],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame({"a": [2]}, index=pd.Index([1], name=pkey))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("data", [[{"a": 1}], [[1]]])
+    def test_read_json_table_orient_primary_key_not_a_field(self, data):
+        # GH#19129 the error names the key as the document spells it, whether
+        #  or not the records are keyed
+        table = {
+            "schema": {
+                "fields": [{"name": "a", "type": "integer"}],
+                "primaryKey": 7,
+            },
+            "data": data,
+        }
+        msg = re.escape("'primaryKey' names 7, which is not a field")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(StringIO(json.dumps(table)), orient="table")
+
+    @pytest.mark.parametrize("name", [0, False, ""])
+    def test_read_json_table_orient_falsy_series_name(self, name):
+        # GH#19129 only a None name stands in as "values"
+        ser = pd.Series([1.0, 2.0], name=name)
+        out = StringIO(ser.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(ser.to_frame(), result)
+
+    def test_read_json_table_orient_unmatched_float_label(self):
+        # GH#19129 double_precision rounds the label in the schema but not the
+        #  "data" key, so the two no longer line up
+        df = pd.DataFrame([[1.0]], columns=[1 / 3])
+        out = StringIO(df.to_json(orient="table"))
+        msg = "have no matching key in 'data'; to_json writes a float label at"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
+
+        # a label that survives the rounding still round-trips
+        df = pd.DataFrame([[1.0]], columns=[0.12345678901234])
+        out = StringIO(df.to_json(orient="table", double_precision=15))
+        tm.assert_frame_equal(pd.read_json(out, orient="table"), df)
+
+    def test_read_json_table_orient_unmatched_float_label_extreme_value(self):
+        # GH#19129 the label comes from the "data" keys, not a second decode,
+        #  so a data value the precise parser rejects does not change the error
+        df = pd.DataFrame([[5e-324]], columns=[1 / 3])
+        out = StringIO(df.to_json(orient="table"))
+        msg = "have no matching key in 'data'"
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
+
+    @pytest.mark.parametrize("label", [0.3, 5e-324])
+    def test_read_json_table_orient_float_label_from_key(self, label):
+        # GH#19129 a label the fast parser perturbs is recovered from its key
+        df = pd.DataFrame([[1.0, 2.0]], columns=[label, 1.0])
+        out = StringIO(df.to_json(orient="table"))
+        tm.assert_frame_equal(pd.read_json(out, orient="table"), df)
+
+    def test_read_json_table_orient_float_label_no_second_decode(self):
+        # GH#19129 the precise parser rejects 5e-324, so a document holding one
+        #  as a data value reads only because the label comes from the key
+        df = pd.DataFrame([[5e-324]], columns=[0.3])
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        # precise_float governs the value, which the fast parser rounds to 0.0
+        tm.assert_frame_equal(result, pd.DataFrame([[0.0]], columns=[0.3]))
+
+    # 0.3 is perturbed by the fast float parser, 5 is not
+    @pytest.mark.parametrize("name", [5, 0.3])
+    def test_read_json_table_orient_non_string_index_names(self, name):
+        # GH#19129
+        df = pd.DataFrame({"a": [1, 2]}, index=pd.Index([3, 4], name=name))
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+        mi = pd.MultiIndex.from_tuples([(1, 2), (3, 4)], names=[name, "y"])
+        df = pd.DataFrame({"a": [1, 2]}, index=mi)
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_read_json_table_orient_sparse_records(self):
+        # GH#19129 a non-string field name absent from the first record but
+        #  present in a later one is not a mismatch
+        table = {
+            "schema": {
+                "fields": [
+                    {"name": "idx", "type": "integer"},
+                    {"name": 5, "type": "number"},
+                ],
+                "primaryKey": ["idx"],
+            },
+            "data": [{"idx": 1}, {"idx": 2, "5": 1.5}],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame({5: [np.nan, 1.5]}, index=pd.Index([1, 2], name="idx"))
+        tm.assert_frame_equal(result, expected)
+
+    # 5 and "5" share a string form, but positional records have no keys to
+    #  share, so the labels stay distinct; two rows so that boolean labels
+    #  taken for a row mask would drop one
+    @pytest.mark.parametrize("labels", [[1, 2], [5, "5"], [True, False]])
+    def test_read_json_table_orient_positional_records(self, labels):
+        # GH#19129 "data" holding arrays rather than objects has no key for a
+        #  non-string field name to match; DataFrame reads those positionally
+        table = {
+            "schema": {
+                "fields": [{"name": label, "type": "integer"} for label in labels],
+            },
+            "data": [[3, 4], [5, 6]],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame([[3, 4], [5, 6]], columns=labels)
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_json_table_orient_positional_records_multi_primary_key(self):
+        # GH#19129 a positional document keeps its labels unstringified, so the
+        #  "level_" strip has to tolerate a non-string index name
+        table = {
+            "schema": {
+                "fields": [{"name": label, "type": "integer"} for label in (1, 2, 3)],
+                "primaryKey": [1, 2],
+            },
+            "data": [[3, 4, 5]],
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        expected = pd.DataFrame(
+            {3: [5]}, index=pd.MultiIndex.from_tuples([(3, 4)], names=[1, 2])
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("label", [np.nan, np.inf])
+    def test_read_json_table_orient_null_label_no_records(self, label):
+        # GH#19129 the writer stores a NaN and an inf label alike as null, so
+        #  both read back as NaN; with no records to place there is still a
+        #  frame rather than the KeyError the label-keyed restore used to give
+        df = pd.DataFrame(np.empty((0, 2)), columns=[label, "a"])
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        expected = pd.DataFrame(np.empty((0, 2)), columns=[np.nan, "a"])
+        tm.assert_frame_equal(result, expected, check_index_type=False)
+
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_read_json_table_orient_negative_zero_label(self, precise_float):
+        # GH#19129 to_json drops the sign from the schema but not from the
+        #  "data" key, so the key is what recovers the label -- either parser
+        df = pd.DataFrame([[1.0, 2.0]], columns=[-0.0, 1.0])
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table", precise_float=precise_float)
+        tm.assert_frame_equal(result, df)
+
+    def test_read_json_table_orient_float_label_exponent_notation(self):
+        # GH#19129 the schema writes 2.5e-08 as 0.000000025 while the "data"
+        #  key stays 2.5e-08, so the key cannot recover it and the exact parse
+        #  of the schema has to
+        df = pd.DataFrame([[1.0, 2.0]], columns=[2.5e-08, "z"])
+        out = StringIO(df.to_json(orient="table"))
+        tm.assert_frame_equal(pd.read_json(out, orient="table"), df)
+
+    @pytest.mark.parametrize("name", ["idx", 0])
+    @pytest.mark.parametrize("values", [[1, 2], []])
+    def test_read_json_table_orient_no_columns(self, name, values):
+        # GH#19129 restoring the labels must not touch an empty column axis,
+        #  which rebuilt from a list would come back object, and its dtype
+        #  must not depend on how many rows the frame has
+        df = pd.DataFrame(index=pd.Index(values, dtype="int64", name=name))
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        assert result.index.name == name
+        assert result.columns.empty
+        assert result.columns.dtype == pd.Index([name]).dtype
+
+    def test_read_json_table_orient_null_records(self):
+        # GH#19129 "data" is a list in any document pandas writes; a
+        #  hand-built null there has to read as empty rather than raise
+        table = {
+            "schema": {
+                "fields": [{"name": "a", "type": "integer"}],
+                "primaryKey": ["a"],
+            },
+            "data": None,
+        }
+        result = pd.read_json(StringIO(json.dumps(table)), orient="table")
+        assert result.empty
+        assert result.index.name == "a"
+
+    def test_read_json_table_orient_float_label_no_records(self):
+        # GH#19129 with no records there is nothing to match the label against,
+        #  so the precise parse has to happen regardless
+        df = pd.DataFrame({0.3: pd.Series([], dtype=np.float64)})
+        out = StringIO(df.to_json(orient="table"))
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(result, df, check_index_type=False)
+
+    def test_read_json_table_orient_nan_label(self):
+        # GH#19129 the writer stores a NaN label as null in the schema but as
+        #  "nan" in "data", so it cannot be matched back up
+        df = pd.DataFrame([[1.0]], columns=[np.nan])
+        out = StringIO(df.to_json(orient="table"))
+        msg = re.escape("Field names [None] have no matching key in 'data'")
+        with pytest.raises(ValueError, match=msg):
+            pd.read_json(out, orient="table")
