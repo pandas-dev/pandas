@@ -395,7 +395,7 @@ def array_to_timedelta64(
             item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
             if isinstance(item, str):
                 raise ValueError(
-                    "unit must not be specified if the input contains a str"
+                    "input_unit must not be specified if the input contains a str"
                 )
             cnp.PyArray_ITER_NEXT(it)
 
@@ -2462,9 +2462,10 @@ class Timedelta(_Timedelta):
     value : Timedelta, timedelta, np.timedelta64, str, int or float
         Input value.
     unit : str, default 'ns'
-        Use ``input_unit`` instead.
+        Alias for ``input_unit``.
 
         .. deprecated:: 3.1.0
+            Use the ``input_unit`` keyword instead.
 
     input_unit : str, default 'ns'
         If input is an integer, denote the unit of the input.
@@ -2560,7 +2561,7 @@ class Timedelta(_Timedelta):
             )
 
         if (
-            (unit is not None or input_unit is not None)
+            input_unit is not None
             and not (is_float_object(value) or is_integer_object(value))
         ):
             # GH#53198

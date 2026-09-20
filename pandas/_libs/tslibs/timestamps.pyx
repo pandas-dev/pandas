@@ -2037,9 +2037,10 @@ class Timestamp(_Timestamp):
     tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
     unit : str
-        Use ``input_unit`` instead.
+        Alias for ``input_unit``.
 
         .. deprecated:: 3.1.0
+            Use the ``input_unit`` keyword instead.
 
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
@@ -3050,7 +3051,7 @@ class Timestamp(_Timestamp):
                 ts_input = ts_input.replace(fold=fold)
 
         if (
-            (unit is not None or input_unit is not None)
+            input_unit is not None
             and not (is_float_object(ts_input) or is_integer_object(ts_input))
         ):
             # GH#53198

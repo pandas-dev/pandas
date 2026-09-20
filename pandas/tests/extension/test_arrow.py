@@ -3912,6 +3912,94 @@ def test_iter_temporal(pa_type):
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.list_(pa.timestamp("ns")),
+        pa.large_list(pa.timestamp("ns")),
+        pa.list_(pa.duration("ns"), 2),
+        pa.struct([("t", pa.timestamp("ns"))]),
+        pa.map_(pa.string(), pa.timestamp("ns")),
+        pa.dictionary(pa.int32(), pa.timestamp("ns")),
+        pa.run_end_encoded(pa.int32(), pa.timestamp("ns")),
+    ],
+    ids=repr,
+)
+def test_nested_ns_temporal_no_unit_deprecation(pa_type):
+    # GH#62097 unboxing an ns-precision temporal nested inside a container
+    #  must not surface pyarrow's internal use of the deprecated 'unit'
+    if pa.types.is_dictionary(pa_type):
+        pa_arr = pa.array([1], type=pa_type.value_type).dictionary_encode()
+    elif pa.types.is_run_end_encoded(pa_type):
+        pa_arr = pa.array([1], type=pa_type)
+    elif pa.types.is_map(pa_type):
+        pa_arr = pa.array([[("a", 1)]], type=pa_type)
+    elif pa.types.is_struct(pa_type):
+        pa_arr = pa.array([{"t": 1}], type=pa_type)
+    elif pa.types.is_fixed_size_list(pa_type):
+        pa_arr = pa.array([[1, 2]], type=pa_type)
+    else:
+        pa_arr = pa.array([[1]], type=pa_type)
+
+    ser = pd.Series(pa_arr, dtype=ArrowDtype(pa_type))
+    with tm.assert_produces_warning(None):
+        result = ser.tolist()
+        assert ser[0] == result[0]
+        assert list(ser.array) == result
+
+    # values still match what pyarrow itself would have produced
+    with tm.assert_produces_warning(Pandas4Warning, match="'unit' argument"):
+        expected = pa_arr.to_pylist()
+    assert result == expected
+
+
+def test_unhashable_extension_type_getitem():
+    # GH#62097 a Python-defined pa.ExtensionType sets __hash__ to None, so the
+    #  ns-temporal check must not be memoized on the type
+    class MyExtensionType(pa.ExtensionType):
+        def __init__(self) -> None:
+            super().__init__(pa.int64(), "pandas.tests.myext")
+
+        def __arrow_ext_serialize__(self):
+            return b""
+
+        @classmethod
+        def __arrow_ext_deserialize__(cls, storage_type, serialized):
+            return cls()
+
+    pa_type = MyExtensionType()
+    assert pa_type.__hash__ is None
+    arr = ArrowExtensionArray(
+        pa.ExtensionArray.from_storage(pa_type, pa.array([1, 2], type=pa.int64()))
+    )
+    assert arr[0] == 1
+    assert list(arr) == [1, 2]
+
+
+def test_union_ns_temporal_no_unit_deprecation():
+    # GH#62097 a union is not an ArrowDtype, but ArrowExtensionArray still holds one
+    pa_arr = pa.UnionArray.from_sparse(
+        pa.array([0, 1], pa.int8()),
+        [pa.array([1, 2], pa.timestamp("ns")), pa.array(["a", "b"])],
+    )
+    ser = pd.Series(ArrowExtensionArray(pa_arr))
+    with tm.assert_produces_warning(None):
+        result = ser.tolist()
+    with tm.assert_produces_warning(Pandas4Warning, match="'unit' argument"):
+        expected = pa_arr.to_pylist()
+    assert result == expected
+
+
+def test_getitem_ns_tz_matches_pyarrow_tzinfo():
+    # GH#62097 the shim must reuse pyarrow's tzinfo; pandas resolves "UTC" to
+    #  datetime.timezone.utc where pyarrow gives ZoneInfo("UTC")
+    pa_type = pa.timestamp("ns", tz="UTC")
+    arr = ArrowExtensionArray(pa.array([0], type=pa_type))
+    with tm.assert_produces_warning(Pandas4Warning, match="'unit' argument"):
+        expected = pa.array([0], type=pa_type)[0].as_py()
+    assert arr[0].tzinfo is expected.tzinfo
+
+
 def test_groupby_series_size_returns_pa_int(data):
     # GH 54132
     ser = pd.Series(data[:3], index=["a", "a", "b"])

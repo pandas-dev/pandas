@@ -117,7 +117,7 @@ class TestArrayToTimedelta64:
         # check the 'unit is not None and errors != "coerce"' path
         #  in array_to_timedelta64 raises correctly with 2D values
         values = np.array([["1", 2], [3, "4"]], dtype=object)
-        with pytest.raises(ValueError, match="unit must not be specified"):
+        with pytest.raises(ValueError, match="input_unit must not be specified"):
             array_to_timedelta64(values, unit="s")
 
     def test_array_to_timedelta64_non_object_raises(self):

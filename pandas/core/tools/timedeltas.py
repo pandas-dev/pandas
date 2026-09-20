@@ -118,9 +118,10 @@ def to_timedelta(
             unambiguous timedelta values and will raise an exception.
 
     unit : str, optional
-        Use ``input_unit`` instead.
+        Alias for ``input_unit``.
 
         .. deprecated:: 3.1.0
+            Use the ``input_unit`` keyword instead.
 
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

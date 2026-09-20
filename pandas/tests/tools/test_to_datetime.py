@@ -628,7 +628,8 @@ class TestToDatetime:
     def test_to_datetime_unit_deprecated(self):
         msg = "The 'unit' argument is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            to_datetime([1], unit="s")
+            result = to_datetime([1], unit="s")
+        tm.assert_index_equal(result, to_datetime([1], input_unit="s"))
 
         msg2 = "Specify only 'input_unit', not 'unit'"
         with pytest.raises(ValueError, match=msg2):
@@ -4002,8 +4003,8 @@ class TestShouldCacheEarlyBail:
     @pytest.mark.parametrize(
         "arg, kwargs",
         [
-            # unit is not None
-            (np.arange(100, dtype="int64"), {"unit": "s"}),
+            # input_unit is not None
+            (np.arange(100, dtype="int64"), {"input_unit": "s"}),
             # arg.dtype is np.datetime64
             (
                 date_range("2020-01-01", periods=100, freq="s").to_numpy(),

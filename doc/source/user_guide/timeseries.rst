@@ -323,7 +323,7 @@ Epoch timestamps
 
 pandas supports converting integer or float epoch times to ``Timestamp`` and
 ``DatetimeIndex``. The default unit is nanoseconds when no ``input_unit`` is specified.
-However, epochs are often stored in another ``input_unit``
+However, epochs are often stored in another unit
 which can be specified. These are computed from the starting point specified by the
 ``origin`` parameter.
 

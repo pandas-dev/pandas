@@ -60,7 +60,13 @@ class TestTimedeltas:
     def test_to_timedelta_unit_deprecated(self):
         msg = "The 'unit' argument is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            to_timedelta([1], unit="s")
+            result = to_timedelta([1], unit="s")
+        tm.assert_index_equal(result, to_timedelta([1], input_unit="s"))
+
+        # the second positional argument binds to the deprecated 'unit'
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = to_timedelta([1], "s")
+        tm.assert_index_equal(result, to_timedelta([1], input_unit="s"))
 
         msg2 = "Specify only 'input_unit', not 'unit'"
         with pytest.raises(ValueError, match=msg2):

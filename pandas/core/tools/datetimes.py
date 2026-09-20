@@ -169,7 +169,7 @@ def should_cache(
     arg: ArrayConvertible,
     unique_share: float = 0.7,
     check_count: int | None = None,
-    unit: str | None = None,
+    input_unit: str | None = None,
 ) -> bool:
     """
     Decides whether to do caching.
@@ -184,7 +184,7 @@ def should_cache(
         0 < unique_share < 1
     check_count: int, optional
         0 <= check_count <= len(arg)
-    unit : str or None, default None
+    input_unit : str or None, default None
         The unit of the arg (e.g. 's', 'ms').
 
     Returns
@@ -205,7 +205,7 @@ def should_cache(
     # NB: an explicit ``format`` is intentionally *not* a bail condition --
     # strptime parsing of highly-duplicated strings is exactly where caching
     # pays off (GH#65380 originally bailed here and regressed those inputs).
-    if unit is not None:
+    if input_unit is not None:
         return False
     arg_dtype = getattr(arg, "dtype", None)
     if (
@@ -251,7 +251,7 @@ def _maybe_cache(
     format: str | None,
     cache: bool,
     convert_listlike: Callable,
-    unit: str | None = None,
+    input_unit: str | None = None,
 ) -> Series:
     """
     Create a cache of unique dates from an array of dates
@@ -265,7 +265,7 @@ def _maybe_cache(
         True attempts to create a cache of converted values
     convert_listlike : function
         Conversion function to apply on dates
-    unit : str, optional
+    input_unit : str, optional
         The unit of the arg.
 
     Returns
@@ -279,7 +279,7 @@ def _maybe_cache(
 
     if cache:
         # Perform a quicker unique check
-        if not should_cache(arg, unit=unit):
+        if not should_cache(arg, input_unit=input_unit):
             return cache_array
 
         if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
@@ -930,9 +930,10 @@ def to_datetime(
 
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
     unit : str, default 'ns'
-        Use ``input_unit`` instead.
+        Alias for ``input_unit``.
 
         .. deprecated:: 3.1.0
+            Use the ``input_unit`` keyword instead.
 
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
@@ -1234,7 +1235,7 @@ def to_datetime(
             else:
                 result = arg.tz_localize("utc")
     elif isinstance(arg, ABCSeries):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, input_unit)
         if not cache_array.empty:
             result = arg.map(cache_array)
         else:
@@ -1243,7 +1244,7 @@ def to_datetime(
     elif isinstance(arg, (ABCDataFrame, abc.MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors, utc)
     elif isinstance(arg, Index):
-        cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
+        cache_array = _maybe_cache(arg, format, cache, convert_listlike, input_unit)
         if not cache_array.empty:
             result = _convert_and_box_cache(arg, cache_array, name=arg.name)
         else:
@@ -1257,7 +1258,9 @@ def to_datetime(
             argc = cast(
                 "list | tuple | ExtensionArray | np.ndarray | Series | Index", arg
             )
-            cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
+            cache_array = _maybe_cache(
+                argc, format, cache, convert_listlike, input_unit
+            )
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...
