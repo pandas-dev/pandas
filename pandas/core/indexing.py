@@ -2685,18 +2685,19 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
+            elif self._is_scalar_access(indexer) and is_object_dtype(
+                self.obj.dtypes._values[ilocs[0]]
+            ):
+                # We are setting nested data into a single cell, only possible
+                #  for object dtype. Bypasses length checks, and precedes the
+                #  2-D check to match the single-block path. GH#69151
+                self._setitem_single_column(ilocs[0], value, pi)
+
             elif _is_2d_value_for_columns(value, len(ilocs)):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
                 # We are setting multiple rows in a single column.
-                self._setitem_single_column(ilocs[0], value, pi)
-
-            elif self._is_scalar_access(indexer) and is_object_dtype(
-                self.obj.dtypes._values[ilocs[0]]
-            ):
-                # We are setting nested data into a single cell,
-                # only possible for object dtype. Bypasses length checks.
                 self._setitem_single_column(ilocs[0], value, pi)
 
             elif len(ilocs) == 1 and 0 != lplane_indexer != len(value):
