@@ -121,6 +121,7 @@ class TestMethods:
     def test_shift_retains_subtype(self, breaks):
         # GH#64297
         arr = IntervalArray.from_breaks(breaks)
+        assert arr.dtype.subtype == breaks.dtype
 
         result = arr.shift(1)
 
