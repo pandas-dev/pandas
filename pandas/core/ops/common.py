@@ -41,8 +41,8 @@ if TYPE_CHECKING:
 def has_castable_attr(obj) -> bool:
     attrs = [
         "__array__",
-        # GH#31646 np.asarray honors the next two as well, so an object
-        #  exposing only one of them is still element-wise material
+        # GH#31646 np.asarray honors __array_interface__ and __array_struct__
+        #  too, so an operand exposing only one of them is still element-wise
         "__array_interface__",
         "__array_struct__",
         "__dlpack__",

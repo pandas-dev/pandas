@@ -280,6 +280,16 @@ def test_arrow_arith_does_not_consume_iterator(dtype, box):
     assert list(other), "the iterator was consumed instead of treated as a scalar"
 
 
+def test_arrow_logical_op_iterator_raises_arrow_invalid():
+    # GH#31646 an iterator now reaches _evaluate_op_method rather than
+    #  logical_op's dtype-less-sequence gate, so the arrow scalar path reports
+    #  it the way it reports any other unboxable scalar
+    pa = pytest.importorskip("pyarrow")
+    arr = pd.array([True, False, True], dtype="bool[pyarrow]")
+    with pytest.raises(pa.ArrowInvalid, match="Could not convert"):
+        arr & (num for num in range(3))
+
+
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "string[pyarrow]"])
 def test_arrow_cmp_iterator_treated_as_scalar(dtype, box):
