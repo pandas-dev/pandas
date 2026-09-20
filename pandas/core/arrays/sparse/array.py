@@ -437,7 +437,7 @@ def _wrap_result(
         # e.g. __eq__ --> eq
         name = name[2:-2]
 
-    if name in _comparison_ops:
+    if dtype is not object and name in _comparison_ops:
         dtype = bool
 
     fill_value = lib.item_from_zerodim(fill_value)
@@ -1285,6 +1285,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 # GH#68586 an object key such as pd.NA compares to a non-bool,
                 #  which mask.any() cannot consume
                 mask = ops.comp_method_OBJECT_ARRAY(operator.eq, keys, self.fill_value)
+                # GH#63328 comparison result preserves pd.NA, with object dtype
+                if mask.dtype == object:
+                    mask[libmissing.is_pdna(cast("np.ndarray", mask))] = False
             else:
                 mask = keys == self.fill_value
             if mask.any():
@@ -2841,7 +2844,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             #  stored values need it, so this stays O(nnz) rather than O(len)
             sp_values = ops.comparison_op(self.sp_values, other, op)
             fill_value = self._cmp_fill_value(other, op)
-            return _wrap_result(op_name, sp_values, self.sp_index, fill_value)
+            dtype = object if isna(sp_values).any() else None
+            return _wrap_result(op_name, sp_values, self.sp_index, fill_value, dtype)
         else:
             # scalar
             fill_value = op(self.fill_value, other)
@@ -2866,8 +2870,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         #  either side is computed densely; unlike the scalar arm this cannot work
         #  off sp_values, because the two sparse indexes need not line up.
         result = ops.comparison_op(np.asarray(self), rvalues, op)
+        dtype = object if isna(result).any() else np.bool_
         return type(self)(
-            result, fill_value=self._cmp_fill_value(rfill, op), dtype=np.bool_
+            result, fill_value=self._cmp_fill_value(rfill, op), dtype=dtype
         )
 
     def _logical_method(self, other, op):
