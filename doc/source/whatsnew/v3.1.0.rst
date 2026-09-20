@@ -978,6 +978,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.union` raising ``InvalidIndexError`` when combining levels containing :class:`datetime.date` and :class:`Timestamp` values representing the same date (:issue:`61807`)
 - Bug in the :class:`DataFrame` constructor where passing a :class:`DataFrame` with a unique integer :class:`MultiIndex` together with a flat integer ``index`` raised ``ValueError: Buffer dtype mismatch`` instead of reindexing to an all-``NaN`` result (:issue:`26460`)
 - :meth:`MultiIndex.isin` now raises an informative ``ValueError`` when the values are not tuples matching the number of levels, instead of raising a cryptic ``TypeError`` or ``AssertionError`` or silently returning incorrect results (:issue:`20252`, :issue:`26622`)
+- :meth:`MultiIndex.intersection`, :meth:`MultiIndex.union`, :meth:`MultiIndex.difference` and :meth:`MultiIndex.symmetric_difference` now raise ``TypeError`` for a list-like operand holding string or bytes-like entries, which were previously split into their elements and treated as a tuple of levels (:issue:`39699`)
 
 I/O
 ^^^
