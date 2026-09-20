@@ -648,8 +648,8 @@ class TestiLocBaseIndependent:
         self, col_indexer, value, expected
     ):
         # GH#65446 a slice column indexer selects the cross product with the
-        #  row indexer; on a referenced frame it was re-expressed as an array,
-        #  which broadcasts against the rows instead
+        #  row indexer; a reversed one was re-expressed as an array on a
+        #  referenced frame, which broadcasts against the rows instead
         df = pd.DataFrame(
             np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
         )
@@ -689,32 +689,69 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+    @pytest.mark.parametrize("referenced", [True, False])
     @pytest.mark.parametrize("shape", [(2, 2), (3, 2)])
-    def test_iloc_setitem_datetimelike_two_advanced_keys_referenced_block(self, shape):
-        # GH#65446 two advanced keys broadcast, so reversing them for the (nblocks,
-        #  nrows) storage layout must not also transpose the value. The square
-        #  shape wrote transposed data; the non-square one raised
+    def test_iloc_setitem_datetimelike_two_advanced_keys(self, shape, referenced):
+        # GH#65446 two advanced keys broadcast, so reversing them for the
+        #  (nblocks, nrows) storage layout must not also transpose the value.
+        #  Unreferenced, the square shape wrote transposed data and the
+        #  non-square one raised
         n_rows = shape[0] + 1
         df = pd.DataFrame(
-            {col: pd.date_range("2020-01-01", periods=n_rows) for col in "abc"}
+            np.arange(n_rows * 3, dtype="i8").reshape(n_rows, 3).view("M8[s]"),
+            columns=list("abc"),
         )
-        oracle = pd.DataFrame({col: np.arange(float(n_rows)) for col in "abc"})
-        value = pd.date_range("2000-01-01", periods=shape[0] * shape[1]).to_numpy()
-        value = value.reshape(shape)
+        df_orig = df.copy()
+        value = np.arange(100, 100 + shape[0] * shape[1], dtype="i8")
+        value = value.view("M8[s]").reshape(shape)
         rows = list(range(n_rows - 1, n_rows - 1 - shape[0], -1))
 
-        ref = df[["a", "b", "c"]]  # noqa: F841
-        oracle_ref = oracle[["a", "b", "c"]]  # noqa: F841
+        ref = df[["a", "b", "c"]] if referenced else None
         df.iloc[rows, [0, 2]] = value
-        oracle.iloc[rows, [0, 2]] = np.arange(float(shape[0] * shape[1])).reshape(shape)
+        df._mgr._verify_integrity()
 
-        # the datetimelike block must land the same cells as the float block
-        written = value.reshape(shape)
-        for pos, row in enumerate(rows):
-            assert df.loc[row, "a"] == written[pos, 0]
-            assert df.loc[row, "c"] == written[pos, 1]
-            assert oracle.loc[row, "a"] == float(pos * shape[1])
-            assert oracle.loc[row, "c"] == float(pos * shape[1] + 1)
+        arr = df_orig.to_numpy().copy()
+        arr[np.ix_(rows, [0, 2])] = value
+        tm.assert_frame_equal(df, pd.DataFrame(arr, columns=list("abc")))
+        if referenced:
+            tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("col_indexer, shape", [(1, (2, 1)), ([1], (1, 2))])
+    def test_iloc_setitem_datetimelike_misshapen_2d_value(self, col_indexer, shape):
+        # GH#65446 the value was transposed whether or not reversing the
+        #  indexer pair transposed the selection, which let a misshapen value
+        #  through on a datetimelike frame where a float one raises
+        df = pd.DataFrame(
+            np.arange(9, dtype="i8").reshape(3, 3).view("M8[s]"), columns=list("abc")
+        )
+        value = np.arange(100, 102, dtype="i8").view("M8[s]").reshape(shape)
+        # the datetimelike arm misreports the shape error as a resolution one;
+        #  the rejection is the point, so accept either wording
+        with pytest.raises(ValueError, match="(Incompatible|sequence)"):
+            df.iloc[np.array([0, 2]), col_indexer] = value
+
+    @pytest.mark.parametrize("referenced", [True, False])
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    @pytest.mark.parametrize("key", [([2, 1, 0], Ellipsis), (Ellipsis, [2, 0, 1])])
+    def test_iloc_setitem_ellipsis_indexer(self, key, dtype, referenced):
+        # GH#65446 Ellipsis fills the remaining axis, so it has to select the
+        #  same cells as the slice(None) spelling rather than read as an
+        #  advanced key and broadcast against the other one
+        df = pd.DataFrame(
+            np.arange(9, dtype="i8").reshape(3, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        value = np.arange(100, 109, dtype="i8").reshape(3, 3).astype(dtype)
+
+        ref = df[["a", "b", "c"]] if referenced else None
+        df.iloc[key] = value
+        df._mgr._verify_integrity()
+
+        arr = df_orig.to_numpy().copy()
+        arr[key] = value
+        tm.assert_frame_equal(df, pd.DataFrame(arr, columns=list("abc")))
+        if referenced:
+            tm.assert_frame_equal(ref, df_orig)
 
     def test_iloc_setitem_2d_row_indexer_referenced_block(self):
         # GH#65446 a 2d row indexer selects the cross product with a slice
@@ -752,9 +789,9 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(ref, df_orig)
 
     def test_iloc_setitem_datetimelike_slice_column_indexer_referenced_block(self):
-        # GH#65446 a datetimelike block swaps the two indexer entries rather
-        #  than transposing its values, so the broadcast has to survive that.
-        #  The selection is non-square; a square one works either way round.
+        # GH#65446 a datetimelike block swaps the indexer entries and
+        #  transposes the value; the selection is non-square, so a wrong
+        #  orientation raises rather than writing silently
         df = pd.DataFrame(
             np.arange(9, dtype="i8").view("M8[s]").reshape(3, 3), columns=list("abc")
         )

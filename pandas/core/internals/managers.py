@@ -593,6 +593,9 @@ class BaseBlockManager(PandasObject):
                     )
 
                     indexer = list(indexer)
+                    if indexer[1] is Ellipsis:
+                        # Ellipsis selects the whole axis, like slice(None)
+                        indexer[1] = slice(None)
                     # The column indexer has to keep the kind the caller used:
                     # a slice takes the cross product with the row indexer,
                     # while an array broadcasts against it (GH#65446)
@@ -601,7 +604,7 @@ class BaseBlockManager(PandasObject):
                     elif isinstance(indexer[1], slice):
                         # the new block holds the columns sorted, so a slice
                         # over them differs from the caller's only in direction
-                        step = None if inverse[0] < inverse[-1] else -1
+                        step = None if inverse[0] <= inverse[-1] else -1
                         col_indexer = slice(None, None, step)  # type: ignore[assignment]
                     else:
                         col_indexer = inverse  # type: ignore[assignment]

@@ -1788,15 +1788,19 @@ class EABackedBlock(Block):
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
                 indexer = (indexer, slice(None))
-            # reversing the pair transposes the selection only when its two
-            #  entries index independent axes. Two advanced indices broadcast
-            #  against each other instead, and their order does not change the
-            #  result's orientation, so transposing the value would undo it
-            #  (GH#65446)
-            broadcast_pair = len(indexer) == 2 and not any(
-                isinstance(key, slice) for key in indexer
-            )
+            broadcast_pair = False
             if len(indexer) == 2:
+                if sum(key is Ellipsis for key in indexer) == 1:
+                    # a lone Ellipsis fills the other axis, so it selects like
+                    #  slice(None) and must not read as an advanced key. Two of
+                    #  them are an error numpy still has to report (GH#65446)
+                    indexer = tuple(
+                        slice(None) if key is Ellipsis else key for key in indexer
+                    )
+                # two advanced indices broadcast against each other, so their
+                #  order does not change the result's orientation and
+                #  transposing the value would undo it (GH#65446)
+                broadcast_pair = not any(isinstance(key, slice) for key in indexer)
                 indexer = indexer[::-1]
             if isinstance(value, np.ndarray) and value.ndim == 2 and not broadcast_pair:
                 value = value.T
