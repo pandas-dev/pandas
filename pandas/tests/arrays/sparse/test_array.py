@@ -520,18 +520,6 @@ def test_cumsum_na_stored_and_gap():
     tm.assert_series_equal(result.sparse.to_dense(), expected)
 
 
-def test_cumsum_na_stored_by_arithmetic():
-    # GH#68972 sparse arithmetic stores the NAs it produces in sp_values
-    left = pd.Series(SparseArray([1.0, np.nan, 2.0, 0.0, 5.0], fill_value=0.0))
-    right = pd.Series(SparseArray([1.0, 1.0, np.nan, np.nan, 1.0], fill_value=np.nan))
-    ser = left + right
-    assert np.isnan(ser.array.sp_values).any()
-
-    result = ser.cumsum()
-    expected = pd.Series([2.0, np.nan, np.nan, np.nan, 8.0])
-    tm.assert_series_equal(result.sparse.to_dense(), expected)
-
-
 @pytest.mark.parametrize("op_name", ["cumsum", "cumprod", "cummin", "cummax"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("fill_value", [np.nan, 0.0])

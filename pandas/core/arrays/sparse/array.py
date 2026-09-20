@@ -445,9 +445,63 @@ def _wrap_result(
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
+    if sparse_index is not None:
+        # a None sparse_index means the constructor sparsifies data itself
+        data, sparse_index = _prune_fill_value(data, sparse_index, fill_value)
     return SparseArray(
         data, sparse_index=sparse_index, fill_value=fill_value, dtype=dtype, kind=kind
     )
+
+
+def _differs_from_fill(values: np.ndarray, fill_value) -> np.ndarray:
+    """
+    Which of ``values`` would not densify as ``fill_value``.
+    """
+    if isna(fill_value):
+        return notna(values)
+    mask = values != fill_value
+    if values.dtype.kind == "f" and fill_value == 0:
+        # -0.0 == 0.0 but the two densify differently, so a stored signed zero
+        #  is a real point
+        mask |= np.signbit(values) != np.signbit(fill_value)
+    return mask
+
+
+def _prune_fill_value(
+    sp_values: np.ndarray, sparse_index: SparseIndex, fill_value
+) -> tuple[np.ndarray, SparseIndex]:
+    """
+    Drop stored values that densify as fill_value, so sp_index holds only real points.
+
+    GH#45126 the ops reuse an operand's sparse index or the union of both, either
+    of which can cover a position the op turned into the fill value.
+    """
+    if sp_values.dtype.kind == "c":
+        # isna() is True when either part is NaN, so it cannot decide a complex
+        #  on its own
+        mask = _differs_from_fill(sp_values.real, np.real(fill_value)) | (
+            _differs_from_fill(sp_values.imag, np.imag(fill_value))
+        )
+    elif sp_values.dtype == object:
+        if isna(fill_value):
+            # object can hold several NAs at once, and only the fill's own spelling
+            #  densifies back as the fill
+            mask = np.array(
+                [not libmissing.is_matching_na(x, fill_value) for x in sp_values],
+                dtype=bool,
+            )
+        else:
+            # 0, 0.0 and False compare equal, so use _make_sparse's type-aware check
+            mask = splib.make_mask_object_ndarray(sp_values, fill_value)
+    else:
+        mask = _differs_from_fill(sp_values, fill_value)
+
+    if mask.all():
+        return sp_values, sparse_index
+
+    kind: SparseIndexKind = "integer" if isinstance(sparse_index, IntIndex) else "block"
+    indices = sparse_index.indices[mask]
+    return sp_values[mask], make_sparse_index(sparse_index.length, indices, kind)
 
 
 _BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
