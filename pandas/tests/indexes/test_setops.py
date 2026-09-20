@@ -1041,3 +1041,24 @@ def test_union_disjoint_monotonic_sorted():
     result_false = idx1.union(idx2, sort=False)
     expected_false = pd.Index([5, 6, 7, 1, 2, 3])
     tm.assert_index_equal(result_false, expected_false)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.period_range("2022-01", periods=5, freq="M"),
+        pd.date_range("2022-01-01", periods=5),
+        pd.timedelta_range("1 day", periods=5),
+    ],
+    ids=lambda x: str(x.dtype),
+)
+def test_difference_datetimelike_vs_parsable_strings(index, sort):
+    # GH#58971 a string that parses to one of our values is still a distinct
+    #  element, as it already is for union/intersection/isin
+    other = pd.Index([str(value) for value in index[1:3]])
+
+    result = index.difference(other, sort=sort)
+    tm.assert_index_equal(result, index)
+
+    result = other.difference(index, sort=sort)
+    tm.assert_index_equal(result, other)
