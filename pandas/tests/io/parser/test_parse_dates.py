@@ -249,13 +249,39 @@ def test_bad_date_parse(all_parsers, cache, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * (start_caching_at + 1))
 
-    parser.read_csv(
-        s,
-        header=None,
-        names=["foo", "bar"],
-        parse_dates=["foo"],
-        cache_dates=cache,
-    )
+    depr_msg = "The 'cache_dates' keyword is deprecated"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        parser.read_csv(
+            s,
+            header=None,
+            names=["foo", "bar"],
+            parse_dates=["foo"],
+            cache_dates=cache,
+        )
+
+
+@pytest.mark.parametrize("cache_dates", [True, False])
+def test_cache_dates_deprecated(all_parsers, cache_dates):
+    # GH#68705
+    parser = all_parsers
+    depr_msg = "The 'cache_dates' keyword is deprecated"
+    with tm.assert_produces_warning(
+        Pandas4Warning, match=depr_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO("a\n1\n"), cache_dates=cache_dates)
+    expected = pd.DataFrame({"a": [1]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_cache_dates_not_passed_no_warning(all_parsers):
+    # GH#68705 - no warning when the keyword is not given
+    parser = all_parsers
+    with tm.assert_produces_warning(None):
+        result = parser.read_csv(StringIO("a\n1\n"))
+    expected = pd.DataFrame({"a": [1]})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_bad_date_parse_with_warning(all_parsers, cache):

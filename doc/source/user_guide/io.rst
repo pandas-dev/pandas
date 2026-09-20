@@ -274,6 +274,8 @@ cache_dates : boolean, default True
   conversion. May produce significant speed-up when parsing duplicate
   date strings, especially ones with timezone offsets.
 
+  .. deprecated:: 3.1.0
+
 Iteration
 +++++++++
 
