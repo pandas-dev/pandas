@@ -1517,9 +1517,8 @@ def test_op_2d_ndarray_raises(op, pa_type, values):
     [
         pd.arrays.IntegerArray(np.array([[1], [2]]), np.zeros((2, 1), dtype=bool)),
         pd.date_range("2020", periods=2)._data.reshape(2, 1),
-        # the only EA whose _typ is not matched by ABCExtensionArray, and the
-        #  one most likely to be 2-D
-        pd.array(np.array([1, 2, 3, 4]), dtype=np.int64).reshape(2, 2),
+        # ABCExtensionArray does not match NumpyExtensionArray
+        pd.arrays.NumpyExtensionArray(np.array([[1, 2], [3, 4]])),
     ],
     ids=["masked", "datetimelike", "numpy_ea"],
 )
