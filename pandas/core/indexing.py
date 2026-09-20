@@ -2690,7 +2690,7 @@ class _iLocIndexer(_LocationIndexer):
             ):
                 # We are setting nested data into a single cell, only possible
                 #  for object dtype. Bypasses length checks, and precedes the
-                #  2-D check to match the single-block path. GH#69151
+                #  2-D check to match the single-block path. GH#69152
                 self._setitem_single_column(ilocs[0], value, pi)
 
             elif _is_2d_value_for_columns(value, len(ilocs)):

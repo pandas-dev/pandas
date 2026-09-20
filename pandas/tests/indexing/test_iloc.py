@@ -1062,7 +1062,7 @@ class TestiLocBaseIndependent:
     @pytest.mark.parametrize("other_dtype", ["int64", object], ids=["mixed", "object"])
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_2d_value_into_object_cell(self, indexer, other_dtype, value):
-        # GH#69151 a single object cell stores a 2D value as-is, whatever the
+        # GH#69152 a single object cell stores a 2D value as-is, whatever the
         #  frame's block layout; the split path used to raise instead
         df = pd.DataFrame(
             {"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=other_dtype)}
