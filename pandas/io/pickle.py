@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     )
 
 
-@set_module("pandas")
 def to_pickle(
     obj: Any,
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
@@ -103,7 +102,7 @@ def to_pickle(
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
+    >>> to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
 
     >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
     >>> unpickled_df  # doctest: +SKIP
@@ -211,7 +210,7 @@ def read_pickle(
     2    2    7
     3    3    8
     4    4    9
-    >>> pd.to_pickle(original_df, "./dummy.pkl")  # doctest: +SKIP
+    >>> original_df.to_pickle("./dummy.pkl")  # doctest: +SKIP
 
     >>> unpickled_df = pd.read_pickle("./dummy.pkl")  # doctest: +SKIP
     >>> unpickled_df  # doctest: +SKIP
