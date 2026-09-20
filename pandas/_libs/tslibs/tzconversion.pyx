@@ -527,15 +527,12 @@ cdef Py_ssize_t _delta_idx_for_local(
     Index into info.deltas of the UTC offset in effect at wall time local_val.
 
     info.tdata holds *UTC* instants, so bisecting a wall time against it lands
-    near the answer but not on it: a wall time from before a transition still
-    compares greater than it by the size of the UTC offset.  Bracket the search
-    by a day either side -- no zone offset reaches that -- and take the index
-    whose own offset places local_val inside that index's own interval.
-
-    The tail of the table is reachable: the caller routes wall times past
-    info.last_trans to the tzinfo API only for zoneinfo zones with a POSIX
-    rule.  Zones without one (and dateutil/pytz, which never carry a rule) end
-    at their last tabulated transition, and a shift can land past it.
+    near the answer but not on it: a wall time sits one UTC offset away from
+    its own instant, so it can bisect to the wrong side of a nearby
+    transition.  Bracket the search by a day either side -- no zone offset
+    reaches that -- and take the index whose own offset places local_val
+    inside that index's own interval.  If local_val is itself nonexistent,
+    return the side of the gap the caller is shifting toward (forward).
     """
     cdef:
         Py_ssize_t idx, lo, hi, ntrans = info.ntrans
@@ -568,6 +565,10 @@ cdef Py_ssize_t _delta_idx_for_local(
             continue
         if utc_val < tdata[idx]:
             continue
+        # idx == ntrans - 1 is reachable, so the next transition may not exist:
+        #  the caller diverts to the tzinfo API only for zoneinfo zones with a
+        #  POSIX rule, and a zone without one ends at its last tabulated
+        #  transition.  See test_dti_tz_localize_nonexistent_shift_into_last_interval
         if idx + 1 < ntrans and utc_val >= tdata[idx + 1]:
             continue
         return idx
@@ -585,10 +586,10 @@ cdef Py_ssize_t _delta_idx_for_local(
         if checked_sub(local_val, deltas[idx], &utc_val):
             continue
         if before >= tdata[idx] and utc_val < tdata[idx]:
-            # read with the offset from before transition idx, local_val is at
-            #  or after the transition; read with the offset from after it,
-            #  local_val is before it.  Only a wall time in the gap does both.
-            return idx if forward else idx - 1
+            # only a wall time inside the gap reads as past transition idx with
+            #  the old offset and before it with the new one.  The old offset
+            #  is the side whose wall time is later than local_val.
+            return idx - 1 if forward else idx
 
     return lo
 
