@@ -851,7 +851,14 @@ class DataFrame(NDFrame, OpsMixin):
         False
         """
         # The "<" part of "<=" here is for empty DataFrame cases
-        return len({block.values.dtype for block in self._mgr.blocks}) <= 1
+        return len(set(self._blk_dtypes)) <= 1
+
+    @property
+    def _blk_dtypes(self) -> list[DtypeObj]:
+        """
+        The dtypes of our individual blocks, faster than self.dtypes.
+        """
+        return [blk.dtype for blk in self._mgr.blocks]
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -4737,7 +4744,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("Array conditional must be same shape as self")
             key = self._constructor(key, **self._construct_axes_dict(), copy=False)
 
-        if key.size and not all(is_bool_dtype(blk.dtype) for blk in key._mgr.blocks):
+        if key.size and not all(is_bool_dtype(dtype) for dtype in key._blk_dtypes):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
@@ -6002,7 +6009,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
-        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        blk_dtypes = self._blk_dtypes
 
         def is_handled(dtype: StringDtype) -> bool:
             # A spec other than ``object`` that matches this column decides
@@ -16849,7 +16856,7 @@ class DataFrame(NDFrame, OpsMixin):
         c -0.150812  0.191417  0.895202
         """
         data = self._get_numeric_data() if numeric_only else self
-        if any(blk.dtype.kind in "mM" for blk in self._mgr.blocks):
+        if any(dtype.kind in "mM" for dtype in self._blk_dtypes):
             msg = (
                 "DataFrame contains columns with dtype datetime64 "
                 "or timedelta64, which are not supported for cov."
@@ -17143,7 +17150,7 @@ class DataFrame(NDFrame, OpsMixin):
         if numeric_only:
             df = _get_data()
         if axis is None:
-            dtype = find_common_type([block.values.dtype for block in df._mgr.blocks])
+            dtype = find_common_type(df._blk_dtypes)
             if isinstance(dtype, ExtensionDtype):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
@@ -17210,9 +17217,7 @@ class DataFrame(NDFrame, OpsMixin):
                         skipna=skipna,
                         min_count=kwds.get("min_count", 0),
                     )
-                dtype = find_common_type(
-                    [block.values.dtype for block in df._mgr.blocks]
-                )
+                dtype = find_common_type(df._blk_dtypes)
                 if isinstance(dtype, ExtensionDtype):
                     # GH#54341: fastpath for EA-backed axis=1 reductions.
                     # Flatten the frame into a 1D EA and call _groupby_op
@@ -17275,7 +17280,7 @@ class DataFrame(NDFrame, OpsMixin):
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
         elif name not in ["any", "all"] and any(
-            blk.dtype == object for blk in df._mgr.blocks
+            dtype == object for dtype in df._blk_dtypes
         ):
             out = out.astype(object)
 
