@@ -56,10 +56,33 @@ earlier in the same call
    1      Alice         264      7920
    2        Bob         420     12600
 
-.. _whatsnew_310.enhancements.enhancement2:
+.. _whatsnew_310.enhancements.read_csv_parallel:
 
-enhancement2
-^^^^^^^^^^^^
+Parallel ``read_csv`` with the C engine
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_csv` with ``engine="c"`` now reads large uncompressed local files
+in parallel across multiple CPU cores. This is enabled by default and is
+controlled by the ``mode.max_threads`` option (:issue:`64347`).
+
+To limit the number of worker threads, set the option before reading:
+
+.. code-block:: pycon
+
+   >>> import pandas as pd
+   >>> pd.set_option("mode.max_threads", 4)  # use at most 4 threads
+   >>> pd.read_csv("large_file.csv")  # doctest: +SKIP
+
+To restore the previous single-threaded behavior, set the option to ``1``:
+
+.. code-block:: pycon
+
+   >>> pd.set_option("mode.max_threads", 1)
+   >>> pd.read_csv("large_file.csv")  # doctest: +SKIP
+
+Parallel reading applies only to local, uncompressed files read with the
+``"c"`` engine; compressed files, remote URLs, and the ``"python"`` engine
+continue to read serially.
 
 .. _whatsnew_310.enhancements.other:
 
