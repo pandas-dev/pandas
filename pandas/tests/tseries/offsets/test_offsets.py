@@ -8,6 +8,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import warnings
 
 from dateutil.relativedelta import relativedelta
 import numpy as np
@@ -1510,3 +1511,26 @@ def test_to_offset_period_dtype_roundtrip(unit, n):
     round_trip = to_offset(dtype)
 
     assert round_trip == off
+
+
+def _isinstance_dateoffset(obj):
+    return isinstance(obj, DateOffset)
+
+
+def _issubclass_dateoffset(obj):
+    return issubclass(type(obj), DateOffset)
+
+
+@pytest.mark.parametrize("func", [_isinstance_dateoffset, _issubclass_dateoffset])
+def test_dateoffset_deprecation_warning_points_at_the_caller(func):
+    # GH#69154 OffsetMeta cannot use find_stack_level(): isinstance() may be
+    #  called from a C extension's callback, where walking the stack re-enters
+    #  the tracer and deadlocks. Pin the line it blames, since a literal
+    #  stacklevel of 2 silently blames the caller's caller instead.
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        func(offsets.Hour(1))
+
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert record[0].lineno == func.__code__.co_firstlineno + 1

@@ -2303,12 +2303,16 @@ class OffsetMeta(type):
         if result and not isinstance(obj, RelativeDeltaOffset):
             from pandas.errors import Pandas4Warning
 
+            # stacklevel=1 is the caller: isinstance() adds no Python frame, so
+            #  there is nothing for find_stack_level() to skip, and walking the
+            #  stack here deadlocks when a C extension calls isinstance() from
+            #  inside a callback while a tracer holds its lock
             warnings.warn(
                 "isinstance(obj, DateOffset) is deprecated for offsets that are "
                 "not DateOffset instances and will return False in a future "
                 "version. Use isinstance(obj, pd.offsets.BaseOffset) instead.",
                 Pandas4Warning,
-                stacklevel=find_stack_level(),
+                stacklevel=1,
             )
         return result
 
@@ -2318,13 +2322,14 @@ class OffsetMeta(type):
         if result and not issubclass(obj, RelativeDeltaOffset):
             from pandas.errors import Pandas4Warning
 
+            # see __instancecheck__ on why this is not find_stack_level()
             warnings.warn(
                 "issubclass(cls, DateOffset) is deprecated for offset classes "
                 "that are not DateOffset subclasses and will return False in a "
                 "future version. Use issubclass(cls, pd.offsets.BaseOffset) "
                 "instead.",
                 Pandas4Warning,
-                stacklevel=find_stack_level(),
+                stacklevel=1,
             )
         return result
 
