@@ -152,10 +152,10 @@ class ODSWriter(ExcelWriter):
                 # GH#55728: a newline inside the paragraph text is collapsed to
                 # a space by ODF consumers, so each line break is written as a
                 # <text:line-break/> element instead.
-                p = P()
-                for i, line in enumerate(pvalue.split("\n")):
-                    if i:
-                        p.addElement(LineBreak())
+                lines = pvalue.split("\n")
+                p = P(text=lines[0])
+                for line in lines[1:]:
+                    p.addElement(LineBreak())
                     p.addText(line)
             else:
                 p = P(text=pvalue)
