@@ -120,30 +120,30 @@ _frame_reduction_names = frozenset(
 
 def _lost_values(stacked: DataFrame, rows: list[Series]) -> npt.NDArray[np.bool_]:
     """
-    Which columns stacking did not leave every aggregation result unchanged in.
+    Which columns hold an aggregation result that stacking did not leave unchanged.
 
     Per column rather than per row, so that one column whose result the stacked
     dtype cannot hold does not demote the rest of its dtype group.
 
-    Compared as Python scalars: numpy would widen the original back to the
-    stacked dtype and so compare a rounded value against itself.
+    Compared as object arrays: a numpy scalar would widen the original back to the
+    stacked dtype and so compare a rounded value against itself. ``Series.tolist``
+    is not enough, since a ``Sparse`` column's elements stay numpy scalars.
     """
     lost = np.zeros(stacked.shape[1], dtype=bool)
     for pos, row in enumerate(rows):
         stacked_row = stacked.iloc[pos]
         if stacked_row.dtype == row.dtype:
-            # nothing was cast, so nothing was reconciled away. Also the only rows
-            # holding list-likes (an object column's sum) are ones already at the
-            # stacked dtype, so the scalar comparison below never sees one.
+            # nothing was cast, so nothing was reconciled away; this also skips the
+            # rows that can hold list-likes, which the comparison below cannot handle
             continue
-        for col, (value, original) in enumerate(
-            zip(stacked_row.tolist(), row.tolist(), strict=True)
-        ):
-            if isna(value) or isna(original):
-                if not (isna(value) and isna(original)):
-                    lost[col] = True
-            elif value != original:
-                lost[col] = True
+        values = stacked_row.to_numpy(dtype=object)
+        originals = row.to_numpy(dtype=object)
+        na_values = isna(values)
+        na_originals = isna(originals)
+        lost |= na_values ^ na_originals
+        # NA compared with != gives pd.NA rather than a bool, so skip those entries
+        known = ~(na_values | na_originals)
+        lost[known] |= values[known] != originals[known]
     return lost
 
 
@@ -1179,7 +1179,9 @@ class FrameApply(NDFrameApply):
             frames = [
                 row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
             ]
-            if len({row.dtype for row in rows}) == 1:
+            if len({row.dtype for row in rows}) <= 1:
+                # <= so that an empty func list still raises out of concat below,
+                # rather than being caught as a refused cast
                 pieces.append(concat(frames))
                 continue
 
@@ -1197,7 +1199,7 @@ class FrameApply(NDFrameApply):
                 if not lost.any():
                     pieces.append(stacked)
                     continue
-                for pos in np.nonzero(lost)[0]:
+                for pos in np.nonzero(lost)[0].tolist():
                     stacked.isetitem(
                         pos, np.array([row.iloc[pos] for row in rows], dtype=object)
                     )
