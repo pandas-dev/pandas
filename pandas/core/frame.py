@@ -16954,10 +16954,16 @@ class DataFrame(NDFrame, OpsMixin):
         this = self._get_numeric_data() if numeric_only else self
 
         if isinstance(other, Series):
-            return this.apply(
+            result = this.apply(
                 lambda x: other.corr(x, method=method, min_periods=min_periods),
                 axis=axis,
             )
+            if isinstance(result.dtype, ExtensionDtype):
+                # apply retains the frame's extension dtype for a pointwise
+                #  result; a correlation coefficient is a float, see
+                #  test_corrwith_series_ea_frame_is_float64. GH#61812
+                result = result.astype(np.float64)
+            return result
 
         if numeric_only:
             other = other._get_numeric_data()
@@ -19401,7 +19407,13 @@ class DataFrame(NDFrame, OpsMixin):
         2    2
         dtype: int64
         """
-        return self.apply(Series.nunique, axis=axis, dropna=dropna)
+        result = self.apply(Series.nunique, axis=axis, dropna=dropna)
+        if isinstance(result.dtype, ExtensionDtype):
+            # apply retains the frame's extension dtype for a pointwise
+            #  result; a count of distinct values stays int64, as in count()
+            #  and groupby.nunique. GH#61812
+            result = result.astype(np.int64)
+        return result
 
     def idxmin(
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
