@@ -239,25 +239,39 @@ class TestDataFrameClip:
         df.clip(lower=pd.array([15, 25], dtype="Int64"), axis=axis, inplace=True)
         tm.assert_frame_equal(df, pd.DataFrame(expected))
 
-    @pytest.mark.parametrize("bound", ["lower", "upper"])
-    def test_clip_extension_dtype_bound_mixed_dtypes(self, bound):
-        # GH#68929 with columns of different dtypes the object result held mixed
-        #  int and float cells, so the values were wrong and not only the dtype.
-        #  upper takes the other fillna branch in _clip_with_one_bound
-        df = pd.DataFrame({"a": [10.0, 30.0], "b": [20, 40]})
+    @pytest.mark.parametrize(
+        "bound, expected",
+        [
+            ("lower", [[15.0, 25.0], [30.0, 40.0]]),
+            ("upper", [[10.0, 20.0], [15.0, 25.0]]),
+        ],
+    )
+    def test_clip_extension_dtype_bound_multi_column_block(self, bound, expected):
+        # GH#68929 unlike the int frame above, the object result interleaved int
+        #  cells into a float frame, so the values were wrong and not only the
+        #  dtype; `upper` takes the other sentinel in _clip_with_one_bound
+        df = pd.DataFrame([[10, 20], [30, 40]]).astype(float)
 
         result = df.clip(**{bound: pd.array([15, 25], dtype="Int64")})
 
-        expected = df.clip(**{bound: [15, 25]})
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, pd.DataFrame(expected))
 
-    @pytest.mark.parametrize("axis", [None, 0, 1])
-    def test_clip_sparse_bound(self, axis):
-        # GH#68929 a SparseArray bound has no itemsize, which used to raise
-        #  AttributeError out of can_hold_element
+    @pytest.mark.parametrize(
+        "axis, expected",
+        [
+            (None, [[15, 25], [30, 40]]),
+            (0, [[15, 20], [30, 40]]),
+            (1, [[15, 25], [30, 40]]),
+        ],
+    )
+    def test_clip_sparse_bound(self, axis, expected):
+        # GH#68929 the 1-D route hands the bound to np_can_hold_element, where a
+        #  SparseArray's dtype has no itemsize; see test_can_hold_element_sparse.
+        #  fill_value=25 keeps an entry out of sp_values, so it must be densified
         df = pd.DataFrame([[10, 20], [30, 40]])
 
-        result = df.clip(lower=pd.arrays.SparseArray([15, 25]), axis=axis)
+        result = df.clip(
+            lower=pd.arrays.SparseArray([15, 25], fill_value=25), axis=axis
+        )
 
-        expected = df.clip(lower=np.array([15, 25]), axis=axis)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, pd.DataFrame(expected))
