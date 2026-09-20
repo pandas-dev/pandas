@@ -3020,6 +3020,20 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+@pytest.mark.parametrize("axis", [0, 1])
+def test_nunique_ea_dtype_is_int64(dtype, axis):
+    # GH#61812 nunique is implemented via apply, which retains the frame's
+    #  extension dtype; a distinct-value count stays int64 as in groupby.nunique
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 3]}, dtype=dtype)
+    result = df.nunique(axis=axis)
+    values = [2, 1] if axis == 0 else [2, 2]
+    expected = pd.Series(values, index=df.axes[1 - axis])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
