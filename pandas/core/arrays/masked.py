@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -126,6 +127,46 @@ if TYPE_CHECKING:
     from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
+
+
+@cache
+def _integer_bounds(dtype: np.dtype) -> tuple[int, int]:
+    """
+    The inclusive bounds of an integer dtype, memoized because rebuilding the
+    np.iinfo per call costs about a third of an unsigned scalar setitem.
+    """
+    info = np.iinfo(dtype)
+    return info.min, info.max
+
+
+def _warn_if_out_of_bounds(value, dtype: BaseMaskedDtype) -> None:
+    """
+    Warn for a numpy scalar that was stored altered to fit rather than rejected.
+
+    Called *after* the assignment: numpy range-checks a numpy scalar only for a
+    signed dtype under an integer or slice key, and casts it unchecked for an
+    unsigned dtype or a fancy or boolean key.  Rather than model that, rely on
+    having got here at all: numpy did not reject the value.
+    """
+    # kind: np.iinfo below rejects a non-integer dtype.  np.generic: a python
+    #  scalar is range-checked whatever the key, so it never gets here out of bounds.
+    if dtype.kind not in "iu" or not isinstance(value, np.generic):
+        return
+
+    # int() keeps the comparison exact against a float, which would otherwise
+    #  demote the python-int bounds and let np.float64(2**64) through for UInt64.
+    low, high = _integer_bounds(dtype.numpy_dtype)
+    if not low <= int(value) <= high:
+        # Not "will raise": Index.where/putmask/fillna catch the eventual
+        #  TypeError and widen instead.
+        warnings.warn(
+            f"Setting the out-of-bounds value {value!s} into an array of dtype "
+            f"{dtype} is deprecated: it is currently stored altered to fit, and "
+            "the behavior will change in a future version. Cast the array to a "
+            "dtype that can hold the value first.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
@@ -412,8 +453,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
 
         elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
+            # numpy range-checks some key/dtype combinations on assignment and
+            #  casts the rest unchecked; __setitem__ deprecates the latter, and
+            #  once that is enforced the check belongs here (GH#48867).
             return value
-            # TODO: unsigned checks
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
@@ -498,6 +541,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 value = self._validate_setitem_value(value)
                 self._data[key] = value
                 self._mask[key] = False
+                _warn_if_out_of_bounds(value, self.dtype)
             return
 
         value, mask = self._validate_listlike(value)
