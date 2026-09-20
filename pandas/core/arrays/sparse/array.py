@@ -825,9 +825,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
-        # I suppose we could allow setting of non-fill_value elements.
-        # TODO(SparseArray.__setitem__): remove special cases in
-        # ExtensionBlock.where
+        # Only positions already held in sp_values could be written in place,
+        #  and which those are depends on the value being set, so SparseDtype
+        #  is _is_immutable, see GH#21818.
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
