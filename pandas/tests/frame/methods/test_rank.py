@@ -460,7 +460,9 @@ class TestRank:
         ],
     )
     def test_rank_object_first(self, frame_or_series, na_option, ascending, expected):
-        obj = frame_or_series(["foo", "foo", None, "foo"])
+        # dtype=object: as a plain list these would be str-dtype columns, and the
+        #  frame case would not reach rank_2d's object path
+        obj = frame_or_series(["foo", "foo", None, "foo"], dtype=object)
         result = obj.rank(method="first", na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
@@ -496,3 +498,77 @@ class TestRank:
             exp_dtype = "float64"
         expected = pd.Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_rank_extension_dtype_matches_series(
+        self, any_numeric_ea_dtype, rank_method
+    ):
+        # GH#52829
+        df = pd.DataFrame(
+            {
+                "a": pd.array([3, None, 2, 2], dtype=any_numeric_ea_dtype),
+                "b": pd.array([1, 4, None, 3], dtype=any_numeric_ea_dtype),
+            }
+        )
+        result = df.rank(method=rank_method)
+        expected = pd.concat([df[col].rank(method=rank_method) for col in df], axis=1)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_retains_dtype_per_block(self):
+        # GH#52829 each column is ranked in its own dtype, not a common one
+        pa = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "a": pd.array([30, 10, 20], dtype="Int64"),
+                "b": pd.array([10, 30, 20], dtype=pd.ArrowDtype(pa.int32())),
+                "c": pd.array([True, False, True], dtype="boolean"),
+                "d": pd.array(["c", "a", "b"], dtype=pd.ArrowDtype(pa.string())),
+                "e": [10.0, 30.0, 20.0],
+            }
+        )
+        result = df.rank(method="min")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([3, 1, 2], dtype="UInt64"),
+                "b": pd.array([1, 3, 2], dtype=pd.ArrowDtype(pa.uint64())),
+                "c": pd.array([2, 1, 2], dtype="UInt64"),
+                "d": pd.array([3, 1, 2], dtype=pd.ArrowDtype(pa.uint64())),
+                "e": [1.0, 3.0, 2.0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["int64", "uint64"])
+    def test_rank_int_above_2_to_the_53(self, dtype):
+        # GH#69136 a float64 column must not drag the integer column through float64
+        df = pd.DataFrame(
+            {
+                "a": np.array([2**53, 2**53 + 1, 2**53 + 2], dtype=dtype),
+                "b": [1.0, 2.0, 3.0],
+            }
+        )
+        result = df.rank()
+        expected = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [1.0, 2.0, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_ordered_categorical(self):
+        # GH#15420 ranks follow the category order, not the order of the values
+        cat = pd.Categorical(
+            ["b", "a", "c", "a"], categories=["c", "b", "a"], ordered=True
+        )
+        result = pd.DataFrame({"a": cat}).rank()
+        expected = pd.DataFrame({"a": [2.0, 3.5, 1.0, 3.5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_axis_one_does_not_retain_extension_dtype(self):
+        # GH#52829 ranking a row needs a common dtype, so unlike axis=0 the
+        #  extension dtype is not retained
+        df = pd.DataFrame(
+            {
+                "x": pd.array([30, 10], dtype="Int64"),
+                "y": pd.array([10, 30], dtype="Int64"),
+                "z": pd.array([20, 20], dtype="Int64"),
+            }
+        )
+        result = df.rank(axis=1)
+        expected = pd.DataFrame({"x": [3.0, 1.0], "y": [1.0, 3.0], "z": [2.0, 2.0]})
+        tm.assert_frame_equal(result, expected)

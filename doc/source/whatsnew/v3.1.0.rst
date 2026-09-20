@@ -119,6 +119,41 @@ nanosecond component. The vectorized :meth:`TimedeltaIndex.total_seconds` and
 they now match the scalar result exactly, including at large magnitudes
 where floating-point rounding previously differed (:issue:`46819`).
 
+.. _whatsnew_310.notable_bug_fixes.dataframe_rank_per_column:
+
+:meth:`DataFrame.rank` ranks each column in its own dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.rank` with ``axis=0`` cast the whole frame to one common dtype
+before ranking, so its result could differ from :meth:`Series.rank` on the same
+column. Each column is now ranked on its own and the two agree. Besides
+retaining extension dtypes, this changes the ranks themselves for an ordered
+:class:`Categorical` whose categories are not in the natural order of their
+values, and for integers above ``2**53`` in a frame whose common dtype was
+``float64`` (:issue:`52829`, :issue:`15420`).
+
+.. code-block:: ipython
+
+    In [1]: cat = pd.Categorical(
+       ...:     ["b", "a", "c", "a"], categories=["c", "b", "a"], ordered=True
+       ...: )
+
+    In [2]: df = pd.DataFrame({"a": cat})
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.rank()["a"].tolist()
+    Out[3]: [3.0, 1.5, 4.0, 1.5]
+
+*New behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.rank()["a"].tolist()
+    Out[3]: [2.0, 3.5, 1.0, 3.5]
+
 .. _whatsnew_310.notable_bug_fixes.read_csv_categorical:
 
 :func:`read_csv` with ``dtype="category"`` infers numeric and boolean categories
@@ -713,6 +748,7 @@ Categorical
 - Bug in :meth:`Categorical.map` and :meth:`Series.map` raising ``NotImplementedError`` when the mapper returned tuples for the categories, instead of returning an :class:`Index` of tuples (:issue:`51488`)
 - Bug in :meth:`Categorical.map` where mapping with a ``defaultdict`` and ``na_action=None`` would bypass the default factory by using ``dict.get``, causing ``NA`` values to be replaced with ``NaN`` instead of the mapper's default value (:issue:`62710`)
 - Bug in :meth:`CategoricalIndex.union` and :meth:`CategoricalIndex.intersection` giving incorrect results when the two indexes have the same unordered categories in different orders (:issue:`55335`)
+- Bug in :meth:`DataFrame.rank` ranking an ordered :class:`Categorical` column by the natural ordering of its values rather than by the declared category order, unlike :meth:`Series.rank` (:issue:`15420`)
 - Bug in :meth:`Index.fillna` raising ``TypeError`` when filling with a tuple value (e.g. on object-dtype or :class:`CategoricalIndex` with tuple categories) (:issue:`37681`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` with :class:`CategoricalDtype` silently discarding a regular-expression replacement (:issue:`38447`)
 -
@@ -844,6 +880,7 @@ Numeric
 - Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` returning incorrect row labels for nullable ``UInt64`` columns containing missing values alongside values above ``2**53`` (:issue:`64478`)
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` with ``axis=1`` and ``skipna=False`` returning incorrect column labels for extension array dtypes (e.g. :class:`BooleanDtype`, nullable integer/float, :class:`ArrowDtype`) (:issue:`56903`)
+- Fixed bug in :meth:`DataFrame.rank` with ``axis=0`` giving tied ranks to distinct integer values above ``2**53`` when another column made ``float64`` the frame's common dtype (:issue:`69136`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
 - Fixed bug in :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`DataFrame.idxmax`, and :meth:`DataFrame.idxmin` returning the label of a missing-value row when every non-missing value equals the dtype's minimum (for ``idxmax``) or maximum (for ``idxmin``), e.g. a float column containing only ``-inf`` and NaN (:issue:`64478`)
 - Fixed bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` reporting a match between two distinct values above ``2**53`` when the two sides had different numeric dtypes, such as ``uint64`` against a signed 64-bit integer, or a 64-bit integer against ``float64`` (:issue:`59609`, :issue:`61676`)
@@ -1275,6 +1312,7 @@ ExtensionArray
 - Bug in the :class:`Series` constructor with an index but no data raising ``RecursionError`` for an :class:`~pandas.api.extensions.ExtensionDtype` whose ``na_value`` is dict-like, e.g. a nested or arrow-backed dtype (:issue:`33900`, :issue:`41377`)
 - Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
+- Fixed bug in :meth:`DataFrame.rank` with ``axis=0`` returning ``float64`` columns for extension dtypes such as nullable integer or :class:`ArrowDtype`, rather than the dtype :meth:`Series.rank` returns (:issue:`52829`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
 - Fixed bug in :meth:`Series.cummax` and :meth:`Series.cummin` (and their :class:`DataFrame` counterparts) with floating-point :class:`ArrowDtype` returning a finite sentinel value instead of the correct running maximum/minimum (:issue:`66257`)
 - Fixed the :attr:`~Series.is_monotonic_increasing` and :attr:`~Series.is_monotonic_decreasing` properties to dispatch to the underlying :class:`ExtensionArray` implementation (:issue:`65585`)
