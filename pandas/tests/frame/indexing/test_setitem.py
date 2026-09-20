@@ -1601,15 +1601,19 @@ def test_setitem_key_matching_several_columns_2d_capable_ea(value, columns):
     #  manager's 1-D EA path, so they used to corrupt the frame; they now
     #  broadcast like every other dtype
     df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    before = df.copy()
+    source = value.copy()
 
-    df["a"] = value
+    df["a"] = source
 
+    source.iloc[0] = source.iloc[2]  # the broadcast copies; this must not reach df
     positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
-    for pos in positions:
-        assert df.dtypes.iloc[pos] == value.dtype
-        tm.assert_series_equal(
-            df.iloc[:, pos], value, check_names=False, check_index=False
-        )
+    for pos in range(len(df.columns)):
+        if pos in positions:
+            assert df.dtypes.iloc[pos] == value.dtype
+            tm.assert_series_equal(df.iloc[:, pos], value, check_names=False)
+        else:
+            tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
 
 
 @pytest.mark.parametrize(

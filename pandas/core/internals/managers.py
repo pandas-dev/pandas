@@ -1363,9 +1363,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blknos = self.blknos[loc]
         blklocs = self.blklocs[loc].copy()
 
-        if not value_is_extension_type and len(value) != len(blklocs):
+        if not value_is_extension_type and len(blklocs) and len(value) != len(blklocs):
             # Otherwise value_getitem below silently drops value columns, or
-            #  yields a block narrower than its placement, GH#68445
+            #  yields a block narrower than its placement, GH#68445.  An empty
+            #  loc writes nothing, so it stays a no-op.
             raise ValueError(
                 f"Got {len(blklocs)} positions but value has {len(value)} columns."
             )

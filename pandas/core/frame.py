@@ -4466,16 +4466,18 @@ class DataFrame(NDFrame, OpsMixin):
 
     def isetitem(self, loc, value) -> None:
         """
-        Set the given value in the column with position `loc`.
+        Set the given value in the column(s) with position `loc`.
 
         This is a positional analogue to ``__setitem__``.
 
         Parameters
         ----------
-        loc : int or sequence of ints
-            Index position for the column.
+        loc : int, slice, or array-like of ints or bools
+            Index position(s) for the column(s).
         value : scalar or arraylike
-            Value(s) for the column.
+            Value(s) for the column(s). When ``loc`` selects several positions, a
+            scalar fills each of them and a NumPy-dtype arraylike must have one
+            column per position.
 
         See Also
         --------
@@ -4517,11 +4519,12 @@ class DataFrame(NDFrame, OpsMixin):
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
-        if is_list_like(loc) and is_scalar(value) and len(loc) > 1:
-            # GH#65491 a scalar fills every selected column, as the label
+        if is_scalar(value) and (is_list_like(loc) or isinstance(loc, slice)):
+            # GH#68445 a scalar fills every selected column, as the label
             #  spelling df[cols] = 5 does; the manager's column-count check
-            #  would otherwise reject a one-column value for many positions
-            for idx in loc:
+            #  would otherwise reject a one-column value for many positions.
+            #  Sanitizing per position matters: one shared array would alias them
+            for idx in np.arange(len(self.columns))[loc]:
                 arraylike, refs = self._sanitize_column(value)
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
@@ -4895,13 +4898,12 @@ class DataFrame(NDFrame, OpsMixin):
             if not self.columns.is_unique or isinstance(self.columns, MultiIndex):
                 existing_piece = self[key]
                 if isinstance(existing_piece, DataFrame):
+                    # GH#68445 reshape/repeat rather than np.tile, which would
+                    #  degrade a 2-D-capable EA (tz-aware datetime64, period)
+                    #  to object. repeat(axis=) is not in the _supports_2d
+                    #  contract, only NDArrayBacked honours it; see GH-69153
                     ncols = len(existing_piece.columns)
-                    if isinstance(value.dtype, ExtensionDtype):
-                        # GH#65491 np.tile would degrade a 2-D-capable EA (tz-aware
-                        #  datetime64, period) to object
-                        value = value.reshape(-1, 1).repeat(ncols, axis=1)
-                    else:
-                        value = np.tile(value, (ncols, 1)).T
+                    value = value.reshape(1, -1).repeat(ncols, axis=0).T
                     refs = None
 
         self._set_item_mgr(key, value, refs)
