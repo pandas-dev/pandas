@@ -24,6 +24,68 @@ def test_set_ops_error_cases(idx, case, sort, method):
         getattr(idx, method)(case, sort=sort)
 
 
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
+@pytest.mark.parametrize(
+    "other",
+    [
+        ["ac"],
+        [b"ac"],
+        [bytearray(b"ac")],
+        [memoryview(b"ac")],
+        [("a", "c"), "bd"],
+        pd.Series(["ac"]),
+        {"ac"},
+    ],
+)
+def test_set_ops_str_entry_not_split(method, other):
+    # GH#39699 a str/bytes-like entry was split into its elements and treated as
+    #  a tuple of levels
+    idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
+
+    msg = "other must be a MultiIndex or a list of tuples"
+    with pytest.raises(TypeError, match=msg):
+        getattr(idx, method)(other)
+
+
+@pytest.mark.parametrize(
+    "method", ["intersection", "union", "difference", "symmetric_difference"]
+)
+def test_set_ops_str_entry_not_split_one_level(method):
+    # GH#39699 on a one-level MultiIndex a single-character label used to match,
+    #  while any longer label already raised
+    idx = pd.MultiIndex.from_arrays([["a", "bb"]], names=["l1"])
+
+    msg = "other must be a MultiIndex or a list of tuples"
+    with pytest.raises(TypeError, match=msg):
+        getattr(idx, method)(["a"])
+
+
+@pytest.mark.parametrize("entry", [np.nan, None])
+def test_union_null_entry(entry):
+    # GH#39699 from_tuples expands a null entry to an all-null row, so the
+    #  str/bytes-like guard must leave it alone
+    idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
+
+    result = idx.union([("a", "c"), entry], sort=False)
+    expected = pd.MultiIndex.from_tuples(
+        [("a", "c"), ("b", "d"), (np.nan, np.nan)], names=["l1", "l2"]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_structured_rows():
+    # GH#39699 a structured-array row is a valid from_tuples entry, so the
+    #  str/bytes-like guard must leave it alone
+    idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
+    rows = list(np.array([("a", "c")], dtype=[("l1", "O"), ("l2", "O")]))
+
+    result = idx.intersection(rows)
+    expected = pd.MultiIndex.from_tuples([("a", "c")], names=["l1", "l2"])
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize("klass", [pd.MultiIndex, np.array, pd.Series, list])
 def test_intersection_base(idx, sort, klass):
     first = idx[2::-1]  # first 3 elements reversed
