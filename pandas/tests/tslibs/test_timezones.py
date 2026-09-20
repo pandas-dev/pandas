@@ -25,6 +25,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.errors import OutOfBoundsDatetime
 
 import pandas as pd
 import pandas._testing as tm
@@ -512,6 +513,13 @@ def test_zoneinfo_from_file_without_key(key):
     ts = pd.Timestamp("2025-06-15 12:00")
     assert ts.tz_localize(keyless).utcoffset() == ts.tz_localize(keyed).utcoffset()
 
+    # every comparison above runs both sides through pandas, so it cannot see a
+    #  wrong answer the two paths share; the stdlib is an outside oracle.
+    wall = datetime(2025, 6, 15, 12)
+    assert (
+        ts.tz_localize(keyless).timestamp() == wall.replace(tzinfo=keyless).timestamp()
+    )
+
     result = pd.date_range("2025-06-15", periods=3, freq="h", tz=keyless)
     assert result.tz is keyless
     expected = pd.date_range("2025-06-15", periods=3, freq="h", tz=keyed)
@@ -532,13 +540,17 @@ def test_zoneinfo_from_file_without_key(key):
         ("2025-03-09", "raise", pd.Timedelta("1h")),
     ],
 )
-def test_zoneinfo_from_file_without_key_dst_transition(start, ambiguous, nonexistent):
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_zoneinfo_from_file_without_key_dst_transition(
+    start, ambiguous, nonexistent, unit
+):
     # GH#64379 the keyless fallback must handle ambiguous/nonexistent wall
-    #  times the same way the keyed fast path does.
+    #  times the same way the keyed fast path does.  It is the one Localizer
+    #  arm that does not rescale its last transition, so every unit is here.
     keyed = zoneinfo.ZoneInfo("US/Eastern")
     keyless = _zoneinfo_from_file("US/Eastern")
 
-    naive = pd.date_range(start, periods=48, freq="h")
+    naive = pd.date_range(start, periods=48, freq="h").as_unit(unit)
     expected = naive.tz_localize(keyed, ambiguous=ambiguous, nonexistent=nonexistent)
     result = naive.tz_localize(keyless, ambiguous=ambiguous, nonexistent=nonexistent)
     tm.assert_numpy_array_equal(
@@ -576,7 +588,16 @@ def test_tz_cache_key_zoneinfo_without_key():
         timezones._p_tz_cache_key(zoneinfo.ZoneInfo("Europe/Amsterdam"))
         == "zoneinfo/Europe/Amsterdam"
     )
-    assert not timezones.is_fixed_offset(keyless)
+
+
+def test_is_fixed_offset_zoneinfo_from_file():
+    # GH#64379 with no twin we cannot see that the zone is fixed-offset, so
+    #  is_fixed_offset reports False where the keyed zone reports True.  Both
+    #  consumers take that conservatively: tz_localize_to_utc_single uses the
+    #  array path, and DatetimeIndex._can_range_setop gives up the range
+    #  shortcut, which costs an empty setop result its freq.
+    assert timezones.is_fixed_offset(zoneinfo.ZoneInfo("Etc/GMT+5"))
+    assert not timezones.is_fixed_offset(_zoneinfo_from_file("Etc/GMT+5"))
 
 
 @pytest.mark.parametrize("bad_key", ["my/custom", "/abs/path", 5])
@@ -626,6 +647,61 @@ def test_zoneinfo_no_cache_keeps_fast_path(key):
     assert timezones._p_tz_cache_key(tz) == f"zoneinfo/{key}"
     assert timezones.is_fixed_offset(tz) == timezones.is_fixed_offset(
         zoneinfo.ZoneInfo(key)
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{}, {"nonexistent": "NaT"}, {"nonexistent": "shift_forward"}]
+)
+def test_zoneinfo_from_file_shift_onto_nat_sentinel(kwargs):
+    # GH#64379 the no-twin fallback puts the last cached transition below
+    #  every value, so unlike the keyed zones it reaches the tzinfo-API bounds
+    #  with a wall time whose UTC instant is the NaT sentinel.  That is an
+    #  underflow, not a nonexistent time.  See GH#66550 for the keyed twin of
+    #  this test.
+    lmt = (9 * 3600 + 18 * 60 + 59) * 10**9  # Asia/Tokyo's pre-1888 LMT offset
+    dti = pd.DatetimeIndex([np.datetime64(-(2**63) + lmt, "ns")])
+    with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
+        dti.tz_localize(_zoneinfo_from_file("Asia/Tokyo"), **kwargs)
+
+
+def test_zoneinfo_from_file_timedelta_shift_onto_nat_sentinel():
+    # GH#64379 a no-twin zone has no transition table, so a nonexistent
+    #  shift that lands on the sentinel must stay on the tzinfo-API arm; the
+    #  cached arm would bisect through a NULL pointer.
+    tz = _zoneinfo_from_file("US/Eastern")
+    val = pd.Timestamp("1918-03-31 02:30").value  # a US/Eastern gap
+    # two values: at length one DatetimeIndex boxes the result and raises
+    #  before we get to see what the shift returned
+    dti = pd.DatetimeIndex(np.array([val, val], dtype="i8").view("M8[ns]"))
+    result = dti.tz_localize(tz, nonexistent=pd.Timedelta(-(2**63) - val))
+
+    # the sentinel is 1677-09-21 00:12:43.145224192 as a wall time, before
+    #  US/Eastern's first transition, so the stdlib gives it the LMT offset
+    offset = datetime(1677, 9, 21, 0, 12, 43, 145224).replace(tzinfo=tz).utcoffset()
+    expected = -(2**63) - int(offset.total_seconds()) * 10**9
+    assert result.asi8.tolist() == [expected, expected]
+
+
+def test_zoneinfo_subclass_without_hash_keeps_fast_path():
+    # GH#64379 the twin lookup must not demand that the tz object be hashable:
+    #  a ZoneInfo subclass defining __eq__ and not __hash__ is not, and it is
+    #  loaded from the installed tzdata like any other keyed zone.
+    class UnhashableZone(zoneinfo.ZoneInfo):
+        def __eq__(self, other):
+            return self is other
+
+    tz = UnhashableZone("US/Eastern")
+    assert type(tz).__hash__ is None
+    assert timezones._p_tz_cache_key(tz) == "zoneinfo/US/Eastern"
+
+    naive = pd.date_range("2025-01-01", "2025-12-31", freq="7h")
+    kwargs = {"ambiguous": True, "nonexistent": "shift_forward"}
+    tm.assert_numpy_array_equal(
+        naive.tz_localize(tz, **kwargs).tz_convert("UTC").asi8,
+        naive.tz_localize(zoneinfo.ZoneInfo("US/Eastern"), **kwargs)
+        .tz_convert("UTC")
+        .asi8,
     )
 
 

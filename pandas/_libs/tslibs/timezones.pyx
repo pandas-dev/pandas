@@ -229,8 +229,7 @@ cdef object tz_cache_key(tzinfo tz):
         if get_zoneinfo_twin(tz) is None:
             # i.e. ZoneInfo.from_file; tz.key, if there is one, does not
             #  identify the data this object holds, so caching under it would
-            #  hand out another zone's transitions.  Callers keep these away
-            #  from get_dst_info, so this is defensive.  GH#64379
+            #  hand out another zone's transitions.  GH#64379
             return None
         return "zoneinfo/" + tz.key
     else:
@@ -344,6 +343,11 @@ cdef object get_zoneinfo_twin(tzinfo tz):
         return _zoneinfo_twin_cache[tz]
     except KeyError:
         pass
+    except TypeError:
+        # i.e. a ZoneInfo subclass that defines __eq__ and not __hash__, so
+        #  there is nothing to memoize under; rebuild on every call rather
+        #  than reject a zone we can otherwise serve.  GH#64379
+        return _build_zoneinfo_twin(tz)
 
     twin = _build_zoneinfo_twin(tz)
     _zoneinfo_twin_cache[tz] = twin
@@ -396,8 +400,8 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
         bint valid
 
-    # NB: Localizer.__init__ and is_fixed_offset send no-twin zones down the
-    #  tzinfo-API path, so this is non-None.  GH#64379
+    # NB: non-None, since tz_cache_key returns None for a no-twin zone, which
+    #  keeps get_dst_info from ever reaching this branch with one.  GH#64379
     tz_py = get_zoneinfo_twin(tz)
 
     if tz_py._fixed_offset:
