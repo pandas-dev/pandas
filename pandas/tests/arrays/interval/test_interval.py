@@ -96,14 +96,40 @@ class TestMethods:
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+        # expected is shift's own fill, so pin the NA positions too GH#64297
+        assert result.isna().tolist() == [True, True, False]
 
         result = a.shift(-1)
         expected = a.take([1, 2, -1], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+        assert result.isna().tolist() == [False, False, True]
 
         msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
+
+    @pytest.mark.parametrize(
+        "breaks",
+        [
+            pd.date_range("2020", periods=3, tz="Europe/Brussels"),
+            pd.timedelta_range("1 day", periods=3),
+            pd.array([1, 2, 3], dtype="Int64"),
+            np.array([1, 2, 3], dtype="float32"),
+        ],
+        ids=["dt64tz", "td64", "Int64", "float32"],
+    )
+    def test_shift_retains_subtype(self, breaks):
+        # GH#64297
+        arr = IntervalArray.from_breaks(breaks)
+
+        result = arr.shift(1)
+
+        assert result.dtype == arr.dtype
+        assert result.isna()[0]
+        tm.assert_interval_array_equal(result[1:], arr[:-1])
+
+        # an all-NA result has no surviving value to re-infer the subtype from
+        assert arr.shift(len(arr)).dtype == arr.dtype
 
     def test_unique_with_negatives(self):
         # GH#61917
@@ -284,16 +310,39 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     assert result.right.dtype == dtype
 
 
-@pytest.mark.parametrize(
-    "subtype", ["Int64", "Float64", "datetime64[s, Europe/Brussels]"]
-)
-def test_concat_same_type_retains_extension_subtype(subtype):
+@pytest.mark.parametrize("subtype", ["Int64", "Float64"])
+def test_concat_same_type_retains_masked_subtype(subtype):
     # GH#64297
-    breaks = pd.array([1, 2, 3], dtype="Int64").astype(subtype)
-    arr = IntervalArray.from_breaks(breaks)
+    arr = IntervalArray.from_breaks(pd.array([1, 2, 3], dtype=subtype))
     assert arr.dtype.subtype == subtype
 
     result = IntervalArray._concat_same_type([arr, arr])
+
     assert result.dtype == arr.dtype
     tm.assert_extension_array_equal(result[:2], arr)
     tm.assert_extension_array_equal(result[2:], arr)
+
+
+def test_concat_retains_masked_subtype():
+    # GH#64297
+    arr = IntervalArray.from_breaks(pd.array([1, 2, 3], dtype="Int64"))
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    expected = pd.Series(
+        IntervalArray.from_arrays(
+            pd.array([1, 2, 1, 2], dtype="Int64"),
+            pd.array([2, 3, 2, 3], dtype="Int64"),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_empty_datetimetz_subtype():
+    # GH#64297 an empty result has no value left to re-infer the subtype from
+    arr = IntervalArray.from_breaks(pd.date_range("2020", periods=1, tz="UTC"))
+    assert len(arr) == 0
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    tm.assert_series_equal(result, pd.Series(arr))
