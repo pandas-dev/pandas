@@ -13,11 +13,13 @@ from io import (
 )
 import mmap
 import tarfile
+import tracemalloc
 
 import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
+from pandas._libs.hashtable import get_hashtable_trace_domain
 from pandas.compat import WASM
 from pandas.errors import (
     DtypeWarning,
@@ -768,6 +770,9 @@ def test_invalid_utf8_raises(c_parser_only):
         parser.read_csv(data)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_string_storage_python_consistent(c_parser_only):
     # GH#65283: the pyarrow string fast path must not produce an
     # ArrowStringArray when mode.string_storage="python"
@@ -975,6 +980,9 @@ def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_mutable(kwargs):
     # GH#66619: the fast path builds its result without going through the
     # ExtensionArray constructor, so it must set every attribute the
@@ -997,6 +1005,9 @@ def test_pyarrow_string_fast_path_mutable(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     # GH#66619: the fast path sets the instance attributes itself instead of
     # calling __init__, so it has to track whatever set the constructor
@@ -1013,6 +1024,9 @@ def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     assert vars(arr).keys() == vars(expected).keys()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_iterator_dtype_stable_across_chunks():
     # GH#66619: a reader resolves its pyarrow target once, when it converts its
     # first string column, so every chunk of one read gets the same dtype even
@@ -1031,6 +1045,9 @@ def test_pyarrow_string_iterator_dtype_stable_across_chunks():
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
     # GH#66756: the fast path copies a short token at a compile-time-constant
     # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
@@ -1060,6 +1077,9 @@ def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     # GH#66756: the fast path sizes its data buffer from the column's leading
     # tokens and grows it mid-pass when that estimate falls short, re-copying
@@ -1080,6 +1100,147 @@ def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     )
     assert result["a"].dtype == expected_dtype
     assert result["a"].tolist() == values
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("low_memory", [True, False])
+def test_pyarrow_string_fast_path_batched_columns(kwargs, low_memory):
+    # GH#68379: string columns are converted together in one sweep, so this
+    # mixes what each still handles on its own within it: per-column na_values,
+    # an NA-free column (validity buffer dropped, unlike its neighbours'),
+    # non-ASCII bytes, a numeric column between them, a short row and usecols.
+    pa = pytest.importorskip("pyarrow")
+    data = (
+        "a,b,c,d,e\n"
+        "foo,1,café,x,skip\n"
+        "bar,2,naïve,y,skip\n"
+        "present,3,\n"
+        "baz,4,zzz,,skip\n"
+    )
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(
+            StringIO(data),
+            engine="c",
+            low_memory=low_memory,
+            usecols=["a", "b", "c", "d"],
+            na_values={"c": ["zzz"], "d": ["y"]},
+            **kwargs,
+        )
+        if kwargs:
+            str_dtype = pd.ArrowDtype(pa.string())
+            int_dtype = "int64[pyarrow]"
+        else:
+            str_dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+            int_dtype = "int64"
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", "bar", "present", "baz"],
+                "b": [1, 2, 3, 4],
+                "c": ["café", "naïve", None, None],
+                "d": ["x", None, None, None],
+            }
+        ).astype({"a": str_dtype, "b": int_dtype, "c": str_dtype, "d": str_dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("chunksize", [None, 10])
+def test_pyarrow_string_fast_path_batches_columns_together(chunksize, kwargs):
+    # GH#68379: the batched sweep and the per-column path produce identical
+    # output, so nothing else here notices if the queue in _convert_column_data
+    # stops being wired up and every column silently goes back to its own pass.
+    # The chunked read also pins that the queue is re-armed for every chunk.
+    pytest.importorskip("pyarrow")
+    data = "a,b,c,d\n" + "".join(f"p{num},q{num},{num},r{num}\n" for num in range(50))
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        reader = pd.read_csv(
+            StringIO(data), engine="c", iterator=True, chunksize=chunksize, **kwargs
+        )
+        with reader:
+            for _ in reader if chunksize else [reader.read()]:
+                pass
+            # the three string columns, converted in one sweep; "c" is numeric
+            assert reader._engine._reader._largest_str_batch == 3
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_batch_spans_row_blocks(kwargs):
+    # GH#68379: the sweep fills every queued column a block of rows at a time,
+    # carrying each column's buffer pointer, capacity and running byte count
+    # across blocks.  Here "b" outgrows its size estimate mid-sweep while two
+    # other columns are interleaved with it, so a pointer left stale by the
+    # grow, or a count reloaded from the wrong column, corrupts a neighbour
+    # rather than itself.
+    pa = pytest.importorskip("pyarrow")
+    lead = [f"n{num}" for num in range(500)]
+    # first rows far narrower than the rest, so the estimate falls short
+    grows = ["s"] * 20 + [f"{num:x}" * 400 for num in range(20, 500)]
+    trail = [f"t{num}" for num in range(500)]
+    rows = zip(lead, grows, trail, strict=True)
+    data = "a,b,c\n" + "".join(f"{one},{two},{three}\n" for one, two, three in rows)
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        pd.ArrowDtype(pa.string())
+        if kwargs
+        else pd.StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert list(result.dtypes) == [expected_dtype] * 3
+    assert result["a"].tolist() == lead
+    assert result["b"].tolist() == grows
+    assert result["c"].tolist() == trail
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_batch_mixed_na_filter(kwargs):
+    # GH#68379: "b" reaches the string path from the uint64-overflow fallback,
+    # which passes na_filter=0, so it is queued alongside "a" and "c" with no
+    # validity buffer where theirs have one -- the case where a column's state
+    # leaking across the sweep would dereference NULL rather than corrupt data.
+    pa = pytest.importorskip("pyarrow")
+    data = "a,b,c\nfoo,-1,zzz\nNA,18446744073709551615,qq\nbar,NA,\n"
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        reader = pd.read_csv(StringIO(data), engine="c", iterator=True, **kwargs)
+        with reader:
+            result = reader.read()
+            # all three, so the na_filter=0 column really is in the batch
+            assert reader._engine._reader._largest_str_batch == 3
+        str_dtype = (
+            pd.ArrowDtype(pa.string())
+            if kwargs
+            else pd.StringDtype("pyarrow", na_value=np.nan)
+        )
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", None, "bar"],
+                # na_filter is off here, so this column's own "NA" stays literal
+                "b": ["-1", "18446744073709551615", "NA"],
+                "c": ["zzz", "qq", None],
+            }
+        ).astype(str_dtype)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
@@ -1493,6 +1654,38 @@ def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
     for _ in range(2):
         with pytest.raises(StopIteration):
             next(reader)
+
+
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_decode_failure_frees_string_table(c_parser_only, dtype):
+    # GH#67931
+    # the string columns are interned through a khash table that was freed only
+    # on the success path, so a decode failure part-way through a column leaked
+    # the whole table -- ~100 KiB per failed parse here, so ~5 MiB over the loop
+    parser = c_parser_only
+    rows = "\n".join(f"s{i}" for i in range(2000)).encode()
+    data = b"a\n" + rows + b"\n\xff\n"
+
+    def read():
+        with pytest.raises(UnicodeDecodeError):
+            parser.read_csv(BytesIO(data), dtype=dtype, encoding_errors="strict")
+
+    # measure only the khash domain, so unrelated allocations cannot mask or
+    # fake the leak
+    khash_only = (tracemalloc.DomainFilter(True, get_hashtable_trace_domain()),)
+
+    tracemalloc.start()
+    try:
+        # warm up, so first-call caching lands outside the measured window
+        read()
+        before = tracemalloc.take_snapshot().filter_traces(khash_only)
+        for _ in range(50):
+            read()
+        after = tracemalloc.take_snapshot().filter_traces(khash_only)
+    finally:
+        tracemalloc.stop()
+
+    assert sum(stat.size_diff for stat in after.compare_to(before, "filename")) == 0
 
 
 # small enough that DEFAULT_BUFFER_HEURISTIC // table_width leaves one line per

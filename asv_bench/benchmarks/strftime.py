@@ -64,7 +64,7 @@ class PeriodStrftime:
             }
         )
         self.data["i"] = self.data["p"]
-        self.data.set_index("i", inplace=True)
+        self.data = self.data.set_index("i")
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
         elif freq == "h":
