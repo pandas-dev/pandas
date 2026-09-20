@@ -4954,6 +4954,17 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+def _reencodable_value_type(values) -> bool:
+    # GH#69024 re-encoding a stored dictionary needs dictionary_encode and take
+    #  kernels for the value type; which types lack them varies across pyarrow versions
+    try:
+        values.dictionary_encode()
+        pa.compute.take(values, pa.array([0], type=pa.int32()))
+    except pa.ArrowNotImplementedError:
+        return False
+    return True
+
+
 @pytest.mark.parametrize("use_na_sentinel", [True, False])
 @pytest.mark.parametrize(
     "values",
@@ -4965,9 +4976,10 @@ def test_factorize_dictionary_with_na():
     ],
 )
 def test_factorize_dictionary_unsupported_value_type(values, use_na_sentinel):
-    # GH#69024 re-factorizing needs a dictionary_encode kernel for the value type,
-    #  which list and float16 lack, and a take kernel, which the view types lack.
-    #  factorize keeps the stored dictionary for those rather than raising.
+    # GH#69024 factorize keeps the stored dictionary for a value type it cannot
+    #  re-encode, rather than raising
+    if _reencodable_value_type(values):
+        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
     dict_arr = pa.DictionaryArray.from_arrays(
         pa.array([0, 1, 0], type=pa.int32()), values
     )
@@ -4992,6 +5004,8 @@ def test_factorize_dictionary_unsupported_value_type_with_na(values):
     # GH#69024 keeping the stored dictionary leaves the null in index space, which
     #  the sentinel can express and use_na_sentinel=False cannot, so that leg raises
     #  rather than handing back a -1 it promised not to use
+    if _reencodable_value_type(values):
+        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
     dict_arr = pa.DictionaryArray.from_arrays(
         pa.array([0, None, 1], type=pa.int32()), values
     )
