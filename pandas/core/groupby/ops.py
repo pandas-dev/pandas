@@ -892,9 +892,8 @@ class BaseGrouper:
                 names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
 
-            # A dropped NA key is -1 in ob_ids/unob_ids, but the sum maps it to
-            # an arbitrary position -- negative, or a valid one belonging to
-            # another group -- so test those rather than their sum.
+            # A dropped NA key is -1 in ob_ids/unob_ids and needs to come through
+            # as -1 in `ids`; the sum can be non-negative, so test the operands.
             ids = len(unob_index) * ob_ids + unob_ids
             if self.dropna:
                 ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
