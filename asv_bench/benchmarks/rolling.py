@@ -186,6 +186,33 @@ class VariableWindowMethods(Methods):
         self.window = getattr(pd, constructor)(arr, index=index).rolling(window)
 
 
+class SkewKurtHardData:
+    # the existing benchmarks all use uniform random data, which never makes the
+    # skew/kurt accumulators fall back to rescanning the window (GH#68934)
+    params = (
+        [("rolling", {"window": 100}), ("expanding", {})],
+        ["symmetric", "heavy_tailed", "outlier"],
+        ["skew", "kurt"],
+    )
+    param_names = ["window_kwargs", "data", "method"]
+
+    def setup(self, window_kwargs, data, method):
+        N = 10**5
+        rng = np.random.default_rng(0)
+        if data == "symmetric":
+            arr = np.tile([-1.0, 0.0, 1.0, 0.0], N // 4)
+        elif data == "heavy_tailed":
+            arr = rng.lognormal(0.0, 5.0, N)
+        else:
+            arr = rng.standard_normal(N)
+            arr[N // 3] = 1e6
+        window, kwargs = window_kwargs
+        self.window = getattr(pd.Series(arr), window)(**kwargs)
+
+    def time_method(self, window_kwargs, data, method):
+        getattr(self.window, method)()
+
+
 class Pairwise:
     params = (
         [({"window": 10}, "rolling"), ({"window": 1000}, "rolling"), ({}, "expanding")],
