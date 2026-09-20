@@ -3273,28 +3273,34 @@ def test_reduce_axis1_bool_block_keeps_common_dtype(method, expected):
 
 def test_reduce_axis1_complex64_matches_transpose():
     # GH#68641 nanmean accumulates in the input dtype and widens only for the
-    #  division, so complex64 must not be summed as complex128 here either
+    # division, so complex64 must not be summed as complex128 here either
     df = pd.DataFrame(
         {
             "a": np.array([32767], dtype="int16"),
             "b": np.array([2**62], dtype="complex64"),
         }
     )
+    assert len(df._mgr.blocks) > 1
 
     tm.assert_series_equal(df.mean(axis=1), df.T.mean())
 
 
-def test_reduce_axis1_min_count_complex64_matches_transpose():
+@pytest.mark.parametrize("skipna", [True, False])
+def test_reduce_axis1_min_count_complex64_matches_transpose(skipna):
     # GH#68641 _maybe_null_out widens complex64 before writing NaN; the axis=1
-    #  path has to widen the same way
+    # path has to widen the same way, and only where nanops does -- under
+    # skipna=False it builds no mask, so nothing counts as missing
     df = pd.DataFrame(
         {
             "a": np.array([1 + 2j, np.nan], dtype="complex64"),
             "b": np.array([1.0, 2.0], dtype="float32"),
         }
     )
+    assert len(df._mgr.blocks) > 1
 
-    tm.assert_series_equal(df.sum(axis=1, min_count=2), df.T.sum(min_count=2))
+    result = df.sum(axis=1, min_count=2, skipna=skipna)
+    assert result.dtype == ("complex128" if skipna else "complex64")
+    tm.assert_series_equal(result, df.T.sum(min_count=2, skipna=skipna))
 
 
 def test_reduce_axis1_mean_complex_keeps_imaginary_part():
@@ -3313,6 +3319,7 @@ def test_reduce_axis1_bool_block_keeps_numpy_int_semantics():
     # GH#51474: a bool column no longer routes the reduction through object
     # dtype, so an integer result wraps like numpy instead of staying exact
     df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": [True]})
+    assert len(df._mgr.blocks) > 1
 
     result = df.sum(axis=1)
     expected = pd.Series([-(2**63) + 1])
