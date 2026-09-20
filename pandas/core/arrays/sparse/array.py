@@ -2229,8 +2229,22 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if not self._null_fill_value:
             return SparseArray(self.to_dense(), fill_value=np.nan).cumsum()
 
+        sp_values = self.sp_values
+        mask = isna(sp_values)
+        if not mask.any():
+            result = sp_values.cumsum()
+        else:
+            # a stored NA would otherwise propagate into every later entry,
+            # see GH#68972
+            filled = sp_values.copy()
+            filled[mask] = 0
+            result = filled.cumsum()
+            # the dtype's own NA, not the stored object: nanops.na_accum_func
+            # drops an imaginary-only NaN's real part too
+            result[mask] = na_value_for_dtype(sp_values.dtype, compat=False)
+
         return SparseArray(
-            self.sp_values.cumsum(),
+            result,
             sparse_index=self.sp_index,
             fill_value=self.fill_value,
         )
