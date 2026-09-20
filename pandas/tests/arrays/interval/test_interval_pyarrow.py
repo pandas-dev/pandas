@@ -1,5 +1,3 @@
-from itertools import pairwise
-
 import numpy as np
 import pytest
 
@@ -163,25 +161,34 @@ def test_from_arrow_extension_subtype(subtype):
 
     if subtype == "Int64":
         pa_subtype = pa.int64()
-        breaks = pd.array([0, 1, 2], dtype=subtype)
+        lefts, rights = [0, 1, None], [1, 2, None]
     else:
         pa_subtype = pa.timestamp("us", tz="Europe/Brussels")
-        breaks = pd.array(["2012", "2013", "2014"], dtype=subtype)
+        stamps = pd.date_range("2012", periods=3, freq="YS", tz="Europe/Brussels")
+        lefts = [stamps[0], stamps[1], None]
+        rights = [stamps[1], stamps[2], None]
 
     dtype = pd.IntervalDtype(subtype, closed="right")
-    expected = IntervalArray.from_breaks(breaks, closed="right")
+    expected = IntervalArray.from_arrays(
+        pd.array(lefts, dtype=subtype), pd.array(rights, dtype=subtype), closed="right"
+    )
     assert expected.dtype == dtype
+    assert expected.isna().any()
 
     arr = pa.array(
-        [{"left": left, "right": right} for left, right in pairwise(breaks)],
+        [
+            {"left": left, "right": right}
+            for left, right in zip(lefts, rights, strict=True)
+        ],
         type=pa.struct([("left", pa_subtype), ("right", pa_subtype)]),
     )
 
     result = dtype.__from_arrow__(arr)
     tm.assert_extension_array_equal(result, expected)
 
-    result = dtype.__from_arrow__(pa.chunked_array([arr]))
-    tm.assert_extension_array_equal(result, expected)
+    result = dtype.__from_arrow__(pa.chunked_array([arr, arr[:1]]))
+    tm.assert_extension_array_equal(result[: len(expected)], expected)
+    tm.assert_extension_array_equal(result[len(expected) :], expected[:1])
 
     result = dtype.__from_arrow__(pa.chunked_array([], type=arr.type))
     tm.assert_extension_array_equal(result, expected[:0])
