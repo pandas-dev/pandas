@@ -562,39 +562,36 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         unbox = self._data._unbox
 
         if self.is_monotonic_increasing:
-            if len(self) and (
-                (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
-            ):
-                # we are out of range
-                raise KeyError
-
             # a monotonic increasing series can be sliced
             #  (searchsorted requires ascending order)
             left = vals.searchsorted(unbox(t1), side="left")
             right = vals.searchsorted(unbox(t2), side="right")
-            return slice(left, right)
+            result: slice | npt.NDArray[np.intp] = slice(left, right)
+            empty = left == right
 
         elif self.is_monotonic_decreasing:
-            if len(self) and (
-                (t1 > self[0] and t2 > self[0]) or (t1 < self[-1] and t2 < self[-1])
-            ):
-                # we are out of range
-                raise KeyError
-
             # searchsorted requires ascending order, so search the reversed
             #  array and convert the indices back
             reversed_vals = vals[::-1]
             nvals = len(vals)
             rev_left = reversed_vals.searchsorted(unbox(t1), side="left")
             rev_right = reversed_vals.searchsorted(unbox(t2), side="right")
-            return slice(nvals - rev_right, nvals - rev_left)
+            result = slice(nvals - rev_right, nvals - rev_left)
+            empty = rev_left == rev_right
 
         else:
             lhs_mask = vals >= unbox(t1)
             rhs_mask = vals <= unbox(t2)
 
             # try to find the dates
-            return (lhs_mask & rhs_mask).nonzero()[0]
+            result = (lhs_mask & rhs_mask).nonzero()[0]
+            empty = not len(result)
+
+        if empty:
+            # GH#57596 no entry falls in the key's window; that is an absent
+            #  label, not a zero-length match
+            raise KeyError
+        return result
 
     def _maybe_cast_slice_bound(self, label, side: str):
         """
