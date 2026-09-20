@@ -11,6 +11,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import (
+    is_iterator,
     is_list_like,
     is_scalar,
     item_from_zerodim,
@@ -38,7 +39,16 @@ if TYPE_CHECKING:
 
 
 def has_castable_attr(obj) -> bool:
-    attrs = ["__array__", "__dlpack__", "__arrow_c_array__", "__arrow_c_stream__"]
+    attrs = [
+        "__array__",
+        # GH#31646 np.asarray honors the next two as well, so an object
+        #  exposing only one of them is still element-wise material
+        "__array_interface__",
+        "__array_struct__",
+        "__dlpack__",
+        "__arrow_c_array__",
+        "__arrow_c_stream__",
+    ]
     return any(hasattr(obj, name) for name in attrs)
 
 
@@ -47,13 +57,11 @@ def is_listlike_for_op(other) -> bool:
     Whether ``other`` should be operated with element-wise, as opposed to
     being treated as a scalar.
 
-    Iterators are list-like but have no length, so they cannot be aligned
-    element-wise; they are treated as scalar-like (GH#31646), matching
-    ndarray and numpy-dtype Series.
+    An iterator is list-like but has no length and is consumed by being read,
+    so it cannot be aligned element-wise; it is treated as scalar-like
+    (GH#31646), matching ndarray and numpy-dtype Series.
     """
-    return is_list_like(other) and (
-        hasattr(other, "__len__") or has_castable_attr(other)
-    )
+    return is_list_like(other) and not is_iterator(other)
 
 
 def is_scalar_for_op(other) -> bool:
@@ -68,8 +76,12 @@ def is_scalar_for_op(other) -> bool:
     ``__iter__`` is not ``is_list_like``, yet NumPy still coerces it, so it
     stays element-wise.
     """
-    return is_scalar(other) or not (
-        hasattr(other, "__len__") or has_castable_attr(other)
+    return (
+        is_scalar(other)
+        or is_iterator(other)
+        or not (
+            is_list_like(other) or hasattr(other, "__len__") or has_castable_attr(other)
+        )
     )
 
 
