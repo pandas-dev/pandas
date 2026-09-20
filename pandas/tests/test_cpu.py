@@ -336,17 +336,62 @@ def test_physical_cores_linux_topology_unreadable(monkeypatch):
     assert _cpu._physical_cores_linux() is None
 
 
-def test_physical_cores_linux_degenerate_topology(monkeypatch):
+def _fake_degenerate_sysfs_str(n_cpus):
+    """``_read_sysfs_str`` for a hypervisor reporting a flat topology.
+
+    Every CPU claims ``core_id=0`` but advertises no SMT, so each CPU's
+    ``thread_siblings_list`` names only itself.
+    """
+
+    def read_str(path):
+        if path.endswith("/thread_siblings_list"):
+            match = re.search(r"/cpu(\d+)/", path)
+            return None if match is None else match.group(1)
+        return f"0-{n_cpus - 1}"
+
+    return read_str
+
+
+@pytest.mark.parametrize("n_cpus", [2, 4, 6, 8, 12, 32])
+def test_physical_cores_linux_degenerate_topology(monkeypatch, n_cpus):
     # Some hypervisors report physical_package_id=0/core_id=0 for every CPU.
-    # Collapsing that to 1 physical core would make a 12-CPU guest read
-    # serially -- slower than the previous flat default of 4 -- so an
-    # implausible logical:physical ratio is treated as no answer at all.
+    # Collapsing that to 1 physical core would make the guest read serially --
+    # slower than the previous flat default of 4 -- so it is treated as no
+    # answer at all.  Below 9 CPUs the ratio bound cannot fire, so the
+    # thread_siblings_list cross-check is the only thing catching the common
+    # cloud sizes (GH#66152).
     monkeypatch.setattr(
-        os, "sched_getaffinity", lambda pid: set(range(12)), raising=False
+        os, "sched_getaffinity", lambda pid: set(range(n_cpus)), raising=False
     )
-    monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: "0-11")
+    monkeypatch.setattr(_cpu, "_read_sysfs_str", _fake_degenerate_sysfs_str(n_cpus))
     monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: 0)
     assert _cpu._physical_cores_linux() is None
+
+
+def test_physical_cores_linux_corroborated_flat_topology(monkeypatch):
+    # The shape only the logical:physical ratio bound can reject: a guest whose
+    # thread_siblings_list agrees with the flat topology, claiming one core
+    # running 16 threads.
+    monkeypatch.setattr(
+        os, "sched_getaffinity", lambda pid: set(range(16)), raising=False
+    )
+    monkeypatch.setattr(_cpu, "_read_sysfs_str", lambda path: "0-15")
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: 0)
+    assert _cpu._physical_cores_linux() is None
+
+
+def test_physical_cores_linux_single_core_with_smt(monkeypatch):
+    # The converse of the degenerate case, and the reason the cross-check is
+    # needed rather than rejecting every collapse to 1: a real single-core
+    # SMT2 guest agrees with itself, so 1 physical core is the right answer.
+    monkeypatch.setattr(os, "sched_getaffinity", lambda pid: {0, 1}, raising=False)
+    monkeypatch.setattr(
+        _cpu,
+        "_read_sysfs_str",
+        lambda path: "0,1" if path.endswith("/thread_siblings_list") else "0-1",
+    )
+    monkeypatch.setattr(_cpu, "_read_sysfs_int", lambda path: 0)
+    assert _cpu._physical_cores_linux() == 1
 
 
 def test_physical_cores_linux_accepts_plausible_smt(monkeypatch):
@@ -387,11 +432,29 @@ def test_count_processor_core_records_zero_size_not_counted():
     assert _count_processor_core_records(buf, 64) == 1
 
 
+def test_count_processor_core_records_size_overruns_buffer():
+    # A record whose Size runs past the end of the buffer is malformed and
+    # must not be counted, even though its header is fully readable.
+    buf, _ = _make_win_processor_buffer([(32, 0), (32, 0)])
+    assert _count_processor_core_records(buf, 40) == 1
+
+
 def test_count_processor_core_records_truncated_header():
     # Size is a DWORD at +4, so a record header needs 8 readable bytes.  A
     # length stopping mid-header must yield None rather than read past it.
     buf, _ = _make_win_processor_buffer([(32, 0)])
     assert _count_processor_core_records(buf, 6) is None
+
+
+def test_count_processor_core_records_partial_trailing_header():
+    # The 8-byte header bound is the only thing that stops this one: a valid
+    # record followed by a header that begins inside `length` but whose Size
+    # field lies past it.
+    buf = (ctypes.c_byte * 64)()
+    addr = ctypes.addressof(buf)
+    ctypes.c_uint32.from_address(addr + 4).value = 32
+    ctypes.c_uint32.from_address(addr + 36).value = 2
+    assert _count_processor_core_records(buf, 36) == 1
 
 
 def test_count_processor_core_records_hybrid():

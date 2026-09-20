@@ -78,11 +78,11 @@ def _count_processor_core_records(
     count = 0
     # offset + 8, not offset: Size is a DWORD at +4, so a record header needs
     # 8 readable bytes.  Bounding on offset alone over-reads a truncated
-    # buffer.  The count is taken after the size check so a malformed record
-    # is not counted as a core.
+    # buffer.  A record is counted only once its own Size is known to fit, so
+    # a malformed one is not counted as a core.
     while offset + 8 <= length:
         size = ctypes.c_uint32.from_address(addr + offset + 4).value
-        if size == 0:
+        if size == 0 or offset + size > length:
             break
         count += 1
         offset += size
@@ -138,6 +138,16 @@ def _cpu_topology(cpu: int) -> tuple[int, int] | None:
     return (pkg, core)
 
 
+def _smt_width(cpu: int) -> int | None:
+    """Number of SMT siblings Linux reports for a logical CPU, or None."""
+    spec = _read_sysfs_str(
+        f"/sys/devices/system/cpu/cpu{cpu}/topology/thread_siblings_list"
+    )
+    if not spec:
+        return None
+    return len(_parse_cpu_list(spec)) or None
+
+
 def _physical_cores_linux() -> int | None:
     """
     Physical core count on Linux (SMT siblings collapsed).
@@ -162,27 +172,26 @@ def _physical_cores_linux() -> int | None:
     # Topology unreadable -> None, leaving physical_core_count()'s
     # os.cpu_count() as the single fallback path.
     physical = _count_distinct_cores(_cpu_topology(cpu) for cpu in logical)
-    if physical is not None and len(logical) > _MAX_SMT_THREADS * physical:
-        # Degenerate topology: some hypervisors report physical_package_id=0
-        # and core_id=0 for every CPU, which collapses to 1 and would make a
-        # 12-CPU guest read serially -- slower than main's flat 4.  No
-        # mainstream part exceeds 8 threads per core, so a wider ratio than
-        # that means the topology is not describing this machine.
+    if physical is None:
         return None
+    # Degenerate topology: some hypervisors report physical_package_id=0 and
+    # core_id=0 for every CPU, collapsing to one core and turning the parallel
+    # read off altogether.  Two signals, since neither catches every shape: an
+    # SMT width no mainstream part implements, and -- for the collapse to one
+    # core, which a real single-core SMT guest also produces -- a
+    # thread_siblings_list that does not corroborate it.  See
+    # test_physical_cores_linux_degenerate_topology (GH#66152).
+    if len(logical) > _MAX_SMT_THREADS * physical:
+        return None
+    if physical == 1 and len(logical) > 1:
+        width = _smt_width(logical[0])
+        if width is not None and width < len(logical):
+            return None
     return physical
 
 
 def _physical_cores_windows() -> int | None:
-    """
-    Physical core count on Windows, or None.
-
-    Not reached by the ``read_csv`` default today: parallel reading is gated
-    off on Windows (GH#64347), so ``_default_n_workers`` returns 1 before
-    consulting this.  It is kept anyway because ``physical_core_count`` is a
-    general ``pandas.compat`` helper whose contract is to answer on every
-    platform, and because the Windows gate is a measured, temporary
-    limitation rather than a permanent one.
-    """
+    """Physical core count on Windows, or None."""
     if sys.platform != "win32":
         return None
     # GetLogicalProcessorInformationEx(RelationProcessorCore) reports one
@@ -281,11 +290,10 @@ def physical_core_count() -> int:
     fails, this falls back to :func:`os.cpu_count`.
 
     Not uniformly a machine property.  On Linux the count is scoped to the
-    process's CPU affinity mask, so ``taskset -c 0-7`` on a 16-physical box
-    reports 4, not 16; macOS and Windows report the whole machine, and so
-    does the ``os.cpu_count`` fallback on every platform.  Callers wanting a
-    hardware inventory rather than "cores this process may use" should not
-    use this.
+    process's CPU affinity mask; macOS and Windows report the whole machine,
+    and so does the ``os.cpu_count`` fallback on every platform.  Callers
+    wanting a hardware inventory rather than "cores this process may use"
+    should not use this.
 
     The result is cached for the lifetime of the process.  As with
     :func:`available_cpu_count`, that makes it stale if affinity changes

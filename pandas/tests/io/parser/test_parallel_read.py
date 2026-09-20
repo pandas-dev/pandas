@@ -814,7 +814,7 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(_readers, "physical_core_count", lambda: 4)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
     calls = []

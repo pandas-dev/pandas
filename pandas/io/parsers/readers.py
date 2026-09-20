@@ -254,10 +254,8 @@ _PARALLEL_MAX_COLUMN_PIECES = 1800
 # disables the taper.
 _PARALLEL_TAPER_RATIO = 0.2
 
-# Hard ceiling on the *default* parallel-read worker count.  Not a measured
-# saturation point, and it does bind on real hardware -- 16-physical-core
-# desktops and anything larger reach it.  Its job is to stop a default read
-# from spawning dozens of threads on a big shared server that has no
+# Hard ceiling on the *default* parallel-read worker count: it stops a default
+# read from spawning dozens of threads on a big shared server that has no
 # cgroup/affinity limit set.  mode.max_threads overrides it in either
 # direction.
 _MAX_DEFAULT_WORKERS = 16
@@ -438,15 +436,11 @@ def _default_n_workers() -> int:
     Default worker count for a parallel ``read_csv``.
 
     ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
-    cannot spawn threads at all).  Otherwise it defaults to the number of
-    physical cores (:func:`~pandas.compat._cpu.physical_core_count`),
-    efficiency cores included: the work-queued parallel path keeps every core
-    productive (a slow core simply pulls fewer chunks).  SMT siblings are
-    excluded because a hyperthread adds no memory bandwidth to the
-    bandwidth-bound parse its sibling is running.  That count is then clamped
-    to the CPUs actually available to the process (CPU affinity / cgroup
-    limits) and to ``_MAX_DEFAULT_WORKERS`` -- so that an embedded or
-    containerised pandas does not oversubscribe its allocation.
+    cannot spawn threads at all).  Otherwise it defaults to
+    :func:`~pandas.compat._cpu.physical_core_count`, clamped to the CPUs
+    actually available to the process (CPU affinity / cgroup limits) and to
+    ``_MAX_DEFAULT_WORKERS`` -- so that an embedded or containerised pandas
+    does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
     if sys.platform == "emscripten":
