@@ -852,7 +852,7 @@ def test_where_string_dtype(frame_or_series):
 def test_where_listlike_other_keeps_ea_dtype(
     frame_or_series, any_numeric_ea_and_arrow_dtype
 ):
-    # GH#63842 a list-like 'other' should not cast to object or raise
+    # GH#63842 a list 'other' should not cast to object or raise
     dtype = any_numeric_ea_and_arrow_dtype
     obj = frame_or_series(pd.array([1, 2, 3, 4], dtype=dtype))
     cond = pd.Series([True, False, True, False])
@@ -862,6 +862,10 @@ def test_where_listlike_other_keeps_ea_dtype(
     result = obj.where(cond, [9, 8, 7, 6])
     expected = frame_or_series(pd.array([1, 8, 3, 6], dtype=dtype))
     tm.assert_equal(result, expected)
+
+    # any ordered Sequence, not just a list
+    result = obj.where(cond, range(9, 13))
+    tm.assert_equal(result, frame_or_series(pd.array([1, 10, 3, 12], dtype=dtype)))
 
     # a length-1 'other' is broadcast, as it is for numpy dtypes
     result = obj.where(cond, [9])
@@ -875,16 +879,15 @@ def test_where_listlike_other_keeps_ea_dtype(
 def test_where_listlike_other_wrong_length_raises(any_numeric_ea_and_arrow_dtype):
     # GH#63842 a length that is neither 1 nor len(self) cannot be lined up
     ser = pd.Series(pd.array([1, 2, 3, 4], dtype=any_numeric_ea_and_arrow_dtype))
-    msg = r"Length of value \(2\) does not match length of the array \(4\)"
+    msg = r"Length of values \(2\) does not match length of index \(4\)"
     with pytest.raises(ValueError, match=msg):
         ser.where(pd.Series([True, False, True, False]), [9, 8])
 
 
 def test_mask_listlike_other_one_per_selected_cell_matches_numpy():
-    # GH#63842 a mask that happens to select exactly len(df) cells across a
-    #  multi-column datetimelike block used to fall into the 2-D reshape and
-    #  raise; it now fills like np.place does for the numpy dtypes, in the
-    #  frame's row-major order rather than the block's
+    # GH#63842 a mask selecting exactly len(df) cells takes one value per
+    #  selected position, as np.place gives numpy dtypes, and consumes them in
+    #  the frame's row-major order rather than the block's
     vals = pd.date_range("2016-01-01", periods=4)
     cond = pd.DataFrame(
         {"a": [False, True, False, True], "b": [False, False, True, True]}
@@ -900,11 +903,11 @@ def test_mask_listlike_other_one_per_selected_cell_matches_numpy():
 
 
 def test_where_listlike_other_wrong_length_raises_2d_block():
-    # GH#63842 the 2-D branch returned before the length check, so a mismatched
-    #  length silently filled every masked slot with other[0]
+    # GH#63842 a length that lines up with neither the rows nor the columns
+    #  used to fill every masked slot with other[0]
     cond = pd.DataFrame({"a": [True, False, True, False]})
     vals = pd.date_range("2016-01-01", periods=4, tz="UTC")
-    msg = r"Length of value \(2\) does not match length of the array \(4\)"
+    msg = r"Length of values \(2\) does not match length of index \(4\)"
 
     with pytest.raises(ValueError, match=msg):
         pd.DataFrame({"a": vals}).where(cond, list(vals[:2]))
@@ -955,7 +958,7 @@ def test_where_listlike_other_keeps_string_dtype(frame_or_series, any_string_dty
 
 
 def test_where_tuple_other_treated_as_scalar(any_string_dtype):
-    # GH#37681 a tuple is a valid scalar, so -- as for numpy dtypes -- it is
+    # GH#37681 a tuple is a valid scalar, so -- as for object dtype -- it is
     #  filled in whole rather than lined up against the mask
     ser = pd.Series(["a", "b", "c"], dtype=any_string_dtype)
     result = ser.where(pd.Series([True, False, True]), ("x", "y", "z"))
@@ -1054,6 +1057,110 @@ def test_where_listlike_other_2d_block_column_like(dtype):
     result = df.where(pd.DataFrame({"a": [True, False, True, False]}), other)
     expected = pd.DataFrame({"a": values[[0, 0, 2, 0]]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_listlike_other_2d_block_row_like():
+    # GH#63842 a consolidated datetimelike block holds every column, so a list
+    #  as long as the column count is one value per column, as for numpy dtypes
+    values = pd.date_range("2016-01-01", periods=5)
+    cond = pd.DataFrame(
+        {"a": [True, True, False, False, True], "b": [False, False, True, True, True]}
+    )
+    df = pd.DataFrame({"a": values, "b": values})
+    other = list(values[:2])
+
+    result = df.where(cond, other)
+    expected = pd.DataFrame(
+        {"a": values[[0, 1, 0, 0, 4]], "b": values[[1, 1, 2, 3, 4]]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.copy()
+    result.mask(cond, other, inplace=True)
+    expected = pd.DataFrame(
+        {"a": values[[0, 0, 2, 3, 0]], "b": values[[0, 1, 1, 1, 1]]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+    numpy_df = pd.DataFrame({"a": range(5), "b": range(5)})
+    numpy_result = numpy_df.where(cond, [0, 1])
+    assert numpy_result["a"].tolist() == [0, 1, 0, 0, 4]
+    assert numpy_result["b"].tolist() == [1, 1, 2, 3, 4]
+
+
+def test_mask_listlike_other_2d_block_row_like():
+    # GH#63842 np.putmask tiles a short value across the block's own
+    #  (ncols, nrows) storage, which is one value per column only by accident
+    fill = pd.to_datetime(["2000-01-01", "2000-01-02"])
+    values = pd.date_range("2016-01-01", periods=2)
+    all_true = pd.DataFrame({"a": [True, True], "b": [True, True]})
+
+    result = pd.DataFrame({"a": values, "b": values})
+    result.mask(all_true, list(fill), inplace=True)
+    tm.assert_frame_equal(result, pd.DataFrame({"a": fill[[0, 0]], "b": fill[[1, 1]]}))
+
+    result = pd.DataFrame({"a": values[:1], "b": values[1:]})
+    result.mask(all_true.head(1), list(fill[:1]), inplace=True)
+    tm.assert_frame_equal(result, pd.DataFrame({"a": fill[[0]], "b": fill[[0]]}))
+
+    numpy_result = pd.DataFrame({"a": [1, 2], "b": [1, 2]})
+    numpy_result.mask(all_true, [10, 20], inplace=True)
+    tm.assert_frame_equal(numpy_result, pd.DataFrame({"a": [10, 10], "b": [20, 20]}))
+
+    numpy_result = pd.DataFrame({"a": [1], "b": [2]})
+    numpy_result.mask(all_true.head(1), [10], inplace=True)
+    tm.assert_frame_equal(numpy_result, pd.DataFrame({"a": [10], "b": [10]}))
+
+
+def test_where_listlike_other_2d_block_multi_column_column_like():
+    # GH#63842 a consolidated block holds every column, so a row-length
+    #  ``other`` has to fill each of them, the way it already does one column
+    #  at a time for the dtypes that get a block per column
+    values = pd.date_range("2016-01-01", periods=3)
+    fill = pd.date_range("2000-01-01", periods=3)
+    cond = pd.DataFrame({"a": [True, False, False], "b": [False, True, False]})
+    df = pd.DataFrame({"a": values, "b": values})
+
+    result = df.where(cond, list(fill))
+    expected = pd.DataFrame(
+        {"a": [values[0], fill[1], fill[2]], "b": [fill[0], values[1], fill[2]]}
+    )
+    tm.assert_frame_equal(result, expected)
+    # datetime64[ns, UTC] gets a block per column and already reads it this way
+    tz_df = df.apply(lambda col: col.dt.tz_localize("UTC"))
+    tz_result = tz_df.where(cond, list(fill.tz_localize("UTC")))
+    tm.assert_frame_equal(
+        tz_result, expected.apply(lambda col: col.dt.tz_localize("UTC"))
+    )
+
+    result = df.copy()
+    result.mask(cond, list(fill), inplace=True)
+    expected = pd.DataFrame(
+        {"a": [fill[0], values[1], values[2]], "b": [values[0], fill[1], values[2]]}
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # a value the block cannot hold still upcasts rather than raising
+    result = df.where(cond, list("xyz"))
+    expected = pd.DataFrame(
+        {"a": [values[0], "y", "z"], "b": ["x", values[1], "z"]}, dtype=object
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_where_listlike_other_not_coerced_to_dtype(any_string_dtype):
+    # GH#63842 the list is not run through _from_sequence, which would turn 9
+    #  into "9" rather than upcasting
+    ser = pd.Series(pd.array(["a", "b", "c", "d"], dtype=any_string_dtype))
+    result = ser.where(pd.Series([True, False, True, False]), [9, 8, 7, 6])
+    tm.assert_series_equal(result, pd.Series(["a", 8, "c", 6], dtype=object))
+
+
+def test_where_listlike_other_unknown_category_raises():
+    # GH#63842 _from_sequence would turn the unknown category into NaN
+    cat = pd.Series(pd.Categorical(["a", "b", "a", "b"]))
+    with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
+        cat.where(pd.Series([True, False, True, False]), ["z", "z", "z", "z"])
 
 
 def test_where_mapping_other_treated_as_scalar(any_string_dtype):

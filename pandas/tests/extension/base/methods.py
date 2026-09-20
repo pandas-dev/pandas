@@ -771,12 +771,12 @@ class BaseMethodsTests:
         return orig, cond, expected, first, second
 
     def test_where_series_listlike_other(self, data, as_frame):
-        # GH#63842 a list-like 'other' is lined up against the mask without
+        # GH#63842 a list 'other' is lined up against the mask without
         #  casting to object
         orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
 
-        result = orig.where(cond, [first, second, first, second])
-        tm.assert_equal(result, expected([first, second, second, second]))
+        result = orig.where(cond, [second, second, first, first])
+        tm.assert_equal(result, expected([first, second, second, first]))
 
         # a length-1 'other' is broadcast, as it is for numpy dtypes
         result = orig.where(cond, [first])
@@ -791,7 +791,7 @@ class BaseMethodsTests:
         )
         cond = np.array([True, False, True, False])
 
-        msg = r"Length of value \(3\) does not match length of the array \(4\)"
+        msg = r"Length of values \(3\) does not match length of index \(4\)"
         with pytest.raises(ValueError, match=msg):
             ser.where(cond, [first, second, first])
 
