@@ -1724,18 +1724,50 @@ def test_td_add_sub_ndarray_subclass(kind):
         tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
-@pytest.mark.parametrize("dtype", ["i8", "f8"])
+@pytest.mark.parametrize("dtype", ["i8", "u8", "f4", "f8"])
 def test_td_mul_ndarray_subclass(dtype):
     # GH#66552 the float overflow guard reduces with np.max(..., initial=0.0),
     #  which an ndarray subclass' own max() need not accept
     td = pd.Timedelta(4, "ns")
-    values = np.array([2, 3], dtype=dtype)
+    # a NaN sends the float branch through its own substitute-and-re-mask path,
+    #  which has to keep the subclass too
+    values = np.array([2, 3] if dtype[0] in "iu" else [2, np.nan], dtype=dtype)
     other = values.view(NoInitialMaxArray)
 
     expected = values * td.to_timedelta64()
     for result in [td * other, other * td]:
         assert isinstance(result, NoInitialMaxArray)
         tm.assert_numpy_array_equal(np.asarray(result), expected)
+
+
+@pytest.mark.parametrize("kind", ["m", "M"])
+def test_td_add_sub_masked_array(kind):
+    # GH#66552 the i8 view dropped the mask, exposing the masked payload as a
+    #  real value; numpy keeps the element masked
+    td = pd.Timedelta(5, "ns")
+    values = np.array([10, 20], dtype=f"{kind}8[ns]")
+    other = np.ma.MaskedArray(values, mask=[False, True])
+
+    m8 = td.to_timedelta64()
+    for result, expected in [
+        (td + other, values[0] + m8),
+        (other + td, values[0] + m8),
+        (other - td, values[0] - m8),
+    ] + ([(td - other, m8 - values[0])] if kind == "m" else []):
+        assert isinstance(result, np.ma.MaskedArray)
+        tm.assert_numpy_array_equal(np.ma.getmaskarray(result), np.array([False, True]))
+        assert result[0] == expected
+
+
+@pytest.mark.parametrize("dtype", ["i8", "u8", "f8"])
+def test_td_mul_masked_array(dtype):
+    # GH#66552 a fully-masked operand leaves min()/max() as np.ma.masked, which
+    #  int() rejects, so the bounds checks have to read a plain view
+    other = np.ma.array(np.array([1, 2], dtype=dtype), mask=[True, True])
+
+    result = pd.Timedelta(4, "ns") * other
+    assert isinstance(result, np.ma.MaskedArray)
+    tm.assert_numpy_array_equal(result.mask, np.array([True, True]))
 
 
 def test_td_div_ndarray_subclass():
@@ -1752,19 +1784,73 @@ def test_td_div_ndarray_subclass():
 
 
 @pytest.mark.parametrize("kind", ["m", "M"])
-def test_td_add_sub_ndarray_unit_multiplier(kind):
-    # GH#66552 a dtype such as m8[10s] carries a multiplier that our
-    #  resolutions cannot express; it used to be silently read as m8[s]
+def test_td_add_sub_ndarray_unit_multiplier_raises(kind):
+    # GH#25611 a dtype such as m8[10s] was read as m8[s], silently dropping
+    #  the multiplier; the Index, Series and constructor paths already reject it
     td = pd.Timedelta(1, "s")
     other = np.array([1, 2], dtype=f"{kind}8[10s]")
+    name = "timedelta64" if kind == "m" else "datetime64"
+    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
 
-    expected = np.array([11, 21], dtype=f"{kind}8[s]")
-    tm.assert_numpy_array_equal(td + other, expected)
-    tm.assert_numpy_array_equal(other + td, expected)
-
-    expected = np.array([9, 19], dtype=f"{kind}8[s]")
-    tm.assert_numpy_array_equal(other - td, expected)
-
+    with pytest.raises(ValueError, match=msg):
+        td + other
+    with pytest.raises(ValueError, match=msg):
+        other + td
+    with pytest.raises(ValueError, match=msg):
+        other - td
     if kind == "m":
-        expected = np.array([-9, -19], dtype="m8[s]")
-        tm.assert_numpy_array_equal(td - other, expected)
+        with pytest.raises(ValueError, match=msg):
+            td - other
+
+
+@pytest.mark.parametrize("kind", ["m", "M"])
+def test_td_add_sub_ndarray_subclass_still_overflow_checked(kind):
+    # GH#66552 handing the operand to numpy to keep its subclass must not
+    #  cost the overflow guard these helpers exist for
+    td = pd.Timedelta(5, "ns")
+    high = np.array([2**63 - 2] * 2, dtype="i8").view(f"{kind}8[ns]")
+    high = high.view(NoInitialMaxArray)
+    low = np.array([-(2**63) + 2] * 2, dtype="i8").view(f"{kind}8[ns]")
+    low = low.view(NoInitialMaxArray)
+    err = OutOfBoundsTimedelta if kind == "m" else OutOfBoundsDatetime
+
+    with pytest.raises(err, match="Out of bounds nanosecond"):
+        td + high
+    with pytest.raises(err, match="Out of bounds nanosecond"):
+        high + td
+    with pytest.raises(err, match="Out of bounds nanosecond"):
+        low - td
+    if kind == "m":
+        with pytest.raises(err, match="Out of bounds nanosecond"):
+            td - low
+
+
+def test_td_mul_div_ndarray_subclass_still_overflow_checked():
+    # GH#66552 same for the multiplication and division guards
+    other = np.array([2**62, 1], dtype="i8").view(NoInitialMaxArray)
+    with pytest.raises(OutOfBoundsTimedelta, match="Overflow in int64"):
+        pd.Timedelta(4, "ns") * other
+
+    other = np.array([1e10, 1.0]).view(NoInitialMaxArray)
+    with pytest.raises(OutOfBoundsTimedelta, match="Overflow in timedelta mult"):
+        pd.Timedelta(2**62, "ns") * other
+
+    other = np.array([1e-300, 2.0]).view(NoInitialMaxArray)
+    with pytest.raises(OutOfBoundsTimedelta, match="Overflow in timedelta div"):
+        pd.Timedelta(1, "ns") / other
+    with pytest.raises(OutOfBoundsTimedelta, match="Overflow in timedelta div"):
+        pd.Timedelta(1, "ns") // other
+
+
+@pytest.mark.filterwarnings("ignore:the matrix subclass:PendingDeprecationWarning")
+@pytest.mark.parametrize("dtype", ["i8", "u8", "f4", "f8"])
+def test_td_mul_div_np_matrix(dtype):
+    # GH#66552 np.matrix' own __mul__ is matrix multiplication, so the guards
+    #  must not write the product as ``other * td.to_timedelta64()``
+    td = pd.Timedelta(4, "ns")
+    expected = np.matrix(np.array([[4, 8]], dtype="m8[ns]"))
+    other = np.matrix([[1, 2]], dtype=dtype)
+
+    for result in [td * other, other * td]:
+        assert isinstance(result, np.matrix)
+        tm.assert_numpy_array_equal(np.asarray(result), np.asarray(expected))

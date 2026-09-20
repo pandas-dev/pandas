@@ -156,7 +156,8 @@ class NoInitialMaxArray(np.ndarray):
     way np.ma.MaskedArray's does.
 
     The datetimelike overflow guards reduce with those keywords, so they have to
-    hand an ndarray subclass off to numpy rather than reduce it (GH#66552).
+    reduce over a plain view of the operand while leaving the arithmetic itself
+    on the subclass (GH#66552).
     """
 
     def max(self, axis=None, out=None, keepdims=False):
