@@ -1216,9 +1216,7 @@ class SeriesGroupBy(GroupBy[Series]):
             diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
         ncat, nbin = diff.sum(), len(levels[-1])
-
         left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
-
         right = [diff.cumsum() - 1, codes[-1]]
 
         # error: Argument 1 to "get_join_indexers" has incompatible type
