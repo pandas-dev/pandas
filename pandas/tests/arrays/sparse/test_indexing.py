@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 import pytest
 
@@ -98,8 +100,9 @@ class TestGetitem:
         exp = SparseArray([np.nan, 1, 3, 4, np.nan])
         tm.assert_sp_array_equal(res, exp)
 
+        # trailing False pads the mask to len(arr); a shorter one now raises
         spar_bool = SparseArray(
-            [False, True, np.nan] * 3, dtype=np.bool_, fill_value=np.nan
+            [False, True, np.nan] * 3 + [False], dtype=np.bool_, fill_value=np.nan
         )
         res = arr[spar_bool]
         exp = SparseArray([np.nan, 3, 5])
@@ -111,6 +114,49 @@ class TestGetitem:
         res = arr[arr > 2]
         exp = SparseArray([3.0, 4.0], fill_value=np.nan)
         tm.assert_sp_array_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "op, other, expected",
+        [
+            (operator.gt, [3, 3, 4, 1, 0, 0], [4.0]),
+            (operator.ne, [1, 3, 4, 1, 0, 0], [2.0, 3.0, 4.0, np.nan, np.nan]),
+        ],
+    )
+    def test_getitem_bool_sparse_array_op_result(self, op, other, expected):
+        # GH#45284 an op result stores values equal to its own fill_value, so the
+        #  mask cannot be read off sp_index alone
+        arr = SparseArray([1, 2, 3, 4, np.nan, np.nan], fill_value=np.nan)
+        mask = op(arr, other)
+        assert (mask.sp_values == mask.fill_value).any()
+
+        res = arr[mask]
+        tm.assert_sp_array_equal(res, SparseArray(expected, fill_value=np.nan))
+
+    def test_getitem_bool_sparse_array_logical_op_result(self):
+        # GH#45284 like a comparison, a logical op can leave a stored value
+        #  equal to the fill
+        arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
+        mask = SparseArray([True, True, True, False], fill_value=False) & SparseArray(
+            [True, False, False, False], fill_value=False
+        )
+        assert (mask.sp_values == mask.fill_value).any()
+
+        res = arr[mask]
+        tm.assert_sp_array_equal(res, SparseArray([1.0], fill_value=np.nan))
+
+    @pytest.mark.parametrize("fill_value", [True, False, np.nan])
+    @pytest.mark.parametrize(
+        "data", [[True, False], [True, False, True, False, True, True]]
+    )
+    def test_getitem_bool_sparse_array_wrong_length(self, data, fill_value):
+        # GH#45284 the sparse fast path skips check_array_indexer, which is what
+        #  rejects a mask of the wrong length
+        arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
+        key = SparseArray(data, fill_value=fill_value, dtype=np.bool_)
+
+        msg = f"Boolean index has wrong length: {len(data)} instead of 4"
+        with pytest.raises(IndexError, match=msg):
+            arr[key]
 
     def test_get_item(self, arr):
         zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
