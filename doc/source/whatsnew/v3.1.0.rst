@@ -578,6 +578,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`64515`)
 - Performance improvement in :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.sem`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, and their :class:`Series` counterparts on object-dtype data (:issue:`34671`)
 - Performance improvement in :meth:`Series.combine` (:issue:`67446`)
+- Performance improvement in pickling a sliced :class:`DataFrame` with ``protocol=5`` and a ``buffer_callback``, which now sends the data as an out-of-band buffer instead of copying it into the pickle stream (:issue:`55781`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` and ``parse_dates`` for columns containing ISO8601 datetime strings; concurrent reads from multiple threads also scale better (:issue:`65353`, :issue:`66278`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` during dtype inference: columns that do not parse as numeric or boolean (e.g. string columns) are now rejected before allocating a result buffer for the attempt (:issue:`66273`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns (:issue:`65767`)
