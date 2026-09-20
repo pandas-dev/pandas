@@ -1,11 +1,12 @@
-import operator
-
 import numpy as np
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import (
+    IntIndex,
+    SparseArray,
+)
 
 
 @pytest.fixture
@@ -116,33 +117,27 @@ class TestGetitem:
         tm.assert_sp_array_equal(res, exp)
 
     @pytest.mark.parametrize(
-        "op, other, expected",
+        "fill_value, indices, sp_values",
         [
-            (operator.gt, [3, 3, 4, 1, 0, 0], [4.0]),
-            (operator.ne, [1, 3, 4, 1, 0, 0], [2.0, 3.0, 4.0, np.nan, np.nan]),
+            (False, [0, 1, 3], [True, False, True]),
+            (True, [0, 1, 2], [True, False, False]),
         ],
     )
-    def test_getitem_bool_sparse_array_op_result(self, op, other, expected):
-        # GH#45284 an op result stores values equal to its own fill_value, so the
-        #  mask cannot be read off sp_index alone
-        arr = SparseArray([1, 2, 3, 4, np.nan, np.nan], fill_value=np.nan)
-        mask = op(arr, other)
-        assert (mask.sp_values == mask.fill_value).any()
-
-        res = arr[mask]
-        tm.assert_sp_array_equal(res, SparseArray(expected, fill_value=np.nan))
-
-    def test_getitem_bool_sparse_array_logical_op_result(self):
-        # GH#45284 like a comparison, a logical op can leave a stored value
-        #  equal to the fill
+    def test_getitem_bool_sparse_array_stored_fill(
+        self, fill_value, indices, sp_values
+    ):
+        # GH#45284 a stored value may equal the fill value, so the mask cannot be
+        #  read off sp_index alone
         arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
-        mask = SparseArray([True, True, True, False], fill_value=False) & SparseArray(
-            [True, False, False, False], fill_value=False
+        key = SparseArray(
+            np.array(sp_values),
+            sparse_index=IntIndex(4, indices),
+            fill_value=fill_value,
         )
-        assert (mask.sp_values == mask.fill_value).any()
+        assert (key.sp_values == key.fill_value).any()
 
-        res = arr[mask]
-        tm.assert_sp_array_equal(res, SparseArray([1.0], fill_value=np.nan))
+        res = arr[key]
+        tm.assert_sp_array_equal(res, SparseArray([1.0, 4.0], fill_value=np.nan))
 
     @pytest.mark.parametrize("fill_value", [True, False, np.nan])
     @pytest.mark.parametrize(
