@@ -80,7 +80,8 @@ def _astype_nansafe(
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
     OutOfBoundsDatetime or OutOfBoundsTimedelta
-        Float values outside the int64 domain were cast to datetime64/timedelta64.
+        The dtype was a datetime64/timedelta64 dtype and the float data fell
+        outside the int64 domain.
     """
 
     # dispatch on extension dtype if needed
@@ -141,7 +142,13 @@ def _astype_nansafe(
         )
         raise ValueError(msg)
 
-    if np.issubdtype(arr.dtype, np.floating) and dtype.kind in "mM":
+    if (
+        np.issubdtype(arr.dtype, np.floating)
+        and dtype.kind in "mM"
+        and np.datetime_data(dtype)[1] == 1
+    ):
+        # a multiplier dtype, e.g. "M8[10s]", is rejected downstream (GH#25611)
+        #  whatever the values, so the saturated value never surfaces
         raise_if_float_outside_int64(arr, dtype)
 
     if copy or object in (arr.dtype, dtype):

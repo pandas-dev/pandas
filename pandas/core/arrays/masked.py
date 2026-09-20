@@ -804,8 +804,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             na_value = lib.no_default
 
         if self.dtype.kind == "f" and dtype.kind in "mM":
-            # to_numpy narrows through int64 without checking (GH#68926)
-            raise_if_float_outside_int64(self._data[~self._mask], dtype)
+            unit, step = np.datetime_data(dtype)
+            if step == 1 and unit != "generic":
+                # to_numpy narrows through int64 without checking (GH#68926);
+                #  a unitless or multiplier dtype it rejects outright instead.
+                raise_if_float_outside_int64(self._data[~self._mask], dtype)
 
         # to_numpy will also raise, but we get somewhat nicer exception messages here
         if dtype.kind in "iu" and self._hasna:

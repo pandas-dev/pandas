@@ -803,11 +803,12 @@ def test_astype_float_to_datetimelike_out_of_bounds(value, unit):
 def test_astype_float_to_datetimelike_in_bounds_unchanged(dtype):
     # GH#68926 in-range floats still truncate toward zero, NaN and the NaT
     #  sentinel still give NaT
-    ser = pd.Series([1.5, -1.5, np.nan, float(iNaT)])
+    largest = np.nextafter(np.float64(2**63), 0)
+    ser = pd.Series([1.5, -1.5, np.nan, float(iNaT), largest])
 
     result = ser.astype(dtype)
 
-    expected = pd.Series([1, -1, iNaT, iNaT]).astype(dtype)
+    expected = pd.Series([1, -1, iNaT, iNaT, int(largest)]).astype(dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -827,14 +828,51 @@ def test_astype_masked_float_to_datetime64_out_of_bounds(dtype, spelling):
             pd.DatetimeIndex(arr)
 
 
+def test_astype_masked_float_to_timedelta64_out_of_bounds():
+    # GH#68926 masked astype is the only spelling that reached the timedelta64
+    #  narrowing unguarded; the TimedeltaIndex peer already raised
+    arr = pd.array([np.inf], dtype="Float64")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input inf"):
+        pd.Series(arr).astype("m8[ns]")
+
+
 def test_astype_masked_float_to_datetime64_in_bounds_unchanged():
-    # GH#68926 the guard is on the out-of-range values only; NA still gives NaT
-    ser = pd.Series(pd.array([1.5, None], dtype="Float64"))
+    # GH#68926 the guard only looks at the unmasked values, so NA and an
+    #  out-of-range float parked behind the mask both still give NaT
+    arr = pd.arrays.FloatingArray(
+        np.array([1.5, 0.0, np.inf]), np.array([False, True, True])
+    )
 
-    result = ser.astype("M8[ns]")
+    result = pd.Series(arr).astype("M8[ns]")
 
-    expected = pd.Series([1, iNaT]).astype("M8[ns]")
+    expected = pd.Series([1, iNaT, iNaT]).astype("M8[ns]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["M8", "m8"])
+def test_astype_masked_float_to_datetimelike_no_unit(dtype):
+    # GH#68926 an out-of-range value must not preempt the unitless-dtype
+    #  complaint, which is what the narrowing would have to be checked against
+    ser = pd.Series(pd.array([np.inf], dtype="Float64"))
+
+    with pytest.raises(TypeError, match="values must have a unit specified"):
+        ser.astype(dtype)
+
+
+@pytest.mark.parametrize("dtype", ["M8[10s]", "m8[10s]"])
+@pytest.mark.parametrize("box", ["numpy", "masked"])
+def test_astype_float_to_datetimelike_multiplier_dtype(dtype, box):
+    # GH#68926 a multiplier dtype is refused whatever the values, so the
+    #  out-of-range guard must not preempt it with the multiplier stripped off
+    numpy_box = box == "numpy"
+    data = np.array([np.inf]) if numpy_box else pd.array([np.inf], dtype="Float64")
+
+    with tm.maybe_produces_warning(
+        RuntimeWarning, numpy_box, match="invalid value", check_stacklevel=False
+    ):
+        with pytest.raises(ValueError, match="multiplier are not supported"):
+            pd.Series(data).astype(dtype)
 
 
 def test_astype_float32_to_datetime64_out_of_bounds():
