@@ -1374,19 +1374,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         else:
             if isinstance(key, SparseArray):
-                # NOTE: If we guarantee that SparseDType(bool)
-                # has only fill_value - true, false or nan
-                # (see GH PR 44955)
-                # we can apply mask very fast:
                 if is_bool_dtype(key):
-                    if isna(key.fill_value):
+                    if len(key) != len(self):
+                        # the fast path below skips check_array_indexer, which
+                        #  would raise here
+                        raise IndexError(
+                            f"Boolean index has wrong length: "
+                            f"{len(key)} instead of {len(self)}"
+                        )
+                    # GH#45284 a stored value may equal the fill value, so select
+                    #  on sp_values rather than on which positions are stored
+                    if isna(key.fill_value) or not key.fill_value:
                         return self.take(key.sp_index.indices[key.sp_values])
-                    if not key.fill_value:
-                        return self.take(key.sp_index.indices)
-                    n = len(self)
-                    mask = np.full(n, True, dtype=np.bool_)
-                    mask[key.sp_index.indices] = False
-                    return self.take(np.arange(n)[mask])
+                    mask = np.full(len(self), True, dtype=np.bool_)
+                    mask[key.sp_index.indices] = key.sp_values
+                    return self.take(np.flatnonzero(mask))
                 else:
                     key = np.asarray(key)
 
