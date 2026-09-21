@@ -207,6 +207,22 @@ class TestReductions:
         with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
+    @pytest.mark.parametrize(
+        "dtype", ["int64", "float64", "Int64", "category", "datetime64[ns]", "object"]
+    )
+    @pytest.mark.parametrize("op", ["argmin", "argmax"])
+    def test_argminmax_python_scalars(
+        self, index_or_series, dtype, op, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series([1, 3, 2], dtype=dtype)
+        result = getattr(obj, op)()
+        assert result == (0 if op == "argmin" else 1)
+        if using_python_scalars:
+            assert type(result) is int
+        else:
+            assert isinstance(result, np.integer)
+
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
