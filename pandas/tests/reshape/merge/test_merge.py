@@ -2971,6 +2971,35 @@ def test_merge_how_right_key_dtype_with_duplicate_keys():
     assert right_result["key"].dtype == "float64"
 
 
+def test_merge_how_right_key_dtype_with_duplicate_numeric_keys_preserves_right():
+    # GH#56454
+    left = DataFrame(
+        {"key": Series([1.0, 1.0, 2.0], dtype="float64"), "a": [10, 11, 20]}
+    )
+    right = DataFrame({"key": Series([1, 2], dtype="int64"), "b": [100, 200]})
+
+    right_result = left.merge(right, on="key", how="right")
+    left_result = right.merge(left, on="key", how="left")
+
+    tm.assert_series_equal(right_result["key"], left_result["key"])
+    assert right_result["key"].dtype == "int64"
+
+
+def test_merge_how_right_key_dtype_with_duplicate_datetime_keys_preserves_right():
+    # GH#56454
+    values = [pd.Timestamp("2023-05-12"), pd.Timestamp("2023-05-13")]
+    left = DataFrame({"key": values[:1] + values[:1] + values[1:]})
+    left["key"] = left["key"].dt.as_unit("us")
+    right = DataFrame({"key": values})
+    right["key"] = right["key"].dt.as_unit("ns")
+
+    right_result = left.merge(right, on="key", how="right")
+    left_result = right.merge(left, on="key", how="left")
+
+    tm.assert_series_equal(right_result["key"], left_result["key"])
+    assert right_result["key"].dtype == "datetime64[ns]"
+
+
 def test_merge_how_right_key_dtype_with_unmatched_rows():
     # GH#56454
     # A right join keeps every right-frame row, so the shared key column

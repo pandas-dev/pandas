@@ -1429,10 +1429,21 @@ class _MergeOperation:
                     key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     if no_reindex_needed:
                         result_dtype = rvals.dtype
-                    elif is_numeric_dtype(lvals.dtype) and is_numeric_dtype(
-                        rvals.dtype
+                    elif reindex_without_fill and (
+                        (
+                            lib.is_np_dtype(lvals.dtype, "biufc")
+                            and lib.is_np_dtype(rvals.dtype, "biufc")
+                        )
+                        or (
+                            lib.is_np_dtype(lvals.dtype, "M")
+                            and lib.is_np_dtype(rvals.dtype, "M")
+                        )
                     ):
-                        result_dtype = find_common_type([lvals.dtype, rvals.dtype])
+                        # With duplicate keys and no missing rows, every
+                        # output key value comes from the right frame. Keep
+                        # its dtype rather than re-running dtype resolution
+                        # from the left-retained result column.
+                        result_dtype = rvals.dtype
                     elif name in result.columns:
                         result_dtype = result[name].dtype
                     elif name in result.index.names:
