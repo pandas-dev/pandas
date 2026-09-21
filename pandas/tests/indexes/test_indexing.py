@@ -361,22 +361,22 @@ class TestPutmask:
 
 
 @pytest.mark.parametrize(
-    "dtype, expected_type",
+    "dtype, expected",
     [
-        ("int64", int),
-        ("float64", float),
-        ("Int64", int),
-        ("category", int),
-        ("datetime64[ns]", pd.Timestamp),
+        ("int64", 2),
+        ("float64", 2.0),
+        ("Int64", 2),
+        ("category", 2),
+        ("datetime64[ns]", pd.Timestamp(2)),
     ],
 )
-def test_getitem_scalar_python_scalars(dtype, expected_type, using_python_scalars):
+def test_getitem_scalar_python_scalars(dtype, expected, using_python_scalars):
     # GH#64266
     idx = pd.Index([1, 2, 3], dtype=dtype)
     result = idx[1]
-    assert result == idx.tolist()[1]
-    if using_python_scalars or expected_type is pd.Timestamp:
-        assert type(result) is expected_type
+    assert result == expected
+    if using_python_scalars or isinstance(expected, pd.Timestamp):
+        assert type(result) is type(expected)
     else:
         assert isinstance(result, np.generic)
 
