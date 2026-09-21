@@ -1962,6 +1962,333 @@ def test_setitem_invalid_dtype(data):
         data[:] = fill_value
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.date_range("2016-01-01", periods=3, tz="UTC")._data,
+        pd.date_range("2016-01-01", periods=3)._data,
+        pd.timedelta_range("1D", periods=3)._data,
+        pd.period_range("2016-01-01", periods=3, freq="D")._data,
+        np.array(["2016-01-01"] * 3, dtype="M8[ns]"),
+        np.array([1, 2, 3], dtype="m8[s]"),
+        pd.array([date(2016, 1, 1)] * 3, dtype=ArrowDtype(pa.date32())),
+        pd.array([time(1, 2)] * 3, dtype=ArrowDtype(pa.time64("us"))),
+        pa.array([1, 2, 3], type=pa.timestamp("us")),
+        pd.Timestamp("2016-01-01"),
+        pd.Timedelta("1D"),
+        date(2016, 1, 1),
+        time(1, 2),
+    ],
+)
+def test_setitem_temporal_into_numeric_raises(value):
+    # GH#68419 pyarrow would convert these into the integer storage instead of
+    #  raising the way every other dtype does
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = value
+
+    ser = pd.Series([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.iloc[:] = value
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+@pytest.mark.parametrize("value", [np.array([1, 2, 3]), np.array([1.0, 2.0, 3.0]), 1])
+def test_setitem_numeric_into_temporal_raises(dtype, value):
+    # GH#68419 mirror of test_setitem_temporal_into_numeric_raises
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = value
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+def test_setitem_oversized_int_scalar_into_temporal_raises(dtype):
+    # GH#68419 an int too wide for any integer dtype infers to object, which would
+    #  leave it unsettled; numpy M8/m8 raise this same TypeError for it
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = 2**70
+
+
+def test_setitem_decimal_scalar_into_temporal_raises():
+    # GH#68419 infer_dtype_from_scalar maps a Decimal to object, which would leave
+    #  the scalar reinterpreting while the decimal128 array form raises
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = Decimal(1)
+
+
+def test_setitem_decimal_scalar_into_decimal_self_accepted():
+    # GH#68419 counterpart of test_setitem_decimal_scalar_into_temporal_raises
+    dtype = ArrowDtype(pa.decimal128(10, 2))
+    arr = pd.array([Decimal("1.00")] * 2, dtype=dtype)
+    arr[0] = Decimal("2.00")
+    tm.assert_extension_array_equal(
+        arr, pd.array([Decimal("2.00"), Decimal("1.00")], dtype=dtype)
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.DatetimeIndex(["2017-01-01"] * 3)._data,
+        np.array(["2017-01-01"] * 3, dtype="M8[ns]"),
+        np.array(["2017-01-01"] * 3, dtype="U10"),
+        np.array(["2017-01-01"] * 3, dtype=object),
+        pd.arrays.SparseArray(np.array(["2017-01-01"] * 3, dtype="M8[ns]")),
+        pd.Categorical(pd.DatetimeIndex(["2017-01-01"] * 3)),
+        pd.array(["2017-01-01"] * 3, dtype="string"),
+        pd.array(["2017-01-01"] * 3, dtype=ArrowDtype(pa.string())),
+        pd.array(["2017-01-01"] * 3, dtype=ArrowDtype(pa.large_string())),
+        pd.array(
+            [pd.Timestamp("2017-01-01")] * 3, dtype="timestamp[ns][pyarrow]"
+        ).astype(ArrowDtype(pa.dictionary(pa.int32(), pa.timestamp("ns")))),
+        pd.Timestamp("2017-01-01"),
+    ],
+)
+def test_setitem_temporal_still_accepted(value):
+    # GH#68419 the temporal check must not reject what already worked; a dtype
+    #  it cannot classify has to fall through rather than count as non-temporal
+    arr = pd.array([pd.Timestamp("2016-01-01")] * 3, dtype="timestamp[ns][pyarrow]")
+    arr[:] = value
+    expected = pd.array(
+        [pd.Timestamp("2017-01-01")] * 3, dtype="timestamp[ns][pyarrow]"
+    )
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", [pa.dictionary(pa.int32(), pa.timestamp("ns")), pa.string()]
+)
+def test_setitem_temporal_into_unsettled_self_accepted(pa_type):
+    # GH#68419 the self side is three-state too: a dictionary self is temporal
+    #  via its value_type, and a string self settles nothing
+    dtype = ArrowDtype(pa_type)
+    arr = pd.array([pd.Timestamp("2016-01-01")] * 3, dtype="timestamp[ns][pyarrow]")
+    arr = arr.astype(dtype)
+    value = pd.DatetimeIndex(["2017-01-01"] * 3)._data
+    if pa.types.is_dictionary(pa_type):
+        # pyarrow cannot build a dictionary array from a numpy-backed value
+        value = pd.array(value, dtype="timestamp[ns][pyarrow]").astype(dtype)
+    arr[:] = value
+    assert arr.dtype == dtype
+    assert not arr.isna().any()
+    expected = pd.Timestamp("2017-01-01")
+    assert arr.astype("timestamp[ns][pyarrow]")[0] == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type, value",
+    [
+        (pa.string(), pd.Timestamp("2016-01-01")),
+        (pa.large_string(), pd.Timestamp("2016-01-01")),
+        (pa.binary(), pd.Timestamp("2016-01-01")),
+        (pa.duration("ns"), pd.Timestamp("2016-01-01")),
+        (pa.timestamp("ns"), pd.Timedelta("1s")),
+        (pa.time64("us"), pd.Timedelta("1s")),
+        (pa.time32("s"), pd.Timedelta("1s")),
+    ],
+)
+def test_setitem_temporal_scalar_into_mismatched_self_raises(pa_type, value):
+    # GH#68419 _box_pa_scalar read pa_type.unit whatever the target was, so a
+    #  string self raised AttributeError and a mismatched temporal self silently
+    #  stored the integer
+    arr = pd.array([None, None], dtype=ArrowDtype(pa_type))
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = value
+
+
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()])
+@pytest.mark.parametrize(
+    "value", [pd.Timestamp("2016-01-05"), pd.Timestamp("2016-01-05 12:30:45")]
+)
+def test_setitem_timestamp_into_date_self(pa_type, value):
+    # GH#68419 a Timestamp is a valid date value; reaching for date32's
+    #  nonexistent .unit used to make this an AttributeError. A time component is
+    #  dropped, matching pd.array([value], dtype=ArrowDtype(pa_type))
+    arr = pd.array([date(2016, 1, 1)] * 2, dtype=ArrowDtype(pa_type))
+    arr[0] = value
+    expected = pd.array([date(2016, 1, 5), date(2016, 1, 1)], dtype=ArrowDtype(pa_type))
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_fillna_temporal_into_string_self_accepted():
+    # GH#68419 filling a string column with datetimes is a string conversion,
+    #  not an integer reinterpretation, and must keep working
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    result = ser.fillna(pd.Series(pd.date_range("2016-01-01", periods=2)))
+    assert result.dtype == ArrowDtype(pa.string())
+    assert result[0] == "a"
+    assert result[1] == "2016-01-02 00:00:00.000000"
+
+
+def test_fillna_temporal_scalar_into_string_self_raises():
+    # GH#68419 the scalar spelling used to raise AttributeError. It stays stricter
+    #  than the array spelling above, which pyarrow converts
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(pd.Timestamp("2016-01-01"))
+
+
+def test_setitem_numeric_still_accepted():
+    # GH#68419 counterpart of test_setitem_temporal_still_accepted
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:] = np.array([4, 5, 6])
+    tm.assert_extension_array_equal(arr, pd.array([4, 5, 6], dtype="int64[pyarrow]"))
+
+
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "timestamp[ns][pyarrow]"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        pd.NA,
+        pd.NaT,
+        np.nan,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        [None, None, None],
+        pa.array([None] * 3),
+        pd.array([None] * 3, dtype=ArrowDtype(pa.null())),
+    ],
+)
+def test_setitem_na_not_rejected(dtype, value):
+    # GH#68419 the temporal check must not reject NA of any flavor; a null-typed or
+    #  NaT-scalar value carries a dtype but still settles nothing. Int64 rejects NaT
+    #  here; that divergence is pre-existing
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    arr[:] = value
+    assert arr.isna().all()
+
+
+@pytest.mark.parametrize(
+    "pa_type", [pa.duration("ns"), pa.timestamp("ns"), pa.time64("us"), pa.int64()]
+)
+def test_setitem_typed_null_scalar_not_rejected(pa_type):
+    # GH#68419 a typed null pa.Scalar is just "assign NA"; isna() does not
+    #  recognize it, so the check has to look at is_valid
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:] = pa.scalar(None, type=pa_type)
+    assert arr.isna().all()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.array([None] * 3, dtype="timestamp[ns][pyarrow]"),
+        pa.array([None] * 3, type=pa.timestamp("ns")),
+        pd.DatetimeIndex([pd.NaT] * 3)._data,
+    ],
+)
+def test_setitem_all_na_temporal_array_still_raises(value):
+    # GH#68419 an all-NA array still carries a temporal dtype, and numpy int64
+    #  and Int64 both reject it; only a *scalar* NA means "just assign NA"
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = value
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.array([np.nan] * 3),
+        np.array([np.nan] * 3, dtype="float32"),
+        pd.array([None] * 3, dtype="Float64"),
+        pd.array([None] * 3, dtype="double[pyarrow]"),
+    ],
+)
+def test_setitem_all_na_float_array_not_rejected(dtype, value):
+    # GH#68419 an all-NaN float array carries no values to reinterpret. Rejecting it
+    #  would break where/fillna against an alignment-produced NaN column, which numpy
+    #  M8 upcasts to object; DatetimeArray setitem is stricter and is not followed here.
+    #  The masked and pyarrow spellings work only because the escape returns typed nulls
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    arr[:] = value
+    assert arr.isna().all()
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+def test_setitem_empty_float_array_not_rejected(dtype):
+    # GH#68419 an empty value is vacuously all-NA
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    arr[[]] = np.array([], dtype=float)
+    assert not arr.isna().any()
+
+
+def test_setitem_2d_all_na_float_array_still_raises():
+    # GH#68419 the all-NA escape sizes its nulls with len(), which reads only axis 0,
+    #  so a 2-D value has to stay with _box_pa rather than be flattened
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(ValueError, match="Mask must be 1D"):
+        arr[:] = np.full((3, 1), np.nan)
+
+
+def test_setitem_partial_na_float_array_still_raises():
+    # GH#68419 the all-NA escape must not widen to "contains NA": the non-NA
+    #  entry of [nan, 1.0, nan] is reinterpreted as 1ns past the epoch
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = np.array([np.nan, 1.0, np.nan])
+
+
+@pytest.mark.parametrize("other_dtype", ["float64", "Float64", "double[pyarrow]"])
+def test_where_fillna_all_na_float_other_not_rejected(other_dtype):
+    # GH#68419 alignment routinely produces an all-NaN float column, and both
+    #  reach _validate_setitem_value
+    ser = pd.Series(
+        pd.date_range("2016-01-01", periods=3), dtype="timestamp[ns][pyarrow]"
+    )
+    # None, not np.nan: a masked or Arrow float built from np.nan holds NaN rather
+    #  than NA once future.distinguish_nan_and_na is on, which _is_all_na rejects
+    result = ser.where(
+        np.array([True, False, True]), pd.Series([None] * 3, dtype=other_dtype)
+    )
+    assert result.dtype == "timestamp[ns][pyarrow]"
+    assert result.isna().tolist() == [False, True, False]
+
+    ser = pd.Series([pd.Timestamp("2016-01-01"), None], dtype="timestamp[ns][pyarrow]")
+    result = ser.fillna(pd.Series([None] * 2, dtype=other_dtype))
+    tm.assert_series_equal(result, ser)
+
+
+def test_fillna_temporal_reinterpretation_raises():
+    # GH#68419 fillna shares _validate_setitem_value, so the same
+    #  reinterpretation is rejected there
+    ser = pd.Series([1, None], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(pd.Series(pd.date_range("2016-01-01", periods=2)))
+
+    ser = pd.Series([pd.Timestamp("2016-01-01"), None], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(1)
+
+    result = ser.fillna(pd.Timestamp("2017-01-01"))
+    expected = pd.Series(
+        [pd.Timestamp("2016-01-01"), pd.Timestamp("2017-01-01")],
+        dtype="timestamp[ns][pyarrow]",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("meth", ["where", "mask"])
+def test_where_mask_temporal_reinterpretation_raises(meth):
+    # GH#68419 where/mask reach the guard through setitem
+    ser = pd.Series([1, 2, 3], dtype="int64[pyarrow]")
+    other = pd.Series(pd.date_range("2016-01-01", periods=3))
+    with pytest.raises(TypeError, match="Invalid value"):
+        getattr(ser, meth)(np.array([True, False, True]), other)
+
+
+@pytest.mark.parametrize("limit", [None, 1])
+def test_fillna_string_self_agrees_with_limit_path(limit):
+    # GH#68419 fillna shares _validate_setitem_value with __setitem__, so the
+    #  limit=None and limit=1 paths agree
+    arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
+    with pytest.raises(TypeError, match="Invalid value for dtype"):
+        arr.fillna(np.array([1, 2]), limit=limit)
+
+
 def test_from_arrow_respecting_given_dtype():
     date_array = pa.array(
         [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")], type=pa.date32()
