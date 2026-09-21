@@ -238,14 +238,14 @@ def test_skew_kurt_is_scale_invariant(roll_func, scale_factor):
     ],
 )
 def test_rolling_skew_kurt_recovers_after_empty_window(roll_func, values, window):
-    # GH-69037 removing the last observation from a window dropped nobs to zero
-    # and then divided by it, leaving the running moments NaN for every later
-    # window even where that window itself has no missing values.
+    # GH-69037
     obj = pd.Series(values)
     result = getattr(obj.rolling(window), roll_func)()
 
     tail = pd.Series(values[-window:])
-    expected = getattr(tail.rolling(window), roll_func)().iloc[-1]
+    expected = getattr(tail.rolling(window), roll_func)()
 
-    assert not np.isnan(expected)
-    tm.assert_almost_equal(result.iloc[-1], expected)
+    assert not np.isnan(expected.iloc[-1])
+    tm.assert_series_equal(
+        result.tail(window).reset_index(drop=True), expected
+    )
