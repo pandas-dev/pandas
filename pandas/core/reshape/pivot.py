@@ -543,10 +543,11 @@ def _compute_grand_margin(
                 if isinstance(aggfunc, str):
                     grand_margin[k] = getattr(v, aggfunc)(**kwargs)
                 elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], str):
-                        grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
-                    else:
-                        grand_margin[k] = aggfunc[k](v, **kwargs)
+                    if k in aggfunc:
+                        if isinstance(aggfunc[k], str):
+                            grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
+                        else:
+                            grand_margin[k] = aggfunc[k](v, **kwargs)
                 else:
                     grand_margin[k] = aggfunc(v, **kwargs)
             except TypeError:

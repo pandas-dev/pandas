@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_bool_dtype
@@ -120,3 +122,28 @@ def test_drop_preserves_datetimeindex_freq_and_tz(tz, unit):
     assert result.name == expected.name
     assert result.freq == expected.freq
     assert result.tz == expected.tz
+
+
+def test_drop_inplace_depr():
+    msg = "The inplace keyword in Series.drop is deprecated"
+
+    ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    ser_orig = ser.copy()
+    expected = pd.Series([2, 3], index=["b", "c"])
+
+    # does not use keyword, no warning
+    with tm.assert_produces_warning(False):
+        result = ser.drop("a")
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to false, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.drop("a", inplace=False)
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(ser, ser_orig)
+
+    # uses keyword, set to true, warning
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.drop("a", inplace=True)
+    tm.assert_series_equal(ser, expected)

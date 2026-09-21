@@ -577,7 +577,7 @@ class Styler(StylerRenderer):
             Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
             via the options ``io.excel.xlsx.writer`` or
             ``io.excel.xlsm.writer``.
-        merge_cells : bool or 'columns', default False
+        merge_cells : bool or 'columns', default True
             If True, write MultiIndex index and columns as merged cells.
             If 'columns', merge MultiIndex column cells only.
         encoding : str or None, default None
@@ -2946,8 +2946,8 @@ class Styler(StylerRenderer):
         Notes
         -----
         .. warning::
-           This method only works with the output methods ``to_html``, ``to_string``
-           and ``to_latex``.
+           This method only works with the output methods ``to_html``, ``to_string``,
+           ``to_latex`` and ``to_typst``.
 
            Other output methods, including ``to_excel``, ignore this hiding method
            and will display all data.

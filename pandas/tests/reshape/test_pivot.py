@@ -1721,9 +1721,7 @@ class TestPivotTable:
             values="Quantity",
             aggfunc="sum",
         )
-        # result columns carry a freq on the datetimelike MultiIndex levels that
-        #  the from_tuples expected does not; freq is not what this test checks
-        tm.assert_frame_equal(result, expected.T, check_freq=False)
+        tm.assert_frame_equal(result, expected.T)
 
     def test_pivot_datetime_tz(self):
         dates1 = pd.DatetimeIndex(
@@ -2332,7 +2330,6 @@ class TestPivotTable:
         expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
@@ -2353,7 +2350,7 @@ class TestPivotTable:
                 {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
 
-            msg = "The following operation may generate"
+            msg = f"may generate {2**32} cells"
             with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.pivot_table(
@@ -3277,6 +3274,21 @@ class TestPivot:
             index=expected_index, columns=expected_columns, dtype=dtype
         )
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dict_aggfunc_missing_col(self):
+        # GH#66151
+        df = pd.DataFrame(
+            {
+                "random1": [1.0, 2.0, 3.0, 4.0],
+                "random2": [10, 20, 30, 40],
+                "type": ["a", "a", "b", "b"],
+            }
+        )
+        result = df.pivot_table(index="type", aggfunc={"random1": "mean"}, margins=True)
+        expected = pd.DataFrame(
+            {"random1": [1.5, 3.5, 2.5]}, index=pd.Index(["a", "b", "All"], name="type")
+        )
         tm.assert_frame_equal(result, expected)
 
 
