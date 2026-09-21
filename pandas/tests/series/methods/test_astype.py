@@ -6,6 +6,7 @@ from importlib import reload
 import re
 import string
 import sys
+import warnings
 
 import numpy as np
 import pytest
@@ -865,12 +866,11 @@ def test_astype_masked_float_to_datetimelike_no_unit(dtype):
 def test_astype_float_to_datetimelike_multiplier_dtype(dtype, box):
     # GH#68926 a multiplier dtype is refused whatever the values, so the
     #  out-of-range guard must not preempt it with the multiplier stripped off
-    numpy_box = box == "numpy"
-    data = np.array([np.inf]) if numpy_box else pd.array([np.inf], dtype="Float64")
+    data = np.array([np.inf]) if box == "numpy" else pd.array([np.inf], dtype="Float64")
 
-    with tm.maybe_produces_warning(
-        RuntimeWarning, numpy_box, match="invalid value", check_stacklevel=False
-    ):
+    with warnings.catch_warnings():
+        # numpy may warn on the saturating cast before pandas rejects the dtype
+        warnings.simplefilter("ignore", RuntimeWarning)
         with pytest.raises(ValueError, match="multiplier are not supported"):
             pd.Series(data).astype(dtype)
 
