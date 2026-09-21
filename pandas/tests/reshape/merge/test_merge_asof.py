@@ -1998,6 +1998,15 @@ class TestAsOfMerge:
                 tolerance=-1,
             )
 
+    def test_tolerance_negative_one_nanosecond(self, trades, quotes):
+        # GH#58517
+        msg = "tolerance must be positive"
+
+        with pytest.raises(MergeError, match=msg):
+            pd.merge_asof(
+                trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta(-1)
+            )
+
     def test_non_sorted(self, trades, quotes):
         trades = trades.sort_values("time", ascending=False)
         quotes = quotes.sort_values("time", ascending=False)
@@ -3365,6 +3374,9 @@ class TestAsOfMerge:
 @pytest.mark.parametrize(
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
 )
 def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130

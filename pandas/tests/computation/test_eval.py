@@ -52,19 +52,20 @@ from pandas.util.version import Version
 
 numexpr = import_optional_dependency("numexpr", errors="ignore")
 
+skip_if_no_numexpr = pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
+
 
 @pytest.fixture(
     params=(
         pytest.param(
             engine,
-            marks=[
-                pytest.mark.skipif(
-                    engine == "numexpr" and not USE_NUMEXPR,
-                    reason=f"numexpr enabled->{USE_NUMEXPR}, "
-                    f"installed->{NUMEXPR_INSTALLED}",
-                ),
-                td.skip_if_no("numexpr"),
-            ],
+            marks=pytest.mark.skipif(
+                engine == "numexpr" and not USE_NUMEXPR,
+                reason=f"numexpr enabled->{USE_NUMEXPR}, "
+                f"installed->{NUMEXPR_INSTALLED}",
+            ),
         )
         for engine in ENGINES
     )
@@ -1702,14 +1703,14 @@ class TestScope:
             pd.eval(e, engine=engine, parser=parser, global_dict={})
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_invalid_engine():
     msg = "Invalid engine 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
         pd.eval("x + y", local_dict={"x": 1, "y": 2}, engine="asdf")
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 @pytest.mark.parametrize(
     ("use_numexpr", "expected"),
     (
@@ -1726,7 +1727,7 @@ def test_numexpr_option_respected(use_numexpr, expected):
         assert result == expected
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_numexpr_option_incompatible_op():
     # GH 32556
     with pd.option_context("compute.use_numexpr", False):
@@ -1738,7 +1739,7 @@ def test_numexpr_option_incompatible_op():
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_invalid_parser():
     msg = "Invalid parser 'asdf' passed"
     with pytest.raises(KeyError, match=msg):
@@ -1949,12 +1950,97 @@ def test_validate_bool_args(value):
         pd.eval("2+2", inplace=value)
 
 
-@td.skip_if_no("numexpr")
+@skip_if_no_numexpr
 def test_eval_float_div_numexpr():
     # GH 59736
     result = pd.eval("1 / 2", engine="numexpr")
     expected = 0.5
     assert result == expected
+
+
+def test_call_with_binop_argument():
+    # GH#24670 a compound call argument has no .value to read off, as the
+    #  unary case in test_unary_in_function
+    floor = np.floor  # noqa: F841
+    result = pd.eval("floor(1.5 + 2)")
+    assert result == 3.0
+
+
+def test_slice_subscript(engine, parser):
+    # GH#49905 visit_Slice's slice object was stringified back into a slice(...)
+    #  call, which is not a supported function
+    df = pd.DataFrame({"a": ["example", "sample"]})
+    result = df.query("a.str[1:3].str.contains('xa')", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[:1])
+
+
+def test_slice_subscript_with_unary_bound(engine, parser):
+    # GH#49905 a negative slice bound has no .value to read off, like the call
+    #  argument in test_call_with_binop_argument
+    df = pd.DataFrame({"a": ["example", "sample"]})
+    result = df.query("a.str[0:-1].str.contains('xampl')", engine=engine, parser=parser)
+    tm.assert_frame_equal(result, df.iloc[:1])
+
+
+def test_slice_subscript_computed_bounds_and_step(engine, parser):
+    # GH#49905
+    arr = np.arange(6)  # noqa: F841
+    step = 2  # noqa: F841
+    result = pd.eval("arr[step - 1 :: step]", engine=engine, parser=parser)
+    tm.assert_numpy_array_equal(result, np.array([1, 3, 5]))
+
+
+def test_slice_subscript_from_variable(engine, parser):
+    # GH#49905 a slice held in a variable reached visit_Subscript as a Term and
+    #  was re-evaluated through numexpr, which has no object dtype
+    arr = np.arange(10)
+    bounds = slice(1, 3)  # noqa: F841
+    result = pd.eval("arr[bounds]", engine=engine, parser=parser)
+    tm.assert_numpy_array_equal(result, arr[1:3])
+
+
+def test_subscript_non_numeric_key(engine, parser):
+    # GH#49905 list and string subscript keys were re-evaluated through numexpr
+    arr = np.arange(10)
+    positions = [0, 2]  # noqa: F841
+    result = pd.eval("arr[positions]", engine=engine, parser=parser)
+    tm.assert_numpy_array_equal(result, arr[[0, 2]])
+
+    ser = pd.Series([1, 2], index=["a", "b"])  # noqa: F841
+    label = "a"  # noqa: F841
+    assert pd.eval("ser[label]", engine=engine, parser=parser) == 1
+
+
+def test_subscript_op_valued(engine, parser):
+    # GH#49905 the Op arms of visit_Subscript: an Op base reaches the
+    #  except-AttributeError fallback, an Op key is evaluated by the engine
+    arr = np.arange(10)
+    offset = 2  # noqa: F841
+    result = pd.eval("(arr + arr)[1:3]", engine=engine, parser=parser)
+    tm.assert_numpy_array_equal(result, (arr + arr)[1:3])
+
+    assert pd.eval("arr[offset + 1]", engine=engine, parser=parser) == arr[3]
+
+
+@skip_if_no_numexpr
+def test_subscript_op_key_uses_engine():
+    # GH#49905 an Op key is evaluated by the engine, so it matches the same
+    #  expression at top level; only numexpr can tell this from Python space
+    ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+    left = pd.Series([1, 2, 3], index=["a", "b", "c"])  # noqa: F841
+    right = pd.Series([0, 5, 0], index=["c", "b", "a"])  # noqa: F841
+    expected = ser[pd.eval("left > right", engine="numexpr")]
+    result = pd.eval("ser[left > right]", engine="numexpr")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("expr", ["arr[1, 2]", "arr[(1, 2)]", "arr[1:3, 2]"])
+def test_multi_dimensional_subscript_raises(expr, engine, parser):
+    # GH#49905 a tuple key becomes a list, so arr[1, 2] would select arr[[1, 2]]
+    arr = np.arange(12).reshape(3, 4)  # noqa: F841
+    msg = "multi-dimensional subscripts are not supported"
+    with pytest.raises(NotImplementedError, match=msg):
+        pd.eval(expr, engine=engine, parser=parser)
 
 
 def test_method_calls_on_binop():

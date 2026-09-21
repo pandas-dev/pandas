@@ -89,12 +89,18 @@ columns with a common dtype (:issue:`52788`).
 
 *New Behavior*
 
-.. ipython:: python
+.. code-block:: pycon
 
-    df = pd.DataFrame({"a": [1, 1, 2, 1], "b": [np.nan, 2.0, 3.0, 4.0]}, dtype="Int64")
-    df.sum()
-    df = df.astype("int64[pyarrow]")
-    df.sum()
+   >>> df = pd.DataFrame({"a": [1, 1, 2, 1], "b": [np.nan, 2.0, 3.0, 4.0]}, dtype="Int64")
+   >>> df.sum()
+   a    5
+   b    9
+   dtype: Int64
+   >>> df = df.astype("int64[pyarrow]")
+   >>> df.sum()
+   a    5
+   b    9
+   dtype: int64[pyarrow]
 
 Notice that the dtype is now a masked dtype and PyArrow dtype, respectively, while previously it was a NumPy integer dtype.
 
@@ -171,14 +177,24 @@ and ``na_action="ignore"`` did not work correctly for any :class:`.ExtensionArra
 
 *New behavior*:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    ser = pd.Series(["a", "b", np.nan], dtype="category")
-    ser.map(str.upper, na_action="ignore")
-    df = pd.DataFrame(ser)
-    df.map(str.upper, na_action="ignore")
-    idx = pd.Index(ser)
-    idx.map(str.upper, na_action="ignore")
+   >>> ser = pd.Series(["a", "b", np.nan], dtype="category")
+   >>> ser.map(str.upper, na_action="ignore")
+   0      A
+   1      B
+   2    NaN
+   dtype: category
+   Categories (2, object): ['A', 'B']
+   >>> df = pd.DataFrame(ser)
+   >>> df.map(str.upper, na_action="ignore")
+        0
+   0    A
+   1    B
+   2  NaN
+   >>> idx = pd.Index(ser)
+   >>> idx.map(str.upper, na_action="ignore")
+   CategoricalIndex(['A', 'B', nan], categories=['A', 'B'], ordered=False, dtype='category')
 
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and the default for :meth:`Categorical.map` will change
@@ -198,30 +214,63 @@ The previous implementation had two main behavioral downsides.
 
 The new implementation (``future_stack=True``) will no longer unnecessarily introduce NA values when stacking multiple levels and will never sort. As such, the arguments ``dropna`` and ``sort`` are not utilized and must remain unspecified when using ``future_stack=True``. These arguments will be removed in the next major release.
 
-.. ipython:: python
+.. code-block:: pycon
 
-    columns = pd.MultiIndex.from_tuples([("B", "d"), ("A", "c")])
-    df = pd.DataFrame([[0, 2], [1, 3]], index=["z", "y"], columns=columns)
-    df
+   >>> columns = pd.MultiIndex.from_tuples([("B", "d"), ("A", "c")])
+   >>> df = pd.DataFrame([[0, 2], [1, 3]], index=["z", "y"], columns=columns)
+   >>> df
+      B  A
+      d  c
+   z  0  2
+   y  1  3
 
 In the previous version (``future_stack=False``), the default of ``dropna=True`` would remove unnecessarily introduced NA values but still coerce the dtype to ``float64`` in the process. In the new version, no NAs are introduced and so there is no coercion of the dtype.
 
-.. ipython:: python
-    :okwarning:
+.. code-block:: pycon
 
-    df.stack([0, 1], future_stack=False, dropna=True)
-    df.stack([0, 1], future_stack=True)
+   >>> df.stack([0, 1], future_stack=False, dropna=True)
+   z  A  c    2.0
+      B  d    0.0
+   y  A  c    3.0
+      B  d    1.0
+   dtype: float64
+   >>> df.stack([0, 1], future_stack=True)
+   z  B  d    0
+      A  c    2
+   y  B  d    1
+      A  c    3
+   dtype: int64
 
 If the input contains NA values, the previous version would drop those as well with ``dropna=True`` or introduce new NA values with ``dropna=False``. The new version persists all values from the input.
 
-.. ipython:: python
-    :okwarning:
+.. code-block:: pycon
 
-    df = pd.DataFrame([[0, 2], [np.nan, np.nan]], columns=columns)
-    df
-    df.stack([0, 1], future_stack=False, dropna=True)
-    df.stack([0, 1], future_stack=False, dropna=False)
-    df.stack([0, 1], future_stack=True)
+   >>> df = pd.DataFrame([[0, 2], [np.nan, np.nan]], columns=columns)
+   >>> df
+        B    A
+        d    c
+   0  0.0  2.0
+   1  NaN  NaN
+   >>> df.stack([0, 1], future_stack=False, dropna=True)
+   0  A  c    2.0
+      B  d    0.0
+   dtype: float64
+   >>> df.stack([0, 1], future_stack=False, dropna=False)
+   0  A  d    NaN
+         c    2.0
+      B  d    0.0
+         c    NaN
+   1  A  d    NaN
+         c    NaN
+      B  d    NaN
+         c    NaN
+   dtype: float64
+   >>> df.stack([0, 1], future_stack=True)
+   0  B  d    0.0
+      A  c    2.0
+   1  B  d    NaN
+      A  c    NaN
+   dtype: float64
 
 .. _whatsnew_210.enhancements.other:
 
@@ -444,22 +493,30 @@ In a future version, these will raise an error and you should cast to a common d
 
 To retain the current behaviour, in the case above you could cast ``ser`` to ``object`` dtype first:
 
-.. ipython:: python
+.. code-block:: pycon
 
-  ser = pd.Series([1, 2, 3])
-  ser = ser.astype('object')
-  ser[0] = 'not an int64'
-  ser
+   >>> ser = pd.Series([1, 2, 3])
+   >>> ser = ser.astype('object')
+   >>> ser[0] = 'not an int64'
+   >>> ser
+   0    not an int64
+   1               2
+   2               3
+   dtype: object
 
 Depending on the use-case, it might be more appropriate to cast to a different dtype.
 In the following, for example, we cast to ``float64``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-  ser = pd.Series([1, 2, 3])
-  ser = ser.astype('float64')
-  ser[0] = 1.1
-  ser
+   >>> ser = pd.Series([1, 2, 3])
+   >>> ser = ser.astype('float64')
+   >>> ser[0] = 1.1
+   >>> ser
+   0    1.1
+   1    2.0
+   2    3.0
+   dtype: float64
 
 For further reading, please see https://pandas.pydata.org/pdeps/0006-ban-upcasting.html.
 
@@ -493,20 +550,24 @@ Parsing datetimes with mixed time zones is deprecated and shows a warning unless
 In order to silence this warning and avoid an error in a future version of pandas,
 please specify ``utc=True``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
-    pd.to_datetime(data, utc=True)
+   >>> data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+   >>> pd.to_datetime(data, utc=True)
+   DatetimeIndex(['2019-12-31 18:00:00+00:00', '2019-12-31 23:00:00+00:00'], dtype='datetime64[ns, UTC]', freq=None)
 
 To create a ``Series`` with mixed offsets and ``object`` dtype, please use ``apply``
 and ``datetime.datetime.strptime``:
 
-.. ipython:: python
+.. code-block:: pycon
 
-    import datetime as dt
+   >>> import datetime as dt
 
-    data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
-    pd.Series(data).apply(lambda x: dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S%z'))
+   >>> data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+   >>> pd.Series(data).apply(lambda x: dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S%z'))
+   0    2020-01-01 00:00:00+06:00
+   1    2020-01-01 00:00:00+01:00
+   dtype: object
 
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^

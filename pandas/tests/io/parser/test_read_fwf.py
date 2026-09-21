@@ -982,6 +982,21 @@ def test_invalid_dtype_backend():
         read_fwf("test", dtype_backend="numpy")
 
 
+def test_dtype_category_infers_numeric_and_bool():
+    # GH#56044 read_fwf shares read_csv's category inference
+    data = """\
+  a      b
+  1   True
+  2  False
+  1   True
+"""
+    expected = pd.DataFrame(
+        {"a": pd.Categorical([1, 2, 1]), "b": pd.Categorical([True, False, True])}
+    )
+    result = read_fwf(StringIO(data), dtype="category")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.network
 @pytest.mark.single_cpu
 def test_url_urlopen(httpserver):
@@ -999,3 +1014,13 @@ A         B            C            D
         result = read_fwf(f).columns
 
     tm.assert_index_equal(result, expected)
+
+
+def test_skipfooter_counts_skiprows_lines():
+    # GH#36827 a skiprows line inside the footer still counts towards skipfooter
+    data = "A  B\n1  2\n3  4\n5  6\n7  8\nfooter"
+    colspecs = [(0, 1), (3, 4)]
+    result = read_fwf(StringIO(data), colspecs=colspecs, skiprows=[4], skipfooter=2)
+
+    expected = pd.DataFrame({"A": [1, 3, 5], "B": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)
