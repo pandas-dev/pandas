@@ -17,6 +17,23 @@ class TestFirstValidIndex:
         assert obj.iloc[:0].first_valid_index() is None
 
     @pytest.mark.parametrize(
+        "dtype, expected_type", [("int64", int), ("float64", float), ("Int64", int)]
+    )
+    def test_first_last_valid_index_python_scalars(
+        self, frame_or_series, dtype, expected_type, using_python_scalars
+    ):
+        # GH#64266
+        obj = frame_or_series(
+            [np.nan, 1.0, np.nan], index=pd.Index([10, 20, 30], dtype=dtype)
+        )
+        for result in [obj.first_valid_index(), obj.last_valid_index()]:
+            assert result == 20
+            if using_python_scalars:
+                assert type(result) is expected_type
+            else:
+                assert isinstance(result, np.generic)
+
+    @pytest.mark.parametrize(
         "empty",
         [
             pd.DataFrame(),
