@@ -4722,6 +4722,13 @@ class MultiIndex(Index):
                 return self[:0], self.names
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
+                if any(
+                    isinstance(entry, (str, bytes, bytearray, memoryview))
+                    for entry in other
+                ):
+                    # from_tuples would split such an entry into its elements
+                    #  and treat it as a tuple of level values, see GH#39699
+                    raise TypeError(msg)
                 try:
                     other = MultiIndex.from_tuples(other, names=self.names)
                 except (ValueError, TypeError) as err:
