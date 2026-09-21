@@ -1287,7 +1287,7 @@ def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
     sep: str | lib.NoDefault | None = lib.no_default,
-    delimiter: str | lib.NoDefault | None = None,
+    delimiter: str | lib.NoDefault | None = lib.no_default,
     # Column and Index Locations and Names
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
@@ -1891,7 +1891,7 @@ def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
     sep: str | lib.NoDefault | None = lib.no_default,
-    delimiter: str | lib.NoDefault | None = None,
+    delimiter: str | lib.NoDefault | None = lib.no_default,
     # Column and Index Locations and Names
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
@@ -3305,7 +3305,7 @@ def _refine_defaults_read(
         override values, a ParserWarning will be issued. See csv.Dialect
         documentation for more details.
     delimiter : str or object
-        Alias for sep.
+        Alias for sep, taking the same sentinel value when not provided.
     engine : {'c', 'python'}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
@@ -3342,17 +3342,18 @@ def _refine_defaults_read(
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
     if dialect is not None:
-        kwds["sep_override"] = delimiter is None and (
+        kwds["sep_override"] = delimiter is lib.no_default and (
             sep is lib.no_default or sep == delim_default
         )
 
-    if delimiter and (sep is not lib.no_default):
+    if delimiter is not lib.no_default and sep is not lib.no_default:
         raise ValueError("Specified a sep and a delimiter; you can only specify one.")
 
     kwds["names"] = None if names is lib.no_default else names
 
-    # Alias sep -> delimiter.
-    if delimiter is None:
+    # Alias sep -> delimiter. Both use lib.no_default rather than None as the
+    # "not passed" sentinel, so an explicit None means sniff (GH#47024).
+    if delimiter is lib.no_default:
         delimiter = sep
 
     # GH#43528, GH#51801: the C engine silently mis-parses these, as the field

@@ -1102,6 +1102,9 @@ def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     assert result["a"].tolist() == values
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("low_memory", [True, False])
 def test_pyarrow_string_fast_path_batched_columns(kwargs, low_memory):
@@ -1146,6 +1149,9 @@ def test_pyarrow_string_fast_path_batched_columns(kwargs, low_memory):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 @pytest.mark.parametrize("chunksize", [None, 10])
 def test_pyarrow_string_fast_path_batches_columns_together(chunksize, kwargs):
@@ -1168,6 +1174,9 @@ def test_pyarrow_string_fast_path_batches_columns_together(chunksize, kwargs):
             assert reader._engine._reader._largest_str_batch == 3
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_batch_spans_row_blocks(kwargs):
     # GH#68379: the sweep fills every queued column a block of rows at a time,
@@ -1198,6 +1207,9 @@ def test_pyarrow_string_fast_path_batch_spans_row_blocks(kwargs):
     assert result["c"].tolist() == trail
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
 def test_pyarrow_string_fast_path_batch_mixed_na_filter(kwargs):
     # GH#68379: "b" reaches the string path from the uint64-overflow fallback,
