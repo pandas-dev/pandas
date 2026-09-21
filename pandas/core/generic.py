@@ -885,7 +885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -2037,9 +2037,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in meta:
-                    if k in state and k != "_flags":
+                    # _metadata is handled below: assigning a pre-2.1 pickle's
+                    # ["name"] here would mask the class's ["_name"], see GH#61819
+                    if k in state and k not in ("_flags", "_metadata"):
                         v = state[k]
                         object.__setattr__(self, k, v)
+
+                if "_metadata" in state:
+                    # merge rather than replace, so a subclass that extends
+                    # _metadata per instance keeps its entries
+                    cls_meta = list(self._metadata)
+                    merged = list(dict.fromkeys(cls_meta + list(state["_metadata"])))
+                    if merged != cls_meta:
+                        object.__setattr__(self, "_metadata", merged)
 
                 for k, v in state.items():
                     if k not in meta:
@@ -4288,7 +4298,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # if we encounter an array-like and we only have 1 dim
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
-                return self._values[loc]
+                return self._ixs(loc, axis=0)
 
             if not drop_level and isinstance(index, MultiIndex):
                 # GH#6507 - honor drop_level=False for fully specified keys

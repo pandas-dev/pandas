@@ -72,7 +72,7 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   and different from ``'\s+'`` will be interpreted as regular expressions and
   will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
