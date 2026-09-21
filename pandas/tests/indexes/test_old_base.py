@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime
+import sys
 import weakref
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PY315
+from pandas.compat import PYPY, PY315
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
@@ -994,3 +995,42 @@ class TestNumericBase:
         result = type(simple_index)(["0", "1", "2"], dtype=simple_index.dtype)
         expected = type(simple_index)([0, 1, 2], dtype=simple_index.dtype)
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.skipif(PYPY, reason="sys.getsizeof not relevant for PyPy")
+def test_memory_usage_deep_engine_object_copy_not_shared():
+    # GH#66593 an arrow-backed str Index builds its engine on an object-dtype
+    # copy of the values; once built, the engine retains that array and its
+    # boxed strings, and memory_usage(deep=True) must account for them.
+    pytest.importorskip("pyarrow")
+    vals = [f"{'x' * 32}{i:08d}" for i in range(1000)]
+    idx = pd.Index(vals, dtype=pd.StringDtype("pyarrow"))
+
+    before = idx.memory_usage(deep=True)
+    idx.get_loc(idx[0])  # builds and caches the engine
+    after = idx.memory_usage(deep=True)
+
+    held = idx._engine.values
+    assert held is not idx._values  # the engine holds a distinct copy
+    expected_extra = held.nbytes + sum(
+        sys.getsizeof(s) for s in held if isinstance(s, str)
+    )
+    # the engine's retained object array and its PyUnicode payloads are counted
+    assert after - before >= expected_extra
+
+    # deep=False must not change (engine array is not counted shallowly)
+    assert idx.memory_usage() == idx.memory_usage(deep=False)
+
+
+def test_memory_usage_deep_engine_shared_values_not_double_counted():
+    # GH#66593 the engine of an object-dtype Index shares its values array
+    # with the Index; deep=True must not count it a second time
+    idx = pd.Index([f"{'x' * 32}{i:08d}" for i in range(100)], dtype=object)
+
+    before = idx.memory_usage(deep=True)
+    idx.get_loc(idx[0])
+    after = idx.memory_usage(deep=True)
+
+    assert idx._engine.values is idx._values
+    # only the hashtable grows, not the (already counted) values
+    assert after - before == idx._engine.sizeof(deep=True)
