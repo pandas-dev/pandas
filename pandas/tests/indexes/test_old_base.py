@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import PYPY, PY315
+from pandas.compat import (
+    PY315,
+    PYPY,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
