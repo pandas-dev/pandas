@@ -207,6 +207,22 @@ class TestReductions:
         with pytest.raises(ValueError, match="Encountered an NA value"):
             obj.argmax(skipna=False)
 
+    @pytest.mark.parametrize(
+        "dtype", ["int64", "float64", "Int64", "category", "datetime64[ns]", "object"]
+    )
+    @pytest.mark.parametrize("op", ["argmin", "argmax"])
+    def test_argminmax_python_scalars(
+        self, index_or_series, dtype, op, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series([1, 3, 2], dtype=dtype)
+        result = getattr(obj, op)()
+        assert result == (0 if op == "argmin" else 1)
+        if using_python_scalars:
+            assert type(result) is int
+        else:
+            assert isinstance(result, np.integer)
+
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
@@ -1042,7 +1058,7 @@ class TestSeriesReductions:
         df = pd.DataFrame(ser)
 
         # GH#34479
-        msg = "datetime64 type does not support operation '(any|all)'"
+        msg = "'(any|all)' with datetime64 dtypes is not supported"
         with pytest.raises(TypeError, match=msg):
             dta.all()
         with pytest.raises(TypeError, match=msg):
@@ -1876,3 +1892,14 @@ class TestSeriesMode:
         result = pd.Series(array, dtype=dtype).mode()
         expected = pd.Series(expected, dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("op_name", ["var", "std", "sem"])
+@pytest.mark.parametrize("ddof", [0, 1, 2])
+def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof):
+    # GH#68391 the sem method rejected ddof instead of forwarding it
+    arr = pd.array([1, 2, None, 4], dtype=any_numeric_ea_and_arrow_dtype)
+    expected = getattr(pd.Series([1.0, 2.0, 4.0]), op_name)(ddof=ddof)
+
+    tm.assert_almost_equal(getattr(arr, op_name)(ddof=ddof), expected)
+    assert pd.isna(getattr(arr, op_name)(skipna=False, ddof=ddof))

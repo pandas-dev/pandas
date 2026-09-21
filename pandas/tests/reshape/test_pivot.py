@@ -2330,7 +2330,6 @@ class TestPivotTable:
         expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
@@ -2351,7 +2350,7 @@ class TestPivotTable:
                 {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
 
-            msg = "The following operation may generate"
+            msg = f"may generate {2**32} cells"
             with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.pivot_table(

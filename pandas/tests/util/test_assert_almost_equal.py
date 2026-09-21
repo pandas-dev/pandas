@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -196,27 +198,69 @@ def test_assert_almost_equal_large_mixed_integer_float_rtol():
     _assert_almost_equal_both(a, b, check_dtype=False, rtol=1 / 2**60, atol=0)
 
 
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            np.array([2**60], dtype="int64"),
+            np.array([float(2**60)], dtype="float64"),
+        ),
+        (
+            np.array([-(2**60)], dtype="int64"),
+            np.array([float(-(2**60))], dtype="float64"),
+        ),
+        (
+            np.array([2**64 - 2048], dtype="uint64"),  # 2048 = float64 ULP here
+            np.array([float(2**64 - 2048)], dtype="float64"),
+        ),
+    ],
+)
+def test_assert_almost_equal_large_mixed_integer_float_equal(left, right):
+    # GH#66699 magnitudes above 2**53 bypass the array_equivalent fast path, so
+    #  the equal case has to be settled at full integer precision instead.
+    _assert_almost_equal_both(left, right, check_dtype=False, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            np.array([2**63 - 1], dtype="int64"),
+            np.array([float(2**63)], dtype="float64"),
+        ),
+        (
+            np.array([2**64 - 1], dtype="uint64"),
+            np.array([float(2**64)], dtype="float64"),
+        ),
+    ],
+)
+def test_assert_almost_equal_mixed_integer_float_out_of_range(left, right):
+    # GH#68568 the float rounds past the end of the integer dtype, so it has no
+    #  exact integer cast and the one-integer difference must still be reported
+    _assert_not_almost_equal_both(left, right, check_dtype=False, rtol=0, atol=0)
+
+
 def test_assert_almost_equal_large_mixed_integer_float_message():
     integer = 2**60 + 1
     floating = float(2**60)
 
-    with pytest.raises(AssertionError) as exc_info:
-        tm.assert_almost_equal(integer, floating, rtol=0, atol=0.5)
-
-    assert str(exc_info.value) == (
+    msg = re.escape(
         "expected 1152921504606846976.00000 but got 1152921504606846977.00000, "
         "with rtol=0, atol=0.5"
     )
+    # \Z not $, so a trailing newline cannot slip past
+    with pytest.raises(AssertionError, match=rf"^{msg}\Z"):
+        tm.assert_almost_equal(integer, floating, rtol=0, atol=0.5)
 
 
 def test_assert_almost_equal_2d_large_mixed_integer_float():
-    # GH#68366 the GH#66699 magnitude guard sends exactly-equal large integers
-    #  through the element loop, which must honour check_dtype like the 1-D case
-    big = np.array([[2**60, 1], [2, 3]], dtype="int64")
+    # GH#68366 the element loop must honour check_dtype in 2-D as well as 1-D;
+    #  the one-integer difference keeps this off the exact-match fast path
+    big = np.array([[2**60 + 1, 1], [2, 3]], dtype="int64")
+    flt = np.array([[float(2**60), 1.0], [2.0, 3.0]])
 
-    _assert_almost_equal_both(
-        big, big.astype("float64"), check_dtype=False, rtol=0, atol=0
-    )
+    _assert_almost_equal_both(big, flt, check_dtype=False, rtol=0, atol=1)
+    _assert_not_almost_equal_both(big, flt, check_dtype=False, rtol=0, atol=0)
 
 
 def test_assert_almost_equal_nested_arrays_check_dtype():
@@ -591,6 +635,34 @@ Iterable length are different
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal([1, 2], [3, 4, 5])
+
+
+@pytest.mark.parametrize(
+    "value",
+    [[1, 2], ([1, 2],), np.array([1, 2]), {1: None, 2: None}],
+    ids=["list", "tuple-with-list", "array", "dict"],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+def test_assert_almost_equal_iterable_length_mismatch_unhashable(value, reverse):
+    # GH#69014
+    left = [1, 2]
+    right = [value]
+    if reverse:
+        left, right = right, left
+
+    msg = (
+        "Iterable are different\n\nIterable length are different\n"
+        f"[left]:  {len(left)}\n[right]: {len(right)}"
+    )
+    with pytest.raises(AssertionError, match=f"^{re.escape(msg)}$"):
+        tm.assert_almost_equal(left, right)
+
+
+def test_assert_almost_equal_iterable_length_mismatch_diff():
+    # GH#69014: retain the extra diagnostic for hashable elements.
+    msg = "[diff]: [3]"
+    with pytest.raises(AssertionError, match=re.escape(msg)):
+        tm.assert_almost_equal([1, 2], [1, 2, 3])
 
 
 def test_assert_almost_equal_iterable_values_mismatch():
