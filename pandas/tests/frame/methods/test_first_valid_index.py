@@ -20,7 +20,7 @@ class TestFirstValidIndex:
         "dtype, expected_type", [("int64", int), ("float64", float), ("Int64", int)]
     )
     @pytest.mark.parametrize("method", ["first_valid_index", "last_valid_index"])
-    def test_first_last_valid_index_python_scalars(
+    def test_first_last_valid_result_type(
         self, frame_or_series, dtype, expected_type, method, using_python_scalars
     ):
         # GH#64266

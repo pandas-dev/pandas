@@ -227,7 +227,7 @@ class TestReductions:
         "dtype, expected_type", [("int64", int), ("float64", float), ("Int64", int)]
     )
     @pytest.mark.parametrize("op", ["idxmin", "idxmax"])
-    def test_idxminmax_python_scalars(
+    def test_idxminmax_result_type(
         self, dtype, expected_type, op, using_python_scalars
     ):
         # GH#64266
@@ -241,9 +241,7 @@ class TestReductions:
 
     @pytest.mark.parametrize("op", ["min", "max"])
     @pytest.mark.parametrize("monotonic", [True, False])
-    def test_multiindex_min_max_python_scalars(
-        self, op, monotonic, using_python_scalars
-    ):
+    def test_multiindex_min_max_result_type(self, op, monotonic, using_python_scalars):
         # GH#64266
         tuples = [(1, 1.5), (2, 2.5), (3, 3.5)]
         if not monotonic:

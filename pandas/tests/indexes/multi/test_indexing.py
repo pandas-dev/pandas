@@ -549,7 +549,7 @@ def test_getitem(idx):
     assert result2.equals(expected)
 
 
-def test_getitem_scalar_python_scalars(using_python_scalars):
+def test_getitem_scalar_result_type(using_python_scalars):
     # GH#64266
     mi = pd.MultiIndex.from_arrays([[1, 2], [1.5, 2.5]])
     result = mi[1]

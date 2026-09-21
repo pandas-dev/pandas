@@ -370,7 +370,7 @@ class TestPutmask:
         ("datetime64[ns]", pd.Timestamp(2)),
     ],
 )
-def test_getitem_scalar_python_scalars(dtype, expected, using_python_scalars):
+def test_getitem_scalar_result_type(dtype, expected, using_python_scalars):
     # GH#64266
     idx = pd.Index([1, 2, 3], dtype=dtype)
     result = idx[1]
