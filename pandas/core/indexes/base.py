@@ -49,6 +49,7 @@ from pandas._libs.tslibs import (
     tz_compare,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
@@ -5481,7 +5482,29 @@ class Index(IndexOpsMixin, PandasObject):
 
         # include our engine hashtable, only if it's already cached
         if "_engine" in self._cache:
-            result += self._engine.sizeof(deep=deep)
+            engine = self._engine
+            result += engine.sizeof(deep=deep)
+            # GH#66593 for dtypes whose engine target is an object-dtype copy
+            # of the values (e.g. arrow-backed strings), the engine retains
+            # that array and its boxed values for its lifetime, and
+            # _memory_usage above counted neither because they are not the
+            # Index's own array. Count them when deep=True and the mapping
+            # (and hence the engine's retained state) is live.
+            engine_values = getattr(engine, "values", None)
+            if (
+                deep
+                and not PYPY
+                and engine.is_mapping_populated
+                and isinstance(self._values, ArrowExtensionArray)
+                and isinstance(engine_values, np.ndarray)
+                and engine_values.dtype == _dtype_obj
+                # not already counted: shared with the Index's own array
+                and engine_values is not self._values
+                and engine_values is not getattr(self._values, "_ndarray", None)
+            ):
+                result += engine_values.nbytes + lib.memory_usage_of_objects(
+                    engine_values
+                )
         return result
 
     @final
