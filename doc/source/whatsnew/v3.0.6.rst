@@ -1,6 +1,6 @@
 .. _whatsnew_306:
 
-What's new in 3.0.6 (September XX, 2026)
+What's new in 3.0.6 (September 17, 2026)
 ----------------------------------------
 
 These are the changes in pandas 3.0.6. See :ref:`release` for a full changelog
@@ -8,28 +8,40 @@ including other versions of pandas.
 
 {{ header }}
 
+.. _whatsnew_306.py15_compat:
+
+Pandas 3.0.6 is now compatible with Python 3.15
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas 3.0.6 is the first version of pandas that is generally compatible with the upcoming
+Python 3.15, and binary wheels will be available on PyPI for all supported platforms.
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.regressions:
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
-- Bug in :meth:`DataFrame.plot.bar` and :meth:`DataFrame.plot.barh` raising ``AttributeError`` for a regularly-spaced :class:`DatetimeIndex` whose ``freq`` attribute is unset (:issue:`66771`)
-- Bug in :meth:`Series.str.split`, :meth:`Series.str.rsplit`, :meth:`Series.str.partition`, and :meth:`Series.str.rpartition` on :class:`CategoricalDtype` Series with ``expand=False`` returning stringified lists/tuples instead of actual lists/tuples (:issue:`66341`)
-- Bug in :meth:`Timestamp.tz_convert` and :meth:`Timestamp.tz_localize` and their :class:`Index` and :class:`Series` counterparts returning a UTC offset a few minutes off for dates before the specified timezone adopted a standard time (typically early 20th century); this only affected older systems whose ``tzdata`` was compiled with a toolchain from between 2013 and 2018, such as Amazon Linux 2 and RHEL 8 and its derivatives (:issue:`67066`)
-- Bug in full-slice assignment (``arr[:] = value``) into a PyArrow-backed array where the result shared memory with ``value``, so later modifying ``value`` also changed the assigned-to object (:issue:`67990`)
-- Fixed bug in :func:`read_csv` with the ``c`` engine and ``low_memory=True`` where a mixed-dtype column selected by ``usecols`` raised ``IndexError`` instead of emitting a :class:`DtypeWarning` unless it was the first column in the file, and where that warning named the wrong column when the file had an index column (:issue:`67375`)
-- Fixed bug in :func:`read_csv` with the ``c`` engine and ``low_memory=True`` where the number reported next to each column name in the mixed-type :class:`DtypeWarning` was a running count of the warned columns rather than the column's position in the file (:issue:`67375`)
-- Regression in :meth:`Series.interpolate` with ``method="linear"`` and a pyarrow-backed dtype leaving consecutive and trailing missing values unfilled, and truncating interpolated values for integer dtypes; the result now matches the equivalent masked (e.g. ``Int64``) dtype, including the upcast to ``float64[pyarrow]`` (:issue:`65345`)
+- Fixed a regression in :func:`read_csv` where a mixed-dtype column selected by ``usecols`` raised ``IndexError`` instead of emitting a ``DtypeWarning``, and where that warning named the wrong column or the wrong index (:issue:`67375`)
+- Fixed a regression in :meth:`DataFrame.plot.bar` and :meth:`DataFrame.plot.barh` raising ``AttributeError`` for a regularly-spaced :class:`DatetimeIndex` whose ``freq`` attribute is unset (:issue:`66771`)
+- Fixed a regression in :meth:`Series.str.split`, :meth:`Series.str.rsplit`, :meth:`Series.str.partition`, and :meth:`Series.str.rpartition` on :class:`CategoricalDtype` Series with ``expand=False`` returning stringified lists/tuples instead of actual lists/tuples (:issue:`66341`)
+- Fixed a regression in :meth:`Timestamp.tz_convert` and :meth:`Timestamp.tz_localize` and their :class:`Index` and :class:`Series` counterparts returning a UTC offset a few minutes off for dates before the specified timezone adopted a standard time (typically early 20th century); this only affected older systems whose ``tzdata`` was compiled with a toolchain from between 2013 and 2018, such as Amazon Linux 2 and RHEL 8 and its derivatives (:issue:`67066`)
+- Fixed a regression in full-slice assignment (``df.loc[:, "col"] = value``) into a PyArrow-backed array where the result shared memory with ``value``, so later modifying ``value`` also changed the assigned-to object, violating Copy-on-Write semantics (:issue:`67990`)
+- Fixed a bug in setting with ``.loc`` or ``.iloc`` using a boolean mask to
+  select the columns into a 1-column DataFrame with an extension dtype, which
+  surfaced as a regression for a DataFrame with string data (:issue:`66527`,
+  :issue:`66255`)
+- Fixed a regression in :func:`read_csv` where ``sep=None`` raised an error instead of sniffing the separator with the ``python`` engine; passing ``sep=None`` together with ``engine="c"`` or ``engine="pyarrow"``, which cannot sniff the separator, again raises an informative ``ValueError`` instead of raising ``TypeError`` or silently parsing each line as a single column (:issue:`66639`)
+- Fixed a regression in :meth:`Series.interpolate` with ``method="linear"`` and a pyarrow-backed dtype leaving consecutive and trailing missing values unfilled, and truncating interpolated values for integer dtypes; the result now matches the equivalent masked (e.g. ``Int64``) dtype (:issue:`65345`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.bug_fixes:
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :class:`RangeIndex` where missing Copy-on-Write reference tracking allowed external modification via a :class:`Series` to silently corrupt the index (:issue:`67060`)
 
-
+- Fixed a bug in :class:`RangeIndex` where missing Copy-on-Write reference tracking allowed external modification via a :class:`Series` to silently corrupt the index (:issue:`67060`)
+- Fixed memory leak in :func:`read_csv` with ``engine="c"`` when a string or ``category`` column failed to decode, for example invalid UTF-8 under ``encoding="utf-8"`` and the default ``encoding_errors="strict"`` (:issue:`67931`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_306.contributors:

@@ -951,11 +951,16 @@ def test_value_counts(sort, dropna, ascending, normalize, rng):
 
 @pytest.mark.parametrize("side", ["left", "right"])
 @pytest.mark.parametrize("value", [0, -5, 5, -3, np.array([-5, -3, 0, 5])])
-def test_searchsorted(side, value):
+def test_searchsorted(side, value, using_python_scalars):
     ri = pd.RangeIndex(-3, 3, 2)
     result = ri.searchsorted(value=value, side=side)
     expected = pd.Index(list(ri)).searchsorted(value=value, side=side)
     if isinstance(value, int):
         assert result == expected
+        # GH#64266
+        if using_python_scalars:
+            assert type(result) is int
+        else:
+            assert isinstance(result, np.integer)
     else:
         tm.assert_numpy_array_equal(result, expected)

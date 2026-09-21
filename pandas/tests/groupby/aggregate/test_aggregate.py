@@ -560,7 +560,7 @@ def test_bool_agg_dtype(op):
 )
 @pytest.mark.parametrize("method", ["apply", "aggregate", "transform"])
 def test_callable_result_dtype_frame(
-    keys, agg_index, input_dtype, result_dtype, method
+    keys, agg_index, input_dtype, result_dtype, method, using_python_scalars
 ):
     # GH 21240
     df = pd.DataFrame({"a": [1], "b": [2], "c": [True]})
@@ -569,12 +569,20 @@ def test_callable_result_dtype_frame(
     result = op(lambda x: x.astype(result_dtype).iloc[0])
     expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
 
-    if method == "aggregate":
-        # _cast_pointwise_result retains the input's dtype where feasible
-        if input_dtype == "float32" and result_dtype == "float64":
-            result_dtype = "float32"
-        if input_dtype == "int32" and result_dtype == "int64":
-            result_dtype = "int32"
+    if method != "apply":
+        if using_python_scalars:
+            # iloc in the callable returns Python scalars, which infer at
+            # the default width
+            if result_dtype in ("int32", "int64"):
+                result_dtype = "int64"
+            elif result_dtype in ("float32", "float64"):
+                result_dtype = "float64"
+        if method == "aggregate":
+            # _cast_pointwise_result retains the input's dtype where feasible
+            if input_dtype == "float32" and result_dtype == "float64":
+                result_dtype = "float32"
+            if input_dtype == "int32" and result_dtype == "int64":
+                result_dtype = "int32"
 
     expected = pd.DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
         result_dtype
@@ -2092,6 +2100,56 @@ def test_agg_relabel_with_name_match_and_namedagg():
     result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
 
     expected = pd.DataFrame({"B": [3, 7]}, index=pd.Index([0, 1], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_listlike_aggfunc():
+    # GH#63743 a list-like aggfunc takes the same path whether or not the output
+    #  name matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    with pytest.raises(TypeError, match="unhashable"):
+        df.groupby("A").agg(B=("B", ["sum", "max"]))
+
+    with pytest.raises(TypeError, match="unhashable"):
+        df.groupby("A").agg(x=("B", ["sum", "max"]))
+
+    # a tuple aggfunc is read as a single (name, func) pair, not two aggfuncs
+    result = df.groupby("A").agg(B=("B", ("sum", "max")))
+    expected = df.groupby("A").agg(x=("B", ("sum", "max")))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("aggfunc", ["describe", "ohlc"])
+def test_agg_relabel_with_name_match_non_reduction(aggfunc):
+    # GH#63743 a string aggfunc that is not a reduction gives a frame per group,
+    #  so it must still produce one output column per keyword when the output
+    #  name matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    result = df.groupby("A").agg(B=("B", aggfunc))
+    expected = df.groupby("A").agg(z=("B", aggfunc))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", aggfunc))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_duplicate_columns():
+    # GH#63743 named aggregation gives one output column per keyword even when
+    #  the source label is duplicated and the output name matches it
+    df = pd.DataFrame(
+        [[0, 1, 2], [0, 3, 4], [1, 5, 6], [1, 7, 8]], columns=["A", "B", "B"]
+    )
+
+    result = df.groupby("A").agg(B=("B", "sum"))
+    expected = df.groupby("A").agg(x=("B", "sum"))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
     tm.assert_frame_equal(result, expected)
 
 
