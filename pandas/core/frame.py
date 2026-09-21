@@ -1350,7 +1350,7 @@ class DataFrame(NDFrame, OpsMixin):
         int      1.0
         float    1.5
         Name: 0, dtype: float64
-        >>> print(row["int"].dtype)
+        >>> print(row.dtype)
         float64
         >>> print(df["int"].dtype)
         int64
@@ -4441,8 +4441,8 @@ class DataFrame(NDFrame, OpsMixin):
         `self.columns._index_as_unique`; Caller is responsible for checking.
         """
         if takeable:
-            series = self._ixs(col, axis=1)
-            return series._values[index]
+            values = self._get_column_array(col)
+            return maybe_unbox_numpy_scalar(values[index], object_with_dtype=values)
 
         series = self._get_item(col)
 
@@ -4451,7 +4451,8 @@ class DataFrame(NDFrame, OpsMixin):
             #  results if our categories are integers that dont match our codes
             # IntervalIndex: IntervalTree has no get_loc
             row = self.index.get_loc(index)
-            return series._values[row]
+            values = series._values
+            return maybe_unbox_numpy_scalar(values[row], object_with_dtype=values)
 
         # For MultiIndex going through engine effectively restricts us to
         #  same-length tuples; see test_get_set_value_no_partial_indexing
@@ -4461,7 +4462,7 @@ class DataFrame(NDFrame, OpsMixin):
             # e.g. partial string slicing on DatetimeIndex level;
             #  see GH#43395
             loc = self.index.get_loc(index)
-        return series._values[loc]
+        return series._ixs(loc)
 
     def isetitem(self, loc, value) -> None:
         """
@@ -4604,8 +4605,13 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         """
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
-                self
+            # the cheaper opcode check is deliberately last: on Python 3.14
+            # a plain `df[col] = value` reaches the refcount check, and
+            # is_local_in_caller_frame already short-circuits it there
+            if (
+                sys.getrefcount(self) <= REF_COUNT
+                and not com.is_local_in_caller_frame(self)
+                and com.is_setitem_syntax_in_caller_frame()
             ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -5465,7 +5471,8 @@ class DataFrame(NDFrame, OpsMixin):
             * If a datetime64/timedelta64 spec, or an interval spec's subtype,
               names a resolution no column can have, e.g. ``'datetime64[10s]'``
         TypeError
-            * If any kind of string dtype is passed in.
+            * If a numpy string or bytes dtype is passed in, e.g. ``np.str_``,
+              ``'<U8'`` or ``bytes``
 
         See Also
         --------
@@ -5474,10 +5481,10 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         * To select all *numeric* types, use ``np.number`` or ``'number'``
-        * To select strings you must use the ``object`` dtype, but note that
-          this will return *all* object dtype columns. With
-          ``pd.options.future.infer_string`` enabled, using ``"str"`` will
-          work to select all string columns.
+        * To select strings, use the builtin ``str``, which selects
+          :class:`pandas.StringDtype` columns and :class:`pandas.ArrowDtype`
+          ``string``/``large_string`` columns; the string spec ``'str'``
+          selects only the :class:`pandas.StringDtype` ones
         * See the `numpy dtype hierarchy
           <https://numpy.org/doc/stable/reference/arrays.scalars.html>`__
         * A dtype instance (e.g. ``np.dtype("int32")`` or
@@ -7568,7 +7575,6 @@ class DataFrame(NDFrame, OpsMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10490,9 +10496,11 @@ class DataFrame(NDFrame, OpsMixin):
             # pass dtype to avoid doing inference, which would break consistency
             #  with Index/Series ops
             dtype = None
-            if getattr(right, "dtype", None) == object:
+            rdtype = getattr(right, "dtype", None)
+            if isinstance(rdtype, (np.dtype, NumpyEADtype)) and rdtype.kind == "O":
                 # can't pass right.dtype unconditionally as that would break on e.g.
-                #  datetime64[h] ndarray
+                #  datetime64[h] ndarray; other extension dtypes with kind "O"
+                #  (e.g. SparseDtype) must not be densified to object
                 dtype = object
 
             if axis == 0:

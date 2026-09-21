@@ -899,6 +899,29 @@ def test_select_dtypes_ea_class_arrow():
     tm.assert_frame_equal(result, df[["c", "d"]])
 
 
+def test_select_dtypes_str_matches_arrow_strings(using_infer_string):
+    # GH#54898: the builtin str selects StringDtype and pyarrow string columns,
+    # while the "str" spec names StringDtype alone
+    if not using_infer_string:
+        pytest.skip("'str' is a numpy string dtype under the legacy string config")
+    pa = pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {
+            "a": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.string())),
+            "b": pd.array(["x", "y"], dtype=pd.ArrowDtype(pa.large_string())),
+            "c": pd.array(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
+            "d": pd.array(["x", "y"], dtype=pd.StringDtype("python", na_value=pd.NA)),
+            "e": [1, 2],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = df.select_dtypes(include=str)
+    tm.assert_frame_equal(result, df[["a", "b", "c", "d"]])
+
+    result = df.select_dtypes(include="str")
+    tm.assert_frame_equal(result, df[["c", "d"]])
+
+
 def test_select_dtypes_ea_class_masked_does_not_match_numpy():
     # GH#40234: Int64Dtype class matches only the masked dtype, not numpy int64
     df = pd.DataFrame({"a": pd.array([1, 2], dtype="Int64"), "b": [1, 2]})
