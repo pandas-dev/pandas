@@ -67,7 +67,9 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     DatetimeTZDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -290,8 +292,6 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas.core.dtypes.dtypes import ExtensionDtype
-
     from pandas import Series
     from pandas.core.arrays.datetimes import DatetimeArray
     from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -301,7 +301,8 @@ def to_pyarrow_type(
     dtype: ArrowDtype | pa.DataType | Dtype | None,
 ) -> pa.DataType | None:
     """
-    Convert dtype to a pyarrow type instance.
+    Convert dtype to a pyarrow type instance, or None if there is no
+    pyarrow equivalent.
     """
     if isinstance(dtype, ArrowDtype):
         return dtype.pyarrow_dtype
@@ -309,6 +310,15 @@ def to_pyarrow_type(
         return dtype
     elif isinstance(dtype, DatetimeTZDtype):
         return pa.timestamp(dtype.unit, dtype.tz)
+    elif isinstance(dtype, StringDtype):
+        # the pandas string dtypes are backed by pyarrow's large_string
+        return pa.large_string()
+    elif isinstance(dtype, BaseMaskedDtype):
+        return to_pyarrow_type(dtype.numpy_dtype)
+    elif isinstance(dtype, ExtensionDtype):
+        # no direct pyarrow equivalent (e.g. CategoricalDtype);
+        # pa.from_numpy_dtype would raise TypeError for these
+        return None
     elif dtype:
         try:
             # Accepts python types too
