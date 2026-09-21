@@ -27,8 +27,13 @@ def mix(request):
 
 class TestSparseArrayArithmetics:
     def _assert(self, a, b):
-        # We have to use tm.assert_sp_array_equal. See GH #45126
         tm.assert_numpy_array_equal(a, b)
+
+    def _assert_canonical(self, res):
+        # GH#45126 the result stores only positions that differ from its fill value.
+        #  A stored -0.0 would read as non-canonical here; no case below makes one
+        expected = SparseArray(res.to_dense(), fill_value=res.fill_value)
+        assert res.npoints == expected.npoints
 
     def _check_numeric_ops(self, a, b, a_dense, b_dense, mix: bool, op):
         # Check that arithmetic behavior matches non-Sparse Series arithmetic
@@ -41,12 +46,10 @@ class TestSparseArrayArithmetics:
             raise NotImplementedError
 
         with np.errstate(invalid="ignore", divide="ignore"):
-            if mix:
-                result = op(a, b_dense).to_dense()
-            else:
-                result = op(a, b).to_dense()
+            res = op(a, b_dense) if mix else op(a, b)
 
-        self._assert(result, expected)
+        self._assert_canonical(res)
+        self._assert(res.to_dense(), expected)
 
     def _check_bool_result(self, res):
         assert isinstance(res, SparseArray)
@@ -388,12 +391,7 @@ class TestSparseArrayArithmetics:
         s = SparseArray([True, True, False, False])
         t = SparseArray([True, False, True, False])
         result = s ^ t
-        sp_index = pd.core.arrays.sparse.IntIndex(4, np.array([0, 1, 2], dtype="int32"))
-        expected = SparseArray._simple_new(
-            np.array([False, True, True]),
-            sp_index,
-            pd.SparseDtype(bool, False),
-        )
+        expected = SparseArray([False, True, True, False])
         tm.assert_sp_array_equal(result, expected)
 
 
@@ -982,13 +980,145 @@ def test_cmp_masked_boolean_other(op, subtype):
     tm.assert_extension_array_equal(result, expected.array)
 
 
-def test_cmp_object_subtype_scalar_keeps_sparse_index():
-    # GH#68586 the object route compares sp_values, so it neither materializes
-    #  the dense array nor re-sparsifies the result
+def test_cmp_object_subtype_scalar_result_is_canonical():
+    # GH#68586 the object route compares sp_values; GH#45126 it stores only the
+    #  positions that differ from the result's fill value, as every route does
     arr = SparseArray(np.array([1, 2, 0, 0], dtype=object), fill_value=0)
 
     result = arr == 1
-    tm.assert_numpy_array_equal(result.sp_index.indices, arr.sp_index.indices)
+    tm.assert_numpy_array_equal(result.sp_index.indices, np.array([0], dtype="int32"))
     tm.assert_numpy_array_equal(
         result.to_dense(), np.array([True, False, False, False])
     )
+
+
+def test_op_result_drops_stored_fill_values(kind):
+    # GH#45126 the result reused the operands' shared sparse index, so a
+    #  comparison that is entirely the fill value still stored every position
+    arr = SparseArray([1.0, 0.0, -1.0, np.nan], fill_value=np.nan, kind=kind)
+
+    result = arr > arr + 1
+    expected = SparseArray([False, False, False, False], fill_value=False, kind=kind)
+    tm.assert_sp_array_equal(result, expected)
+    assert result.npoints == 0
+    assert result.density == 0.0
+
+
+def test_cmp_ndarray_operand_drops_stored_fill_values():
+    # GH#45284 the ndarray operand is sparsified on the SparseArray's own
+    #  fill_value; holding no gaps, it made the result store every position
+    arr = SparseArray([1.0, 0.0, -1.0, np.nan], fill_value=np.nan)
+
+    result = arr > np.array([0, 1, 2, 3])
+    expected = SparseArray([True, False, False, False], fill_value=False)
+    tm.assert_sp_array_equal(result, expected)
+
+
+def test_cmp_result_as_boolean_mask():
+    # GH#45284 __getitem__ takes key.sp_index.indices wholesale, so a comparison
+    #  result that stored every position selected every element
+    arr = SparseArray([1, 2, 3, 4, np.nan, np.nan], fill_value=np.nan)
+
+    result = arr[arr > [3, 3, 4, 1, 0, 0]]
+    expected = pd.Series([1, 2, 3, 4, np.nan, np.nan])
+    expected = expected[expected > [3, 3, 4, 1, 0, 0]]
+    tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
+
+
+def test_arith_result_drops_stored_fill_values(kind):
+    # GH#45126 the scalar arm applied the op to sp_values and reused sp_index
+    arr = SparseArray([1, 0, 2, 0, 3], fill_value=0, kind=kind)
+
+    result = arr * 0
+    expected = SparseArray([0, 0, 0, 0, 0], fill_value=0, kind=kind)
+    tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("subtype", [object, "int64", "float64"])
+def test_cmp_sp_index_does_not_depend_on_subtype(subtype):
+    # GH#45126 the object route re-sparsified its dense result while the numeric
+    #  route kept every position it was handed, so sp_index differed by subtype
+    left = SparseArray(np.array([1, 0, -1, 2], dtype=subtype), fill_value=0)
+    right = SparseArray(np.array([5, 5, 5, 5], dtype=subtype), fill_value=0)
+
+    result = left > right
+    assert result.npoints == 0
+    tm.assert_numpy_array_equal(result.to_dense(), np.zeros(4, dtype=bool))
+
+
+def test_op_result_drops_stored_fill_values_splib_union(kind):
+    # GH#45126 two gapped operands with differing indexes go through the splib
+    #  kernels, whose result index is the union of the two
+    left = SparseArray([1.0, 0.0, 0.0, 4.0], fill_value=0.0, kind=kind)
+    right = SparseArray([0.0, 2.0, 0.0, 0.0], fill_value=0.0, kind=kind)
+
+    result = left > right
+    expected = SparseArray([True, False, False, True], fill_value=False, kind=kind)
+    tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["m8[ns]", "M8[ns]"])
+def test_op_result_drops_stored_fill_values_datetimelike(unit):
+    # GH#45126 the datetimelike subtypes reach the same prune as the numeric ones
+    values = np.array([1, 0, 2], dtype=unit)
+    arr = SparseArray(values, fill_value=values[0])
+
+    result = arr - arr
+    assert result.npoints == 0
+    tm.assert_numpy_array_equal(result.to_dense(), values - values)
+
+
+def test_op_result_keeps_signed_zero():
+    # GH#45126 -0.0 == 0.0, so pruning on equality alone dropped a stored -0.0
+    #  and densified it back as +0.0
+    arr = SparseArray([1.0, 0.0, -1.0], fill_value=0.0)
+
+    result = (arr * 0).to_dense()
+    expected = (pd.Series([1.0, 0.0, -1.0]) * 0).to_numpy()
+    tm.assert_numpy_array_equal(np.signbit(result), np.signbit(expected))
+
+
+def test_op_result_keeps_object_na_flavor():
+    # GH#45126 an object array can hold several NAs at once, so pruning every NA
+    #  under an NA fill densified the stored one back as the fill's spelling
+    values = np.array([1, pd.NA, 3], dtype=object)
+    arr = SparseArray(values, fill_value=0)
+
+    result = list(pd.Series(arr) + np.nan)
+    expected = list(pd.Series(values) + np.nan)
+    assert result[1] is expected[1] is pd.NA
+
+
+@pytest.mark.parametrize("fill_value", [np.nan, pd.NA])
+def test_op_result_drops_stored_fill_values_object_na_fill(fill_value):
+    # GH#45126 the object mask kernel compares NA to NA, so an NA fill has to be
+    #  ruled out before it runs -- as the SparseArray constructor already does
+    arr = SparseArray(np.array([1.0, 2.0], dtype=object), fill_value=fill_value)
+
+    result = arr * fill_value
+    assert result.npoints == 0
+    assert result.density == 0.0
+
+
+@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+def test_op_result_keeps_half_na_complex(dtype):
+    # GH#45126 isna() is True when either part is NaN, so pruning on it dropped a
+    #  stored value whose other part was real data
+    values = np.array([0j, complex(np.nan, 1.0)], dtype=dtype)
+    arr = SparseArray(values, fill_value=0j)
+
+    result = (arr + np.nan).to_dense()
+    expected = (pd.Series(values) + np.nan).to_numpy()
+    # tm.assert_* reads any two NAs as equal, so this compares the imaginary part
+    tm.assert_numpy_array_equal(result.imag, expected.imag)
+
+
+def test_op_result_keeps_signed_zero_complex():
+    # GH#45126 the same for a complex subtype, where the sign of each component
+    #  has to survive independently
+    arr = SparseArray(np.array([-1 + 1j, 2 + 0j]), fill_value=0j)
+
+    result = (arr * 0).to_dense()
+    expected = (pd.Series([-1 + 1j, 2 + 0j]) * 0).to_numpy()
+    tm.assert_numpy_array_equal(np.signbit(result.real), np.signbit(expected.real))
+    tm.assert_numpy_array_equal(np.signbit(result.imag), np.signbit(expected.imag))

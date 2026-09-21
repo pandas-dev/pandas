@@ -449,12 +449,65 @@ def _wrap_result(
         # a dense result, e.g. from _wrap_dense_result: sparsify it here
         return SparseArray(data, fill_value=fill_value, dtype=dtype, kind=kind)
 
+    data, sparse_index = _prune_fill_value(data, sparse_index, fill_value)
+
     if dtype is not None:
         data = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
     else:
         data = np.asarray(data)
     sparse_dtype = SparseDtype(data.dtype, fill_value)
     return SparseArray._simple_new(data, sparse_index, sparse_dtype)
+
+
+def _differs_from_fill(values: np.ndarray, fill_value) -> np.ndarray:
+    """
+    Which of ``values`` would not densify as ``fill_value``.
+    """
+    if isna(fill_value):
+        return notna(values)
+    mask = values != fill_value
+    if values.dtype.kind == "f" and fill_value == 0:
+        # -0.0 == 0.0 but the two densify differently, so a stored signed zero
+        #  is a real point
+        mask |= np.signbit(values) != np.signbit(fill_value)
+    return mask
+
+
+def _prune_fill_value(
+    sp_values: np.ndarray, sparse_index: SparseIndex, fill_value
+) -> tuple[np.ndarray, SparseIndex]:
+    """
+    Drop stored values that densify as fill_value, so sp_index holds only real points.
+
+    GH#45126 the ops reuse an operand's sparse index or the union of both, either
+    of which can cover a position the op turned into the fill value.
+    """
+    if sp_values.dtype.kind == "c":
+        # isna() is True when either part is NaN, so it cannot decide a complex
+        #  on its own
+        mask = _differs_from_fill(sp_values.real, np.real(fill_value)) | (
+            _differs_from_fill(sp_values.imag, np.imag(fill_value))
+        )
+    elif sp_values.dtype == object:
+        if isna(fill_value):
+            # object can hold several NAs at once, and only the fill's own spelling
+            #  densifies back as the fill
+            mask = np.array(
+                [not libmissing.is_matching_na(x, fill_value) for x in sp_values],
+                dtype=bool,
+            )
+        else:
+            # 0, 0.0 and False compare equal, so use _make_sparse's type-aware check
+            mask = splib.make_mask_object_ndarray(sp_values, fill_value)
+    else:
+        mask = _differs_from_fill(sp_values, fill_value)
+
+    if mask.all():
+        return sp_values, sparse_index
+
+    kind: SparseIndexKind = "integer" if isinstance(sparse_index, IntIndex) else "block"
+    indices = sparse_index.indices[mask]
+    return sp_values[mask], make_sparse_index(sparse_index.length, indices, kind)
 
 
 _BOOL_SPARSE_DTYPE_FALSE_FILL = SparseDtype(bool, False)
@@ -920,9 +973,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __setitem__(self, key, value) -> None:
         if self._readonly:
             raise ValueError("Cannot modify read-only array")
-        # I suppose we could allow setting of non-fill_value elements.
-        # TODO(SparseArray.__setitem__): remove special cases in
-        # ExtensionBlock.where
+        # Only positions already held in sp_values could be written in place,
+        #  and which those are depends on the value being set, so SparseDtype
+        #  is _is_immutable, see GH#21818.
         msg = "SparseArray does not support item assignment via setitem"
         raise TypeError(msg)
 
@@ -1469,19 +1522,21 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         else:
             if isinstance(key, SparseArray):
-                # NOTE: If we guarantee that SparseDType(bool)
-                # has only fill_value - true, false or nan
-                # (see GH PR 44955)
-                # we can apply mask very fast:
                 if is_bool_dtype(key):
-                    if isna(key.fill_value):
+                    if len(key) != len(self):
+                        # the fast path below skips check_array_indexer, which
+                        #  would raise here
+                        raise IndexError(
+                            f"Boolean index has wrong length: "
+                            f"{len(key)} instead of {len(self)}"
+                        )
+                    # GH#45284 a stored value may equal the fill value, so select
+                    #  on sp_values rather than on which positions are stored
+                    if isna(key.fill_value) or not key.fill_value:
                         return self.take(key.sp_index.indices[key.sp_values])
-                    if not key.fill_value:
-                        return self.take(key.sp_index.indices)
-                    n = len(self)
-                    mask = np.full(n, True, dtype=np.bool_)
-                    mask[key.sp_index.indices] = False
-                    return self.take(np.arange(n)[mask])
+                    mask = np.full(len(self), True, dtype=np.bool_)
+                    mask[key.sp_index.indices] = key.sp_values
+                    return self.take(np.flatnonzero(mask))
                 else:
                     key = np.asarray(key)
 
