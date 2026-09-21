@@ -34,6 +34,7 @@ from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_float64,
+    is_arrow_temporal_dtype,
     is_bool,
     is_integer,
     is_numeric_dtype,
@@ -341,7 +342,11 @@ class BaseWindow(SelectionMixin):
 
     def _prep_values(self, values: ArrayLike) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
-        if needs_i8_conversion(values.dtype):
+        if needs_i8_conversion(values.dtype) or is_arrow_temporal_dtype(values.dtype):
+            # GH#66445 ArrowDtype timestamps/durations are not covered by
+            #  needs_i8_conversion, so without the second check they fell through
+            #  to the ExtensionArray branch below and were silently converted to
+            #  float64 counts instead of raising like their NumPy counterparts.
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} is not implemented"
