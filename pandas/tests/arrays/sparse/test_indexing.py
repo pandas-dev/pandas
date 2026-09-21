@@ -3,7 +3,10 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.sparse import SparseArray
+from pandas.core.arrays.sparse import (
+    IntIndex,
+    SparseArray,
+)
 
 
 @pytest.fixture
@@ -98,8 +101,9 @@ class TestGetitem:
         exp = SparseArray([np.nan, 1, 3, 4, np.nan])
         tm.assert_sp_array_equal(res, exp)
 
+        # trailing False pads the mask to len(arr); a shorter one now raises
         spar_bool = SparseArray(
-            [False, True, np.nan] * 3, dtype=np.bool_, fill_value=np.nan
+            [False, True, np.nan] * 3 + [False], dtype=np.bool_, fill_value=np.nan
         )
         res = arr[spar_bool]
         exp = SparseArray([np.nan, 3, 5])
@@ -111,6 +115,43 @@ class TestGetitem:
         res = arr[arr > 2]
         exp = SparseArray([3.0, 4.0], fill_value=np.nan)
         tm.assert_sp_array_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "fill_value, indices, sp_values",
+        [
+            (False, [0, 1, 3], [True, False, True]),
+            (True, [0, 1, 2], [True, False, False]),
+        ],
+    )
+    def test_getitem_bool_sparse_array_stored_fill(
+        self, fill_value, indices, sp_values
+    ):
+        # GH#45284 a stored value may equal the fill value, so the mask cannot be
+        #  read off sp_index alone
+        arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
+        key = SparseArray(
+            np.array(sp_values),
+            sparse_index=IntIndex(4, indices),
+            fill_value=fill_value,
+        )
+        assert (key.sp_values == key.fill_value).any()
+
+        res = arr[key]
+        tm.assert_sp_array_equal(res, SparseArray([1.0, 4.0], fill_value=np.nan))
+
+    @pytest.mark.parametrize("fill_value", [True, False, np.nan])
+    @pytest.mark.parametrize(
+        "data", [[True, False], [True, False, True, False, True, True]]
+    )
+    def test_getitem_bool_sparse_array_wrong_length(self, data, fill_value):
+        # GH#45284 the sparse fast path skips check_array_indexer, which is what
+        #  rejects a mask of the wrong length
+        arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
+        key = SparseArray(data, fill_value=fill_value, dtype=np.bool_)
+
+        msg = f"Boolean index has wrong length: {len(data)} instead of 4"
+        with pytest.raises(IndexError, match=msg):
+            arr[key]
 
     def test_get_item(self, arr):
         zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
@@ -234,6 +275,21 @@ class TestTake:
         sparse = SparseArray(np.zeros(3, dtype=dtype), fill_value=0)
         result = sparse.take([2, 1, 0], allow_fill=True)
         assert result.dtype == sparse.dtype
+
+    @pytest.mark.parametrize("subtype", ["float16", "float32"])
+    @pytest.mark.parametrize("fill_value", [np.nan, 0])
+    def test_reindex_preserves_narrow_float_subtype(self, subtype, fill_value):
+        # GH#26123 a fill position used to promote the subtype on
+        #  type(fill_value), widening a narrow float to float64
+        ser = pd.Series(
+            SparseArray(np.array([1, 0], dtype=subtype), fill_value=fill_value)
+        )
+        result = ser.reindex([0, 1, 2])
+        expected = pd.Series(
+            SparseArray(np.array([1, 0, np.nan], dtype=subtype), fill_value=fill_value),
+            index=[0, 1, 2],
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_reindex_empty_bool_upcasts_to_object(self):
         # GH#32119 the user-visible path onto the branch above
