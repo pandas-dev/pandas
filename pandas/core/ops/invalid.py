@@ -37,7 +37,6 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas._libs.missing import NAType
     from pandas._typing import (
         ArrayLike,
         Scalar,
