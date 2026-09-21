@@ -1843,3 +1843,24 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
 
     assert result.columns.tolist() == ["a", "b", "c"]
     assert result.index.name is None
+
+
+@pytest.mark.parametrize(
+    "converter,values",
+    [
+        (lambda x: [x], [["1"], ["CAT"], ["3"]]),
+        # hashable type whose __hash__ raises
+        (lambda x: (x, [x]), [("1", ["1"]), ("CAT", ["CAT"]), ("3", ["3"])]),
+    ],
+)
+def test_converter_unhashable_output_with_na_values(c_parser_only, converter, values):
+    # GH#13302 matching na_values against the converter's output must not
+    # reject output that cannot be hashed. The python engine raises here.
+    parser = c_parser_only
+    data = "A\n1\nCAT\n3"
+
+    result = parser.read_csv(
+        StringIO(data), converters={"A": converter}, na_values="CAT"
+    )
+    expected = pd.DataFrame({"A": values})
+    tm.assert_frame_equal(result, expected)
