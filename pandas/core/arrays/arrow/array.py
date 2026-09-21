@@ -1265,14 +1265,14 @@ class ArrowExtensionArray(
         ltype = self._pa_array.type
 
         if isinstance(other, range):
-            # GH#63429 our callers defer both of these to the EA for EA-backed
-            #  values, and ops.comparison_op's length check does not see
-            #  through a range.
+            # GH#63429 our callers defer this to the EA for EA-backed values
             ops.maybe_warn_listlike(other)
-            if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
 
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
+            ops.raise_if_2d(other)
+            if is_list_like(other) and len(self) != len(other):
+                # is_list_like excludes 0-dim ndarrays, which are scalars here
+                raise ValueError("Lengths must match to compare")
             try:
                 boxed = self._box_pa(other)
             except pa.lib.ArrowInvalid:
@@ -1348,6 +1348,7 @@ class ArrowExtensionArray(
 
         pa_type = self._pa_array.type
         other_original = other
+        ops.raise_if_2d(other)
         other = self._box_pa(other)
 
         if (
@@ -1425,6 +1426,10 @@ class ArrowExtensionArray(
         return self._from_pyarrow_array(result)
 
     def _logical_method(self, other, op) -> Self:
+        # checked here too because the GH#60234 arm below returns without
+        #  reaching _evaluate_op_method
+        ops.raise_if_2d(other)
+
         # For integer types `^`, `|`, `&` are bitwise operators and return
         # integer types. Otherwise these are boolean ops.
         if pa.types.is_integer(self._pa_array.type):
