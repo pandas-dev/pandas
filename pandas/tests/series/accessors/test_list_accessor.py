@@ -149,8 +149,8 @@ def test_list_accessor_not_iterable():
         iter(ser.list)
 
 
-# GH#63221
 def test_list_get_negative_index():
+    # GH#63221
     ser = pd.Series(
         [["A", "B"], ["C", "D"]], dtype=pd.ArrowDtype(pa.list_(pa.string())), name="a"
     )
@@ -163,13 +163,13 @@ def test_list_get_negative_index():
     tm.assert_series_equal(result, expected)
 
 
-LIST_DTYPES = (
-    pa.list_(pa.string()),
-    pa.large_list(pa.string()),
+@pytest.mark.parametrize(
+    "list_dtype",
+    [
+        pa.list_(pa.string()),
+        pa.large_list(pa.string()),
+    ],
 )
-
-
-@pytest.mark.parametrize("list_dtype", LIST_DTYPES)
 @pytest.mark.parametrize("data", ([["A", "B"], ["C", "D"]], [["A", "B"], []]))
 def test_list_getitem_negative_out_of_range(list_dtype, data):
     # GH#63221
