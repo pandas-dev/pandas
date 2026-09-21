@@ -249,11 +249,11 @@ class TestReductions:
         mi = pd.MultiIndex.from_tuples(tuples)
         result = getattr(mi, op)()
         assert result == ((1, 1.5) if op == "min" else (3, 3.5))
-        if using_python_scalars:
+        if using_python_scalars or not monotonic:
+            # the non-monotonic path returns Python scalars regardless of the option
             assert type(result[0]) is int
             assert type(result[1]) is float
-        elif monotonic:
-            # the non-monotonic path returns Python scalars regardless of the option
+        else:
             assert isinstance(result[0], np.integer)
             assert isinstance(result[1], np.floating)
 
