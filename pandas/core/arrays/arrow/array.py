@@ -1175,9 +1175,21 @@ class ArrowExtensionArray(
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
-            except pa.lib.ArrowInvalid:
+            except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError):
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
-                res_values = [op(x, y) for x, y in zip(self, other, strict=True)]
+                # GH#62682, see test_cmp_array_valued_pointwise_result
+                # isna on a list of array-likes returns a 2-D mask, so build an
+                #  object array first; the two masks stay separate so a length
+                #  mismatch is reported by zip rather than by broadcasting
+                other_arr = np.empty(len(other), dtype=object)
+                for pos, val in enumerate(other):
+                    other_arr[pos] = val
+                res_values = [
+                    None if (left_na or right_na) else bool(op(left, right))
+                    for left, right, left_na, right_na in zip(
+                        self, other, isna(self), isna(other_arr), strict=True
+                    )
+                ]
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
@@ -1204,13 +1216,25 @@ class ArrowExtensionArray(
             else:
                 try:
                     result = pc_func(self._pa_array, self._box_pa(other))
-                except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                except (
+                    pa.lib.ArrowNotImplementedError,
+                    pa.lib.ArrowInvalid,
+                    pa.lib.ArrowTypeError,
+                ):
                     mask = isna(self) | isna(other)
                     valid = ~mask
                     result = np.zeros(len(self), dtype="bool")
                     np_array = np.array(self)
                     try:
-                        result[valid] = op(np_array[valid], other)
+                        if op is operator.ne and isinstance(other, BaseOffset):
+                            # GH#62682 a reflected BaseOffset.__ne__ is
+                            #  `not self == other`, which raises on an array.
+                            #  Narrow, so that a type with an independent
+                            #  __ne__ still gets to define it
+                            result[valid] = operator.eq(np_array[valid], other)
+                            result[valid] = ~result[valid]
+                        else:
+                            result[valid] = op(np_array[valid], other)
                     except TypeError:
                         result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
@@ -1231,7 +1255,9 @@ class ArrowExtensionArray(
             f"dtype '{self.dtype}' with {other_type}"
         )
 
-    def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+    def _evaluate_op_method(
+        self, other, op, arrow_funcs, *, wrap_box_errors: bool = True
+    ) -> Self:
         if (
             is_list_like(other)
             and not isinstance(other, (np.ndarray, ExtensionArray, list))
@@ -1248,7 +1274,17 @@ class ArrowExtensionArray(
 
         pa_type = self._pa_array.type
         other_original = other
-        other = self._box_pa(other)
+        try:
+            other = self._box_pa(other)
+        except (pa.ArrowInvalid, pa.ArrowTypeError) as err:
+            # GH#62682 pyarrow could not convert `other`
+            if not wrap_box_errors:
+                # _arith_method retries the operation in object dtype
+                raise
+            if isinstance(other_original, np.ndarray) and other_original.ndim > 1:
+                # a shape failure, which the message below would misdescribe
+                raise
+            raise TypeError(self._op_method_error_message(other_original, op)) from err
 
         if (
             pa.types.is_string(pa_type)
@@ -1397,7 +1433,9 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             try:
-                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+                result = self._evaluate_op_method(
+                    other, op, ARROW_ARITHMETIC_FUNCS, wrap_box_errors=False
+                )
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 result = self._str_arith_method_object_fallback(other, op)
         else:
