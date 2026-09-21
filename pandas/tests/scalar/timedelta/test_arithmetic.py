@@ -1731,10 +1731,12 @@ def test_td_mul_ndarray_subclass(dtype):
     td = pd.Timedelta(4, "ns")
     # a NaN sends the float branch through its own substitute-and-re-mask path,
     #  which has to keep the subclass too
-    values = np.array([2, 3] if dtype[0] in "iu" else [2, np.nan], dtype=dtype)
+    is_int = dtype[0] in "iu"
+    values = np.array([2, 3] if is_int else [2, np.nan], dtype=dtype)
     other = values.view(NoInitialMaxArray)
 
-    expected = values * td.to_timedelta64()
+    # not values * td.to_timedelta64(): numpy's NaN-to-m8 multiply warns on Windows
+    expected = np.array([8, 12] if is_int else [8, "NaT"], dtype="m8[ns]")
     for result in [td * other, other * td]:
         assert isinstance(result, NoInitialMaxArray)
         tm.assert_numpy_array_equal(np.asarray(result), expected)
