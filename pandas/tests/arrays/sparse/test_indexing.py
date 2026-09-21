@@ -3,10 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    IntIndex,
-    SparseArray,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 @pytest.fixture
@@ -129,9 +126,10 @@ class TestGetitem:
         # GH#45284 a stored value may equal the fill value, so the mask cannot be
         #  read off sp_index alone
         arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
-        key = SparseArray(
+        key = SparseArray.from_indices(
             np.array(sp_values),
-            sparse_index=IntIndex(4, indices),
+            indices=indices,
+            length=4,
             fill_value=fill_value,
         )
         assert (key.sp_values == key.fill_value).any()
