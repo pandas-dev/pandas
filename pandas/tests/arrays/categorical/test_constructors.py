@@ -28,7 +28,6 @@ class TestCategoricalConstructors:
                 CategoricalDtype(pd.Index([-56], dtype="int8")),
                 [-1],
             ),
-            ([1, 2, "a"], CategoricalDtype([1, 2, 3]), [0, 1, -1]),
         ],
     )
     def test_constructor_does_not_cast_values(self, values, dtype, codes):
@@ -39,6 +38,13 @@ class TestCategoricalConstructors:
 
         expected = pd.Categorical.from_codes(codes, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
+
+    def test_constructor_cast_raises(self):
+        # GH#66688
+        dtype = CategoricalDtype([1, 2, 3])
+
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            pd.Categorical([1, 2, "a"], dtype=dtype)
 
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
