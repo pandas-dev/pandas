@@ -1100,6 +1100,27 @@ def test_merge_multi_int_keys_wide_span():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_multi_many_keys_int64_overflow():
+    # GH#58517 with enough high-cardinality key columns the combined key space
+    #  overflows int64, so _get_join_keys densifies the keys handled so far and
+    #  recurses over the remaining levels
+    n_keys = 14
+    n_rows = 120
+    # distinct moduli give each column a cardinality near 100, making the
+    #  product of the cardinalities exceed 2**63, while keeping every row's
+    #  combination of keys unique
+    keys = {f"k{i}": np.arange(n_rows) % (97 + i) for i in range(n_keys)}
+    left = pd.DataFrame({**keys, "lval": np.arange(n_rows)})
+    right = left.iloc[::2].drop(columns=["lval"]).copy()
+    right["rval"] = np.arange(len(right)) * 10
+
+    result = merge(left, right, on=list(keys), how="inner")
+
+    expected = left.iloc[::2].reset_index(drop=True)
+    expected["rval"] = np.arange(len(expected)) * 10
+    tm.assert_frame_equal(result, expected)
+
+
 def test_merge_multi_datetime_int_keys():
     # GH#66124 datetime64 plus integer key columns
     dti = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-01"])

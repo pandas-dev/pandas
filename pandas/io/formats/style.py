@@ -2946,8 +2946,8 @@ class Styler(StylerRenderer):
         Notes
         -----
         .. warning::
-           This method only works with the output methods ``to_html``, ``to_string``
-           and ``to_latex``.
+           This method only works with the output methods ``to_html``, ``to_string``,
+           ``to_latex`` and ``to_typst``.
 
            Other output methods, including ``to_excel``, ignore this hiding method
            and will display all data.
