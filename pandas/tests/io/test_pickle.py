@@ -579,6 +579,78 @@ def test_pickle_frame_v124_unpickle_130(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+def _new_bare_series() -> pd.Series:
+    return pd.Series.__new__(pd.Series)
+
+
+class _LegacySeriesPickle:
+    # Emulate pandas<2.1, which listed the Series name in _metadata as
+    #  "name" rather than "_name".
+    def __init__(self, ser: pd.Series) -> None:
+        state = ser.__getstate__()
+        state["name"] = state.pop("_name")
+        state["_metadata"] = ["name"]
+        self._state = state
+
+    def __reduce__(self):
+        return (_new_bare_series, (), self._state)
+
+
+@pytest.mark.parametrize("name", ["hi", 777, (1, 2)])
+def test_unpickle_legacy_series_keeps_name_on_copy(name):
+    # GH#61819 the pickled _metadata shadowed the class attribute, so
+    #  __finalize__ intersected ["name"] with ["_name"] and dropped the name
+    expected = pd.Series([1, 2], name=name)
+
+    result = pickle.loads(pickle.dumps(_LegacySeriesPickle(expected)))
+
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result.copy(), expected)
+    # a pickle written by this version round-trips the name too
+    tm.assert_series_equal(pickle.loads(pickle.dumps(result)).copy(), expected)
+
+
+def test_unpickle_legacy_fixture_keeps_name_on_copy(datapath):
+    # GH#61819 pins the bug against a real pre-2.1 pickle, so it cannot drift
+    #  along with the emulation above
+    pytest.importorskip("pytz")  # the fixture file holds pytz-stamped objects
+    path = datapath(
+        Path(__file__).parent,
+        "data",
+        "legacy_pickle",
+        "2.0.3",
+        "2.0.3_AMD64_windows_3.11.12.pickle",
+    )
+    ser = pd.read_pickle(path)["sp_series"]["float"]
+
+    assert ser.name == "bseries"
+    assert ser.copy().name == "bseries"
+
+
+class _DynMetadataSeries(pd.Series):
+    # A subclass that extends _metadata per instance, so the pickled list is the
+    #  only record of the extra entry.
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        object.__setattr__(self, "_metadata", [*type(self)._metadata, "myattr"])
+
+    @property
+    def _constructor(self):
+        return _DynMetadataSeries
+
+
+def test_unpickle_keeps_instance_level_metadata():
+    # GH#61819 the merge must not discard entries the instance added to _metadata
+    ser = _DynMetadataSeries([1, 2])
+    ser.myattr = "keepme"
+
+    result = pickle.loads(pickle.dumps(ser))
+
+    assert result.myattr == "keepme"
+    assert result.copy().myattr == "keepme"
+    assert pickle.loads(pickle.dumps(result)).copy().myattr == "keepme"
+
+
 def _legacy_timestamp_pickle(args: tuple) -> bytes:
     # Emulate pandas<=1.2, whose Timestamp.__reduce__ returned
     #  (Timestamp, (value, freq, tz)).
