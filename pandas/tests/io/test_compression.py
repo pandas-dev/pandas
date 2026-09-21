@@ -425,10 +425,16 @@ def test_ambiguous_archive_closes_fsspec_handle(monkeypatch):
 
 def test_tar_gz_to_different_filename(temp_file):
     file = temp_file.parent / "archive.foo"
+    # engine="python": exercises the exact unquoted default rendering
     pd.DataFrame(
         [["1", "2"]],
         columns=["foo", "bar"],
-    ).to_csv(file, compression={"method": "tar", "mode": "w:gz"}, index=False)
+    ).to_csv(
+        file,
+        compression={"method": "tar", "mode": "w:gz"},
+        index=False,
+        engine="python",
+    )
     with gzip.open(file) as uncompressed:
         with tarfile.TarFile(fileobj=uncompressed) as archive:
             members = archive.getmembers()
