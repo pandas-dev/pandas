@@ -12,6 +12,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import WASM
 from pandas.compat.pyarrow import (
     pa_version_under17p0,
     pa_version_under18p0,
@@ -1254,10 +1255,10 @@ class TestParquetPyArrow(Base):
     def test_to_parquet_local_path_does_not_call_get_handle(
         self, pa, temp_file, monkeypatch
     ):
-        # GH#65810 local paths are handed to pyarrow directly; get_handle used
-        # to open them only to unwrap the name back to a string, opening the
-        # path a second time and truncating output to 0 bytes on filesystems
-        # that finalize contents on close
+        # GH#65810 a local path must not go through get_handle: it opened the
+        # path only to unwrap the name back to a string, so the path was opened
+        # a second time and output was truncated to 0 bytes on filesystems that
+        # finalize contents on close
         def fail(*args, **kwargs):
             pytest.fail("get_handle should not be called for a local path")
 
@@ -1269,8 +1270,9 @@ class TestParquetPyArrow(Base):
     def test_to_parquet_local_path_opens_destination_once(
         self, pa, temp_file, monkeypatch
     ):
-        # GH#65810 pandas must not open the destination itself; pyarrow opens it
-        # via C++ (bypassing builtins.open), so no Python-level open is expected
+        # GH#65810 the destination is opened once and in C++ -- pandas opens it
+        # as a pa.OSFile for pyarrow to write into (GH#69022), so nothing opens
+        # the path through builtins.open
         opens = []
         real_open = open
         target = os.fspath(temp_file)
@@ -1319,6 +1321,29 @@ class TestParquetPyArrow(Base):
         with pytest.raises(ValueError, match="reached get_handle"):
             read_parquet(url, engine=pa)
         assert calls == [(url, "rb")]
+
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
+    @td.skip_if_windows  # os.chmod does not work in windows
+    def test_to_parquet_unwritable_path_keeps_existing_file(self, pa, tmp_path):
+        # GH#69022 pyarrow.parquet.write_table deletes a path-like target when
+        # the write raises, so handing it the path let a failure to open the
+        # destination destroy the file that was already there
+        path = tmp_path / "out.parquet"
+        pd.DataFrame({"a": [1, 2, 3]}).to_parquet(path, engine=pa)
+        expected = path.read_bytes()
+        path.chmod(0o444)
+
+        try:
+            with open(path, "r+b"):
+                pytest.skip("Running as sudo.")
+        except PermissionError:
+            pass
+
+        with pytest.raises(PermissionError, match="Failed to open local file"):
+            pd.DataFrame({"a": [4, 5, 6]}).to_parquet(path, engine=pa)
+
+        assert path.exists()
+        assert path.read_bytes() == expected
 
 
 @pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
