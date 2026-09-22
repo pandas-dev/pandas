@@ -990,3 +990,23 @@ GH,100102040,202,0205"""
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_dict_int_key_matching_name_not_positional(all_parsers, request):
+    # GH#67005 an integer dtype key that matches a column name must not
+    #  also be applied positionally to another column
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="the pyarrow engine does not apply non-string dtype "
+                "keys while parsing, so the text is lost to inference; "
+                "see GH#67009"
+            )
+        )
+    data = "01,02\n02,03"
+    result = parser.read_csv(StringIO(data), names=[1, 2], dtype={1: str})
+    expected = pd.DataFrame(
+        {1: pd.Series(["01", "02"], dtype=str), 2: pd.Series([2, 3])}
+    )
+    tm.assert_frame_equal(result, expected)

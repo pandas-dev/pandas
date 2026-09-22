@@ -2117,7 +2117,11 @@ cdef class TextReader:
             if isinstance(self.dtype, dict):
                 if name in self.dtype:
                     col_dtype = self.dtype[name]
-                elif i in self.dtype:
+                elif i in self.dtype and not (
+                    self.names is not None and i in self.names
+                ):
+                    # GH#67005 do not apply an integer key positionally when
+                    # it also matches a column name
                     col_dtype = self.dtype[i]
                 elif is_default_dict_dtype:
                     col_dtype = self.dtype[name]
