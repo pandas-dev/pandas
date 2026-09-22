@@ -74,18 +74,20 @@ def select(
     data = df.copy(deep=False)
     chunks: list[DataFrame] = []
     labels: list[Hashable] = []
+    positions: list[int] = []
 
     def flush_labels() -> None:
         if labels:
             indexer = data.columns._get_indexer_strict(labels, "columns")[1]
             chunks.append(data.take(indexer, axis=1))
+            positions.extend(indexer)
             labels.clear()
 
     def set_column(name: Hashable, value: object) -> None:
         loc = data.columns.get_loc(name) if name in data.columns else None
         if loc is None or isinstance(loc, int):
             data[name] = value
-            loc = data.columns.get_loc(name)
+            pos = len(data.columns) - 1 if loc is None else loc
         else:
             # a duplicated label; every occurrence holds ``value``. Setting
             # positionally avoids DataFrame.__setitem__ treating a value whose
@@ -95,8 +97,9 @@ def select(
             for i in locs:
                 data.isetitem(i, value)
             # a computed column contributes one column to the result
-            loc = locs[0]
-        chunks.append(data.iloc[:, loc : loc + 1])
+            pos = locs[0]
+        chunks.append(data.iloc[:, pos : pos + 1])
+        positions.append(pos)
 
     for item in items:
         if isinstance(item, Expression):
@@ -159,4 +162,8 @@ def select(
 
     if not chunks:
         return df.iloc[:, :0]
-    return concat(chunks, axis=1)
+    result = concat(chunks, axis=1)
+    # Index.append, used by concat, infers a new dtype for the combined
+    # labels, e.g. float64 for object labels that are all NaN
+    result.columns = data.columns.take(positions)
+    return result
