@@ -39,7 +39,10 @@ from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas.compat._cpu import available_cpu_count
+from pandas.compat._cpu import (
+    available_cpu_count,
+    physical_core_count,
+)
 from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
@@ -251,11 +254,11 @@ _PARALLEL_MAX_COLUMN_PIECES = 1800
 # disables the taper.
 _PARALLEL_TAPER_RATIO = 0.2
 
-# Ceiling on the *default* parallel-read worker count: parallel CSV reading
-# sees diminishing returns beyond a handful of workers, and a low default
-# avoids oversubscribing the machine.  mode.max_threads overrides it in either
+# Hard ceiling on the *default* parallel-read worker count: it stops a default
+# read from spawning dozens of threads on a big shared server that has no
+# cgroup/affinity limit set.  mode.max_threads overrides it in either
 # direction.
-_MAX_DEFAULT_WORKERS = 4
+_MAX_DEFAULT_WORKERS = 16
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -433,10 +436,11 @@ def _default_n_workers() -> int:
     Default worker count for a parallel ``read_csv``.
 
     ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
-    cannot spawn threads at all).  Otherwise it is the smallest of the machine's
-    logical CPU count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available
-    to the process (CPU affinity / cgroup limits) -- so that an embedded or
-    containerised pandas does not oversubscribe its allocation.
+    cannot spawn threads at all).  Otherwise it defaults to
+    :func:`~pandas.compat._cpu.physical_core_count`, clamped to the CPUs
+    actually available to the process (CPU affinity / cgroup limits) and to
+    ``_MAX_DEFAULT_WORKERS`` -- so that an embedded or containerised pandas
+    does not oversubscribe its allocation.
     """
     max_threads = get_option("mode.max_threads")
     if sys.platform == "emscripten":
@@ -444,14 +448,11 @@ def _default_n_workers() -> int:
         return 1
     if max_threads is not None:
         return max_threads
-    n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
-    # os.cpu_count() counts the machine's CPUs, not the ones this process may
-    # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
-    # single-CPU container.
+    n_workers = physical_core_count()
     available = available_cpu_count()
     if available is not None:
         n_workers = min(n_workers, available)
-    return n_workers
+    return min(n_workers, _MAX_DEFAULT_WORKERS)
 
 
 def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
