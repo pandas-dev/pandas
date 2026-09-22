@@ -4667,8 +4667,14 @@ class Index(IndexOpsMixin, PandasObject):
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
-            other = other.astype(dtype, copy=False)
-            return this.join(other, how=how, return_indexers=True)
+            that = other.astype(dtype, copy=False)
+            join_index, lidx, ridx = this.join(that, how=how, return_indexers=True)
+            # left/right joins keep the dtype of the side the values come from
+            if how == "left":
+                join_index = self if lidx is None else self.take(lidx)
+            elif how == "right":
+                join_index = other if ridx is None else other.take(ridx)
+            return join_index, lidx, ridx
         elif (
             isinstance(self, ABCCategoricalIndex)
             and isinstance(other, ABCCategoricalIndex)
