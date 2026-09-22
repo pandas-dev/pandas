@@ -468,12 +468,21 @@ class BaseStringArray(ExtensionArray):
         if not isinstance(result, np.ndarray):
             return result
 
-        converted = self._cast_pointwise_result(result)
-        if result.dtype.kind == "O" and not isinstance(converted.dtype, StringDtype):
-            return lib.maybe_convert_objects(
-                result, convert_non_numeric=True, convert_to_nullable_dtype=True
-            )
-        return converted
+        if len(result) == 0 or (
+            result.dtype.kind in "OU" and lib.is_string_array(result, skipna=True)
+        ):
+            return type(self)._from_sequence(result, dtype=self.dtype)
+
+        if result.dtype.kind != "O":
+            if result.dtype.kind in "mM":
+                from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+                return ensure_wrapped_if_datetimelike(result)
+            return result
+
+        return lib.maybe_convert_objects(
+            result, convert_non_numeric=True, convert_to_nullable_dtype=True
+        )
 
     def _str_map(
         self,
