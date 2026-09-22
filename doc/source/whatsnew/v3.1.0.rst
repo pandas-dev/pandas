@@ -723,6 +723,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` constructors failing to raise ``ValueError`` when passed a 0-dimensional ``ndarray`` input (:issue:`??`)
 - Bug in :attr:`DatetimeIndex.year` and :attr:`Series.dt.year` silently returning a wrapped year, e.g. ``219250468`` for year ``292277026596``, for second-resolution datetimes with a year beyond ``2**31``; these now raise ``ValueError``, and :attr:`DatetimeIndex.is_leap_year` no longer takes the leap-year status from the wrapped year (:issue:`66549`)
 - Bug in :attr:`Timestamp.days_in_month`, and in month-end and business-day offsets, using a wrapped year to decide whether the year is a leap year, for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
 - Bug in :class:`ArrowExtensionArray` where adding a :class:`DateOffset` to a ``date32[pyarrow]`` or ``date64[pyarrow]`` Series raised an ``ArrowTypeError`` (:issue:`57168`)
