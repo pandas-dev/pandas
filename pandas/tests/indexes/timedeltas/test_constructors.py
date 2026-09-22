@@ -12,7 +12,7 @@ from pandas.core.arrays.timedeltas import TimedeltaArray
 
 class TestTimedeltaIndex:
     def test_0d_raises(self):
-        # Used to segfault
+        # GH#69411 used to segfault
         arr = np.array(1)
 
         msg = "Cannot construct TimedeltaArray from 0-dim input"

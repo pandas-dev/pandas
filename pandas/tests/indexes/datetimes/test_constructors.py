@@ -28,7 +28,7 @@ from pandas.core.arrays import DatetimeArray
 
 class TestDatetimeIndex:
     def test_0d_raises(self):
-        # Used to segfault
+        # GH#69411 used to segfault
         arr = np.array(1)
 
         msg = "Cannot construct DatetimeArray from 0-dim input"
