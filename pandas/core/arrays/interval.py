@@ -1631,11 +1631,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         def _to_arrow(values) -> pyarrow.Array:
             if isinstance(self.dtype.subtype, np.dtype):
                 return pyarrow.array(values, type=subtype, from_pandas=True)
-            # For an ExtensionArray subtype, handing the array straight to pyarrow
-            # makes it fall back on the deprecated `.values`, which drops the
-            # timezone. Convert the backing values and attach the parametrized
-            # arrow type instead; `_ndarray` is UTC for tz-aware data, which is
-            # exactly what casting to a tz-aware timestamp expects. (GH#67753)
+            # pyarrow would fall back on `.values`, dropping the tz; _ndarray is UTC
             return pyarrow.array(values._ndarray, from_pandas=True).cast(subtype)
 
         storage_array = pyarrow.StructArray.from_arrays(

@@ -52,7 +52,7 @@ def test_arrow_array():
 
 
 def test_arrow_array_tz_subtype():
-    # GH#67753 an ExtensionDtype subtype such as DatetimeTZDtype used to be rejected
+    # GH#67753
     pa = pytest.importorskip("pyarrow")
 
     from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
@@ -65,8 +65,7 @@ def test_arrow_array_tz_subtype():
     assert result.type.closed == arr.closed
     assert result.type.subtype == pa.timestamp(breaks.unit, "Europe/Brussels")
 
-    # the extension type must survive a serialize/deserialize cycle, which reads the
-    # subtype back off the storage type rather than out of the metadata string
+    # round-trip through the serialized extension type
     restored = ArrowIntervalType.__arrow_ext_deserialize__(
         result.type.storage_type, result.type.__arrow_ext_serialize__()
     )

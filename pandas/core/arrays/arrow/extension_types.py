@@ -86,10 +86,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     @classmethod
     def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowIntervalType:
         metadata = json.loads(serialized.decode())
-        # Take the subtype from the storage type rather than from the serialized
-        # metadata: `pyarrow.type_for_alias` has no alias for parametrized types such
-        # as `timestamp[us, tz=Europe/Brussels]`, so round-tripping those through the
-        # string would fail. The storage type already carries the full type. (GH#67753)
+        # type_for_alias can't parse parametrized types, e.g. tz-aware timestamps
         subtype = storage_type.field("left").type
         closed = metadata["closed"]
         return ArrowIntervalType(subtype, closed)
@@ -113,10 +110,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def to_pandas_dtype(self) -> IntervalDtype:
         subtype = self.subtype
         if pyarrow.types.is_timestamp(subtype) and subtype.tz is not None:
-            # Resolve the zone through pandas rather than pyarrow, so that the
-            # tzinfo object matches the one pandas builds for the same zone name
-            # elsewhere. pyarrow may hand back a pytz zone where pandas uses
-            # zoneinfo, which compares unequal despite naming the same zone.
+            # pyarrow may return a pytz zone, which != pandas' zoneinfo zone
             pandas_subtype: object = DatetimeTZDtype(unit=subtype.unit, tz=subtype.tz)
         else:
             pandas_subtype = subtype.to_pandas_dtype()

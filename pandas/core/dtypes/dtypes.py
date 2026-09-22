@@ -1484,9 +1484,7 @@ class IntervalDtype(PandasExtensionDtype):
         else:
             chunks = array.chunks
 
-        # An ExtensionDtype subtype (e.g. DatetimeTZDtype) cannot be handed to
-        # `np.asarray` as a dtype, so defer to the subtype's own arrow conversion.
-        # (GH#67753)
+        # np.asarray can't take an ExtensionDtype, e.g. DatetimeTZDtype
         subtype_is_numpy = isinstance(self.subtype, np.dtype)
 
         def _convert(values: pyarrow.Array):
