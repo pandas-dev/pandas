@@ -239,24 +239,6 @@ class TestReductions:
         else:
             assert isinstance(result, np.generic)
 
-    @pytest.mark.parametrize("op", ["min", "max"])
-    @pytest.mark.parametrize("monotonic", [True, False])
-    def test_multiindex_min_max_result_type(self, op, monotonic, using_python_scalars):
-        # GH#64266
-        tuples = [(1, 1.5), (2, 2.5), (3, 3.5)]
-        if not monotonic:
-            tuples = tuples[::-1]
-        mi = pd.MultiIndex.from_tuples(tuples)
-        result = getattr(mi, op)()
-        assert result == ((1, 1.5) if op == "min" else (3, 3.5))
-        if using_python_scalars or not monotonic:
-            # the non-monotonic path returns Python scalars regardless of the option
-            assert type(result[0]) is int
-            assert type(result[1]) is float
-        else:
-            assert isinstance(result[0], np.integer)
-            assert isinstance(result[1], np.floating)
-
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
@@ -629,6 +611,24 @@ class TestIndexReductions:
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
         assert ci.min() == "c"
         assert ci.max() == "b"
+
+    @pytest.mark.parametrize("op", ["min", "max"])
+    @pytest.mark.parametrize("monotonic", [True, False])
+    def test_min_max_multiindex_result_type(self, op, monotonic, using_python_scalars):
+        # GH#64266
+        tuples = [(1, 1.5), (2, 2.5), (3, 3.5)]
+        if not monotonic:
+            tuples = tuples[::-1]
+        mi = pd.MultiIndex.from_tuples(tuples)
+        result = getattr(mi, op)()
+        assert result == ((1, 1.5) if op == "min" else (3, 3.5))
+        if using_python_scalars or not monotonic:
+            # the non-monotonic path returns Python scalars regardless of the option
+            assert type(result[0]) is int
+            assert type(result[1]) is float
+        else:
+            assert isinstance(result[0], np.integer)
+            assert isinstance(result[1], np.floating)
 
 
 class TestSeriesReductions:
