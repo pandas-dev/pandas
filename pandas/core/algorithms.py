@@ -1534,11 +1534,16 @@ def searchsorted(
         elif isinstance(value, ABCExtensionArray):
             # If value is a pandas Array with <NA>, cast it int64, (massive value)
             # so we place it at the end of array
-            value_arr = value.to_numpy(dtype=object)
+            if hasattr(value, "_mask") and hasattr(value, "_data"):
+                # use mask check to figure out if NA and preserve it without converting to nan
+                na_mask_ext = value._mask
+                value_arr = value._data.astype(object) if na_mask_ext.any() else value._data
+            else:
+                value_arr = value.to_numpy(dtype=object)
         elif isinstance(value, (ABCSeries, ABCIndex)) and isinstance(
             value._values, ABCExtensionArray
         ):
-            # only sereis and index not all
+            # converts to numpy array of python objects
             value_arr = value._values.to_numpy(dtype=object)
         else:
             # use C for all others like lists and tuples
