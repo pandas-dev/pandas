@@ -1526,7 +1526,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
         try:
-            res_values = self._grouper.agg_series(ser, alt, preserve_dtype=True)
+            res_values = self._grouper.agg_series(ser, alt)
         except Exception as err:
             msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
             # preserve the kind of exception that raised

@@ -892,9 +892,11 @@ class BaseGrouper:
                 names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
 
-            # The sum here will get -1 values wrong when dropna=True;
-            # we will fix at the end.
+            # A dropped NA key is -1 in ob_ids/unob_ids and needs to come through
+            # as -1 in `ids`; the sum can be non-negative, so test the operands.
             ids = len(unob_index) * ob_ids + unob_ids
+            if self.dropna:
+                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
             if any(sorts):
                 # Sort result_index and recode ids using the new order
@@ -910,8 +912,12 @@ class BaseGrouper:
                     sorter = result_index.argsort()
                 result_index = result_index.take(sorter)
                 _, index = np.unique(sorter, return_index=True)
-                ids = ensure_platform_int(ids)
-                ids = index.take(ids)
+                # ids is -1 for the dropped NA keys; the sentinel at the end
+                # of recode maps those back to -1 instead of to a position.
+                recode = np.empty(len(index) + 1, dtype=np.intp)
+                recode[:-1] = index
+                recode[-1] = -1
+                ids = recode.take(ids)
             else:
                 # Recode ids and reorder result_index with observed groups up front,
                 # unobserved at the end
@@ -921,9 +927,6 @@ class BaseGrouper:
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
-
-            if self.dropna:
-                ids = np.where((ob_ids < 0) | (unob_ids < 0), -1, ids)
 
         return result_index, ids
 
@@ -1153,16 +1156,12 @@ class BaseGrouper:
         return result
 
     @final
-    def agg_series(
-        self, obj: Series, func: Callable, preserve_dtype: bool = False
-    ) -> ArrayLike:
+    def agg_series(self, obj: Series, func: Callable) -> ArrayLike:
         """
         Parameters
         ----------
         obj : Series
         func : function taking a Series and returning a scalar-like
-        preserve_dtype : bool
-            Whether the aggregation is known to be dtype-preserving.
 
         Returns
         -------
