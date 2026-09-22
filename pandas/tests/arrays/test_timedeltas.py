@@ -142,7 +142,9 @@ class TestNonNano:
         values = values + [-val for val in values]
         tdi = pd.TimedeltaIndex(np.array(values, dtype=f"m8[{unit}]"))
         result = tdi.total_seconds()
-        expected = [pd.Timedelta(val, unit=unit).total_seconds() for val in values]
+        expected = [
+            pd.Timedelta(np.timedelta64(val, unit)).total_seconds() for val in values
+        ]
         assert list(result) == expected
 
     @pytest.mark.parametrize(

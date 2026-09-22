@@ -1875,6 +1875,47 @@ def test_groupby_categorical_indices_unused_categories():
         tm.assert_numpy_array_equal(result[key], expected[key])
 
 
+def test_groupby_categorical_indices_sort_false_multi_key():
+    # GH#66893
+    cats = ["low", "mid"]
+    df = pd.DataFrame(
+        {
+            "x": [0, 0, 1, 1, 2, 2],
+            "g": pd.Categorical(["mid", "low"] * 3, categories=cats, ordered=True),
+        }
+    )
+    gb = df.groupby(["x", "g"], sort=False, observed=False)
+
+    result = gb.indices
+    expected = {
+        (0, "mid"): np.array([0], dtype="intp"),
+        (0, "low"): np.array([1], dtype="intp"),
+        (1, "mid"): np.array([2], dtype="intp"),
+        (1, "low"): np.array([3], dtype="intp"),
+        (2, "mid"): np.array([4], dtype="intp"),
+        (2, "low"): np.array([5], dtype="intp"),
+    }
+    assert result.keys() == expected.keys()
+    for key in result.keys():
+        tm.assert_numpy_array_equal(result[key], expected[key])
+
+
+def test_groupby_categorical_get_group_sort_false_multi_key():
+    # GH#66893
+    cats = ["low", "mid"]
+    df = pd.DataFrame(
+        {
+            "x": [0, 0, 1, 1, 2, 2],
+            "g": pd.Categorical(["mid", "low"] * 3, categories=cats, ordered=True),
+        }
+    )
+    gb = df.groupby(["x", "g"], sort=False, observed=False)
+
+    result = gb.get_group((1, "mid"))
+    expected = df.iloc[[2]]
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", ["first", "last"])
 def test_groupby_last_first_preserve_categoricaldtype(func):
     # GH#33090
@@ -2248,3 +2289,67 @@ def test_groupby_observed_false_expands_only_categorical_levels():
         (2, "a", "Y"),
     ]
     assert result.tolist() == [1, 0, 1, 0, 1, 0]
+
+
+def test_categorical_with_noncategorical_na_dropna_sort():
+    # GH#68931 dropping NA keys left the group ids negative, which sort=True
+    #  then used to index
+    df = pd.DataFrame(
+        {
+            "dates": ["X", None],
+            "sector": pd.Categorical([1, np.nan], categories=[1, 2, 3]),
+            "metric": [10, 20],
+        }
+    )
+    result = df.groupby(["dates", "sector"], observed=False).sum()
+    expected = pd.DataFrame(
+        {
+            "dates": ["X"] * 3,
+            "sector": pd.Categorical([1, 2, 3], categories=[1, 2, 3]),
+            "metric": [10, 0, 0],
+        }
+    ).set_index(["dates", "sector"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_with_noncategorical_na_dropna_no_sort():
+    # GH#68931 the same bad ids, which sort=False instead folded into the
+    #  observed groups, duplicating ("X", 3) in the result
+    df = pd.DataFrame(
+        {
+            "dates": [None, None, "X"],
+            "sector": pd.Categorical([2, 3, 3], categories=[1, 2, 3, 4]),
+            "metric": [10, 20, 30],
+        }
+    )
+    result = df.groupby(["dates", "sector"], observed=False, sort=False).sum()
+    expected = pd.DataFrame(
+        {
+            # observed group first, then the unobserved categories in order
+            #  of appearance
+            "dates": ["X"] * 4,
+            "sector": pd.Categorical([3, 2, 1, 4], categories=[1, 2, 3, 4]),
+            "metric": [30, 0, 0, 0],
+        }
+    ).set_index(["dates", "sector"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_with_noncategorical_all_na_dropna(sort):
+    # GH#68931 every row has an NA key, so no group survives dropna=True
+    df = pd.DataFrame(
+        {
+            "dates": [None, None],
+            "sector": pd.Categorical([1, np.nan], categories=[1, 2, 3]),
+            "metric": [10, 20],
+        }
+    )
+    result = df.groupby(["dates", "sector"], observed=False, sort=sort).sum()
+    expected = pd.DataFrame(
+        {
+            "dates": pd.Index([], dtype=object),
+            "sector": pd.Categorical([], categories=[1, 2, 3]),
+            "metric": pd.Index([], dtype="int64"),
+        }
+    ).set_index(["dates", "sector"])
+    tm.assert_frame_equal(result, expected)

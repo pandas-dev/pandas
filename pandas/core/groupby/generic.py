@@ -1120,9 +1120,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = [*self._grouper.names, self.obj.name]
 
-        if isinstance(val.dtype, CategoricalDtype) or (
-            bins is not None and not np.iterable(bins)
-        ):
+        if isinstance(val.dtype, CategoricalDtype) or not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             # GH38672 relates to categorical dtype
@@ -1141,21 +1139,16 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
-        lab: Index | np.ndarray
-        if bins is None:
-            lab, lev = algorithms.factorize(val, sort=True)
-            llab = lambda lab, inc: lab[inc]
-        else:
-            # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
-            cat_obj = cast("Categorical", cat_ser._values)
-            lev = cat_obj.categories
-            lab = lev.take(
-                cat_obj.codes,
-                allow_fill=True,
-                fill_value=lev._na_value,
-            )
-            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
+        # lab is a Categorical with categories an IntervalIndex
+        cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
+        cat_obj = cast("Categorical", cat_ser._values)
+        lev = cat_obj.categories
+        lab = lev.take(
+            cat_obj.codes,
+            allow_fill=True,
+            fill_value=lev._na_value,
+        )
+        llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
@@ -1216,46 +1209,38 @@ class SeriesGroupBy(GroupBy[Series]):
                 acc = rep(d)
             out /= acc
 
-        if sort and bins is None:
-            cat = ids[inc][mask] if dropna else ids[inc]
-            sorter = np.lexsort((out if ascending else -out, cat))
-            out, codes[-1] = out[sorter], codes[-1][sorter]
+        # for compat. with libgroupby.value_counts need to ensure every
+        # bin is present at every index level, null filled with zeros
+        diff = np.zeros(len(out), dtype="bool")
+        for level_codes in codes[:-1]:
+            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
-        if bins is not None:
-            # for compat. with libgroupby.value_counts need to ensure every
-            # bin is present at every index level, null filled with zeros
-            diff = np.zeros(len(out), dtype="bool")
-            for level_codes in codes[:-1]:
-                diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
+        ncat, nbin = diff.sum(), len(levels[-1])
+        left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+        right = [diff.cumsum() - 1, codes[-1]]
 
-            ncat, nbin = diff.sum(), len(levels[-1])
+        # error: Argument 1 to "get_join_indexers" has incompatible type
+        # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
+        # ndarray[Any, Any]], Index, Series]]
+        _, idx = get_join_indexers(
+            left,  # type: ignore[arg-type]
+            right,
+            sort=False,
+            how="left",
+        )
+        if idx is not None:
+            out = np.where(idx != -1, out[idx], 0)
 
-            left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+        if sort:
+            sorter = np.lexsort((out if ascending else -out, left[0]))
+            out, left[-1] = out[sorter], left[-1][sorter]
 
-            right = [diff.cumsum() - 1, codes[-1]]
+        # build the multi-index w/ full levels
+        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+            return np.repeat(lev_codes[diff], nbin)
 
-            # error: Argument 1 to "get_join_indexers" has incompatible type
-            # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]
-            _, idx = get_join_indexers(
-                left,  # type: ignore[arg-type]
-                right,
-                sort=False,
-                how="left",
-            )
-            if idx is not None:
-                out = np.where(idx != -1, out[idx], 0)
-
-            if sort:
-                sorter = np.lexsort((out if ascending else -out, left[0]))
-                out, left[-1] = out[sorter], left[-1][sorter]
-
-            # build the multi-index w/ full levels
-            def build_codes(lev_codes: np.ndarray) -> np.ndarray:
-                return np.repeat(lev_codes[diff], nbin)
-
-            codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
-            codes.append(left[-1])
+        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
+        codes.append(left[-1])
 
         mi = MultiIndex(
             levels=levels, codes=codes, names=index_names, verify_integrity=False
@@ -2264,7 +2249,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1   1.0
         2   3.0
         """
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        # This method can consume the un-normalized {column: aggfunc} form, but only
+        #  when the columns are unique: dict aggregation fans a single key out to
+        #  every matching column, while named aggregation must produce exactly one
+        #  output per keyword.
+        #  `func is None` is a precondition for relabeling at all, and short-circuits
+        #  materializing _obj_with_exclusions on the far more common plain-agg path.
+        allow_skip_normalization = (
+            func is None and self._obj_with_exclusions.columns.is_unique
+        )
+        relabeling, func, columns, order = reconstruct_func(
+            func, allow_skip_normalization, **kwargs
+        )
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):

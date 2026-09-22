@@ -72,7 +72,7 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   and different from ``'\s+'`` will be interpreted as regular expressions and
   will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
@@ -178,9 +178,8 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels. The function is applied to the raw text read from the
-  file, before any missing-value detection: an empty field is passed as an empty
-  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
-  column that has a converter.
+  file, so an empty field is passed as an empty string ``''``; ``na_values`` and
+  ``keep_default_na`` are then applied to the value the function returns.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -4379,9 +4378,9 @@ at appending longer strings will raise a ``ValueError``.
 Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
 strings, ints, bools, datetime64`` are currently supported. For string
-columns, passing ``nan_rep = 'nan'`` to append will change the default
-nan representation on disk (which converts to/from ``np.nan``), this
-defaults to ``nan``.
+columns, passing ``nan_rep`` to append will change the representation used
+on disk for missing values (which converts to/from ``np.nan``); see
+:ref:`nan_rep <io.hdf5-nan-rep>` below.
 
 .. ipython:: python
 
@@ -5180,21 +5179,30 @@ Passing a ``min_itemsize`` dict will cause all passed columns to be created as *
    store.append("dfs2", dfs, min_itemsize={"A": 30})
    store.get_storer("dfs2").table
 
+.. _io.hdf5-nan-rep:
+
 **nan_rep**
 
-String columns will serialize a ``np.nan`` (a missing value) with the ``nan_rep`` string representation. This defaults to the string value ``nan``.
-You could inadvertently turn an actual ``nan`` value into a missing value.
+String columns serialize a missing value as a sentinel string. By default that
+sentinel is chosen so it collides with no value in the column, so a literal
+``"nan"`` and an actual missing value both round-trip.
 
 .. ipython:: python
 
-   dfss = pd.DataFrame({"A": ["foo", "bar", "nan"]})
+   dfss = pd.DataFrame({"A": ["foo", "bar", "nan", np.nan]})
    dfss
 
    store.append("dfss", dfss)
    store.select("dfss")
 
-   # here you need to specify a different nan rep
-   store.append("dfss2", dfss, nan_rep="_nan_")
+Pass ``nan_rep`` to pin the on-disk representation instead, for example so that
+another reader of the file recognizes it. A value equal to the ``nan_rep`` you
+passed is then read back as a missing value, so pick one your data cannot
+contain.
+
+.. ipython:: python
+
+   store.append("dfss2", dfss, nan_rep="nan")
    store.select("dfss2")
 
 
