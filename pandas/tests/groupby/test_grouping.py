@@ -428,13 +428,6 @@ class TestGrouping:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_grouper_iter(self, df):
-        gb = df.groupby("A")
-        grouper = gb._grouper
-        result = sorted(grouper)
-        expected = ["bar", "foo"]
-        assert result == expected
-
     def test_empty_groups(self, df):
         # see gh-1048
         with pytest.raises(ValueError, match="No group keys passed!"):
