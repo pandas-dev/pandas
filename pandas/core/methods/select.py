@@ -8,6 +8,8 @@ from typing import (
     TYPE_CHECKING,
 )
 
+import numpy as np
+
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -80,15 +82,20 @@ def select(
             labels.clear()
 
     def set_column(name: Hashable, value: object) -> None:
-        data[name] = value
-        loc = data.columns.get_loc(name)
-        if isinstance(loc, slice):
-            # a duplicated label; every occurrence now holds ``value``,
-            # and a computed column contributes one column to the result
-            loc = loc.start
-        elif not isinstance(loc, int):
-            # boolean mask for a non-contiguous duplicated label
-            loc = int(loc.argmax())
+        loc = data.columns.get_loc(name) if name in data.columns else None
+        if loc is None or isinstance(loc, int):
+            data[name] = value
+            loc = data.columns.get_loc(name)
+        else:
+            # a duplicated label; every occurrence holds ``value``. Setting
+            # positionally avoids DataFrame.__setitem__ treating a value whose
+            # length matches the number of duplicates as one value per column
+            # (GH#15695).
+            locs = np.arange(len(data.columns))[loc]
+            for i in locs:
+                data.isetitem(i, value)
+            # a computed column contributes one column to the result
+            loc = locs[0]
         chunks.append(data.iloc[:, loc : loc + 1])
 
     for item in items:
