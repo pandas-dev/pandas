@@ -3221,13 +3221,13 @@ def test_reduce_axis1_uint64_block_does_not_wrap(method):
 
     result = getattr(df, method)(axis=1)
     tm.assert_series_equal(result, getattr(df.T, method)(), check_names=False)
-    # without the fix the uint64 partial wrapped to 0, leaving just the float
+    # without the fix the uint64 block wrapped to 0, leaving just the float
     assert result.iloc[0] > 2**62
 
 
 def test_reduce_axis1_int_uint_combine_stays_exact():
-    # GH#68641: combining an int64 partial with a uint64 one promoted the
-    # result to a lossy float64
+    # GH#68641: combining an int64 block result with a uint64 one promoted
+    # the result to a lossy float64
     df = pd.DataFrame(
         {"a": np.array([2**62 + 1], dtype="int64"), "b": np.array([1], dtype="uint8")}
     )

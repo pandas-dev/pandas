@@ -17292,21 +17292,19 @@ class DataFrame(NDFrame, OpsMixin):
         """
         acc_dtype: np.dtype | None = None
         if name in ("sum", "prod", "mean"):
-            # GH#68641: reduce every block in one dtype, else a narrow partial
-            # overflows or combines lossily (see
-            # test_reduce_axis1_int_block_does_not_wrap). np.result_type, not
-            # find_common_type, which gives object for a bool mix.
+            # GH#68641: accumulate every block in one dtype, else a narrow
+            # block result overflows or combines lossily (see
+            # test_reduce_axis1_int_block_does_not_wrap). Not find_common_type,
+            # which gives object for a bool mix.
             dtypes = [blk.dtype for blk in self._mgr.blocks]
-            # the kind check is not redundant with the caller's non-object
-            # filter: a structured block reaches here and np.result_type raises
-            # on it. The caller admits only numpy-backed blocks, so these are
-            # np.dtype.
+            # not redundant with the caller's non-object filter: a structured
+            # block reaches here and np.result_type raises on it. The caller
+            # admits only numpy-backed blocks, so these dtypes are np.dtype.
             if all(dtype.kind in "biufc" for dtype in dtypes):
                 acc_dtype = np.result_type(*dtypes)  # type: ignore[arg-type]
                 if name == "mean" and acc_dtype.kind not in "fc":
-                    # nanmean accumulates float and complex in their own
-                    # dtype, bool in int64 and integer in f8, both exact in f8.
-                    # float16 is the exception, but nansum upcasts it below.
+                    # nanmean accumulates bool in i8 and integer in f8, both
+                    # exact in f8
                     acc_dtype = np.dtype(np.float64)
 
         if name == "all":
@@ -17363,8 +17361,8 @@ class DataFrame(NDFrame, OpsMixin):
                     vals = block.values
                     if vals.dtype.kind in "biu" or not skipna:
                         # nanops counts every column here: bool/int/uint cannot
-                        # hold NaN, and _maybe_get_mask builds no mask for
-                        # float or complex under skipna=False (GH#37392)
+                        # hold NaN, and under skipna=False _maybe_get_mask
+                        # builds no mask (GH#37392)
                         non_null_count += vals.shape[0]
                     else:
                         non_null_count += vals.shape[0] - isna(vals).sum(axis=0)
