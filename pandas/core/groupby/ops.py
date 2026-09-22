@@ -1156,16 +1156,12 @@ class BaseGrouper:
         return result
 
     @final
-    def agg_series(
-        self, obj: Series, func: Callable, preserve_dtype: bool = False
-    ) -> ArrayLike:
+    def agg_series(self, obj: Series, func: Callable) -> ArrayLike:
         """
         Parameters
         ----------
         obj : Series
         func : function taking a Series and returning a scalar-like
-        preserve_dtype : bool
-            Whether the aggregation is known to be dtype-preserving.
 
         Returns
         -------
