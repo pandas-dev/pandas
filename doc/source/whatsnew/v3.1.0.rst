@@ -66,7 +66,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Period` now supports f-string formatting via ``__format__``, e.g. ``f"{period:%Y-%m}"`` (:issue:`48536`)
-- :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
+- :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now align fractional seconds in string representation for easier reading (:issue:`57188`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - :meth:`DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`GroupBy.agg`, and supports :class:`NamedFunc` (:issue:`58318`)
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
@@ -280,7 +280,7 @@ input value as the resulting resolution. See
 :ref:`whatsnew_300.api_breaking.datetime_resolution_inference` in the 3.0
 release notes for more details.
 
-This means that, for example, ``pd.to_timedelta([1], unit="s")`` now had ``s``
+This meant that, for example, ``pd.to_timedelta([1], unit="s")`` had ``s``
 resolution instead of ``ns``. An unintended side effect of this change is that
 doing arithmetic with such ``timedelta64[s]`` data, which preserves the ``s``
 resolution, could lead to unexpected (rounded) results (see :issue:`65608`).
@@ -847,7 +847,7 @@ Numeric
 - Bug in :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`Series.min`, and :meth:`Series.max` on object-dtype data with ``skipna=False`` failing to propagate missing values, either raising ``TypeError`` or returning a value computed as though the missing values were absent; they now return a missing value (:issue:`4147`)
 - Bug in :meth:`DataFrame.sum` and :meth:`DataFrame.prod` with ``axis=1`` ignoring ``skipna=False`` for extension dtypes, returning a value where a missing value was expected (:issue:`18588`)
 - Bug in :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, and :meth:`Series.prod` on object-dtype data with ``skipna=False`` raising ``TypeError`` instead of returning a missing value (:issue:`4147`)
-- Fixed bug in :func:`read_excel` where having a column with mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
+- Fixed bug in :func:`read_excel` where having a column with a mixture of numeric and boolean values will typecast the values based on the first appearance data type since 1==True and 0==False (:issue:`60088`)
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` returning incorrect row labels for nullable ``UInt64`` columns containing missing values alongside values above ``2**53`` (:issue:`64478`)
 - Fixed bug in :meth:`DataFrame.idxmax` and :meth:`DataFrame.idxmin` with ``axis=1`` and ``skipna=False`` returning incorrect column labels for extension array dtypes (e.g. :class:`BooleanDtype`, nullable integer/float, :class:`ArrowDtype`) (:issue:`56903`)
 - Fixed bug in :meth:`Series.clip` where passing a scalar numpy array (e.g. ``np.array(0)``) would raise a ``TypeError`` (:issue:`59053`)
@@ -871,7 +871,7 @@ Conversion
 - Bug in :class:`DataFrame` constructor raising ``TypeError`` when given a list whose first element is a list-like dataclass (e.g. a :class:`collections.UserList` subclass); such elements are now treated as list-like rows (:issue:`41682`)
 - Bug in :class:`DataFrame` constructor where ``NaT`` in a :class:`TimedeltaIndex` row was incorrectly inferred as ``datetime64`` instead of ``timedelta64`` (:issue:`23985`)
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
-- Bug in :class:`Series` construction and :class:`DataFrame` column assignment from a ``numpy.ma.MaskedArray`` where ``.values`` returned a ``MaskedArray`` instead of a ``ndarray`` (:issue:`65458`)
+- Bug in :class:`Series` construction and :class:`DataFrame` column assignment from a ``numpy.ma.MaskedArray`` where ``.values`` returned a ``MaskedArray`` instead of an ``ndarray`` (:issue:`65458`)
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
 - Bug in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` converting a float column to ``Int64`` one off from its true value when it held a value equal to ``2**63``, and raising a spurious ``RuntimeWarning`` for other floats outside the ``int64`` range (:issue:`68315`)
 - Bug in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` raising ``OverflowError`` for ``object``-dtype data holding integers outside the ``int64``/``uint64`` range; these now retain ``object`` dtype, and data holding both ``NA`` and integers above the ``int64`` range now converts to ``UInt64`` (:issue:`66517`)
@@ -886,7 +886,7 @@ Conversion
 - Fixed bug in :func:`to_numeric`, and the readers built on it such as :func:`read_html`, :func:`read_xml`, :func:`read_excel`, :func:`read_fwf` and :func:`read_csv` with ``engine="python"`` or ``dtype="category"``, where a value written with a leading ``+`` and leading zeros after the decimal point lost significant digits, so e.g. ``"+0.0001234567890123456789"`` kept only 14 of them and ``"+0.0000000000000000000000005"`` became ``0.0`` (:issue:`68311`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
-- Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
+- Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` not respecting the ``into`` argument in nested mappings (:issue:`65778`)
 - Fixed bug in :meth:`DataFrame.to_numpy` raising ``ValueError`` when ``na_value`` was passed and there were no missing values, e.g. ``na_value=np.nan`` with an integer ``dtype`` (:issue:`56233`)
 
 Strings
@@ -1163,8 +1163,8 @@ Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - :meth:`DataFrame.ewm` and :meth:`Series.ewm` now raise an informative ``NotImplementedError`` instead of a confusing ``AttributeError`` when ``agg``/``aggregate`` is passed an arbitrary callable (:issue:`41700`)
 - Bug in :class:`PeriodIndex` resampling to a finer frequency where aggregation methods returned the original values instead of aggregating, e.g. ``count`` returned the data values rather than the number of observations per bin; empty bins now contain the method's identity value (e.g. ``0`` for ``sum`` instead of ``NaN``), consistent with :class:`DatetimeIndex` resampling (:issue:`42763`)
+- Bug in :meth:`.DataFrameGroupBy.agg` operating on the group as a whole when ``args`` or ``kwargs`` are supplied for the provided ``func``; now this method only operates on each Series of the group (:issue:`39169`)
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
-- Bug in :meth:`.DataFrameGroupBy.agg` would operate on the group as a whole when ``args`` or ``kwargs`` are supplied for the provided ``func``; now this method only operates on each Series of the group (:issue:`39169`)
 - Bug in :meth:`.DataFrameGroupBy.apply` with ``as_index=False`` where applying on an empty :class:`DataFrame` returned inconsistent index metadata compared to non-empty results (:issue:`48135`)
 - Bug in :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, and :meth:`.DataFrameGroupBy.cummax` (and Series variants) returning ``Float64`` instead of preserving the nullable integer dtype (e.g. ``Int64``) when the group key contains ``NA`` (:issue:`65550`)
 - Bug in :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.idxmin` (and :class:`Series` variants) with ``skipna=False`` returning incorrect results when the input contained no ``NA`` values (:issue:`56903`)
@@ -1303,7 +1303,7 @@ ExtensionArray
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Bug in the :class:`Series` constructor with an index but no data raising ``RecursionError`` for an :class:`~pandas.api.extensions.ExtensionDtype` whose ``na_value`` is dict-like, e.g. a nested or arrow-backed dtype (:issue:`33900`, :issue:`41377`)
-- Bug in :attr:`Series.list` raising error when using negative indices with PyArrow list dtypes (:issue:`63221`)
+- Bug in :attr:`Series.list` raising an error when using negative indices with PyArrow list dtypes (:issue:`63221`)
 - Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).
