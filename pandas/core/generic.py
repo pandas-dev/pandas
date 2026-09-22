@@ -219,7 +219,7 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     condition, so we can skip that machinery altogether (GH#51547).
     """
     if isinstance(obj, ABCDataFrame):
-        dtypes: list[DtypeObj] = [block.dtype for block in obj._mgr.blocks]
+        dtypes: list[DtypeObj] = obj._blk_dtypes
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
@@ -2037,9 +2037,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in meta:
-                    if k in state and k != "_flags":
+                    # _metadata is handled below: assigning a pre-2.1 pickle's
+                    # ["name"] here would mask the class's ["_name"], see GH#61819
+                    if k in state and k not in ("_flags", "_metadata"):
                         v = state[k]
                         object.__setattr__(self, k, v)
+
+                if "_metadata" in state:
+                    # merge rather than replace, so a subclass that extends
+                    # _metadata per instance keeps its entries
+                    cls_meta = list(self._metadata)
+                    merged = list(dict.fromkeys(cls_meta + list(state["_metadata"])))
+                    if merged != cls_meta:
+                        object.__setattr__(self, "_metadata", merged)
 
                 for k, v in state.items():
                     if k not in meta:
@@ -6571,7 +6581,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(EA2D): special case not needed with 2D EAs
             dtype = pandas_dtype(dtype)
             if isinstance(dtype, ExtensionDtype) and all(
-                block.values.dtype == dtype for block in self._mgr.blocks
+                x == dtype for x in self._blk_dtypes
             ):
                 return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
