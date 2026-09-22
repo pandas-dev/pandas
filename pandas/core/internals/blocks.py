@@ -978,10 +978,16 @@ class Block(PandasObject, libinternals.Block):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
+                    if isinstance(self.dtype, StringDtype) and self._can_hold_element(value):
+                        nb = self._maybe_copy(inplace=inplace)
+                        putmask_inplace(nb.values, mask, value)
+                        return [nb]
+
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
                         nb = nb.copy(deep=True)
+                        
                     elif inplace and has_ref and nb.refs.has_reference():
                         # no copy in astype and we had refs before
                         nb = nb.copy(deep=True)

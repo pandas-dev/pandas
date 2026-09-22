@@ -63,8 +63,8 @@ class TestDataFrameReplace:
                     pd.Timestamp("1939-05-27"),
                     pd.Timestamp("1940-04-25"),
                 ],
-                "name": ["Alfred", "Batman", ""],
-                "toy": [None, "Batmobile", "Joker"],
+                "name": pd.Series(["Alfred", "Batman", ""], dtype=object),
+                "toy": pd.Series([None, "Batmobile", "Joker"], dtype=object),
             }
         )
         once = df.replace({np.nan: None})
@@ -1718,3 +1718,21 @@ def test_replace_list_multiple_unchanged_columns(replace_kwargs):
 
     expected = pd.DataFrame({"a": ["x", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     tm.assert_frame_equal(result, expected)
+
+def test_replace_stringdtype_none():
+    # GH#65892
+    df = pd.DataFrame({"A": pd.Series(["a", "b", "c"], dtype="string")})
+    result = df.replace("a", None)
+    expected = pd.DataFrame({"A": pd.Series([None, "b", "c"], dtype="string")})
+    tm.assert_frame_equal(result, expected)
+
+def test_replace_stringdtype_none_inplace_refs():
+    # GH#65892
+    df = pd.DataFrame({"A": pd.Series(["a", "b", "c"], dtype="string")})
+    view = df[:]
+    df.replace("a", None, inplace=True)
+    expected = pd.DataFrame({"A": pd.Series([None, "b", "c"], dtype="string")})
+    tm.assert_frame_equal(df, expected)
+    # Check CoW semantics: original view should not be modified
+    expected_view = pd.DataFrame({"A": pd.Series(["a", "b", "c"], dtype="string")})
+    tm.assert_frame_equal(view, expected_view)
