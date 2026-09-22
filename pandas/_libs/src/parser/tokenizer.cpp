@@ -1404,6 +1404,9 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         self->file_lines++;
         self->state = EAT_CRNL_NOP;
         break;
+      } else if (IS_COMMENT_CHAR(c)) {
+        self->state = EAT_LINE_COMMENT;
+        break;
       } else if (!self->delim_whitespace) {
         if (isblank(c) && c != self->delimiter) {
         } else { // backtrack
