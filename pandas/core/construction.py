@@ -561,11 +561,11 @@ def ensure_wrapped_if_datetimelike(arr):
     return arr
 
 
-def ensure_s3_converted_to_obj(arr):
+def ensure_s_converted_to_obj(arr):
     """
-    Convert numpy S3 dtype to function astype(object).
+    Convert numpy S dtype to function astype(object).
     """
-    if isinstance(arr.dtype, np.dtype) and arr.dtype.kind == "S" and arr.dtype == "S3":
+    if isinstance(arr.dtype, np.dtype) and arr.dtype.kind == "S":
         arr = arr.astype(object)
     return arr
 
