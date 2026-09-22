@@ -1535,24 +1535,26 @@ def searchsorted(
             # If value is a pandas Array with <NA>, cast it int64, (massive value)
             # so we place it at the end of array
             if hasattr(value, "_mask") and hasattr(value, "_data"):
-                # use mask check to figure out if NA and preserve it without converting to nan
-                na_mask_ext = value._mask
-                value_arr = value._data.astype(object) if na_mask_ext.any() else value._data
+                # use mask check to figure out if NA and preserve it
+                value_arr = value._data
+                na_mask = value._mask
             else:
+                # expensive check as back up
                 value_arr = value.to_numpy(dtype=object)
-        elif isinstance(value, (ABCSeries, ABCIndex)) and isinstance(
-            value._values, ABCExtensionArray
-        ):
-            # converts to numpy array of python objects
-            value_arr = value._values.to_numpy(dtype=object)
+                na_mask = isna(value_arr)
+        elif hasattr(value, "_values") and isinstance(value._values, ABCExtensionArray):
+            # catch for sereis and indexes which are wrapped
+            inner = value._values
+            if hasattr(inner, "_mask") and hasattr(inner, "_data"):
+                value_arr = inner._data
+                na_mask = inner._mask
+            else:
+                value_arr = inner.to_numpy(dtype=object)
+                na_mask = isna(value_arr)
         else:
-            # use C for all others like lists and tuples
             value_arr = np.asarray(value)
+            na_mask = isna(value_arr) if not is_integer(value) else np.array([False])
 
-        # get mask for NA in case max also in array
-        na_mask = isna(value_arr) if not is_integer(value) else np.array([False])
-
-        # gurads to stop overflow with na
         valid_vals = value_arr[~na_mask] if na_mask.any() else value_arr
 
         # checks all values valid and no overflows
