@@ -1622,7 +1622,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
-        elif func in base.transformation_kernels:
+        elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transform or canned "agg+broadcast"
             if engine is not None:
                 kwargs["engine"] = engine

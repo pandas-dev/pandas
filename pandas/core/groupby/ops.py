@@ -628,6 +628,13 @@ class BaseGrouper:
     def groupings(self) -> list[grouper.Grouping]:
         return self._groupings
 
+    def __iter__(self) -> Iterator[Hashable]:
+        return iter(self.indices)
+
+    @property
+    def nkeys(self) -> int:
+        return len(self.groupings)
+
     def get_iterator(self, data: NDFrameT) -> Iterator[tuple[Hashable, NDFrameT]]:
         """
         Groupby iterator
@@ -1297,6 +1304,11 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
+
+    @property
+    def nkeys(self) -> int:
+        # still matches len(self.groupings), but we can hard-code
+        return 1
 
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
