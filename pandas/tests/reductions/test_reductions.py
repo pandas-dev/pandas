@@ -223,6 +223,22 @@ class TestReductions:
         else:
             assert isinstance(result, np.integer)
 
+    @pytest.mark.parametrize(
+        "dtype, expected_type", [("int64", int), ("float64", float), ("Int64", int)]
+    )
+    @pytest.mark.parametrize("op", ["idxmin", "idxmax"])
+    def test_idxminmax_result_type(
+        self, dtype, expected_type, op, using_python_scalars
+    ):
+        # GH#64266
+        ser = pd.Series([1, 3, 2], index=pd.Index([10, 20, 30], dtype=dtype))
+        result = getattr(ser, op)()
+        assert result == (10 if op == "idxmin" else 20)
+        if using_python_scalars:
+            assert type(result) is expected_type
+        else:
+            assert isinstance(result, np.generic)
+
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
@@ -595,6 +611,24 @@ class TestIndexReductions:
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=True)
         assert ci.min() == "c"
         assert ci.max() == "b"
+
+    @pytest.mark.parametrize("op", ["min", "max"])
+    @pytest.mark.parametrize("monotonic", [True, False])
+    def test_min_max_multiindex_result_type(self, op, monotonic, using_python_scalars):
+        # GH#64266
+        tuples = [(1, 1.5), (2, 2.5), (3, 3.5)]
+        if not monotonic:
+            tuples = tuples[::-1]
+        mi = pd.MultiIndex.from_tuples(tuples)
+        result = getattr(mi, op)()
+        assert result == ((1, 1.5) if op == "min" else (3, 3.5))
+        if using_python_scalars or not monotonic:
+            # the non-monotonic path returns Python scalars regardless of the option
+            assert type(result[0]) is int
+            assert type(result[1]) is float
+        else:
+            assert isinstance(result[0], np.integer)
+            assert isinstance(result[1], np.floating)
 
 
 class TestSeriesReductions:
