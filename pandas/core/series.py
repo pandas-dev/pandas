@@ -149,7 +149,10 @@ from pandas.core.sorting import (
 from pandas.core.strings.accessor import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
     SeriesInfo,
@@ -584,7 +587,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if requested_schema is not None
             else None
         )
-        ca = pa.array(self, type=type)
+        with suppress_pyarrow_values_warning():
+            ca = pa.array(self, type=type)
         if not isinstance(ca, pa.ChunkedArray):
             ca = pa.chunked_array([ca])
         return ca.__arrow_c_stream__()
