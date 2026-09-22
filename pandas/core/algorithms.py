@@ -1543,7 +1543,7 @@ def searchsorted(
                 value_arr = value.to_numpy(dtype=object)
                 na_mask = isna(value_arr)
         elif hasattr(value, "_values") and isinstance(value._values, ABCExtensionArray):
-            # catch for sereis and indexes which are wrapped
+            # catch for series and Index which are wrapped
             inner = value._values
             if hasattr(inner, "_mask") and hasattr(inner, "_data"):
                 value_arr = inner._data
