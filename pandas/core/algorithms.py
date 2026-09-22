@@ -1531,6 +1531,7 @@ def searchsorted(
         if is_integer(value):
             # get big values without dtype
             value_arr = np.array([value])
+            na_mask = np.array([False])
         elif isinstance(value, ABCExtensionArray):
             # If value is a pandas Array with <NA>, cast it int64, (massive value)
             # so we place it at the end of array
