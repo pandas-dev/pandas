@@ -1477,25 +1477,35 @@ class IntervalDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import IntervalArray
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
             chunks = array.chunks
 
+        # np.asarray can't take an ExtensionDtype, e.g. DatetimeTZDtype
+        subtype_is_numpy = isinstance(self.subtype, np.dtype)
+
+        def _convert(values: pyarrow.Array):
+            if subtype_is_numpy:
+                return np.asarray(values, dtype=self.subtype)
+            return self.subtype.__from_arrow__(values)
+
         results = []
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            left = _convert(arr.field("left"))
+            right = _convert(arr.field("right"))
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
+            empty = pyarrow.array([], type=to_pyarrow_type(self.subtype))
             return IntervalArray.from_arrays(
-                np.array([], dtype=self.subtype),
-                np.array([], dtype=self.subtype),
+                _convert(empty),
+                _convert(empty),
                 closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)
@@ -2177,7 +2187,7 @@ class SparseDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatible extension dtypes
-        from pandas.core.dtypes.cast import np_find_common_type
+        from pandas.core.dtypes.cast import find_common_type
 
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
@@ -2202,11 +2212,11 @@ class SparseDtype(ExtensionDtype):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
-        # error: Argument 1 to "np_find_common_type" has incompatible type
-        # "*Generator[Any | dtype[Any] | ExtensionDtype, None, None]";
-        # expected "dtype[Any]"  [arg-type]
-        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)  # type: ignore [arg-type]
+        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        # GH#69028 find_common_type rather than np_find_common_type: numpy widens
+        #  bool with a numeric to that numeric, and drops the subtype for two
+        #  datetime64/timedelta64 dtypes; pandas gets both right
+        return SparseDtype(find_common_type(np_dtypes), fill_value=fill_value)
 
 
 @register_extension_dtype

@@ -11996,8 +11996,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
             When ``on`` is specified, the values of that column also become the
             index of the :class:`Series` passed to :meth:`Rolling.apply` when
@@ -12103,6 +12106,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2013-01-01 09:00:03  3.0
         2013-01-01 09:00:05  NaN
         2013-01-01 09:00:06  4.0
+
+        Rolling sum with forward-looking windows with 3 seconds.
+
+        >>> df_time.iloc[::-1].rolling("3s").sum().iloc[::-1]
+                               B
+        2013-01-01 09:00:00  1.0
+        2013-01-01 09:00:02  3.0
+        2013-01-01 09:00:03  2.0
+        2013-01-01 09:00:05  4.0
+        2013-01-01 09:00:06  4.0
+
+        .. note::
+
+            Negative offset strings (e.g., ``"-5h"``) do not create forward-looking
+            windows and should be avoided. They collapse to single-element windows.
 
         Rolling sum with forward looking windows with 2 observations.
 
