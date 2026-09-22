@@ -546,7 +546,9 @@ class TestJoin:
             }
         )
         s = pd.Series(
-            np.repeat(np.arange(8), 2), index=np.repeat(np.arange(8), 2), name="TEST"
+            np.repeat(np.arange(8), 2),
+            index=np.repeat(np.arange(8, dtype=np.int64), 2),
+            name="TEST",
         )
         inner = df.join(s, how="inner")
         outer = df.join(s, how="outer")
