@@ -136,6 +136,9 @@ def test_get_indexer_pd_na_matches_nan():
         tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.skipif(
+    not using_string_dtype(), reason="string dtype inference not enabled"
+)
 def test_get_indexer_nat_matches_nan():
     # GH#65419
     # get_loc(pd.NaT) already matches np.nan for a string-dtype index, so
