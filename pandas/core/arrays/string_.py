@@ -469,9 +469,7 @@ class BaseStringArray(ExtensionArray):
             return result
 
         converted = self._cast_pointwise_result(result)
-        if result.dtype.kind == "O" and not isinstance(
-            converted.dtype, StringDtype
-        ):
+        if result.dtype.kind == "O" and not isinstance(converted.dtype, StringDtype):
             return lib.maybe_convert_objects(
                 result, convert_non_numeric=True, convert_to_nullable_dtype=True
             )
