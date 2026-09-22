@@ -126,7 +126,6 @@ cpdef assert_almost_equal(a, b,
             obj = "Iterable"
 
     if a_is_ndarray and b_is_ndarray:
-        na, nb = a.size, b.size
         if a.shape != b.shape:
             from pandas._testing import raise_assert_detail
             raise_assert_detail(
@@ -166,6 +165,9 @@ cpdef assert_almost_equal(a, b,
         if a.ndim != 0:
             a = a.ravel()
             b = b.ravel()
+        else:
+            a = a.item()
+            b = b.item()
 
     if isiterable(a):
 
@@ -179,7 +181,9 @@ cpdef assert_almost_equal(a, b,
             f"Can't compare objects without length, one or both is invalid: ({a}, {b})"
         )
 
-        if not (a_is_ndarray and b_is_ndarray):
+        if a_is_ndarray and b_is_ndarray:
+            na, nb = a.size, b.size
+        else:
             na, nb = len(a), len(b)
 
         if na != nb:

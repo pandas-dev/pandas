@@ -518,7 +518,11 @@ def test_assert_almost_equal_value_mismatch():
 
 @pytest.mark.parametrize(
     "a,b,klass1,klass2",
-    [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
+    [
+        (np.array([1]), 1, "ndarray", "int"),
+        (1, np.array([1]), "int", "ndarray"),
+        (np.array(1), 1, "ndarray", "int"),
+    ],
 )
 def test_assert_almost_equal_class_mismatch(a, b, klass1, klass2):
     msg = f"""numpy array are different
@@ -792,6 +796,7 @@ def test_assert_almost_equal_zero_dim_numpy_dtype():
     msg = 'numpy array are different\n\nAttribute "dtype" are different'
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(a, b)
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(b, a)
 
     # Without check_dtype, they are considered equal
@@ -805,6 +810,7 @@ def test_assert_almost_equal_zero_dim_numpy_ndim():
     msg = "numpy array are different\n\nnumpy array shapes are different"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(a, b)
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(b, a)
 
 
@@ -815,4 +821,20 @@ def test_assert_almost_equal_zero_dim_numpy_size():
     msg = "numpy array are different\n\nnumpy array shapes are different"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(a, b)
+    with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(b, a)
+
+
+def test_assert_almost_equal_zero_dim_numpy_tolerance():
+    # GH#68927 Zero dim arrays should follow the scalar path
+    a = np.array(5.0)
+    b = np.array(5.1)
+    tm.assert_almost_equal(a, b, atol=0.1)
+    msg = "expected 5.10000 but got 5.00000, with rtol=1e-05, atol=1e-05"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b, atol=0.00001)
+
+    tm.assert_almost_equal(a, b, rtol=0.1)
+    msg = "expected 5.10000 but got 5.00000, with rtol=0.01, atol=1e-08"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b, rtol=0.01)
