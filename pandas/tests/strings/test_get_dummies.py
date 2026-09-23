@@ -98,7 +98,7 @@ def test_get_dummies_with_str_dtype(any_string_dtype):
 
 
 def test_get_dummies_empty_and_missing_entries(any_string_dtype):
-    # GH#XXXXX an entry that yields no tag must not become a column
+    # GH#67553 an entry that yields no tag must not become a column
     s = pd.Series(["a|b", "", "b", None, "|a|", "a||b"], dtype=any_string_dtype)
     result = s.str.get_dummies("|")
     expected = pd.DataFrame(
@@ -109,7 +109,7 @@ def test_get_dummies_empty_and_missing_entries(any_string_dtype):
 
 @pytest.mark.parametrize("data", [["", None], [None, None], ["", "|"]])
 def test_get_dummies_all_entries_empty(any_string_dtype, data):
-    # GH#XXXXX
+    # GH#67553
     s = pd.Series(data, dtype=any_string_dtype)
     result = s.str.get_dummies("|")
     expected = pd.DataFrame(np.empty((2, 0), dtype=np.int64), columns=pd.Index([]))
@@ -119,7 +119,7 @@ def test_get_dummies_all_entries_empty(any_string_dtype, data):
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize("pa_type", ["string", "large_string"])
 def test_get_dummies_arrow_dtype(pa_type):
-    # GH#XXXXX
+    # GH#67553
     import pyarrow as pa
 
     dtype = pd.ArrowDtype(getattr(pa, pa_type)())
@@ -134,15 +134,17 @@ def test_get_dummies_arrow_dtype(pa_type):
 
 
 def test_get_dummies_categorical():
-    # GH#XXXXX missing values must not be encoded as a literal "NaN" tag
+    # GH#67553 missing values must not be encoded as a literal "NaN" tag
     s = pd.Series(["a|NaN", "b", None], dtype="category")
     result = s.str.get_dummies("|")
-    expected = pd.DataFrame([[1, 1, 0], [0, 0, 1], [0, 0, 0]], columns=["NaN", "a", "b"])
+    expected = pd.DataFrame(
+        [[1, 1, 0], [0, 0, 1], [0, 0, 0]], columns=["NaN", "a", "b"]
+    )
     tm.assert_frame_equal(result, expected)
 
 
 def test_get_dummies_no_tags_nullable_dtype(any_string_dtype):
-    # GH#XXXXX an all-tagless input must not crash for an extension dtype. The
+    # GH#67553 an all-tagless input must not crash for an extension dtype. The
     # empty branch used to hand the raw dtype to np.empty, which cannot take one.
     ser = pd.Series(["", None], dtype=any_string_dtype)
     result = ser.str.get_dummies("|", dtype="Int64")
