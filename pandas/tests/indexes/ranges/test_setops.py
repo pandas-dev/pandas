@@ -451,15 +451,15 @@ class TestRangeIndexSetOps:
 
         result = left.symmetric_difference(empty)
         expected = pd.RangeIndex(-4, 0, 2)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = empty.symmetric_difference(left)
         expected = pd.RangeIndex(-4, 0, 2)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
         result = left.symmetric_difference(pd.RangeIndex(0))
         expected = pd.RangeIndex(-4, 0, 2)
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected, exact=True)
 
 
 def assert_range_or_not_is_rangelike(index):
