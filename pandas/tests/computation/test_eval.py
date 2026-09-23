@@ -1924,6 +1924,18 @@ def test_eval_no_support_column_name(request, engine, parser, column):
     tm.assert_frame_equal(result, expected)
 
 
+def test_query_eval_local_class_attribute(engine):
+    # GH#48694
+    class A:
+        a = 2
+
+    df = pd.DataFrame({"x": [1, 2, 3]})
+    result = df.query("x == @A.a", engine=engine)
+    tm.assert_frame_equal(result, df.iloc[[1]])
+    result = df.eval("x == @A.a", engine=engine)
+    tm.assert_series_equal(result, df["x"] == 2)
+
+
 @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.eval")
 def test_set_inplace():
     # https://github.com/pandas-dev/pandas/issues/47449
