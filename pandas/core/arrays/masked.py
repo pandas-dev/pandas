@@ -842,6 +842,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
 
+        # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
+        #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         for x in inputs + out:
@@ -1847,9 +1851,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
-    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def sem(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce("sem", skipna=skipna, axis=axis, ddof=ddof, **kwargs)
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
     def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
@@ -2172,8 +2178,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
         mask = self._mask

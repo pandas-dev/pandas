@@ -2853,7 +2853,7 @@ def test_roundtrip(conn, request, test_frame1):
 
     if "adbc" in conn_name:
         result = result.rename(columns={"__index_level_0__": "level_0"})
-    result.set_index("level_0", inplace=True)
+    result = result.set_index("level_0")
     # result.index.astype(int)
 
     result.index.name = None
@@ -3908,6 +3908,39 @@ def test_valueerror_exception(sqlite_engine):
     df = pd.DataFrame({"col1": [1, 2], "col2": [3, 4]})
     with pytest.raises(ValueError, match="Empty table name specified"):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
+
+
+@pytest.mark.parametrize("params", [(1,), [1], {"x": 1}])
+def test_dbapi_params_passed_through_unchanged(params):
+    # GH#11683 - pandas shouldn't coerce the user's params
+    received = []
+
+    class Cursor:
+        description = [("a",)]
+
+        def execute(self, sql, *args):
+            received.extend(args)
+
+        def fetchall(self):
+            return [(1,)]
+
+        def close(self):
+            pass
+
+    class Con:
+        def cursor(self):
+            return Cursor()
+
+        def commit(self):
+            pass
+
+        def rollback(self):
+            pass
+
+    with tm.assert_produces_warning(UserWarning, match="Other DBAPI2 objects"):
+        sql.read_sql("select 1", Con(), params=params)
+    assert len(received) == 1
+    assert received[0] is params
 
 
 def test_row_object_is_named_tuple(sqlite_engine):
