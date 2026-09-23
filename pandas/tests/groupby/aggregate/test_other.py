@@ -4,12 +4,14 @@ test all other .agg behavior
 
 import datetime as dt
 from functools import partial
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas.errors import (
     Pandas4Warning,
+    PerformanceWarning,
     SpecificationError,
 )
 
@@ -612,6 +614,84 @@ def test_agg_list_like_func():
     expected = pd.DataFrame(
         {"A": [str(x) for x in range(3)], "B": [[str(x)] for x in range(3)]}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data,expected,expected_dtype",
+    [
+        (
+            {("col0", "l0"): [0, 0, 1], ("col1", "l1"): [10, 20, 30]},
+            [[0, 10, 20], [1, 30, 30]],
+            "int64",
+        ),
+        (
+            {("col1", "l1"): [10, 20, 30], ("col0", "l0"): [0, 0, 1]},
+            [[0, 10, 20], [1, 30, 30]],
+            "int64",
+        ),
+        (
+            {("col0", "l0"): [], ("col1", "l1"): []},
+            [],
+            "float64",
+        ),
+    ],
+)
+def test_groupby_agg_as_index_false_multiindex_column(data, expected, expected_dtype):
+    # GH39103
+    df = pd.DataFrame(data)
+    result = df.groupby(("col0", "l0"), as_index=False).agg(
+        {("col1", "l1"): ["min", "max"]}
+    )
+    expected = pd.DataFrame(
+        expected,
+        columns=pd.MultiIndex.from_tuples(
+            [
+                ("col0", "l0", ""),
+                ("col1", "l1", "min"),
+                ("col1", "l1", "max"),
+            ]
+        ),
+        dtype=expected_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_as_index_false_multiindex_column_matches_reset_index():
+    # GH39103
+    # Padded grouper keys inserted by _insert_inaxis_grouper must be identical
+    # to what the canonical as_index=True + reset_index() form produces.
+    df = pd.DataFrame(
+        {
+            ("col0", "l0"): [0, 0, 1],
+            ("col1", "l1"): [10, 20, 30],
+            ("col2", "l0"): [1, 2, 3],
+        }
+    )
+    cases = [
+        lambda gb: gb.agg({("col1", "l1"): ["min", "max"]}),
+        lambda gb: gb.describe(),
+    ]
+    for func in cases:
+        result = func(df.groupby(("col0", "l0"), as_index=False))
+        # reset_index() expands the partial tuple key, which emits a
+        # pre-existing PerformanceWarning unrelated to this fix.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", PerformanceWarning)
+            expected = func(df.groupby(("col0", "l0"))).reset_index()
+        tm.assert_frame_equal(result, expected)
+
+    # independent padding of each grouper level when several tuple keys are used
+    result = df.groupby([("col0", "l0"), ("col2", "l0")], as_index=False).agg(
+        {("col1", "l1"): ["min", "max"]}
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", PerformanceWarning)
+        expected = (
+            df.groupby([("col0", "l0"), ("col2", "l0")])
+            .agg({("col1", "l1"): ["min", "max"]})
+            .reset_index()
+        )
     tm.assert_frame_equal(result, expected)
 
 
