@@ -865,6 +865,7 @@ Numeric
 - Fixed bug in arithmetic between :class:`DataFrame` and an object-dtype :class:`arrays.NumpyExtensionArray` returning an unexpected dtype because ``NumpyEADtype`` was not recognized as object dtype (:issue:`64969`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the ``fill_value`` parameter (:issue:`61581`)
+- Fixed bug where :meth:`DataFrame.eval`, :func:`eval`, and arithmetic on large ``int64`` data returned a column that :meth:`DataFrame.select_dtypes` did not recognize as ``int64`` (:issue:`17945`)
 
 Conversion
 ^^^^^^^^^^
