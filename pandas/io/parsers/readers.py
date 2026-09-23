@@ -251,6 +251,7 @@ _PARALLEL_MAX_COLUMN_PIECES = 1800
 # disables the taper.
 _PARALLEL_TAPER_RATIO = 0.2
 
+
 def _is_thread_affinity_error(exc: BaseException) -> bool:
     """Return whether an exception message indicates thread affinity."""
     message = str(exc).lower()
