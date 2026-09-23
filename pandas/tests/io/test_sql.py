@@ -1600,6 +1600,21 @@ def test_read_sql_iris_parameter(conn, request, sql_strings):
     check_iris_frame(iris_frame)
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_percent_operator_and_selectable(conn, request):
+    # GH#35484
+    sa = pytest.importorskip("sqlalchemy")
+    conn = request.getfixturevalue(conn)
+
+    expected = pd.DataFrame({"r": [1]})
+
+    result = pd.read_sql(sa.text("SELECT 5 % 2 AS r"), conn)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    result = pd.read_sql(sa.select((sa.literal(5) % sa.literal(2)).label("r")), conn)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
