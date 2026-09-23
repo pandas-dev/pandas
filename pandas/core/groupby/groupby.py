@@ -1009,6 +1009,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             #  deprecated; pad the key to full length ourselves
             if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
                 return (name,) + ("",) * (result.columns.nlevels - 1)
+            if (
+                isinstance(result.columns, MultiIndex)
+                and isinstance(name, tuple)
+                and len(name) < result.columns.nlevels
+            ):
+                return name + ("",) * (result.columns.nlevels - len(name))
             return name
 
         if qs is not None:
@@ -1034,7 +1040,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if name not in result.columns:
+            if full_key(name) not in result.columns:
                 # if in_axis:
                 if qs is None:
                     result.insert(0, full_key(name), lev)
