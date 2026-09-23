@@ -770,9 +770,7 @@ class SeriesGroupBy(GroupBy[Series]):
         obj = self._obj_with_exclusions
 
         try:
-            result = self._grouper._cython_operation(
-                "transform", obj._values, how, 0, **kwargs
-            )
+            result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
             # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
@@ -2463,9 +2461,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(
-                "transform", bvalues, how, 1, **kwargs
-            )
+            return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
 
         res_mgr = mgr.apply(arr_func)
 

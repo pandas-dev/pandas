@@ -129,8 +129,6 @@ class WrappedCythonOp:
 
     Parameters
     ----------
-    kind: str
-        Whether the operation is an aggregate or transform.
     how: str
         Operation name, e.g. "mean".
     has_dropped_na: bool
@@ -143,8 +141,10 @@ class WrappedCythonOp:
         ["any", "all", "rank", "count", "size", "idxmin", "idxmax"]
     )
 
-    def __init__(self, kind: str, how: str, has_dropped_na: bool) -> None:
-        self.kind = kind
+    def __init__(self, how: str, has_dropped_na: bool) -> None:
+        self.kind = (
+            "aggregate" if how in self._CYTHON_FUNCTIONS["aggregate"] else "transform"
+        )
         self.how = how
         self.has_dropped_na = has_dropped_na
 
@@ -179,12 +179,6 @@ class WrappedCythonOp:
     }
 
     _cython_arity = {"ohlc": 4}  # OHLC
-
-    @classmethod
-    def get_kind_from_how(cls, how: str) -> str:
-        if how in cls._CYTHON_FUNCTIONS["aggregate"]:
-            return "aggregate"
-        return "transform"
 
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
@@ -1012,7 +1006,6 @@ class BaseGrouper:
     @final
     def _cython_operation(
         self,
-        kind: str,
         values,
         how: str,
         axis: AxisInt,
@@ -1022,11 +1015,8 @@ class BaseGrouper:
         """
         Returns the values of a cython operation.
         """
-        assert kind in ["transform", "aggregate"]
-
         if (
-            kind == "aggregate"
-            and how in _REDUCEAT_UFUNCS
+            how in _REDUCEAT_UFUNCS
             and isinstance(values, np.ndarray)
             and values.dtype.kind in "iufb"
             and self.is_monotonic
@@ -1035,7 +1025,7 @@ class BaseGrouper:
             if result is not None:
                 return result
 
-        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
+        cy_op = WrappedCythonOp(how=how, has_dropped_na=self.has_dropped_na)
 
         return cy_op.cython_operation(
             values=values,
