@@ -268,7 +268,7 @@ def melt(
     ):
         mdata[value_name] = concat(
             [frame.iloc[:, i] for i in range(frame.shape[1])], ignore_index=True
-        ).values
+        )._values
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):

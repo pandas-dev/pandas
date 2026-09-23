@@ -187,7 +187,11 @@ cpdef assert_almost_equal(a, b,
 
             # if we have a small diff set, print it
             if abs(na - nb) < 10:
-                r = list(set(a) ^ set(b))
+                try:
+                    r = list(set(a) ^ set(b))
+                except TypeError:
+                    # GH#69014: Nested sequences can contain unhashable elements.
+                    r = None
             else:
                 r = None
 

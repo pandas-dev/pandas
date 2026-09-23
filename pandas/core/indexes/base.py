@@ -958,6 +958,10 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
+        # self._values only reaches the ExtensionArray guard when it is an EA, so a
+        #  bool Index against datetimelike data needs this here
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
@@ -5674,7 +5678,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key)
-            return getitem(key)  # pyright: ignore[reportReturnType]
+            return maybe_unbox_numpy_scalar(getitem(key), object_with_dtype=self)
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
@@ -7970,9 +7974,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -8034,9 +8038,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,

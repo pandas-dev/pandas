@@ -255,7 +255,7 @@ _PARALLEL_TAPER_RATIO = 0.2
 # sees diminishing returns beyond a handful of workers, and a low default
 # avoids oversubscribing the machine.  mode.max_threads overrides it in either
 # direction.
-_MAX_DEFAULT_WORKERS = 4
+_MAX_DEFAULT_WORKERS = 6
 _pyarrow_unsupported = {
     "skipfooter",
     "float_precision",
@@ -1287,7 +1287,7 @@ def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
     sep: str | lib.NoDefault | None = lib.no_default,
-    delimiter: str | lib.NoDefault | None = None,
+    delimiter: str | lib.NoDefault | None = lib.no_default,
     # Column and Index Locations and Names
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
@@ -1461,9 +1461,9 @@ def read_csv(
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices. The function is applied to the raw
-        text read from the file, before any missing-value detection: an empty
-        field is passed as an empty string ``''``, and ``na_values`` and
-        ``keep_default_na`` have no effect on a column that has a converter.
+        text read from the file, so an empty field is passed as an empty string
+        ``''``; ``na_values`` and ``keep_default_na`` are then applied to the
+        value the function returns.
     true_values : list, optional
         Values to consider as ``True`` in addition
         to case-insensitive variants of 'True'.
@@ -1840,6 +1840,7 @@ def read_csv(
         names,
         defaults={"delimiter": ","},
         dtype_backend=dtype_backend,
+        lineterminator=lineterminator,
     )
     kwds.update(kwds_defaults)
 
@@ -1891,7 +1892,7 @@ def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
     sep: str | lib.NoDefault | None = lib.no_default,
-    delimiter: str | lib.NoDefault | None = None,
+    delimiter: str | lib.NoDefault | None = lib.no_default,
     # Column and Index Locations and Names
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
@@ -2062,9 +2063,9 @@ def read_table(
     converters : dict of {Hashable : Callable}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices. The function is applied to the raw
-        text read from the file, before any missing-value detection: an empty
-        field is passed as an empty string ``''``, and ``na_values`` and
-        ``keep_default_na`` have no effect on a column that has a converter.
+        text read from the file, so an empty field is passed as an empty string
+        ``''``; ``na_values`` and ``keep_default_na`` are then applied to the
+        value the function returns.
     true_values : list, optional
         Values to consider as ``True`` in addition to
         case-insensitive variants of 'True'.
@@ -2436,6 +2437,7 @@ def read_table(
         names,
         defaults={"delimiter": "\t"},
         dtype_backend=dtype_backend,
+        lineterminator=lineterminator,
     )
     kwds.update(kwds_defaults)
 
@@ -3293,6 +3295,7 @@ def _refine_defaults_read(
     names: Sequence[Hashable] | lib.NoDefault | None,
     defaults: dict[str, Any],
     dtype_backend: DtypeBackend | lib.NoDefault,
+    lineterminator: str | bytes | None,
 ):
     """Validate/refine default values of input parameters of read_csv, read_table.
 
@@ -3305,7 +3308,7 @@ def _refine_defaults_read(
         override values, a ParserWarning will be issued. See csv.Dialect
         documentation for more details.
     delimiter : str or object
-        Alias for sep.
+        Alias for sep, taking the same sentinel value when not provided.
     engine : {'c', 'python'}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
@@ -3320,6 +3323,8 @@ def _refine_defaults_read(
         Duplicates in this list are not allowed.
     defaults: dict
         Default values of input parameters.
+    lineterminator : str, bytes or None
+        Line terminator passed by the user, if any.
 
     Returns
     -------
@@ -3342,25 +3347,34 @@ def _refine_defaults_read(
     # the comparison to dialect values by checking if default values
     # for BOTH "delimiter" and "sep" were provided.
     if dialect is not None:
-        kwds["sep_override"] = delimiter is None and (
+        kwds["sep_override"] = delimiter is lib.no_default and (
             sep is lib.no_default or sep == delim_default
         )
 
-    if delimiter and (sep is not lib.no_default):
+    if delimiter is not lib.no_default and sep is not lib.no_default:
         raise ValueError("Specified a sep and a delimiter; you can only specify one.")
 
     kwds["names"] = None if names is lib.no_default else names
 
-    # Alias sep -> delimiter.
-    if delimiter is None:
+    # Alias sep -> delimiter. Both use lib.no_default rather than None as the
+    # "not passed" sentinel, so an explicit None means sniff (GH#47024).
+    if delimiter is lib.no_default:
         delimiter = sep
+
+    if isinstance(lineterminator, (bytes, bytearray)):
+        # the C engine accepts these; compare on the character it will use
+        lineterminator = lineterminator.decode("latin-1")
 
     # GH#43528, GH#51801: the C engine silently mis-parses these, as the field
     # separator is consumed as a line terminator before it can split a field.
-    if delimiter in ("\n", "\r"):
+    # A custom lineterminator takes over that role, leaving "\n"/"\r" free to
+    # separate fields.
+    if delimiter in ("\n", "\r") and lineterminator in (None, delimiter):
         raise ValueError(
             f"Specified {delimiter!r} as separator or delimiter, but a line "
-            "terminator cannot be used as a separator.",
+            f"terminator cannot be used as a separator. To parse {delimiter!r} "
+            f"as a separator, pass a lineterminator other than {delimiter!r} "
+            "(engine='c' only).",
         )
 
     if delimiter is lib.no_default:

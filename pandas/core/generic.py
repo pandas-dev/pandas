@@ -219,7 +219,7 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     condition, so we can skip that machinery altogether (GH#51547).
     """
     if isinstance(obj, ABCDataFrame):
-        dtypes: list[DtypeObj] = [block.dtype for block in obj._mgr.blocks]
+        dtypes: list[DtypeObj] = obj._blk_dtypes
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
@@ -885,7 +885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -2037,9 +2037,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in meta:
-                    if k in state and k != "_flags":
+                    # _metadata is handled below: assigning a pre-2.1 pickle's
+                    # ["name"] here would mask the class's ["_name"], see GH#61819
+                    if k in state and k not in ("_flags", "_metadata"):
                         v = state[k]
                         object.__setattr__(self, k, v)
+
+                if "_metadata" in state:
+                    # merge rather than replace, so a subclass that extends
+                    # _metadata per instance keeps its entries
+                    cls_meta = list(self._metadata)
+                    merged = list(dict.fromkeys(cls_meta + list(state["_metadata"])))
+                    if merged != cls_meta:
+                        object.__setattr__(self, "_metadata", merged)
 
                 for k, v in state.items():
                     if k not in meta:
@@ -4288,7 +4298,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # if we encounter an array-like and we only have 1 dim
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
-                return self._values[loc]
+                return self._ixs(loc, axis=0)
 
             if not drop_level and isinstance(index, MultiIndex):
                 # GH#6507 - honor drop_level=False for fully specified keys
@@ -6571,7 +6581,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(EA2D): special case not needed with 2D EAs
             dtype = pandas_dtype(dtype)
             if isinstance(dtype, ExtensionDtype) and all(
-                block.values.dtype == dtype for block in self._mgr.blocks
+                x == dtype for x in self._blk_dtypes
             ):
                 return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -10738,7 +10748,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10822,14 +10831,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if periods == 0:
-            return self.copy(deep=False)
-
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
-                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+                periods=periods,
+                freq=freq,
+                axis=axis,
+                fill_value=fill_value,
+                suffix=suffix,
             )
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast("int", periods)
+
+        if periods == 0:
+            return self.copy(deep=False)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
@@ -11981,8 +11996,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
             When ``on`` is specified, the values of that column also become the
             index of the :class:`Series` passed to :meth:`Rolling.apply` when
@@ -12088,6 +12106,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2013-01-01 09:00:03  3.0
         2013-01-01 09:00:05  NaN
         2013-01-01 09:00:06  4.0
+
+        Rolling sum with forward-looking windows with 3 seconds.
+
+        >>> df_time.iloc[::-1].rolling("3s").sum().iloc[::-1]
+                               B
+        2013-01-01 09:00:00  1.0
+        2013-01-01 09:00:02  3.0
+        2013-01-01 09:00:03  2.0
+        2013-01-01 09:00:05  4.0
+        2013-01-01 09:00:06  4.0
+
+        .. note::
+
+            Negative offset strings (e.g., ``"-5h"``) do not create forward-looking
+            windows and should be avoided. They collapse to single-element windows.
 
         Rolling sum with forward looking windows with 2 observations.
 
