@@ -842,6 +842,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
 
+        # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
+        #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         for x in inputs + out:
@@ -2183,8 +2187,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
         mask = self._mask
