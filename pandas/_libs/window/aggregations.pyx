@@ -526,6 +526,12 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
     # Not NaN
     if val == val:
         nobs[0] -= 1
+        if nobs[0] == 0:
+            mean[0] = 0.0
+            m2[0] = 0.0
+            m3[0] = 0.0
+            numerically_unstable[0] = False
+            return
         n = <float64_t>(nobs[0])
         delta = val - mean[0]
         delta_n = delta / n
@@ -642,6 +648,13 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
     # Not NaN
     if val == val:
         nobs[0] -= 1
+        if nobs[0] == 0:
+            mean[0] = 0.0
+            m2[0] = 0.0
+            m3[0] = 0.0
+            m4[0] = 0.0
+            numerically_unstable[0] = False
+            return
         n = <float64_t>(nobs[0])
         delta = val - mean[0]
         delta_n = delta / n

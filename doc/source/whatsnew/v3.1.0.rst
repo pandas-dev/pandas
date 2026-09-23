@@ -988,6 +988,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.union` raising ``InvalidIndexError`` when combining levels containing :class:`datetime.date` and :class:`Timestamp` values representing the same date (:issue:`61807`)
 - Bug in the :class:`DataFrame` constructor where passing a :class:`DataFrame` with a unique integer :class:`MultiIndex` together with a flat integer ``index`` raised ``ValueError: Buffer dtype mismatch`` instead of reindexing to an all-``NaN`` result (:issue:`26460`)
 - :meth:`MultiIndex.isin` now raises an informative ``ValueError`` when the values are not tuples matching the number of levels, instead of raising a cryptic ``TypeError`` or ``AssertionError`` or silently returning incorrect results (:issue:`20252`, :issue:`26622`)
+- Bug in the :meth:`MultiIndex.set_levels` and :meth:`MultiIndex.set_codes` error message for a nested (list-of-lists) value paired with a scalar ``level``, which repeated the misleading "must be list-like" message; it now names the real constraint as "must be list-like, not a list of list-likes" (:issue:`66287`)
 
 I/O
 ^^^
@@ -1052,6 +1053,7 @@ I/O
 - Fixed bug in :func:`read_excel` and :class:`ExcelFile` where passing an ``xlrd.Book`` without an explicit ``engine`` raised ``AttributeError: 'Book' object has no attribute 'seek'`` instead of reading the workbook (:issue:`68086`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug in :func:`read_excel` with ``engine="odf"`` where ``<table:covered-table-cell>`` elements with explicit ``office:value`` attributes were incorrectly read as missing values. (:issue:`66579`)
+- Fixed bug in :func:`read_excel` and :meth:`DataFrame.to_excel` with ``engine="odf"`` where line breaks inside a cell were lost when writing, and dropped when reading files that store them as ``<text:line-break/>`` elements or multiple ``<text:p>`` paragraphs (:issue:`55728`, :issue:`53924`)
 - Fixed bug in :func:`read_excel` with the ``openpyxl`` engine where reading a sheet set its ``max_row`` and ``max_column`` to ``None`` on the workbook exposed through ``ExcelFile.book`` (:issue:`63010`)
 - Fixed bug in :func:`read_feather`, :func:`read_parquet`, :func:`read_orc` and the other readers that build a frame from an Arrow table where, with the ``future.infer_string`` option disabled, an *ordered* categorical column came back with ``str`` categories instead of the ``object`` categories an unordered one gets (:issue:`64659`)
 - Fixed bug in :func:`read_sas` where ``encoding="infer"`` raised ``LookupError: unknown encoding: infer`` instead of falling back to latin-1, for SAS7BDAT files recording an encoding pandas does not recognize and for XPORT files, which record no encoding at all (:issue:`66470`)
@@ -1183,6 +1185,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` returning ``NaN`` for all later windows once a window contained no valid pairs, e.g. due to ``NaN`` values (:issue:`65739`)
 - Bug in :meth:`.Rolling.corr` and :meth:`.Rolling.cov` returning wildly incorrect results, and :meth:`.Rolling.corr` additionally returning ``NaN``, for every window following one that contained a value much larger than the rest of the data (:issue:`65739`)
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` (and their :class:`GroupBy` counterparts) returning ``0.0`` and ``-3.0`` respectively for degenerate windows or groups; these now return ``NaN`` (:issue:`62864`)
+- Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for every later window once the values shared by two consecutive windows were all NA (:issue:`69037`)
 - Bug in :meth:`.Rolling.skew` and :meth:`.Rolling.kurt` returning ``NaN`` for low-variance windows (:issue:`62946`)
 - Bug in :meth:`.Rolling.sum`, :meth:`.Rolling.mean`, :meth:`.Rolling.median`, :meth:`.Rolling.min`, and :meth:`.Rolling.max` with ``method="table"``, ``engine="numba"``, and ``engine_kwargs={"parallel": True}`` could cause a segfault (:issue:`40454`)
 - Bug in :meth:`.SeriesGroupBy.ohlc` ignoring ``as_index=False`` (:issue:`65140`)
@@ -1199,6 +1202,7 @@ Reshaping
 - :meth:`DataFrame.pivot` and :func:`pivot` now raise an informative ``KeyError`` naming the offending labels when ``index``, ``columns``, or ``values`` are not columns of the frame, instead of a cryptic ``TypeError`` (:issue:`35785`)
 - Bug in :func:`concat` raising ``InvalidIndexError`` when ``keys`` or the concatenated objects' index was an overlapping :class:`IntervalIndex` (:issue:`64825`)
 - Bug in :func:`concat` with a ``null[pyarrow]`` column incorrectly changing the dtype of the other columns, e.g. casting ``date32[pyarrow]`` to ``timestamp[ms][pyarrow]``, dropping the timezone of a tz-aware ``timestamp[pyarrow]``, or casting ``decimal128[pyarrow]`` to ``object`` (:issue:`62343`)
+- Bug in :func:`merge_asof` where a negative tolerance raised ``MergeError`` with the misleading message "tolerance must be positive" even though ``tolerance=0`` is accepted; the message now reads "tolerance must be non-negative" (:issue:`66289`)
 - Bug in :func:`merge` where merging on a :class:`MultiIndex` containing ``NaN`` values mapped ``NaN`` keys to the last level value instead of ``NaN`` (:issue:`64492`)
 - Bug in :func:`merge` where the join key column was not upcast to the highest ``datetime64`` resolution, keeping the lower resolution for ``how="inner"`` and ``how="left"`` when the left frame had lower resolution, and for ``how="inner"`` and ``how="right"`` when the join key came from a lower-resolution right frame (:issue:`55212`)
 - Bug in :func:`qcut` not validating ``q``, so a non-positive integer or a ``q`` that was neither an integer nor list-like failed with ``IndexError``, ``TypeError`` or no error at all instead of ``ValueError`` (:issue:`67406`)
@@ -1300,6 +1304,7 @@ ExtensionArray
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Bug in the :class:`Series` constructor with an index but no data raising ``RecursionError`` for an :class:`~pandas.api.extensions.ExtensionDtype` whose ``na_value`` is dict-like, e.g. a nested or arrow-backed dtype (:issue:`33900`, :issue:`41377`)
+- Bug in :attr:`Series.list` raising error when using negative indices with PyArrow list dtypes (:issue:`63221`)
 - Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)
 - Fixed bug in :meth:`Series.apply` and :meth:`Series.map` where nullable integer dtypes were converted to float, causing precision loss for large integers; now the nullable dtype will be preserved (:issue:`63903`).

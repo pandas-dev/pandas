@@ -5678,7 +5678,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key)
-            return getitem(key)  # pyright: ignore[reportReturnType]
+            return maybe_unbox_numpy_scalar(getitem(key), object_with_dtype=self)
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
