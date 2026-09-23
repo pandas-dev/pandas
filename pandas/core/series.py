@@ -2188,7 +2188,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        <https://pandas.pydata.org/docs/dev/user_guide/groupby.html>`__ for more
         detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
@@ -4763,7 +4763,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -5672,7 +5672,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -5787,7 +5787,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -5869,7 +5869,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         level : int or name
@@ -6135,7 +6135,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -7225,7 +7225,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -7302,7 +7302,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns

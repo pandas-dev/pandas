@@ -4034,7 +4034,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -6024,7 +6024,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             warnings.warn(
                 f"{msg}\nSee "
-                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "https://pandas.pydata.org/docs/dev/user_guide/migration.html"
                 "#string-migration-select-dtypes for details on how to write code "
                 "that works with pandas 2 and 3.",
                 Pandas4Warning,
@@ -6496,7 +6496,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -6593,7 +6593,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         level : int or name
@@ -7107,7 +7107,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -7302,7 +7302,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -13776,7 +13776,7 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        <https://pandas.pydata.org/docs/dev/user_guide/groupby.html>`__ for more
         detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
@@ -16171,7 +16171,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         indicator : bool or str, default False
@@ -19929,7 +19929,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -20015,7 +20015,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
