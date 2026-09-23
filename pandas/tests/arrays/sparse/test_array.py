@@ -276,7 +276,11 @@ class TestSparseArrayAnalytics:
         tm.assert_sp_array_equal(np.abs(sparse), result)
 
         sparse = SparseArray([1, -1, 2, -2], fill_value=1)
-        result = SparseArray([1, 2, 2], sparse_index=sparse.sp_index, fill_value=1)
+        result = SparseArray._simple_new(
+            np.array([1, 2, 2], dtype=np.int64),
+            sparse.sp_index,
+            pd.SparseDtype(np.int64, 1),
+        )
         tm.assert_sp_array_equal(abs(sparse), result)
         tm.assert_sp_array_equal(np.abs(sparse), result)
 
@@ -477,13 +481,16 @@ def test_cumsum_float_fill_value_zero():
 def test_cumsum_na_stored_in_sp_values(subtype, values, expected_values, na_value):
     # GH#68972 an NA stored in sp_values used to propagate into every later entry
     sp_values = np.array(values, dtype=subtype)
-    sparse_index = IntIndex(len(sp_values), np.arange(len(sp_values), dtype=np.int32))
-    arr = SparseArray(sp_values, sparse_index=sparse_index, fill_value=na_value)
+    indices = np.arange(len(sp_values), dtype=np.int32)
+    arr = SparseArray.from_indices(
+        sp_values, indices=indices, length=len(sp_values), fill_value=na_value
+    )
 
     result = arr.cumsum()
-    expected = SparseArray(
+    expected = SparseArray.from_indices(
         np.array(expected_values, dtype=subtype),
-        sparse_index=sparse_index,
+        indices=indices,
+        length=len(sp_values),
         fill_value=na_value,
     )
     tm.assert_sp_array_equal(result, expected)
@@ -494,9 +501,10 @@ def test_cumsum_na_stored_complex_imaginary_nan():
     #  an imaginary-only NaN loses its real part exactly as it does when dense.
     #  tm.assert_* reads any two NAs as equal, so this compares the components
     values = np.array([1 + 1j, complex(1, np.nan), 2 + 0j])
-    arr = SparseArray(
+    arr = SparseArray.from_indices(
         values,
-        sparse_index=IntIndex(3, np.arange(3, dtype=np.int32)),
+        indices=np.arange(3, dtype=np.int32),
+        length=3,
         fill_value=np.nan,
     )
 
@@ -509,9 +517,10 @@ def test_cumsum_na_stored_complex_imaginary_nan():
 def test_cumsum_na_stored_and_gap():
     # GH#68972 a stored NA and a gap NA in one array is the interaction the fix is
     #  about; both have to reach the result
-    arr = SparseArray(
+    arr = SparseArray.from_indices(
         np.array([1.0, np.nan, 5.0]),
-        sparse_index=IntIndex(5, np.array([0, 1, 3], dtype=np.int32)),
+        indices=np.array([0, 1, 3], dtype=np.int32),
+        length=5,
         fill_value=np.nan,
     )
 
@@ -1115,3 +1124,28 @@ def test_value_counts_object_subtype_with_na():
     result = arr.value_counts(dropna=False)
     expected = pd.Series([1, 2, 1], index=pd.Index([0, 1, pd.NA], dtype=object))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "subtype, item",
+    [
+        ("int64", 1.5),
+        ("int64", 2**63),
+        ("int64", pd.Timestamp("2016-01-01")),
+        ("bool", 1.5),
+        ("M8[ns]", 1.5),
+        ("m8[ns]", 1.5),
+    ],
+)
+def test_insert_lossy_raises(subtype, item):
+    # GH#69028 a value the subtype cannot hold must raise, not be cast
+    arr = SparseArray(np.array([1, 2, 3]).astype(subtype))
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr.insert(0, item)
+
+
+def test_insert_lossless_float_into_int_subtype():
+    # GH#69028 a float the subtype can hold exactly is not rejected
+    arr = SparseArray([1, 2, 3])
+    result = arr.insert(0, 1.0)
+    tm.assert_extension_array_equal(result, SparseArray([1, 1, 2, 3]))

@@ -78,6 +78,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
     notna,
@@ -445,12 +446,18 @@ def _wrap_result(
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
-    if sparse_index is not None:
-        # a None sparse_index means the constructor sparsifies data itself
-        data, sparse_index = _prune_fill_value(data, sparse_index, fill_value)
-    return SparseArray(
-        data, sparse_index=sparse_index, fill_value=fill_value, dtype=dtype, kind=kind
-    )
+    if sparse_index is None:
+        # a dense result, e.g. from _wrap_dense_result: sparsify it here
+        return SparseArray(data, fill_value=fill_value, dtype=dtype, kind=kind)
+
+    data, sparse_index = _prune_fill_value(data, sparse_index, fill_value)
+
+    if dtype is not None:
+        data = np.asarray(data, dtype=dtype)  # type: ignore[arg-type]
+    else:
+        data = np.asarray(data)
+    sparse_dtype = SparseDtype(data.dtype, fill_value)
+    return SparseArray._simple_new(data, sparse_index, sparse_dtype)
 
 
 def _differs_from_fill(values: np.ndarray, fill_value) -> np.ndarray:
@@ -565,6 +572,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         `fill_value`.
     sparse_index : SparseIndex, optional
         Index indicating the locations of sparse elements.
+
+        .. deprecated:: 3.1.0
+            Use :meth:`SparseArray.from_indices` instead.
     fill_value : scalar, optional
         Elements in data that are ``fill_value`` are not stored in the
         SparseArray. For memory savings, this should be the most common value
@@ -638,12 +648,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def __init__(
         self,
         data,
-        sparse_index=None,
+        sparse_index=lib.no_default,
         fill_value=None,
         kind: SparseIndexKind = "integer",
         dtype: Dtype | None = None,
         copy: bool = False,
     ) -> None:
+        if sparse_index is not lib.no_default:
+            warnings.warn(
+                "The 'sparse_index' parameter of SparseArray.__init__ is "
+                "deprecated and will be removed in a future version. "
+                "Use SparseArray.from_indices instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            sparse_index = None
+
         if fill_value is None and isinstance(dtype, SparseDtype):
             fill_value = dtype.fill_value
 
@@ -820,6 +841,80 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         index = IntIndex(length, idx)
 
         return cls._simple_new(arr, index, dtype)
+
+    @classmethod
+    def from_indices(
+        cls,
+        data,
+        indices,
+        length: int,
+        fill_value=None,
+        kind: SparseIndexKind = "integer",
+        dtype: Dtype | None = None,
+    ) -> Self:
+        """
+        Create a SparseArray from an array of sparse values and their indices.
+
+        This allows constructing a SparseArray without materializing a dense
+        array, which is useful for large arrays where most values are the
+        fill value.
+
+        Parameters
+        ----------
+        data : array-like
+            The sparse (non-fill) values.
+        indices : array-like of int
+            The indices in the dense array where the sparse values are located.
+            Must be strictly increasing and within ``[0, length)``.
+        length : int
+            The total length of the resulting SparseArray.
+        fill_value : scalar, optional
+            The fill value to use for positions not in ``indices``.
+            By default, uses ``np.nan`` for float dtypes and the appropriate
+            NA value for other dtypes.
+        kind : {{'integer', 'block'}}, default 'integer'
+            The type of sparse index to use.
+        dtype : np.dtype or ExtensionDtype, optional
+            The dtype for the sparse values.
+
+        Returns
+        -------
+        SparseArray
+
+        See Also
+        --------
+        SparseArray.from_spmatrix : Create a SparseArray from a scipy.sparse matrix.
+
+        Examples
+        --------
+        >>> SparseArray.from_indices(
+        ...     [1, 2, 3], indices=[1, 3, 5], length=7, fill_value=0
+        ... )
+        <SparseArray>
+        [0, 1, 0, 2, 0, 3, 0]
+        Length: 7, dtype: Sparse[int64, 0]
+
+        This avoids materializing a dense array of length 7.
+        """
+        sparse_values = np.asarray(
+            sanitize_array(data, index=None),  # type: ignore[arg-type]
+            dtype=dtype,  # type: ignore[arg-type]
+        )
+        indices = np.asarray(indices, dtype=np.int32)
+
+        if len(sparse_values) != len(indices):
+            raise ValueError(
+                f"Length of data ({len(sparse_values)}) must match "
+                f"length of indices ({len(indices)})."
+            )
+
+        sparse_index = make_sparse_index(length, indices, kind)
+
+        if fill_value is None:
+            fill_value = na_value_for_dtype(sparse_values.dtype)
+
+        sparse_dtype = SparseDtype(sparse_values.dtype, fill_value)
+        return cls._simple_new(sparse_values, sparse_index, sparse_dtype)
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -1651,7 +1746,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             sp_index = BlockIndex(length, blocs_arr, blengths_arr)
 
-        return cls(data, sparse_index=sp_index, fill_value=fill_value)
+        sparse_dtype = SparseDtype(data.dtype, fill_value)
+        return cls._simple_new(data, sp_index, sparse_dtype)
+
+    def insert(self, loc: int, item) -> Self:
+        if not is_valid_na_for_dtype(item, self.dtype):
+            # GH#69028 our _from_sequence casts to the subtype instead of
+            #  raising, so validate here; Index.insert widens on the raise
+            if not _can_hold_for_fill(self.dtype.subtype, item):
+                raise TypeError(f"Invalid value '{item!s}' for dtype '{self.dtype}'")
+        return super().insert(loc, item)
 
     def astype(self, dtype: AstypeArg | None = None, copy: bool = True):
         """
@@ -1824,9 +1928,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 raise ValueError(msg)
             return new_sp_val
 
-        sp_values = [func(x) for x in self.sp_values]
+        sp_values = np.asarray(
+            sanitize_array([func(x) for x in self.sp_values], index=None)
+        )
 
-        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_val)
+        sparse_dtype = SparseDtype(sp_values.dtype, fill_val)
+        return type(self)._simple_new(sp_values, self.sp_index, sparse_dtype)
 
     def _groupby_op(
         self,
@@ -1864,8 +1971,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -2299,11 +2405,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # drops an imaginary-only NaN's real part too
             result[mask] = na_value_for_dtype(sp_values.dtype, compat=False)
 
-        return SparseArray(
-            result,
-            sparse_index=self.sp_index,
-            fill_value=self.fill_value,
-        )
+        sparse_dtype = SparseDtype(result.dtype, self.fill_value)
+        return type(self)._simple_new(result, self.sp_index, sparse_dtype)
 
     def mean(self, axis: Axis = 0, *args, skipna: bool = True, **kwargs):
         """
@@ -2712,6 +2815,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
+        #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         for x in inputs + out:
