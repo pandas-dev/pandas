@@ -186,9 +186,7 @@ class TestSeriesDatetimeValues:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             freq_result = ser.dt.freq
 
-        msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert freq_result == pd.DatetimeIndex(ser.values, freq="infer").freq
+        assert freq_result == pd.DatetimeIndex(ser.array._ndarray, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -253,9 +251,7 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        msg = "Series.values returning an object-dtype ndarray for PeriodDtype"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert freq_result == pd.PeriodIndex(ser.values).freq
+        assert freq_result == pd.PeriodIndex(ser.to_numpy()).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both

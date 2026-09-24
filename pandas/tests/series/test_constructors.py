@@ -1117,7 +1117,9 @@ class TestSeriesConstructors:
 
         # export
         depr_msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=depr_msg, check_stacklevel=False
+        ):
             result = s.values
         assert isinstance(result, np.ndarray)
         assert result.dtype == "datetime64[ns]"
@@ -1273,25 +1275,20 @@ class TestSeriesConstructors:
         result = pd.Series(ser.dt.tz_convert("UTC"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
-        depr_msg = "Series.values returning an ndarray that drops timezone information"
-
         # Pre-2.0 dt64 values were treated as utc, which was inconsistent
         #  with DatetimeIndex, which treats them as wall times, see GH#33401
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = pd.Series(ser.values, dtype=ser.dtype)
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            expected = pd.Series(ser.values).dt.tz_localize(ser.dtype.tz)
+        data = ser.array._ndarray
+        result = pd.Series(data, dtype=ser.dtype)
+        expected = pd.Series(data).dt.tz_localize(ser.dtype.tz)
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            # one suggested alternative to the deprecated (changed in 2.0) usage
-            middle = pd.Series(ser.values).dt.tz_localize("UTC")
-            result = middle.dt.tz_convert(ser.dtype.tz)
+        # one suggested alternative to the deprecated (changed in 2.0) usage
+        middle = pd.Series(data).dt.tz_localize("UTC")
+        result = middle.dt.tz_convert(ser.dtype.tz)
         tm.assert_series_equal(result, ser)
 
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            # the other suggested alternative to the deprecated usage
-            result = pd.Series(ser.values.view("int64"), dtype=ser.dtype)
+        # the other suggested alternative to the deprecated usage
+        result = pd.Series(data.view("int64"), dtype=ser.dtype)
         tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize(

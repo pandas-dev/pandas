@@ -159,7 +159,9 @@ class TestWhere:
 
         # passing tz-naive ndarray to tzaware DTI
         msg = "DatetimeIndex.values returning an ndarray that drops timezone"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, check_stacklevel=False
+        ):
             i2_values = i2.values
         result = dti.where(mask, i2_values)
         expected = pd.Index([pd.NaT, pd.NaT, *tail], dtype=object)
