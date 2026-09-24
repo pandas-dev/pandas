@@ -3175,3 +3175,170 @@ def test_median_skipna_false_keeps_complex(na_first):
     )
     tm.assert_series_equal(df.median(skipna=False), expected)
     tm.assert_series_equal(df.T.median(axis=1, skipna=False), expected)
+
+
+@pytest.mark.parametrize(
+    "method, expected",
+    [
+        ("sum", float(2**63) + 0.5),
+        ("prod", float(2**62) * float(2**62) * 0.5),
+        ("mean", (float(2**63) + 0.5) / 3),
+    ],
+)
+def test_reduce_axis1_int_block_does_not_wrap(method, expected):
+    # GH#68641: the int block used to be accumulated in int64, silently
+    # wrapping, while the transpose path accumulates in float64
+    df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": [0.5]})
+    assert len(df._mgr.blocks) > 1
+
+    result = getattr(df, method)(axis=1)
+    tm.assert_series_equal(result, pd.Series([expected]))
+    tm.assert_series_equal(result, getattr(df.T, method)(), check_names=False)
+
+
+def test_reduce_axis1_int_only_mean_widens_to_float64():
+    # GH#68641: with no float column the common dtype is int64, so mean has to
+    # widen it the way nanmean does or the sum wraps and flips sign
+    df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": np.array([1], dtype="uint8")})
+    assert len(df._mgr.blocks) > 1
+
+    result = df.mean(axis=1)
+    tm.assert_series_equal(result, pd.Series([(float(2**63) + 1) / 3]))
+    tm.assert_series_equal(result, df.T.mean(), check_names=False)
+
+
+@pytest.mark.parametrize("method", ["sum", "prod", "mean"])
+def test_reduce_axis1_uint64_block_does_not_wrap(method):
+    # GH#68641
+    df = pd.DataFrame(
+        {
+            "a": np.array([2**63], dtype="uint64"),
+            "b": np.array([2**63], dtype="uint64"),
+            "c": [0.5],
+        }
+    )
+    assert len(df._mgr.blocks) > 1
+
+    result = getattr(df, method)(axis=1)
+    tm.assert_series_equal(result, getattr(df.T, method)(), check_names=False)
+    # without the fix the uint64 block wrapped to 0, leaving just the float
+    assert result.iloc[0] > 2**62
+
+
+def test_reduce_axis1_int_uint_combine_stays_exact():
+    # GH#68641: combining an int64 block result with a uint64 one promoted
+    # the result to a lossy float64
+    df = pd.DataFrame(
+        {"a": np.array([2**62 + 1], dtype="int64"), "b": np.array([1], dtype="uint8")}
+    )
+    assert len(df._mgr.blocks) > 1
+
+    result = df.sum(axis=1)
+    tm.assert_series_equal(result, pd.Series([2**62 + 2], dtype="int64"))
+
+
+@pytest.mark.parametrize("method", ["sum", "prod", "mean"])
+def test_reduce_axis1_float32_not_upcast(method):
+    # GH#68641: reducing in the common dtype keeps float32 out of float64
+    df = pd.DataFrame(
+        {
+            "a": np.array([1.5, 2.5], dtype="float32"),
+            "b": np.array([1, 2], dtype="int8"),
+        }
+    )
+    assert len(df._mgr.blocks) > 1
+
+    result = getattr(df, method)(axis=1)
+    assert result.dtype == "float32"
+    tm.assert_series_equal(result, getattr(df.T, method)(), check_names=False)
+
+
+@pytest.mark.parametrize(
+    "method, expected",
+    [
+        ("sum", float(2**63)),
+        ("prod", float(2**62) * float(2**62) * 0.5),
+        ("mean", float(2**63) / 4),
+    ],
+)
+def test_reduce_axis1_bool_block_keeps_common_dtype(method, expected):
+    # GH#68641: find_common_type would collapse to object here, which is why
+    # the accumulation dtype comes from np.result_type instead
+    df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": [0.5], "d": [True]})
+    assert len(df._mgr.blocks) == 3
+
+    result = getattr(df, method)(axis=1)
+    tm.assert_series_equal(result, pd.Series([expected]))
+
+
+def test_reduce_axis1_complex64_matches_transpose():
+    # GH#68641 nanmean accumulates in the input dtype and widens only for the
+    # division, so complex64 must not be summed as complex128 here either
+    df = pd.DataFrame(
+        {
+            "a": np.array([32767], dtype="int16"),
+            "b": np.array([2**62], dtype="complex64"),
+        }
+    )
+    assert len(df._mgr.blocks) > 1
+
+    tm.assert_series_equal(df.mean(axis=1), df.T.mean())
+
+
+@pytest.mark.parametrize("skipna", [True, False])
+def test_reduce_axis1_min_count_complex64_matches_transpose(skipna):
+    # GH#68641 _maybe_null_out widens complex64 before writing NaN; the axis=1
+    # path has to widen the same way, and only where nanops does -- under
+    # skipna=False it builds no mask, so nothing counts as missing
+    df = pd.DataFrame(
+        {
+            "a": np.array([1 + 2j, np.nan], dtype="complex64"),
+            "b": np.array([1.0, 2.0], dtype="float32"),
+        }
+    )
+    assert len(df._mgr.blocks) > 1
+
+    result = df.sum(axis=1, min_count=2, skipna=skipna)
+    assert result.dtype == ("complex128" if skipna else "complex64")
+    tm.assert_series_equal(result, df.T.sum(min_count=2, skipna=skipna))
+
+
+def test_reduce_axis1_mean_complex_keeps_imaginary_part():
+    # GH#68641: mean unconditionally cast the combined result to float64,
+    # silently discarding the imaginary part
+    df = pd.DataFrame(
+        {"a": [True, False], "b": np.array([1 + 2j, 3 + 4j], dtype="complex64")}
+    )
+    assert len(df._mgr.blocks) > 1
+
+    result = df.mean(axis=1)
+    tm.assert_series_equal(result, pd.Series([1 + 1j, 1.5 + 2j], dtype="complex128"))
+
+
+def test_reduce_axis1_bool_block_keeps_numpy_int_semantics():
+    # GH#51474: a bool column no longer routes the reduction through object
+    # dtype, so an integer result wraps like numpy instead of staying exact
+    df = pd.DataFrame({"a": [2**62], "b": [2**62], "c": [True]})
+    assert len(df._mgr.blocks) > 1
+
+    result = df.sum(axis=1)
+    expected = pd.Series([-(2**63) + 1])
+    assert expected.dtype == "int64"
+    tm.assert_series_equal(result, expected)
+
+
+def test_reduce_axis1_float32_block_does_not_overflow():
+    # GH#68641: the float32 block was accumulated in float32, overflowing to
+    # inf where the transpose path accumulated in the common float64
+    df = pd.DataFrame(
+        {
+            "a": np.array([3e38], dtype="float32"),
+            "b": np.array([3e38], dtype="float32"),
+            "c": [1.0],
+        }
+    )
+    assert len(df._mgr.blocks) > 1
+
+    result = df.sum(axis=1)
+    tm.assert_series_equal(result, pd.Series([float(np.float32(3e38)) * 2 + 1.0]))
+    tm.assert_series_equal(result, df.T.sum(), check_names=False)

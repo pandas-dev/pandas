@@ -17259,6 +17259,23 @@ class DataFrame(NDFrame, OpsMixin):
         Apply the reduction block-wise along axis=1 and then reduce the resulting
         1D arrays.
         """
+        acc_dtype: np.dtype | None = None
+        if name in ("sum", "prod", "mean"):
+            # GH#68641: accumulate every block in one dtype, else a narrow
+            # block result overflows or combines lossily (see
+            # test_reduce_axis1_int_block_does_not_wrap). Not find_common_type,
+            # which gives object for a bool mix.
+            dtypes = [blk.dtype for blk in self._mgr.blocks]
+            # not redundant with the caller's non-object filter: a structured
+            # block reaches here and np.result_type raises on it. The caller
+            # admits only numpy-backed blocks, so these dtypes are np.dtype.
+            if all(dtype.kind in "biufc" for dtype in dtypes):
+                acc_dtype = np.result_type(*dtypes)  # type: ignore[arg-type]
+                if name == "mean" and acc_dtype.kind not in "fc":
+                    # nanmean accumulates bool in i8 and integer in f8, both
+                    # exact in f8
+                    acc_dtype = np.dtype(np.float64)
+
         if name == "all":
             result = np.ones(len(self), dtype=bool)
             ufunc = np.logical_and
@@ -17287,6 +17304,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         for block in self._mgr.blocks:
             vals = block.values
+            if acc_dtype is not None and vals.dtype != acc_dtype:
+                vals = vals.astype(acc_dtype)
             if name in ("min", "max"):
                 middle = ufunc.reduce(vals, axis=0)  # type: ignore[arg-type]
             elif name == "mean":
@@ -17309,21 +17328,24 @@ class DataFrame(NDFrame, OpsMixin):
                 non_null_count = np.zeros(len(self), dtype=np.intp)
                 for block in self._mgr.blocks:
                     vals = block.values
-                    if vals.dtype.kind in "biu":
-                        # bool/int/uint cannot have NaN
+                    if vals.dtype.kind in "biu" or not skipna:
+                        # nanops counts every column here: bool/int/uint cannot
+                        # hold NaN, and under skipna=False _maybe_get_mask
+                        # builds no mask (GH#37392)
                         non_null_count += vals.shape[0]
                     else:
                         non_null_count += vals.shape[0] - isna(vals).sum(axis=0)
                 if name == "mean":
                     null_mask = non_null_count == 0
-                    result = result.astype("float64")
+                    # nanmean divides by a float64 count, so c8 widens to c16
+                    result = _widen_for_nan(result)
                     result[~null_mask] /= non_null_count[~null_mask]
                     result[null_mask] = np.nan
                 else:
                     null_mask = non_null_count < min_count
                     if null_mask.any():
-                        if result.dtype.kind not in "fc":
-                            result = result.astype("float64")
+                        # _maybe_null_out widens complex the same way
+                        result = _widen_for_nan(result)
                         result[null_mask] = np.nan
 
         assert result is not None
@@ -20461,6 +20483,18 @@ class _DuplicateColumnRecorder(dict):
         if key in self.names:
             self.referenced = True
         raise KeyError(key)
+
+
+def _widen_for_nan(result: np.ndarray) -> np.ndarray:
+    """
+    Widen a reduction result to the dtype nanops produces here: float64 for an
+    integer or bool result, complex128 for complex64 (GH#68641).
+    """
+    if result.dtype.kind not in "fc":
+        return result.astype("float64")
+    if result.dtype == np.complex64:
+        return result.astype("complex128")
+    return result
 
 
 def _from_nested_dict(
