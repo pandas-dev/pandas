@@ -172,6 +172,21 @@ class TestTimestampConstructorFoldKeyword:
         expected = fold
         assert result == expected
 
+    @pytest.mark.parametrize("fold,utc_time", [(0, "00:30"), (1, "01:30")])
+    def test_timestamp_constructor_positional_components_fold(self, fold, utc_time):
+        # GH#52117 the positional by-component form accepts fold too
+        tz = zoneinfo.ZoneInfo("Europe/London")
+        result = pd.Timestamp(2019, 10, 27, 1, 30, tzinfo=tz, fold=fold)
+
+        assert result.fold == fold
+        assert result == pd.Timestamp(f"2019-10-27 {utc_time}", tz="UTC")
+        assert result == pd.Timestamp(
+            year=2019, month=10, day=27, hour=1, minute=30, tzinfo=tz, fold=fold
+        )
+
+        # without a tz fold cannot move the value, but it is still retained
+        assert pd.Timestamp(2019, 10, 27, 1, 30, fold=fold).fold == fold
+
     def test_timestamp_constructor_string_tz_respects_fold(self):
         # GH#55932 fold must be respected when tz is given as a plain string
         #  (which now resolves to zoneinfo, not pytz)
@@ -542,6 +557,31 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         assert result == expected
         assert result.utcoffset() == expected.utcoffset()
 
+    @pytest.mark.parametrize("fold,utc_time", [(0, "05:30"), (1, "06:30")])
+    def test_constructor_positional_tzinfo_slot_fold(self, fold, utc_time):
+        # GH#52117 fold applies to an attached tzinfo just as it does for
+        #  pydatetime; this is the form datetime.__replace__ reconstructs through
+        tz = zoneinfo.ZoneInfo("US/Eastern")
+        result = pd.Timestamp(2020, 11, 1, 1, 30, 0, 0, tz, fold=fold)
+        assert result.fold == fold
+        assert result == pd.Timestamp(f"2020-11-01 {utc_time}", tz="UTC")
+        assert result == datetime(2020, 11, 1, 1, 30, 0, 0, tz, fold=fold)
+
+    def test_constructor_positional_tzinfo_slot_fold_pytz(self):
+        # GH#52117 attaching does not localize, so fold is inert for pytz here
+        #  exactly as it is for pydatetime; the localizing spellings still raise
+        pytz = pytest.importorskip("pytz")
+        tz = pytz.timezone("US/Eastern")
+
+        result = pd.Timestamp(2020, 11, 1, 1, 30, 0, 0, tz, fold=1)
+        assert result == datetime(2020, 11, 1, 1, 30, 0, 0, tz, fold=1)
+        assert result == pd.Timestamp(2020, 11, 1, 1, 30, 0, 0, tz, fold=0)
+
+        msg = "pytz timezones do not support fold"
+        for kwargs in [{"tz": tz}, {"tzinfo": tz}]:
+            with pytest.raises(ValueError, match=msg):
+                pd.Timestamp(2020, 11, 1, 1, 30, fold=1, **kwargs)
+
     def test_constructor_positional_tzinfo_slot_invalid(self):
         # GH#31930 same error as pydatetime gives for a non-tzinfo
         msg = "tzinfo argument must be None or of a tzinfo subclass"
@@ -591,18 +631,17 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         assert replaced.nanosecond == 0
 
     @pytest.mark.skipif(not PY313, reason="copy.replace requires 3.13")
-    def test_datetime_reconstruction_still_rejects_fold(self):
-        # GH#31930 datetime.__replace__ passes fold alongside the 8 positional
-        #  arguments, which the fold guard rejects for a non-datetime ts_input.
-        #  Pinning the limitation the whatsnew calls out.
+    def test_copy_replace_keeps_fold(self):
+        # GH#52117 datetime.__replace__ passes fold alongside the 8 positional
+        #  arguments, so that form has to accept it
         ts = pd.Timestamp(datetime(2020, 11, 1, 1, 30)).tz_localize(
             "US/Eastern", ambiguous=False
         )
         assert ts.fold == 1
 
-        msg = "Cannot pass fold with possibly unambiguous input"
-        with pytest.raises(ValueError, match=msg):
-            copy.replace(ts, day=2)
+        replaced = copy.replace(ts, minute=45)
+        assert replaced.fold == 1
+        assert replaced == pd.Timestamp("2020-11-01 06:45", tz="UTC")
 
 
 class TestTimestampClassMethodConstructors:

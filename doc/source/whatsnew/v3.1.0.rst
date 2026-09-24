@@ -291,8 +291,7 @@ timezone, ``Timestamp(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
 now matches ``datetime(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
 and therefore carries that zone's LMT offset. :func:`copy.replace`
 reconstructs a :class:`Timestamp` through this form, so it too now keeps the
-timezone instead of returning a naive result; it still drops nanoseconds, and
-still raises ``ValueError`` for a ``fold=1`` (DST-ambiguous) timestamp
+timezone instead of returning a naive result; it still drops nanoseconds
 (:issue:`31930`, :issue:`45307`).
 
 .. ---------------------------------------------------------------------------
@@ -746,6 +745,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` raising ``AttributeError`` when comparing against Arrow date types (date32, date64) (:issue:`62051`)
 - Bug in :class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`Timedelta`, :func:`array`, :func:`to_datetime` and :func:`to_timedelta` construction from ``datetime64``/``timedelta64`` input whose unit carries a multiplier (e.g. ``np.array([1, 2], dtype="m8[10s]")``): every timedelta64 value came back divided by the multiplier and datetime64 input raised a bare ``AssertionError``. Such input, and a ``dtype`` argument such as ``"m8[10s]"``, now raise ``ValueError`` (:issue:`25611`)
 - Bug in :class:`Timestamp` constructor where a timezone-aware ``datetime`` near the implementation bounds raised ``OverflowError`` instead of ``OutOfBoundsDatetime`` when shifted to UTC (:issue:`66510`)
+- Bug in :class:`Timestamp` constructor where passing ``fold`` alongside date components given positionally, e.g. ``Timestamp(2020, 1, 1, tzinfo=timezone.utc, fold=0)``, raised ``ValueError``; this also made :func:`copy.replace` raise on a ``fold=1`` timestamp (:issue:`52117`)
 - Bug in :class:`Timestamp` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Timestamp` constructor where strings with a negative year of fewer than 4 digits (e.g. ``"-111-01-01"``) silently dropped the leading ``"-"`` and were parsed as a positive year; BC dates with 1-4 digit years now parse correctly, matching :class:`numpy.datetime64` (:issue:`55954`)
 - Bug in :class:`Timestamp` constructor, :class:`Timedelta` constructor, :func:`to_datetime`, and :func:`to_timedelta` on scalar or object-dtype input, including plain lists of NumPy scalars, with a NumPy float narrower than 64 bits (e.g. ``np.float32``) and a ``unit``: results gained spurious sub-second digits, ``np.float16`` raised, a spurious ``RuntimeWarning`` was emitted, and ``np.float16("-inf")`` silently became ``NaT`` (:issue:`56996`)
