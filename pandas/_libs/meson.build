@@ -160,7 +160,6 @@ libs_sources = {
             'src/vendored/ujson/python/JSONtoObj.c',
             'src/vendored/ujson/lib/ultrajsonenc.c',
             'src/vendored/ujson/lib/ultrajsondec.c',
-            'src/vendored/ryu/d2s.c',
         ],
         'deps': [m_dep, tokenizer_dep],
         'c_args': strict_c_args,

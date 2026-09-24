@@ -17,6 +17,17 @@ import pandas._testing as tm
 
 import pandas.io.common as icom
 
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:In a future version, (DataFrame|Series).to_json will write "
+        "floating point:pandas.errors.Pandas4Warning"
+    ),
+    pytest.mark.filterwarnings(
+        "ignore:In a future version, read_json will parse floating point"
+        ":pandas.errors.Pandas4Warning"
+    ),
+]
+
 
 @pytest.mark.parametrize(
     "obj",

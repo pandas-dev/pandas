@@ -72,10 +72,10 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
         df1.to_excel(path)
         df2 = pd.read_excel(path, parse_dates=["dt"], index_col=0)
     elif format == "json":
-        df1.to_json(path, date_format="iso")
+        df1.to_json(path, date_format="iso", double_precision=None)
         depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            df2 = pd.read_json(path, convert_dates=["dt"])
+            df2 = pd.read_json(path, convert_dates=["dt"], precise_float=True)
     elif format == "parquet":
         pytest.importorskip("pyarrow")
         pa_fs = pytest.importorskip("pyarrow.fs")

@@ -248,10 +248,15 @@ typedef struct __JSONObjectEncoder {
   int doublePrecision;
 
   /*
-  If true, set floatFormatChanged when a double encoded with doublePrecision
-  decimals differs from its shortest round-trip representation */
-  int detectFloatFormatChange;
-  int floatFormatChanged;
+  Set to true when a double is encoded */
+  int floatWritten;
+
+  /*
+  Write the shortest representation of a finite double that round-trips
+  exactly to out, which has room for at least 32 characters. Returns the number
+  of characters written, or -1 on error. Used when doublePrecision is
+  JSON_DOUBLE_SHORTEST. */
+  int (*formatShortestDouble)(double value, char *out);
 
   /*
   If true output will be ASCII with all characters above 127 encoded as \uXXXX.
@@ -329,10 +334,8 @@ typedef struct __JSONObjectDecoder {
   char *errorOffset;
   int preciseFloat;
   /*
-  If true and preciseFloat is false, set floatParseChanged when a double
-  differs from its correctly rounded value */
-  int detectFloatParseChange;
-  int floatParseChanged;
+  Set to true when a double is decoded */
+  int floatParsed;
   void *prv;
 } JSONObjectDecoder;
 

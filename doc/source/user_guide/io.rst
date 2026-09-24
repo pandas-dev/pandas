@@ -2054,9 +2054,9 @@ Preserve string indices:
    si
    si.index
    si.columns
-   json = si.to_json()
+   json = si.to_json(double_precision=None)
 
-   sij = pd.read_json(StringIO(json), convert_axes=False)
+   sij = pd.read_json(StringIO(json), convert_axes=False, precise_float=True)
    sij
    sij.index
    sij.columns
@@ -2089,7 +2089,7 @@ By setting the ``dtype_backend`` argument you can control the default dtypes use
      '"e":{"0":null,"1":6.0},"f":{"0":null,"1":7.5},"g":{"0":null,"1":true},"h":{"0":null,"1":"a"},'
      '"i":{"0":"12-31-2019","1":"12-31-2019"},"j":{"0":null,"1":null}}'
     )
-    df = pd.read_json(StringIO(data), dtype_backend="pyarrow")
+    df = pd.read_json(StringIO(data), dtype_backend="pyarrow", precise_float=True)
     df
     df.dtypes
 

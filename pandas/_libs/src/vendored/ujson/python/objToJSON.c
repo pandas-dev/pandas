@@ -2271,6 +2271,90 @@ static double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   return GET_TC(tc)->doubleValue;
 }
 
+/*
+Write the shortest representation of value that round-trips exactly, laid out
+the same way as orjson: positional notation when the decimal exponent is in
+[-5, 16), and scientific notation otherwise. */
+static int Object_formatShortestDouble(double value, char *out) {
+  // Python's repr, e.g. "-0.00012", "1.25e-07", "100.0", or "-0.0"
+  char *repr = PyOS_double_to_string(value, 'r', 0, 0, NULL);
+  if (repr == NULL) {
+    return -1;
+  }
+
+  // Collect the significant digits; value is 0.<digits> * 10**scale
+  char digits[24];
+  int ndigits = 0;
+  int scale = 0;
+  int afterPoint = 0;
+  const char *p = repr;
+  char *wstr = out;
+  if (*p == '-') {
+    *wstr++ = '-';
+    p++;
+  }
+  for (; *p != '\0' && *p != 'e'; p++) {
+    if (*p == '.') {
+      afterPoint = 1;
+    } else if (ndigits == 0 && *p == '0') {
+      if (afterPoint) {
+        scale--;
+      }
+    } else {
+      digits[ndigits++] = *p;
+      if (!afterPoint) {
+        scale++;
+      }
+    }
+  }
+  if (*p == 'e') {
+    scale += atoi(p + 1);
+  }
+  PyMem_Free(repr);
+
+  while (ndigits > 0 && digits[ndigits - 1] == '0') {
+    ndigits--;
+  }
+  int exponent = scale - 1;
+  if (ndigits == 0) {
+    digits[ndigits++] = '0';
+    exponent = 0;
+  }
+
+  if (exponent >= 0 && exponent < 16) {
+    for (int k = 0; k <= exponent; k++) {
+      *wstr++ = k < ndigits ? digits[k] : '0';
+    }
+    *wstr++ = '.';
+    if (ndigits > exponent + 1) {
+      for (int k = exponent + 1; k < ndigits; k++) {
+        *wstr++ = digits[k];
+      }
+    } else {
+      *wstr++ = '0';
+    }
+  } else if (exponent < 0 && exponent >= -5) {
+    *wstr++ = '0';
+    *wstr++ = '.';
+    for (int k = 0; k < -exponent - 1; k++) {
+      *wstr++ = '0';
+    }
+    for (int k = 0; k < ndigits; k++) {
+      *wstr++ = digits[k];
+    }
+  } else {
+    *wstr++ = digits[0];
+    if (ndigits > 1) {
+      *wstr++ = '.';
+      for (int k = 1; k < ndigits; k++) {
+        *wstr++ = digits[k];
+      }
+    }
+    wstr += snprintf(wstr, 6, "e%+d", exponent);
+  }
+  return (int)(wstr - out);
+}
+
 static const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
                                                size_t *_outLen) {
   PyObject *repr = PyObject_Str(obj);
@@ -2346,14 +2430,14 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
                            "iso_dates",
                            "default_handler",
                            "indent",
-                           "detect_float_format_change",
+                           "report_float_written",
                            NULL};
 
   PyObject *oinput = NULL;
   PyObject *oensureAscii = NULL;
   PyObject *odoublePrecision = NULL;
   int idoublePrecision = 10; // default double precision setting
-  int detectFloatFormatChange = 0;
+  int reportFloatWritten = 0;
   PyObject *oencodeHTMLChars = NULL;
   char *sOrient = NULL;
   char *sdateFormat = NULL;
@@ -2369,6 +2453,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
           .getLongValue = Object_getLongValue,
           .getIntValue = NULL,
           .getDoubleValue = Object_getDoubleValue,
+          .formatShortestDouble = Object_formatShortestDouble,
           .getBigNumStringValue = Object_getBigNumStringValue,
           .iterBegin = Object_iterBegin,
           .iterNext = Object_iterNext,
@@ -2401,7 +2486,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   if (!PyArg_ParseTupleAndKeywords(
           args, kwargs, "O|OOOssOOip", kwlist, &oinput, &oensureAscii,
           &odoublePrecision, &oencodeHTMLChars, &sOrient, &sdateFormat,
-          &oisoDates, &odefHandler, &indent, &detectFloatFormatChange)) {
+          &oisoDates, &odefHandler, &indent, &reportFloatWritten)) {
     return NULL;
   }
 
@@ -2430,7 +2515,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     idoublePrecision = (int)ldoublePrecision;
   }
   encoder->doublePrecision = idoublePrecision;
-  encoder->detectFloatFormatChange = detectFloatFormatChange;
 
   if (sOrient != NULL) {
     if (strcmp(sOrient, "records") == 0) {
@@ -2503,9 +2587,9 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     encoder->free(ret);
   }
 
-  if (newobj == NULL || !detectFloatFormatChange) {
+  if (newobj == NULL || !reportFloatWritten) {
     return newobj;
   }
   return Py_BuildValue("(NO)", newobj,
-                       encoder->floatFormatChanged ? Py_True : Py_False);
+                       encoder->floatWritten ? Py_True : Py_False);
 }

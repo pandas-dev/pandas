@@ -17,7 +17,7 @@ def ujson_dumps(
     default_handler: Callable[[Any], str | float | bool | list | dict | None]
     | None = ...,
     indent: int = ...,
-    detect_float_format_change: Literal[False] = ...,
+    report_float_written: Literal[False] = ...,
 ) -> str: ...
 @overload
 def ujson_dumps(
@@ -32,18 +32,18 @@ def ujson_dumps(
     | None = ...,
     indent: int = ...,
     *,
-    detect_float_format_change: Literal[True],
+    report_float_written: Literal[True],
 ) -> tuple[str, bool]: ...
 @overload
 def ujson_loads(
     s: str,
     precise_float: bool = ...,
-    detect_float_parse_change: Literal[False] = ...,
+    report_float_parsed: Literal[False] = ...,
 ) -> Any: ...
 @overload
 def ujson_loads(
     s: str,
     precise_float: bool = ...,
     *,
-    detect_float_parse_change: Literal[True],
+    report_float_parsed: Literal[True],
 ) -> tuple[Any, bool]: ...

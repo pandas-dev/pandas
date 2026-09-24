@@ -121,23 +121,8 @@ JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds,
 
   ds->lastType = JT_DOUBLE;
   ds->start = (char *)end;
+  ds->dec->floatParsed = 1;
   return ds->dec->newDouble(ds->prv, value);
-}
-
-/*
-Set floatParseChanged if value, as parsed by the imprecise path, differs from
-the correctly rounded value of the number in [numStart, numEnd). */
-static void detectFloatParseChange(struct DecoderState *ds, char *numStart,
-                                   char *numEnd, double value) {
-  const char *end;
-  double precise;
-  if (!ds->dec->detectFloatParseChange || ds->dec->floatParseChanged) {
-    return;
-  }
-  if (fast_float_json_strtod(numStart, numEnd, &precise, &end) != 0 ||
-      precise != value) {
-    ds->dec->floatParseChanged = 1;
-  }
 }
 
 JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
@@ -151,7 +136,6 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
   double expValue;
   char *offset = ds->start;
   char *numStart = ds->start;
-  double value;
 
   JSUINT64 overflowLimit = LLONG_MAX;
 
@@ -275,10 +259,10 @@ DECODE_FRACTION:
 BREAK_FRC_LOOP:
   ds->lastType = JT_DOUBLE;
   ds->start = offset;
-  value =
-      createDouble((double)intNeg, (double)intValue, frcValue, decimalCount);
-  detectFloatParseChange(ds, numStart, offset, value);
-  return ds->dec->newDouble(ds->prv, value);
+  ds->dec->floatParsed = 1;
+  return ds->dec->newDouble(
+      ds->prv,
+      createDouble((double)intNeg, (double)intValue, frcValue, decimalCount));
 
 DECODE_EXPONENT:
   if (ds->dec->preciseFloat) {
@@ -374,11 +358,11 @@ SET_INF_ERROR:
 BREAK_EXP_LOOP:
   ds->lastType = JT_DOUBLE;
   ds->start = offset;
-  value =
+  ds->dec->floatParsed = 1;
+  return ds->dec->newDouble(
+      ds->prv,
       createDouble((double)intNeg, (double)intValue, frcValue, decimalCount) *
-      pow(10.0, expValue * expNeg);
-  detectFloatParseChange(ds, numStart, offset, value);
-  return ds->dec->newDouble(ds->prv, value);
+          pow(10.0, expValue * expNeg));
 }
 
 JSOBJ FASTCALL_MSVC decode_true(struct DecoderState *ds) {

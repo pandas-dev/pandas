@@ -41,7 +41,6 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
 #include "pandas/portable.h"
-#include "pandas/vendored/ryu/ryu.h"
 #include "pandas/vendored/ujson/lib/ultrajson.h"
 #include <locale.h>
 #include <math.h>
@@ -812,88 +811,6 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
   enc->offset += (wstr - (enc->offset));
 }
 
-/*
-Write the shortest representation of value that round-trips exactly, laid out
-the same way as orjson: positional notation when the decimal exponent is in
-[-5, 16), and scientific notation otherwise. value must be finite. Writes at
-most 25 characters and returns the number written. */
-static int formatShortestDouble(double value, char *out) {
-  // Ryu writes scientific notation, e.g. "-1.25E-7", "1E0", or "0E0"
-  char sci[25];
-  const int len = d2s_buffered_n(value, sci);
-  char digits[17];
-  int ndigits = 0;
-  int exponent = 0;
-  int expNeg = 0;
-  int i = 0;
-  char *wstr = out;
-
-  if (sci[i] == '-') {
-    *wstr++ = '-';
-    i++;
-  }
-  for (; sci[i] != 'E'; i++) {
-    if (sci[i] != '.') {
-      digits[ndigits++] = sci[i];
-    }
-  }
-  i++;
-  if (sci[i] == '-') {
-    expNeg = 1;
-    i++;
-  }
-  for (; i < len; i++) {
-    exponent = exponent * 10 + (sci[i] - '0');
-  }
-  if (expNeg) {
-    exponent = -exponent;
-  }
-
-  if (exponent >= 0 && exponent < 16) {
-    for (int k = 0; k <= exponent; k++) {
-      *wstr++ = k < ndigits ? digits[k] : '0';
-    }
-    *wstr++ = '.';
-    if (ndigits > exponent + 1) {
-      for (int k = exponent + 1; k < ndigits; k++) {
-        *wstr++ = digits[k];
-      }
-    } else {
-      *wstr++ = '0';
-    }
-  } else if (exponent < 0 && exponent >= -5) {
-    *wstr++ = '0';
-    *wstr++ = '.';
-    for (int k = 0; k < -exponent - 1; k++) {
-      *wstr++ = '0';
-    }
-    for (int k = 0; k < ndigits; k++) {
-      *wstr++ = digits[k];
-    }
-  } else {
-    *wstr++ = digits[0];
-    if (ndigits > 1) {
-      *wstr++ = '.';
-      for (int k = 1; k < ndigits; k++) {
-        *wstr++ = digits[k];
-      }
-    }
-    *wstr++ = 'e';
-    *wstr++ = exponent < 0 ? '-' : '+';
-    if (exponent < 0) {
-      exponent = -exponent;
-    }
-    if (exponent >= 100) {
-      *wstr++ = (char)('0' + exponent / 100);
-    }
-    if (exponent >= 10) {
-      *wstr++ = (char)('0' + (exponent / 10) % 10);
-    }
-    *wstr++ = (char)('0' + exponent % 10);
-  }
-  return (int)(wstr - out);
-}
-
 static void Buffer_AppendDoubleDecimals(JSONObjectEncoder *enc, double value) {
   /* if input is beyond the thresholds, revert to exponential */
   const double thres_max = (double)1e16 - 1;
@@ -1024,21 +941,19 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
     return FALSE;
   }
 
+  enc->floatWritten = 1;
+
   if (enc->doublePrecision == JSON_DOUBLE_SHORTEST) {
-    enc->offset += formatShortestDouble(value, enc->offset);
+    const int len = enc->formatShortestDouble(value, enc->offset);
+    if (len < 0) {
+      SetError(obj, enc, "Could not format double");
+      return FALSE;
+    }
+    enc->offset += len;
     return TRUE;
   }
 
-  char *start = enc->offset;
   Buffer_AppendDoubleDecimals(enc, value);
-
-  if (enc->detectFloatFormatChange && !enc->floatFormatChanged) {
-    char shortest[25];
-    const int len = formatShortestDouble(value, shortest);
-    if (len != enc->offset - start || memcmp(start, shortest, (size_t)len)) {
-      enc->floatFormatChanged = 1;
-    }
-  }
   return TRUE;
 }
 

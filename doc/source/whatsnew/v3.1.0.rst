@@ -561,7 +561,7 @@ and ``precise_float=True`` to ``read_json``:
 Passing an integer for ``double_precision`` and passing ``precise_float=False``
 are deprecated. To control the number of digits written, round the data before
 writing. When neither keyword is passed, a ``Pandas4Warning`` is emitted if the
-future behavior would change the result for the data being written or read.
+data being written or read contains floating point values.
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^

@@ -260,16 +260,14 @@ def to_json(
         indent=indent,
     )
     s = json_writer.write()
-    if json_writer.float_format_changed:
+    if json_writer.float_written:
         # GH#62464
         warnings.warn(
             f"In a future version, {obj_type_name}.to_json will write floating "
             "point values with the shortest representation that round-trips "
-            "exactly instead of rounding them to 10 decimal places, which "
-            "changes the output for this data. Specify `double_precision=None` "
-            "to opt-in to the future behaviour and silence this warning, or "
-            "round the data to 10 decimal places or fewer to keep the current "
-            "output.",
+            "exactly instead of rounding them to 10 decimal places. Specify "
+            "`double_precision=None` to opt-in to the future behaviour and "
+            "silence this warning.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -311,7 +309,7 @@ class Writer(ABC):
         self.orient = orient
         self.date_format = date_format
         self.double_precision = double_precision
-        self.float_format_changed = False
+        self.float_written = False
         self.ensure_ascii = ensure_ascii
         self.date_unit = date_unit
         self.default_handler = default_handler
@@ -335,10 +333,10 @@ class Writer(ABC):
         )
         try:
             if self.double_precision is lib.no_default:
-                # Write 10 decimal places and detect whether the future default
-                #  of None would change the output
-                result, self.float_format_changed = dumps(
-                    double_precision=10, detect_float_format_change=True
+                # Write 10 decimal places and record whether any floating point
+                #  values were written, which the future default of None changes
+                result, self.float_written = dumps(
+                    double_precision=10, report_float_written=True
                 )
                 return result
             return dumps(double_precision=self.double_precision)
@@ -1016,8 +1014,8 @@ def read_json(
             stacklevel=find_stack_level(),
         )
     elif precise_float is lib.no_default:
-        # Parse with the current default and warn if full precision would
-        #  change the result
+        # Parse with the current default and warn if any floating point values
+        #  are parsed
         precise_float = None
 
     if dtype is None and orient != "table":
@@ -1185,7 +1183,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.convert_dates = convert_dates
         self.keep_default_dates = keep_default_dates
         self.precise_float = precise_float
-        self._warned_float_parse_change = False
+        self._warned_float_parsed = False
         self.date_unit = date_unit
         self.encoding = encoding
         self.engine = engine
@@ -1391,14 +1389,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             raise ValueError(f"{typ=} must be 'frame' or 'series'.")
         obj = parser.parse()
-        if parser.float_parse_changed and not self._warned_float_parse_change:
+        if parser.float_parsed and not self._warned_float_parsed:
             # GH#62464
-            self._warned_float_parse_change = True
+            self._warned_float_parsed = True
             warnings.warn(
                 "In a future version, read_json will parse floating point values "
-                "with full precision, which changes the parsed values for this "
-                "data. Specify `precise_float=True` to opt-in to the future "
-                "behaviour and silence this warning.",
+                "with full precision. Specify `precise_float=True` to opt-in to "
+                "the future behaviour and silence this warning.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
@@ -1535,7 +1532,7 @@ class Parser:
             self.min_stamp = self._MIN_STAMPS["s"]
 
         self.precise_float = precise_float
-        self.float_parse_changed = False
+        self.float_parsed = False
         self.convert_axes = convert_axes
         self.convert_dates = convert_dates
         self.date_unit = date_unit
@@ -1555,15 +1552,14 @@ class Parser:
     @final
     def _loads(self, json: str) -> Any:
         """
-        Decode ``json``, recording whether parsing floating point values with
-        full precision would change the result when ``precise_float`` is None.
+        Decode ``json``. When ``precise_float`` is None, parse with the current
+        default and record whether any floating point values were parsed.
         """
         if self.precise_float is not None:
             return ujson_loads(json, precise_float=self.precise_float)
-        data, changed = ujson_loads(
-            json, precise_float=False, detect_float_parse_change=True
+        data, self.float_parsed = ujson_loads(
+            json, precise_float=False, report_float_parsed=True
         )
-        self.float_parse_changed = changed
         return data
 
     def parse(self) -> DataFrame | Series:
