@@ -158,11 +158,7 @@ class TestWhere:
         mask = pd.notna(i2)
 
         # passing tz-naive ndarray to tzaware DTI
-        msg = "DatetimeIndex.values returning an ndarray that drops timezone"
-        with tm.assert_produces_warning(
-            Pandas4Warning, match=msg, check_stacklevel=False
-        ):
-            i2_values = i2.values
+        i2_values = i2.array._ndarray
         result = dti.where(mask, i2_values)
         expected = pd.Index([pd.NaT, pd.NaT, *tail], dtype=object)
         tm.assert_index_equal(result, expected)

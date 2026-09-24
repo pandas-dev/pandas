@@ -1239,9 +1239,7 @@ class TestSeriesConstructors:
         result = pd.Series(intervals)
         expected_subtype = np.dtype(np.intp)
         assert result.dtype == f"interval[{expected_subtype}, right]"
-        msg = "Series.values returning an object-dtype ndarray for IntervalDtype"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            tm.assert_index_equal(pd.Index(result.values), pd.Index(intervals))
+        tm.assert_index_equal(pd.Index(result), pd.Index(intervals))
 
     @pytest.mark.parametrize(
         "data_constructor", [list, np.array], ids=["list", "ndarray[object]"]
