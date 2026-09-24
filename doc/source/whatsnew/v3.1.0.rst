@@ -56,6 +56,64 @@ earlier in the same call
    1      Alice         264      7920
    2        Bob         420     12600
 
+.. _whatsnew_310.enhancements.filter_mask:
+
+Filtering with a boolean mask in ``DataFrame.filter`` and ``Series.filter``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.filter` and :meth:`Series.filter` now accept a boolean mask through the new
+``cond`` keyword, keeping the rows (or columns with ``axis=1``) where the mask is True.
+``cond`` may also be a callable returning a boolean mask or an expression created with
+:func:`pandas.col`; these two forms may also be passed positionally, which is convenient in
+method chains (:issue:`61317`).
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+
+    In [2]: df.filter(cond=df["a"] > 1)
+    Out[2]:
+       a  b
+    1  2  5
+    2  3  6
+
+    In [3]: df.filter(pd.col("a") > 1)
+    Out[3]:
+       a  b
+    1  2  5
+    2  3  6
+
+    In [4]: df.filter(lambda df: df["b"] < 6)
+    Out[4]:
+       a  b
+    0  1  4
+    1  2  5
+
+A :class:`Series` mask is aligned with the filtered axis; any other mask must have the same
+length as that axis. Missing values in the mask are treated as False by default, matching
+``obj[mask]`` for a mask with nullable boolean dtype. Pass ``na=True`` to keep the
+corresponding entries instead, or ``na="raise"`` to raise.
+
+.. code-block:: ipython
+
+    In [5]: mask = pd.array([True, None, False], dtype="boolean")
+
+    In [6]: df.filter(cond=mask)
+    Out[6]:
+       a  b
+    0  1  4
+
+    In [7]: df.filter(cond=mask, na=True)
+    Out[7]:
+       a  b
+    0  1  4
+    1  2  5
+
+Any other value passed positionally continues to select labels, as before. Since a list-like
+of booleans passed this way is likely intended as a mask, it now issues a ``UserWarning``;
+pass ``items`` to select labels or ``cond`` to filter with a mask. Selecting labels with
+``items``, ``like``, or ``regex`` will be deprecated in a future version.
+
 .. _whatsnew_310.enhancements.enhancement2:
 
 enhancement2
@@ -500,7 +558,6 @@ Other deprecations
 - Deprecated implicit conversion of ``datetime.date`` objects to :class:`Timestamp` when indexing or joining a :class:`DatetimeIndex`. Use :func:`to_datetime` to explicitly convert to :class:`DatetimeIndex` instead (:issue:`62158`)
 - Deprecated indexing with ``[]`` on the result of :meth:`.GroupBy.nth` (e.g. ``gb.nth[0, 1]``); call it instead (e.g. ``gb.nth([0, 1])``) (:issue:`66346`)
 - Deprecated parsing quarterly strings (e.g. ``"2014Q2"``) in :class:`Timestamp`, :func:`to_datetime`, :class:`DatetimeIndex`, and partial-string indexing on a :class:`DatetimeIndex` (e.g. ``ser["2014Q2"]``). This extends to string arguments that are parsed as datetimes internally, such as the bounds of :meth:`Series.truncate` and the ``where`` of :meth:`Series.asof`, which warn even when the index is a :class:`PeriodIndex`. Use :class:`Period` or :class:`PeriodIndex` with :meth:`PeriodIndex.to_timestamp` instead (:issue:`50907`)
-- Deprecated passing ``"datetimetz"`` or ``"datetime64tz"`` to the ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`. Pass :class:`DatetimeTZDtype` to select all timezone-aware columns, or a string such as ``"datetime64[ns, US/Eastern]"`` to select a single timezone (:issue:`24558`)
 - Deprecated passing ``None`` inside the list-like ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`, which silently selects float64 columns. Pass ``"float64"`` explicitly instead (:issue:`28943`)
 - Deprecated passing a ``dict`` to :meth:`DataFrame.from_records`, use the :class:`DataFrame` constructor or :meth:`DataFrame.from_dict` instead (:issue:`22025`)
 - Deprecated passing a ``format`` for integer or float columns to :func:`read_sql`, :func:`read_sql_query`, and :func:`read_sql_table` via ``parse_dates``. Cast the column to string and call :func:`to_datetime` after reading instead (:issue:`55663`)
@@ -727,6 +784,7 @@ Datetimelike
 - Bug in :attr:`DatetimeIndex.year` and :attr:`Series.dt.year` silently returning a wrapped year, e.g. ``219250468`` for year ``292277026596``, for second-resolution datetimes with a year beyond ``2**31``; these now raise ``ValueError``, and :attr:`DatetimeIndex.is_leap_year` no longer takes the leap-year status from the wrapped year (:issue:`66549`)
 - Bug in :attr:`Timestamp.days_in_month`, and in month-end and business-day offsets, using a wrapped year to decide whether the year is a leap year, for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
 - Bug in :class:`ArrowExtensionArray` where adding a :class:`DateOffset` to a ``date32[pyarrow]`` or ``date64[pyarrow]`` Series raised an ``ArrowTypeError`` (:issue:`57168`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` constructors failing to raise ``ValueError`` when passed a 0-dimensional ``ndarray`` input (:issue:`69411`)
 - Bug in :class:`DatetimeIndex` constructor raising ``ValueError`` when passing equivalent but not equal frequencies (e.g. ``QS-FEB`` vs ``QS-MAY``) (:issue:`61086`)
 - Bug in :class:`DatetimeIndex` raising ``AttributeError`` when comparing against Arrow date types (date32, date64) (:issue:`62051`)
 - Bug in :class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`Timedelta`, :func:`array`, :func:`to_datetime` and :func:`to_timedelta` construction from ``datetime64``/``timedelta64`` input whose unit carries a multiplier (e.g. ``np.array([1, 2], dtype="m8[10s]")``): every timedelta64 value came back divided by the multiplier and datetime64 input raised a bare ``AssertionError``. Such input, and a ``dtype`` argument such as ``"m8[10s]"``, now raise ``ValueError`` (:issue:`25611`)
@@ -1332,6 +1390,7 @@ Other
 - Bug in :meth:`DataFrame.__setitem__` and :meth:`Series.__setitem__` emitting a spurious :class:`errors.ChainedAssignmentError` warning for a valid assignment made from compiled code, e.g. from a Cython extension module (:issue:`51315`)
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
 - Bug in :meth:`DataFrame.from_dict` where passing a dict of only scalar values raised a :class:`ValueError` telling users to pass an ``index``, even though :meth:`DataFrame.from_dict` has no ``index`` parameter; the message now points to ``orient='index'`` or the :class:`DataFrame` constructor (:issue:`25515`)
+- Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` raising ``UndefinedVariableError`` when accessing an attribute of a class with the ``@`` prefix, e.g. ``df.query("x == @A.a")`` (:issue:`48694`)
 - Bug in :meth:`DataFrame.query` where an expression referencing a duplicated column label returned an unfiltered all-``NaN`` frame instead of selecting rows; it now raises ``ValueError`` unless the expression evaluates to a one-dimensional row mask (:issue:`65588`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` where the result stopped being copy-on-write protected, so a view taken afterwards shared memory with it and writing to either one silently modified the other (:issue:`58966`)
 - Bug in :meth:`DataFrame.replace` raising ``IndexError`` instead of replacing when ``to_replace`` was list-like or dict-like, the replacement changed a column's dtype, and two or more other columns were left unchanged (:issue:`61972`)

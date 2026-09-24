@@ -23,9 +23,20 @@ from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import DatetimeArray
 
 
 class TestDatetimeIndex:
+    def test_0d_raises(self):
+        # GH#69411 used to segfault
+        arr = np.array(1)
+
+        msg = "Cannot construct DatetimeArray from 0-dim input"
+        with pytest.raises(ValueError, match=msg):
+            pd.DatetimeIndex(arr)
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray._from_sequence(arr)
+
     def test_from_dt64_unsupported_unit(self):
         # GH#49292
         val = np.datetime64(1, "D")
