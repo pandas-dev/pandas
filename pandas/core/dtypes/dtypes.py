@@ -2549,12 +2549,27 @@ class ArrowDtype(StorageExtensionDtype):
             #  decimal/time/binary/list -> object.  GH#62343
             return first
 
-        new_dtype = find_common_type(
-            [
-                dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
-                for dtype in non_null_dtypes
-            ]
-        )
+        def unwrap(dtype: DtypeObj) -> DtypeObj:
+            if not isinstance(dtype, ArrowDtype):
+                return dtype
+            pa_dtype = dtype.pyarrow_dtype
+            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+                # numpy_dtype drops the tz, which would unify tz-aware dtypes
+                #  into a tz-naive one (GH#69029)
+                return DatetimeTZDtype(unit=pa_dtype.unit, tz=pa_dtype.tz)
+            return dtype.numpy_dtype
+
+        try:
+            unwrapped = [unwrap(dtype) for dtype in non_null_dtypes]
+        except (KeyError, ValueError):
+            # pa.timestamp does not validate its tz, so it can carry a label
+            #  pandas cannot resolve; see test_get_common_dtype_unresolvable_tz
+            #  (GH#69029)
+            return None
+
+        new_dtype = find_common_type(unwrapped)
+        if isinstance(new_dtype, DatetimeTZDtype):
+            return type(self)(pa.timestamp(new_dtype.unit, tz=new_dtype.tz))
         if not isinstance(new_dtype, np.dtype):
             return None
         try:
