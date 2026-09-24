@@ -1033,7 +1033,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
                 "'DatetimeIndex.array' to get the ExtensionArray.",
                 Pandas4Warning,
-                stacklevel=find_stack_level(),
+                # TODO bump this to stacklevel=2 in a future version
+                stacklevel=1,
             )
         data = self._data._ndarray
         data = data.view()
