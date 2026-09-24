@@ -17,7 +17,6 @@ import warnings
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs._ujson import ujson_loads
 from pandas._libs.tslibs import timezones
 from pandas.util._exceptions import find_stack_level
 
@@ -340,17 +339,14 @@ def build_table_schema(
     return schema
 
 
-def parse_table_schema(json, precise_float: bool) -> DataFrame:
+def parse_table_schema(table: dict) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 
     Parameters
     ----------
-    json :
-        A JSON table schema
-    precise_float : bool
-        Flag controlling precision when decoding string to double values, as
-        dictated by ``read_json``
+    table : dict
+        A decoded JSON table schema
 
     Returns
     -------
@@ -376,7 +372,6 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = ujson_loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 

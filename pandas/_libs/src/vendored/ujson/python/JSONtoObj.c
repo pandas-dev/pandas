@@ -136,11 +136,12 @@ PyObject *JSONToObj(PyObject *Py_UNUSED(self), PyObject *args,
                            .preciseFloat = 0,
                            .prv = NULL};
 
-  char *kwlist[] = {"obj", "precise_float", NULL};
+  char *kwlist[] = {"obj", "precise_float", "detect_float_parse_change", NULL};
   char *buf;
   Py_ssize_t len;
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|b", kwlist, &buf, &len,
-                                   &dec.preciseFloat)) {
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|bp", kwlist, &buf, &len,
+                                   &dec.preciseFloat,
+                                   &dec.detectFloatParseChange)) {
     return NULL;
   }
 
@@ -169,5 +170,8 @@ PyObject *JSONToObj(PyObject *Py_UNUSED(self), PyObject *args,
     return NULL;
   }
 
-  return ret;
+  if (!dec.detectFloatParseChange) {
+    return ret;
+  }
+  return Py_BuildValue("(NO)", ret, dec.floatParseChanged ? Py_True : Py_False);
 }

@@ -20,6 +20,19 @@ int fast_float_strtod(const char *start, const char *end, double *value,
   return -1;
 }
 
+int fast_float_json_strtod(const char *start, const char *end, double *value,
+                           const char **endptr) {
+  auto result = fast_float::from_chars(start, end, *value);
+  *endptr = result.ptr;
+  if (result.ec == std::errc()) {
+    return 0;
+  }
+  if (result.ec == std::errc::result_out_of_range) {
+    return 1;
+  }
+  return -1;
+}
+
 int try_parse_plain_double(const char *start, const char *end, char decimal,
                            double *out) {
   fast_float::parse_options options{

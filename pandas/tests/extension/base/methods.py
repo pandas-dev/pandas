@@ -879,16 +879,18 @@ class BaseMethodsTests:
 
         # Check that Series.to_json uses _values_for_json
         ser = pd.Series(data)
-        result: str = ser.to_json()
-        expected: str = pd.Series(values).to_json()
+        result: str = ser.to_json(double_precision=None)
+        expected: str = pd.Series(values).to_json(double_precision=None)
         assert result == expected
 
     def test_json_roundtrip(self, data):
         # GH 65127
         # Test roundtrip through JSON
         ser = pd.Series(data)
-        result: str = ser.to_json()
-        ser_new = pd.read_json(StringIO(result), typ="series", dtype=data.dtype)
+        result: str = ser.to_json(double_precision=None)
+        ser_new = pd.read_json(
+            StringIO(result), typ="series", dtype=data.dtype, precise_float=True
+        )
         tm.assert_series_equal(ser_new, ser)
 
     def test_round(self, data):

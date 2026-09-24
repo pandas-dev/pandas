@@ -41,6 +41,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
 #include "pandas/portable.h"
+#include "pandas/vendored/ryu/ryu.h"
 #include "pandas/vendored/ujson/lib/ultrajson.h"
 #include <locale.h>
 #include <math.h>
@@ -811,8 +812,89 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
   enc->offset += (wstr - (enc->offset));
 }
 
-int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
-                                 double value) {
+/*
+Write the shortest representation of value that round-trips exactly, laid out
+the same way as orjson: positional notation when the decimal exponent is in
+[-5, 16), and scientific notation otherwise. value must be finite. Writes at
+most 25 characters and returns the number written. */
+static int formatShortestDouble(double value, char *out) {
+  // Ryu writes scientific notation, e.g. "-1.25E-7", "1E0", or "0E0"
+  char sci[25];
+  const int len = d2s_buffered_n(value, sci);
+  char digits[17];
+  int ndigits = 0;
+  int exponent = 0;
+  int expNeg = 0;
+  int i = 0;
+  char *wstr = out;
+
+  if (sci[i] == '-') {
+    *wstr++ = '-';
+    i++;
+  }
+  for (; sci[i] != 'E'; i++) {
+    if (sci[i] != '.') {
+      digits[ndigits++] = sci[i];
+    }
+  }
+  i++;
+  if (sci[i] == '-') {
+    expNeg = 1;
+    i++;
+  }
+  for (; i < len; i++) {
+    exponent = exponent * 10 + (sci[i] - '0');
+  }
+  if (expNeg) {
+    exponent = -exponent;
+  }
+
+  if (exponent >= 0 && exponent < 16) {
+    for (int k = 0; k <= exponent; k++) {
+      *wstr++ = k < ndigits ? digits[k] : '0';
+    }
+    *wstr++ = '.';
+    if (ndigits > exponent + 1) {
+      for (int k = exponent + 1; k < ndigits; k++) {
+        *wstr++ = digits[k];
+      }
+    } else {
+      *wstr++ = '0';
+    }
+  } else if (exponent < 0 && exponent >= -5) {
+    *wstr++ = '0';
+    *wstr++ = '.';
+    for (int k = 0; k < -exponent - 1; k++) {
+      *wstr++ = '0';
+    }
+    for (int k = 0; k < ndigits; k++) {
+      *wstr++ = digits[k];
+    }
+  } else {
+    *wstr++ = digits[0];
+    if (ndigits > 1) {
+      *wstr++ = '.';
+      for (int k = 1; k < ndigits; k++) {
+        *wstr++ = digits[k];
+      }
+    }
+    *wstr++ = 'e';
+    *wstr++ = exponent < 0 ? '-' : '+';
+    if (exponent < 0) {
+      exponent = -exponent;
+    }
+    if (exponent >= 100) {
+      *wstr++ = (char)('0' + exponent / 100);
+    }
+    if (exponent >= 10) {
+      *wstr++ = (char)('0' + (exponent / 10) % 10);
+    }
+    *wstr++ = (char)('0' + exponent % 10);
+  }
+  return (int)(wstr - out);
+}
+
+static void Buffer_AppendDoubleDecimals(JSONObjectEncoder *enc, double value) {
   /* if input is beyond the thresholds, revert to exponential */
   const double thres_max = (double)1e16 - 1;
   const double thres_min = (double)1e-15;
@@ -826,16 +908,6 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
   unsigned long long frac;
   int neg;
   double pow10;
-
-  if (value == HUGE_VAL || value == -HUGE_VAL) {
-    SetError(obj, enc, "Invalid Inf value when encoding double");
-    return FALSE;
-  }
-
-  if (!(value == value)) {
-    SetError(obj, enc, "Invalid Nan value when encoding double");
-    return FALSE;
-  }
 
   /* we'll work in positive values and deal with the
   negative sign issue later */
@@ -862,7 +934,7 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
     enc->offset += snprintf(str, enc->end - enc->offset, precision_str,
                             neg ? -value : value);
 #endif
-    return TRUE;
+    return;
   }
 
   pow10 = g_pow10[enc->doublePrecision];
@@ -938,7 +1010,35 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
   }
   strreverse(str, wstr - 1);
   enc->offset += (wstr - (enc->offset));
+}
 
+int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
+                                 double value) {
+  if (value == HUGE_VAL || value == -HUGE_VAL) {
+    SetError(obj, enc, "Invalid Inf value when encoding double");
+    return FALSE;
+  }
+
+  if (!(value == value)) {
+    SetError(obj, enc, "Invalid Nan value when encoding double");
+    return FALSE;
+  }
+
+  if (enc->doublePrecision == JSON_DOUBLE_SHORTEST) {
+    enc->offset += formatShortestDouble(value, enc->offset);
+    return TRUE;
+  }
+
+  char *start = enc->offset;
+  Buffer_AppendDoubleDecimals(enc, value);
+
+  if (enc->detectFloatFormatChange && !enc->floatFormatChanged) {
+    char shortest[25];
+    const int len = formatShortestDouble(value, shortest);
+    if (len != enc->offset - start || memcmp(start, shortest, (size_t)len)) {
+      enc->floatFormatChanged = 1;
+    }
+  }
   return TRUE;
 }
 
@@ -1186,7 +1286,8 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
     enc->recursionMax = JSON_MAX_RECURSION_DEPTH;
   }
 
-  if (enc->doublePrecision < 0 ||
+  if ((enc->doublePrecision < 0 &&
+       enc->doublePrecision != JSON_DOUBLE_SHORTEST) ||
       enc->doublePrecision > JSON_DOUBLE_MAX_DECIMALS) {
     enc->doublePrecision = JSON_DOUBLE_MAX_DECIMALS;
   }

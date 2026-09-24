@@ -164,14 +164,20 @@ class TestPandasContainer:
             df.to_json(orient=orient)
 
     def test_frame_default_orient(self, float_frame):
-        assert float_frame.to_json() == float_frame.to_json(orient="columns")
+        assert float_frame.to_json(double_precision=None) == float_frame.to_json(
+            orient="columns", double_precision=None
+        )
 
     @pytest.mark.parametrize("dtype", [False, float])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_roundtrip_simple(self, orient, convert_axes, dtype, float_frame):
-        data = StringIO(float_frame.to_json(orient=orient))
+        data = StringIO(float_frame.to_json(orient=orient, double_precision=None))
         result = pd.read_json(
-            data, orient=orient, convert_axes=convert_axes, dtype=dtype
+            data,
+            orient=orient,
+            convert_axes=convert_axes,
+            dtype=dtype,
+            precise_float=True,
         )
 
         expected = float_frame
@@ -242,8 +248,10 @@ class TestPandasContainer:
         data["E"] = list(reversed(cat))
         data["sort"] = np.arange(30, dtype="int64")
         categorical_frame = pd.DataFrame(data, index=pd.CategoricalIndex(cat, name="E"))
-        data = StringIO(categorical_frame.to_json(orient=orient))
-        result = pd.read_json(data, orient=orient, convert_axes=convert_axes)
+        data = StringIO(categorical_frame.to_json(orient=orient, double_precision=None))
+        result = pd.read_json(
+            data, orient=orient, convert_axes=convert_axes, precise_float=True
+        )
 
         expected = categorical_frame.copy()
         expected.index = expected.index.astype(
@@ -281,8 +289,12 @@ class TestPandasContainer:
             )
         msg = "The default formatting of datetime/timedelta values will change"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            data = StringIO(datetime_frame.to_json(orient=orient))
-        result = pd.read_json(data, orient=orient, convert_axes=convert_axes)
+            data = StringIO(
+                datetime_frame.to_json(orient=orient, double_precision=None)
+            )
+        result = pd.read_json(
+            data, orient=orient, convert_axes=convert_axes, precise_float=True
+        )
 
         if not convert_axes:  # one off for ts handling
             # DTI gets converted to epoch values
@@ -430,7 +442,10 @@ class TestPandasContainer:
     )
     def test_frame_to_json_float_precision(self, value, precision, expected_val):
         df = pd.DataFrame([{"a_float": value}])
-        depr_msg = "The 'double_precision' keyword in DataFrame.to_json is deprecated"
+        depr_msg = (
+            "Passing an integer for 'double_precision' in DataFrame.to_json "
+            "is deprecated"
+        )
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
@@ -439,17 +454,77 @@ class TestPandasContainer:
     def test_to_json_double_precision_deprecated(self, precision):
         # GH#62464
         df = pd.DataFrame({"a": [1 / 3]})
-        depr_msg = "The 'double_precision' keyword in DataFrame.to_json is deprecated"
+        depr_msg = (
+            "Passing an integer for 'double_precision' in DataFrame.to_json "
+            "is deprecated"
+        )
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = df.to_json(double_precision=precision)
         expected = f'{{"a":{{"0":{round(1 / 3, precision)}}}}}'
         assert result == expected
 
         ser = df["a"]
-        depr_msg = "The 'double_precision' keyword in Series.to_json is deprecated"
+        depr_msg = (
+            "Passing an integer for 'double_precision' in Series.to_json is deprecated"
+        )
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = ser.to_json(double_precision=precision)
         expected = f'{{"0":{round(1 / 3, precision)}}}'
+        assert result == expected
+
+    def test_to_json_double_precision_none(self):
+        # GH#62464
+        df = pd.DataFrame({"a": [1 / 3, 0.1 + 0.2, 1e-7, 1e16]})
+        result = df.to_json(double_precision=None)
+        expected = (
+            '{"a":{"0":0.3333333333333333,"1":0.30000000000000004,"2":1e-7,"3":1e+16}}'
+        )
+        assert result == expected
+
+        result = df["a"].to_json(double_precision=None)
+        expected = '{"0":0.3333333333333333,"1":0.30000000000000004,"2":1e-7,"3":1e+16}'
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "index", "columns", "values", "table"]
+    )
+    def test_to_json_double_precision_none_roundtrip(self, orient):
+        # GH#62072, GH#59313, GH#23328
+        df = pd.DataFrame(
+            {"a": [0.2617993877991494, 0.11111111111111112, 1.2345678901234567e-16]}
+        )
+        data = StringIO(df.to_json(orient=orient, double_precision=None))
+        result = pd.read_json(data, orient=orient, precise_float=True)
+        tm.assert_numpy_array_equal(result.iloc[:, 0].to_numpy(), df["a"].to_numpy())
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "index", "columns", "values", "table"]
+    )
+    @pytest.mark.parametrize("values", [[1 / 3, 0.5], [-0.0], [1e-12]])
+    def test_to_json_default_float_format_warns(self, orient, values):
+        # GH#62464
+        df = pd.DataFrame({"a": values})
+        msg = "In a future version, DataFrame.to_json will write floating point"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.to_json(orient=orient)
+        depr_msg = "Passing an integer for 'double_precision'"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            expected = df.to_json(orient=orient, double_precision=10)
+        assert result == expected
+
+    @pytest.mark.parametrize("orient", ["split", "records", "index", "table"])
+    def test_series_to_json_default_float_format_warns(self, orient):
+        # GH#62464
+        ser = pd.Series([1 / 3, 0.5], name="a")
+        msg = "In a future version, Series.to_json will write floating point"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ser.to_json(orient=orient)
+
+    def test_to_json_default_float_format_no_warning(self):
+        # GH#62464
+        df = pd.DataFrame({"a": [0.5, 0.25, 1.0, 0.1, round(1 / 3, 10), 1e-16]})
+        result = df.to_json()
+        expected = df.to_json(double_precision=None)
         assert result == expected
 
     def test_frame_to_json_except(self):
@@ -501,18 +576,24 @@ class TestPandasContainer:
         right = df.copy()
 
         for orient in ["split", "index", "columns"]:
-            inp = StringIO(df.to_json(orient=orient))
-            left = pd.read_json(inp, orient=orient, convert_axes=False)
+            inp = StringIO(df.to_json(orient=orient, double_precision=None))
+            left = pd.read_json(
+                inp, orient=orient, convert_axes=False, precise_float=True
+            )
             tm.assert_frame_equal(left, right)
 
         right.index = pd.RangeIndex(len(df))
-        inp = StringIO(df.to_json(orient="records"))
-        left = pd.read_json(inp, orient="records", convert_axes=False)
+        inp = StringIO(df.to_json(orient="records", double_precision=None))
+        left = pd.read_json(
+            inp, orient="records", convert_axes=False, precise_float=True
+        )
         tm.assert_frame_equal(left, right)
 
         right.columns = pd.RangeIndex(df.shape[1])
-        inp = StringIO(df.to_json(orient="values"))
-        left = pd.read_json(inp, orient="values", convert_axes=False)
+        inp = StringIO(df.to_json(orient="values", double_precision=None))
+        left = pd.read_json(
+            inp, orient="values", convert_axes=False, precise_float=True
+        )
         tm.assert_frame_equal(left, right)
 
     def test_v12_compat(self, datapath):
@@ -535,12 +616,12 @@ class TestPandasContainer:
 
         dirpath = datapath("io", "json", "data")
         v12_json = os.path.join(dirpath, "tsframe_v012.json")
-        result = pd.read_json(v12_json)
+        result = pd.read_json(v12_json, precise_float=True)
         expected = df.copy()
         tm.assert_frame_equal(result, expected)
 
         v12_iso_json = os.path.join(dirpath, "tsframe_iso_v012.json")
-        result_iso = pd.read_json(v12_iso_json)
+        result_iso = pd.read_json(v12_iso_json, precise_float=True)
         expected_iso = df.drop(["modified"], axis=1)
         expected_iso["date"] = expected_iso["date"].dt.as_unit("us")
         expected_iso.index = expected_iso.index.as_unit("us")
@@ -628,8 +709,8 @@ class TestPandasContainer:
         df_mixed.columns = df_mixed.columns.astype(
             np.str_ if not using_infer_string else "str"
         )
-        data = StringIO(df_mixed.to_json(orient="split"))
-        df_roundtrip = pd.read_json(data, orient="split")
+        data = StringIO(df_mixed.to_json(orient="split", double_precision=None))
+        df_roundtrip = pd.read_json(data, orient="split", precise_float=True)
         tm.assert_frame_equal(
             df_mixed,
             df_roundtrip,
@@ -699,11 +780,13 @@ class TestPandasContainer:
         tm.assert_equal(s.values, unserialized.values)
 
     def test_series_default_orient(self, string_series):
-        assert string_series.to_json() == string_series.to_json(orient="index")
+        assert string_series.to_json(double_precision=None) == string_series.to_json(
+            orient="index", double_precision=None
+        )
 
     def test_series_roundtrip_simple(self, orient, string_series, using_infer_string):
-        data = StringIO(string_series.to_json(orient=orient))
-        result = pd.read_json(data, typ="series", orient=orient)
+        data = StringIO(string_series.to_json(orient=orient, double_precision=None))
+        result = pd.read_json(data, typ="series", orient=orient, precise_float=True)
 
         expected = string_series
         if using_infer_string and orient in ("split", "index", "columns"):
@@ -785,17 +868,20 @@ class TestPandasContainer:
 
     def test_series_from_json_precise_float(self):
         s = pd.Series([4.56, 4.56, 4.56])
-        depr_msg = "The 'precise_float' keyword in read_json is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = pd.read_json(
-                StringIO(s.to_json()), typ="series", precise_float=True
-            )
-        tm.assert_series_equal(result, s, check_index_type=False)
+        result = pd.read_json(
+            StringIO(s.to_json(double_precision=None)), typ="series", precise_float=True
+        )
+        tm.assert_series_equal(result, s, check_index_type=False, check_exact=True)
 
     def test_series_with_dtype(self):
         # GH 21986
         s = pd.Series([4.56, 4.56, 4.56])
-        result = pd.read_json(StringIO(s.to_json()), typ="series", dtype=np.int64)
+        result = pd.read_json(
+            StringIO(s.to_json(double_precision=None)),
+            typ="series",
+            dtype=np.int64,
+            precise_float=True,
+        )
         expected = pd.Series([4] * 3)
         tm.assert_series_equal(result, expected)
 
@@ -821,20 +907,57 @@ class TestPandasContainer:
 
     def test_frame_from_json_precise_float(self):
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        depr_msg = "The 'precise_float' keyword in read_json is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = pd.read_json(StringIO(df.to_json()), precise_float=True)
-        tm.assert_frame_equal(result, df)
+        result = pd.read_json(
+            StringIO(df.to_json(double_precision=None)), precise_float=True
+        )
+        tm.assert_frame_equal(result, df, check_exact=True)
 
-    @pytest.mark.parametrize("precise_float", [False, True])
-    def test_read_json_precise_float_deprecated(self, precise_float):
+    def test_read_json_precise_float_false_deprecated(self):
+        # GH#62464
+        json = '{"a":{"0":4.56,"1":1.5}}'
+        depr_msg = "Passing precise_float=False to read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            result = pd.read_json(StringIO(json), precise_float=False)
+        expected = pd.DataFrame({"a": [4.5600000000000005, 1.5]})
+        tm.assert_frame_equal(result, expected, check_exact=True)
+
+    @pytest.mark.parametrize(
+        "orient", ["split", "records", "index", "columns", "values", "table"]
+    )
+    def test_read_json_default_float_parse_warns(self, orient):
         # GH#62464
         df = pd.DataFrame({"a": [4.56, 1.5]})
-        json = df.to_json()
-        depr_msg = "The 'precise_float' keyword in read_json is deprecated"
+        json = df.to_json(orient=orient, double_precision=None)
+        msg = "In a future version, read_json will parse floating point values"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_json(StringIO(json), orient=orient)
+        depr_msg = "Passing precise_float=False to read_json is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = pd.read_json(StringIO(json), precise_float=precise_float)
-        tm.assert_frame_equal(result, df)
+            expected = pd.read_json(StringIO(json), orient=orient, precise_float=False)
+        tm.assert_frame_equal(result, expected, check_exact=True)
+
+    def test_read_json_series_default_float_parse_warns(self):
+        # GH#62464
+        msg = "In a future version, read_json will parse floating point values"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_json(StringIO('{"0":4.56,"1":1.5}'), typ="series")
+        expected = pd.Series([4.5600000000000005, 1.5])
+        tm.assert_series_equal(result, expected, check_index_type=False)
+
+    def test_read_json_default_float_parse_no_warning(self):
+        # GH#62464
+        result = pd.read_json(StringIO('{"a":{"0":1.5,"1":0.25,"2":-0.0}}'))
+        expected = pd.DataFrame({"a": [1.5, 0.25, -0.0]})
+        tm.assert_frame_equal(result, expected, check_exact=True)
+
+    def test_read_json_default_float_parse_warns_once(self):
+        # GH#62464
+        json = '{"a":4.56}\n{"a":7.89}\n{"a":1.23}\n'
+        msg = "In a future version, read_json will parse floating point values"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg) as record:
+            with pd.read_json(StringIO(json), lines=True, chunksize=1) as reader:
+                list(reader)
+        assert len(record) == 1
 
     def test_typ(self):
         s = pd.Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
@@ -855,22 +978,22 @@ class TestPandasContainer:
         for df in [float_frame, int_frame, datetime_frame]:
             warn = Pandas4Warning if df is datetime_frame else None
             with tm.assert_produces_warning(warn, match=msg):
-                df.to_json(temp_file)
-            pd.read_json(temp_file)
+                df.to_json(temp_file, double_precision=None)
+            pd.read_json(temp_file, precise_float=True)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
         msg = "The default formatting of datetime/timedelta values will change"
         # frame
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = StringIO(datetime_frame.to_json())
-        result = pd.read_json(json)
+            json = StringIO(datetime_frame.to_json(double_precision=None))
+        result = pd.read_json(json, precise_float=True)
         expected = datetime_frame.copy()
         tm.assert_frame_equal(result, expected)
 
         # series
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = StringIO(datetime_series.to_json())
-        result = pd.read_json(json, typ="series")
+            json = StringIO(datetime_series.to_json(double_precision=None))
+        result = pd.read_json(json, typ="series", precise_float=True)
         expected = datetime_series.copy()
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name is None
@@ -882,18 +1005,18 @@ class TestPandasContainer:
 
         msg = "The default formatting of datetime/timedelta values will change"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = StringIO(df.to_json())
-        result = pd.read_json(json)
+            json = StringIO(df.to_json(double_precision=None))
+        result = pd.read_json(json, precise_float=True)
         expected = df.copy()
         tm.assert_frame_equal(result, expected)
 
         df["foo"] = 1.0
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = StringIO(df.to_json(date_unit="ns"))
+            json = StringIO(df.to_json(date_unit="ns", double_precision=None))
 
         depr_msg = "The 'convert_dates' keyword in read_json is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = pd.read_json(json, convert_dates=False)
+            result = pd.read_json(json, convert_dates=False, precise_float=True)
         expected = df.copy()
         expected["date"] = expected["date"].dt.as_unit("ns").astype("int64")
         expected["foo"] = expected["foo"].astype("int64")
@@ -903,8 +1026,8 @@ class TestPandasContainer:
         # series
         ts = pd.Series(pd.Timestamp("20130101"), index=datetime_series.index)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = StringIO(ts.to_json())
-        result = pd.read_json(json, typ="series")
+            json = StringIO(ts.to_json(double_precision=None))
+        result = pd.read_json(json, typ="series", precise_float=True)
         expected = ts.copy()
         tm.assert_series_equal(result, expected)
 
@@ -990,12 +1113,14 @@ class TestPandasContainer:
         df.iloc[1, df.columns.get_loc("date")] = pd.NaT
         df.iloc[5, df.columns.get_loc("date")] = pd.NaT
         if date_unit:
-            json = df.to_json(date_format="iso", date_unit=date_unit)
+            json = df.to_json(
+                date_format="iso", date_unit=date_unit, double_precision=None
+            )
         else:
-            json = df.to_json(date_format="iso")
+            json = df.to_json(date_format="iso", double_precision=None)
         assert f'"{date}"' in json
 
-        result = pd.read_json(StringIO(json))
+        result = pd.read_json(StringIO(json), precise_float=True)
         expected = df.copy()
         if date_unit == "ns":
             expected.index = expected.index.as_unit("ns")
@@ -1055,10 +1180,12 @@ class TestPandasContainer:
             "version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = df.to_json(date_format="epoch", date_unit=unit)
+            json = df.to_json(
+                date_format="epoch", date_unit=unit, double_precision=None
+            )
 
         # force date unit
-        result = pd.read_json(StringIO(json), date_unit=unit)
+        result = pd.read_json(StringIO(json), date_unit=unit, precise_float=True)
         expected = df.copy()
         out_unit = unit if unit == "ns" else "us"
         expected["date"] = expected["date"].dt.as_unit(out_unit)
@@ -1066,7 +1193,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
         # detect date unit
-        result = pd.read_json(StringIO(json), date_unit=None)
+        result = pd.read_json(StringIO(json), date_unit=None, precise_float=True)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1315,17 +1442,19 @@ class TestPandasContainer:
 
         msg = "The default formatting of datetime/timedelta values will change"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            json = StringIO(dfj2.to_json())
-        result = pd.read_json(json, dtype={"ints": np.int64, "bools": np.bool_})
+            json = StringIO(dfj2.to_json(double_precision=None))
+        result = pd.read_json(
+            json, dtype={"ints": np.int64, "bools": np.bool_}, precise_float=True
+        )
         tm.assert_frame_equal(result, result)
 
     def test_round_trip_exception(self, datapath):
         # GH 3867
         path = datapath("io", "json", "data", "teams.csv")
         df = pd.read_csv(path)
-        s = df.to_json()
+        s = df.to_json(double_precision=None)
 
-        result = pd.read_json(StringIO(s))
+        result = pd.read_json(StringIO(s), precise_float=True)
         res = result.reindex(index=df.index, columns=df.columns)
         res = res.fillna(np.nan)
         tm.assert_frame_equal(res, df)
@@ -1578,15 +1707,15 @@ class TestPandasContainer:
         df.loc[:8] = np.nan
 
         sdf = df.astype("Sparse")
-        expected = df.to_json()
-        assert expected == sdf.to_json()
+        expected = df.to_json(double_precision=None)
+        assert expected == sdf.to_json(double_precision=None)
 
         s = pd.Series(np.random.default_rng(2).standard_normal(10))
         s.loc[:8] = np.nan
         ss = s.astype("Sparse")
 
-        expected = s.to_json()
-        assert expected == ss.to_json()
+        expected = s.to_json(double_precision=None)
+        assert expected == ss.to_json(double_precision=None)
 
     @pytest.mark.parametrize(
         "ts",

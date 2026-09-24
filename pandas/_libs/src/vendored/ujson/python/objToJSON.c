@@ -2346,11 +2346,14 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
                            "iso_dates",
                            "default_handler",
                            "indent",
+                           "detect_float_format_change",
                            NULL};
 
   PyObject *oinput = NULL;
   PyObject *oensureAscii = NULL;
+  PyObject *odoublePrecision = NULL;
   int idoublePrecision = 10; // default double precision setting
+  int detectFloatFormatChange = 0;
   PyObject *oencodeHTMLChars = NULL;
   char *sOrient = NULL;
   char *sdateFormat = NULL;
@@ -2395,10 +2398,10 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
   };
   JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|OiOssOOi", kwlist, &oinput,
-                                   &oensureAscii, &idoublePrecision,
-                                   &oencodeHTMLChars, &sOrient, &sdateFormat,
-                                   &oisoDates, &odefHandler, &indent)) {
+  if (!PyArg_ParseTupleAndKeywords(
+          args, kwargs, "O|OOOssOOip", kwlist, &oinput, &oensureAscii,
+          &odoublePrecision, &oencodeHTMLChars, &sOrient, &sdateFormat,
+          &oisoDates, &odefHandler, &indent, &detectFloatFormatChange)) {
     return NULL;
   }
 
@@ -2410,14 +2413,24 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     encoder->encodeHTMLChars = 1;
   }
 
-  if (idoublePrecision > JSON_DOUBLE_MAX_DECIMALS || idoublePrecision < 0) {
-    PyErr_Format(
-        PyExc_ValueError,
-        "Invalid value '%d' for option 'double_precision', max is '%u'",
-        idoublePrecision, JSON_DOUBLE_MAX_DECIMALS);
-    return NULL;
+  if (odoublePrecision == Py_None) {
+    idoublePrecision = JSON_DOUBLE_SHORTEST;
+  } else if (odoublePrecision != NULL) {
+    const long ldoublePrecision = PyLong_AsLong(odoublePrecision);
+    if (ldoublePrecision == -1 && PyErr_Occurred()) {
+      return NULL;
+    }
+    if (ldoublePrecision > JSON_DOUBLE_MAX_DECIMALS || ldoublePrecision < 0) {
+      PyErr_Format(
+          PyExc_ValueError,
+          "Invalid value '%ld' for option 'double_precision', max is '%u'",
+          ldoublePrecision, JSON_DOUBLE_MAX_DECIMALS);
+      return NULL;
+    }
+    idoublePrecision = (int)ldoublePrecision;
   }
   encoder->doublePrecision = idoublePrecision;
+  encoder->detectFloatFormatChange = detectFloatFormatChange;
 
   if (sOrient != NULL) {
     if (strcmp(sOrient, "records") == 0) {
@@ -2490,5 +2503,9 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     encoder->free(ret);
   }
 
-  return newobj;
+  if (newobj == NULL || !detectFloatFormatChange) {
+    return newobj;
+  }
+  return Py_BuildValue("(NO)", newobj,
+                       encoder->floatFormatChanged ? Py_True : Py_False);
 }
