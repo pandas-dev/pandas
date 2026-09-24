@@ -4034,7 +4034,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -5514,8 +5514,8 @@ class DataFrame(NDFrame, OpsMixin):
           ``'timedelta64[ms]'``; this matches only columns with exactly that
           resolution, whereas an unqualified spec matches every resolution
         * To select Pandas categorical dtypes, use ``'category'``
-        * To select all timezone-aware datetime dtypes, use
-          :class:`pandas.DatetimeTZDtype`; a string such as
+        * To select all timezone-aware datetime dtypes, use ``'datetimetz'``
+          or :class:`pandas.DatetimeTZDtype`; a string such as
           ``'datetime64[ns, US/Eastern]'`` selects only that exact dtype
         * To select all period dtypes, use :class:`pandas.PeriodDtype`; a
           string such as ``'period[D]'`` selects only that frequency
@@ -5523,10 +5523,6 @@ class DataFrame(NDFrame, OpsMixin):
           every instance of that subclass regardless of parametrization, e.g.
           ``pd.ArrowDtype`` selects all pyarrow-backed columns and
           ``pd.CategoricalDtype`` selects all categorical columns
-
-        .. deprecated:: 3.1.0
-            The strings ``'datetimetz'`` and ``'datetime64tz'`` are deprecated;
-            pass :class:`pandas.DatetimeTZDtype` instead.
 
         Examples
         --------
@@ -5834,15 +5830,6 @@ class DataFrame(NDFrame, OpsMixin):
                                 raise
                             # strings accepted here but not by pandas_dtype
                             if dtype in ("datetimetz", "datetime64tz"):
-                                # GH#24558; str() so an ndarray spec reprs as
-                                # 'datetimetz', not np.str_('datetimetz')
-                                warnings.warn(
-                                    f"Passing {str(dtype)!r} to select_dtypes is "
-                                    "deprecated and will raise in a future "
-                                    "version. Pass pd.DatetimeTZDtype instead.",
-                                    Pandas4Warning,
-                                    stacklevel=find_stack_level(),
-                                )
                                 resolved.add(DatetimeTZDtype)
                                 ea_funcs.append(matches_ea_class(DatetimeTZDtype))
                                 continue
@@ -6024,7 +6011,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             warnings.warn(
                 f"{msg}\nSee "
-                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "https://pandas.pydata.org/docs/dev/user_guide/migration.html"
                 "#string-migration-select-dtypes for details on how to write code "
                 "that works with pandas 2 and 3.",
                 Pandas4Warning,
@@ -6496,7 +6483,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -6593,7 +6580,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         level : int or name
@@ -7107,7 +7094,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -7302,7 +7289,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -13776,7 +13763,7 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        <https://pandas.pydata.org/docs/dev/user_guide/groupby.html>`__ for more
         detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
@@ -16171,7 +16158,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         indicator : bool or str, default False
@@ -19929,7 +19916,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -20015,7 +20002,7 @@ class DataFrame(NDFrame, OpsMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
