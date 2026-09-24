@@ -7,6 +7,8 @@ import pkgutil
 
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api import (
@@ -263,11 +265,11 @@ class TestApi(Base):
     ]
     allowed_typing = [
         "DataFrameGroupBy",
-        "DatetimeIndexResamplerGroupby",
+        "DatetimeIndexResamplerGroupBy",
         "Expanding",
-        "ExpandingGroupby",
+        "ExpandingGroupBy",
         "ExponentialMovingWindow",
-        "ExponentialMovingWindowGroupby",
+        "ExponentialMovingWindowGroupBy",
         "Expression",
         "FrozenList",
         "JsonReader",
@@ -276,13 +278,14 @@ class TestApi(Base):
         "NoDefault",
         "ParquetFileReader",
         "PeriodIndexResamplerGroupby",
+        "PeriodIndexResamplerGroupBy",
         "Resampler",
         "Rolling",
-        "RollingGroupby",
+        "RollingGroupBy",
         "SeriesGroupBy",
         "StataReader",
         "SASReader",
-        "TimedeltaIndexResamplerGroupby",
+        "TimedeltaIndexResamplerGroupBy",
         "TimeGrouper",
         "Window",
         "aliases",
@@ -449,6 +452,36 @@ class TestApi(Base):
 
     def test_api_typing_aliases(self):
         self.check(api_aliases, self.allowed_api_aliases)
+
+    @pytest.mark.parametrize(
+        "old, new",
+        [
+            ("DatetimeIndexResamplerGroupby", "DatetimeIndexResamplerGroupBy"),
+            ("ExpandingGroupby", "ExpandingGroupBy"),
+            ("ExponentialMovingWindowGroupby", "ExponentialMovingWindowGroupBy"),
+            ("PeriodIndexResamplerGroupby", "PeriodIndexResamplerGroupBy"),
+            ("RollingGroupby", "RollingGroupBy"),
+            ("TimedeltaIndexResamplerGroupby", "TimedeltaIndexResamplerGroupBy"),
+        ],
+    )
+    def test_api_typing_deprecated_groupby_spelling(self, old, new):
+        # GH#49578
+        msg = f"pandas.api.typing.{old} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = getattr(api_typing, old)
+        assert result is getattr(api_typing, new)
+
+    def test_api_typing_deprecated_groupby_spelling_import(self):
+        # GH#49578 the "from ... import" spelling goes through the same shim
+        msg = "pandas.api.typing.RollingGroupby is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            from pandas.api.typing import RollingGroupby
+
+        assert RollingGroupby is api_typing.RollingGroupBy
+
+    def test_api_typing_unknown_attribute(self):
+        with pytest.raises(AttributeError, match="has no attribute 'DoesNotExist'"):
+            api_typing.DoesNotExist
 
 
 class TestErrors(Base):

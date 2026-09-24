@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cache
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -127,16 +126,6 @@ if TYPE_CHECKING:
     from pandas.core.arrays import FloatingArray
 
 from pandas.compat.numpy import function as nv
-
-
-@cache
-def _integer_bounds(dtype: np.dtype) -> tuple[int, int]:
-    """
-    The inclusive bounds of an integer dtype, memoized because np.iinfo builds a
-    fresh object per call and _validate_setitem_value runs once per setitem.
-    """
-    info = np.iinfo(dtype)
-    return info.min, info.max
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
@@ -423,12 +412,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
 
         elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-            # numpy range-checks a python int but C-casts a numpy scalar, so
-            #  bounds-check here (GH#48867).  int() keeps the comparison exact
-            #  against a float, see test_setitem_float_just_out_of_bounds_raises.
-            low, high = _integer_bounds(self.dtype.numpy_dtype)
-            if low <= int(value) <= high:
-                return value
+            return value
+            # TODO: unsigned checks
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
@@ -856,6 +841,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
+
+        # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
+        #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
 
         out = kwargs.get("out", ())
 
@@ -2189,8 +2178,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
         mask = self._mask

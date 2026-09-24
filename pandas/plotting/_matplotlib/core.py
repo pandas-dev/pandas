@@ -668,9 +668,11 @@ class MPLPlot(ABC):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)) and isinstance(
-            data.dtype, ExtensionDtype
-        ):
+        if (
+            is_integer_dtype(data.dtype)
+            or is_float_dtype(data.dtype)
+            or is_bool_dtype(data.dtype)
+        ) and isinstance(data.dtype, ExtensionDtype):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
@@ -2072,7 +2074,7 @@ class BarPlot(MPLPlot):
         data = self.data.fillna(0)
 
         _stacked_subplots_ind: dict[int, int] = {}
-        _stacked_subplots_offsets: list[tuple[np.ndarray, np.ndarray]] = []
+        _stacked_subplots_offsets: dict[int, tuple[np.ndarray, np.ndarray]] = {}
 
         self.subplots: list[Any]
 
@@ -2083,7 +2085,7 @@ class BarPlot(MPLPlot):
                         continue
                     for plot in sub_plot:
                         _stacked_subplots_ind[int(plot)] = i
-                    _stacked_subplots_offsets.append((pos_prior, neg_prior))
+                    _stacked_subplots_offsets[i] = (pos_prior, neg_prior)
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
