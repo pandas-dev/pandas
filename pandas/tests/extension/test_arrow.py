@@ -1139,18 +1139,7 @@ class TestArrowArray(base.ExtensionTests):
 
         # Certain dtypes fail with NA values
         if plot_data["Data"].isna().any():
-            if (
-                pa.types.is_integer(pa_dtype)
-                or pa.types.is_floating(pa_dtype)
-                or pa.types.is_time(pa_dtype)
-            ):
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "float() argument must be a string or a real number, not 'NAType'"
-                )
-            elif (
-                pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
-            ) or pa.types.is_decimal(pa_dtype):
+            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
                 err_cls = TypeError
                 err_msg = re.escape("Failed to convert value(s) to axis units: array(")
 
@@ -1197,14 +1186,6 @@ class TestArrowArray(base.ExtensionTests):
                 err_cls = TypeError
                 err_msg = re.escape(
                     "Failed to convert value(s) to axis units: masked_array(data="
-                )
-            elif pa.types.is_duration(pa_dtype):
-                err_cls = AssertionError
-                err_msg = "numpy array are different"
-            elif pa.types.is_boolean(pa_dtype):
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "float() argument must be a string or a real number, not 'NAType'"
                 )
 
         # Call test, errors and warnings should only be raised for unsupported dtypes
