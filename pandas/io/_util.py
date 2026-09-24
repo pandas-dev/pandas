@@ -53,7 +53,7 @@ def suppress_pyarrow_values_warning() -> Generator[None]:
     Suppress the deprecation warning pyarrow triggers by calling ``.values``
     on timezone-aware data when converting pandas objects.
 
-    Remove once the minimum pyarrow no longer does this, see GH#68426 and
+    Remove once the minimum pyarrow (26.0) no longer does this, see GH#68426 and
     apache/arrow#51302.
     """
     with warnings.catch_warnings():
