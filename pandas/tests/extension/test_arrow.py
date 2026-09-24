@@ -1139,18 +1139,7 @@ class TestArrowArray(base.ExtensionTests):
 
         # Certain dtypes fail with NA values
         if plot_data["Data"].isna().any():
-            if (
-                pa.types.is_integer(pa_dtype)
-                or pa.types.is_floating(pa_dtype)
-                or pa.types.is_time(pa_dtype)
-            ):
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "float() argument must be a string or a real number, not 'NAType'"
-                )
-            elif (
-                pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
-            ) or pa.types.is_decimal(pa_dtype):
+            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
                 err_cls = TypeError
                 err_msg = re.escape("Failed to convert value(s) to axis units: array(")
 
@@ -1197,14 +1186,6 @@ class TestArrowArray(base.ExtensionTests):
                 err_cls = TypeError
                 err_msg = re.escape(
                     "Failed to convert value(s) to axis units: masked_array(data="
-                )
-            elif pa.types.is_duration(pa_dtype):
-                err_cls = AssertionError
-                err_msg = "numpy array are different"
-            elif pa.types.is_boolean(pa_dtype):
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "float() argument must be a string or a real number, not 'NAType'"
                 )
 
         # Call test, errors and warnings should only be raised for unsupported dtypes
@@ -1486,6 +1467,58 @@ def test_arrow_string_addition_mixed_with_binary_raises(string_type):
     )
     with pytest.raises(TypeError, match=re.escape(reflected_msg)):
         right + left
+
+
+@pytest.mark.parametrize(
+    "other", [np.array([1]), [1], pd.array([1], dtype="int64[pyarrow]")]
+)
+def test_cmp_length_mismatch_raises(other):
+    # GH#62682 pyarrow otherwise raises "Array arguments must all be the
+    #  same length"
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    with pytest.raises(ValueError, match="Lengths must match to compare"):
+        arr == other
+
+
+@pytest.mark.parametrize("op", [operator.add, operator.eq, operator.and_])
+@pytest.mark.parametrize(
+    "pa_type, values", [(pa.int64(), [1, 2]), (pa.string(), ["a", "b"])]
+)
+def test_op_2d_ndarray_raises(op, pa_type, values):
+    # GH#62682 match BaseMaskedArray instead of raising an opaque ArrowInvalid
+    arr = pd.array(values, dtype=ArrowDtype(pa_type))
+    other = np.array([[1, 2], [3, 4]])
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(arr, other)
+
+
+@pytest.mark.parametrize("op", [operator.add, operator.eq, operator.and_])
+@pytest.mark.parametrize(
+    "other",
+    [
+        pd.arrays.IntegerArray(np.array([[1], [2]]), np.zeros((2, 1), dtype=bool)),
+        pd.date_range("2020", periods=2)._data.reshape(2, 1),
+        # ABCExtensionArray does not match NumpyExtensionArray
+        pd.arrays.NumpyExtensionArray(np.array([[1, 2], [3, 4]])),
+    ],
+    ids=["masked", "datetimelike", "numpy_ea"],
+)
+def test_op_2d_extension_array_raises(other, op):
+    # GH#62682 a 2-D EA operand leaked "Mask must be 1D array" for the
+    #  masked case, and `==` silently compared all-False for the datetimelike one
+    arr = pd.array([1, 2], dtype=ArrowDtype(pa.int64()))
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(arr, other)
+
+
+@pytest.mark.parametrize("op", [operator.or_, operator.and_, operator.xor])
+def test_logical_2d_ndarray_bool_raises(op):
+    # GH#62682 the GH#60234 string-vs-bool arm returns before _evaluate_op_method,
+    #  so it needs a 1-d check of its own; StringDtype is covered by test_logical_2d
+    arr = pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+    other = np.array([[True, False], [True, False]])
+    with pytest.raises(NotImplementedError, match="can only perform ops with 1-d"):
+        op(other, arr)
 
 
 @pytest.mark.parametrize(
@@ -1801,6 +1834,144 @@ def test_setitem_null_slice(data):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, np_dtype",
+    [
+        ("int64[pyarrow]", "int64"),
+        ("uint8[pyarrow]", "uint8"),
+        ("double[pyarrow]", "float64"),
+        ("timestamp[ns][pyarrow]", "M8[ns]"),
+        ("duration[ns][pyarrow]", "m8[ns]"),
+    ],
+)
+def test_setitem_null_slice_no_alias(dtype, np_dtype):
+    # GH#67990 the null-slice fast path must not adopt a buffer the caller owns
+    expected = pd.array(np.array([10, 20, 30]).astype(np_dtype), dtype=dtype)
+
+    np_values = np.array([10, 20, 30]).astype(np_dtype)
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = np_values
+    np_values[0] = np_values[1]
+    tm.assert_extension_array_equal(arr, expected)
+
+    ser = pd.Series(np.array([10, 20, 30]).astype(np_dtype))
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = ser
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_setitem_null_slice_no_alias_masked():
+    # GH#67990 masked arrays are zero-copy through __arrow_array__
+    arr = pd.array([None] * 3, dtype="int64[pyarrow]")
+    values = pd.array([10, 20, 30], dtype="Int64")
+    arr[:] = values
+    values[0] = -1
+    expected = pd.array([10, 20, 30], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize(
+    "wrap",
+    [
+        lambda np_values: pa.array(np_values),
+        lambda np_values: pa.chunked_array([pa.array(np_values)]),
+        lambda np_values: pa.chunked_array(
+            [pa.array(np_values[:1]), pa.array(np_values[1:])]
+        ),
+        lambda np_values: ArrowExtensionArray(pa.array(np_values)),
+        lambda np_values: pd.Series(ArrowExtensionArray(pa.array(np_values))),
+    ],
+    ids=["array", "chunked", "chunked_multi", "extension_array", "series"],
+)
+def test_setitem_null_slice_no_alias_pyarrow(wrap):
+    # GH#67990 a pyarrow array is immutable, but its buffers can still be
+    #  zero-copy over a numpy array the caller owns
+    np_values = np.array([10, 20, 30], dtype="int64")
+    arr = pd.array([None] * 3, dtype="int64[pyarrow]")
+    value = wrap(np_values)
+    arr[:] = value
+    np_values[0] = -1
+    expected = pd.array([10, 20, 30], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(arr, expected)
+    # assert_extension_array_equal ignores chunking, so pin it separately
+    assert arr._pa_array.num_chunks == getattr(value, "num_chunks", 1)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pd.StringDtype("pyarrow", na_value=np.nan),
+        "string[pyarrow]",
+        "binary[pyarrow]",
+        ArrowDtype(pa.large_string()),
+        ArrowDtype(pa.large_binary()),
+    ],
+)
+def test_setitem_null_slice_string_stays_zero_copy(dtype):
+    # GH#67990 the aliasing fix must not undo GH#64529/GH#64530: pa.array never
+    #  packs character data into caller-owned memory, so it is not copied here
+    is_binary = "binary" in str(dtype)
+    values = pd.array(
+        [b"a", b"bb", b"ccc"] if is_binary else ["a", "bb", "ccc"], dtype=dtype
+    )
+    arr = pd.array([None] * 3, dtype=dtype)
+    arr[:] = values
+    # the character data is the last buffer for every one of these layouts
+    assert (
+        arr._pa_array.chunks[0].buffers()[-1].address
+        == values._pa_array.chunks[0].buffers()[-1].address
+    )
+
+
+def test_setitem_null_slice_no_alias_dictionary():
+    # GH#67990 pa.concat_arrays reuses the dictionary child, so the values half
+    #  of a dictionary type needs copying too
+    dtype = ArrowDtype(pa.dictionary(pa.int32(), pa.int64()))
+    np_values = np.array([100, 200], dtype="int64")
+    indices = pa.array(np.array([0, 1, 0], dtype="int32"))
+    value = pa.DictionaryArray.from_arrays(indices, pa.array(np_values))
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    expected = pd.array(
+        pa.DictionaryArray.from_arrays(indices, pa.array([100, 200], type=pa.int64())),
+        dtype=dtype,
+    )
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("kind", ["list", "struct"])
+def test_setitem_null_slice_no_alias_nested(kind):
+    # GH#67990 pa.concat_arrays does copy a nested type's children, which is why
+    #  only dictionary needs the special case above
+    np_values = np.array([1, 2, 3, 4], dtype="int64")
+    child = pa.array(np_values)
+    if kind == "list":
+        value = pa.ListArray.from_arrays(pa.array([0, 2, 4], type=pa.int32()), child)
+        expected_data = [[1, 2], [3, 4]]
+    else:
+        value = pa.StructArray.from_arrays([child], names=["x"])
+        expected_data = [{"x": 1}, {"x": 2}, {"x": 3}, {"x": 4}]
+    dtype = ArrowDtype(value.type)
+
+    arr = pd.array(value, dtype=dtype)
+    arr[:] = value
+    np_values[0] = -1
+    assert arr.tolist() == expected_data
+
+
+def test_setitem_null_slice_cow():
+    # GH#67990 full-slice assignment must not tie the two frames together
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="int64[pyarrow]")})
+    other = pd.DataFrame({"b": [10, 20, 30]})
+    df.loc[:, "a"] = other["b"]
+    other.iloc[0, 0] = -777
+    expected = pd.DataFrame({"a": pd.array([10, 20, 30], dtype="int64[pyarrow]")})
+    tm.assert_frame_equal(df, expected)
+
+
 def test_setitem_invalid_dtype(data):
     # GH50248
     pa_type = data._pa_array.type
@@ -1822,6 +1993,333 @@ def test_setitem_invalid_dtype(data):
         msg = "Invalid value 'foo' for dtype"
     with pytest.raises(err, match=msg):
         data[:] = fill_value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.date_range("2016-01-01", periods=3, tz="UTC")._data,
+        pd.date_range("2016-01-01", periods=3)._data,
+        pd.timedelta_range("1D", periods=3)._data,
+        pd.period_range("2016-01-01", periods=3, freq="D")._data,
+        np.array(["2016-01-01"] * 3, dtype="M8[ns]"),
+        np.array([1, 2, 3], dtype="m8[s]"),
+        pd.array([date(2016, 1, 1)] * 3, dtype=ArrowDtype(pa.date32())),
+        pd.array([time(1, 2)] * 3, dtype=ArrowDtype(pa.time64("us"))),
+        pa.array([1, 2, 3], type=pa.timestamp("us")),
+        pd.Timestamp("2016-01-01"),
+        pd.Timedelta("1D"),
+        date(2016, 1, 1),
+        time(1, 2),
+    ],
+)
+def test_setitem_temporal_into_numeric_raises(value):
+    # GH#68419 pyarrow would convert these into the integer storage instead of
+    #  raising the way every other dtype does
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = value
+
+    ser = pd.Series([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.iloc[:] = value
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+@pytest.mark.parametrize("value", [np.array([1, 2, 3]), np.array([1.0, 2.0, 3.0]), 1])
+def test_setitem_numeric_into_temporal_raises(dtype, value):
+    # GH#68419 mirror of test_setitem_temporal_into_numeric_raises
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = value
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+def test_setitem_oversized_int_scalar_into_temporal_raises(dtype):
+    # GH#68419 an int too wide for any integer dtype infers to object, which would
+    #  leave it unsettled; numpy M8/m8 raise this same TypeError for it
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = 2**70
+
+
+def test_setitem_decimal_scalar_into_temporal_raises():
+    # GH#68419 infer_dtype_from_scalar maps a Decimal to object, which would leave
+    #  the scalar reinterpreting while the decimal128 array form raises
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = Decimal(1)
+
+
+def test_setitem_decimal_scalar_into_decimal_self_accepted():
+    # GH#68419 counterpart of test_setitem_decimal_scalar_into_temporal_raises
+    dtype = ArrowDtype(pa.decimal128(10, 2))
+    arr = pd.array([Decimal("1.00")] * 2, dtype=dtype)
+    arr[0] = Decimal("2.00")
+    tm.assert_extension_array_equal(
+        arr, pd.array([Decimal("2.00"), Decimal("1.00")], dtype=dtype)
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.DatetimeIndex(["2017-01-01"] * 3)._data,
+        np.array(["2017-01-01"] * 3, dtype="M8[ns]"),
+        np.array(["2017-01-01"] * 3, dtype="U10"),
+        np.array(["2017-01-01"] * 3, dtype=object),
+        pd.arrays.SparseArray(np.array(["2017-01-01"] * 3, dtype="M8[ns]")),
+        pd.Categorical(pd.DatetimeIndex(["2017-01-01"] * 3)),
+        pd.array(["2017-01-01"] * 3, dtype="string"),
+        pd.array(["2017-01-01"] * 3, dtype=ArrowDtype(pa.string())),
+        pd.array(["2017-01-01"] * 3, dtype=ArrowDtype(pa.large_string())),
+        pd.array(
+            [pd.Timestamp("2017-01-01")] * 3, dtype="timestamp[ns][pyarrow]"
+        ).astype(ArrowDtype(pa.dictionary(pa.int32(), pa.timestamp("ns")))),
+        pd.Timestamp("2017-01-01"),
+    ],
+)
+def test_setitem_temporal_still_accepted(value):
+    # GH#68419 the temporal check must not reject what already worked; a dtype
+    #  it cannot classify has to fall through rather than count as non-temporal
+    arr = pd.array([pd.Timestamp("2016-01-01")] * 3, dtype="timestamp[ns][pyarrow]")
+    arr[:] = value
+    expected = pd.array(
+        [pd.Timestamp("2017-01-01")] * 3, dtype="timestamp[ns][pyarrow]"
+    )
+    tm.assert_extension_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", [pa.dictionary(pa.int32(), pa.timestamp("ns")), pa.string()]
+)
+def test_setitem_temporal_into_unsettled_self_accepted(pa_type):
+    # GH#68419 the self side is three-state too: a dictionary self is temporal
+    #  via its value_type, and a string self settles nothing
+    dtype = ArrowDtype(pa_type)
+    arr = pd.array([pd.Timestamp("2016-01-01")] * 3, dtype="timestamp[ns][pyarrow]")
+    arr = arr.astype(dtype)
+    value = pd.DatetimeIndex(["2017-01-01"] * 3)._data
+    if pa.types.is_dictionary(pa_type):
+        # pyarrow cannot build a dictionary array from a numpy-backed value
+        value = pd.array(value, dtype="timestamp[ns][pyarrow]").astype(dtype)
+    arr[:] = value
+    assert arr.dtype == dtype
+    assert not arr.isna().any()
+    expected = pd.Timestamp("2017-01-01")
+    assert arr.astype("timestamp[ns][pyarrow]")[0] == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type, value",
+    [
+        (pa.string(), pd.Timestamp("2016-01-01")),
+        (pa.large_string(), pd.Timestamp("2016-01-01")),
+        (pa.binary(), pd.Timestamp("2016-01-01")),
+        (pa.duration("ns"), pd.Timestamp("2016-01-01")),
+        (pa.timestamp("ns"), pd.Timedelta("1s")),
+        (pa.time64("us"), pd.Timedelta("1s")),
+        (pa.time32("s"), pd.Timedelta("1s")),
+    ],
+)
+def test_setitem_temporal_scalar_into_mismatched_self_raises(pa_type, value):
+    # GH#68419 _box_pa_scalar read pa_type.unit whatever the target was, so a
+    #  string self raised AttributeError and a mismatched temporal self silently
+    #  stored the integer
+    arr = pd.array([None, None], dtype=ArrowDtype(pa_type))
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[0] = value
+
+
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()])
+@pytest.mark.parametrize(
+    "value", [pd.Timestamp("2016-01-05"), pd.Timestamp("2016-01-05 12:30:45")]
+)
+def test_setitem_timestamp_into_date_self(pa_type, value):
+    # GH#68419 a Timestamp is a valid date value; reaching for date32's
+    #  nonexistent .unit used to make this an AttributeError. A time component is
+    #  dropped, matching pd.array([value], dtype=ArrowDtype(pa_type))
+    arr = pd.array([date(2016, 1, 1)] * 2, dtype=ArrowDtype(pa_type))
+    arr[0] = value
+    expected = pd.array([date(2016, 1, 5), date(2016, 1, 1)], dtype=ArrowDtype(pa_type))
+    tm.assert_extension_array_equal(arr, expected)
+
+
+def test_fillna_temporal_into_string_self_accepted():
+    # GH#68419 filling a string column with datetimes is a string conversion,
+    #  not an integer reinterpretation, and must keep working
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    result = ser.fillna(pd.Series(pd.date_range("2016-01-01", periods=2)))
+    assert result.dtype == ArrowDtype(pa.string())
+    assert result[0] == "a"
+    assert result[1] == "2016-01-02 00:00:00.000000"
+
+
+def test_fillna_temporal_scalar_into_string_self_raises():
+    # GH#68419 the scalar spelling used to raise AttributeError. It stays stricter
+    #  than the array spelling above, which pyarrow converts
+    ser = pd.Series(["a", None], dtype=ArrowDtype(pa.string()))
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(pd.Timestamp("2016-01-01"))
+
+
+def test_setitem_numeric_still_accepted():
+    # GH#68419 counterpart of test_setitem_temporal_still_accepted
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:] = np.array([4, 5, 6])
+    tm.assert_extension_array_equal(arr, pd.array([4, 5, 6], dtype="int64[pyarrow]"))
+
+
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "timestamp[ns][pyarrow]"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        pd.NA,
+        pd.NaT,
+        np.nan,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+        [None, None, None],
+        pa.array([None] * 3),
+        pd.array([None] * 3, dtype=ArrowDtype(pa.null())),
+    ],
+)
+def test_setitem_na_not_rejected(dtype, value):
+    # GH#68419 the temporal check must not reject NA of any flavor; a null-typed or
+    #  NaT-scalar value carries a dtype but still settles nothing. Int64 rejects NaT
+    #  here; that divergence is pre-existing
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    arr[:] = value
+    assert arr.isna().all()
+
+
+@pytest.mark.parametrize(
+    "pa_type", [pa.duration("ns"), pa.timestamp("ns"), pa.time64("us"), pa.int64()]
+)
+def test_setitem_typed_null_scalar_not_rejected(pa_type):
+    # GH#68419 a typed null pa.Scalar is just "assign NA"; isna() does not
+    #  recognize it, so the check has to look at is_valid
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    arr[:] = pa.scalar(None, type=pa_type)
+    assert arr.isna().all()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pd.array([None] * 3, dtype="timestamp[ns][pyarrow]"),
+        pa.array([None] * 3, type=pa.timestamp("ns")),
+        pd.DatetimeIndex([pd.NaT] * 3)._data,
+    ],
+)
+def test_setitem_all_na_temporal_array_still_raises(value):
+    # GH#68419 an all-NA array still carries a temporal dtype, and numpy int64
+    #  and Int64 both reject it; only a *scalar* NA means "just assign NA"
+    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = value
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.array([np.nan] * 3),
+        np.array([np.nan] * 3, dtype="float32"),
+        pd.array([None] * 3, dtype="Float64"),
+        pd.array([None] * 3, dtype="double[pyarrow]"),
+    ],
+)
+def test_setitem_all_na_float_array_not_rejected(dtype, value):
+    # GH#68419 an all-NaN float array carries no values to reinterpret. Rejecting it
+    #  would break where/fillna against an alignment-produced NaN column, which numpy
+    #  M8 upcasts to object; DatetimeArray setitem is stricter and is not followed here.
+    #  The masked and pyarrow spellings work only because the escape returns typed nulls
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    arr[:] = value
+    assert arr.isna().all()
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "duration[ns][pyarrow]"])
+def test_setitem_empty_float_array_not_rejected(dtype):
+    # GH#68419 an empty value is vacuously all-NA
+    arr = pd.array([1, 2, 3], dtype=dtype)
+    arr[[]] = np.array([], dtype=float)
+    assert not arr.isna().any()
+
+
+def test_setitem_2d_all_na_float_array_still_raises():
+    # GH#68419 the all-NA escape sizes its nulls with len(), which reads only axis 0,
+    #  so a 2-D value has to stay with _box_pa rather than be flattened
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(ValueError, match="Mask must be 1D"):
+        arr[:] = np.full((3, 1), np.nan)
+
+
+def test_setitem_partial_na_float_array_still_raises():
+    # GH#68419 the all-NA escape must not widen to "contains NA": the non-NA
+    #  entry of [nan, 1.0, nan] is reinterpreted as 1ns past the epoch
+    arr = pd.array([1, 2, 3], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        arr[:] = np.array([np.nan, 1.0, np.nan])
+
+
+@pytest.mark.parametrize("other_dtype", ["float64", "Float64", "double[pyarrow]"])
+def test_where_fillna_all_na_float_other_not_rejected(other_dtype):
+    # GH#68419 alignment routinely produces an all-NaN float column, and both
+    #  reach _validate_setitem_value
+    ser = pd.Series(
+        pd.date_range("2016-01-01", periods=3), dtype="timestamp[ns][pyarrow]"
+    )
+    # None, not np.nan: a masked or Arrow float built from np.nan holds NaN rather
+    #  than NA once future.distinguish_nan_and_na is on, which _is_all_na rejects
+    result = ser.where(
+        np.array([True, False, True]), pd.Series([None] * 3, dtype=other_dtype)
+    )
+    assert result.dtype == "timestamp[ns][pyarrow]"
+    assert result.isna().tolist() == [False, True, False]
+
+    ser = pd.Series([pd.Timestamp("2016-01-01"), None], dtype="timestamp[ns][pyarrow]")
+    result = ser.fillna(pd.Series([None] * 2, dtype=other_dtype))
+    tm.assert_series_equal(result, ser)
+
+
+def test_fillna_temporal_reinterpretation_raises():
+    # GH#68419 fillna shares _validate_setitem_value, so the same
+    #  reinterpretation is rejected there
+    ser = pd.Series([1, None], dtype="int64[pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(pd.Series(pd.date_range("2016-01-01", periods=2)))
+
+    ser = pd.Series([pd.Timestamp("2016-01-01"), None], dtype="timestamp[ns][pyarrow]")
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.fillna(1)
+
+    result = ser.fillna(pd.Timestamp("2017-01-01"))
+    expected = pd.Series(
+        [pd.Timestamp("2016-01-01"), pd.Timestamp("2017-01-01")],
+        dtype="timestamp[ns][pyarrow]",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("meth", ["where", "mask"])
+def test_where_mask_temporal_reinterpretation_raises(meth):
+    # GH#68419 where/mask reach the guard through setitem
+    ser = pd.Series([1, 2, 3], dtype="int64[pyarrow]")
+    other = pd.Series(pd.date_range("2016-01-01", periods=3))
+    with pytest.raises(TypeError, match="Invalid value"):
+        getattr(ser, meth)(np.array([True, False, True]), other)
+
+
+@pytest.mark.parametrize("limit", [None, 1])
+def test_fillna_string_self_agrees_with_limit_path(limit):
+    # GH#68419 fillna shares _validate_setitem_value with __setitem__, so the
+    #  limit=None and limit=1 paths agree
+    arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
+    with pytest.raises(TypeError, match="Invalid value for dtype"):
+        arr.fillna(np.array([1, 2]), limit=limit)
 
 
 def test_from_arrow_respecting_given_dtype():
@@ -3773,6 +4271,35 @@ def test_from_sequence_of_strings_empty_string_int():
         ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
 
 
+@pytest.mark.parametrize("pa_type", [pa.int64(), pa.uint64()])
+@pytest.mark.parametrize("box", [np.array, list, pd.Series, pd.Index])
+def test_from_sequence_of_strings_int_precision_with_na(pa_type, box):
+    # GH#56135 an NA must not route the integers through float64
+    strings = box(np.array(["1582218195625938945", None], dtype=object))
+    dtype = ArrowDtype(pa_type)
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = ArrowExtensionArray(pa.array([1582218195625938945, None], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_sequence_of_strings_pa_array_rejects_hex():
+    # GH#56135 pyarrow's own string cast reads "0x1F" as 31; to_numeric is what keeps
+    #  pa.Array input as strict as list input
+    strings = pa.array(["0x1F"], type=pa.string())
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(ValueError, match="Unable to parse string"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
+def test_from_sequence_of_strings_int_above_uint64():
+    # GH#56135 pins the unchanged fallback: too large for the nullable backend,
+    #  so the default one still reports the value pyarrow cannot hold
+    strings = np.array(["184467440737095516150", None], dtype=object)
+    dtype = ArrowDtype(pa.int64())
+    with pytest.raises(pa.ArrowInvalid, match="truncated converting to int64"):
+        ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+
+
 def test_from_sequence_of_strings_none_float():
     # GH#66834
     strings = ["1.5", None, "2.0"]
@@ -4593,6 +5120,14 @@ class TestGroupbyAggPyArrowNative:
                 [Decimal(3 * 10**37)] * 5,
                 Decimal(15 * 10**37),
             ),
+            # same, but the input already has the maximum precision, so the
+            # widening cast is a no-op and cannot report the overflow
+            (
+                "prod",
+                pa.decimal128(38, 0),
+                [Decimal(10**19), Decimal(12 * 10**18)],
+                Decimal(12 * 10**37),
+            ),
         ],
     )
     def test_groupby_sum_prod_exceeds_max_precision(
@@ -4654,7 +5189,7 @@ class TestGroupbyAggPyArrowNative:
         ids=["decimal", "ArrowDtype", "str[pyarrow]"],
     )
     def test_groupby_empty(self, dtype, how):
-        # GH#63416 an empty input has no groups to scatter into
+        # GH#63416 an empty input has no groups to place results into
         ser = pd.Series([], dtype=dtype)
         result = getattr(ser.groupby([]), how)()
         assert len(result) == 0
@@ -4948,9 +5483,27 @@ def test_interpolate_not_numeric(data):
 
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
+    # GH#65345 results should match the masked (e.g. Int64) dtypes:
+    # upcast to float, and fill the trailing NA going forward
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
     result = ser.interpolate()
-    expected = pd.Series([None, 1, 2, 3, 4, None], dtype=dtype)
+    expected = pd.Series([None, 1.0, 2.0, 3.0, 4.0, 4.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_consecutive_na():
+    # GH#65345 consecutive interior NAs were left unfilled
+    ser = pd.Series([1, 2, 3, None, None, 6, 7], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear", limit_direction="forward")
+    expected = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_interpolate_linear_int_fractional():
+    # GH#65345 result should not truncate the interpolated value (1 instead of 1.5)
+    ser = pd.Series([1, None, 2], dtype="int64[pyarrow]")
+    result = ser.interpolate(method="linear")
+    expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
 
 

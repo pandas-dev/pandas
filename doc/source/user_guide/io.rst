@@ -72,7 +72,7 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   and different from ``'\s+'`` will be interpreted as regular expressions and
   will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
@@ -178,9 +178,8 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels. The function is applied to the raw text read from the
-  file, before any missing-value detection: an empty field is passed as an empty
-  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
-  column that has a converter.
+  file, so an empty field is passed as an empty string ``''``; ``na_values`` and
+  ``keep_default_na`` are then applied to the value the function returns.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -1557,7 +1556,7 @@ Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
 The number of threads is controlled with the ``mode.max_threads`` option, which
-defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+defaults to the number of CPU cores, capped at ``6`` and limited to the CPUs
 available to the process -- CPU affinity, and the cgroup CPU quota when the
 process runs in its own cgroup namespace, as it does under Docker and
 Kubernetes. Set the option to ``1`` to disable parallel reading, e.g. when

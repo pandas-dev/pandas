@@ -51,7 +51,6 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    abbrev_to_npy_unit,
     c_DEPR_UNITS,
     c_Resolution,
     get_supported_reso,
@@ -71,6 +70,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_GENERIC,
     NPY_FR_W,
     NPY_FR_ns,
+    NPY_FR_us,
     add_overflowsafe,
     astype_overflowsafe,
     cmp_dtstructs,
@@ -349,6 +349,39 @@ cdef class ResoState:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def contains_str(ndarray values) -> bool:
+    """
+    Check whether an object-dtype array holds at least one str.
+
+    A str timedelta carries its own unit, so callers must not pass a ``unit``
+    alongside one.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+        May be 2D.
+
+    Returns
+    -------
+    bool
+    """
+    cdef:
+        Py_ssize_t _
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
+        object item
+
+    for _ in range(values.size):
+        # Analogous to: item = values[i]
+        item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
+        if isinstance(item, str):
+            return True
+        cnp.PyArray_ITER_NEXT(it)
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def array_to_timedelta64(
     ndarray values,
     str unit=None,
@@ -373,17 +406,13 @@ def array_to_timedelta64(
         object item
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
         NPY_DATETIMEUNIT item_reso, int_reso
         ResoState state = ResoState(creso)
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
 
-    if unit is None:
-        int_reso = NPY_FR_ns
-    else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(parsed_unit))
+    int_reso = NPY_FR_ns if parsed_unit == "ns" else NPY_FR_us
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -392,16 +421,8 @@ def array_to_timedelta64(
     if errors not in {"ignore", "raise", "coerce"}:
         raise ValueError("errors must be one of {'ignore', 'raise', or 'coerce'}")
 
-    if unit is not None and errors != "coerce":
-        it = cnp.PyArray_IterNew(values)
-        for _ in range(n):
-            # Analogous to: item = values[i]
-            item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
-            if isinstance(item, str):
-                raise ValueError(
-                    "unit must not be specified if the input contains a str"
-                )
-            cnp.PyArray_ITER_NEXT(it)
+    if unit is not None and errors != "coerce" and contains_str(values):
+        raise ValueError("unit must not be specified if the input contains a str")
 
     for _ in range(n):
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -2769,32 +2790,26 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
                 unit = parse_timedelta_unit(unit)
-                if unit != "ns":
-                    # Return with the closest-to-supported unit by going through
-                    #  the timedelta64 path
-                    try:
-                        td = np.timedelta64(value, unit)
-                    except OverflowError as err:
-                        # GH#66247 e.g. Timedelta(10**19, unit="s"); numpy
-                        #  raises a bare OverflowError, so re-raise as
-                        #  OutOfBoundsTimedelta for consistency.
-                        raise OutOfBoundsTimedelta(
-                            f"Cannot cast {value} from '{unit}' without overflow."
-                        ) from err
-                    return cls(td)
-                value = _numeric_to_td64ns(value, unit)
+                out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
 
         elif is_float_object(value):
+            # unit=None is de-facto 'ns'
+            unit = parse_timedelta_unit(unit)
+
             # GH#66247 use is_integer() (not int(value)) so that non-finite
             #  floats fall through to _numeric_to_td64ns, which raises a clear
             #  OutOfBoundsTimedelta rather than a bare OverflowError.
             if value.is_integer():
-                # round float -> treat like an int, try to preserve unit
-                return cls(int(value), unit=unit)
-
-            # unit=None is de-facto 'ns'
-            unit = parse_timedelta_unit(unit)
-            value = _numeric_to_td64ns(value, unit)
+                if value != NPY_NAT:
+                    # round float -> treat like an int
+                    out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
+                    value = _numeric_to_td64ns(int(value), unit, out_reso=out_reso)
+                    return cls._from_value_and_reso(value, reso=out_reso)
+            else:
+                # with fractional parts -> still default to nanoseconds
+                value = _numeric_to_td64ns(value, unit)
 
         else:
             raise ValueError(

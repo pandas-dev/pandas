@@ -27,7 +27,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    get_supported_dtype,
     iNaT,
     is_supported_dtype,
     periods_per_second,
@@ -37,6 +36,7 @@ from pandas._libs.tslibs.conversion import (
     cast_from_unit_vectorized,
     datetime_from_fields,
 )
+from pandas._libs.tslibs.dtypes import get_default_reso
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -358,7 +358,10 @@ def _convert_and_box_cache(
     """
     from pandas import Series
 
+    # map can give back the input's own container, e.g. a Categorical, or object
+    # dtype, so cast to what the uncached conversion produced (GH#28629)
     result = Series(arg, dtype=cache_array.index.dtype).map(cache_array)
+    result = result.astype(cache_array.dtype)
     return _box_as_indexlike(result._values, utc=False, name=name)
 
 
@@ -577,18 +580,19 @@ def _to_datetime_with_unit(
                     arg, unit, name, utc, errors, dayfirst, yearfirst
                 )
         arr = arg.astype(f"datetime64[{unit}]", copy=False)
-        dtype = get_supported_dtype(arr.dtype)
-        try:
-            arr = astype_overflowsafe(arr, dtype, copy=False)
-        except OutOfBoundsDatetime:
-            if errors == "raise":
-                raise
-            arg = arg.astype(object)
-            if mask is not None:
-                arg[mask] = None
-            return _to_datetime_with_unit(
-                arg, unit, name, utc, errors, dayfirst, yearfirst
-            )
+        if unit not in ["us", "ns"]:
+            out_unit = get_default_reso(unit)
+            try:
+                arr = astype_overflowsafe(arr, np.dtype(f"M8[{out_unit}]"), copy=False)
+            except OutOfBoundsDatetime:
+                if errors == "raise":
+                    raise
+                arg = arg.astype(object)
+                if mask is not None:
+                    arg[mask] = None
+                return _to_datetime_with_unit(
+                    arg, unit, name, utc, errors, dayfirst, yearfirst
+                )
         if mask is not None:
             arr[mask] = iNaT
         tz_parsed = None
@@ -1229,7 +1233,8 @@ def to_datetime(
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike, unit)
         if not cache_array.empty:
-            result = arg.map(cache_array)
+            # see _convert_and_box_cache re: astype
+            result = arg.map(cache_array).astype(cache_array.dtype)
         else:
             values = convert_listlike(arg._values, format)
             result = arg._constructor(values, index=arg.index, name=arg.name)

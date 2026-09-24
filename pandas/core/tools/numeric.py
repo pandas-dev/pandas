@@ -113,9 +113,12 @@ def to_numeric(
 
     Returns
     -------
-    scalar, Series, or Index
-        For numeric scalars the type is preserved, whereas other scalars
-        return :class:`int` if possible, otherwise :class:`float`.
+    scalar, Series, Index, numpy.ndarray, or ExtensionArray
+        Numeric scalars are returned unchanged. Other scalars are returned
+        as a NumPy scalar: ``np.int64`` if possible (``np.uint64`` for
+        positive values above the ``int64`` maximum), otherwise ``np.float64``,
+        before any ``downcast`` is applied. With ``dtype_backend="pyarrow"``,
+        a Python scalar is returned instead.
         For 1-d: :class:`Series` if Series, :class:`Index` if Index,
         otherwise an array as specified by ``dtype_backend``.
 
@@ -209,7 +212,9 @@ def to_numeric(
 
     if isinstance(arg, ABCSeries):
         is_series = True
-        values = arg.values
+        values = arg._values
+        if needs_i8_conversion(arg.dtype):
+            values = values.view("i8")
     elif isinstance(arg, ABCIndex):
         is_index = True
         if needs_i8_conversion(arg.dtype):

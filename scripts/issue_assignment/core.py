@@ -78,6 +78,8 @@ class OpenPRState(TypedDict):
     is_draft: bool
     author: str | None
     author_association: str | None
+    author_is_bot: bool
+    linked_issues: list[LinkedIssue]
     reviews: list[Review]
     review_requests: list[ReviewRequest]
     has_pending_review_requests: bool
@@ -87,6 +89,7 @@ class OpenPRState(TypedDict):
     reopened_events: list[Comment]
     labels: list[str]
     stale_marked_at: datetime | None
+    gate_marked_at: datetime | None
 
 
 class GateDecision(TypedDict, total=False):
@@ -313,17 +316,22 @@ def issue_is_active(
 def pr_subject_to_stale(
     is_exempt_author: bool,
     is_draft: bool,
+    gate_label_present: bool,
     changes_requested_at: datetime | None,
     rereview_requested_at: datetime | None,
 ) -> bool:
     """Whether a PR is in the contributor's court and may go stale.
 
-    Exempt authors (owners/members/collaborators) and drafts are never subject;
-    otherwise the PR is subject only while ``awaiting_contributor`` (a maintainer
-    requested changes and the author hasn't re-requested review since).
+    Exempt authors (owners/members/collaborators) and drafts are never subject.
+    Otherwise the PR is subject while it carries the ``Needs Issue Assignment``
+    label (it won't be reviewed until the author claims the linked issue) or
+    while ``awaiting_contributor`` (a maintainer requested changes and the
+    author hasn't re-requested review since).
     """
     if is_exempt_author or is_draft:
         return False
+    if gate_label_present:
+        return True
     return awaiting_contributor(changes_requested_at, rereview_requested_at)
 
 
@@ -359,20 +367,28 @@ def pr_stale_action(
 
 
 def gate_action(
-    decision: GateDecision, label_present: bool, close_enabled: bool
+    decision: GateDecision, label_present: bool, close_assigned_other: bool
 ) -> str:
     """What the gate should actually do, given the decision and current labels.
 
     Returns ``"none"``, ``"clear_label"``, ``"flag"``, or ``"flag_and_close"``.
-    In warn-only mode an already-flagged PR is left alone — reopening without
-    fixing the assignment shouldn't repost the same comment. In close mode a
-    repeat still comments and closes: silently re-closing a reopened PR would
-    be far worse than repeating the explanation.
+    An exempt author's PR is never touched, label or not. Otherwise a PR that
+    is no longer flaggable — the author now holds the assignment, or the PR
+    no longer links an issue — sheds any label it carries, and a PR whose
+    author doesn't hold the linked issue is flagged unless it already is: a
+    reopen (or the daily re-check) without fixing the assignment shouldn't
+    repost the same comment.
+
+    With ``close_assigned_other`` (the open/reopen gate), a PR against an
+    issue *someone else* holds is instead commented on and closed, label or
+    not: silently re-closing a reopened PR would be worse than repeating the
+    explanation. The daily re-check passes ``False`` — an author who held the
+    issue and lost it keeps the PR open and goes through the stale process.
     """
-    if decision["outcome"] == "not_in_scope":
+    if decision["outcome"] == "not_in_scope" and decision["reason"] == "exempt":
         return "none"
-    if decision["outcome"] == "valid_assignment":
-        return "clear_label" if label_present else "none"
-    if close_enabled:
-        return "flag_and_close"
-    return "none" if label_present else "flag"
+    if decision["outcome"] == "invalid_assignment":
+        if close_assigned_other and decision["variant"] == "assigned_other":
+            return "flag_and_close"
+        return "none" if label_present else "flag"
+    return "clear_label" if label_present else "none"

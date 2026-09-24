@@ -23,6 +23,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as _parsers
 from pandas.compat import WASM
 from pandas.errors import (
     EmptyDataError,
@@ -507,6 +508,7 @@ class TestReadCsvParallel:
             names=kwds.pop("names"),
             defaults={"delimiter": ","},
             dtype_backend=kwds.pop("dtype_backend"),
+            lineterminator=kwds["lineterminator"],
         )
         kwds.update(kwds_defaults)
         return kwds
@@ -827,14 +829,14 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
 
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is capped at 4, regardless of core count."""
+    """The default worker count is capped at 6, regardless of core count."""
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # More cores than the cap: the default should clamp down to 4.
+    # More cores than the cap: the default should clamp down to 6.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
-    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
+    # Otherwise a CI runner with fewer than 6 usable CPUs clamps below the cap
     # and this test measures the runner, not the cap.
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
@@ -847,7 +849,7 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     pd.read_csv(path)
-    assert workers == [4]
+    assert workers == [6]
 
     # An explicit mode.max_threads still overrides the cap.
     workers.clear()
@@ -869,10 +871,10 @@ class TestDefaultNWorkers:
         "cpu_count, available, expected",
         [
             (2, None, 2),  # unconstrained, below the cap -> logical CPU count
-            (16, None, 4),  # cap binds
+            (16, None, 6),  # cap binds
             (16, 1, 1),  # single-CPU container
             (16, 2, 2),  # cgroup/affinity tighter than the cap
-            (16, 8, 4),  # allocation looser than the cap -> cap still binds
+            (16, 8, 6),  # allocation looser than the cap -> cap still binds
             (2, 8, 2),  # allocation looser than the machine
         ],
     )
@@ -881,7 +883,7 @@ class TestDefaultNWorkers:
     ):
         # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS),
         # on every threaded platform.
-        assert _readers._MAX_DEFAULT_WORKERS == 4
+        assert _readers._MAX_DEFAULT_WORKERS == 6
         monkeypatch.setattr(_readers.sys, "platform", platform_name)
         monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
         monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
@@ -1134,6 +1136,9 @@ def test_parallel_deferred_strings_pyarrow_backend(tmp_path, monkeypatch):
     tm.assert_frame_equal(parallel, serial)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_parallel_deferred_strings_token_width_tiers(tmp_path, monkeypatch):
     # The deferred string path fills each chunk's data buffer with the same
     # fixed-width token copy the serial path uses, so widths straddling that
@@ -2026,3 +2031,103 @@ def test_parallel_chunk_count_respects_the_row_floor(tmp_path, monkeypatch):
     assert with_term == without
     # The byte target alone would split this an order of magnitude finer.
     assert path.stat().st_size // 4096 > 10 * with_term
+
+
+# ---------------------------------------------------------------------------
+# Row-blocked column conversion (TextReader._convert_batched)
+# ---------------------------------------------------------------------------
+
+
+def _blocked_frame(n_rows: int = 30_000) -> pd.DataFrame:
+    # >= 16 columns, so numeric columns qualify for row-blocked conversion at
+    # any worker count; the string columns qualify on their own
+    rng = np.random.default_rng(0)
+    data: dict[str, object] = {
+        f"i{k}": rng.integers(-1000, 1000, size=n_rows) for k in range(6)
+    }
+    data.update({f"f{k}": rng.random(n_rows) for k in range(6)})
+    data.update(
+        {f"s{k}": rng.choice(["id1", "id22", "id333"], size=n_rows) for k in range(6)}
+    )
+    data["b0"] = rng.integers(0, 2, size=n_rows).astype(bool)
+    return pd.DataFrame(data)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_matches_python_engine(tmp_path, monkeypatch, threads):
+    path = tmp_path / "blocked.csv"
+    _blocked_frame().to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    # tiny blocks, so every chunk spans many of them
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path)
+    expected = pd.read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_leading_overflow(tmp_path, monkeypatch, threads):
+    # A leading token that overflows int64 must still reach the uint64 and
+    # object steps of the cascade rather than being inferred as float64.
+    df = _blocked_frame().astype(object)
+    df["u0"] = 2**64 - 1
+    df["o0"] = 10**26
+    path = tmp_path / "overflow.csv"
+    df.to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path)
+    expected = pd.read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
+    assert result["u0"].dtype == np.uint64
+    assert result["o0"].dtype == object
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_string_offset_overflow(tmp_path, monkeypatch, threads):
+    # A string column past the int32-offset target's byte ceiling leaves the
+    # sweep on its own, and the columns sharing its blocks must still convert
+    # from the sweep.  "big" needs 400 bytes a row against the 256 KiB ceiling
+    # below, the other string columns under 50 KiB for the whole frame.
+    pytest.importorskip("pyarrow")
+    df = _blocked_frame(n_rows=8_000)
+    df["big"] = ["x" * 400] * len(df)
+    path = tmp_path / "offsets.csv"
+    df.to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    # dtype_backend="pyarrow" is the int32-offset target; the default string
+    # dtype is large_string and has no ceiling.
+    with pd.option_context("mode.max_threads", threads):
+        expected = pd.read_csv(path, dtype_backend="pyarrow")
+    monkeypatch.setattr(_parsers, "_STR_OFFSET_LIMIT", 1 << 18)
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path, dtype_backend="pyarrow")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("threads", [1, 6])
+def test_row_blocked_conversion_late_dtype_miss(tmp_path, monkeypatch, threads):
+    # A column whose leading block infers one kind but whose later rows do
+    # not must fall back to the whole-column inference cascade.
+    df = _blocked_frame().astype(object)
+    df.loc[25_000, "i0"] = 1.5  # int -> float
+    df.loc[25_000, "i1"] = 2**63 + 5  # int -> uint64
+    df.loc[25_000, "i2"] = "abc"  # int -> str
+    df.loc[25_000, "f0"] = "oops"  # float -> str
+    df.loc[25_000, "s0"] = "h\u00e9llo"  # ASCII -> non-ASCII
+    df.loc[25_100, "i3"] = np.nan  # NA past the leading block
+    path = tmp_path / "late.csv"
+    df.to_csv(path, index=False)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+    monkeypatch.setattr(_parsers, "_BLOCK_BYTES", 2048)
+
+    with pd.option_context("mode.max_threads", threads):
+        result = pd.read_csv(path)
+    expected = pd.read_csv(path, engine="python")
+    tm.assert_frame_equal(result, expected)
