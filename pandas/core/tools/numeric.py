@@ -30,10 +30,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    DatetimeTZDtype,
-)
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -216,7 +213,7 @@ def to_numeric(
     if isinstance(arg, ABCSeries):
         is_series = True
         values = arg._values
-        if lib.is_np_dtype(arg.dtype, "mM") or isinstance(arg.dtype, DatetimeTZDtype):
+        if needs_i8_conversion(arg.dtype):
             values = values.view("i8")
     elif isinstance(arg, ABCIndex):
         is_index = True

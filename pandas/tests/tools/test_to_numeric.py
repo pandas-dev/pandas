@@ -425,7 +425,7 @@ def test_period(request, transform_assert_equal):
     idx = pd.period_range("2011-01", periods=3, freq="M", name="")
     inp = transform(idx)
 
-    if not isinstance(inp, pd.Index):
+    if isinstance(inp, np.ndarray):
         request.applymarker(
             pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
         )
