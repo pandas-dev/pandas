@@ -256,9 +256,8 @@ def _is_thread_affinity_error(exc: BaseException) -> bool:
     """Return whether an exception message indicates thread affinity."""
     message = str(exc).lower()
     return (
-        ("created in a thread" in message and "same thread" in message)
-        or "thread affinity" in message
-    )
+        "created in a thread" in message and "same thread" in message
+    ) or "thread affinity" in message
 
 
 # Ceiling on the *default* parallel-read worker count: parallel CSV reading
