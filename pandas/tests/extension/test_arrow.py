@@ -799,14 +799,12 @@ class TestArrowArray(base.ExtensionTests):
         else:
             expected_data = expected
 
-        # the pointwise method will have retained our original dtype, while
-        #  the op(ser, other) version will have cast to 64bit
-        if type(other) is int and op_name not in ["__floordiv__"]:
-            if original_dtype.kind == "f":
-                return expected.astype("float64[pyarrow]")
-            else:
-                return expected.astype("int64[pyarrow]")
-        elif type(other) is float:
+        # the pointwise method will have retained our original dtype, and now
+        #  so does op(ser, other) for fitting scalars (GH#69436)
+        if type(other) is float and original_dtype.kind != "f":
+            # int dtype with a python float scalar is cast up to float64,
+            #  while the pointwise operation may produce an object dtype
+            #  (e.g. __pow__ with negative values)
             return expected.astype("float64[pyarrow]")
 
         # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
@@ -972,6 +970,8 @@ class TestArrowArray(base.ExtensionTests):
         if all_arithmetic_operators == "__rmod__" and pa.types.is_binary(pa_dtype):
             pytest.skip("Skip testing Python string formatting")
 
+        self._apply_unsigned_sub_xfail(all_arithmetic_operators, pa_dtype, request)
+
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
             request.applymarker(mark)
@@ -986,19 +986,18 @@ class TestArrowArray(base.ExtensionTests):
         ):
             pytest.skip("Skip testing Python string formatting")
 
+        self._apply_unsigned_sub_xfail(all_arithmetic_operators, pa_dtype, request)
+
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
             request.applymarker(mark)
 
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-
-        if all_arithmetic_operators in (
-            "__sub__",
-            "__rsub__",
-        ) and pa.types.is_unsigned_integer(pa_dtype):
+    def _apply_unsigned_sub_xfail(self, op_name, pa_dtype, request):
+        if op_name in ("__sub__", "__rsub__") and pa.types.is_unsigned_integer(
+            pa_dtype
+        ):
             request.applymarker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid,
@@ -1008,6 +1007,11 @@ class TestArrowArray(base.ExtensionTests):
                     ),
                 )
             )
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+
+        self._apply_unsigned_sub_xfail(all_arithmetic_operators, pa_dtype, request)
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
@@ -4634,6 +4638,35 @@ def test_pow_missing_operand():
     result = k.pow(None, fill_value=3)
     expected = pd.Series([8, None], dtype="int64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+def test_arith_scalar_keeps_dtype():
+    # GH#69436 arithmetic with a fitting scalar should keep the array's dtype,
+    #  matching numpy behavior where python scalars adopt the array's dtype
+    s_int = pd.Series([1, 2, 3], dtype="int32[pyarrow]")
+    tm.assert_series_equal(s_int + 1, pd.Series([2, 3, 4], dtype="int32[pyarrow]"))
+    tm.assert_series_equal(s_int * 2, pd.Series([2, 4, 6], dtype="int32[pyarrow]"))
+    tm.assert_series_equal(
+        s_int + np.int32(1), pd.Series([2, 3, 4], dtype="int32[pyarrow]")
+    )
+    tm.assert_series_equal(
+        s_int + s_int[0], pd.Series([2, 3, 4], dtype="int32[pyarrow]")
+    )
+
+    s_float = pd.Series([1.0, 2.0, 3.0], dtype="float32[pyarrow]")
+    for result in [s_float + 1.5, s_float * 1.5, s_float + s_float[0]]:
+        assert result.dtype == ArrowDtype(pa.float32())
+
+    s_dec = pd.Series([1, 2, 3], dtype=ArrowDtype(pa.decimal128(10, 2)))
+    assert (s_dec + 1).dtype == (s_dec + s_dec).dtype
+    assert (s_dec * 2).dtype == (s_dec * s_dec).dtype
+
+    # a float scalar on an integer array promotes to float, like numpy
+    assert (s_int + 1.5).dtype == ArrowDtype(pa.float64())
+
+    # a scalar that does not fit the array's dtype is not coerced, so the
+    #  result still upcasts rather than raising
+    assert (s_int * 2**40).dtype == ArrowDtype(pa.int64())
 
 
 def test_decimal_parse_raises():

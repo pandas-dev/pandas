@@ -1171,7 +1171,9 @@ class ArrowExtensionArray(
             f"dtype '{self.dtype}' with {other_type}"
         )
 
-    def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
+    def _evaluate_op_method(
+        self, other, op, arrow_funcs, *, preserve_pa_type: bool = False
+    ) -> Self:
         if (
             is_list_like(other)
             and not isinstance(other, (np.ndarray, ExtensionArray, list))
@@ -1189,6 +1191,38 @@ class ArrowExtensionArray(
         pa_type = self._pa_array.type
         other_original = other
         other = self._box_pa(other)
+        if preserve_pa_type and isinstance(other, pa.Scalar):
+            # GH#69436 avoid needless upcasting of the result when operating
+            #  with a scalar, mirroring how numpy keeps the array's dtype for
+            #  python scalars. The conversion is only applied when it is
+            #  lossless (e.g. a float scalar is never cast to an integer
+            #  dtype because numpy would promote the result to float).
+            if pa.types.is_integer(pa_type) and pa.types.is_integer(other.type):
+                try:
+                    other = other.cast(pa_type, safe=True)
+                except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError, OverflowError):
+                    # e.g. value out of range, keep the inferred scalar type
+                    pass
+            elif pa.types.is_floating(pa_type) and (
+                pa.types.is_integer(other.type) or pa.types.is_floating(other.type)
+            ):
+                try:
+                    other = other.cast(pa_type, safe=True)
+                except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError, OverflowError):
+                    pass
+            elif pa.types.is_decimal(pa_type) and (
+                pa.types.is_integer(other.type) or pa.types.is_decimal(other.type)
+            ):
+                try:
+                    if pa.types.is_integer(other.type):
+                        # casting directly to the target type is more
+                        # permissive than a safe cast here, which would
+                        # require more precision than the array's type
+                        other = pa.scalar(other.as_py(), type=pa_type)
+                    else:
+                        other = other.cast(pa_type, safe=True)
+                except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError, OverflowError):
+                    pass
 
         if (
             pa.types.is_string(pa_type)
@@ -1337,11 +1371,15 @@ class ArrowExtensionArray(
             self._pa_array.type
         ):
             try:
-                result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+                result = self._evaluate_op_method(
+                    other, op, ARROW_ARITHMETIC_FUNCS, preserve_pa_type=True
+                )
             except (pa.ArrowInvalid, pa.ArrowTypeError):
                 result = self._str_arith_method_object_fallback(other, op)
         else:
-            result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
+            result = self._evaluate_op_method(
+                other, op, ARROW_ARITHMETIC_FUNCS, preserve_pa_type=True
+            )
         if isinstance(result, np.ndarray):
             return result
         if is_nan_na() and result.dtype.kind == "f":

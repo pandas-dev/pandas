@@ -691,6 +691,7 @@ Numeric
 - Fixed bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) returning ``0.0`` for degenerate distributions; these now return ``NaN`` (:issue:`62864`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the fill_value parameter(:issue:`61581`)
+- Fixed bug in arithmetic operations between a pyarrow-backed :class:`Series` and a scalar where the scalar was not cast to the array's dtype, causing needless upcasts, e.g. ``int32[pyarrow]`` + ``1`` returned ``int64[pyarrow]`` and ``float32[pyarrow]`` + ``1.5`` returned ``float64[pyarrow]``; results now keep the array's dtype, matching numpy behavior (:issue:`69436`)
 
 Conversion
 ^^^^^^^^^^
