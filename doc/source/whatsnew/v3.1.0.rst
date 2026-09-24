@@ -1256,6 +1256,7 @@ Reshaping
 ^^^^^^^^^
 - :func:`concat` with ``keys`` now raises an informative ``ValueError`` instead of an ``AssertionError`` when the concatenated objects do not all have the same number of index levels (:issue:`25413`)
 - :meth:`DataFrame.pivot` and :func:`pivot` now raise an informative ``KeyError`` naming the offending labels when ``index``, ``columns``, or ``values`` are not columns of the frame, instead of a cryptic ``TypeError`` (:issue:`35785`)
+- Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` depending on the order of the inputs when the frequency, e.g. a :class:`CustomBusinessDay` with holidays, could not be inferred from the resulting values (:issue:`64253`)
 - Bug in :func:`concat` raising ``InvalidIndexError`` when ``keys`` or the concatenated objects' index was an overlapping :class:`IntervalIndex` (:issue:`64825`)
 - Bug in :func:`concat` with a ``null[pyarrow]`` column incorrectly changing the dtype of the other columns, e.g. casting ``date32[pyarrow]`` to ``timestamp[ms][pyarrow]``, dropping the timezone of a tz-aware ``timestamp[pyarrow]``, or casting ``decimal128[pyarrow]`` to ``object`` (:issue:`62343`)
 - Bug in :func:`merge_asof` where a negative tolerance raised ``MergeError`` with the misleading message "tolerance must be positive" even though ``tolerance=0`` is accepted; the message now reads "tolerance must be non-negative" (:issue:`66289`)
