@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index
 import pandas._testing as tm
 
 
@@ -24,32 +23,32 @@ def _equivalent_na(dtype, null):
 
 class TestGetLoc:
     def test_get_loc(self, any_string_dtype):
-        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", "c"], dtype=any_string_dtype)
         assert index.get_loc("b") == 1
 
     def test_get_loc_raises(self, any_string_dtype):
-        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", "c"], dtype=any_string_dtype)
         with pytest.raises(KeyError, match="d"):
             index.get_loc("d")
 
     def test_get_loc_invalid_value(self, any_string_dtype):
-        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", "c"], dtype=any_string_dtype)
         with pytest.raises(KeyError, match="1"):
             index.get_loc(1)
 
     def test_get_loc_non_unique(self, any_string_dtype):
-        index = Index(["a", "b", "a"], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", "a"], dtype=any_string_dtype)
         result = index.get_loc("a")
         expected = np.array([True, False, True])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_loc_non_missing(self, any_string_dtype, nulls_fixture):
-        index = Index(["a", "b", "c"], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", "c"], dtype=any_string_dtype)
         with pytest.raises(KeyError):
             index.get_loc(nulls_fixture)
 
     def test_get_loc_missing(self, any_string_dtype, nulls_fixture):
-        index = Index(["a", "b", nulls_fixture], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", nulls_fixture], dtype=any_string_dtype)
         assert index.get_loc(nulls_fixture) == 2
 
 
@@ -63,13 +62,13 @@ class TestGetIndexer:
     )
     def test_get_indexer_strings(self, any_string_dtype, method, expected):
         expected = np.array(expected, dtype=np.intp)
-        index = Index(["b", "c"], dtype=any_string_dtype)
+        index = pd.Index(["b", "c"], dtype=any_string_dtype)
         actual = index.get_indexer(["a", "b", "c", "d"], method=method)
 
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_get_indexer_strings_raises(self, any_string_dtype):
-        index = Index(["b", "c"], dtype=any_string_dtype)
+        index = pd.Index(["b", "c"], dtype=any_string_dtype)
 
         msg = "|".join(
             [
@@ -91,7 +90,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("null", [None, np.nan, float("nan"), pd.NA])
     def test_get_indexer_missing(self, any_string_dtype, null, using_infer_string):
         # NaT and Decimal("NaN") from null_fixture are not supported for string dtype
-        index = Index(["a", "b", null], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", null], dtype=any_string_dtype)
         result = index.get_indexer(["a", null, "c"])
         if using_infer_string:
             expected = np.array([0, 2, -1], dtype=np.intp)
@@ -110,7 +109,7 @@ class TestGetIndexerNonUnique:
     def test_get_indexer_non_unique_nas(
         self, any_string_dtype, null, using_infer_string
     ):
-        index = Index(["a", "b", null], dtype=any_string_dtype)
+        index = pd.Index(["a", "b", null], dtype=any_string_dtype)
         indexer, missing = index.get_indexer_non_unique(["a", null])
 
         if using_infer_string:
@@ -128,7 +127,7 @@ class TestGetIndexerNonUnique:
         tm.assert_numpy_array_equal(missing, expected_missing)
 
         # actually non-unique
-        index = Index(["a", null, "b", null], dtype=any_string_dtype)
+        index = pd.Index(["a", null, "b", null], dtype=any_string_dtype)
         indexer, missing = index.get_indexer_non_unique(["a", null])
 
         if using_infer_string:
@@ -167,25 +166,25 @@ class TestSliceLocs:
         ],
     )
     def test_slice_locs_negative_step(self, in_slice, expected, any_string_dtype):
-        index = Index(list("bcdxy"), dtype=any_string_dtype)
+        index = pd.Index(list("bcdxy"), dtype=any_string_dtype)
 
         s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
         result = index[s_start : s_stop : in_slice.step]
-        expected = Index(list(expected), dtype=any_string_dtype)
+        expected = pd.Index(list(expected), dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)
 
     def test_slice_locs_negative_step_oob(self, any_string_dtype):
-        index = Index(list("bcdxy"), dtype=any_string_dtype)
+        index = pd.Index(list("bcdxy"), dtype=any_string_dtype)
 
         result = index[-10:5:1]
         tm.assert_index_equal(result, index)
 
         result = index[4:-10:-1]
-        expected = Index(list("yxdcb"), dtype=any_string_dtype)
+        expected = pd.Index(list("yxdcb"), dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)
 
     def test_slice_locs_dup(self, any_string_dtype):
-        index = Index(["a", "a", "b", "c", "d", "d"], dtype=any_string_dtype)
+        index = pd.Index(["a", "a", "b", "c", "d", "d"], dtype=any_string_dtype)
         assert index.slice_locs("a", "d") == (0, 6)
         assert index.slice_locs(end="d") == (0, 6)
         assert index.slice_locs("a", "c") == (0, 4)

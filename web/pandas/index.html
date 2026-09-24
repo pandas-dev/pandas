@@ -112,8 +112,8 @@
                         {% for release in releases[1:5] %}
                             <li class="small">
                                 {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
-                                <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
-                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
+                                <a href="https://pandas.pydata.org/docs/whatsnew/{{ release.tag }}.html">changelog</a> |
+                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.short_name }}/">docs</a> |
                                 <a href="{{ release.url }}">code</a>
                             </li>
                         {% endfor %}
@@ -127,8 +127,8 @@
                         {% for release in releases[5:] %}
                             <li class="small">
                                 {{ release.name }} ({{ release.published.strftime("%b %d, %Y") }})<br/>
-                                <a href="https://pandas.pydata.org/pandas-docs/stable/whatsnew/{{ release.tag }}.html">changelog</a> |
-                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.name }}/">docs</a> |
+                                <a href="https://pandas.pydata.org/docs/whatsnew/{{ release.tag }}.html">changelog</a> |
+                                <a href="https://pandas.pydata.org/pandas-docs/version/{{ release.short_name }}/">docs</a> |
                                 <a href="{{ release.url }}">code</a>
                             </li>
                         {% endfor %}

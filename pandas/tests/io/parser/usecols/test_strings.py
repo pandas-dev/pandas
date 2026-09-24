@@ -7,12 +7,8 @@ from io import StringIO
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 
 def test_usecols_with_unicode_strings(all_parsers):
@@ -31,7 +27,7 @@ def test_usecols_with_unicode_strings(all_parsers):
         },
         "BBB": {0: 8, 1: 2, 2: 7},
     }
-    expected = DataFrame(exp_data)
+    expected = pd.DataFrame(exp_data)
 
     result = parser.read_csv(StringIO(data), usecols=["AAA", "BBB"])
     tm.assert_frame_equal(result, expected)
@@ -53,7 +49,7 @@ def test_usecols_with_single_byte_unicode_strings(all_parsers):
         },
         "B": {0: 8, 1: 2, 2: 7},
     }
-    expected = DataFrame(exp_data)
+    expected = pd.DataFrame(exp_data)
 
     result = parser.read_csv(StringIO(data), usecols=["A", "B"])
     tm.assert_frame_equal(result, expected)
@@ -90,7 +86,7 @@ def test_usecols_with_multi_byte_characters(all_parsers):
         },
         "いい": {0: 8, 1: 2, 2: 7},
     }
-    expected = DataFrame(exp_data)
+    expected = pd.DataFrame(exp_data)
 
     result = parser.read_csv(StringIO(data), usecols=["あああ", "いい"])
     tm.assert_frame_equal(result, expected)

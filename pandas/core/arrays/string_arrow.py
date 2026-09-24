@@ -16,7 +16,6 @@ from pandas._libs import (
 from pandas.compat import (
     HAS_PYARROW,
     PYARROW_MIN_VERSION,
-    pa_version_under16p0,
 )
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import set_module
@@ -74,10 +73,6 @@ def _check_pyarrow_available() -> None:
             "backed ArrowExtensionArray."
         )
         raise ImportError(msg)
-
-
-def _is_string_view(typ):
-    return not pa_version_under16p0 and pa.types.is_string_view(typ)
 
 
 # Matches a `\Z` that is an end-of-string assertion rather than an escaped
@@ -144,13 +139,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         _check_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
-            or _is_string_view(values.type)
+            or pa.types.is_string_view(values.type)
             or (
                 pa.types.is_dictionary(values.type)
                 and (
                     pa.types.is_string(values.type.value_type)
                     or pa.types.is_large_string(values.type.value_type)
-                    or _is_string_view(values.type.value_type)
+                    or pa.types.is_string_view(values.type.value_type)
                 )
             )
         ):
@@ -427,32 +422,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_zfill = ArrowStringArrayMixin._str_zfill
     _str_normalize = ArrowStringArrayMixin._str_normalize
 
-    @staticmethod
-    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
-        # check if `pat` is a compiled regex pattern with flags that are not
-        # supported by pyarrow
-        return (
-            isinstance(pat, re.Pattern)
-            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
-        )
-
-    @staticmethod
+    @classmethod
     def _preprocess_re_pattern(
-        pat: str | re.Pattern, case: bool, flags: int
+        cls, pat: str | re.Pattern, case: bool, flags: int
     ) -> tuple[str, bool, int]:
-        if isinstance(pat, re.Pattern):
-            pattern = pat.pattern
-            # TODO flags passed separately by user are ignored
-            flags = pat.flags
-            # flags is not supported by pyarrow, but `case` is -> extract and remove
-            if flags & re.IGNORECASE:
-                case = False
-                flags = flags & ~re.IGNORECASE
-            # when creating a pattern with re.compile and a string, it automatically
-            # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
-            flags = flags & ~re.UNICODE
-        else:
-            pattern = pat
+        pattern, case, flags = cls._unwrap_re_pattern(pat, case, flags)
 
         # RE2 spells the end-of-string anchor `\z`; Python's `\Z` is the same
         # assertion and may appear anywhere in the pattern, not just at the end.
@@ -551,7 +525,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_count(self, pat: str, flags: int = 0):
+    def _str_count(self, pat: str | re.Pattern, flags: int = 0):
         if (
             flags
             or self._is_re_pattern_with_flags(pat)

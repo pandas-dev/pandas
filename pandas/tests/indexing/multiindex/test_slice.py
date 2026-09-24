@@ -9,13 +9,6 @@ import pytest
 from pandas.errors import UnsortedIndexError
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-    Series,
-    Timestamp,
-)
 import pandas._testing as tm
 from pandas.tests.indexing.common import _mklbl
 
@@ -24,10 +17,10 @@ class TestMultiIndexSlicers:
     def test_per_axis_per_level_getitem(self):
         # GH6134
         # example test case
-        ix = MultiIndex.from_product(
+        ix = pd.MultiIndex.from_product(
             [_mklbl("A", 5), _mklbl("B", 7), _mklbl("C", 4), _mklbl("D", 2)]
         )
-        df = DataFrame(np.arange(len(ix.to_numpy())), index=ix)
+        df = pd.DataFrame(np.arange(len(ix.to_numpy())), index=ix)
 
         result = df.loc[(slice("A1", "A3"), slice(None), ["C1", "C3"]), :]
         expected = df.loc[
@@ -60,15 +53,15 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # test multi-index slicing with per axis and per index controls
-        index = MultiIndex.from_tuples(
+        index = pd.MultiIndex.from_tuples(
             [("A", 1), ("A", 2), ("A", 3), ("B", 1)], names=["one", "two"]
         )
-        columns = MultiIndex.from_tuples(
+        columns = pd.MultiIndex.from_tuples(
             [("a", "foo"), ("a", "bar"), ("b", "foo"), ("b", "bah")],
             names=["lvl0", "lvl1"],
         )
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(16, dtype="int64").reshape(4, 4), index=index, columns=columns
         )
         df = df.sort_index(axis=0).sort_index(axis=1)
@@ -101,10 +94,10 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         result = df.loc["A", "a"]
-        expected = DataFrame(
+        expected = pd.DataFrame(
             {"bar": [1, 5, 9], "foo": [0, 4, 8]},
-            index=Index([1, 2, 3], name="two"),
-            columns=Index(["bar", "foo"], name="lvl1"),
+            index=pd.Index([1, 2, 3], name="two"),
+            columns=pd.Index(["bar", "foo"], name="lvl1"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -113,7 +106,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         # multi-level series
-        s = Series(np.arange(len(ix.to_numpy())), index=ix)
+        s = pd.Series(np.arange(len(ix.to_numpy())), index=ix)
         result = s.loc["A1":"A3", :, ["C1", "C3"]]
         expected = s.loc[
             [
@@ -167,7 +160,7 @@ class TestMultiIndexSlicers:
         # GH 7106
         # non-unique mi index support
         df = (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "A": ["foo", "foo", "foo", "foo"],
                     "B": ["a", "a", "a", "a"],
@@ -180,7 +173,9 @@ class TestMultiIndexSlicers:
         )
         assert not df.index.is_unique
         expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
+            pd.DataFrame(
+                {"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]}
+            )
             .set_index(["A", "B", "C"])
             .sort_index()
         )
@@ -192,7 +187,7 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result, expected)
 
         df = (
-            DataFrame(
+            pd.DataFrame(
                 {
                     "A": ["foo", "foo", "foo", "foo"],
                     "B": ["a", "a", "a", "a"],
@@ -205,7 +200,9 @@ class TestMultiIndexSlicers:
         )
         assert not df.index.is_unique
         expected = (
-            DataFrame({"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]})
+            pd.DataFrame(
+                {"A": ["foo", "foo"], "B": ["a", "a"], "C": [1, 1], "D": [1, 3]}
+            )
             .set_index(["A", "B", "C"])
             .sort_index()
         )
@@ -240,11 +237,11 @@ class TestMultiIndexSlicers:
             200000,
         ]
         n = len(ints)
-        idx = MultiIndex.from_arrays([["a"] * n, ints])
-        result = Series([1] * n, index=idx)
+        idx = pd.MultiIndex.from_arrays([["a"] * n, ints])
+        result = pd.Series([1] * n, index=idx)
         result = result.sort_index()
         result = result.loc[(slice(None), slice(100000))]
-        expected = Series([1] * (n - 2), index=idx[:-2]).sort_index()
+        expected = pd.Series([1] * (n - 2), index=idx[:-2]).sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_multiindex_slicers_datetimelike(self):
@@ -252,9 +249,9 @@ class TestMultiIndexSlicers:
         # buggy/inconsistent behavior when slicing with datetime-like
         dates = [datetime(2012, 1, 1, 12, 12, 12) + timedelta(days=i) for i in range(6)]
         freq = [1, 2]
-        index = MultiIndex.from_product([dates, freq], names=["date", "frequency"])
+        index = pd.MultiIndex.from_product([dates, freq], names=["date", "frequency"])
 
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(6 * 2 * 4, dtype="int64").reshape(-1, 4),
             index=index,
             columns=list("ABCD"),
@@ -266,7 +263,8 @@ class TestMultiIndexSlicers:
         result = df.loc[
             (
                 slice(
-                    Timestamp("2012-01-01 12:12:12"), Timestamp("2012-01-03 12:12:12")
+                    pd.Timestamp("2012-01-01 12:12:12"),
+                    pd.Timestamp("2012-01-03 12:12:12"),
                 ),
                 slice(1, 1),
             ),
@@ -277,7 +275,9 @@ class TestMultiIndexSlicers:
         result = df.loc[
             (
                 idx[
-                    Timestamp("2012-01-01 12:12:12") : Timestamp("2012-01-03 12:12:12")
+                    pd.Timestamp("2012-01-01 12:12:12") : pd.Timestamp(
+                        "2012-01-03 12:12:12"
+                    )
                 ],
                 idx[1:1],
             ),
@@ -288,7 +288,8 @@ class TestMultiIndexSlicers:
         result = df.loc[
             (
                 slice(
-                    Timestamp("2012-01-01 12:12:12"), Timestamp("2012-01-03 12:12:12")
+                    pd.Timestamp("2012-01-01 12:12:12"),
+                    pd.Timestamp("2012-01-03 12:12:12"),
                 ),
                 1,
             ),
@@ -311,7 +312,7 @@ class TestMultiIndexSlicers:
     def test_multiindex_slicers_edges(self):
         # GH 8132
         # various edge cases
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "A": ["A0"] * 5 + ["A1"] * 5 + ["A2"] * 5,
                 "B": ["B0", "B0", "B1", "B1", "B2"] * 3,
@@ -387,14 +388,14 @@ class TestMultiIndexSlicers:
         idx = pd.IndexSlice
 
         # from indexing.rst / advanced
-        index = MultiIndex.from_product(
+        index = pd.MultiIndex.from_product(
             [_mklbl("A", 4), _mklbl("B", 2), _mklbl("C", 4), _mklbl("D", 2)]
         )
-        columns = MultiIndex.from_tuples(
+        columns = pd.MultiIndex.from_tuples(
             [("a", "foo"), ("a", "bar"), ("b", "foo"), ("b", "bah")],
             names=["lvl0", "lvl1"],
         )
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(len(index) * len(columns), dtype="int64").reshape(
                 (len(index), len(columns))
             ),
@@ -458,15 +459,15 @@ class TestMultiIndexSlicers:
         df.loc(axis=0)[:, :, ["C1", "C3"]] = -10
 
     def test_loc_axis_arguments(self):
-        index = MultiIndex.from_product(
+        index = pd.MultiIndex.from_product(
             [_mklbl("A", 4), _mklbl("B", 2), _mklbl("C", 4), _mklbl("D", 2)]
         )
-        columns = MultiIndex.from_tuples(
+        columns = pd.MultiIndex.from_tuples(
             [("a", "foo"), ("a", "bar"), ("b", "foo"), ("b", "bah")],
             names=["lvl0", "lvl1"],
         )
         df = (
-            DataFrame(
+            pd.DataFrame(
                 np.arange(len(index) * len(columns), dtype="int64").reshape(
                     (len(index), len(columns))
                 ),
@@ -525,9 +526,11 @@ class TestMultiIndexSlicers:
 
     def test_loc_axis_single_level_multi_col_indexing_multiindex_col_df(self):
         # GH29519
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(27).reshape(3, 9),
-            columns=MultiIndex.from_product([["a1", "a2", "a3"], ["b1", "b2", "b3"]]),
+            columns=pd.MultiIndex.from_product(
+                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
+            ),
         )
         result = df.loc(axis=1)["a1":"a2"]
         expected = df.iloc[:, :-3]
@@ -536,9 +539,11 @@ class TestMultiIndexSlicers:
 
     def test_loc_axis_single_level_single_col_indexing_multiindex_col_df(self):
         # GH29519
-        df = DataFrame(
+        df = pd.DataFrame(
             np.arange(27).reshape(3, 9),
-            columns=MultiIndex.from_product([["a1", "a2", "a3"], ["b1", "b2", "b3"]]),
+            columns=pd.MultiIndex.from_product(
+                [["a1", "a2", "a3"], ["b1", "b2", "b3"]]
+            ),
         )
         result = df.loc(axis=1)["a1"]
         expected = df.iloc[:, :3]
@@ -549,9 +554,9 @@ class TestMultiIndexSlicers:
     def test_loc_ax_single_level_indexer_simple_df(self):
         # GH29519
         # test single level indexing on single index column data frame
-        df = DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
+        df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
         result = df.loc(axis=1)["a"]
-        expected = Series(np.array([0, 3, 6]), name="a")
+        expected = pd.Series(np.array([0, 3, 6]), name="a")
         tm.assert_series_equal(result, expected)
 
     def test_per_axis_per_level_setitem(self):
@@ -559,15 +564,15 @@ class TestMultiIndexSlicers:
         idx = pd.IndexSlice
 
         # test multi-index slicing with per axis and per index controls
-        index = MultiIndex.from_tuples(
+        index = pd.MultiIndex.from_tuples(
             [("A", 1), ("A", 2), ("A", 3), ("B", 1)], names=["one", "two"]
         )
-        columns = MultiIndex.from_tuples(
+        columns = pd.MultiIndex.from_tuples(
             [("a", "foo"), ("a", "bar"), ("b", "foo"), ("b", "bah")],
             names=["lvl0", "lvl1"],
         )
 
-        df_orig = DataFrame(
+        df_orig = pd.DataFrame(
             np.arange(16, dtype="int64").reshape(4, 4), index=index, columns=columns
         )
         df_orig = df_orig.sort_index(axis=0).sort_index(axis=1)
@@ -692,8 +697,8 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(df, expected)
 
     def test_multiindex_label_slicing_with_negative_step(self):
-        ser = Series(
-            np.arange(20), MultiIndex.from_product([list("abcde"), np.arange(4)])
+        ser = pd.Series(
+            np.arange(20), pd.MultiIndex.from_product([list("abcde"), np.arange(4)])
         )
         SLC = pd.IndexSlice
 
@@ -722,14 +727,16 @@ class TestMultiIndexSlicers:
     def test_multiindex_slice_first_level(self):
         # GH 12697
         freq = ["a", "b", "c", "d"]
-        idx = MultiIndex.from_product([freq, range(500)])
-        df = DataFrame(list(range(2000)), index=idx, columns=["Test"])
+        idx = pd.MultiIndex.from_product([freq, range(500)])
+        df = pd.DataFrame(list(range(2000)), index=idx, columns=["Test"])
         df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
         result = df_slice.loc["a"]
-        expected = DataFrame(list(range(30, 71)), columns=["Test"], index=range(30, 71))
+        expected = pd.DataFrame(
+            list(range(30, 71)), columns=["Test"], index=range(30, 71)
+        )
         tm.assert_frame_equal(result, expected)
         result = df_slice.loc["d"]
-        expected = DataFrame(
+        expected = pd.DataFrame(
             list(range(1530, 1571)), columns=["Test"], index=range(30, 71)
         )
         tm.assert_frame_equal(result, expected)
@@ -783,8 +790,8 @@ class TestMultiIndexSlicers:
             "int": range(5),
         }[dtype]
 
-        mi = MultiIndex.from_arrays([labels] * 2)
-        df = DataFrame(1.0, index=mi, columns=["A"])
+        mi = pd.MultiIndex.from_arrays([labels] * 2)
+        df = pd.DataFrame(1.0, index=mi, columns=["A"])
 
         SLC = pd.IndexSlice
 

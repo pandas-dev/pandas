@@ -30,7 +30,12 @@ REVIEW_BLOCKING_ASSOCIATIONS = {"OWNER", "MEMBER"}
 # Review states that express a reviewer's standing verdict on the PR;
 # COMMENTED and PENDING reviews leave their previous verdict in place.
 STANCE_REVIEW_STATES = {"APPROVED", "CHANGES_REQUESTED", "DISMISSED"}
-BLOCKING_LABELS = ("Needs Triage", "Needs Discussion")
+BLOCKING_LABELS = (
+    "Needs Triage",
+    "Needs Discussion",
+    "Needs Info",
+    "Closing Candidate",
+)
 
 GATE_LABEL = "Needs Issue Assignment"
 AWAITING_REVIEW_LABEL = "Awaiting Review"
@@ -73,14 +78,18 @@ class OpenPRState(TypedDict):
     is_draft: bool
     author: str | None
     author_association: str | None
+    author_is_bot: bool
+    linked_issues: list[LinkedIssue]
     reviews: list[Review]
     review_requests: list[ReviewRequest]
+    has_pending_review_requests: bool
     last_commit_at: datetime | None
     comments: list[Comment]
     comments_truncated: bool
     reopened_events: list[Comment]
     labels: list[str]
     stale_marked_at: datetime | None
+    gate_marked_at: datetime | None
 
 
 class GateDecision(TypedDict, total=False):
@@ -96,15 +105,17 @@ def is_exempt(author_association: str | None, author_is_bot: bool) -> bool:
     return bool(author_is_bot) or (author_association or "") in EXEMPT_ASSOCIATIONS
 
 
-def outstanding_changes_requested_at(reviews: list[Review]) -> datetime | None:
-    """Newest maintainer changes-request that is still outstanding, or ``None``.
+def _current_stances(
+    reviews: list[Review],
+) -> dict[str | None, tuple[datetime, str | None]]:
+    """Each maintainer reviewer's current stance, keyed by reviewer login.
 
-    Only an ``OWNER``/``MEMBER`` review moves the ball into the contributor's
-    court; a drive-by "request changes" from an outside account doesn't count.
-    A changes-request is outstanding only while it is that reviewer's *current
-    stance*: their own later ``APPROVED`` (or a dismissal, which rewrites the
-    review's state to ``DISMISSED``) supersedes it, while ``COMMENTED`` reviews
-    leave it standing. Another reviewer's approval does not clear it.
+    Only an ``OWNER``/``MEMBER`` review counts; a review from any other
+    account is ignored. A reviewer's stance is their newest
+    ``APPROVED``/``CHANGES_REQUESTED``/``DISMISSED`` review — later
+    ``COMMENTED`` reviews leave the previous verdict standing, while a
+    dismissal (which rewrites the review's state to ``DISMISSED`` in place)
+    withdraws it.
     """
     stances: dict[str | None, tuple[datetime, str | None]] = {}
     for r in reviews:
@@ -117,8 +128,40 @@ def outstanding_changes_requested_at(reviews: list[Review]) -> datetime | None:
             current = stances.get(r.get("author"))
             if current is None or submitted > current[0]:
                 stances[r.get("author")] = (submitted, r.get("state"))
-    times = [t for t, state in stances.values() if state == "CHANGES_REQUESTED"]
+    return stances
+
+
+def outstanding_changes_requested_at(reviews: list[Review]) -> datetime | None:
+    """Newest maintainer changes-request that is still outstanding, or ``None``.
+
+    A changes-request is outstanding only while it is that reviewer's *current
+    stance* (see :func:`_current_stances`): their own later ``APPROVED`` or a
+    dismissal supersedes it. Another reviewer's approval does not clear it.
+    """
+    times = [
+        submitted
+        for submitted, state in _current_stances(reviews).values()
+        if state == "CHANGES_REQUESTED"
+    ]
     return max(times) if times else None
+
+
+def all_reviewers_approved(
+    reviews: list[Review], has_pending_review_requests: bool
+) -> bool:
+    """True when the PR is fully approved and awaiting merge rather than review.
+
+    Fully approved means every standing maintainer verdict (see
+    :func:`_current_stances`) is an approval — with at least one — and no
+    review request is pending. A pending request is a review someone was asked
+    for and hasn't given, so one approval among several requested reviewers
+    isn't full approval. A ``DISMISSED`` stance is a withdrawn verdict and
+    neither satisfies nor blocks this.
+    """
+    if has_pending_review_requests:
+        return False
+    states = {state for _, state in _current_stances(reviews).values()}
+    return "APPROVED" in states and "CHANGES_REQUESTED" not in states
 
 
 def latest_review_submitted_at(
@@ -196,9 +239,14 @@ def should_label_awaiting_review(
     is_draft: bool,
     changes_requested_at: datetime | None,
     rereview_requested_at: datetime | None,
+    fully_approved: bool,
 ) -> bool:
-    """An open, non-draft PR with the ball in the maintainers' court."""
-    if not is_open or is_draft:
+    """An open, non-draft PR with the ball in the maintainers' court.
+
+    A fully approved PR (see :func:`all_reviewers_approved`) is awaiting merge,
+    not review, so it drops out even though the ball is with the maintainers.
+    """
+    if not is_open or is_draft or fully_approved:
         return False
     return not awaiting_contributor(changes_requested_at, rereview_requested_at)
 
@@ -268,17 +316,22 @@ def issue_is_active(
 def pr_subject_to_stale(
     is_exempt_author: bool,
     is_draft: bool,
+    gate_label_present: bool,
     changes_requested_at: datetime | None,
     rereview_requested_at: datetime | None,
 ) -> bool:
     """Whether a PR is in the contributor's court and may go stale.
 
-    Exempt authors (owners/members/collaborators) and drafts are never subject;
-    otherwise the PR is subject only while ``awaiting_contributor`` (a maintainer
-    requested changes and the author hasn't re-requested review since).
+    Exempt authors (owners/members/collaborators) and drafts are never subject.
+    Otherwise the PR is subject while it carries the ``Needs Issue Assignment``
+    label (it won't be reviewed until the author claims the linked issue) or
+    while ``awaiting_contributor`` (a maintainer requested changes and the
+    author hasn't re-requested review since).
     """
     if is_exempt_author or is_draft:
         return False
+    if gate_label_present:
+        return True
     return awaiting_contributor(changes_requested_at, rereview_requested_at)
 
 
@@ -314,20 +367,28 @@ def pr_stale_action(
 
 
 def gate_action(
-    decision: GateDecision, label_present: bool, close_enabled: bool
+    decision: GateDecision, label_present: bool, close_assigned_other: bool
 ) -> str:
     """What the gate should actually do, given the decision and current labels.
 
     Returns ``"none"``, ``"clear_label"``, ``"flag"``, or ``"flag_and_close"``.
-    In warn-only mode an already-flagged PR is left alone — reopening without
-    fixing the assignment shouldn't repost the same comment. In close mode a
-    repeat still comments and closes: silently re-closing a reopened PR would
-    be far worse than repeating the explanation.
+    An exempt author's PR is never touched, label or not. Otherwise a PR that
+    is no longer flaggable — the author now holds the assignment, or the PR
+    no longer links an issue — sheds any label it carries, and a PR whose
+    author doesn't hold the linked issue is flagged unless it already is: a
+    reopen (or the daily re-check) without fixing the assignment shouldn't
+    repost the same comment.
+
+    With ``close_assigned_other`` (the open/reopen gate), a PR against an
+    issue *someone else* holds is instead commented on and closed, label or
+    not: silently re-closing a reopened PR would be worse than repeating the
+    explanation. The daily re-check passes ``False`` — an author who held the
+    issue and lost it keeps the PR open and goes through the stale process.
     """
-    if decision["outcome"] == "not_in_scope":
+    if decision["outcome"] == "not_in_scope" and decision["reason"] == "exempt":
         return "none"
-    if decision["outcome"] == "valid_assignment":
-        return "clear_label" if label_present else "none"
-    if close_enabled:
-        return "flag_and_close"
-    return "none" if label_present else "flag"
+    if decision["outcome"] == "invalid_assignment":
+        if close_assigned_other and decision["variant"] == "assigned_other":
+            return "flag_and_close"
+        return "none" if label_present else "flag"
+    return "clear_label" if label_present else "none"

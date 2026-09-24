@@ -27,7 +27,6 @@ VERSIONS = {
     "fastparquet": "2024.11.0",
     "fsspec": "2025.7.0",
     "html5lib": "1.1",
-    "hypothesis": "6.116.0",
     "gcsfs": "2025.7.0",
     "jinja2": "3.1.6",
     "lxml.etree": "6.0.0",
@@ -38,7 +37,7 @@ VERSIONS = {
     "openpyxl": "3.1.5",
     "psycopg2": "2.9.10",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.1",
-    "pyarrow": "13.0.0",
+    "pyarrow": "16.0.0",
     "pyiceberg": "0.9.1",
     "pyreadstat": "1.3.0",
     "pytest": "8.3.4",

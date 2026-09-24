@@ -8,12 +8,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 
-from pandas import (
-    Categorical,
-    DataFrame,
-    Series,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -22,17 +17,17 @@ class TestIteration:
         assert float_frame.keys() is float_frame.columns
 
     def test_iteritems(self):
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         for k, v in df.items():
-            assert isinstance(v, DataFrame._constructor_sliced)
+            assert isinstance(v, pd.DataFrame._constructor_sliced)
 
     def test_items(self):
         # GH#17213, GH#13918
         cols = ["a", "b", "c"]
-        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
         for c, (k, v) in zip(cols, df.items(), strict=True):
             assert c == k
-            assert isinstance(v, Series)
+            assert isinstance(v, pd.Series)
             assert (df[k] == v).all()
 
     def test_items_names(self, float_string_frame):
@@ -53,10 +48,10 @@ class TestIteration:
 
     def test_iterrows_iso8601(self):
         # GH#19671
-        s = DataFrame(
+        s = pd.DataFrame(
             {
                 "non_iso8601": ["M1701", "M1802", "M1903", "M2004"],
-                "iso8601": date_range("2000-01-01", periods=4, freq="ME"),
+                "iso8601": pd.date_range("2000-01-01", periods=4, freq="ME"),
             }
         )
         for k, v in s.iterrows():
@@ -66,10 +61,10 @@ class TestIteration:
     def test_iterrows_no_datetime_coercion(self):
         # GH#26427 - string that looks like a year should not be coerced
         # to Timestamp when row also contains a datetime
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": ["1801", "11801"],
-                "b": date_range("2020-01-01", periods=2),
+                "b": pd.date_range("2020-01-01", periods=2),
             }
         )
         df["a"] = df["a"].astype(object)
@@ -80,7 +75,7 @@ class TestIteration:
 
     def test_iterrows_corner(self):
         # GH#12222
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "a": [datetime.datetime(2015, 1, 1)],
                 "b": [None],
@@ -91,7 +86,7 @@ class TestIteration:
                 "g": [{}],
             }
         )
-        expected = Series(
+        expected = pd.Series(
             [datetime.datetime(2015, 1, 1), None, None, "", [], set(), {}],
             index=list("abcdefg"),
             name=0,
@@ -102,13 +97,13 @@ class TestIteration:
 
     def test_itertuples(self, float_frame):
         for i, tup in enumerate(float_frame.itertuples()):
-            ser = DataFrame._constructor_sliced(tup[1:])
+            ser = pd.DataFrame._constructor_sliced(tup[1:])
             ser.name = tup[0]
             expected = float_frame.iloc[i, :].reset_index(drop=True)
             tm.assert_series_equal(ser, expected)
 
     def test_itertuples_index_false(self):
-        df = DataFrame(
+        df = pd.DataFrame(
             {"floats": np.random.default_rng(2).standard_normal(5), "ints": range(5)},
             columns=["floats", "ints"],
         )
@@ -117,7 +112,7 @@ class TestIteration:
             assert isinstance(tup[1], int)
 
     def test_itertuples_duplicate_cols(self):
-        df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[["a", "a"]]
 
         assert list(dfaa.itertuples()) == [(0, 1, 1), (1, 2, 2), (2, 3, 3)]
@@ -130,14 +125,14 @@ class TestIteration:
             )
 
     def test_itertuples_tuple_name(self):
-        df = DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = pd.DataFrame(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         tup = next(df.itertuples(name="TestName"))
         assert tup._fields == ("Index", "a", "b")
         assert (tup.Index, tup.a, tup.b) == tup
         assert type(tup).__name__ == "TestName"
 
     def test_itertuples_disallowed_col_labels(self):
-        df = DataFrame(data={"def": [1, 2, 3], "return": [4, 5, 6]})
+        df = pd.DataFrame(data={"def": [1, 2, 3], "return": [4, 5, 6]})
         tup2 = next(df.itertuples(name="TestName"))
         assert tup2 == (0, 1, 4)
         assert tup2._fields == ("Index", "_1", "_2")
@@ -146,7 +141,7 @@ class TestIteration:
     @pytest.mark.parametrize("index", [True, False])
     def test_itertuples_field_limit_namedtuple(self, limit, index):
         # GH#28282
-        df = DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(limit)}])
+        df = pd.DataFrame([{f"foo_{i}": f"bar_{i}" for i in range(limit)}])
         result = next(df.itertuples(index=index))
         assert isinstance(result, tuple)
         assert hasattr(result, "_fields")
@@ -154,10 +149,10 @@ class TestIteration:
     def test_sequence_like_with_categorical(self):
         # GH#7839
         # make sure can iterate
-        df = DataFrame(
+        df = pd.DataFrame(
             {"id": [1, 2, 3, 4, 5, 6], "raw_grade": ["a", "b", "b", "a", "a", "e"]}
         )
-        df["grade"] = Categorical(df["raw_grade"])
+        df["grade"] = pd.Categorical(df["raw_grade"])
 
         # basic sequencing testing
         result = list(df.grade.values)

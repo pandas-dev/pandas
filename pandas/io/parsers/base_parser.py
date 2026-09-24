@@ -527,9 +527,9 @@ class ParserBase:
                     elif is_float_dtype(result):
                         result = FloatingArray(result, result_mask)
 
-                    na_count = result_mask.sum()
+                    na_count = result_mask.sum()  # type: ignore[assignment]
                 else:
-                    na_count = isna(result).sum()
+                    na_count = isna(result).sum()  # type: ignore[assignment]
         else:
             result = values
             if values.dtype == np.object_:

@@ -16,7 +16,7 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -184,7 +184,7 @@ def test_suppress_error_output(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
-    expected = DataFrame({"a": [1, 4]})
+    expected = pd.DataFrame({"a": [1, 4]})
 
     result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
@@ -209,7 +209,7 @@ def test_warn_bad_lines(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
-    expected = DataFrame({"a": [1, 4]})
+    expected = pd.DataFrame({"a": [1, 4]})
     match_msg = "Skipping line"
 
     expected_warning = ParserWarning
@@ -220,6 +220,121 @@ def test_warn_bad_lines(all_parsers):
         expected_warning, match=match_msg, check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_error_bad_lines_index_col_false(all_parsers):
+    # GH#49279
+    parser = all_parsers
+    data = "a,b\n1,2\n3,4,5\n6,7"
+    msg = "Expected 2 fields in line 3, saw 3"
+
+    with pytest.raises(ParserError, match=msg):
+        parser.read_csv(StringIO(data), index_col=False, on_bad_lines="error")
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_skip_bad_lines_index_col_false(all_parsers):
+    # GH#49279
+    parser = all_parsers
+    data = "a,b\n1,2\n3,4,5\n6,7"
+    expected = pd.DataFrame({"a": [1, 6], "b": [2, 7]})
+
+    result = parser.read_csv(StringIO(data), index_col=False, on_bad_lines="skip")
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_index_col_false_wider_rows_are_not_bad_lines(all_parsers):
+    # GH#2442, GH#49279 - wider rows are data to truncate, not bad lines
+    parser = all_parsers
+    data = "A,B,C\n1,2,3,4\n5,6,7,8"
+    expected = pd.DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 7]})
+
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names does not match length of data",
+        StringIO(data),
+        index_col=False,
+        on_bad_lines="error",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_index_col_false_bad_line_counted_from_first_row(all_parsers):
+    # GH#49279 - the first data row is wider than the header, so it is the width
+    # the bad line is measured against and the one the message reports
+    parser = all_parsers
+    data = "A,B,C\n1,2,3,4\n5,6,7,8,9"
+
+    with pytest.raises(ParserError, match="Expected 4 fields in line 3, saw 5"):
+        parser.read_csv(StringIO(data), index_col=False, on_bad_lines="error")
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_index_col_false_bad_line_with_names(all_parsers):
+    # GH#49279 - with names the first data row is already buffered by the time the
+    # expected width is taken, so it must not be measured on the second row
+    parser = all_parsers
+    kwargs = {
+        "index_col": False,
+        "header": 1,
+        "names": ["x", "y"],
+        "on_bad_lines": "error",
+    }
+    expected = pd.DataFrame({"x": [1, 4, 6], "y": [2, 5, 7]})
+
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names does not match length of data",
+        StringIO("hdr\na,b\n1,2,3\n4,5\n6,7,8"),
+        **kwargs,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with pytest.raises(ParserError, match="Expected 3 fields in line 5, saw 4"):
+        parser.read_csv(StringIO("hdr\na,b\n1,2,3\n4,5\n6,7,8,9"), **kwargs)
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_index_col_false_single_data_row_with_names(all_parsers):
+    # GH#49279 - the only data row is already buffered and there is no second row
+    # to fall back on, so the expected width still has to come from the buffer
+    parser = all_parsers
+    kwargs = {"index_col": False, "header": 0, "names": ["x", "y"]}
+    expected = pd.DataFrame({"x": [1], "y": [2]})
+
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names does not match length of data",
+        StringIO("a,b\n1,2,3\n"),
+        **kwargs,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # GH#2442 - a trailing delimiter is truncated, not treated as a bad line
+    result = parser.read_csv(StringIO("a,b\n1,2,\n"), **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'
+def test_index_col_false_short_names_keep_header_width(all_parsers):
+    # GH#49279 - names replaces the column count, but the header line is still what
+    # a wider row is measured against, so this row is truncated rather than dropped
+    parser = all_parsers
+    expected = pd.DataFrame({"x": [1, 3], "y": [2, 4]})
+
+    result = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names does not match length of data",
+        StringIO("a,b,c\n1,2\n3,4,5\n"),
+        names=["x", "y"],
+        header=0,
+        index_col=False,
+        on_bad_lines="error",
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -251,7 +366,7 @@ def test_null_byte_char(all_parsers):
         # GH#19886 a lone NUL is a one-character value, not the empty string,
         # so it is not an na_value. The C engine used to compare the
         # NUL-terminated word and report NaN here.
-        expected = DataFrame([["\x00", "foo"]], columns=names)
+        expected = pd.DataFrame([["\x00", "foo"]], columns=names)
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
@@ -265,18 +380,14 @@ def test_null_byte_char(all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-@pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(all_parsers, temp_file):
     # GH 39024
     parser = all_parsers
 
     msg = "Could not determine delimiter"
     err = csv.Error
-    if parser.engine == "c":
-        msg = "object of type 'NoneType' has no len"
-        err = TypeError
-    elif parser.engine == "pyarrow":
-        msg = "'utf-8' codec can't decode byte 0xe4"
+    if parser.engine in ("c", "pyarrow"):
+        msg = f"the '{parser.engine}' engine does not support sep=None"
         err = ValueError
 
     file = Path(temp_file)
@@ -321,7 +432,7 @@ a,b,c
 a,b,d
 a,b
 """
-    expected = DataFrame({"1": "a", "2": ["b"] * 2})
+    expected = pd.DataFrame({"1": "a", "2": ["b"] * 2})
     match_msg = "Skipping line"
 
     expected_warning = ParserWarning

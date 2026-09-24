@@ -18,19 +18,28 @@ from pandas.errors import (
     ParserError,
 )
 
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
 def python_engine(request):
     return request.param
+
+
+# A non-default value for each bool option below; a placeholder object would be
+# rejected by the bool validation before the engine check runs.
+_non_default_bools = {
+    "dayfirst": True,
+    "iterator": True,
+    "low_memory": False,
+    "memory_map": True,
+    "na_filter": False,
+    "skipinitialspace": True,
+}
 
 
 class TestUnsupportedFeatures:
@@ -56,11 +65,14 @@ class TestUnsupportedFeatures:
             read_csv(StringIO(data), engine="c", skipfooter=1)
 
         # specify C-unsupported options without python-unsupported options
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        msg = "the 'c' engine does not support separators > 1 char"
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
             read_csv(StringIO(data), sep=r"\s")
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        msg = "quotechar is larger than one byte"
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
             read_csv(StringIO(data), sep="\t", quotechar=chr(128))
-        with tm.assert_produces_warning(parsers.ParserWarning):
+        msg = "the 'c' engine does not support skipfooter"
+        with tm.assert_produces_warning(parsers.ParserWarning, match=msg):
             read_csv(StringIO(data), skipfooter=1)
 
         text = """                      A       B       C       D        E
@@ -105,7 +117,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
                 f"supported with the {python_engine!r} engine"
             )
 
-            kwargs = {default: object()}
+            kwargs = {default: _non_default_bools.get(default, object())}
             warn = Pandas4Warning if default == "float_precision" else None
             with pytest.raises(ValueError, match=msg):
                 with tm.assert_produces_warning(
@@ -147,12 +159,9 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
         for default in pa_unsupported:
             msg = f"The {default!r} option is not supported with the 'pyarrow' engine"
-            kwargs = {default: object()}
-            default_needs_bool = {"warn_bad_lines", "error_bad_lines"}
+            kwargs = {default: _non_default_bools.get(default, object())}
             if default == "dialect":
                 kwargs[default] = "excel"  # test a random dialect
-            elif default in default_needs_bool:
-                kwargs[default] = True
             elif default == "on_bad_lines":
                 kwargs[default] = "warn"
 
@@ -208,6 +217,33 @@ def test_invalid_file_inputs(request, all_parsers):
 
     with pytest.raises(ValueError, match="Invalid"):
         parser.read_csv([])
+
+
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+def test_sep_none_falls_back_to_python_engine(key):
+    # GH#66639, GH#47024 sniffing the separator is python-engine only, so the
+    # default engine falls back to it rather than handing sep=None to the C parser
+    data = "a;b\n1;2\n"
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+
+    with tm.assert_produces_warning(parsers.ParserWarning, match="sep=None"):
+        result = read_csv(StringIO(data), **{key: None})
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result = read_csv(StringIO(data), engine="python", **{key: None})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+@pytest.mark.parametrize("engine", ["c", "pyarrow"])
+def test_sep_none_explicit_engine_raises(engine, key):
+    # GH#66639, GH#47024 an explicitly requested engine that cannot sniff the
+    # separator reports that rather than falling back
+    msg = f"the '{engine}' engine does not support sep=None"
+
+    with pytest.raises(ValueError, match=msg):
+        read_csv(StringIO("a;b\n1;2\n"), engine=engine, **{key: None})
 
 
 def test_invalid_dtype_backend(all_parsers):

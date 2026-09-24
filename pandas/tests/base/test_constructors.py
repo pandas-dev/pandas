@@ -7,11 +7,6 @@ import pytest
 from pandas.compat import PYPY
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-)
 import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (
@@ -21,19 +16,19 @@ from pandas.core.base import (
 
 
 def series_via_frame_from_dict(x, **kwargs):
-    return DataFrame({"a": x}, **kwargs)["a"]
+    return pd.DataFrame({"a": x}, **kwargs)["a"]
 
 
 def series_via_frame_from_scalar(x, **kwargs):
-    return DataFrame(x, **kwargs)[0]
+    return pd.DataFrame(x, **kwargs)[0]
 
 
 @pytest.fixture(
     params=[
-        Series,
+        pd.Series,
         series_via_frame_from_dict,
         series_via_frame_from_scalar,
-        Index,
+        pd.Index,
     ],
     ids=["Series", "DataFrame-dict", "DataFrame-array", "Index"],
 )

@@ -9,14 +9,7 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -36,7 +29,7 @@ def generate_indices(f, values=False):
 class TestScalar:
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
     def test_iat_set_ints(self, dtype, frame_or_series):
-        f = frame_or_series(range(3), index=Index([0, 1, 2], dtype=dtype))
+        f = frame_or_series(range(3), index=pd.Index([0, 1, 2], dtype=dtype))
         indices = generate_indices(f, True)
         for i in indices:
             f.iat[i] = 1
@@ -46,9 +39,9 @@ class TestScalar:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcd"), dtype=object),
-            date_range("20130101", periods=4),
-            Index(range(0, 8, 2), dtype=np.float64),
+            pd.Index(list("abcd"), dtype=object),
+            pd.date_range("20130101", periods=4),
+            pd.Index(range(0, 8, 2), dtype=np.float64),
         ],
     )
     def test_iat_set_other(self, index, frame_or_series):
@@ -61,11 +54,11 @@ class TestScalar:
     @pytest.mark.parametrize(
         "index",
         [
-            Index(list("abcd"), dtype=object),
-            date_range("20130101", periods=4),
-            Index(range(0, 8, 2), dtype=np.float64),
-            Index(range(0, 8, 2), dtype=np.uint64),
-            Index(range(0, 8, 2), dtype=np.int64),
+            pd.Index(list("abcd"), dtype=object),
+            pd.date_range("20130101", periods=4),
+            pd.Index(range(0, 8, 2), dtype=np.float64),
+            pd.Index(range(0, 8, 2), dtype=np.uint64),
+            pd.Index(range(0, 8, 2), dtype=np.int64),
         ],
     )
     def test_at_set_ints_other(self, index, frame_or_series):
@@ -81,7 +74,7 @@ class TestAtAndiAT:
     # at and iat tests that don't need Base class
 
     def test_float_index_at_iat(self):
-        ser = Series([1, 2, 3], index=[0.1, 0.2, 0.3])
+        ser = pd.Series([1, 2, 3], index=[0.1, 0.2, 0.3])
         for el, item in ser.items():
             assert ser.at[el] == item
         for i in range(len(ser)):
@@ -89,8 +82,8 @@ class TestAtAndiAT:
 
     def test_at_iat_coercion(self):
         # as timestamp is not a tuple!
-        dates = date_range("1/1/2000", periods=8)
-        df = DataFrame(
+        dates = pd.date_range("1/1/2000", periods=8)
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((8, 4)),
             index=dates,
             columns=["A", "B", "C", "D"],
@@ -105,12 +98,12 @@ class TestAtAndiAT:
         "ser, expected",
         [
             [
-                Series(["2014-01-01", "2014-02-02"], dtype="datetime64[ns]"),
-                Timestamp("2014-02-02"),
+                pd.Series(["2014-01-01", "2014-02-02"], dtype="datetime64[ns]"),
+                pd.Timestamp("2014-02-02"),
             ],
             [
-                Series(["1 days", "2 days"], dtype="timedelta64[ns]"),
-                Timedelta("2 days"),
+                pd.Series(["1 days", "2 days"], dtype="timedelta64[ns]"),
+                pd.Timedelta("2 days"),
             ],
         ],
     )
@@ -124,7 +117,7 @@ class TestAtAndiAT:
         # GH6493
         # iat/iloc with dups
 
-        s = Series(range(5), index=[1, 1, 2, 2, 3], dtype="int64")
+        s = pd.Series(range(5), index=[1, 1, 2, 2, 3], dtype="int64")
         result = s.iloc[2]
         assert result == 2
         result = s.iat[2]
@@ -138,12 +131,12 @@ class TestAtAndiAT:
             s.iat[-10]
 
         result = s.iloc[[2, 3]]
-        expected = Series([2, 3], [2, 2], dtype="int64")
+        expected = pd.Series([2, 3], [2, 2], dtype="int64")
         tm.assert_series_equal(result, expected)
 
         df = s.to_frame()
         result = df.iloc[2]
-        expected = Series(2, index=[0], name=2)
+        expected = pd.Series(2, index=[0], name=2)
         tm.assert_series_equal(result, expected)
 
         result = df.iat[2, 0]
@@ -152,7 +145,7 @@ class TestAtAndiAT:
     def test_frame_at_with_duplicate_axes(self):
         # GH#33041
         arr = np.random.default_rng(2).standard_normal(6).reshape(3, 2)
-        df = DataFrame(arr, columns=["A", "A"])
+        df = pd.DataFrame(arr, columns=["A", "A"])
 
         result = df.at[0, "A"]
         expected = df.iloc[0].copy()
@@ -164,23 +157,23 @@ class TestAtAndiAT:
 
         # setter
         df.at[1, "A"] = 2
-        expected = Series([2.0, 2.0], index=["A", "A"], name=1)
+        expected = pd.Series([2.0, 2.0], index=["A", "A"], name=1)
         tm.assert_series_equal(df.iloc[1], expected)
 
     def test_at_getitem_dt64tz_values(self):
         # gh-15822
-        df = DataFrame(
+        df = pd.DataFrame(
             {
                 "name": ["John", "Anderson"],
                 "date": [
-                    Timestamp(2017, 3, 13, 13, 32, 56),
-                    Timestamp(2017, 2, 16, 12, 10, 3),
+                    pd.Timestamp(2017, 3, 13, 13, 32, 56),
+                    pd.Timestamp(2017, 2, 16, 12, 10, 3),
                 ],
             }
         )
         df["date"] = df["date"].dt.tz_localize("Asia/Shanghai")
 
-        expected = Timestamp("2017-03-13 13:32:56+0800", tz="Asia/Shanghai")
+        expected = pd.Timestamp("2017-03-13 13:32:56+0800", tz="Asia/Shanghai")
 
         result = df.loc[0, "date"]
         assert result == expected
@@ -190,7 +183,7 @@ class TestAtAndiAT:
 
     def test_mixed_index_at_iat_loc_iloc_series(self):
         # GH 19860
-        s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
+        s = pd.Series([1, 2, 3, 4, 5], index=["a", "b", "c", 1, 2])
         for el, item in s.items():
             assert s.at[el] == s.loc[el] == item
         for i in range(len(s)):
@@ -203,7 +196,7 @@ class TestAtAndiAT:
 
     def test_mixed_index_at_iat_loc_iloc_dataframe(self):
         # GH 19860
-        df = DataFrame(
+        df = pd.DataFrame(
             [[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]], columns=["a", "b", "c", 1, 2]
         )
         for rowIdx, row in df.iterrows():
@@ -221,37 +214,37 @@ class TestAtAndiAT:
 
     def test_iat_setter_incompatible_assignment(self):
         # GH 23236
-        result = DataFrame({"a": [0.0, 1.0], "b": [4, 5]})
+        result = pd.DataFrame({"a": [0.0, 1.0], "b": [4, 5]})
         result.iat[0, 0] = None
-        expected = DataFrame({"a": [None, 1], "b": [4, 5]})
+        expected = pd.DataFrame({"a": [None, 1], "b": [4, 5]})
         tm.assert_frame_equal(result, expected)
 
 
 def test_iat_dont_wrap_object_datetimelike():
     # GH#32809 .iat calls go through DataFrame._get_value, should not
     #  call maybe_box_datetimelike
-    dti = date_range("2016-01-01", periods=3)
+    dti = pd.date_range("2016-01-01", periods=3)
     tdi = dti - dti
-    ser = Series(dti.to_pydatetime(), dtype=object)
-    ser2 = Series(tdi.to_pytimedelta(), dtype=object)
-    df = DataFrame({"A": ser, "B": ser2})
+    ser = pd.Series(dti.to_pydatetime(), dtype=object)
+    ser2 = pd.Series(tdi.to_pytimedelta(), dtype=object)
+    df = pd.DataFrame({"A": ser, "B": ser2})
     assert (df.dtypes == object).all()
 
     for result in [df.at[0, "A"], df.iat[0, 0], df.loc[0, "A"], df.iloc[0, 0]]:
         assert result is ser[0]
         assert isinstance(result, datetime)
-        assert not isinstance(result, Timestamp)
+        assert not isinstance(result, pd.Timestamp)
 
     for result in [df.at[1, "B"], df.iat[1, 1], df.loc[1, "B"], df.iloc[1, 1]]:
         assert result is ser2[1]
         assert isinstance(result, timedelta)
-        assert not isinstance(result, Timedelta)
+        assert not isinstance(result, pd.Timedelta)
 
 
 def test_at_with_tuple_index_get():
     # GH 26989
     # DataFrame.at getter works with Index of tuples
-    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    df = pd.DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
     assert df.index.nlevels == 1
     assert df.at[(1, 2), "a"] == 1
 
@@ -264,7 +257,7 @@ def test_at_with_tuple_index_get():
 def test_at_with_tuple_index_set():
     # GH 26989
     # DataFrame.at setter works with Index of tuples
-    df = DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    df = pd.DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
     assert df.index.nlevels == 1
     df.at[(1, 2), "a"] = 2
     assert df.at[(1, 2), "a"] == 2
@@ -280,7 +273,7 @@ class TestMultiIndexScalar:
     def test_multiindex_at_get(self):
         # GH 26989
         # DataFrame.at and DataFrame.loc getter works with MultiIndex
-        df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+        df = pd.DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
         assert df.index.nlevels == 2
         assert df.at[(1, 3), "a"] == 1
         assert df.loc[(1, 3), "a"] == 1
@@ -294,7 +287,7 @@ class TestMultiIndexScalar:
     def test_multiindex_at_set(self):
         # GH 26989
         # DataFrame.at and DataFrame.loc setter works with MultiIndex
-        df = DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+        df = pd.DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
         assert df.index.nlevels == 2
         df.at[(1, 3), "a"] = 3
         assert df.at[(1, 3), "a"] == 3
@@ -311,6 +304,6 @@ class TestMultiIndexScalar:
 
     def test_multiindex_at_get_one_level(self):
         # GH#38053
-        s2 = Series((0, 1), index=[[False, True]])
+        s2 = pd.Series((0, 1), index=[[False, True]])
         result = s2.at[False]
         assert result == 0

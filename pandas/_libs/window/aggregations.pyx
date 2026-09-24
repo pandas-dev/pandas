@@ -17,7 +17,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    float32_t,
     float64_t,
     int64_t,
     ndarray,
@@ -55,12 +54,6 @@ cdef extern from "pandas/skiplist.h":
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
-    float32_t MINfloat32 = -np.inf
-    float64_t MINfloat64 = -np.inf
-
-    float32_t MAXfloat32 = np.inf
-    float64_t MAXfloat64 = np.inf
-
     float64_t NaN = <float64_t>np.nan
     float64_t EpsF64 = np.finfo(np.float64).eps
 
@@ -533,6 +526,12 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
     # Not NaN
     if val == val:
         nobs[0] -= 1
+        if nobs[0] == 0:
+            mean[0] = 0.0
+            m2[0] = 0.0
+            m3[0] = 0.0
+            numerically_unstable[0] = False
+            return
         n = <float64_t>(nobs[0])
         delta = val - mean[0]
         delta_n = delta / n
@@ -649,6 +648,13 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
     # Not NaN
     if val == val:
         nobs[0] -= 1
+        if nobs[0] == 0:
+            mean[0] = 0.0
+            m2[0] = 0.0
+            m3[0] = 0.0
+            m4[0] = 0.0
+            numerically_unstable[0] = False
+            return
         n = <float64_t>(nobs[0])
         delta = val - mean[0]
         delta_n = delta / n

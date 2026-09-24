@@ -11,8 +11,8 @@ def ujson_dumps(
     orient: str = ...,
     date_unit: str = ...,
     iso_dates: bool = ...,
-    default_handler: None
-    | Callable[[Any], str | float | bool | list | dict | None] = ...,
+    default_handler: Callable[[Any], str | float | bool | list | dict | None]
+    | None = ...,
 ) -> str: ...
 def ujson_loads(
     s: str,

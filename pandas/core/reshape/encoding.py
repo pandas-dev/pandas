@@ -12,7 +12,6 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
-from pandas.compat import pa_version_under16p0
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -24,6 +23,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtype,
+    SparseDtype,
 )
 
 from pandas.core.arrays import SparseArray
@@ -176,8 +176,7 @@ def get_dummies(
                 pa.types.is_string(pa_type)
                 or pa.types.is_large_string(pa_type)
                 or pa.types.is_dictionary(pa_type)
-                # is_string_view is only available in pyarrow>=16
-                or (not pa_version_under16p0 and pa.types.is_string_view(pa_type))
+                or pa.types.is_string_view(pa_type)
             ):
                 return True
             # Arrow types whose numpy fallback is object (e.g. binary,
@@ -373,12 +372,10 @@ def _get_dummies_1d(
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices, strict=True):
-            sarr = SparseArray(
-                np.ones(len(ixs), dtype=dtype),
-                sparse_index=IntIndex(N, ixs),
-                fill_value=fill_value,
-                dtype=dtype,
-            )
+            sp_values = np.ones(len(ixs), dtype=dtype)
+            sp_index = IntIndex(N, ixs)
+            sparse_dtype = SparseDtype(sp_values.dtype, fill_value)
+            sarr = SparseArray._simple_new(sp_values, sp_index, sparse_dtype)
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
         return concat(sparse_series, axis=1)
@@ -408,8 +405,8 @@ def _get_dummies_1d(
 @set_module("pandas")
 def from_dummies(
     data: DataFrame,
-    sep: None | str = None,
-    default_category: None | Hashable | dict[str, Hashable] = None,
+    sep: str | None = None,
+    default_category: Hashable | dict[str, Hashable] | None = None,
 ) -> DataFrame:
     """
     Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.

@@ -44,7 +44,8 @@ Here, ``data`` can be many different things:
 The passed **index** is a list of axis labels. The constructor's behavior
 depends on **data**'s type:
 
-**From ndarray**
+From ndarray
+~~~~~~~~~~~~
 
 If ``data`` is an ndarray, **index** must be the same length as **data**. If no
 index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
@@ -63,7 +64,8 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
     that does not support duplicate index values is attempted, an exception
     will be raised at that time.
 
-**From dict**
+From dict
+~~~~~~~~~
 
 :class:`Series` can be instantiated from dicts:
 
@@ -85,7 +87,8 @@ index will be pulled out.
 
     NaN (not a number) is the standard missing data marker used in pandas.
 
-**From scalar value**
+From scalar value
+~~~~~~~~~~~~~~~~~
 
 If ``data`` is a scalar value, the value will be repeated to match
 the length of **index**.  If the **index** is not provided, it defaults
@@ -600,6 +603,38 @@ to a column created earlier in the same :meth:`~DataFrame.assign`.
 
 In the second expression, ``x['C']`` will refer to the newly created column,
 that's equal to ``dfa['A'] + dfa['B']``.
+
+.. _dsintro.select:
+
+Selecting columns in method chains
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to selecting with ``[]``, :meth:`DataFrame.select` returns a DataFrame
+with the specified columns, but as a method it composes naturally in chains.
+Columns can be given either as individual arguments or as a single list:
+
+.. ipython:: python
+
+   dfa.select("B", "A")
+   dfa.select(["B", "A"])
+
+Columns can also be computed via :func:`pandas.col` expressions, or callables
+passed as keyword arguments. A positional expression keeps the name of the
+underlying column, while a keyword argument names the resulting column:
+
+.. ipython:: python
+
+   dfa.select("A", pd.col("B") * 2, C=pd.col("A") + pd.col("B"))
+
+As with :meth:`~pandas.DataFrame.assign`, later arguments can refer to
+columns computed earlier in the same call, but the result contains only the
+requested columns:
+
+.. ipython:: python
+
+   dfa.select("A", C=pd.col("A") + pd.col("B"), D=pd.col("C") * 2)
+
+See :ref:`indexing.select` for more.
 
 
 Indexing / selection

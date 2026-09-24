@@ -201,7 +201,8 @@ class TestSeriesConvertDtypes:
         else:
             series = pd.Series(data)
 
-        with tm.assert_produces_warning(Pandas4Warning):
+        warn_msg = "keyword in Series.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=warn_msg):
             result = series.convert_dtypes(*params)
 
         param_names = [
@@ -285,7 +286,8 @@ class TestSeriesConvertDtypes:
     def test_convert_dtype_object_with_na(self, infer_objects, dtype):
         # GH#48791
         ser = pd.Series([1, pd.NA])
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "The infer_objects keyword in Series.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)
@@ -296,7 +298,8 @@ class TestSeriesConvertDtypes:
     def test_convert_dtype_object_with_na_float(self, infer_objects, dtype):
         # GH#48791
         ser = pd.Series([1.5, pd.NA])
-        with tm.assert_produces_warning(Pandas4Warning):
+        msg = "The infer_objects keyword in Series.convert_dtypes is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1.5, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)
@@ -336,6 +339,72 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="pyarrow")
         expected = ser.copy()
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [2**64],
+            [-(2**63) - 1],
+            [10**400],
+            [2**63, -1],
+            [2**64, pd.NA],
+        ],
+    )
+    def test_convert_dtypes_int_out_of_range(self, data):
+        # GH#66517 no int64/uint64 dtype holds these, so we retain object
+        ser = pd.Series(data, dtype=object)
+        result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize("value, dtype", [(2**63, "UInt64"), (2**62, "Int64")])
+    def test_convert_dtypes_uint64_with_na(self, value, dtype):
+        # GH#66517
+        ser = pd.Series([value, pd.NA], dtype=object)
+        result = ser.convert_dtypes()
+        expected = pd.Series([value, pd.NA], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("data", [[1e30], [np.inf], [-np.inf]])
+    def test_convert_dtypes_float_out_of_int64_range(self, data):
+        # GH#68315 astype(int) saturates instead of raising, so an unguarded
+        # (arr.astype(int) == arr).all() falsely reports these as integral
+        ser = pd.Series(data, dtype="float64")
+        with tm.assert_produces_warning(None):
+            result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser.astype("Float64"))
+
+    def test_convert_dtypes_float_one_past_max(self):
+        # GH#68315 float(INT_MAX + 1) == INT_MAX after the saturating cast, so
+        # the naive equality check let it through as an off-by-one Int64 value.
+        # The cast is to the platform's C int, so take the bounds from that.
+        iinfo = np.iinfo(np.dtype(int))
+        ser = pd.Series([float(int(iinfo.max) + 1)])
+        result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser.astype("Float64"))
+
+        # the most negative float that fits is unaffected
+        ser = pd.Series([float(iinfo.min)])
+        result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser.astype("Int64"))
+
+    @pytest.mark.parametrize(
+        "data, expected_dtype",
+        [([1.0, 2.0], "Int64"), ([1.5], "Float64"), ([np.inf], "Float64")],
+    )
+    def test_convert_dtypes_float16_no_overflow_warning(self, data, expected_dtype):
+        # GH#68315 floats_fit_integer_dtype's float16 overflow warning (see
+        # test_downcast.py) fires here too, at convert_dtypes' own guard
+        ser = pd.Series(data, dtype="float16")
+        with tm.assert_produces_warning(None):
+            result = ser.convert_dtypes()
+        tm.assert_series_equal(result, ser.astype(expected_dtype))
+
+    def test_convert_dtypes_int_out_of_range_pyarrow(self):
+        # GH#66517 pyarrow has no integer type for these either
+        pytest.importorskip("pyarrow")
+        ser = pd.Series([2**64], dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
 
     def test_convert_dtypes_complex(self):
         # GH 60129

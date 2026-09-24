@@ -23,6 +23,7 @@ from pandas.core.dtypes.generic import ABCNDFrame
 from pandas.core import roperator
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.invalid import disallow_datetimelike_logical_ufunc
 
 REDUCTION_ALIASES = {
     "maximum": "max",
@@ -290,6 +291,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     from pandas.core.internals import BlockManager
 
     cls = type(self)
+
+    disallow_datetimelike_logical_ufunc(ufunc, inputs)
 
     kwargs = _standardize_out_kwarg(**kwargs)
 

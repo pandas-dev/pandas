@@ -247,6 +247,33 @@ class StylerRenderer:
         Render a Styler in typst format
         """
         d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
+        index_levels = self.index.nlevels
+        visible_index_levels = max(1, index_levels - sum(self.hide_index_))
+        column_header_rows = (
+            self.columns.nlevels - sum(self.hide_columns_) if len(self.columns) else 0
+        )
+        hidden_columns_set = set(self.hidden_columns)
+        for r, row in enumerate(d["head"]):
+            if r < column_header_rows:
+                # Keep sparse column placeholders, but remove explicitly hidden columns.
+                d["head"][r] = [
+                    cell for cell in row[:visible_index_levels] if cell["is_visible"]
+                ] + [
+                    cell
+                    for c, cell in enumerate(row[visible_index_levels:])
+                    if cell["is_visible"] or c not in hidden_columns_set
+                ]
+            else:
+                d["head"][r] = [cell for cell in row if cell["is_visible"]]
+        d["body"] = [
+            [
+                cell
+                for c, cell in enumerate(row[:index_levels])
+                if not self.hide_index_[c]
+            ]
+            + [cell for cell in row[index_levels:] if cell["is_visible"]]
+            for row in d["body"]
+        ]
         d.update(kwargs)
         return self.template_typst.render(**d)
 
@@ -635,11 +662,6 @@ class StylerRenderer:
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
         <style></style> block
-
-        Parameters
-        ----------
-        sparsify_index : bool
-            Whether index_headers section will add rowspan attributes (>1) to elements.
 
         Returns
         -------
@@ -2266,10 +2288,8 @@ class Tooltips:
 
         Parameters
         ----------
-        styler_data : DataFrame
-            Underlying ``Styler`` DataFrame used for reindexing.
-        uuid : str
-            The underlying ``Styler`` uuid for CSS id.
+        styler : StylerRenderer
+            The renderer whose ``data`` the tooltips are reindexed against.
         d : dict
             The dictionary prior to final render
 

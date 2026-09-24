@@ -23,9 +23,28 @@ Contributors may use automated tools such as AI coding assistants while contribu
 to pandas as long as it's used **responsibly**. Any use of these tools in a contribution must abide by all of the
 following guidelines:
 
-* You must disclose that you used an automated tool in the contribution.
+* You must disclose that you used an automated tool in the contribution, and be specific about which one.
 * You must fully review and modify the result of the automated tool.
 * You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
+* You must not use AI to speak for you when interacting with the community.
+
+A useful disclosure names the tool, the model and version it ran, and any reasoning-effort or thinking setting, so
+that reviewers know how much scrutiny to apply: ``claude opus 4.8 (xhigh)`` tells us something, ``claude`` does not.
+Not every tool exposes an effort setting, so give what applies. If you used more than one tool or model, say which
+parts of the contribution each was responsible for.
+
+Using these tools to help write the code, tests, and documentation in a contribution is fine. Discussion is
+different: in issues, pull requests, and review comments, do not use AI to speak for you. Copying and pasting
+AI-written replies does not count as engaging with a reviewer, and human-to-human communication is essential for
+the project to thrive.
+
+Translation and grammar editing are an explicit exception to the rule above. If English is not your first language,
+you are welcome to use these tools to help you say what you mean. What we ask is that the thoughts are yours, not
+that the English is unaided. Disclosure still applies, so say that you used a tool.
+
+If you need to quote the output of an AI tool as evidence, for example a traceback or a suggested diff, mark it
+clearly by quoting it with ``>`` or wrapping it in a triple-backtick code fence, so readers can tell which parts
+are your own words.
 
 This policy applies to any contribution made to pandas, including submitted issues or pull requests. Maintainers
 reserve the right to discern whether automated tooling was used and reject contributions that do not follow all of
@@ -50,8 +69,9 @@ If you are brand new to pandas or open-source development, we recommend searchin
 the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
 to find issues that interest you and are available to work on. Issues available to work on are:
 
-* Issues without the label ``Needs Triage`` or ``Needs Discussion``. These issues require clarification and confirmation
-  from a maintainer before proceeding.
+* Issues without the labels ``Needs Triage``, ``Needs Discussion``, ``Needs Info``,
+  or ``Closing Candidate``. These issues require clarification or confirmation from
+  a maintainer before proceeding.
 * Issues that are not already assigned to another contributor.
 
 Once you've found an interesting, available issue, claim it by commenting ``/take``
@@ -94,9 +114,15 @@ The bot will assign the issue to you.
 
 An issue is available to claim if it is:
 
-* **not** labeled ``Needs Triage`` or ``Needs Discussion`` — these still need a
-  maintainer's review before work begins, and ``/take`` will be declined; and
+* **not** labeled ``Needs Triage``, ``Needs Discussion``, ``Needs Info``, or
+  ``Closing Candidate`` — these still need attention from a maintainer or the
+  reporter before work begins, and ``/take`` will be declined; and
 * **not** already assigned to someone else.
+
+To keep issues available for everyone, you can hold at most **2** open issues
+at a time. ``/take`` on a further issue will be declined until one of your
+current issues is closed or you release it with ``/untake``. pandas maintainers
+are exempt from this limit.
 
 If you change your mind, comment ``/untake`` to release the issue so others can
 pick it up.
@@ -108,10 +134,13 @@ Link your pull request to the issue it resolves using a closing keyword in the
 description, for example ``closes #1234``.
 
 Your pull request must be linked to an issue that is **assigned to you**. If you
-open one linked to an issue you haven't claimed, the bot adds the
+open one linked to an issue nobody has claimed, the bot adds the
 ``Needs Issue Assignment`` label and comments with what to do next: comment
-``/take`` on the issue to claim it, then reopen your pull request (you can reopen
-it yourself — nothing is lost).
+``/take`` on the issue to claim it. The pull request stays open, but it is
+unlikely to be reviewed until the issue is assigned to you. Once you hold the
+assignment, the daily job removes the label. If you later lose the assignment
+— for example by commenting ``/untake``, or after it is released for
+inactivity — the daily job applies the label again and the same rules apply.
 
 Review and staleness
 --------------------
@@ -125,16 +154,17 @@ While your pull request is waiting on review it is labeled ``Awaiting Review``
 and will **not** be marked stale — you keep your assignment for as long as review
 takes.
 
-Once a maintainer requests changes, a **14-day** timer starts. Only *your*
+Once a maintainer requests changes, or while your pull request is labeled
+``Needs Issue Assignment``, a **14-day** timer starts. Only *your*
 activity resets it: pushing a commit, replying to a
 review comment, or commenting on the pull request **or its linked issue** (a
 comment from someone else does not).
 If there is no activity from you for 14 days, the pull request is marked
 ``Stale``; your next push or comment clears the label and resets the timer. If it
-stays stale for another **7 days**, it is automatically closed — you can reopen
-it yourself at any time to continue, and nothing is lost. When a stale pull
-request is closed, its linked issue is automatically unassigned and becomes
-available again.
+stays stale for another **7 days**, it is automatically closed. Nothing is lost:
+your branch is untouched, and you can request it to be reopened by a maintainer.
+When a stale pull request is closed, its linked issue is automatically unassigned
+and becomes available again.
 
 When you've addressed the feedback and want another look, **re-request a review**
 (the ↻ button next to the reviewer). That moves the pull request back to
@@ -327,7 +357,7 @@ Once you have finished your code changes, your code change will need to follow t
 
 If everything looks good, you are ready to make a pull request. A pull request is how
 code from your local repository becomes available to the GitHub community to review
-and merged into the project to appear in the next release. To submit a pull request:
+and merge into the project to appear in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button

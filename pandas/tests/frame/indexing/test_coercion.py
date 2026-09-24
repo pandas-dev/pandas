@@ -9,14 +9,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    MultiIndex,
-    NaT,
-    Series,
-    Timestamp,
-    date_range,
-)
 import pandas._testing as tm
 
 
@@ -28,7 +20,7 @@ class TestDataFrameSetitemCoercion:
 
         # Note that A here has 2 blocks, below we do the same thing
         #  with a consolidated frame.
-        A = DataFrame(np.zeros((6, 5), dtype=np.float32))
+        A = pd.DataFrame(np.zeros((6, 5), dtype=np.float32))
         A = pd.concat([A, A], axis=1, keys=[1, 2])
         if consolidate:
             A = A._consolidate()
@@ -48,7 +40,7 @@ class TestDataFrameSetitemCoercion:
 
 def test_37477():
     # fixed by GH#45121
-    orig = DataFrame({"A": [1, 2, 3], "B": [3, 4, 5]})
+    orig = pd.DataFrame({"A": [1, 2, 3], "B": [3, 4, 5]})
 
     df = orig.copy()
     with pytest.raises(TypeError, match="Invalid value"):
@@ -66,12 +58,12 @@ def test_37477():
 
 def test_6942(indexer_al):
     # check that the .at __setitem__ after setting "Live" actually sets the data
-    start = Timestamp("2014-04-01")
-    t1 = Timestamp("2014-04-23 12:42:38.883082")
-    t2 = Timestamp("2014-04-24 01:33:30.040039")
+    start = pd.Timestamp("2014-04-01")
+    t1 = pd.Timestamp("2014-04-23 12:42:38.883082")
+    t2 = pd.Timestamp("2014-04-24 01:33:30.040039")
 
-    dti = date_range(start, periods=1)
-    orig = DataFrame(index=dti, columns=["timenow", "Live"])
+    dti = pd.date_range(start, periods=1)
+    orig = pd.DataFrame(index=dti, columns=["timenow", "Live"])
 
     df = orig.copy()
     indexer_al(df)[start, "timenow"] = t1
@@ -84,11 +76,11 @@ def test_6942(indexer_al):
 
 def test_26395(indexer_al):
     # .at case fixed by GH#45121 (best guess)
-    df = DataFrame(index=["A", "B", "C"])
+    df = pd.DataFrame(index=["A", "B", "C"])
     df["D"] = 0
 
     indexer_al(df)["C", "D"] = 2
-    expected = DataFrame({"D": [0, 0, 2]}, index=["A", "B", "C"], dtype=np.int64)
+    expected = pd.DataFrame({"D": [0, 0, 2]}, index=["A", "B", "C"], dtype=np.int64)
     tm.assert_frame_equal(df, expected)
 
     with pytest.raises(TypeError, match="Invalid value"):
@@ -99,20 +91,20 @@ def test_26395(indexer_al):
 
 
 def test_15231():
-    df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-    df.loc[2] = Series({"a": 5, "b": 6})
+    df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+    df.loc[2] = pd.Series({"a": 5, "b": 6})
     assert (df.dtypes == np.int64).all()
 
-    df.loc[3] = Series({"a": 7})
+    df.loc[3] = pd.Series({"a": 7})
 
     # df["a"] doesn't have any NaNs, should not have been cast
-    exp_dtypes = Series([np.int64, np.float64], dtype=object, index=["a", "b"])
+    exp_dtypes = pd.Series([np.int64, np.float64], dtype=object, index=["a", "b"])
     tm.assert_series_equal(df.dtypes, exp_dtypes)
 
 
 def test_iloc_setitem_unnecesssary_float_upcasting():
     # GH#12255
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             0: np.array([1, 3], dtype=np.float32),
             1: np.array([2, 4], dtype=np.float32),
@@ -133,31 +125,34 @@ def test_12499():
     #  which has consequences for the expected df["two"] (though i think at
     #  the time it might not have because of a separate bug). See if it makes
     #  a difference which one we use here.
-    ts = Timestamp("2016-03-01 03:13:22.98986", tz="UTC")
+    ts = pd.Timestamp("2016-03-01 03:13:22.98986", tz="UTC")
 
     data = [{"one": 0, "two": ts}]
-    orig = DataFrame(data)
+    orig = pd.DataFrame(data)
     df = orig.copy()
-    df.loc[1] = [np.nan, NaT]
+    df.loc[1] = [np.nan, pd.NaT]
 
-    expected = DataFrame(
-        {"one": [0, np.nan], "two": Series([ts, NaT], dtype="datetime64[ns, UTC]")}
+    expected = pd.DataFrame(
+        {
+            "one": [0, np.nan],
+            "two": pd.Series([ts, pd.NaT], dtype="datetime64[ns, UTC]"),
+        }
     )
     tm.assert_frame_equal(df, expected)
 
     data = [{"one": 0, "two": ts}]
     df = orig.copy()
-    df.loc[1, :] = [np.nan, NaT]
+    df.loc[1, :] = [np.nan, pd.NaT]
     tm.assert_frame_equal(df, expected)
 
 
 def test_20476():
-    mi = MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
-    df = DataFrame(-1, index=range(3), columns=mi)
-    filler = DataFrame([[1, 2, 3.0]] * 3, index=range(3), columns=["a", "b", "c"])
+    mi = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
+    df = pd.DataFrame(-1, index=range(3), columns=mi)
+    filler = pd.DataFrame([[1, 2, 3.0]] * 3, index=range(3), columns=["a", "b", "c"])
     df["A"] = filler
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             0: [1, 1, 1],
             1: [2, 2, 2],
@@ -168,7 +163,7 @@ def test_20476():
         }
     )
     expected.columns = mi
-    exp_dtypes = Series(
+    exp_dtypes = pd.Series(
         [np.dtype(np.int64)] * 2 + [np.dtype(np.float64)] + [np.dtype(np.int64)] * 3,
         index=mi,
     )

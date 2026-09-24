@@ -55,10 +55,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import NDFrameT
 
-    from pandas import (
-        PeriodIndex,
-        Series,
-    )
+    from pandas import Series
 
 # ---------------------------------------------------------------------
 # Plotting functions and monkey patches
@@ -103,12 +100,6 @@ def maybe_resample(
     if freq is None:  # pragma: no cover
         raise ValueError("Cannot use dynamic axis without frequency info")
 
-    # Convert DatetimeIndex to PeriodIndex so the x-axis uses Period ordinals.
-    # For BDay freq this ensures consecutive business days get consecutive
-    # ordinals with no weekend gaps (GH#1482).
-    if isinstance(series.index, ABCDatetimeIndex):
-        series = series.to_period(freq=freq)
-
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy(deep=False)
@@ -116,6 +107,11 @@ def maybe_resample(
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
             how = "last"
+            if is_integer_dtype(series.index):
+                # business-day ordinals cannot be resampled; re-express them
+                # as daily Periods first (GH#66222)
+                series = series.copy(deep=False)
+                series.index = _asfreq_plotting(series.index, "D")
             series = getattr(series.resample("D"), how)().dropna()
             series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
@@ -315,6 +311,30 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     return True
 
 
+def get_period_offset(ax: Axes, index: Index) -> BaseOffset | None:
+    """
+    Resolve the period frequency to plot `index` with on `ax`, or None.
+
+    The freq is resolved the same way :func:`use_dynamic_x` resolves it, since
+    that is what decides whether the dynamic date axis is used at all: the
+    index ``freq`` attribute may be unset even when the index is regular (the
+    freq is then inferred), and an already-decorated axes carries the freq of
+    whatever was plotted on it first.  The result is normalized to a period
+    offset, because an axes stores its freq as a period alias string.
+    """
+    freq = _get_index_freq(index)
+    if freq is None:
+        freq = _get_ax_freq(ax)
+    if freq is None:
+        return None
+
+    freq_str = _get_period_alias(freq)
+    if freq_str is None:
+        return None
+    freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
+    return to_offset(freq_str, is_period=True)
+
+
 def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
@@ -377,8 +397,30 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
+def set_period_converter(ax: Axes) -> None:
+    """
+    Register PeriodConverter on the x-axis of ``ax``.
+
+    The x-axis holds plain int64 ordinals (Period ordinals for PeriodIndex
+    plots; business-day ordinals for BDay), so matplotlib's units machinery
+    never registers a converter of its own.  Setting it explicitly is what lets
+    ax.set_xlim("2020-01-01"), axvline(timestamp) and user-supplied datetime
+    xticks map to those ordinals via _get_datevalue().
+    """
+    xaxis = ax.get_xaxis()
+    if hasattr(xaxis, "set_converter"):
+        # matplotlib >= 3.10: only set if not already a PeriodConverter
+        if not isinstance(xaxis.get_converter(), PeriodConverter):
+            xaxis.set_converter(PeriodConverter())
+    else:
+        xaxis.converter = PeriodConverter()
+
+
 def format_dateaxis(
-    subplot, freq: BaseOffset, index: DatetimeIndex | PeriodIndex
+    subplot,
+    freq: BaseOffset,
+    index: Index,
+    anchor: int | None = None,
 ) -> None:
     """
     Pretty-formats the date axis (x-axis).
@@ -387,6 +429,10 @@ def format_dateaxis(
     current underlying series.  As the dynamic mode is activated by
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
+
+    ``anchor`` is an ordinal the tick grid has to land on; a bar plot passes
+    the ordinal of its first bar, since its axis limits sit half a period
+    below it.  Line plots leave it unset.
     """
     import matplotlib.pyplot as plt
 
@@ -398,19 +444,35 @@ def format_dateaxis(
         # (not a PeriodIndex) to avoid the deprecated Period[B].  The tick
         # locator and formatter both operate on those ordinals directly.
         majlocator = TimeSeries_DateLocator(
-            freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=False,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         minlocator = TimeSeries_DateLocator(
-            freq, dynamic_mode=True, minor_locator=True, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=True,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         subplot.xaxis.set_major_locator(majlocator)
         subplot.xaxis.set_minor_locator(minlocator)
 
         majformatter = TimeSeries_DateFormatter(
-            freq, dynamic_mode=True, minor_locator=False, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=False,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         minformatter = TimeSeries_DateFormatter(
-            freq, dynamic_mode=True, minor_locator=True, plot_obj=subplot
+            freq,
+            dynamic_mode=True,
+            minor_locator=True,
+            plot_obj=subplot,
+            anchor=anchor,
         )
         subplot.xaxis.set_major_formatter(majformatter)
         subplot.xaxis.set_minor_formatter(minformatter)
@@ -418,19 +480,7 @@ def format_dateaxis(
         # x and y coord info
         subplot.format_coord = functools.partial(_format_coord, freq)
 
-        # The x-axis holds plain int64 ordinals (Period ordinals for PeriodIndex
-        # plots; business-day ordinals for BDay), so matplotlib's units
-        # machinery never registers a converter.  Set PeriodConverter
-        # explicitly so that post-plot ax.set_xlim(string, ...) /
-        # ax.set_xlim(datetime, ...) calls can map values to ordinals via
-        # _get_datevalue().
-        if hasattr(subplot.xaxis, "set_converter"):
-            # matplotlib >= 3.10: only set if not already a PeriodConverter
-            existing = subplot.xaxis.get_converter()
-            if not isinstance(existing, PeriodConverter):
-                subplot.xaxis.set_converter(PeriodConverter())
-        else:
-            subplot.xaxis.converter = PeriodConverter()
+        set_period_converter(subplot)
 
     elif isinstance(index, ABCTimedeltaIndex):
         subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))

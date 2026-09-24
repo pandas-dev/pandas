@@ -9,9 +9,7 @@ from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
 )
 
-from pandas import (
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -34,7 +32,7 @@ def test_downcast(arr, expected, dtype):
 
 def test_downcast_booleans():
     # see gh-16875: coercing of booleans.
-    ser = Series([True, True, False])
+    ser = pd.Series([True, True, False])
     result = maybe_downcast_to_dtype(ser, np.dtype(np.float64))
 
     expected = ser.values
@@ -111,6 +109,18 @@ def test_downcast_object_within_integer_range():
     arr = np.array([1, 2], dtype=object)
 
     result = maybe_downcast_numeric(arr, np.dtype("int64"))
+
+    tm.assert_numpy_array_equal(result, np.array([1, 2], dtype="int64"))
+
+
+def test_downcast_float16_no_overflow_warning():
+    # GH#68315 the int64 bounds cast down to float16 and overflowed to inf,
+    #  raising a spurious RuntimeWarning even though the result is correct
+    arr = np.array([1.0, 2.0], dtype="float16")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        result = maybe_downcast_numeric(arr, np.dtype("int64"))
 
     tm.assert_numpy_array_equal(result, np.array([1, 2], dtype="int64"))
 

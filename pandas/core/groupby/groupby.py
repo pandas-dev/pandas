@@ -148,9 +148,9 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
     from pandas.core.window import (
-        ExpandingGroupby,
-        ExponentialMovingWindowGroupby,
-        RollingGroupby,
+        ExpandingGroupBy,
+        ExponentialMovingWindowGroupBy,
+        RollingGroupBy,
     )
 
 
@@ -1526,7 +1526,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
         try:
-            res_values = self._grouper.agg_series(ser, alt, preserve_dtype=True)
+            res_values = self._grouper.agg_series(ser, alt)
         except Exception as err:
             msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
             # preserve the kind of exception that raised
@@ -1576,7 +1576,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 _how = how
             try:
                 result = self._grouper._cython_operation(
-                    "aggregate",
                     values,
                     _how,
                     axis=data.ndim - 1,
@@ -2736,7 +2735,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self._grouper.size()
-        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        dtype_backend: Literal["pyarrow", "numpy_nullable"] | None = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
                 if isinstance(self.obj.array, ArrowStringArray):
@@ -2875,19 +2874,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat below
                 return obj.sum(skipna=skipna)
 
-            # If we are grouping on categoricals we want unobserved categories to
-            # return zero, rather than the default of NaN which the reindexing in
-            # _agg_general() returns. GH #31422
-            with com.temp_setattr(self, "observed", True):
-                result = self._agg_general(
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                    alias="sum",
-                    npfunc=sum_compat,
-                    skipna=skipna,
-                )
-
-            return result
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="sum",
+                npfunc=sum_compat,
+                skipna=skipna,
+            )
 
     @final
     def prod(
@@ -3482,7 +3475,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise DataError("No numeric types to aggregate")
 
             res_values = self._grouper._cython_operation(
-                "aggregate", obj._values, "ohlc", axis=0, min_count=-1
+                obj._values, "ohlc", axis=0, min_count=-1
             )
 
             agg_names = ["open", "high", "low", "close"]
@@ -3699,7 +3692,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         on: str | None = None,
         closed: IntervalClosedType | None = None,
         method: str = "single",
-    ) -> RollingGroupby:
+    ) -> RollingGroupBy:
         """
         Return a rolling grouper, providing rolling functionality per group.
 
@@ -3758,8 +3751,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
         closed : str, default None
             Determines the inclusivity of points in the window
@@ -3790,7 +3786,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.RollingGroupby
+        pandas.api.typing.RollingGroupBy
             Return a new grouper with our rolling appended.
 
         See Also
@@ -3840,9 +3836,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2 2  3    NaN
           3  4  0.705
         """
-        from pandas.core.window import RollingGroupby
+        from pandas.core.window import RollingGroupBy
 
-        return RollingGroupby(
+        return RollingGroupBy(
             self._selected_obj,
             window=window,
             min_periods=min_periods,
@@ -3860,7 +3856,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         min_periods: int = 1,
         method: str = "single",
-    ) -> ExpandingGroupby:
+    ) -> ExpandingGroupBy:
         """
         Return an expanding grouper, providing expanding functionality per group.
 
@@ -3882,7 +3878,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.ExpandingGroupby
+        pandas.api.typing.ExpandingGroupBy
             An object that supports expanding transformations over each group.
 
         See Also
@@ -3919,9 +3915,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               4   45.0
               5   50.0
         """
-        from pandas.core.window import ExpandingGroupby
+        from pandas.core.window import ExpandingGroupBy
 
-        return ExpandingGroupby(
+        return ExpandingGroupBy(
             self._selected_obj,
             min_periods=min_periods,
             method=method,
@@ -3940,7 +3936,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ignore_na: bool = False,
         times: np.ndarray | Series | None = None,
         method: str = "single",
-    ) -> ExponentialMovingWindowGroupby:
+    ) -> ExponentialMovingWindowGroupBy:
         """
         Return an ewm grouper, providing ewm functionality per group.
 
@@ -3983,7 +3979,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        pandas.api.typing.ExponentialMovingWindowGroupby
+        pandas.api.typing.ExponentialMovingWindowGroupBy
             An object that supports exponentially weighted moving transformations over
             each group.
 
@@ -4021,9 +4017,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               4  47.500000
               5  56.153846
         """
-        from pandas.core.window import ExponentialMovingWindowGroupby
+        from pandas.core.window import ExponentialMovingWindowGroupBy
 
-        return ExponentialMovingWindowGroupby(
+        return ExponentialMovingWindowGroupBy(
             self._selected_obj,
             com=com,
             span=span,
@@ -4298,8 +4294,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Take the nth row from each group if n is an int, otherwise a subset of rows.
 
-        Can be either a call or an index. dropna is not available with index notation.
-        Index notation accepts a comma separated list of integers and slices.
+        .. deprecated:: 3.1.0
+
+            Index notation (``g.nth[n]``) is deprecated in favor of calling
+            ``g.nth(n)`` and will be removed in a future version of pandas.
 
         If dropna, will take the nth non-null row, dropna is either
         'all' or 'any'; this is equivalent to calling dropna(how=dropna)
@@ -4341,20 +4339,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2  2 3.0
         4  2 5.0
         >>> g.nth(slice(None, -1))
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-
-        Index notation may also be used
-
-        >>> g.nth[0, 1]
-           A   B
-        0  1 NaN
-        1  1 2.0
-        2  2 3.0
-        4  2 5.0
-        >>> g.nth[:-1]
            A   B
         0  1 NaN
         1  1 2.0
@@ -4493,7 +4477,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-            pass_qs: None | np.ndarray = None
+            pass_qs: np.ndarray | None = None
         else:
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
@@ -5859,14 +5843,6 @@ def get_groupby(
     Parameters
     ----------
     obj : pandas object
-    level : int, default None
-        Level of MultiIndex
-    groupings : list of Grouping objects
-        Most users should ignore this
-    exclusions : array-like, optional
-        List of columns to exclude
-    name : str
-        Most users should ignore this
 
     Returns
     -------

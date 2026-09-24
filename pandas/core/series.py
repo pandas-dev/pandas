@@ -536,13 +536,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # fastpath for Series(data=None). Just use broadcasting a scalar
             # instead of reindexing.
             if len(index) or dtype is not None:
-                # error: Incompatible types in assignment (expression has type
-                # "Scalar", variable has type "list[Any]")
-                values = na_value_for_dtype(  # type: ignore[assignment]
-                    pandas_dtype(dtype), compat=False
-                )
-            else:
-                values = []
+                na_value = na_value_for_dtype(pandas_dtype(dtype), compat=False)
+                # GH#33900, GH#41377 na_value may itself be dict-like (e.g. for a
+                #  nested ExtensionDtype), so broadcast it here rather than passing
+                #  it back through the Series constructor, which would route it to
+                #  _init_dict again and recurse.
+                arr = construct_1d_arraylike_from_scalar(na_value, len(index), dtype)
+                return SingleBlockManager.from_array(arr, index), index
+            values = []
             keys = index
         else:
             keys, values = default_index(0), []
@@ -1022,7 +1023,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
+    def _ixs(self, i: int | np.integer, axis: AxisInt = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -1034,7 +1035,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         scalar
         """
-        return self._values[i]
+        values = self._values
+        return maybe_unbox_numpy_scalar(values[i], object_with_dtype=values)
 
     def _slice(
         self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
@@ -1144,20 +1146,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         scalar value
         """
         if takeable:
-            return self._values[label]
+            return self._ixs(label)
 
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
 
         if is_integer(loc):
-            return self._values[loc]
+            return self._ixs(loc)
 
         if isinstance(self.index, MultiIndex):
             mi = self.index
             new_values = self._values[loc]
             if len(new_values) == 1 and mi.nlevels == 1:
                 # If more than one level left, we can not return a scalar
-                return new_values[0]
+                return maybe_unbox_numpy_scalar(
+                    new_values[0], object_with_dtype=new_values
+                )
 
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
@@ -1173,8 +1177,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
-                self
+            # the cheaper opcode check is deliberately last: on Python 3.14
+            # a plain `df[col] = value` reaches the refcount check, and
+            # is_local_in_caller_frame already short-circuits it there
+            if (
+                sys.getrefcount(self) <= REF_COUNT
+                and not com.is_local_in_caller_frame(self)
+                and com.is_setitem_syntax_in_caller_frame()
             ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -1405,7 +1414,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         drop: bool = False,
         name: Level = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         allow_duplicates: bool = False,
     ) -> DataFrame | Series | None:
         """
@@ -1429,6 +1438,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             when `drop` is True.
         inplace : bool, default False
             Modify the Series in place (do not create a new object).
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
@@ -1512,6 +1529,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2  baz  one    2
         3  baz  two    3
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.reset_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         if drop:
             new_index = default_index(len(self))
@@ -2158,7 +2188,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        <https://pandas.pydata.org/docs/dev/user_guide/groupby.html>`__ for more
         detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
@@ -2485,7 +2515,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         keep: DropKeep = "first",
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         ignore_index: bool = False,
     ) -> Series | None:
         """
@@ -2506,6 +2536,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         inplace : bool, default ``False``
             If ``True``, performs operation inplace and returns None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
 
         ignore_index : bool, default ``False``
             If ``True``, the resulting axis will be labeled 0, 1, …, n - 1.
@@ -2584,6 +2621,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         d     hippo
         Name: animal, dtype: str
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.drop_duplicates is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         result = super().drop_duplicates(keep=keep)
 
@@ -2948,7 +2998,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0], dtype=self.dtype)
+            return result.iloc[0]
 
     def corr(
         self,
@@ -3038,7 +3088,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = nanops.nancorr(
                 this_values, other_values, method=method, min_periods=min_periods
             )
-            result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            result = maybe_unbox_numpy_scalar(result, object_with_dtype=self)
             return result
 
         raise ValueError(
@@ -3094,7 +3144,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = nanops.nancov(
             this_values, other_values, min_periods=min_periods, ddof=ddof
         )
-        result = maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+        result = maybe_unbox_numpy_scalar(result, object_with_dtype=self)
         return result
 
     def describe(
@@ -3413,7 +3463,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError(f"unsupported type: {type(other)}")
-        return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+        return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
     def __matmul__(self, other):
         """
@@ -3482,7 +3532,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         >>> ser.searchsorted(4)
-        np.int64(3)
+        3
         >>> ser.searchsorted([0, 4])
         array([0, 3])
         >>> ser.searchsorted([1, 3], side="left")
@@ -3496,7 +3546,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2   2000-03-13
         dtype: datetime64[us]
         >>> ser.searchsorted("3/14/2000")
-        np.int64(3)
+        3
         >>> ser = pd.Categorical(
         ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
         ... )
@@ -3648,7 +3698,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
         `fill_value` is assumed when value is not present at some index
-        from one of the two Series being combined.
+        from one of the two Series being combined. The result index is the
+        union of the two indexes. If a label is duplicated, its occurrences
+        are paired in order: the first occurrence in the Series with the first
+        in `other`, the second with the second, and so on; an occurrence with
+        no counterpart is paired with `fill_value`.
 
         Parameters
         ----------
@@ -3659,7 +3713,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value : scalar, optional
             The value to assume when an index is missing from
             one Series or the other. The default specifies to use the
-            appropriate NaN value for the underlying dtype of the Series.
+            appropriate NA value for the underlying dtype of the Series.
 
         Returns
         -------
@@ -3707,20 +3761,51 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         eagle     200.0
         falcon    345.0
         dtype: float64
+
+        Occurrences of a duplicated label are paired in order. Below, the
+        first ``"a"`` in ``s3`` is combined with the ``"a"`` in ``s4``,
+        while the second has no counterpart and is paired with
+        ``fill_value``.
+
+        >>> s3 = pd.Series([1, 2, 3], index=["a", "a", "b"])
+        >>> s4 = pd.Series([10, 20], index=["a", "b"])
+        >>> s3.combine(s4, lambda x, y: x + y, fill_value=0)
+        a    11
+        a     2
+        b    23
+        dtype: int64
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
-            # If other is a Series, result is based on union of Series,
-            # so do this element by element
+            if (
+                isinstance(self.index, MultiIndex)
+                and isinstance(other.index, MultiIndex)
+                and self.index.nlevels != other.index.nlevels
+            ):
+                raise ValueError(
+                    "Cannot combine Series whose MultiIndexes have different "
+                    f"numbers of levels: {self.index.nlevels} and "
+                    f"{other.index.nlevels}"
+                )
             new_index = self.index.union(other.index)
+            if self.index.equals(new_index) and other.index.equals(new_index):
+                lindexer = rindexer = range(len(new_index))
+            elif self.index._index_as_unique and other.index._index_as_unique:
+                lindexer = self.index.get_indexer(new_index).tolist()
+                rindexer = other.index.get_indexer(new_index).tolist()
+            else:
+                lindexer = self.index._pairwise_indexer(new_index).tolist()
+                rindexer = other.index._pairwise_indexer(new_index).tolist()
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
+            lvalues = self._values
+            rvalues = other._values
             with np.errstate(all="ignore"):
-                for i, idx in enumerate(new_index):
-                    lv = self.get(idx, fill_value)
-                    rv = other.get(idx, fill_value)
+                for i, (li, ri) in enumerate(zip(lindexer, rindexer, strict=True)):
+                    lv = lvalues[li] if li != -1 else fill_value
+                    rv = rvalues[ri] if ri != -1 else fill_value
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
@@ -3944,7 +4029,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis = ...,
         ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
         ignore_index: bool = ...,
@@ -3956,7 +4041,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis = 0,
         ascending: bool | Sequence[bool] = True,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         ignore_index: bool = False,
@@ -3976,6 +4061,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. The sort order is deterministic for a given input.
@@ -4106,6 +4199,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    0
         dtype: int64
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.sort_values is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         # Validate the axis parameter
         self._get_axis_number(axis)
@@ -4187,7 +4293,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = ...,
         level: IndexLabel = ...,
         ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
         sort_remaining: bool = ...,
@@ -4201,7 +4307,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
@@ -4225,11 +4331,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             sort direction can be controlled for each level individually.
         inplace : bool, default False
             If True, perform operation in-place.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
-            information. 'mergesort' and 'stable' are the only stable algorithms. For
-            DataFrames, this option is only applied when sorting on a single
-            column or label.
+            information. The sort order is deterministic for a given input.
+            'mergesort' and 'stable' are the only stable algorithms, which preserve
+            the relative order of equal keys. This option is ignored when sorting on a
+            MultiIndex or when a `level` is specified.
         na_position : {'first', 'last'}, default 'last'
             If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
             Not implemented for MultiIndex.
@@ -4327,6 +4442,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         d    4
         dtype: int64
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.sort_index is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
 
         return super().sort_index(
             axis=axis,
@@ -4636,7 +4763,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -5511,7 +5638,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         *,
         axis: Axis | None = None,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> Series | None:
@@ -5545,11 +5672,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         level : int or level name, default None
             In case of MultiIndex, only rename labels in the specified level.
         errors : {'ignore', 'raise'}, default 'ignore'
@@ -5592,6 +5727,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    3
         dtype: int64
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.rename is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         self._check_copy_deprecation(copy)
         if axis is not None:
             # Make sure we raise if an invalid 'axis' is passed.
@@ -5621,14 +5768,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Assign desired index to given axis.
 
-        .. deprecated:: 3.0.0
-            This keyword is ignored and will be removed in pandas 4.0. Since
-            pandas 3.0, this method always returns a new object using a lazy
-            copy mechanism that defers copies until necessary
-            (Copy-on-Write). See the `user guide on Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            for more details.
-
         Indexes for row labels can be changed by assigning a list-like or Index.
 
         Parameters
@@ -5641,6 +5780,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy : bool, default False
             This keyword is now ignored; changing its value will have no
             impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
+                for more details.
 
         Returns
         -------
@@ -5721,7 +5869,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         level : int or name
@@ -5945,7 +6093,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=...,
         axis: Axis = ...,
         copy: bool | lib.NoDefault = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
     ) -> Self | None: ...
 
     def rename_axis(
@@ -5955,7 +6103,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index=lib.no_default,
         axis: Axis = 0,
         copy: bool | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Set the name of the axis for the index.
@@ -5987,12 +6135,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
 
         Returns
         -------
@@ -6021,6 +6176,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    monkey
         dtype: str
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.rename_axis is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         return super().rename_axis(
             mapper=mapper,
             index=index,
@@ -6064,7 +6231,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: IndexLabel | ListLike = ...,
         columns: IndexLabel | ListLike = ...,
         level: Level | None = ...,
-        inplace: bool = ...,
+        inplace: bool | lib.NoDefault = ...,
         errors: IgnoreRaise = ...,
     ) -> Series | None: ...
 
@@ -6076,7 +6243,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: IndexLabel | ListLike = None,
         columns: IndexLabel | ListLike = None,
         level: Level | None = None,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         errors: IgnoreRaise = "raise",
     ) -> Series | None:
         """
@@ -6101,6 +6268,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
             If True, do operation inplace and return None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are dropped.
 
@@ -6164,6 +6339,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 length      0.3
         dtype: float64
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                "The inplace keyword in Series.drop is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=2,
+            )
+        else:
+            inplace = False
+
         return super().drop(
             labels=labels,
             axis=axis,
@@ -6208,7 +6395,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item), dtype=self.dtype)
+        return super().pop(item=item)
 
     def info(
         self,
@@ -6896,7 +7083,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         how: AnyAll | None = None,
         ignore_index: bool = False,
     ) -> Series | None:
@@ -6912,6 +7099,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Unused. Parameter needed for compatibility with DataFrame.
         inplace : bool, default False
             If True, do operation inplace and return None.
+
+            .. deprecated:: 3.1.0
+
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See `PDEP-8 In-place methods in pandas
+                <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+                for more details.
+
         how : str, optional
             Not in use. Kept for compatibility.
         ignore_index : bool, default ``False``
@@ -6966,6 +7161,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5    I stay
         dtype: object
         """
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                "The inplace keyword in Series.dropna is "
+                "deprecated and will be removed in a future version. "
+                "See PDEP-8 for more details:"
+                "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         ignore_index = validate_bool_kwarg(ignore_index, "ignore_index")
         # Validate the axis parameter
@@ -7017,7 +7225,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -7094,7 +7302,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -8903,7 +9111,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # any/all coerce to bool for all dtypes, so unbox even for object
         result = maybe_unbox_numpy_scalar(
-            result, dtype=None if name in ["any", "all"] else self.dtype
+            result, object_with_dtype=None if name in ["any", "all"] else self
         )
         return result
 
@@ -10164,8 +10372,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         See Also
         --------
-        core.window.expanding.Expanding.prod : Similar functionality
-            but ignores ``NaN`` values.
         Series.prod : Return the product over Series.
         Series.cummax : Return cumulative maximum.
         Series.cummin : Return cumulative minimum.

@@ -18,8 +18,6 @@ jobs:
         with:
           sparse-checkout: scripts
           persist-credentials: false
-      # Warn-only at first; add --close-enabled to start closing flagged
-      # pull requests.
       - run: >-
           python3 -m scripts.issue_assignment.gate
           --repo "$GITHUB_REPOSITORY" --event-path "$GITHUB_EVENT_PATH"

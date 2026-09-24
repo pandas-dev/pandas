@@ -79,7 +79,8 @@ def available_cpu_count() -> int | None:
     ``None`` only where neither limit is probed -- in practice macOS and
     Windows.  macOS exposes no affinity mask at all; Windows does (via
     ``GetProcessAffinityMask`` and job-object rate limits) but it is not
-    implemented here, since parallel reading is off by default there anyway.
+    implemented here, so a restricted Windows process falls back to the
+    logical CPU count clamped by ``_MAX_DEFAULT_WORKERS``.
     On Linux ``sched_getaffinity`` always succeeds, so an unconstrained box
     reports its full logical CPU count rather than ``None``.
 

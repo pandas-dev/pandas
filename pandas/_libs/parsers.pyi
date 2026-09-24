@@ -41,6 +41,7 @@ class TextReader:
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
     defer_pa_wrap: bool
+    block_workers: int
     trim_after_read: bool
     warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(
@@ -91,10 +92,14 @@ class TextReader:
     def load_buffer(self, data: bytes | memoryview, strip_bom: bool = ...) -> None: ...
     def read(self, rows: int | None = ...) -> dict[int, ArrayLike]: ...
     def read_low_memory(self, rows: int | None) -> list[dict[int, ArrayLike]]: ...
+    def _maybe_infer_categoricals(self, data: dict[int, ArrayLike]) -> None: ...
 
 # _maybe_upcast, na_values are only exposed for testing
 na_values: dict[type | np.dtype, float | int]
 
 def _maybe_upcast(
-    arr: np.ndarray, use_dtype_backend: bool = ..., dtype_backend: str = ...
+    arr: np.ndarray,
+    use_dtype_backend: bool = ...,
+    dtype_backend: str = ...,
+    na_mask: np.ndarray | None = ...,
 ) -> np.ndarray: ...
