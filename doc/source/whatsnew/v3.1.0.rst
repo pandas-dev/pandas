@@ -72,7 +72,7 @@ This is enabled by default and applies when the input is a local, uncompressed
 file of at least 5 MB and no options are passed that require parsing the file
 as a whole; the result is identical to a serial read. The number of threads is
 controlled with the new ``mode.max_threads`` option, which defaults to the
-number of CPUs available to the process, capped at four. Set it to ``1`` to
+number of CPUs available to the process, capped at 6. Set it to ``1`` to
 read serially, for instance when pandas runs inside an application that already
 parallelizes work:
 
