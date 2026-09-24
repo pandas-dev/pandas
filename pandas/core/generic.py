@@ -108,6 +108,7 @@ from pandas.core import (
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
+from pandas.core.col import Expression
 from pandas.core.construction import extract_array
 from pandas.core.flags import Flags
 from pandas.core.indexes.api import (
@@ -120,6 +121,10 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.internals import BlockManager
 from pandas.core.methods.describe import describe_ndframe
+from pandas.core.methods.filter import (
+    filter_mask,
+    is_mask,
+)
 from pandas.core.missing import (
     clean_fill_method,
     clean_reindex_fill_method,
@@ -219,7 +224,7 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     condition, so we can skip that machinery altogether (GH#51547).
     """
     if isinstance(obj, ABCDataFrame):
-        dtypes: list[DtypeObj] = [block.dtype for block in obj._mgr.blocks]
+        dtypes: list[DtypeObj] = obj._blk_dtypes
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
@@ -435,7 +440,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         allows_duplicate_labels : bool, optional
@@ -718,7 +723,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -885,7 +890,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +948,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -2037,9 +2042,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in meta:
-                    if k in state and k != "_flags":
+                    # _metadata is handled below: assigning a pre-2.1 pickle's
+                    # ["name"] here would mask the class's ["_name"], see GH#61819
+                    if k in state and k not in ("_flags", "_metadata"):
                         v = state[k]
                         object.__setattr__(self, k, v)
+
+                if "_metadata" in state:
+                    # merge rather than replace, so a subclass that extends
+                    # _metadata per instance keeps its entries
+                    cls_meta = list(self._metadata)
+                    merged = list(dict.fromkeys(cls_meta + list(state["_metadata"])))
+                    if merged != cls_meta:
+                        object.__setattr__(self, "_metadata", merged)
 
                 for k, v in state.items():
                     if k not in meta:
@@ -4307,7 +4322,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # if we encounter an array-like and we only have 1 dim
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
-                return self._values[loc]
+                return self._ixs(loc, axis=0)
 
             if not drop_level and isinstance(index, MultiIndex):
                 # GH#6507 - honor drop_level=False for fully specified keys
@@ -4547,7 +4562,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         limit : int, default None
@@ -5298,7 +5313,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         level : int or name
@@ -5611,84 +5626,233 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def filter(
         self,
-        items=None,
+        arg=None,
+        /,
         like: str | None = None,
         regex: str | None = None,
         axis: Axis | None = None,
+        *,
+        items=None,
+        cond=None,
+        na: Literal["raise"] | bool = False,
     ) -> Self:
         """
-        Subset the DataFrame or Series according to the specified index labels.
+        Subset the rows or columns according to a boolean mask or the labels.
 
-        For DataFrame, filter rows or columns depending on ``axis`` argument.
-        Note that this routine does not filter based on content.
-        The filter is applied to the labels of the index.
+        Rows (or columns with ``axis=1``) are kept where a boolean mask is
+        True, or selected by their labels with ``items``, ``like``, or
+        ``regex``.
 
         Parameters
         ----------
-        items : list-like
-            Keep labels from axis which are in items.
+        arg : callable, expression, or list-like, optional
+            Positional-only. A callable or an expression created with
+            :func:`pandas.col` is a boolean mask, see ``cond``. Any other
+            list-like selects labels, see ``items``. A list-like of booleans
+            also selects labels, but since it is likely intended as a mask a
+            warning is issued; pass ``items`` or ``cond`` instead to be
+            explicit.
         like : str
-            Keep labels from axis for which "like in label == True".
+            Keep labels from axis for which "like in label == True". This
+            will be deprecated in a future version; use
+            ``obj.filter(lambda obj: obj.columns.astype(str).str.contains(like,
+            regex=False), axis=1)`` instead.
         regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
+            This will be deprecated in a future version; use
+            ``obj.filter(lambda obj: obj.columns.astype(str).str.contains(regex),
+            axis=1)`` instead.
         axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
-            or axis name (str). By default this is the info axis, 'columns' for
-            ``DataFrame``. For ``Series`` this parameter is unused and defaults to
-            ``None``.
+            or axis name (str). Defaults to the index for a boolean mask,
+            and to the info axis ('columns' for ``DataFrame``) when
+            selecting labels. An expression only supports the index. For
+            ``Series`` this parameter is unused and defaults to ``None``.
+        items : list-like, optional
+            Keep labels from axis which are in ``items``. This will be
+            deprecated in a future version; use :meth:`DataFrame.select`
+            when all of ``items`` are present in the columns, or
+            ``obj.loc[:, pd.Index(items).intersection(obj.columns)]`` (or
+            the equivalent for the index) otherwise.
+        cond : array-like of bool, callable, or expression, optional
+            A boolean mask selecting the entries to keep. A :class:`Series`
+            is aligned with the labels of the filtered axis; any other
+            array-like must have the same length as that axis. A callable is
+            called with the object and must return a boolean mask. An
+            expression such as ``pd.col("a") > 1`` is evaluated against the
+            DataFrame and is only supported with ``axis=0``.
+        na : {"raise", True, False}, default False
+            How to treat missing values in a boolean mask. ``True`` or
+            ``False`` treats missing values as that value, matching
+            ``obj[mask]`` for a mask with nullable boolean dtype; ``"raise"``
+            raises a ``ValueError``. Ignored when selecting labels.
 
         Returns
         -------
         Same type as caller
             The filtered subset of the DataFrame or Series.
 
+        Raises
+        ------
+        TypeError
+            If none or more than one of the positional argument, ``items``,
+            ``cond``, ``like``, and ``regex`` is passed, or if ``cond`` is
+            not a one-dimensional boolean mask.
+        ValueError
+            If a mask contains missing values and ``na="raise"``, if a
+            boolean array is not one-dimensional, or if an expression is
+            passed with ``axis=1``.
+        IndexError
+            If a mask that is not a Series has a different length than the
+            filtered axis.
+        IndexingError
+            If a Series mask cannot be aligned with the filtered axis.
+
+        Warns
+        -----
+        UserWarning
+            If a list-like of booleans is passed positionally.
+
         See Also
         --------
         DataFrame.loc : Access a group of rows and columns
             by label(s) or a boolean array.
+        DataFrame.where : Replace values where the condition is False.
 
         Notes
         -----
-        The ``items``, ``like``, and ``regex`` parameters are
-        enforced to be mutually exclusive.
+        The positional argument is a boolean mask only when it is a callable
+        or an expression; any other value, including a list-like of booleans,
+        selects labels. Use ``cond`` to filter with a boolean array or
+        :class:`Series`.
 
-        ``axis`` defaults to the info axis that is used when indexing
-        with ``[]``.
+        Selecting labels with ``items``, ``like``, or ``regex`` will be
+        deprecated in a future version.
 
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     np.array(([1, 2, 3], [4, 5, 6])),
+        ...     {"one": [1, 4], "two": [2, 5], "three": [3, 6]},
         ...     index=["mouse", "rabbit"],
-        ...     columns=["one", "two", "three"],
         ... )
         >>> df
                 one  two  three
         mouse     1    2      3
         rabbit    4    5      6
 
-        >>> # select columns by name
+        Filter rows with a boolean Series.
+
+        >>> df.filter(cond=df["two"] > 2)
+                one  two  three
+        rabbit    4    5      6
+
+        The same using an expression or a callable, which are convenient in
+        method chains and may be passed positionally.
+
+        >>> df.filter(pd.col("two") > 2)
+                one  two  three
+        rabbit    4    5      6
+        >>> df.filter(lambda df: df["two"] > 2)
+                one  two  three
+        rabbit    4    5      6
+
+        Filter columns with a boolean array.
+
+        >>> df.filter(cond=df.columns.str.endswith("e"), axis=1)
+                one  three
+        mouse     1      3
+        rabbit    4      6
+
+        Missing values in the mask are treated as False by default; pass
+        ``na="raise"`` to raise instead, or ``na=True`` to keep them.
+
+        >>> mask = pd.array([True, None], dtype="boolean")
+        >>> df.filter(cond=mask)
+               one  two  three
+        mouse    1    2      3
+        >>> df.filter(cond=mask, na=True)
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
+
+        Select columns by their labels.
+
         >>> df.filter(items=["one", "three"])
-                 one  three
+                one  three
         mouse     1      3
         rabbit    4      6
-
-        >>> # select columns by regular expression
         >>> df.filter(regex="e$", axis=1)
-                 one  three
+                one  three
         mouse     1      3
         rabbit    4      6
-
-        >>> # select rows containing 'bbi'
         >>> df.filter(like="bbi", axis=0)
-                 one  two  three
+                one  two  three
         rabbit    4    5      6
         """
-        nkw = common.count_not_none(items, like, regex)
+        nkw = common.count_not_none(arg, items, cond, like, regex)
         if nkw > 1:
             raise TypeError(
-                "Keyword arguments `items`, `like`, or `regex` are mutually exclusive"
+                "The positional argument and the keyword arguments `items`, "
+                "`cond`, `like`, and `regex` are mutually exclusive"
             )
+        if nkw == 0:
+            raise TypeError(
+                "Must pass a positional argument or one of `items`, `cond`, "
+                "`like`, or `regex`"
+            )
+
+        if na is not True and na is not False and na != "raise":
+            raise ValueError(f"na must be 'raise', True, or False, got {na!r}")
+
+        if arg is not None:
+            # Only a callable or expression is unambiguously a mask when passed
+            # positionally. Anything else selected labels before masks were
+            # supported and keeps doing so, since a boolean list-like is a
+            # valid (if unusual) list of labels.
+            if callable(arg):
+                cond = arg
+            else:
+                if is_mask(arg):
+                    warnings.warn(
+                        "A list-like of booleans passed positionally to "
+                        f"{type(self).__name__}.filter selects labels. Pass "
+                        "cond=... to filter with a boolean mask, or items=... "
+                        "to select labels without this warning.",
+                        UserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                items = arg
+
+        if cond is not None:
+            mask_axis = 0 if axis is None else self._get_axis_number(axis)
+            if isinstance(cond, Expression) and self.ndim != 2:
+                raise TypeError(
+                    "Expressions such as pd.col(...) are only supported by "
+                    "DataFrame.filter"
+                )
+            if isinstance(cond, Expression) and mask_axis != 0:
+                raise ValueError(
+                    "Expressions such as pd.col(...) are only supported by "
+                    f"{type(self).__name__}.filter with axis=0, since they "
+                    "evaluate to a mask aligned with the index"
+                )
+            if callable(cond):
+                # Expression defines __call__, so it enters here too
+                mask = common.apply_if_callable(cond, self)
+                if not is_mask(mask):
+                    kind = "expression" if isinstance(cond, Expression) else "callable"
+                    raise TypeError(
+                        f"The {kind} passed to {type(self).__name__}.filter "
+                        "must evaluate to a one-dimensional boolean mask"
+                    )
+            elif is_mask(cond):
+                mask = cond
+            else:
+                raise TypeError(
+                    f"cond passed to {type(self).__name__}.filter must be a "
+                    "one-dimensional boolean mask"
+                )
+            return filter_mask(self, mask, mask_axis, na)
 
         if axis is None:
             axis = self._info_axis_name
@@ -5718,7 +5882,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             values = labels.map(f)
             return self.loc(axis=axis)[values]
         else:
-            raise TypeError("Must pass either `items`, `like`, or `regex`")
+            raise TypeError(
+                "Must pass a positional argument or one of `items`, `cond`, "
+                "`like`, or `regex`"
+            )
 
     @final
     def head(self, n: int = 5) -> Self:
@@ -6294,8 +6461,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     warnings.warn(
                         "Pandas doesn't allow columns to be "
                         "created via a new attribute name - see "
-                        "https://pandas.pydata.org/pandas-docs/"
-                        "stable/indexing.html#attribute-access",
+                        "https://pandas.pydata.org/docs/dev/user_guide/"
+                        "indexing.html#attribute-access",
                         stacklevel=find_stack_level(),
                     )
                 object.__setattr__(self, name, value)
@@ -6451,7 +6618,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         errors : {'raise', 'ignore'}, default 'raise'
@@ -6590,7 +6757,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(EA2D): special case not needed with 2D EAs
             dtype = pandas_dtype(dtype)
             if isinstance(dtype, ExtensionDtype) and all(
-                block.values.dtype == dtype for block in self._mgr.blocks
+                x == dtype for x in self._blk_dtypes
             ):
                 return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -6762,7 +6929,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -9907,7 +10074,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         fill_value : scalar, default np.nan
@@ -10757,7 +10924,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10841,14 +11007,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if periods == 0:
-            return self.copy(deep=False)
-
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
-                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+                periods=periods,
+                freq=freq,
+                axis=axis,
+                fill_value=fill_value,
+                suffix=suffix,
             )
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast("int", periods)
+
+        if periods == 0:
+            return self.copy(deep=False)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
@@ -10930,7 +11102,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -11113,7 +11285,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -11219,7 +11391,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         ambiguous : 'infer', bool, bool-ndarray, 'NaT', default 'raise'
@@ -12000,8 +12172,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
             When ``on`` is specified, the values of that column also become the
             index of the :class:`Series` passed to :meth:`Rolling.apply` when
@@ -12107,6 +12282,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2013-01-01 09:00:03  3.0
         2013-01-01 09:00:05  NaN
         2013-01-01 09:00:06  4.0
+
+        Rolling sum with forward-looking windows with 3 seconds.
+
+        >>> df_time.iloc[::-1].rolling("3s").sum().iloc[::-1]
+                               B
+        2013-01-01 09:00:00  1.0
+        2013-01-01 09:00:02  3.0
+        2013-01-01 09:00:03  2.0
+        2013-01-01 09:00:05  4.0
+        2013-01-01 09:00:06  4.0
+
+        .. note::
+
+            Negative offset strings (e.g., ``"-5h"``) do not create forward-looking
+            windows and should be avoided. They collapse to single-element windows.
 
         Rolling sum with forward looking windows with 2 observations.
 

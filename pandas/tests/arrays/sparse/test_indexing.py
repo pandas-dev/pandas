@@ -98,8 +98,9 @@ class TestGetitem:
         exp = SparseArray([np.nan, 1, 3, 4, np.nan])
         tm.assert_sp_array_equal(res, exp)
 
+        # trailing False pads the mask to len(arr); a shorter one now raises
         spar_bool = SparseArray(
-            [False, True, np.nan] * 3, dtype=np.bool_, fill_value=np.nan
+            [False, True, np.nan] * 3 + [False], dtype=np.bool_, fill_value=np.nan
         )
         res = arr[spar_bool]
         exp = SparseArray([np.nan, 3, 5])
@@ -111,6 +112,44 @@ class TestGetitem:
         res = arr[arr > 2]
         exp = SparseArray([3.0, 4.0], fill_value=np.nan)
         tm.assert_sp_array_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "fill_value, indices, sp_values",
+        [
+            (False, [0, 1, 3], [True, False, True]),
+            (True, [0, 1, 2], [True, False, False]),
+        ],
+    )
+    def test_getitem_bool_sparse_array_stored_fill(
+        self, fill_value, indices, sp_values
+    ):
+        # GH#45284 a stored value may equal the fill value, so the mask cannot be
+        #  read off sp_index alone
+        arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
+        key = SparseArray.from_indices(
+            np.array(sp_values),
+            indices=indices,
+            length=4,
+            fill_value=fill_value,
+        )
+        assert (key.sp_values == key.fill_value).any()
+
+        res = arr[key]
+        tm.assert_sp_array_equal(res, SparseArray([1.0, 4.0], fill_value=np.nan))
+
+    @pytest.mark.parametrize("fill_value", [True, False, np.nan])
+    @pytest.mark.parametrize(
+        "data", [[True, False], [True, False, True, False, True, True]]
+    )
+    def test_getitem_bool_sparse_array_wrong_length(self, data, fill_value):
+        # GH#45284 the sparse fast path skips check_array_indexer, which is what
+        #  rejects a mask of the wrong length
+        arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
+        key = SparseArray(data, fill_value=fill_value, dtype=np.bool_)
+
+        msg = f"Boolean index has wrong length: {len(data)} instead of 4"
+        with pytest.raises(IndexError, match=msg):
+            arr[key]
 
     def test_get_item(self, arr):
         zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
@@ -194,6 +233,71 @@ class TestTake:
         assert result.dtype == pd.SparseDtype(object, False)
         tm.assert_sp_array_equal(result, expected)
 
+    def test_take_fill_bool_empty_upcasts_to_object(self):
+        # GH#32119 same as above for a length-zero array, which takes a
+        #  separate branch
+        sparse = SparseArray(np.array([], dtype=bool))
+        result = sparse.take([-1, -1], allow_fill=True)
+        expected = SparseArray([np.nan, np.nan], dtype=pd.SparseDtype(object, False))
+        assert result.dtype == pd.SparseDtype(object, False)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_bool_old_fill_upcasts_to_object(self):
+        # GH#32119 same for the old-fill arm, reached when the array's own
+        #  fill value is NA
+        sparse = SparseArray(
+            np.array([True, np.nan], dtype=object),
+            dtype=pd.SparseDtype(bool, np.nan),
+        )
+        result = sparse.take([0, 1], allow_fill=True)
+        expected = SparseArray([True, np.nan], dtype=pd.SparseDtype(object, np.nan))
+        assert result.dtype == pd.SparseDtype(object, np.nan)
+        tm.assert_sp_array_equal(result, expected)
+
+    def test_take_fill_bool_all_sparse_na_fill_upcasts_to_object(self):
+        # GH#32119 same for the all-sparse arm, where np.full would otherwise
+        #  write the NA into a bool array and quietly resolve it to True
+        sparse = SparseArray(
+            np.array([np.nan, np.nan], dtype=object),
+            dtype=pd.SparseDtype(bool, np.nan),
+        )
+        result = sparse.take([1, 0], allow_fill=True)
+        expected = SparseArray([np.nan, np.nan], dtype=pd.SparseDtype(object, np.nan))
+        assert result.dtype == pd.SparseDtype(object, np.nan)
+        tm.assert_sp_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["uint8", "int8", "int16", "float32"])
+    def test_take_all_sparse_preserves_narrow_subtype(self, dtype):
+        # GH#68469 the all-sparse arm writes a fill its own subtype already
+        #  holds, so it must not promote
+        sparse = SparseArray(np.zeros(3, dtype=dtype), fill_value=0)
+        result = sparse.take([2, 1, 0], allow_fill=True)
+        assert result.dtype == sparse.dtype
+
+    @pytest.mark.parametrize("subtype", ["float16", "float32"])
+    @pytest.mark.parametrize("fill_value", [np.nan, 0])
+    def test_reindex_preserves_narrow_float_subtype(self, subtype, fill_value):
+        # GH#26123 a fill position used to promote the subtype on
+        #  type(fill_value), widening a narrow float to float64
+        ser = pd.Series(
+            SparseArray(np.array([1, 0], dtype=subtype), fill_value=fill_value)
+        )
+        result = ser.reindex([0, 1, 2])
+        expected = pd.Series(
+            SparseArray(np.array([1, 0, np.nan], dtype=subtype), fill_value=fill_value),
+            index=[0, 1, 2],
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_reindex_empty_bool_upcasts_to_object(self):
+        # GH#32119 the user-visible path onto the branch above
+        ser = pd.Series(SparseArray(np.array([], dtype=bool)))
+        result = ser.reindex([0, 1])
+        expected = pd.Series(
+            SparseArray([np.nan, np.nan], dtype=pd.SparseDtype(object, False))
+        )
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "subtype", ["int8", "int32", "uint16", "uint64", "float32"]
     )
@@ -224,6 +328,17 @@ class TestTake:
         sparse = SparseArray(data, fill_value=fill)
         result = sparse.take(np.array([0, 1, 2]), allow_fill=True)
         tm.assert_sp_array_equal(result, sparse)
+
+    @pytest.mark.parametrize("unit", ["M8[s]", "m8[s]"])
+    def test_take_fill_datetimelike_string(self, unit):
+        # GH#68590 a string fill value was parsed for a datetime64 subtype but
+        #  raised for timedelta64; both go through the same conversion now
+        data = np.array([1, 3, 5], dtype=unit)
+        fill = "1970-01-02" if unit[0] == "M" else "1 days"
+        result = SparseArray(data).take(
+            np.array([0, -1]), allow_fill=True, fill_value=fill
+        )
+        tm.assert_numpy_array_equal(result.to_dense(), np.array([1, 86400], dtype=unit))
 
     @pytest.mark.parametrize("unit", ["M8[s]", "M8[ns]", "m8[s]", "m8[ns]"])
     def test_take_fill_datetimelike_new_fill_is_nat(self, unit):

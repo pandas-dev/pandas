@@ -1218,19 +1218,14 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             2. file-like object (e.g. open file object, StringIO)
         """
         filepath_or_buffer = stringify_path(filepath_or_buffer)
-        try:
-            self.handles = get_handle(
-                filepath_or_buffer,
-                "r",
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-                errors=self.encoding_errors,
-            )
-        except OSError as err:
-            raise FileNotFoundError(
-                f"File {filepath_or_buffer} does not exist"
-            ) from err
+        self.handles = get_handle(
+            filepath_or_buffer,
+            "r",
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+            errors=self.encoding_errors,
+        )
         filepath_or_buffer = self.handles.handle
         return filepath_or_buffer
 

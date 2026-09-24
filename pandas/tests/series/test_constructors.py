@@ -800,12 +800,16 @@ class TestSeriesConstructors:
             [np.uint64(1)],
         ],
     )
-    def test_constructor_numpy_uints(self, values):
+    def test_constructor_numpy_uints(self, values, using_python_scalars):
         # GH#47294
         value = values[0]
         result = pd.Series(values)
 
-        assert result[0].dtype == value.dtype
+        assert result.dtype == value.dtype
+        if using_python_scalars:
+            assert type(result[0]) is int
+        else:
+            assert result[0].dtype == value.dtype
         assert result[0] == value
 
     def test_constructor_unsigned_dtype_overflow(self, any_unsigned_int_numpy_dtype):
@@ -1990,6 +1994,14 @@ class TestSeriesConstructors:
         expected = pd.Series(pd.to_timedelta(data, unit="s").as_unit("s"))
         tm.assert_series_equal(result, expected)
 
+    def test_constructor_dtype_timedelta_mixed_honors_unit(self):
+        # GH#68639 numbers mixed with timedelta-like objects are interpreted in
+        #  the dtype's unit, not as nanoseconds
+        data = [pd.Timedelta(1, "s"), 2]
+        result = pd.Series(data, dtype="timedelta64[s]")
+        expected = pd.Series(pd.to_timedelta([1, 2], unit="s").as_unit("s"))
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_dtype_timedelta_ns_s_astype_int64(self):
         # GH#35465
         result = pd.Series([1000000, 200000, 3000000], dtype="timedelta64[ns]").astype(
@@ -2079,6 +2091,9 @@ class TestSeriesConstructors:
         ser.iloc[0] = 100
         tm.assert_index_equal(idx, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference(self):
         # GH#54430
         with pd.option_context("future.infer_string", True):
@@ -2092,6 +2107,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_with_na_inference(self, na_value):
         # GH#54430
         with pd.option_context("future.infer_string", True):
@@ -2100,6 +2118,9 @@ class TestSeriesConstructors:
         expected = pd.Series(["a", None], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_scalar(self):
         # GH#54430
         with pd.option_context("future.infer_string", True):
@@ -2108,6 +2129,9 @@ class TestSeriesConstructors:
         expected = pd.Series("a", index=[1], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_array_string_dtype(self):
         # GH#54496
         with pd.option_context("future.infer_string", True):
@@ -2116,6 +2140,9 @@ class TestSeriesConstructors:
         expected = pd.Series(["a", "b"], dtype=dtype)
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_storage_definition(self):
         # https://github.com/pandas-dev/pandas/issues/54793
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
@@ -2133,6 +2160,9 @@ class TestSeriesConstructors:
             result = pd.Series(["a", "b"], dtype="str")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_constructor_infer_string_scalar(self):
         # GH#55537
         with pd.option_context("future.infer_string", True):
@@ -2141,6 +2171,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(ser, expected)
         assert ser.dtype.storage == "python"
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_series_string_inference_na_first(self):
         # GH#55655
         with pd.option_context("future.infer_string", True):

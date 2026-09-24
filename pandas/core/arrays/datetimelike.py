@@ -1590,7 +1590,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[s]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -1669,8 +1669,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,

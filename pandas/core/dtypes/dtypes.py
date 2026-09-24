@@ -38,6 +38,8 @@ from pandas._libs.tslibs import (
     Period,
     Timedelta,
     Timestamp,
+    is_supported_dtype,
+    is_unitless,
     timezones,
     to_offset,
     tz_compare,
@@ -1475,25 +1477,35 @@ class IntervalDtype(PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import IntervalArray
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
 
         if isinstance(array, pyarrow.Array):
             chunks = [array]
         else:
             chunks = array.chunks
 
+        # np.asarray can't take an ExtensionDtype, e.g. DatetimeTZDtype
+        subtype_is_numpy = isinstance(self.subtype, np.dtype)
+
+        def _convert(values: pyarrow.Array):
+            if subtype_is_numpy:
+                return np.asarray(values, dtype=self.subtype)
+            return self.subtype.__from_arrow__(values)
+
         results = []
         for arr in chunks:
             if isinstance(arr, pyarrow.ExtensionArray):
                 arr = arr.storage
-            left = np.asarray(arr.field("left"), dtype=self.subtype)
-            right = np.asarray(arr.field("right"), dtype=self.subtype)
+            left = _convert(arr.field("left"))
+            right = _convert(arr.field("right"))
             iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
             results.append(iarr)
 
         if not results:
+            empty = pyarrow.array([], type=to_pyarrow_type(self.subtype))
             return IntervalArray.from_arrays(
-                np.array([], dtype=self.subtype),
-                np.array([], dtype=self.subtype),
+                _convert(empty),
+                _convert(empty),
                 closed=self.closed,
             )
         return IntervalArray._concat_same_type(results)
@@ -1734,7 +1746,9 @@ class SparseDtype(ExtensionDtype):
     ``SparseDtype`` is used as the data type for :class:`SparseArray`, enabling
     more efficient storage of data that contains a significant number of
     repetitive values typically represented by a fill value. It supports any
-    scalar dtype as the underlying data type of the non-fill values.
+    scalar dtype as the underlying data type of the non-fill values, except
+    that a datetime64 or timedelta64 subtype is limited to the ``'s'``,
+    ``'ms'``, ``'us'`` and ``'ns'`` resolutions.
 
     Parameters
     ----------
@@ -1800,7 +1814,10 @@ class SparseDtype(ExtensionDtype):
             is_string_dtype,
             pandas_dtype,
         )
-        from pandas.core.dtypes.missing import na_value_for_dtype
+        from pandas.core.dtypes.missing import (
+            is_valid_na_for_dtype,
+            na_value_for_dtype,
+        )
 
         dtype = pandas_dtype(dtype)
         if is_string_dtype(dtype):
@@ -1808,17 +1825,36 @@ class SparseDtype(ExtensionDtype):
         if not isinstance(dtype, np.dtype):
             # GH#53160
             raise TypeError("SparseDtype subtype must be a numpy dtype")
+        if dtype.kind in "mM" and not is_supported_dtype(dtype):
+            # GH#68522 hold the subtype to what the dense constructors accept.
+            #  Their own check is cast._ensure_nanosecond_dtype, which this
+            #  module cannot import; keep the messages identical.
+            if is_unitless(dtype):
+                raise ValueError(
+                    f"The '{dtype.name}' dtype has no unit. "
+                    f"Please pass in '{dtype.name}[ns]' instead."
+                )
+            raise TypeError(
+                f"dtype={dtype} is not supported. Supported resolutions are 's', "
+                "'ms', 'us', and 'ns'"
+            )
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
-        elif fill_value is NaT and dtype.kind in "mM":
-            # GH#68449 store the subtype's own NaT, so that the two spellings
-            #  of the fill value behave identically downstream
+        elif dtype.kind in "mM" and is_valid_na_for_dtype(fill_value, dtype):
+            # GH#68449, GH#68558 store the subtype's own NaT, so that every
+            #  spelling of an NA fill value behaves identically downstream
             fill_value = na_value_for_dtype(dtype)
 
         self._dtype = dtype
         self._fill_value = fill_value
         self._check_fill_value()
+
+        if isinstance(fill_value, (Timestamp, Timedelta)) and dtype.kind in "mM":
+            # GH#68589 store the subtype's own scalar, like the NaT case above:
+            #  numpy converts a boxed scalar through datetime, truncating a
+            #  nanosecond fill value wherever it reaches numpy
+            self._fill_value = fill_value.asm8.astype(dtype)
 
     def __hash__(self) -> int:
         # Python3 doesn't inherit __hash__ when a base class overrides
@@ -1847,14 +1883,17 @@ class SparseDtype(ExtensionDtype):
                 # and can warn, e.g. numpy deprecates timedelta64 == int
                 return False
             if self._is_na_fill_value or other._is_na_fill_value:
-                # this case is complicated by two things:
-                # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
-                # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
-                # i.e. we want to treat any floating-point NaN as equal, but
+                # GH#68582 an NA fill value is equal only to another NA fill
+                # value: we want to treat any floating-point NaN as equal, but
                 # not a floating-point NaN and a datetime NaT.
-                fill_value = isinstance(
-                    self.fill_value, type(other.fill_value)
-                ) or isinstance(other.fill_value, type(self.fill_value))
+                fill_value = (
+                    self._is_na_fill_value
+                    and other._is_na_fill_value
+                    and (
+                        isinstance(self.fill_value, type(other.fill_value))
+                        or isinstance(other.fill_value, type(self.fill_value))
+                    )
+                )
             else:
                 with warnings.catch_warnings():
                     # Ignore spurious numpy warning
@@ -2148,7 +2187,7 @@ class SparseDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatible extension dtypes
-        from pandas.core.dtypes.cast import np_find_common_type
+        from pandas.core.dtypes.cast import find_common_type
 
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
@@ -2173,11 +2212,11 @@ class SparseDtype(ExtensionDtype):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
-        # error: Argument 1 to "np_find_common_type" has incompatible type
-        # "*Generator[Any | dtype[Any] | ExtensionDtype, None, None]";
-        # expected "dtype[Any]"  [arg-type]
-        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)  # type: ignore [arg-type]
+        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
+        # GH#69028 find_common_type rather than np_find_common_type: numpy widens
+        #  bool with a numeric to that numeric, and drops the subtype for two
+        #  datetime64/timedelta64 dtypes; pandas gets both right
+        return SparseDtype(find_common_type(np_dtypes), fill_value=fill_value)
 
 
 @register_extension_dtype

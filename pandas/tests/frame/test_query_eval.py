@@ -12,7 +12,10 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.core.computation.check import (
+    NUMEXPR_BLOCKED_VERSION,
+    NUMEXPR_INSTALLED,
+)
 
 skip_if_no_numexpr = pytest.mark.skipif(
     not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
@@ -84,16 +87,23 @@ class TestCompat:
             tm.assert_frame_equal(result, expected1)
             result = df.eval("A+1", engine="numexpr")
             tm.assert_series_equal(result, expected2)
+            return
+
+        if NUMEXPR_BLOCKED_VERSION is not None:
+            msg = (
+                rf"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can "
+                r"silently return incorrect results"
+            )
         else:
             msg = (
                 r"'numexpr' is not installed or an unsupported version. "
                 r"Cannot use engine='numexpr' for query/eval if 'numexpr' is "
                 r"not installed"
             )
-            with pytest.raises(ImportError, match=msg):
-                df.query("A>0", engine="numexpr")
-            with pytest.raises(ImportError, match=msg):
-                df.eval("A+1", engine="numexpr")
+        with pytest.raises(ImportError, match=msg):
+            df.query("A>0", engine="numexpr")
+        with pytest.raises(ImportError, match=msg):
+            df.eval("A+1", engine="numexpr")
 
 
 class TestDataFrameEval:
@@ -1290,7 +1300,7 @@ class TestDataFrameQueryStrings:
     def test_query_str_slice_negative_index(self, parser, engine):
         # GH#49905 visit_Call's unary argument, as in
         #  test_eval.py::test_unary_in_function; the a.str[-1:] spelling in the
-        #  same issue still raises, see visit_Slice
+        #  same issue is test_eval.py::test_slice_subscript_with_unary_bound
         df = pd.DataFrame({"a": ["example", "zzz"]})
 
         result = df.query(
