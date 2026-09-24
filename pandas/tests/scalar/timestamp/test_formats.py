@@ -192,22 +192,18 @@ def test_isoformat_pre_standardization_offset(tz, expected):
 )
 def test_isoformat_repr_utcoffset_wide_year_non_fixed_tz(dt64):
     # GH#68009 isoformat()/repr()/str()/utcoffset() raised NotImplementedError
-    #  for a non-fixed-offset tz (e.g. zoneinfo) when the timestamp's true year
-    #  is outside the range Python's standard library datetime can represent,
-    #  because resolving the tzinfo's offset requires that year via
-    #  toordinal(). They now derive the offset directly from the already-
-    #  computed wall-clock fields (rather than substituting an unrelated
-    #  year's DST rule), so the offset embedded in each string always
-    #  reconciles with the wall time shown next to it.
+    #  for a non-fixed-offset tz (e.g. zoneinfo) when the year is out of range
+    #  for the stdlib datetime. They now derive the offset from the already-
+    #  computed wall-clock fields, so it always matches the wall time shown.
     utc_ts = pd.Timestamp(dt64)
     ts = pd.Timestamp(utc_ts._value, unit="us", tz="Europe/Brussels")
 
     offset = ts.utcoffset()
     naive_wall = ts.replace(tzinfo=None)
-    # the offset must recover the true UTC instant from the displayed wall time
+    # offset must recover the true UTC instant from the displayed wall time
     assert naive_wall - offset == utc_ts
 
-    # the wall time embedded in each rendering must match naive_wall exactly,
+    # wall time embedded in each rendering must match naive_wall exactly,
     # and the offset must actually be embedded (not silently dropped)
     assert str(ts).startswith(str(naive_wall))
     assert str(ts) != str(naive_wall)

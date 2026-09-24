@@ -47,6 +47,7 @@ cdef class Localizer:
         int64_t* tdata
         int64_t last_trans
 
+    cdef Py_ssize_t _closest_future_trans_pos(self, int64_t utc_val) noexcept
     cdef int64_t utc_val_to_local_val(
         self,
         int64_t utc_val,

@@ -20,6 +20,7 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    int32_t,
     int64_t,
     intp_t,
     ndarray,
@@ -28,6 +29,7 @@ from numpy cimport (
 
 cnp.import_array()
 
+from pandas._libs.tslibs.ccalendar cimport get_day_of_year
 from pandas._libs.tslibs.dtypes cimport (
     periods_per_day,
     periods_per_second,
@@ -146,6 +148,42 @@ cdef class Localizer:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
+    cdef Py_ssize_t _closest_future_trans_pos(self, int64_t utc_val) noexcept:
+        """
+        GH#68009 utc_val is beyond self.last_trans, the last transition
+        zoneinfo's tzdata/POSIX rule was used to precompute (see
+        timezones._get_zoneinfo_trans_and_deltas), and its year is out of
+        range for the stdlib datetime API to resolve directly. The two most
+        recent precomputed transitions (self.tdata[-2:]) span one full DST
+        cycle (e.g. "spring forward" then "fall back"); pick whichever of
+        the two applies to utc_val by comparing calendar day-of-year, since
+        the day-of-year a rule like "last Sunday in March" falls on barely
+        moves from one year to the next, making it a reliable proxy even
+        for a year we cannot otherwise resolve.
+        """
+        cdef:
+            npy_datetimestruct dts
+            int32_t target_doy, prev_doy, prevprev_doy
+            Py_ssize_t prev = self.ntrans - 1, prevprev = self.ntrans - 2
+
+        if prevprev < 0:
+            return prev
+
+        pandas_datetime_to_datetimestruct(utc_val, self._creso, &dts)
+        target_doy = get_day_of_year(2001, dts.month, dts.day)
+        pandas_datetime_to_datetimestruct(self.tdata[prev], self._creso, &dts)
+        prev_doy = get_day_of_year(2001, dts.month, dts.day)
+        pandas_datetime_to_datetimestruct(self.tdata[prevprev], self._creso, &dts)
+        prevprev_doy = get_day_of_year(2001, dts.month, dts.day)
+
+        # the smaller forward (cyclical) distance identifies whichever
+        # transition was passed most recently, i.e. is currently in effect
+        if (target_doy - prev_doy) % 365 <= (target_doy - prevprev_doy) % 365:
+            return prev
+        return prevprev
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     cdef int64_t utc_val_to_local_val(
         self, int64_t utc_val, Py_ssize_t* pos, bint* fold=NULL
     ) except? -1:
@@ -168,13 +206,14 @@ cdef class Localizer:
             except NotImplementedError:
                 if not self.use_zoneinfo:
                     raise
-                # GH#68009 utc_val is too far in the future/past for zoneinfo to
+                # GH#68009 utc_val is too far in the future for zoneinfo to
                 #  compute an offset via the stdlib datetime API (year out of
-                #  range). Since utc_val is already beyond the last cached
-                #  transition, extrapolate using that transition's offset
-                #  instead of raising, matching the pytz-backed fast path below
-                #  and restoring the pre-3.0 (pytz-default) behavior.
-                pos[0] = self.ntrans - 1
+                #  range). Extrapolate using whichever of the last two cached
+                #  transitions' offsets matches utc_val's calendar day, rather
+                #  than blindly reusing the very last one (which would be
+                #  wrong for about half the year), restoring the pre-3.0
+                #  (pytz-default) behavior of never raising for such dates.
+                pos[0] = self._closest_future_trans_pos(utc_val)
                 if fold is not NULL:
                     fold[0] = 0
                 delta = self.deltas[pos[0]]
