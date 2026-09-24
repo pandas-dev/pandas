@@ -52,7 +52,6 @@ __all__ = [
     "NaTType",
     "NoDefault",
     "ParquetFileReader",
-    "PeriodIndexResamplerGroupby",
     "PeriodIndexResamplerGroupBy",
     "Resampler",
     "Rolling",
