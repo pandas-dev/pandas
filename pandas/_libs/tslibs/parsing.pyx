@@ -215,10 +215,19 @@ cdef datetime _parse_delimited_date(
     raise DateParseError(f"Invalid date specified ({month}/{day})")
 
 
+cdef int _parse_minute(const char* s, Py_ssize_t length):
+    """
+    Parse a minute that may be written with either one or two digits.
+    """
+    if length >= 2 and getdigit_ascii(s[1], -1) >= 0:
+        return _parse_2digit(s)
+    return _parse_1digit(s)
+
+
 cdef bint _does_string_look_like_time(str parse_string):
     """
-    Checks whether given string is a time: it has to start either from
-    H:MM or from HH:MM, and hour and minute values must be valid.
+    Checks whether given string is a time: it has to start from
+    H:M, H:MM, HH:M or HH:MM, and hour and minute values must be valid.
 
     Parameters
     ----------
@@ -235,15 +244,15 @@ cdef bint _does_string_look_like_time(str parse_string):
         int hour = -1, minute = -1
 
     buf = PyUnicode_AsUTF8AndSize(parse_string, &length)
-    if length >= 4:
+    if length >= 3:
         if buf[1] == b":":
-            # h:MM format
+            # h:MM or h:M format
             hour = getdigit_ascii(buf[0], -1)
-            minute = _parse_2digit(buf + 2)
-        elif buf[2] == b":":
-            # HH:MM format
+            minute = _parse_minute(buf + 2, length - 2)
+        elif length >= 4 and buf[2] == b":":
+            # HH:MM or HH:M format
             hour = _parse_2digit(buf)
-            minute = _parse_2digit(buf + 3)
+            minute = _parse_minute(buf + 3, length - 3)
 
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
