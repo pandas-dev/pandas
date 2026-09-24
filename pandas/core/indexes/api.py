@@ -162,6 +162,7 @@ def _get_combined_index(
     if sort and sort is not lib.no_default:
         index = safe_sort_index(index)
         all_equal = False
+        index = _maybe_restore_freq(index, indexes)
     return index, all_equal
 
 
@@ -270,7 +271,7 @@ def union_indexes(
 
         for other in indexes[1:]:
             result = result.union(other, sort=None if sort else False)
-        return result, False
+        return _maybe_restore_freq(result, indexes), False
 
     elif kind == "array":
         all_equal = all_indexes_same(indexes)
@@ -306,6 +307,36 @@ def union_indexes(
         return result, False
     else:
         raise ValueError(f"{kind=} must be 'special', 'array' or 'list'.")
+
+
+def _maybe_restore_freq(result: Index, indexes: list[Index]) -> Index:
+    """
+    Re-attach the ``freq`` shared by all ``indexes`` to ``result`` if it was lost.
+
+    Pairwise unions and sorting drop ``freq`` whenever an intermediate result
+    is not regular, and inference cannot recover an offset such as
+    ``CustomBusinessDay`` from the values alone, so the outcome depended on
+    the order of ``indexes`` (GH#64253).  Validate the shared freq against the
+    final values once instead.
+    """
+    if (
+        not isinstance(result, DatetimeIndex)
+        or result.freq is not None
+        or not result.is_monotonic_increasing
+    ):
+        return result
+
+    freq = getattr(indexes[0], "freq", None)
+    if freq is None or not all(
+        isinstance(idx, DatetimeIndex) and idx.freq == freq for idx in indexes
+    ):
+        return result
+
+    try:
+        type(result._data)._validate_frequency(result, freq)
+    except ValueError:
+        return result
+    return result._with_freq(freq)
 
 
 def _sanitize_and_check(indexes):

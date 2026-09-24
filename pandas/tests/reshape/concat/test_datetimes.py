@@ -129,6 +129,31 @@ class TestDatetimeConcat:
         # Not checked by assert_index_equal
         assert result.freq == "s"
 
+    @pytest.mark.parametrize("sort", [True, False, None])
+    def test_concat_datetimeindex_freq_order_independent(self, sort):
+        # GH#64253 - freq that cannot be inferred from the values (here a
+        # CustomBusinessDay with holidays) was lost when a pairwise union of
+        # the inputs was not contiguous, so the result depended on the order
+        freq = pd.offsets.CustomBusinessDay(holidays=["2020-01-10"])
+        s1 = pd.Series(1, index=pd.date_range("2020-01-01", periods=5, freq=freq))
+        s2 = pd.Series(1, index=pd.date_range(s1.index[3], periods=5, freq=freq))
+        s3 = pd.Series(1, index=pd.date_range(s2.index[3], periods=5, freq=freq))
+
+        kwargs = {} if sort is None else {"sort": sort}
+        warn = Pandas4Warning if sort is None else None
+        msg = "Sorting by default when concatenating all DatetimeIndex"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = pd.concat([s1, s3, s2], axis=1, **kwargs).index
+
+        if sort is False:
+            # not monotonic, so there is no freq to restore
+            expected = s1.index.append([s3.index, s2.index[2:3]])._with_freq(None)
+        else:
+            expected = pd.date_range(s1.index[0], s3.index[-1], freq=freq)
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == expected.freq
+
     def test_concat_datetimeindex_tz_convert_freq(self):
         # GH#41585 - concat after tz_convert should not raise when
         # the converted timestamps no longer conform to the original freq
