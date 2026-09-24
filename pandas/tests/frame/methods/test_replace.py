@@ -1345,6 +1345,20 @@ class TestDataFrameReplace:
         with pytest.raises(TypeError, match=msg):
             df.replace(**replace_kwargs)
 
+    @pytest.mark.parametrize(
+        "replace_kwargs",
+        [
+            {"to_replace": 1, "value": pd.Timestamp},
+            {"to_replace": {1: pd.Timestamp}},
+        ],
+    )
+    def test_replace_value_class(self, replace_kwargs):
+        # GH#68199 a class is callable but is still a valid value
+        df = pd.DataFrame({"one": [1, 2]})
+        result = df.replace(**replace_kwargs)
+        expected = pd.DataFrame({"one": [pd.Timestamp, 2]}, dtype=object)
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_ellipsis(self):
         # GH#50373 Ellipsis should be accepted as a scalar to_replace
         df = pd.DataFrame({"a": [1, 2, 3], "b": [..., ..., ...]})

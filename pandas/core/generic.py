@@ -229,8 +229,11 @@ def _check_replace_value_not_callable(value) -> None:
     """
     Raise if `value` (or any element nested inside a list-like or
     dict-like `value`) is callable (GH#68199).
+
+    Classes are callable too, but storing one as a value is valid, so they
+    are allowed.
     """
-    if callable(value):
+    if callable(value) and not isinstance(value, type):
         raise TypeError(
             f"'value' cannot be callable, got invalid type {type(value).__name__!r}"
         )

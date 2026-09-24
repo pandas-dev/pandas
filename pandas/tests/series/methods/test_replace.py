@@ -480,6 +480,20 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match=msg):
             series.replace(**replace_kwargs)
 
+    @pytest.mark.parametrize(
+        "replace_kwargs",
+        [
+            {"to_replace": 1, "value": pd.Timestamp},
+            {"to_replace": {1: pd.Timestamp}},
+        ],
+    )
+    def test_replace_value_class(self, replace_kwargs):
+        # GH#68199 a class is callable but is still a valid value
+        series = pd.Series([1, 2])
+        result = series.replace(**replace_kwargs)
+        expected = pd.Series([pd.Timestamp, 2], dtype=object)
+        tm.assert_series_equal(result, expected)
+
     def test_replace_ellipsis(self):
         # GH#50373 Ellipsis should be accepted as a scalar to_replace
         series = pd.Series([..., 2, 3])
