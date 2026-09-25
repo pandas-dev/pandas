@@ -197,7 +197,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
-        elif self.include == "all":
+        elif isinstance(self.include, str) and self.include == "all":
+            # isinstance guard so an array-like spec is not compared elementwise
             if self.exclude is not None:
                 msg = "exclude must be None when include is 'all'"
                 raise ValueError(msg)

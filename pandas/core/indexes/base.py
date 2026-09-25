@@ -45,7 +45,6 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
@@ -959,6 +958,10 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
+        # self._values only reaches the ExtensionArray guard when it is an EA, so a
+        #  bool Index against datetimelike data needs this here
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
@@ -985,10 +988,10 @@ class Index(IndexOpsMixin, PandasObject):
             return tuple(self.__array_wrap__(x) for x in result)
         elif method == "reduce":
             result = lib.item_from_zerodim(result)
-            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
         elif is_scalar(result):
             # e.g. matmul
-            return maybe_unbox_numpy_scalar(result, dtype=self.dtype)
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
 
         if result.dtype == np.float16:
             result = result.astype(np.float32)
@@ -5675,7 +5678,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key)
-            return getitem(key)  # pyright: ignore[reportReturnType]
+            return maybe_unbox_numpy_scalar(getitem(key), object_with_dtype=self)
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
@@ -6491,6 +6494,32 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target)
         return indexer
 
+    def _pairwise_indexer(self, target: Index) -> npt.NDArray[np.intp]:
+        """
+        Positions in self for each element of target, pairing the k-th
+        occurrence of a label in target with its k-th occurrence in self.
+
+        Unlike get_indexer, self may contain duplicates. target must contain
+        every label of self. Returns -1 where self has no k-th occurrence.
+
+        Parameters
+        ----------
+        target : Index
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+        """
+        labels = target.unique()
+        self_codes = labels.get_indexer_for(self)
+        target_codes = labels.get_indexer_for(target)
+        self_rank = algos.occurrence_rank(self_codes)
+        target_rank = algos.occurrence_rank(target_codes)
+        stride = max(self_rank.max(initial=0), target_rank.max(initial=0)) + 1
+        self_keys = Index(self_codes * stride + self_rank)
+        target_keys = target_codes * stride + target_rank
+        return self_keys.get_indexer(target_keys)
+
     def _get_indexer_strict(
         self, key: Axes, axis_name: str_t
     ) -> tuple[Index, np.ndarray]:
@@ -6649,7 +6678,8 @@ class Index(IndexOpsMixin, PandasObject):
         elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
             try:
                 result = type(other)(self)
-            except OutOfBoundsDatetime:
+            except ValueError:
+                # e.g. out of bounds, or dates mixed with tz-aware Timestamps
                 return self, other
             else:
                 if self.is_unique and not result.is_unique:
@@ -6877,7 +6907,7 @@ class Index(IndexOpsMixin, PandasObject):
         return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
     def replace(
-        self, to_replace: Any = None, value: Any = lib.no_default, regex: bool = False
+        self, to_replace: Any = None, value: Any = lib.no_default, regex: Any = False
     ) -> Index:
         """
         Replace values in the Index.
@@ -6887,12 +6917,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        to_replace : scalar, list, or dict
-            The value(s) to be replaced. If a dict is provided, value must be omitted.
-        value : scalar, default None
-            The value to replace occurrences of to_replace with.
-        regex : bool, default False
-            Whether to interpret to_replace as a regular expression.
+        to_replace : str, regex, list, dict, Series, scalar, or None
+            The value(s) to be replaced. If a dict is provided, `value` must be omitted.
+        value : scalar, dict, list, str, regex, default None
+            The value to replace occurrences of `to_replace` with.
+        regex : bool or same types as `to_replace`, default False
+            Whether to interpret `to_replace` and/or `value` as regular expressions.
 
         Returns
         -------
@@ -6913,10 +6943,14 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             raise NotImplementedError("replace is not implemented for MultiIndex")
 
-        ser = self.to_series()
+        from pandas import Series
+
+        # Pass pandas objects (not their underlying arrays) so that CoW
+        #  references are tracked in the no-copy cases (GH#65265).
+        ser = Series(self, copy=False)
         replaced = ser.replace(to_replace, value, regex=regex)
 
-        return self._shallow_copy(replaced._values, name=self.name)
+        return Index(replaced, dtype=replaced.dtype, name=self.name, copy=False)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
@@ -7940,9 +7974,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -8004,9 +8038,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -8081,7 +8115,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return maybe_unbox_numpy_scalar(first, dtype=self.dtype)
+                return maybe_unbox_numpy_scalar(first, object_with_dtype=self)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8093,7 +8127,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values._reduce(name="min", skipna=skipna)
 
         return maybe_unbox_numpy_scalar(
-            nanops.nanmin(self._values, skipna=skipna), dtype=self.dtype
+            nanops.nanmin(self._values, skipna=skipna), object_with_dtype=self
         )
 
     def max(
@@ -8156,7 +8190,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return maybe_unbox_numpy_scalar(last, dtype=self.dtype)
+                return maybe_unbox_numpy_scalar(last, object_with_dtype=self)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -8168,7 +8202,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values._reduce(name="max", skipna=skipna)
 
         return maybe_unbox_numpy_scalar(
-            nanops.nanmax(self._values, skipna=skipna), dtype=self.dtype
+            nanops.nanmax(self._values, skipna=skipna), object_with_dtype=self
         )
 
     # --------------------------------------------------------------------

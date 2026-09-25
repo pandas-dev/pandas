@@ -219,7 +219,7 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     condition, so we can skip that machinery altogether (GH#51547).
     """
     if isinstance(obj, ABCDataFrame):
-        dtypes: list[DtypeObj] = [block.dtype for block in obj._mgr.blocks]
+        dtypes: list[DtypeObj] = obj._blk_dtypes
     else:
         dtypes = [obj.dtype]
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
@@ -885,7 +885,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
 
         >>> even_primes.squeeze()
-        np.int64(2)
+        2
 
         Squeezing objects with more than one value in every axis does nothing:
 
@@ -943,7 +943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Squeezing all axes will project directly into a scalar:
 
         >>> df_0a.squeeze()
-        np.int64(1)
+        1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
         result = self.iloc[
@@ -1117,128 +1117,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy: bool | lib.NoDefault = lib.no_default,
         inplace: bool = False,
     ) -> Self | None:
-        """
-        Set the name of the axis for the index or columns.
-
-        This method is useful for labeling the axes in a MultiIndex or for
-        providing descriptive names to axes.
-
-        Parameters
-        ----------
-        mapper : scalar, list-like, optional
-            Value to set the axis name attribute.
-
-            Use either ``mapper`` and ``axis`` to
-            specify the axis to target with ``mapper``, or ``index``
-            and/or ``columns``.
-        index : scalar, list-like, dict-like or function, optional
-            A scalar, list-like, dict-like or functions transformations to
-            apply to that axis' values.
-        columns : scalar, list-like, dict-like or function, optional
-            A scalar, list-like, dict-like or functions transformations to
-            apply to that axis' values.
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to rename.
-        copy : bool, default False
-            This keyword is now ignored; changing its value will have no
-            impact on the method.
-
-            .. deprecated:: 3.0.0
-
-                This keyword is ignored and will be removed in pandas 4.0. Since
-                pandas 3.0, this method always returns a new object using a lazy
-                copy mechanism that defers copies until necessary
-                (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                for more details.
-
-        inplace : bool, default False
-            Modifies the object directly, instead of creating a new Series
-            or DataFrame.
-
-        Returns
-        -------
-        DataFrame, or None
-            The same type as the caller or None if ``inplace=True``.
-
-        See Also
-        --------
-        Series.rename : Alter Series index labels or name.
-        DataFrame.rename : Alter DataFrame index labels or name.
-        Index.rename : Set new names on index.
-
-        Notes
-        -----
-        ``DataFrame.rename_axis`` supports two calling conventions
-
-        * ``(index=index_mapper, columns=columns_mapper, ...)``
-        * ``(mapper, axis={'index', 'columns'}, ...)``
-
-        The first calling convention will only modify the names of
-        the index and/or the names of the Index object that is the columns.
-        In this case, the parameter ``copy`` is ignored.
-
-        The second calling convention will modify the names of the
-        corresponding index if mapper is a list or a scalar.
-        However, if mapper is dict-like or a function, it will use the
-        deprecated behavior of modifying the axis *labels*.
-
-        We *highly* recommend using keyword arguments to clarify your
-        intent.
-
-        Examples
-        --------
-        **DataFrame**
-
-        >>> df = pd.DataFrame(
-        ...     {"num_legs": [4, 4, 2], "num_arms": [0, 0, 2]}, ["dog", "cat", "monkey"]
-        ... )
-        >>> df
-                num_legs  num_arms
-        dog            4         0
-        cat            4         0
-        monkey         2         2
-        >>> df = df.rename_axis("animal")
-        >>> df
-                num_legs  num_arms
-        animal
-        dog            4         0
-        cat            4         0
-        monkey         2         2
-        >>> df = df.rename_axis("limbs", axis="columns")
-        >>> df
-        limbs   num_legs  num_arms
-        animal
-        dog            4         0
-        cat            4         0
-        monkey         2         2
-
-        **MultiIndex**
-
-        >>> df.index = pd.MultiIndex.from_product(
-        ...     [["mammal"], ["dog", "cat", "monkey"]], names=["type", "name"]
-        ... )
-        >>> df
-        limbs          num_legs  num_arms
-        type   name
-        mammal dog            4         0
-               cat            4         0
-               monkey         2         2
-
-        >>> df.rename_axis(index={"type": "class"})
-        limbs          num_legs  num_arms
-        class  name
-        mammal dog            4         0
-               cat            4         0
-               monkey         2         2
-
-        >>> df.rename_axis(columns=str.upper)
-        LIMBS          num_legs  num_arms
-        type   name
-        mammal dog            4         0
-               cat            4         0
-               monkey         2         2
-        """
         self._check_copy_deprecation(copy)
         axes = {"index": index, "columns": columns}
 
@@ -1907,7 +1785,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis == 0:
             # Handle dropping index levels
             if levels_to_drop:
-                dropped.reset_index(levels_to_drop, drop=True, inplace=True)
+                dropped = dropped.reset_index(levels_to_drop, drop=True)
 
             # Handle dropping columns labels
             if labels_to_drop:
@@ -2159,9 +2037,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # defined
                 meta = set(self._internal_names + self._metadata)
                 for k in meta:
-                    if k in state and k != "_flags":
+                    # _metadata is handled below: assigning a pre-2.1 pickle's
+                    # ["name"] here would mask the class's ["_name"], see GH#61819
+                    if k in state and k not in ("_flags", "_metadata"):
                         v = state[k]
                         object.__setattr__(self, k, v)
+
+                if "_metadata" in state:
+                    # merge rather than replace, so a subclass that extends
+                    # _metadata per instance keeps its entries
+                    cls_meta = list(self._metadata)
+                    merged = list(dict.fromkeys(cls_meta + list(state["_metadata"])))
+                    if merged != cls_meta:
+                        object.__setattr__(self, "_metadata", merged)
 
                 for k, v in state.items():
                     if k not in meta:
@@ -2840,9 +2728,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Write DataFrame index as a column.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
-        nan_rep : Any, optional
-            How to represent null values as str.
-            Not allowed with append=True.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns
+            (``format="table"`` only).
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
+            Only used when the table is created; ignored on later appends,
+            which reuse whatever the table already stores.
         dropna : bool, default False, optional
             Remove missing values.
 
@@ -4405,7 +4298,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # if we encounter an array-like and we only have 1 dim
                 # that means that their are list/ndarrays inside the Series!
                 # so just return them (GH 6394)
-                return self._values[loc]
+                return self._ixs(loc, axis=0)
 
             if not drop_level and isinstance(index, MultiIndex):
                 # GH#6507 - honor drop_level=False for fully specified keys
@@ -6688,7 +6581,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(EA2D): special case not needed with 2D EAs
             dtype = pandas_dtype(dtype)
             if isinstance(dtype, ExtensionDtype) and all(
-                block.values.dtype == dtype for block in self._mgr.blocks
+                x == dtype for x in self._blk_dtypes
             ):
                 return self.copy(deep=False)
             # GH 18099/22869: columnwise conversion to extension dtype
@@ -7419,15 +7312,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            Maximum number of consecutive NaN values to fill. In other words, if
+            there is a gap with more than this number of consecutive NaNs, it
+            will only be partially filled. Must be greater than 0 if not None.
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -7525,15 +7415,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             other views on this object (e.g., a no-copy slice for a column in a
             DataFrame).
         limit : int, default None
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled. Must be greater than 0 if not None.
+            Maximum number of consecutive NaN values to fill. In other words, if
+            there is a gap with more than this number of consecutive NaNs, it
+            will only be partially filled. Must be greater than 0 if not None.
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -8176,16 +8063,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
-            Maximum number of consecutive NaNs to fill. Must be greater than
-            0.
+            Maximum number of consecutive NaNs to fill. In other words, if there
+            is a gap with more than this number of consecutive NaNs, it will only
+            be partially filled, from the direction given by ``limit_direction``.
+            Must be greater than 0.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, optional, default 'forward'
             Consecutive NaNs will be filled in this direction.
 
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -10859,7 +10748,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
-            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10943,14 +10831,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if periods == 0:
-            return self.copy(deep=False)
-
         if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
-                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+                periods=periods,
+                freq=freq,
+                axis=axis,
+                fill_value=fill_value,
+                suffix=suffix,
             )
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast("int", periods)
+
+        if periods == 0:
+            return self.copy(deep=False)
 
         if freq is None:
             # when freq is None, data is shifted, index is not
@@ -12102,8 +11996,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
             When ``on`` is specified, the values of that column also become the
             index of the :class:`Series` passed to :meth:`Rolling.apply` when
@@ -12209,6 +12106,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2013-01-01 09:00:03  3.0
         2013-01-01 09:00:05  NaN
         2013-01-01 09:00:06  4.0
+
+        Rolling sum with forward-looking windows with 3 seconds.
+
+        >>> df_time.iloc[::-1].rolling("3s").sum().iloc[::-1]
+                               B
+        2013-01-01 09:00:00  1.0
+        2013-01-01 09:00:02  3.0
+        2013-01-01 09:00:03  2.0
+        2013-01-01 09:00:05  4.0
+        2013-01-01 09:00:06  4.0
+
+        .. note::
+
+            Negative offset strings (e.g., ``"-5h"``) do not create forward-looking
+            windows and should be avoided. They collapse to single-element windows.
 
         Rolling sum with forward looking windows with 2 observations.
 

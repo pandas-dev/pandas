@@ -9,11 +9,6 @@ from pandas._libs.tslibs import Day
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    NamedAgg,
-    Series,
-)
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
@@ -25,12 +20,14 @@ def dti():
 
 @pytest.fixture
 def _test_series(dti):
-    return Series(np.random.default_rng(2).random(len(dti)), dti)
+    return pd.Series(np.random.default_rng(2).random(len(dti)), dti)
 
 
 @pytest.fixture
 def test_frame(dti, _test_series):
-    return DataFrame({"A": _test_series, "B": _test_series, "C": np.arange(len(dti))})
+    return pd.DataFrame(
+        {"A": _test_series, "B": _test_series, "C": np.arange(len(dti))}
+    )
 
 
 def test_str(_test_series):
@@ -50,12 +47,12 @@ def test_str(_test_series):
 def test_api(_test_series):
     r = _test_series.resample("h")
     result = r.mean()
-    assert isinstance(result, Series)
+    assert isinstance(result, pd.Series)
     assert len(result) == 217
 
     r = _test_series.to_frame().resample("h")
     result = r.mean()
-    assert isinstance(result, DataFrame)
+    assert isinstance(result, pd.DataFrame)
     assert len(result) == 217
 
 
@@ -63,7 +60,7 @@ def test_groupby_resample_api():
     # GH 12448
     # .groupby(...).resample(...) hitting warnings
     # when appropriate
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "date": date_range(start="2016-01-01", periods=4, freq="W"),
             "group": [1, 1, 2, 2],
@@ -77,7 +74,7 @@ def test_groupby_resample_api():
         + date_range("2016-01-17", periods=8).tolist()
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
-    expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
+    expected = pd.DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
     result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
@@ -86,7 +83,7 @@ def test_groupby_resample_on_api():
     # GH 15021
     # .groupby(...).resample(on=...) results in an unexpected
     # keyword warning.
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "key": ["A", "B"] * 5,
             "dates": date_range("2016-01-01", periods=10),
@@ -100,7 +97,7 @@ def test_groupby_resample_on_api():
 
 
 def test_resample_group_keys():
-    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10, unit="ns"))
+    df = pd.DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10, unit="ns"))
     expected = df.copy()
 
     # group_keys=False
@@ -183,7 +180,7 @@ def test_api_compat_before_use(attr):
     # make sure that we are setting the binner
     # on these attributes
     rng = date_range("1/1/2012", periods=100, freq="s")
-    ts = Series(np.arange(len(rng)), index=rng)
+    ts = pd.Series(np.arange(len(rng)), index=rng)
     rs = ts.resample("30s")
 
     # before use
@@ -215,9 +212,9 @@ def tests_raises_on_nuisance(test_frame, using_infer_string):
 def test_downsample_but_actually_upsampling():
     # this is reindex / asfreq
     rng = date_range("1/1/2012", periods=100, freq="s")
-    ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
+    ts = pd.Series(np.arange(len(rng), dtype="int64"), index=rng)
     result = ts.resample("20s").asfreq()
-    expected = Series(
+    expected = pd.Series(
         [0, 20, 40, 60, 80],
         index=date_range("2012-01-01 00:00:00", freq="20s", periods=5),
     )
@@ -230,11 +227,11 @@ def test_combined_up_downsampling_of_irregular():
     # preserve these semantics
 
     rng = date_range("1/1/2012", periods=100, freq="s", unit="ns")
-    ts = Series(np.arange(len(rng)), index=rng)
+    ts = pd.Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
     result = ts2.resample("2s").mean().ffill()
-    expected = Series(
+    expected = pd.Series(
         [
             0.5,
             2.5,
@@ -291,7 +288,7 @@ def test_transform_frame(on):
     # GH#47079
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
     )
     expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
@@ -329,7 +326,7 @@ def test_apply_without_aggregation2(_test_series):
 def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((1000, 3)),
         index=date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
@@ -344,7 +341,7 @@ def test_agg_consistency():
 
 def test_agg_consistency_int_str_column_mix():
     # GH#39025
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((1000, 2)),
         index=date_range("1/1/2012", freq="s", periods=1000),
         columns=[1, "a"],
@@ -370,7 +367,7 @@ def index():
 
 @pytest.fixture
 def df(index):
-    frame = DataFrame(
+    frame = pd.DataFrame(
         np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
     )
     return frame
@@ -467,7 +464,10 @@ def test_agg_mixed_column_aggregation(cases, a_mean, a_std, b_mean, b_std, reque
     [
         {"func": {"A": np.mean, "B": lambda x: np.std(x, ddof=1)}},
         {"A": ("A", np.mean), "B": ("B", lambda x: np.std(x, ddof=1))},
-        {"A": NamedAgg("A", np.mean), "B": NamedAgg("B", lambda x: np.std(x, ddof=1))},
+        {
+            "A": pd.NamedAgg("A", np.mean),
+            "B": pd.NamedAgg("B", lambda x: np.std(x, ddof=1)),
+        },
     ],
 )
 def test_agg_both_mean_std_named_result(cases, a_mean, b_std, agg):
@@ -523,7 +523,10 @@ def test_agg_dict_of_lists(cases, a_mean, a_std, b_mean, b_std):
     [
         {"func": {"A": np.sum, "B": lambda x: np.std(x, ddof=1)}},
         {"A": ("A", np.sum), "B": ("B", lambda x: np.std(x, ddof=1))},
-        {"A": NamedAgg("A", np.sum), "B": NamedAgg("B", lambda x: np.std(x, ddof=1))},
+        {
+            "A": pd.NamedAgg("A", np.sum),
+            "B": pd.NamedAgg("B", lambda x: np.std(x, ddof=1)),
+        },
     ],
 )
 def test_agg_with_lambda(cases, agg):
@@ -539,7 +542,7 @@ def test_agg_with_lambda(cases, agg):
     [
         {"func": {"result1": np.sum, "result2": np.mean}},
         {"A": ("result1", np.sum), "B": ("result2", np.mean)},
-        {"A": NamedAgg("result1", np.sum), "B": NamedAgg("result2", np.mean)},
+        {"A": pd.NamedAgg("result1", np.sum), "B": pd.NamedAgg("result2", np.mean)},
     ],
 )
 def test_agg_no_column(cases, agg):
@@ -599,7 +602,7 @@ def test_agg_specificationerror_invalid_names(cases):
 def test_agg_nested_dicts():
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
     )
     df_col = df.reset_index()
@@ -637,7 +640,7 @@ def test_try_aggregate_non_existing_column():
         {"dt": datetime(2017, 6, 1, 1), "x": 2.0, "y": 2.0},
         {"dt": datetime(2017, 6, 1, 2), "x": 3.0, "y": 1.5},
     ]
-    df = DataFrame(data).set_index("dt")
+    df = pd.DataFrame(data).set_index("dt")
 
     # Error as we don't have 'z' column
     msg = r"Label\(s\) \['z'\] do not exist"
@@ -647,7 +650,7 @@ def test_try_aggregate_non_existing_column():
 
 def test_agg_list_like_func_with_args():
     # 50624
-    df = DataFrame(
+    df = pd.DataFrame(
         {"x": [1, 2, 3]}, index=date_range("2020-01-01", periods=3, freq="D")
     )
 
@@ -664,7 +667,7 @@ def test_agg_list_like_func_with_args():
     msg = "Converting a Series or array of length 1 into a scalar"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = df.resample("D").agg([foo1, foo2], 3, c=4)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[8, 8], [9, 9], [10, 10]],
         index=date_range("2020-01-01", periods=3, freq="D"),
         columns=pd.MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
@@ -677,11 +680,11 @@ def test_selection_api_validation():
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
 
     rng = np.arange(len(index), dtype=np.int64)
-    df = DataFrame(
+    df = pd.DataFrame(
         {"date": index, "a": rng},
         index=pd.MultiIndex.from_arrays([rng, index], names=["v", "d"]),
     )
-    df_exp = DataFrame({"a": rng}, index=index)
+    df_exp = pd.DataFrame({"a": rng}, index=index)
 
     # non DatetimeIndex
     msg = (
@@ -736,7 +739,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
     # date parser. Some would result in OutOfBoundsError (ValueError) while
     # others would result in OverflowError when passed into Timestamp.
     # We catch these errors and move on to the correct branch.
-    df = DataFrame(
+    df = pd.DataFrame(
         list(range(200)),
         index=date_range(
             start="2017-01-01", freq="15min", periods=200, tz="Europe/Berlin"
@@ -744,7 +747,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
         columns=[col_name],
     )
     result = df.resample("1D").aggregate(["mean"])
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [47.5, 143.5, 195.5],
         index=date_range(start="2017-01-01", freq="D", periods=3, tz="Europe/Berlin"),
         columns=pd.MultiIndex(levels=[[col_name], ["mean"]], codes=[[0], [0]]),
@@ -758,10 +761,10 @@ def test_resample_agg_readonly():
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
-    ser = Series(arr, index=index)
+    ser = pd.Series(arr, index=index)
     rs = ser.resample("1D")
 
-    expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected = pd.Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
     expected.index.freq = Day(1)  # GH#41943 no longer equivalent to 24h
 
     result = rs.agg("last")
@@ -843,10 +846,10 @@ def test_end_and_end_day_origin(
     exp_periods,
 ):
     rng = date_range(start, end, freq=freq)
-    ts = Series(data, index=rng)
+    ts = pd.Series(data, index=rng)
 
     res = ts.resample(resample_freq, origin=origin, closed=closed).sum()
-    expected = Series(
+    expected = pd.Series(
         exp_data,
         index=date_range(end=exp_end, freq=resample_freq, periods=exp_periods),
     )
@@ -900,7 +903,7 @@ def test_frame_downsample_method(
 
     index = date_range("2018-01-01", periods=2, freq="D")
     expected_index = date_range("2018-12-31", periods=1, freq="YE")
-    df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
+    df = pd.DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
     resampled = df.resample("YE")
     if numeric_only is lib.no_default:
         kwargs = {}
@@ -924,7 +927,7 @@ def test_frame_downsample_method(
             _ = func(**kwargs)
     else:
         result = func(**kwargs)
-        expected = DataFrame(expected_data, index=expected_index)
+        expected = pd.DataFrame(expected_data, index=expected_index)
         tm.assert_frame_equal(result, expected)
 
 
@@ -958,7 +961,7 @@ def test_series_downsample_method(
 
     index = date_range("2018-01-01", periods=2, freq="D")
     expected_index = date_range("2018-12-31", periods=1, freq="YE")
-    df = Series(["cat_1", "cat_2"], index=index)
+    df = pd.Series(["cat_1", "cat_2"], index=index)
     resampled = df.resample("YE")
     kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
@@ -976,18 +979,18 @@ def test_series_downsample_method(
 
     else:
         result = func(**kwargs)
-        expected = Series(expected_data, index=expected_index)
+        expected = pd.Series(expected_data, index=expected_index)
         tm.assert_series_equal(result, expected)
 
 
 def test_resample_empty():
     # GH#52484
-    df = DataFrame(
+    df = pd.DataFrame(
         index=pd.to_datetime(
             ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
         )
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         index=pd.DatetimeIndex(
             [
                 "2018-01-01 00:00:00",
@@ -1010,7 +1013,7 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
         datetime(2025, 10, 17, 17, 16, 10),
         datetime(2025, 10, 17, 17, 17, 10),
     ]
-    df = DataFrame({"value": [0, 1, 2]}, index=idx)
+    df = pd.DataFrame({"value": [0, 1, 2]}, index=idx)
 
     result = df.resample("1min", origin="start_day").asfreq()
 
@@ -1025,5 +1028,5 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
         freq="min",
     )
 
-    exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
+    exp = pd.DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
     tm.assert_frame_equal(result, exp)

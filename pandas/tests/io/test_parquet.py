@@ -12,6 +12,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import WASM
 from pandas.compat.pyarrow import (
     pa_version_under17p0,
     pa_version_under18p0,
@@ -143,9 +144,9 @@ def df_full():
 
 @pytest.fixture(
     params=[
-        datetime.datetime.now(datetime.UTC),
-        datetime.datetime.now(datetime.timezone.min),
-        datetime.datetime.now(datetime.timezone.max),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.UTC),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.timezone.min),
+        datetime.datetime(2019, 1, 4, 16, 41, 24, tzinfo=datetime.timezone.max),
         datetime.datetime.strptime("2019-01-04T16:41:24+0200", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24+0215", "%Y-%m-%dT%H:%M:%S%z"),
         datetime.datetime.strptime("2019-01-04T16:41:24-0200", "%Y-%m-%dT%H:%M:%S%z"),
@@ -1200,18 +1201,17 @@ class TestParquetPyArrow(Base):
         expected = pd.DataFrame(data={"a": [None, "b", "c"]})
         tm.assert_frame_equal(result, expected)
 
-    # NOTE: this test is not run by default, because it requires a lot of memory (>5GB)
-    # @pytest.mark.slow
-    # def test_string_column_above_2GB(self, tmp_path, pa):
-    #     # https://github.com/pandas-dev/pandas/issues/55606
-    #     # above 2GB of string data
-    #     v1 = b"x" * 100000000
-    #     v2 = b"x" * 147483646
-    #     df = pd.DataFrame({"strings": [v1] * 20 + [v2] + ["x"] * 20}, dtype="string")
-    #     df.to_parquet(tmp_path / "test.parquet")
-    #     result = read_parquet(tmp_path / "test.parquet")
-    #     assert result["strings"].dtype == "string"
-    # FIXME: don't leave commented-out
+    @pytest.mark.high_memory
+    def test_string_column_above_2GB(self, temp_file, pa):
+        # GH#55606 above 2GB of string data
+        val1 = b"x" * 100000000
+        val2 = b"x" * 147483646
+        df = pd.DataFrame(
+            {"strings": [val1] * 20 + [val2] + ["x"] * 20}, dtype="string"
+        )
+        df.to_parquet(temp_file)
+        result = read_parquet(temp_file)
+        assert result["strings"].dtype == "string"
 
     def test_non_nanosecond_timestamps(self, temp_file):
         # GH#49236
@@ -1255,10 +1255,10 @@ class TestParquetPyArrow(Base):
     def test_to_parquet_local_path_does_not_call_get_handle(
         self, pa, temp_file, monkeypatch
     ):
-        # GH#65810 local paths are handed to pyarrow directly; get_handle used
-        # to open them only to unwrap the name back to a string, opening the
-        # path a second time and truncating output to 0 bytes on filesystems
-        # that finalize contents on close
+        # GH#65810 a local path must not go through get_handle: it opened the
+        # path only to unwrap the name back to a string, so the path was opened
+        # a second time and output was truncated to 0 bytes on filesystems that
+        # finalize contents on close
         def fail(*args, **kwargs):
             pytest.fail("get_handle should not be called for a local path")
 
@@ -1270,8 +1270,9 @@ class TestParquetPyArrow(Base):
     def test_to_parquet_local_path_opens_destination_once(
         self, pa, temp_file, monkeypatch
     ):
-        # GH#65810 pandas must not open the destination itself; pyarrow opens it
-        # via C++ (bypassing builtins.open), so no Python-level open is expected
+        # GH#65810 the destination is opened once and in C++ -- pandas opens it
+        # as a pa.OSFile for pyarrow to write into (GH#69022), so nothing opens
+        # the path through builtins.open
         opens = []
         real_open = open
         target = os.fspath(temp_file)
@@ -1320,6 +1321,29 @@ class TestParquetPyArrow(Base):
         with pytest.raises(ValueError, match="reached get_handle"):
             read_parquet(url, engine=pa)
         assert calls == [(url, "rb")]
+
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
+    @td.skip_if_windows  # os.chmod does not work in windows
+    def test_to_parquet_unwritable_path_keeps_existing_file(self, pa, tmp_path):
+        # GH#69022 pyarrow.parquet.write_table deletes a path-like target when
+        # the write raises, so handing it the path let a failure to open the
+        # destination destroy the file that was already there
+        path = tmp_path / "out.parquet"
+        pd.DataFrame({"a": [1, 2, 3]}).to_parquet(path, engine=pa)
+        expected = path.read_bytes()
+        path.chmod(0o444)
+
+        try:
+            with open(path, "r+b"):
+                pytest.skip("Running as sudo.")
+        except PermissionError:
+            pass
+
+        with pytest.raises(PermissionError, match="Failed to open local file"):
+            pd.DataFrame({"a": [4, 5, 6]}).to_parquet(path, engine=pa)
+
+        assert path.exists()
+        assert path.read_bytes() == expected
 
 
 @pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
