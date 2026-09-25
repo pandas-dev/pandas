@@ -20,7 +20,6 @@ This project supports creating a development environment using [conda](https://d
 (building pandas, testing, type checking, building documentation, running benchmarks).
 
 Linting checks require [pre-commit](https://pre-commit.com/), installed in a conda or pixi environment, to run checks defined in [.pre-commit-config.yaml](.pre-commit-config.yaml).
-[pixi](https://pixi.prefix.dev/latest/) or [conda](https://docs.conda.io/en/latest/) are used to manage a development environment and its dependencies.
 
 ## Repository map
 
