@@ -9,6 +9,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
     EmptyDataError,
@@ -493,6 +494,25 @@ def test_explicit_arrow_numeric_dtype(all_parsers):
         parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
 
 
+def test_explicit_arrow_int_dtype_precision_with_na(all_parsers):
+    # GH#56135 a missing value must not cost the column its precision
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a\n1582218195625938945\n\n-1582218195625938945\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"a": "int64[pyarrow]"}, skip_blank_lines=False
+    )
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                [1582218195625938945, pd.NA, -1582218195625938945],
+                dtype="int64[pyarrow]",
+            )
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["float", "double[pyarrow]"])
 def test_empty_field_invalid_for_float_dtype(all_parsers, dtype):
     # GH#66834 empty field with keep_default_na=False is not a valid float,
@@ -971,3 +991,47 @@ GH,100102040,202,0205"""
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
+@pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
+@pytest.mark.parametrize(
+    "dtype, err, msg",
+    [
+        ("UInt8", TypeError, "cannot safely cast non-equivalent int64 to uint8"),
+        ("Int8", TypeError, "cannot safely cast non-equivalent int64 to int8"),
+        ("uint8", ValueError, "cannot safely convert passed user dtype of uint8"),
+        ("int8", ValueError, "cannot safely convert passed user dtype of int8"),
+    ],
+)
+def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_backend):
+    # GH#55232 out-of-range values must raise instead of silently wrapping
+    #  around, matching the Series/array constructors.  dtype_backend is
+    #  parametrized because it decides which cast the python engine takes.
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "x\n-1\n257\n"
+    with pytest.raises(err, match=msg):
+        parser.read_csv(StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend)
+
+
+@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        # only fits uint64, so the c engine falls back to _try_uint64
+        ("x\n18446744073709551615\n1\n", "uint8"),
+        # the requested dtype is the int64 that overflowed into the fallback
+        ("x\n18446744073709551615\n1\n", "int64"),
+        # parses as float rather than int, which both engines must check too
+        ("x\n300.0\n1.0\n", "uint8"),
+        ("x\n257.0\n1.0\n", "int8"),
+    ],
+)
+def test_unsafe_integer_dtype_raises_for_non_int64_source(all_parsers, data, dtype):
+    # GH#55232 the check has to cover every dtype the parser itself can
+    #  produce, not only the int64 the common case parses to
+    parser = all_parsers
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(StringIO(data), dtype={"x": dtype})

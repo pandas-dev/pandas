@@ -30,15 +30,16 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
 
-def test_default_separator(python_parser_only):
-    # see gh-17333
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+def test_default_separator(python_parser_only, key):
+    # see gh-17333, GH#47024
     #
     # csv.Sniffer in Python treats "o" as separator.
     data = "aob\n1o2\n3o4"
     parser = python_parser_only
     expected = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
 
-    result = parser.read_csv(StringIO(data), sep=None)
+    result = parser.read_csv(StringIO(data), **{key: None})
     tm.assert_frame_equal(result, expected)
 
 
@@ -148,6 +149,77 @@ also also skip this
     result = parser.read_csv(StringIO(data), **kwargs)
 
     expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=["A", "B", "C"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skipfooter_counts_discarded_lines(python_parser_only):
+    # GH#36827 blank and comment lines consumed while inferring the header
+    # still count towards skipfooter
+    data = """# comment
+
+block1
+  300.0 2.7 0.07 1 400 1.04 2
+
+
+# comment
+
+block2
+a 0001_sum.mrc 587.0 1268.0 -51.5
+a 0002_sum.mrc 685.0 1268.0 -51.5
+"""
+    parser = python_parser_only
+    result = parser.read_csv(
+        StringIO(data),
+        skiprows=3,
+        skipfooter=7,
+        sep=r"\s+",
+        comment="#",
+        header=None,
+    )
+    expected = pd.DataFrame([[300.0, 2.7, 0.07, 1, 400, 1.04, 2]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skipfooter_counts_skiprows_lines(python_parser_only):
+    # GH#36827 a skiprows line inside the footer still counts towards skipfooter
+    data = "A,B\n1,2\n3,4\n5,6\n7,8\nfooter"
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), skiprows=[4], skipfooter=2)
+    expected = pd.DataFrame({"A": [1, 3, 5], "B": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skipfooter_body_skiprows_line_is_not_a_footer_line(python_parser_only):
+    # GH#36827 a skiprows line before the footer must not shift the cutoff
+    data = "A,B\n1,2\n3,4\n5,6\n7,8\nfooter"
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), skiprows=[3], skipfooter=1)
+    expected = pd.DataFrame({"A": [1, 3, 7], "B": [2, 4, 8]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, skiprows",
+    [
+        ("A,B\n1,2\n", [2]),
+        ("A,B\n1,2\n2,3\n", lambda i: i % 2 == 1),
+    ],
+)
+def test_skipfooter_with_skiprows_past_eof(python_parser_only, data, skiprows):
+    # GH#36827 a skiprows index at or past EOF must not push the line count past
+    # the end of the file, which would make skipfooter trim nothing
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), skiprows=skiprows, skipfooter=1)
+    expected = pd.DataFrame(columns=["A", "B"], dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_skipfooter_counts_sniffed_line(python_parser_only):
+    # GH#36827 the line sep=None consumed to sniff the separator still counts
+    data = "1,2\n3,4\n5,6\n7,8\nfooter"
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), sep=None, header=None, skipfooter=2)
+    expected = pd.DataFrame({0: [1, 3, 5], 1: [2, 4, 6]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -464,31 +536,57 @@ def test_on_bad_lines_index_col_inferred(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+def test_on_bad_lines_callable_index_col_false(python_parser_only):
+    # GH#49279
+    parser = python_parser_only
+    data = "a,b\n1,2\n3,4,5\n6,7"
+    bad_lines = []
+
+    result = parser.read_csv(
+        StringIO(data), index_col=False, on_bad_lines=bad_lines.append
+    )
+    expected = pd.DataFrame({"a": [1, 6], "b": [2, 7]})
+    tm.assert_frame_equal(result, expected)
+    assert bad_lines == [["3", "4", "5"]]
+
+
 def test_index_col_false_and_header_none(python_parser_only):
-    # GH#46955
+    # GH#46955, GH#49279 - the wide row is a bad line, as it is for the c engine
     parser = python_parser_only
     data = """
 0.5,0.03
 0.1,0.2,0.3,2
 """
+    with pytest.raises(ParserError, match="Expected 2 fields in line 3, saw 4"):
+        parser.read_csv(StringIO(data), sep=",", header=None, index_col=False)
+
     result = parser.read_csv_check_warnings(
         ParserWarning,
-        "Length of header",
+        "from bad_lines callable",
         StringIO(data),
         sep=",",
         header=None,
         index_col=False,
+        on_bad_lines=lambda line: line,
     )
     expected = pd.DataFrame({0: [0.5, 0.1], 1: [0.03, 0.2]})
     tm.assert_frame_equal(result, expected)
 
 
 def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parser_only):
-    # GH#46569
+    # GH#46569, GH#49279 - the wide rows are bad lines, as they are for the c engine
     parser = python_parser_only
-    data = StringIO("a\na,b\nc,d,e\nf,g,h")
+    data = "a\na,b\nc,d,e\nf,g,h"
+    with pytest.raises(ParserError, match="Expected 2 fields in line 3, saw 3"):
+        parser.read_csv(StringIO(data), index_col=False)
+
     result = parser.read_csv_check_warnings(
-        ParserWarning, "Length of header", data, engine="python", index_col=False
+        ParserWarning,
+        "from bad_lines callable",
+        StringIO(data),
+        engine="python",
+        index_col=False,
+        on_bad_lines=lambda line: line,
     )
     expected = pd.DataFrame({"a": ["a", "c", "f"]})
     tm.assert_frame_equal(result, expected)
