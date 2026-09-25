@@ -215,15 +215,6 @@ numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 numpydoc_validation_checks = {"all"}
 numpydoc_validation_exclude = {
-    # Jinja2 Styler template attributes (docstrings not owned by pandas)
-    r"pandas\.io\.formats\.style\.Styler\.env$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_style$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_table$",
-    r"pandas\.io\.formats\.style\.Styler\.template_latex$",
-    r"pandas\.io\.formats\.style\.Styler\.template_typst$",
-    r"pandas\.io\.formats\.style\.Styler\.template_string$",
-    r"pandas\.io\.formats\.style\.Styler\.loader$",
     # Error/warning classes with no numpydoc-style docstrings
     r"pandas\.errors\.InvalidComparison$",
     r"pandas\.errors\.LossySetitemError$",
