@@ -258,5 +258,6 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "pandas $VERSION" \
             --notes-file notes.md \
+            --draft \
             $PRERELEASE \
             dist/pandas-*.tar.gz
