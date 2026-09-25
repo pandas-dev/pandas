@@ -420,7 +420,7 @@ to create the new branch.
 
 .. note::
 
-   After releasing a release candidate, start the development of the next version on ``main``
+   After releasing the first release candidate of a new version, start the development of the next version on ``main``
    by pushing an empty commit and a ``dev0`` tag, e.g. for 3.1.0
 
    .. code-block:: bash
