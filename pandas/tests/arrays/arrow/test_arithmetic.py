@@ -8,7 +8,7 @@ import pandas as pd
 pa = pytest.importorskip("pyarrow")
 
 
-def test_int32_scalar_arithmetic_preserves_dtype():
+def test_int32_scalar_arithmetic_preserves_dtype() -> None:
     ser = pd.Series([1, 2, 3], dtype="int32[pyarrow]")
 
     result = ser + 1
@@ -35,7 +35,7 @@ def test_int32_scalar_arithmetic_preserves_dtype():
     assert overflowing.dtype == "int64[pyarrow]"
 
 
-def test_float32_scalar_arithmetic_preserves_dtype():
+def test_float32_scalar_arithmetic_preserves_dtype() -> None:
     ser = pd.Series([1, 2, 3], dtype="float[pyarrow]")
 
     result = ser + 1.5
@@ -64,7 +64,7 @@ def test_float32_scalar_arithmetic_preserves_dtype():
     assert large_product.dtype == "double[pyarrow]"
 
 
-def test_decimal_scalar_arithmetic_dtype_promotion():
+def test_decimal_scalar_arithmetic_dtype_promotion() -> None:
     dtype = pd.ArrowDtype(pa.decimal128(10, 2))
     ser = pd.Series([Decimal("1.00"), Decimal("2.00")], dtype=dtype)
 
@@ -82,4 +82,5 @@ def test_decimal_scalar_arithmetic_dtype_promotion():
 
     assert overflow.tolist() == [Decimal("100")]
     assert overflow.dtype != narrow_dtype
+    assert isinstance(overflow.dtype, pd.ArrowDtype)
     assert overflow.dtype.pyarrow_dtype.precision >= 3
