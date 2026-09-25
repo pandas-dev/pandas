@@ -62,6 +62,16 @@ class TestSeriesPlots:
         for ax, first in zip(axes, expected, strict=True):
             assert ax.patches[0].get_x() == mpl.dates.date2num(first)
 
+    def test_hist_categorical(self):
+        # GH#8712
+        ser = pd.Series(pd.Categorical(["a", "b", "b", "c", None]))
+
+        ax = ser.hist()
+
+        heights = [patch.get_height() for patch in ax.patches]
+        assert [height for height in heights if height > 0] == [1, 2, 1]
+        _check_text_labels(ax.get_xticklabels(), ["a", "b", "c"])
+
     def test_hist_legacy_ax(self, ts):
         fig, ax = mpl.pyplot.subplots(1, 1)
         _check_plot_works(ts.hist, ax=ax, default_axes=True)
