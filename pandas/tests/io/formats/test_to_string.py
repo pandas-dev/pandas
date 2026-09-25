@@ -64,6 +64,23 @@ class TestDataFrameToStringFormatters:
         )
         assert result == expected
 
+    def test_to_string_printf_float_format_with_formatter(self):
+        # GH#53675
+        df = pd.DataFrame({"value": pd.Series([1.234, -5.678, np.nan], dtype="object")})
+        result = df.to_string(
+            float_format="%.2f",
+            formatters={"value": lambda value: f"[{value:.1f}]"},
+            na_rep="MISSING",
+        )
+        expected = dedent(
+            """\
+                 value
+            0    [1.2]
+            1   [-5.7]
+            2  MISSING"""
+        )
+        assert result == expected
+
     def test_to_string_with_formatters(self):
         df = pd.DataFrame(
             {
@@ -367,6 +384,96 @@ class TestDataFrameToStringLineWidth:
 
 
 class TestToStringNumericFormatting:
+    @pytest.mark.parametrize("dtype", ["float64", "Float64", "Float32", "object"])
+    @pytest.mark.parametrize("float_format", ["%.2f", "%.1f%%"])
+    def test_to_string_printf_float_format(self, dtype, float_format):
+        # GH#53675
+        missing = pd.NA if dtype in ("Float64", "Float32") else np.nan
+        ser = pd.Series([1.234, -5.678, missing], dtype=dtype)
+        df = pd.DataFrame({"value": ser})
+
+        if float_format == "%.2f":
+            values = ("1.23", "-5.68")
+        else:
+            values = ("1.2%", "-5.7%")
+
+        if dtype in ("Float64", "Float32"):
+            expected_series = f" {values[0]}\n{values[1]}\n <NA>"
+            expected_frame = f" value\n  {values[0]}\n {values[1]}\n  <NA>"
+        else:
+            expected_series = f"   {values[0]}\n  {values[1]}\nMISSING"
+            expected_frame = f"  value\n   {values[0]}\n  {values[1]}\nMISSING"
+
+        assert (
+            ser.to_string(float_format=float_format, na_rep="MISSING", index=False)
+            == expected_series
+        )
+        assert (
+            df.to_string(float_format=float_format, na_rep="MISSING", index=False)
+            == expected_frame
+        )
+
+    @pytest.mark.parametrize("dtype", ["float64", "Float64", "Float32", "object"])
+    def test_to_string_callable_float_format(self, dtype):
+        # GH#53675
+        missing = pd.NA if dtype in ("Float64", "Float32") else np.nan
+        ser = pd.Series([1.234, -5.678, missing], dtype=dtype)
+        df = pd.DataFrame({"value": ser})
+
+        expected_series = (
+            " 1.23\n-5.68\n <NA>"
+            if dtype in ("Float64", "Float32")
+            else "   1.23\n  -5.68\nMISSING"
+        )
+        expected_frame = (
+            " value\n  1.23\n -5.68\n  <NA>"
+            if dtype in ("Float64", "Float32")
+            else "  value\n   1.23\n  -5.68\nMISSING"
+        )
+
+        assert (
+            ser.to_string(float_format="{:.2f}".format, na_rep="MISSING", index=False)
+            == expected_series
+        )
+        assert (
+            df.to_string(float_format="{:.2f}".format, na_rep="MISSING", index=False)
+            == expected_frame
+        )
+
+    @pytest.mark.parametrize(
+        ("float_format", "error", "match"),
+        [
+            ("%q", ValueError, "unsupported format"),
+            ("%", ValueError, "|".join(["incomplete format", "stray %"])),
+            ("%f %f", TypeError, "not enough arguments"),
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["float64", "Float64"])
+    def test_to_string_invalid_printf_float_format(
+        self, dtype, float_format, error, match
+    ):
+        # GH#53675
+        ser = pd.Series([1.234], dtype=dtype)
+        df = pd.DataFrame({"value": ser})
+
+        for obj in [ser, df]:
+            with pytest.raises(error, match=match):
+                obj.to_string(float_format=float_format, index=False)
+
+    def test_to_string_mixed_object_printf_float_format(self):
+        # GH#53675
+        ser = pd.Series([1.234, "text", 7, np.nan], dtype="object")
+        df = pd.DataFrame({"value": ser})
+
+        assert (
+            ser.to_string(float_format="%.2f", na_rep="MISSING", index=False)
+            == "   1.23\n   text\n      7\nMISSING"
+        )
+        assert (
+            df.to_string(float_format="%.2f", na_rep="MISSING", index=False)
+            == "  value\n   1.23\n   text\n      7\nMISSING"
+        )
+
     def test_to_string_float_format_no_fixed_width(self):
         # GH#21625
         df = pd.DataFrame({"x": [0.19999]})
