@@ -1781,10 +1781,12 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            if dtype.itemsize < tipo.itemsize:  # type: ignore[union-attr]
+            # a dtype with no itemsize, e.g. SparseDtype, skips this and is
+            #  re-checked on its densified values below (GH#68929)
+            if dtype.itemsize < getattr(tipo, "itemsize", 0):
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
-                # i.e. nullable IntegerDtype; we can put this into an ndarray
+                # e.g. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs and the values themselves fit
                 arr = (
                     element._values
