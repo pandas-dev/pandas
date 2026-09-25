@@ -405,23 +405,15 @@ for more information.
 Byte-ordering issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
-a different byte order than the one on which you are running Python. A common
-symptom of this issue is an error like::
-
-    Traceback
-        ...
-    ValueError: Big-endian buffer not supported on little-endian compiler
-
-To deal
-with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to :class:`Series` or :class:`DataFrame`
-constructors using something similar to the following:
+a different byte order than the one on which you are running Python. pandas
+converts such data to the native byte order when constructing a :class:`Series`,
+:class:`DataFrame` or :class:`Index`, which makes a copy:
 
 .. ipython:: python
 
    x = np.array(list(range(10)), ">i4")  # big endian
-   newx = x.byteswap().view(x.dtype.newbyteorder())  # force native byteorder
-   s = pd.Series(newx)
+   s = pd.Series(x)
+   s.dtype
 
 See `the NumPy documentation on byte order
 <https://numpy.org/doc/stable/user/byteswapping.html>`__ for more
