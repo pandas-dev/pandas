@@ -511,6 +511,52 @@ default of ``False``, and since pandas 3.0 those also return the updated object)
 
 For more background about the change, see the motivation section in `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__.
 
+.. _whatsnew_310.deprecations.values:
+
+Deprecated lossy ``.values`` for timezone-aware, period, and interval dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For most extension dtypes (e.g. ``category``, ``str``, or the nullable dtypes),
+:attr:`Series.values` and :attr:`Index.values` return the underlying
+:class:`~pandas.api.extensions.ExtensionArray`. For historical reasons, three
+dtypes are exceptions and instead return a NumPy array that loses information:
+
+- :class:`DatetimeTZDtype`: a ``datetime64`` array converted to UTC, dropping the timezone
+- :class:`PeriodDtype`: an object-dtype array of :class:`Period` objects
+- :class:`IntervalDtype` (:class:`Series` only): an object-dtype array of :class:`Interval` objects
+
+This is now deprecated and emits a :class:`~pandas.errors.Pandas4Warning`. In
+pandas 4.0, ``.values`` will return the ExtensionArray for these dtypes as well
+(:issue:`54717`, :issue:`55128`).
+
+Current behavior for a timezone-aware Series:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(pd.date_range("2016-01-01", periods=2, tz="US/Pacific"))
+    >>> ser.values
+    Pandas4Warning: Series.values returning an ndarray that drops timezone information for DatetimeTZDtype is deprecated. ...
+    array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
+          dtype='datetime64[us]')
+
+Use :attr:`Series.array` to get the ExtensionArray, or :meth:`Series.to_numpy`
+to get a NumPy array. For timezone-aware data, ``to_numpy()`` returns an
+object-dtype array of :class:`Timestamp` objects. To keep the current result,
+use ``tz_convert(None)``, which converts to UTC and drops the timezone:
+
+.. code-block:: python
+
+    >>> ser.array
+    <DatetimeArray>
+    ['2016-01-01 00:00:00-08:00', '2016-01-02 00:00:00-08:00']
+    Length: 2, dtype: datetime64[us, US/Pacific]
+    >>> ser.dt.tz_convert(None).to_numpy()
+    array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
+          dtype='datetime64[us]')
+
+:attr:`DataFrame.values` and ``np.asarray(ser)`` are not affected (those already
+return an object-dtype NumPy array of objects for all three cases).
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -562,7 +608,6 @@ Other deprecations
 - Deprecated the default value of ``track_times`` in :meth:`HDFStore.put`. In a future version, the default will change from ``True`` to ``False`` so that HDF5 files are deterministic by default (:issue:`51456`)
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
 - Deprecated the keyword ``by_blocks`` in :func:`testing.assert_frame_equal` (:issue:`65911`)
-- Deprecated the lossy behavior of :attr:`Series.values`, :attr:`Index.values`, :attr:`PeriodIndex.values`, and :attr:`DatetimeIndex.values` for :class:`DatetimeTZDtype` (drops timezone), :class:`PeriodDtype` (returns object-dtype ndarray), and :class:`IntervalDtype` (returns object-dtype ndarray) dtypes. In a future version, ``.values`` will return the underlying ExtensionArray. Use :meth:`~Series.to_numpy` or :attr:`~Series.array` instead (:issue:`54717`, :issue:`55128`).
 - Deprecated treating array-like objects other than :class:`numpy.ndarray`, :class:`ExtensionArray`, :class:`Index`, and :class:`Series` as array-like when indexing, setting values, and in related operations. Objects that are merely list-like with a ``dtype`` attribute (e.g. arrays from other libraries) will no longer receive array-like handling in a future version; convert them with :func:`numpy.asarray` or :func:`pandas.array` first (:issue:`52834`)
 - The default ``date_format="epoch"`` deprecation warning in :meth:`DataFrame.to_json` and :meth:`Series.to_json` is now also emitted when the datetime-like values are in the index or column labels rather than in the column values (:issue:`65868`)
 - Deprecated passing a non-boolean value for ``numeric_only`` to :meth:`DataFrame.mean`,
