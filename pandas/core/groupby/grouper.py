@@ -369,6 +369,11 @@ class Grouper:
                     reverse_indexer = self._indexer.argsort()
                     unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)  # type: ignore[arg-type]
+                elif len(self._grouper) == len(obj):
+                    # The grouper already aligns with obj by row position. Taking
+                    # by obj.index would incorrectly treat arbitrary index labels
+                    # as positional indices.
+                    ax = self._grouper
                 else:
                     ax = self._grouper.take(obj.index)  # type: ignore[arg-type]
             else:

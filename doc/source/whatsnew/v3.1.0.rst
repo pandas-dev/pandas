@@ -1184,6 +1184,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.resample` with ``on=`` assigning values to the wrong time bins when the DataFrame had a non-default index (:issue:`59350`)
 - :meth:`DataFrame.ewm` and :meth:`Series.ewm` now raise an informative ``NotImplementedError`` instead of a confusing ``AttributeError`` when ``agg``/``aggregate`` is passed an arbitrary callable (:issue:`41700`)
 - Bug in :class:`PeriodIndex` resampling to a finer frequency where aggregation methods returned the original values instead of aggregating, e.g. ``count`` returned the data values rather than the number of observations per bin; empty bins now contain the method's identity value (e.g. ``0`` for ``sum`` instead of ``NaN``), consistent with :class:`DatetimeIndex` resampling (:issue:`42763`)
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
