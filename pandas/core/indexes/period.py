@@ -177,6 +177,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     _data_cls = PeriodArray
     _supports_partial_string_indexing = True
 
+    _warn_quarter: bool = False
+
     @property
     def _engine_type(self) -> type[libindex.PeriodEngine]:
         return libindex.PeriodEngine
@@ -413,8 +415,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. The frequency is inferred from
-        the fields provided or can be given explicitly.
+        specified as a scalar or array-like. At least one field must be
+        array-like; scalar fields are broadcast to its length. The frequency
+        is inferred from the fields provided or can be given explicitly.
 
         Parameters
         ----------
@@ -585,7 +588,23 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         (inclusive) with no gaps.
 
         Requires monotonic increasing order. Duplicate periods are allowed.
+
+        .. deprecated:: 3.1.0
+            ``PeriodIndex.is_full`` is deprecated and will be removed in
+            a future version. Use
+            ``index.empty or len(index.unique()) ==
+            len(period_range(index.min(), index.max(), freq=index.freq))``
+            instead. Unlike ``is_full``, this does not raise on a
+            non-monotonic index.
         """
+        warnings.warn(
+            "PeriodIndex.is_full is deprecated and will be removed in a "
+            "future version. Use index.empty or len(index.unique()) == "
+            "len(period_range(index.min(), index.max(), freq=index.freq)) "
+            "instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if len(self) == 0:
             return True
         if not self.is_monotonic_increasing:

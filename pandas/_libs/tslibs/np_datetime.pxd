@@ -4,6 +4,7 @@ from cpython.datetime cimport (
     datetime,
 )
 from numpy cimport (
+    PyDatetimeScalarObject,
     int32_t,
     int64_t,
     npy_datetime,
@@ -71,8 +72,21 @@ cdef inline void import_pandas_datetime() noexcept:
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef str dts_to_iso_string(npy_datetimestruct *dts)
+cdef str dts_to_iso_string_ns(npy_datetimestruct *dts)
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
+
+cdef _raise_nat_sentinel(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit)
+
+
+# Inline so callers pay a compare and a not-taken branch; a cimported cdef would
+#  instead be an indirect call, which the compiler cannot see through.
+cdef inline int check_nat_sentinel(
+    int64_t value, npy_datetimestruct *dts, NPY_DATETIMEUNIT unit
+) except -1:
+    if value == NPY_DATETIME_NAT:
+        _raise_nat_sentinel(dts, unit)
+    return 0
 
 cdef int64_t pydatetime_to_dt64(
     datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
@@ -84,6 +98,12 @@ cdef int64_t pydate_to_dt64(
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
+
+# The unit multiplier, e.g. 10 for np.timedelta64(1, "10s"). Inline for the same
+#  reason as check_nat_sentinel: this runs per element in the object-dtype
+#  array_to_datetime/array_to_timedelta64 loops.
+cdef inline int get_datetime64_unit_count(object obj) noexcept nogil:
+    return (<PyDatetimeScalarObject*>obj).obmeta.num
 
 cdef int string_to_dts(
     str val,
@@ -122,5 +142,7 @@ cdef int64_t convert_reso(
     bint round_ok,
 ) except? -1
 
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=*
+)
 cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right)

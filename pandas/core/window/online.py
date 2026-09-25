@@ -63,7 +63,7 @@ def generate_online_numba_ewma_func(
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
-            for j in numba.prange(len(cur)):
+            for j in numba.prange(len(cur)):  # type: ignore[attr-defined, no-untyped-call]
                 if not np.isnan(weighted_avg[j]):
                     if is_observations[j] or not ignore_na:
                         # note that len(deltas) = len(vals) - 1 and deltas[i] is to be

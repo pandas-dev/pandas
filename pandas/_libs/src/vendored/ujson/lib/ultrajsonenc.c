@@ -100,263 +100,262 @@ Needs a cleanup and more documentation
 
 /*
 Table for pure ascii output escaping all characters above 127 to \uXXXX */
-static const JSUINT8 g_asciiOutputTable[256] = {
-    /* 0x00 */ 0,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    10,
-    12,
-    14,
-    30,
-    16,
-    18,
-    30,
-    30,
-    /* 0x10 */ 30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    30,
-    /* 0x20 */ 1,
-    1,
-    20,
-    1,
-    1,
-    1,
-    29,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    24,
-    /* 0x30 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    29,
-    1,
-    29,
-    1,
-    /* 0x40 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0x50 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    22,
-    1,
-    1,
-    1,
-    /* 0x60 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0x70 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0x80 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0x90 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0xa0 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0xb0 */ 1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    /* 0xc0 */ 2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    /* 0xd0 */ 2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    /* 0xe0 */ 3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    /* 0xf0 */ 4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    5,
-    5,
-    5,
-    5,
-    6,
-    6,
-    1,
-    1};
+static const JSUINT8 g_asciiOutputTable[256] = {/* 0x00 */ 0,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                10,
+                                                12,
+                                                14,
+                                                30,
+                                                16,
+                                                18,
+                                                30,
+                                                30,
+                                                /* 0x10 */ 30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                30,
+                                                /* 0x20 */ 1,
+                                                1,
+                                                20,
+                                                1,
+                                                1,
+                                                1,
+                                                29,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                24,
+                                                /* 0x30 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                29,
+                                                1,
+                                                29,
+                                                1,
+                                                /* 0x40 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0x50 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                22,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0x60 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0x70 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0x80 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0x90 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0xa0 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0xb0 */ 1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                1,
+                                                /* 0xc0 */ 2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                /* 0xd0 */ 2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                2,
+                                                /* 0xe0 */ 3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                3,
+                                                /* 0xf0 */ 4,
+                                                4,
+                                                4,
+                                                4,
+                                                4,
+                                                4,
+                                                4,
+                                                4,
+                                                5,
+                                                5,
+                                                5,
+                                                5,
+                                                6,
+                                                6,
+                                                1,
+                                                1};
 
 static void SetError(JSOBJ obj, JSONObjectEncoder *enc, const char *message) {
   enc->errorMsg = message;
@@ -378,11 +377,14 @@ void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded) {
   }
 
   if (enc->heap) {
-    enc->start = (char *)enc->realloc(enc->start, newSize);
-    if (!enc->start) {
+    // realloc does not free the original block when it fails, so keep the old
+    // pointer until it succeeds
+    char *newStart = (char *)enc->realloc(enc->start, newSize);
+    if (!newStart) {
       SetError(NULL, enc, "Could not reserve memory block");
       return;
     }
+    enc->start = newStart;
   } else {
     char *oldStart = enc->start;
     enc->heap = 1;
@@ -724,19 +726,48 @@ INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin, char *end) {
     aux = *end, *end-- = *begin, *begin++ = aux;
 }
 
-void Buffer_AppendIndentNewlineUnchecked(JSONObjectEncoder *enc) {
-  if (enc->indent > 0)
-    Buffer_AppendCharUnchecked(enc, '\n');
+// encode() reserves a fixed amount once per frame, but the recursive encode()
+// calls in the JT_ARRAY/JT_OBJECT loops can consume all of it before the
+// enclosing frame writes its separator, indent or closing bracket, so those
+// writes have to reserve for themselves.
+static void Buffer_AppendCharChecked(JSONObjectEncoder *enc, char chr) {
+  // an error is already set, so the output is going to be discarded -- and if
+  // it was a failed Buffer_Realloc the buffer cannot grow, so the write would
+  // be out of bounds
+  if (enc->errorMsg) {
+    return;
+  }
+  Buffer_Reserve(enc, 1);
+  if (enc->errorMsg) {
+    return;
+  }
+  Buffer_AppendCharUnchecked(enc, chr);
+}
+
+void Buffer_AppendIndentNewlineChecked(JSONObjectEncoder *enc) {
+  if (enc->indent > 0) {
+    Buffer_AppendCharChecked(enc, '\n');
+  }
 }
 
 // This function could be refactored to only accept enc as an argument,
-// but this is a straight vendor from ujson source
-void Buffer_AppendIndentUnchecked(JSONObjectEncoder *enc, JSINT32 value) {
+// but the signature is vendored from ujson source
+void Buffer_AppendIndentChecked(JSONObjectEncoder *enc, JSINT32 value) {
   int i;
   if (enc->indent > 0) {
-    while (value-- > 0)
+    // `value` is the nesting level, so this writes level*indent bytes; reserve
+    // one level at a time, as the product can overflow
+    while (value-- > 0) {
+      if (enc->errorMsg) {
+        return;
+      }
+      Buffer_Reserve(enc, (size_t)enc->indent);
+      if (enc->errorMsg) {
+        return;
+      }
       for (i = 0; i < enc->indent; i++)
         Buffer_AppendCharUnchecked(enc, ' ');
+    }
   }
 }
 
@@ -976,29 +1007,29 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     enc->iterBegin(obj, &tc);
 
     Buffer_AppendCharUnchecked(enc, '[');
-    Buffer_AppendIndentNewlineUnchecked(enc);
+    Buffer_AppendIndentNewlineChecked(enc);
 
     while (enc->iterNext(obj, &tc)) {
       if (count > 0) {
-        Buffer_AppendCharUnchecked(enc, ',');
+        Buffer_AppendCharChecked(enc, ',');
 #ifndef JSON_NO_EXTRA_WHITESPACE
         Buffer_AppendCharUnchecked(buffer, ' ');
 #endif
-        Buffer_AppendIndentNewlineUnchecked(enc);
+        Buffer_AppendIndentNewlineChecked(enc);
       }
 
       iterObj = enc->iterGetValue(obj, &tc);
 
       enc->level++;
-      Buffer_AppendIndentUnchecked(enc, enc->level);
+      Buffer_AppendIndentChecked(enc, enc->level);
       encode(iterObj, enc, NULL, 0);
       count++;
     }
 
     enc->iterEnd(obj, &tc);
-    Buffer_AppendIndentNewlineUnchecked(enc);
-    Buffer_AppendIndentUnchecked(enc, enc->level);
-    Buffer_AppendCharUnchecked(enc, ']');
+    Buffer_AppendIndentNewlineChecked(enc);
+    Buffer_AppendIndentChecked(enc, enc->level);
+    Buffer_AppendCharChecked(enc, ']');
     break;
   }
 
@@ -1007,30 +1038,30 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     enc->iterBegin(obj, &tc);
 
     Buffer_AppendCharUnchecked(enc, '{');
-    Buffer_AppendIndentNewlineUnchecked(enc);
+    Buffer_AppendIndentNewlineChecked(enc);
 
     while (enc->iterNext(obj, &tc)) {
       if (count > 0) {
-        Buffer_AppendCharUnchecked(enc, ',');
+        Buffer_AppendCharChecked(enc, ',');
 #ifndef JSON_NO_EXTRA_WHITESPACE
         Buffer_AppendCharUnchecked(enc, ' ');
 #endif
-        Buffer_AppendIndentNewlineUnchecked(enc);
+        Buffer_AppendIndentNewlineChecked(enc);
       }
 
       iterObj = enc->iterGetValue(obj, &tc);
       objName = enc->iterGetName(obj, &tc, &szlen);
 
       enc->level++;
-      Buffer_AppendIndentUnchecked(enc, enc->level);
+      Buffer_AppendIndentChecked(enc, enc->level);
       encode(iterObj, enc, objName, szlen);
       count++;
     }
 
     enc->iterEnd(obj, &tc);
-    Buffer_AppendIndentNewlineUnchecked(enc);
-    Buffer_AppendIndentUnchecked(enc, enc->level);
-    Buffer_AppendCharUnchecked(enc, '}');
+    Buffer_AppendIndentNewlineChecked(enc);
+    Buffer_AppendIndentChecked(enc, enc->level);
+    Buffer_AppendCharChecked(enc, '}');
     break;
   }
 
@@ -1086,6 +1117,10 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
       return;
     }
     Buffer_Reserve(enc, RESERVE_STRING(szlen));
+    if (enc->errorMsg) {
+      enc->endTypeContext(obj, &tc);
+      return;
+    }
     Buffer_AppendCharUnchecked(enc, '\"');
 
     if (enc->forceASCII) {
@@ -1196,6 +1231,12 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
 
   Buffer_Reserve(enc, 1);
   if (enc->errorMsg) {
+    if (enc->heap) {
+      // the caller only frees the buffer it passed in, so a buffer we grew
+      // onto the heap has to be released here
+      enc->free(enc->start);
+      enc->start = NULL;
+    }
     return NULL;
   }
   Buffer_AppendCharUnchecked(enc, '\0');

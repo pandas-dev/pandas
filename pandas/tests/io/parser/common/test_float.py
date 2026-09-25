@@ -10,12 +10,9 @@ import pytest
 
 from pandas.errors import Pandas4Warning
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 depr_msg = "float_precision"
@@ -28,13 +25,13 @@ def test_float_parser(all_parsers):
     data = "45e-1,4.5,45.,inf,-inf"
     result = parser.read_csv(StringIO(data), header=None)
 
-    expected = DataFrame([[float(s) for s in data.split(",")]])
+    expected = pd.DataFrame([[float(s) for s in data.split(",")]])
     tm.assert_frame_equal(result, expected)
 
 
 def test_scientific_no_exponent(all_parsers_all_precisions):
     # see gh-12215
-    df = DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
+    df = pd.DataFrame.from_dict({"w": ["2e"], "x": ["3E"], "y": ["42e"], "z": ["632E"]})
     data = df.to_csv(index=False)
     parser, precision = all_parsers_all_precisions
 
@@ -74,7 +71,7 @@ def test_large_exponent(all_parsers_all_precisions, value, expected_value):
     warn = Pandas4Warning if precision is not None else None
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"data": [expected_value]})
+    expected = pd.DataFrame({"data": [expected_value]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -102,7 +99,7 @@ def test_small_int_followed_by_float(
     warn = Pandas4Warning if precision is not None else None
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"data": [42.0, expected_value]})
+    expected = pd.DataFrame({"data": [42.0, expected_value]})
 
     tm.assert_frame_equal(result, expected)
 
@@ -141,6 +138,125 @@ def test_precise_xstrtod_large_mantissa(c_parser_only, value):
 
 
 @pytest.mark.parametrize(
+    "value",
+    [
+        "000000000010084566.0",
+        # leading zeros before the decimal point must not eat into the budget
+        # either, or the low digits of the fractional part are lost
+        "00000000000.00564728024629623",
+        "000.0469911460454665528",
+        "000000000000000000000000.03704296608561985",
+        "0.12345678901234567890",
+    ],
+)
+def test_precise_xstrtod_leading_zeros(c_parser_only, value):
+    # GH#64184
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = pd.DataFrame({"val": [float(value)]})
+    # check_exact: the digits lost to the bug are well inside the default rtol
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # first significant digit past the budget: the whole value was lost
+        "0.0000000000000000000000005",
+        ".0000000000000000000000005",
+        "-0.0000000000000000000000005",
+        "000.0000000000000000000000005",
+        "0.0000000000000000000000005e10",
+        "0.000000000000000000123456789012345678",
+        # fewer leading zeros: not 0.0, just quietly short of significant digits
+        "0.0001234567890123456789",
+        "0.000009999999999999999999",
+        "0.00000000001234567890123456789",
+        "0.0000000000000001234567890123",
+        # >=309 zeros reaches the subnormal branch with a nonzero mantissa
+        "0." + "0" * 320 + "12345",
+    ],
+)
+def test_precise_xstrtod_fractional_leading_zeros(c_parser_only, value):
+    # GH#68311: fractional leading zeros consumed the significant-digit budget
+    # as well, so k of them left only 17 - k significant digits
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = pd.DataFrame({"val": [float(value)]})
+    # check_exact: see test_precise_xstrtod_leading_zeros. The values are picked
+    # to land exactly; this converter is not correctly rounded for every input.
+    tm.assert_frame_equal(result, expected, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "value", ["0", "000", "0.", "0.0", "-0", "0e5", ".0", ".000", "+.0"]
+)
+def test_precise_xstrtod_all_zero_mantissa(c_parser_only, value):
+    # GH#64184, GH#68311: an all-zero mantissa is a valid zero, not an
+    # unparsable string. Guards the two branches that skipping the leading
+    # zeros makes necessary -- the integer one and the fractional one.
+    parser = c_parser_only
+    data = f"val\n{value}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")
+    expected = pd.DataFrame({"val": [float(value)]})
+    tm.assert_frame_equal(result, expected, check_dtype=False, check_exact=True)
+
+
+@pytest.mark.parametrize(
+    "value", ["+0.0000000000000000000000005", "+0.0001234567890123456789"]
+)
+def test_leading_plus_fractional_leading_zeros(c_parser_only, value):
+    # GH#68311: a leading "+" is rejected by fast_float, so the token falls
+    # through to the same converter thousands= uses, which charged the
+    # fractional leading zeros against its 17 significant-digit budget.
+    # dtype="category" is how the C engine reaches it -- via Categorical's
+    # to_numeric -- where plain read_csv takes try_parse_plain_double instead
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(f"val\n{value}\n"), dtype="category")
+    assert result["val"].cat.categories[0] == float(value)
+
+
+def test_precise_xstrtod_leading_zero_matches_bare_point(c_parser_only):
+    # GH#64184: "0.x" must get the same significant-digit budget as ".x"
+    parser = c_parser_only
+    digits = "12345678901234567890"
+    data = f"val\n0.{digits}\n.{digits}\n"
+    result = parser.read_csv(StringIO(data), thousands=",")["val"]
+    assert result[0] == result[1] == float(f"0.{digits}")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # up to 19 significant digits, parsed straight from the digits
+        "1.7976931348623157e308",  # largest finite double
+        "2.2250738585072014e-308",  # smallest normal double
+        "9007199254740993.0",  # 2**53 + 1, not representable; rounds to 2**53
+        "12345.678901234567",
+        # more than 19 significant digits, so the mantissa has to be truncated
+        # before it can be rounded
+        "2.22507385850720113605740979670913197593481954635164565e-308",
+        "1.00000000000000000000000000000000000000000000000000001",
+        "123456789012345678901234567890.5",
+        # subnormals, where picking the last bit requires comparing against the
+        # full decimal expansion rather than a truncated mantissa
+        "4.9406564584124654e-324",  # smallest positive subnormal
+        "2.4703282292062327e-324",  # just under the halfway point -> 0.0
+        "2.4703282292062328e-324",  # just over it -> smallest subnormal
+    ],
+)
+def test_float_correctly_rounded(all_parsers, value):
+    # GH#66457
+    parser = all_parsers
+    result = parser.read_csv(StringIO(f"data\n{value}"))
+
+    expected = pd.DataFrame({"data": [float(value)]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "value", ["81e31d04049863b72", "d81e31d04049863b72", "81e3104049863b72"]
 )
 def test_invalid_float_number(all_parsers_all_precisions, value):
@@ -151,5 +267,5 @@ def test_invalid_float_number(all_parsers_all_precisions, value):
     warn = Pandas4Warning if precision is not None else None
     with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"h1": ["data1"], "h2": [value], "h3": "data3"})
+    expected = pd.DataFrame({"h1": ["data1"], "h2": [value], "h3": "data3"})
     tm.assert_frame_equal(result, expected)

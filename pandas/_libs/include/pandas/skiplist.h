@@ -16,7 +16,8 @@ Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 #pragma once
 
 #include <math.h>
-#include <stdio.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,71 +29,152 @@ struct node_t {
   double value;
   int is_nil;
   int levels;
-  int ref_count;
 };
+
+// Arena chunk header; node allocations are bump-allocated from the space
+// following the header.
+typedef struct chunk_t chunk_t;
+
+struct chunk_t {
+  chunk_t *next;
+  size_t used;
+  size_t capacity;
+};
+
+// Offset of node data within a chunk, rounded up so nodes stay 8-aligned
+// even where sizeof(chunk_t) is not a multiple of 8 (32-bit builds).
+#define SKIPLIST_CHUNK_HEADER ((sizeof(chunk_t) + 7) & ~(size_t)7)
+
+// First arena chunk for large windows. Windows whose full node budget fits in
+// one chunk of this size are allocated exactly (identical to a single-chunk
+// arena); larger windows start here and grow geometrically, so a window that
+// never fills (sparse/NaN data) only commits what it touches instead of the
+// whole window up front.
+#ifndef SKIPLIST_INIT_CHUNK
+#  define SKIPLIST_INIT_CHUNK (128 * 1024)
+#endif
+#define SKIPLIST_MAX_CHUNK (4 << 20)
 
 typedef struct {
   node_t *head;
+  node_t *nil;
   node_t **tmp_chain;
   int *tmp_steps;
   int size;
   int maxlevels;
+  // Per-level free lists of removed nodes, chained through next[0]:
+  // freelist[k] holds nodes with levels == k, so a recycled node's
+  // next/width arrays always have exactly the capacity needed.
+  node_t **freelist;
+  // Arena chunks in allocation order; nodes are bump-allocated from
+  // chunk_cursor onward. skiplist_reset rewinds the cursor so retained
+  // chunks are refilled before any new chunk is malloc'd.
+  chunk_t *chunks;
+  chunk_t *chunk_tail;
+  chunk_t *chunk_cursor;
+  size_t chunk_bytes;
+  uint64_t rng_state;
 } skiplist_t;
 
-static inline double urand(void) {
-  return ((double)rand() + 1) / ((double)RAND_MAX + 2);
+// Draw a level count with P(levels == k) = 2**-k, capped at maxlevels.
+// Uses a per-skiplist xorshift64 generator: cheaper than libc rand()+log2
+// and does not contend on shared libc state across threads.
+static inline int skiplist_random_levels(skiplist_t *skp) {
+  uint64_t x = skp->rng_state;
+  int levels = 1;
+
+  x ^= x << 13;
+  x ^= x >> 7;
+  x ^= x << 17;
+  skp->rng_state = x;
+
+  while ((x & 1) != 0 && levels < skp->maxlevels) {
+    ++levels;
+    x >>= 1;
+  }
+  return levels;
 }
 
-static inline int int_min(int a, int b) { return a < b ? a : b; }
+// A node and its next/width arrays live in a single allocation.
+static inline size_t node_alloc_size(int levels) {
+  size_t size =
+      sizeof(node_t) + (size_t)levels * (sizeof(node_t *) + sizeof(int));
+  // keep the arena bump pointer 8-aligned
+  return (size + 7) & ~(size_t)7;
+}
 
-static inline node_t *node_init(double value, int levels) {
-  node_t *result;
-  result = (node_t *)malloc(sizeof(node_t));
-  if (result) {
-    result->value = value;
-    result->levels = levels;
-    result->is_nil = 0;
-    result->ref_count = 0;
-    result->next = (node_t **)malloc(levels * sizeof(node_t *));
-    result->width = (int *)malloc(levels * sizeof(int));
-    if (!(result->next && result->width) && (levels != 0)) {
-      free(result->next);
-      free(result->width);
-      free(result);
+static inline node_t *node_init_arrays(node_t *node, int levels) {
+  node->next = (node_t **)((char *)node + sizeof(node_t));
+  node->width = (int *)(node->next + levels);
+  node->levels = levels;
+  return node;
+}
+
+static inline node_t *skiplist_alloc_node(skiplist_t *skp, int levels) {
+  node_t *node;
+  chunk_t *chunk;
+  size_t nbytes;
+
+  node = skp->freelist[levels];
+  if (node != NULL) {
+    // recycled node: next/width already point at arrays of this level count
+    skp->freelist[levels] = node->next[0];
+    return node;
+  }
+
+  nbytes = node_alloc_size(levels);
+  chunk = skp->chunk_cursor;
+  // refill chunks retained by skiplist_reset before allocating new ones
+  while (chunk != NULL && chunk->capacity - chunk->used < nbytes) {
+    chunk = chunk->next;
+  }
+  if (chunk == NULL) {
+    size_t capacity = skp->chunk_bytes;
+    if (capacity < nbytes) {
+      capacity = nbytes;
+    }
+    chunk = (chunk_t *)malloc(SKIPLIST_CHUNK_HEADER + capacity);
+    if (chunk == NULL) {
       return NULL;
     }
+    chunk->used = 0;
+    chunk->capacity = capacity;
+    chunk->next = NULL;
+    if (skp->chunk_tail != NULL) {
+      skp->chunk_tail->next = chunk;
+    } else {
+      skp->chunks = chunk;
+    }
+    skp->chunk_tail = chunk;
+    // next chunk doubles (capped), so filling a full window costs O(log)
+    // allocations while an underfilled one stops early
+    if (skp->chunk_bytes < SKIPLIST_MAX_CHUNK) {
+      size_t grown = skp->chunk_bytes * 2;
+      skp->chunk_bytes =
+          grown > SKIPLIST_MAX_CHUNK ? SKIPLIST_MAX_CHUNK : grown;
+    }
   }
-  return result;
+  skp->chunk_cursor = chunk;
+  node = (node_t *)((char *)chunk + SKIPLIST_CHUNK_HEADER + chunk->used);
+  chunk->used += nbytes;
+  return node_init_arrays(node, levels);
 }
 
-// do this ourselves
-static inline void node_incref(node_t *node) { ++(node->ref_count); }
-
-static inline void node_decref(node_t *node) { --(node->ref_count); }
-
-static void node_destroy(node_t *node) {
-  int i;
-  if (node) {
-    if (node->ref_count <= 1) {
-      for (i = 0; i < node->levels; ++i) {
-        node_destroy(node->next[i]);
-      }
-      free(node->next);
-      free(node->width);
-      // printf("Reference count was 1, freeing\n");
-      free(node);
-    } else {
-      node_decref(node);
-    }
-    // pretty sure that freeing the struct above will be enough
-  }
+static inline void skiplist_free_node(skiplist_t *skp, node_t *node) {
+  node->next[0] = skp->freelist[node->levels];
+  skp->freelist[node->levels] = node;
 }
 
 static inline void skiplist_destroy(skiplist_t *skp) {
   if (skp) {
-    node_destroy(skp->head);
-    free(skp->tmp_steps);
-    free(skp->tmp_chain);
+    chunk_t *chunk = skp->chunks;
+    while (chunk != NULL) {
+      chunk_t *next = chunk->next;
+      free(chunk);
+      chunk = next;
+    }
+    // head is the start of the combined head/NIL/tmp/freelist allocation
+    free(skp->head);
     free(skp);
   }
 }
@@ -101,37 +183,82 @@ static inline skiplist_t *skiplist_init(int expected_size) {
   skiplist_t *result;
   node_t *NIL, *head;
   int maxlevels, i;
+  size_t head_bytes, nil_bytes, chain_bytes, freelist_bytes;
+  uint64_t chunk_target;
+  char *buf;
 
-  maxlevels = 1 + log2((double)expected_size);
+  maxlevels = 1 + (int)log2((double)expected_size);
   result = (skiplist_t *)malloc(sizeof(skiplist_t));
-  if (!result) {
-    return NULL;
-  }
-  result->tmp_chain = (node_t **)malloc(maxlevels * sizeof(node_t *));
-  result->tmp_steps = (int *)malloc(maxlevels * sizeof(int));
-  result->maxlevels = maxlevels;
-  result->size = 0;
-
-  head = result->head = node_init(NAN, maxlevels);
-  NIL = node_init(0.0, 0);
-
-  if (!(result->tmp_chain && result->tmp_steps && result->head && NIL)) {
-    skiplist_destroy(result);
-    node_destroy(NIL);
+  if (result == NULL) {
     return NULL;
   }
 
-  node_incref(head);
+  // One allocation for the head node, NIL node, and the fixed-size
+  // scratch/freelist arrays; value nodes come from the arena chunks.
+  head_bytes = node_alloc_size(maxlevels);
+  nil_bytes = node_alloc_size(0);
+  chain_bytes = (size_t)maxlevels * sizeof(node_t *);
+  freelist_bytes = (size_t)(maxlevels + 1) * sizeof(node_t *);
+  buf = (char *)malloc(head_bytes + nil_bytes + chain_bytes + freelist_bytes +
+                       (size_t)maxlevels * sizeof(int));
+  if (buf == NULL) {
+    free(result);
+    return NULL;
+  }
 
+  head = node_init_arrays((node_t *)buf, maxlevels);
+  NIL = node_init_arrays((node_t *)(buf + head_bytes), 0);
+  result->tmp_chain = (node_t **)(buf + head_bytes + nil_bytes);
+  result->freelist = (node_t **)(buf + head_bytes + nil_bytes + chain_bytes);
+  result->tmp_steps =
+      (int *)(buf + head_bytes + nil_bytes + chain_bytes + freelist_bytes);
+
+  head->value = NAN;
+  head->is_nil = 0;
+  NIL->value = 0.0;
   NIL->is_nil = 1;
 
+  memset(result->freelist, 0, freelist_bytes);
   for (i = 0; i < maxlevels; ++i) {
     head->next[i] = NIL;
     head->width[i] = 1;
-    node_incref(NIL);
   }
 
+  result->head = head;
+  result->nil = NIL;
+  result->maxlevels = maxlevels;
+  result->size = 0;
+  result->chunks = NULL;
+  result->chunk_tail = NULL;
+  result->chunk_cursor = NULL;
+  result->rng_state = 0x9E3779B97F4A7C15ULL ^ (uint64_t)expected_size;
+  // First chunk covers a full window's node budget (~96 B/node incl. free-list
+  // slack) but is capped at SKIPLIST_INIT_CHUNK; bigger windows grow from there
+  // geometrically. Computed in 64 bits so expected_size cannot overflow size_t.
+  chunk_target = (uint64_t)expected_size * 96 + 64;
+  if (chunk_target > SKIPLIST_INIT_CHUNK) {
+    chunk_target = SKIPLIST_INIT_CHUNK;
+  }
+  result->chunk_bytes = (size_t)chunk_target;
+
   return result;
+}
+
+// Empty the skiplist, retaining the already-allocated arena chunks.
+static inline void skiplist_reset(skiplist_t *skp) {
+  int i;
+  chunk_t *chunk;
+
+  for (chunk = skp->chunks; chunk != NULL; chunk = chunk->next) {
+    chunk->used = 0;
+  }
+  skp->chunk_cursor = skp->chunks;
+  memset(skp->freelist, 0, (size_t)(skp->maxlevels + 1) * sizeof(node_t *));
+  for (i = 0; i < skp->maxlevels; ++i) {
+    skp->head->next[i] = skp->nil;
+    skp->head->width[i] = 1;
+  }
+  skp->size = 0;
 }
 
 // 1 if left < right, 0 if left == right, -1 if left > right
@@ -165,6 +292,33 @@ static inline double skiplist_get(skiplist_t *skp, int i, int *ret) {
 
   *ret = 1;
   return node->value;
+}
+
+// Fetch the values at indices i and i + 1 in a single traversal; equivalent
+// to two skiplist_get calls. Returns 0 if either index is out of bounds.
+static inline int skiplist_get_pair(skiplist_t *skp, int i, double *lower,
+                                    double *higher) {
+  node_t *node;
+  int level;
+
+  if (i < 0 || i + 1 >= skp->size) {
+    *lower = 0;
+    *higher = 0;
+    return 0;
+  }
+
+  node = skp->head;
+  ++i;
+  for (level = skp->maxlevels - 1; level >= 0; --level) {
+    while (node->width[level] <= i) {
+      i -= node->width[level];
+      node = node->next[level];
+    }
+  }
+
+  *lower = node->value;
+  *higher = node->next[0]->value;
+  return 1;
 }
 
 // Returns the lowest rank of all elements with value `value`, as opposed to the
@@ -211,12 +365,14 @@ static inline int skiplist_insert(skiplist_t *skp, double value) {
     chain[level] = node;
   }
 
-  size = int_min(skp->maxlevels, 1 - ((int)log2(urand())));
+  size = skiplist_random_levels(skp);
 
-  newnode = node_init(value, size);
-  if (!newnode) {
+  newnode = skiplist_alloc_node(skp, size);
+  if (newnode == NULL) {
     return -1;
   }
+  newnode->value = value;
+  newnode->is_nil = 0;
   steps = 0;
 
   for (level = 0; level < size; ++level) {
@@ -224,7 +380,6 @@ static inline int skiplist_insert(skiplist_t *skp, double value) {
     newnode->next[level] = prevnode->next[level];
 
     prevnode->next[level] = newnode;
-    node_incref(newnode); // increment the reference count
 
     newnode->width[level] = prevnode->width[level] - steps;
     prevnode->width[level] = steps + 1;
@@ -258,28 +413,25 @@ static inline int skiplist_remove(skiplist_t *skp, double value) {
     chain[level] = node;
   }
 
-  if (value != chain[0]->next[0]->value) {
+  tmpnode = chain[0]->next[0];
+  if (value != tmpnode->value) {
     return 0;
   }
 
-  size = chain[0]->next[0]->levels;
+  size = tmpnode->levels;
 
   for (level = 0; level < size; ++level) {
     prevnode = chain[level];
 
-    tmpnode = prevnode->next[level];
-
     prevnode->width[level] += tmpnode->width[level] - 1;
     prevnode->next[level] = tmpnode->next[level];
-
-    tmpnode->next[level] = NULL;
-    node_destroy(tmpnode); // decrement refcount or free
   }
 
   for (level = size; level < skp->maxlevels; ++level) {
     --(chain[level]->width[level]);
   }
 
+  skiplist_free_node(skp, tmpnode);
   --(skp->size);
   return 1;
 }

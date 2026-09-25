@@ -11,6 +11,10 @@ from typing import (
 )
 import warnings
 
+from pandas._config.config import _global_config as config
+
+from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -56,8 +60,17 @@ def _check_engine(engine: str | None) -> str:
     str
         Engine name.
     """
-    from pandas.core.computation.check import NUMEXPR_INSTALLED
+    from pandas.core.computation.check import (
+        NUMEXPR_BLOCKED_VERSION,
+        NUMEXPR_INSTALLED,
+        warn_numexpr_blocked,
+    )
     from pandas.core.computation.expressions import USE_NUMEXPR
+
+    if engine is None and not NUMEXPR_INSTALLED and config["compute"]["use_numexpr"]:
+        # report an unusable numexpr where we would have used it, GH#66956. An
+        #  explicit engine="numexpr" raises below, which needs no warning.
+        warn_numexpr_blocked()
 
     if engine is None:
         engine = "numexpr" if USE_NUMEXPR else "python"
@@ -72,10 +85,19 @@ def _check_engine(engine: str | None) -> str:
     # that won't necessarily be import-able)
     # Could potentially be done on engine instantiation
     if engine == "numexpr" and not NUMEXPR_INSTALLED:
-        raise ImportError(
-            "'numexpr' is not installed or an unsupported version. Cannot use "
-            "engine='numexpr' for query/eval if 'numexpr' is not installed"
-        )
+        if NUMEXPR_BLOCKED_VERSION is not None:
+            # the deferred warning does not fire here, so the raise names the version
+            msg = (
+                f"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can silently "
+                "return incorrect results, so pandas does not use it. Install "
+                "numexpr 2.14.2 or newer to use engine='numexpr'."
+            )
+        else:
+            msg = (
+                "'numexpr' is not installed or an unsupported version. Cannot use "
+                "engine='numexpr' for query/eval if 'numexpr' is not installed"
+            )
+        raise ImportError(msg)
 
     return engine
 
@@ -185,7 +207,7 @@ def eval(
     resolvers=(),
     level: int = 0,
     target=None,
-    inplace: bool = False,
+    inplace: bool | lib.NoDefault = lib.no_default,
 ) -> Any:
     """
     Evaluate a Python expression as a string using various backends.
@@ -275,6 +297,13 @@ def eval(
         to modify `target` inplace. Otherwise, return a copy of `target` with
         the mutation.
 
+        .. deprecated:: 3.1.0
+
+            This keyword is deprecated and will be removed in pandas 4.0.
+            See `PDEP-8 In-place methods in pandas
+            <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
+            for more details.
+
     Returns
     -------
     ndarray, numeric scalar, DataFrame, Series, or None
@@ -330,6 +359,18 @@ def eval(
     0    dog   10          20
     1    pig   20          40
     """
+    if inplace is not lib.no_default:
+        # GH#63207
+        warnings.warn(
+            "The inplace keyword in eval is deprecated and will be removed "
+            "in a future version. See PDEP-8 for more details:"
+            "https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    else:
+        inplace = False
+
     inplace = validate_bool_kwarg(inplace, "inplace")
 
     exprs: list[str | BinOp]

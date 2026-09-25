@@ -2,7 +2,10 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 
-from datetime import datetime
+from datetime import (
+    UTC,
+    datetime,
+)
 import re
 
 from dateutil.parser import parse as du_parse
@@ -19,15 +22,13 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
 #  the same time as the other parsing functions.
-from pandas import (
-    Timestamp,
-    option_context,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -56,12 +57,46 @@ def test_parsing_tzlocal_deprecated():
             parsing.py_parse_datetime_string(dtstr)
 
         with pytest.raises(ValueError, match=msg):
-            Timestamp(dtstr)
+            pd.Timestamp(dtstr)
+
+
+@pytest.mark.skipif(
+    is_platform_windows() or WASM,
+    reason="requires a working tzset to set the system timezone",
+)
+@pytest.mark.parametrize("tzname", ["UTC", "GMT", "Z", "z"])
+@pytest.mark.parametrize("system_tz", ["US/Eastern", "Europe/London", "Africa/Abidjan"])
+def test_parsing_utc_tzname_not_tzlocal(tzname, system_tz):
+    # GH#66827 these all denote a zero offset regardless of the system
+    #  timezone, so they must parse the same way even when they happen to
+    #  match time.tzname (e.g. "GMT" under Europe/London or Africa/Abidjan)
+    dtstr = f"Jan 15 2004 03:00 {tzname}"
+    expected = pd.Timestamp("2004-01-15 03:00", tz="UTC")
+
+    with tm.set_timezone(system_tz):
+        result = pd.Timestamp(dtstr)
+        assert result == expected
+        # stdlib utc, not dateutil's tzutc(), matching the ISO-8601 and
+        #  strptime paths
+        assert result.tzinfo is UTC
+
+        assert parsing.py_parse_datetime_string(dtstr) == expected
+
+        parsed, _ = parse_datetime_string_with_reso(dtstr)
+        assert parsed == expected
+        assert parsed.tzinfo is UTC
 
 
 def test_parse_datetime_string_with_reso():
-    (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
-    (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed, reso) = parse_datetime_string_with_reso("4Q1984")
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed_lower, reso_lower) = parse_datetime_string_with_reso("4q1984")
 
     assert reso == reso_lower
     assert parsed == parsed_lower
@@ -85,8 +120,15 @@ def test_parse_datetime_string_with_reso_invalid_type():
 )
 def test_parse_time_quarter_with_dash(dashed, normal):
     # see gh-9688
-    (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
-    (parsed, reso) = parse_datetime_string_with_reso(normal)
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed_dash, reso_dash) = parse_datetime_string_with_reso(dashed)
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        (parsed, reso) = parse_datetime_string_with_reso(normal)
 
     assert parsed_dash == parsed
     assert reso_dash == reso
@@ -153,8 +195,51 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
+    # GH#50907
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ):
+        result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
     assert result == expected
+
+
+def test_parsers_quarterly_warn_quarter_false():
+    # GH#50907 Period opts out of the deprecation, since it is the replacement
+    with tm.assert_produces_warning(None):
+        result, reso = parsing.parse_datetime_string_with_reso(
+            "2013Q2", warn_quarter=False
+        )
+    assert reso == "quarter"
+    assert result == datetime(2013, 4, 1)
+
+
+@pytest.mark.parametrize(
+    "freq,period_freq",
+    [
+        (None, None),
+        ("D", None),
+        ("QS-FEB", "Q-FEB"),
+        ("QS-OCT", "Q-OCT"),
+        ("Y-APR", "Q-APR"),
+    ],
+)
+def test_parsers_quarterly_deprecation_suggests_matching_period(freq, period_freq):
+    # GH#50907 the replacement named in the message has to resolve to the value
+    # being deprecated; for an anchored freq that is not the calendar quarter
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="quarterly string is deprecated"
+    ) as record:
+        parsed, _ = parsing.parse_datetime_string_with_reso("2013Q2", freq=freq)
+
+    if period_freq is None:
+        suggested = "pd.Period('2013Q2')"
+        expected = pd.Period("2013Q2")
+    else:
+        suggested = f"pd.Period('2013Q2', freq='{period_freq}')"
+        expected = pd.Period("2013Q2", freq=period_freq)
+
+    assert f"Use {suggested}.to_timestamp()" in str(record[0].message)
+    assert expected.to_timestamp() == pd.Timestamp(parsed)
 
 
 @pytest.mark.parametrize(
@@ -182,7 +267,7 @@ def test_parsers_month_freq(date_str, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -199,6 +284,7 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         ("2011-12-30T00:00:00", "%Y-%m-%dT%H:%M:%S"),
         ("2011-12-30T00:00:00UTC", "%Y-%m-%dT%H:%M:%S%Z"),
+        ("2011-12-30T00:00:00GMT", "%Y-%m-%dT%H:%M:%S%Z"),
         ("2011-12-30T00:00:00Z", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+9", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09", "%Y-%m-%dT%H:%M:%S%z"),
@@ -210,6 +296,7 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30T00:00:00+9:0", "%Y-%m-%dT%H:%M:%S%z"),
         ("2011-12-30T00:00:00+09:", None),
         ("2011-12-30T00:00:00.000000UTC", "%Y-%m-%dT%H:%M:%S.%f%Z"),
+        ("2011-12-30T00:00:00.000000GMT", "%Y-%m-%dT%H:%M:%S.%f%Z"),
         ("2011-12-30T00:00:00.000000Z", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+9", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09", "%Y-%m-%dT%H:%M:%S.%f%z"),
@@ -230,11 +317,39 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
+    msg = r"when dayfirst=False \(the default\) was specified"
     with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
+        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt), match=msg
     ):
         result = parsing.guess_datetime_format(string)
     assert result == fmt
+
+
+@td.skip_if_not_english_lc_time
+@pytest.mark.parametrize("tzname", ["UTC", "GMT"])
+@pytest.mark.parametrize(
+    "template, fmt",
+    [
+        # RFC 1123 / HTTP date, zone in the last token
+        ("Wed, 15 Jan 2020 08:30:00 {tz}", "%a, %d %b %Y %H:%M:%S %Z"),
+        # unix `date` / java Date.toString(), zone before the year
+        ("Wed Jan 15 08:30:00 {tz} 2020", "%a %b %d %H:%M:%S %Z %Y"),
+    ],
+)
+def test_guess_datetime_format_utc_alias(tzname, template, fmt):
+    # GH#68193 the "GMT" spelling used to survive as a literal, so to_datetime
+    #  silently returned a naive result where Timestamp was tz-aware
+    dtstr = template.format(tz=tzname)
+    assert parsing.guess_datetime_format(dtstr) == fmt
+
+    expected = pd.Timestamp("2020-01-15 08:30", tz="UTC")
+    assert pd.Timestamp(dtstr) == expected
+    # the scalar arg shape infers a format too, unlike the Timestamp constructor
+    assert pd.to_datetime(dtstr) == expected
+
+    result = pd.to_datetime([dtstr])
+    assert result[0] == expected
+    assert result.tz is UTC
 
 
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
@@ -244,7 +359,7 @@ def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     assert result == expected
 
 
-@td.skip_if_not_us_locale
+@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize(
     "string,fmt",
     [
@@ -361,7 +476,7 @@ def test_parse_datetime_string_with_reso_check_instance_type_raise_exception():
 )
 def test_is_iso_format(fmt, expected):
     # see gh-41047
-    result = strptime._test_format_is_iso(fmt)
+    result = strptime.format_is_iso(fmt)
     assert result == expected
 
 
@@ -380,7 +495,7 @@ def test_guess_datetime_format_f(input):
     assert result == expected
 
 
-def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+def _helper_delimited_date(call, date_string, **kwargs):
     msg, result = None, None
     try:
         result = call(date_string, **kwargs)
@@ -392,12 +507,12 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
 @pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
 @pytest.mark.parametrize("dayfirst", [True, False])
 def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
-    with option_context("display.date_dayfirst", dayfirst):
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+    with pd.option_context("display.date_dayfirst", dayfirst):
+        except_out_dateutil, result = _helper_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
 
-        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        except_in_dateutil, expected = _helper_delimited_date(
             du_parse,
             input,
             default=datetime(1, 1, 1),
@@ -411,11 +526,11 @@ def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
 @pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
 @pytest.mark.parametrize("yearfirst", [True, False])
 def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
-    with option_context("display.date_yearfirst", yearfirst):
-        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+    with pd.option_context("display.date_yearfirst", yearfirst):
+        except_out_dateutil, result = _helper_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
-        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        except_in_dateutil, expected = _helper_delimited_date(
             du_parse,
             input,
             default=datetime(1, 1, 1),

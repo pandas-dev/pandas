@@ -54,7 +54,10 @@ def _is_nonempty(x: ArrayLike, axis: AxisInt) -> bool:
 
 
 def concat_compat(
-    to_concat: Sequence[ArrayLike], axis: AxisInt = 0, ea_compat_axis: bool = False
+    to_concat: Sequence[ArrayLike],
+    axis: AxisInt = 0,
+    ea_compat_axis: bool = False,
+    union_categories: bool = False,
 ) -> ArrayLike:
     """
     provide concatenation of an array of arrays each of which is a single
@@ -69,11 +72,21 @@ def concat_compat(
     ea_compat_axis : bool, default False
         For ExtensionArray compat, behave as if axis == 1 when determining
         whether to drop empty arrays.
+    union_categories : bool, default False
+        If True and all arrays are Categorical, union the categories
+        instead of casting to the underlying dtype.
 
     Returns
     -------
     a single array, preserving the combined dtypes
     """
+    if (
+        union_categories
+        and len(to_concat)
+        and all(isinstance(x.dtype, CategoricalDtype) for x in to_concat)
+    ):
+        return union_categories_compat(cast("Sequence[Categorical]", to_concat))
+
     if len(to_concat) and lib.dtypes_all_equal([obj.dtype for obj in to_concat]):
         # fastpath!
         obj = to_concat[0]
@@ -133,6 +146,43 @@ def concat_compat(
             # GH#39817 cast to object instead of casting bools to numeric
             result = result.astype(object, copy=False)
     return result
+
+
+def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical:
+    """
+    union_categoricals for concat(union_categories=True).
+
+    Unlike union_categoricals, categories with differing dtypes are cast to a
+    common dtype instead of raising, so that an all-categorical concatenation
+    always returns a Categorical.  Orderedness is preserved only if every input
+    shares the same dtype after this cast.
+    """
+    from pandas import Categorical
+    from pandas.core.arrays.categorical import recode_for_categories
+
+    if not lib.dtypes_all_equal([x.categories.dtype for x in to_union]):
+        # GH#14177 e.g. int64 vs float64 categories.  Empty categories carry no
+        #  dtype information, so keep them out of the common dtype.
+        dtypes = [x.categories.dtype for x in to_union if len(x.categories)]
+        common = find_common_type(dtypes or [x.categories.dtype for x in to_union])
+
+        recast = []
+        for obj in to_union:
+            cats = obj.categories.astype(common)
+            codes = obj._codes
+            if not cats.is_unique:
+                # the cast collapsed distinct categories, e.g. int64 values
+                #  that are not exactly representable as float64
+                uniques = cats.unique()
+                codes = recode_for_categories(codes, cats, uniques)
+                cats = uniques
+            recast.append(
+                Categorical._simple_new(codes, CategoricalDtype(cats, obj.ordered))
+            )
+        to_union = recast
+
+    ignore_order = not lib.dtypes_all_equal([x.dtype for x in to_union])
+    return union_categoricals(to_union, ignore_order=ignore_order)
 
 
 def _get_result_dtype(

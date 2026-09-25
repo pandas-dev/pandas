@@ -3,19 +3,14 @@ Tests compressed data parsing functionality for all
 of the parsers defined in parsers.py
 """
 
-import os
 from pathlib import Path
 import tarfile
 import zipfile
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
-
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
 
 
 @pytest.fixture(params=[True, False])
@@ -142,14 +137,14 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     tm.assert_frame_equal(result, expected)
 
 
-def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding_fmt):
+def test_compression_utf_encoding(all_parsers, datapath, utf_value, encoding_fmt):
     # see gh-18071, gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
-    path = os.path.join(csv_dir_path, f"utf{utf_value}_ex_small.zip")
+    path = datapath("io", "parser", "data", f"utf{utf_value}_ex_small.zip")
 
     result = parser.read_csv(path, encoding=encoding, compression="zip", sep="\t")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],
             "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],
@@ -170,16 +165,16 @@ def test_invalid_compression(all_parsers, invalid_compression):
         parser.read_csv("test_file.zip", **compress_kwargs)
 
 
-def test_compression_tar_archive(all_parsers, csv_dir_path):
+def test_compression_tar_archive(all_parsers, datapath):
     parser = all_parsers
-    path = os.path.join(csv_dir_path, "tar_csv.tar.gz")
+    path = datapath("io", "parser", "data", "tar_csv.tar.gz")
     df = parser.read_csv(path)
     assert list(df.columns) == ["a"]
 
 
 def test_ignore_compression_extension(tmp_path, all_parsers):
     parser = all_parsers
-    df = DataFrame({"a": [0, 1]})
+    df = pd.DataFrame({"a": [0, 1]})
 
     path_csv = tmp_path / "test.csv"
     path_zip = tmp_path / "test.csv.zip"
@@ -194,7 +189,7 @@ def test_ignore_compression_extension(tmp_path, all_parsers):
 
 def test_writes_tar_gz(tmp_path, all_parsers):
     parser = all_parsers
-    data = DataFrame(
+    data = pd.DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],
             "Twitter": ["Hugo Chávez Frías", "Henrique Capriles R."],

@@ -16,17 +16,17 @@ import numpy as np
 
 from pandas._config.config import _global_config as config
 
-from pandas.compat.numpy import np_version_gt2_3
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core import roperator
-from pandas.core.computation.check import NUMEXPR_INSTALLED
-from pandas.util.version import Version
+from pandas.core.computation.check import (
+    NUMEXPR_BLOCKED_VERSION,
+    NUMEXPR_INSTALLED,
+    warn_numexpr_blocked,
+)
 
 if NUMEXPR_INSTALLED:
     import numexpr as ne
-
-    ne_gt_211 = Version(ne.__version__) >= Version("2.11.0")
 
 if TYPE_CHECKING:
     from pandas._typing import FuncType
@@ -51,18 +51,20 @@ def set_use_numexpr(v: bool = True) -> None:
     # set/unset to use numexpr
     global USE_NUMEXPR
     if NUMEXPR_INSTALLED:
-        if np_version_gt2_3 and not ne_gt_211:
-            # incompatibility of numexpr 2.10 with newer pandas resulting in wrong data
-            # https://github.com/pandas-dev/pandas/issues/63320
-            USE_NUMEXPR = False
-        else:
-            USE_NUMEXPR = v
+        USE_NUMEXPR = v
 
     # choose what we are going to do
     global _evaluate, _where
 
-    _evaluate = _evaluate_numexpr if USE_NUMEXPR else _evaluate_standard
-    _where = _where_numexpr if USE_NUMEXPR else _where_standard
+    if USE_NUMEXPR:
+        _evaluate = _evaluate_numexpr
+        _where = _where_numexpr
+    elif v and NUMEXPR_BLOCKED_VERSION is not None:
+        _evaluate = _evaluate_blocked
+        _where = _where_blocked
+    else:
+        _evaluate = _evaluate_standard
+        _where = _where_standard
 
 
 def set_numexpr_threads(n=None) -> None:
@@ -81,6 +83,15 @@ def _evaluate_standard(op, op_str, left_op, right_op):
     if _TEST_MODE:
         _store_test_result(False)
     return op(left_op, right_op)
+
+
+def _evaluate_blocked(op, op_str, left_op, right_op):
+    """
+    Standard evaluation, warning that an unusable numexpr was skipped.
+    """
+    if _can_use_numexpr(op, op_str, left_op, right_op, "evaluate"):
+        warn_numexpr_blocked()
+    return _evaluate_standard(op, op_str, left_op, right_op)
 
 
 def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
@@ -182,6 +193,12 @@ _op_str_mapping = {
 def _where_standard(cond, left_op, right_op):
     # Caller is responsible for extracting ndarray if necessary
     return np.where(cond, left_op, right_op)
+
+
+def _where_blocked(cond, left_op, right_op):
+    if _can_use_numexpr(None, "where", left_op, right_op, "where"):
+        warn_numexpr_blocked()
+    return _where_standard(cond, left_op, right_op)
 
 
 def _where_numexpr(cond, left_op, right_op):

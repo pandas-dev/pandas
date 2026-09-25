@@ -13,6 +13,8 @@ from pandas._typing import (
 
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str
+INT_TO_PERIOD_DEPR_MSG: str
+INT_TO_PERIOD_SCALAR_DEPR_MSG: str
 
 class IncompatibleFrequency(TypeError): ...
 

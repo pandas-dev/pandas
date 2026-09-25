@@ -12,7 +12,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    DefaultDict,
     TypeAlias,
     TypedDict,
 )
@@ -131,28 +130,28 @@ class StylerRenderer:
         self.hide_columns_: list = [False] * self.columns.nlevels
         self.hidden_rows: Sequence[int] = []  # sequence for specific hidden rows/cols
         self.hidden_columns: Sequence[int] = []
-        self.ctx: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
-        self.ctx_index: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
-        self.ctx_columns: DefaultDict[tuple[int, int], CSSList] = defaultdict(list)
-        self.cell_context: DefaultDict[tuple[int, int], str] = defaultdict(str)
+        self.ctx: defaultdict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_index: defaultdict[tuple[int, int], CSSList] = defaultdict(list)
+        self.ctx_columns: defaultdict[tuple[int, int], CSSList] = defaultdict(list)
+        self.cell_context: defaultdict[tuple[int, int], str] = defaultdict(str)
         self._todo: list[tuple[Callable, tuple, dict]] = []
         self.tooltips: Tooltips | None = None
         precision = (
             config["styler"]["format"]["precision"] if precision is None else precision
         )
-        self._display_funcs: DefaultDict[  # maps (row, col) -> format func
+        self._display_funcs: defaultdict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
+        self._display_funcs_index: defaultdict[  # maps (row, level) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_index_names: DefaultDict[  # maps index level -> format func
+        self._display_funcs_index_names: defaultdict[  # maps index level -> format func
             int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
+        self._display_funcs_columns: defaultdict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
-        self._display_funcs_column_names: DefaultDict[  # maps col level -> format func
+        self._display_funcs_column_names: defaultdict[  # maps col level -> format func
             int, Callable[[Any], str]
         ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
 
@@ -248,6 +247,33 @@ class StylerRenderer:
         Render a Styler in typst format
         """
         d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
+        index_levels = self.index.nlevels
+        visible_index_levels = max(1, index_levels - sum(self.hide_index_))
+        column_header_rows = (
+            self.columns.nlevels - sum(self.hide_columns_) if len(self.columns) else 0
+        )
+        hidden_columns_set = set(self.hidden_columns)
+        for r, row in enumerate(d["head"]):
+            if r < column_header_rows:
+                # Keep sparse column placeholders, but remove explicitly hidden columns.
+                d["head"][r] = [
+                    cell for cell in row[:visible_index_levels] if cell["is_visible"]
+                ] + [
+                    cell
+                    for c, cell in enumerate(row[visible_index_levels:])
+                    if cell["is_visible"] or c not in hidden_columns_set
+                ]
+            else:
+                d["head"][r] = [cell for cell in row if cell["is_visible"]]
+        d["body"] = [
+            [
+                cell
+                for c, cell in enumerate(row[:index_levels])
+                if not self.hide_index_[c]
+            ]
+            + [cell for cell in row[index_levels:] if cell["is_visible"]]
+            for row in d["body"]
+        ]
         d.update(kwargs)
         return self.template_typst.render(**d)
 
@@ -341,7 +367,7 @@ class StylerRenderer:
             max_cols,
         )
 
-        self.cellstyle_map_columns: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+        self.cellstyle_map_columns: defaultdict[tuple[CSSPair, ...], list[str]] = (
             defaultdict(list)
         )
         head = self._translate_header(sparse_cols, max_cols)
@@ -353,10 +379,10 @@ class StylerRenderer:
         )
         d.update({"index_lengths": idx_lengths})
 
-        self.cellstyle_map: DefaultDict[tuple[CSSPair, ...], list[str]] = defaultdict(
+        self.cellstyle_map: defaultdict[tuple[CSSPair, ...], list[str]] = defaultdict(
             list
         )
-        self.cellstyle_map_index: DefaultDict[tuple[CSSPair, ...], list[str]] = (
+        self.cellstyle_map_index: defaultdict[tuple[CSSPair, ...], list[str]] = (
             defaultdict(list)
         )
         body: list = self._translate_body(idx_lengths, max_rows, max_cols)
@@ -636,11 +662,6 @@ class StylerRenderer:
 
         Also add elements to the cellstyle_map for more efficient grouped elements in
         <style></style> block
-
-        Parameters
-        ----------
-        sparsify_index : bool
-            Whether index_headers section will add rowspan attributes (>1) to elements.
 
         Returns
         -------
@@ -2267,10 +2288,8 @@ class Tooltips:
 
         Parameters
         ----------
-        styler_data : DataFrame
-            Underlying ``Styler`` DataFrame used for reindexing.
-        uuid : str
-            The underlying ``Styler`` uuid for CSS id.
+        styler : StylerRenderer
+            The renderer whose ``data`` the tooltips are reindexed against.
         d : dict
             The dictionary prior to final render
 

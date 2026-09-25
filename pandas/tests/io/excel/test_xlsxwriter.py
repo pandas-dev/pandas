@@ -3,7 +3,7 @@ import uuid
 
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 
 from pandas.io.excel import ExcelWriter
 
@@ -27,7 +27,7 @@ def test_column_format(tmp_excel):
     # Applicable to xlsxwriter only.
     openpyxl = pytest.importorskip("openpyxl")
 
-    frame = DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
+    frame = pd.DataFrame({"A": [123456, 123456], "B": [123456, 123456]})
 
     with ExcelWriter(tmp_excel) as writer:
         frame.to_excel(writer)

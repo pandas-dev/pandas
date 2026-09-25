@@ -543,10 +543,11 @@ def _compute_grand_margin(
                 if isinstance(aggfunc, str):
                     grand_margin[k] = getattr(v, aggfunc)(**kwargs)
                 elif isinstance(aggfunc, dict):
-                    if isinstance(aggfunc[k], str):
-                        grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
-                    else:
-                        grand_margin[k] = aggfunc[k](v, **kwargs)
+                    if k in aggfunc:
+                        if isinstance(aggfunc[k], str):
+                            grand_margin[k] = getattr(v, aggfunc[k])(**kwargs)
+                        else:
+                            grand_margin[k] = aggfunc[k](v, **kwargs)
                 else:
                     grand_margin[k] = aggfunc(v, **kwargs)
             except TypeError:
@@ -1042,12 +1043,16 @@ def crosstab(
     Any Series passed will have their name attributes used unless row or column
     names for the cross-tabulation are specified.
 
-    Any input passed containing Categorical data will have **all** of its
-    categories included in the cross-tabulation, even if the actual data does
-    not contain any instances of a particular category.
+    With the default ``dropna=True``, categories without any observed
+    instances in the input are dropped from the cross-tabulation. When
+    ``dropna=False``, all categories of any Categorical input are included,
+    even if the actual data does not contain any instances of a particular
+    category.
 
-    In the event that there aren't overlapping indexes an empty DataFrame will
-    be returned.
+    Series arguments are aligned on their index before tabulating; rows where
+    any value is missing after alignment (e.g. index labels not present in
+    all Series) are dropped. In the event that there aren't overlapping
+    indexes an empty DataFrame will be returned.
 
     Reference :ref:`the user guide <reshaping.crosstabulations>` for more examples.
 
@@ -1107,6 +1112,16 @@ def crosstab(
     a
     bar    1     2    1     0
     foo    2     2    1     2
+
+    When `values` and `aggfunc` are passed, the values are aggregated within
+    each group instead of counted:
+
+    >>> vals = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    >>> pd.crosstab(a, b, values=vals, aggfunc="sum", rownames=["a"], colnames=["b"])
+    b    one  two
+    a
+    bar   18    8
+    foo   17   23
 
     Here 'c' and 'f' are not represented in the data and will not be
     shown in the output because dropna is True by default. Set

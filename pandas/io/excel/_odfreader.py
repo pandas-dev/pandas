@@ -110,6 +110,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         """
         Parse an ODF Table into a list of lists
         """
+        from odf.namespaces import OFFICENS
         from odf.table import (
             CoveredTableCell,
             TableCell,
@@ -132,10 +133,14 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
 
             for sheet_cell in sheet_row.childNodes:
                 if hasattr(sheet_cell, "qname") and sheet_cell.qname in cell_names:
-                    if sheet_cell.qname == table_cell_name:
-                        value = self._get_cell_value(sheet_cell)
-                    else:
+                    value: Scalar | NaTType
+                    if (
+                        sheet_cell.qname == covered_cell_name
+                        and (OFFICENS, "value") not in sheet_cell.attributes
+                    ):
                         value = self.empty_value
+                    else:
+                        value = self._get_cell_value(sheet_cell)
 
                     column_repeat = self._get_column_repeat(sheet_cell)
 
@@ -228,23 +233,39 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         a run length encoded sequence of space characters.
         """
         from odf.element import Element
-        from odf.namespaces import TEXTNS
-        from odf.office import Annotation
-        from odf.text import S
+        from odf.namespaces import (
+            OFFICENS,
+            TEXTNS,
+        )
 
-        office_annotation = Annotation().qname
-        text_s = S().qname
+        # NB: built as plain tuples rather than from odf element instances,
+        # since this runs once per cell.
+        office_annotation = (OFFICENS, "annotation")
+        text_s = (TEXTNS, "s")
+        text_p = (TEXTNS, "p")
+        text_line_break = (TEXTNS, "line-break")
 
         value = []
+        seen_paragraph = False
 
         for fragment in cell.childNodes:
             if isinstance(fragment, Element):
                 if fragment.qname == text_s:
                     spaces = int(fragment.attributes.get((TEXTNS, "c"), 1))
                     value.append(" " * spaces)
+                elif fragment.qname == text_line_break:
+                    # GH#55728: an explicit line break within a paragraph.
+                    value.append("\n")
                 elif fragment.qname == office_annotation:
                     continue
                 else:
+                    if fragment.qname == text_p:
+                        # GH#53924: a cell holding several paragraphs shows them
+                        # on separate lines, which is how LibreOffice and Excel
+                        # store a multi-line cell.
+                        if seen_paragraph:
+                            value.append("\n")
+                        seen_paragraph = True
                     # recursive impl needed in case of nested fragments
                     # with multiple spaces
                     # https://github.com/pandas-dev/pandas/pull/36175#discussion_r484639704

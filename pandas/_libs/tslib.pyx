@@ -29,6 +29,7 @@ cnp.import_array()
 
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
+    get_default_reso,
     get_supported_reso,
     npy_unit_to_abbrev,
     periods_per_day,
@@ -37,6 +38,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     get_datetime64_unit,
+    get_datetime64_unit_count,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -369,12 +371,12 @@ cpdef array_to_datetime(
     bint utc=False,
     NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
     str unit_for_numerics=None,
+    # GH#50907 warn once per call, not once per element; carried into the
+    #  mixed-resolution re-parse below so it doesn't warn a second time
+    bint warned_quarter=False,
 ):
     """
-    Converts a 1D array of date-like values to a numpy array of either:
-        1) datetime64[ns] data
-        2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
-           is encountered
+    Converts a 1D array of date-like values to a numpy array of datetime64 data.
 
     Also returns a fixed-offset tzinfo object if an array of strings with the same
     timezone offset is passed and utc=True is not passed. Otherwise, None
@@ -398,11 +400,14 @@ cpdef array_to_datetime(
     creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         If NPY_FR_GENERIC, conduct inference.
     unit_for_numerics : str, default "ns"
+    warned_quarter : bool, default False
+        Whether the quarterly-string deprecation has already been emitted, so
+        that it is warned once per call instead of once per element.
 
     Returns
     -------
     np.ndarray
-        May be datetime64[creso_unit] or object dtype
+        datetime64[creso_unit] dtype
     tzinfo or None
     """
     cdef:
@@ -430,10 +435,15 @@ cpdef array_to_datetime(
         abbrev = npy_unit_to_abbrev(creso)
 
     if unit_for_numerics is None:
+        # if no unit specified specifically for numeric input, then either
+        # use the specified output unit or if inferring, default to ns
         unit_for_numerics = abbrev
-        int_reso = NPY_FR_ns
+        if infer_reso:
+            int_reso = NPY_FR_ns
+        else:
+            int_reso = creso
     else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(unit_for_numerics))
+        int_reso = abbrev_to_npy_unit(get_default_reso(unit_for_numerics))
 
     result = np.empty((<object>values).shape, dtype=f"M8[{abbrev}]")
     iresult = result.view("i8").ravel()
@@ -467,6 +477,12 @@ cpdef array_to_datetime(
                 state.found_other = True
 
             elif cnp.is_datetime64_object(val):
+                if get_datetime64_unit_count(val) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.datetime64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
                 if infer_reso:
@@ -490,6 +506,10 @@ cpdef array_to_datetime(
             elif is_float_object(val):
                 # these must be ns unit by-definition
 
+                # GH#56996 widen first: comparing e.g. a np.float16 against
+                #  NPY_NAT casts the sentinel down to float16 and warns about
+                #  the overflow.
+                val = float(val)
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 elif val.is_integer():
@@ -499,8 +519,10 @@ cpdef array_to_datetime(
                     if infer_reso:
                         creso = state.creso
 
+                    # Not <int64_t>: casting here would overflow outside
+                    #  cast_from_unit's guard, leaking OverflowError
                     iresult[i] = cast_from_unit(
-                        <int64_t>val, unit_for_numerics, out_reso=creso
+                        val, unit_for_numerics, out_reso=creso
                     )
 
                     state.found_other = True
@@ -531,7 +553,8 @@ cpdef array_to_datetime(
                     continue
 
                 tsobj = convert_str_to_tsobject(
-                    val, None, dayfirst=dayfirst, yearfirst=yearfirst
+                    val, None, dayfirst=dayfirst, yearfirst=yearfirst,
+                    warned_quarter=&warned_quarter,
                 )
 
                 if tsobj.value == NPY_NAT:
@@ -572,9 +595,9 @@ cpdef array_to_datetime(
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue
-            elif is_raise:
+            else:
+                # is_raise
                 raise
-            return values, None
 
     tz_out = state.check_for_mixed_inputs(tz_out, utc)
 
@@ -590,6 +613,7 @@ cpdef array_to_datetime(
                 utc=utc,
                 creso=state.creso,
                 unit_for_numerics=unit_for_numerics,
+                warned_quarter=warned_quarter,
             )
         elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This
@@ -607,7 +631,9 @@ cpdef array_to_datetime(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def array_to_datetime_with_tz(
-    ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso
+    ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso,
+    # GH#50907 see the matching parameter on array_to_datetime
+    bint warned_quarter=False,
 ):
     """
     Vectorized analogue to pd.Timestamp(value, tz=tz)
@@ -667,6 +693,7 @@ def array_to_datetime_with_tz(
                     dayfirst=dayfirst,
                     yearfirst=yearfirst,
                     nanos=0,
+                    warned_quarter=&warned_quarter,
                 )
                 # aware strings come back with tzinfo set and value in UTC
                 is_wall = tsobj.tzinfo is None
@@ -691,6 +718,8 @@ def array_to_datetime_with_tz(
                     dayfirst=dayfirst,
                     yearfirst=yearfirst,
                     nanos=0,
+                    warned_quarter=&warned_quarter,
+                    out_unit=abbrev,
                 )
             if tsobj.value != NPY_NAT:
                 state.update_creso(tsobj.creso)
@@ -711,6 +740,7 @@ def array_to_datetime_with_tz(
                         dayfirst=dayfirst,
                         yearfirst=yearfirst,
                         nanos=0,
+                        warned_quarter=&warned_quarter,
                     )
                     tsobj.ensure_reso(creso, item, round_ok=True)
                     ival = tsobj.value
@@ -727,7 +757,8 @@ def array_to_datetime_with_tz(
         # We encountered mismatched resolutions, need to re-parse with
         #  the correct one.
         return array_to_datetime_with_tz(
-            values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso
+            values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso,
+            warned_quarter=warned_quarter,
         )
 
     if wall_count > 0:

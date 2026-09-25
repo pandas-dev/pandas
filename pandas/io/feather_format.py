@@ -15,7 +15,10 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
@@ -69,8 +72,8 @@ def to_feather(
         path, "wb", storage_options=storage_options, is_text=False
     ) as handles:
         # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
-        # suppress until we migrate the implementation (GH#66169)
-        with warnings.catch_warnings():
+        # suppress until we migrate the implementation (GH#66177)
+        with warnings.catch_warnings(), suppress_pyarrow_values_warning():
             warnings.filterwarnings(
                 "ignore",
                 "pyarrow.feather.write_feather is deprecated",
@@ -167,7 +170,7 @@ def read_feather(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
         # pyarrow>=24 deprecates feather.read_table in favor of pyarrow.ipc;
-        # suppress until we migrate the implementation (GH#66169)
+        # suppress until we migrate the implementation (GH#66177)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",

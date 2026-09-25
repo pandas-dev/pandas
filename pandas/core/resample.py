@@ -896,14 +896,16 @@ class Resampler(BaseGroupBy, PandasObject):
             Axis to interpolate along. For `Series` this parameter is unused
             and defaults to 0.
         limit : int, optional
-            Maximum number of consecutive NaNs to fill. Must be greater than
-            0.
+            Maximum number of consecutive NaNs to fill. In other words, if there
+            is a gap with more than this number of consecutive NaNs, it will only
+            be partially filled, from the direction given by ``limit_direction``.
+            Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, Optional
             Consecutive NaNs will be filled in this direction.
 
         limit_area : {`None`, 'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
 
             * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
@@ -2113,8 +2115,8 @@ class DatetimeIndexResampler(Resampler):
     ax: DatetimeIndex
 
     @property
-    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupby]:
-        return DatetimeIndexResamplerGroupby
+    def _resampler_for_grouping(self) -> type[DatetimeIndexResamplerGroupBy]:
+        return DatetimeIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
@@ -2220,7 +2222,7 @@ class DatetimeIndexResampler(Resampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible
 # with definition in base class "DatetimeIndexResampler"
-class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+class DatetimeIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, DatetimeIndexResampler
 ):
     """
@@ -2239,7 +2241,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return PeriodIndexResamplerGroupby
+        return PeriodIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_period_bins(self.ax)
@@ -2320,7 +2322,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "PeriodIndexResampler"
-class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+class PeriodIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, PeriodIndexResampler
 ):
     """
@@ -2339,7 +2341,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        return TimedeltaIndexResamplerGroupby
+        return TimedeltaIndexResamplerGroupBy
 
     def _get_binner_for_time(self):
         return self._timegrouper._get_time_delta_bins(self.ax)
@@ -2357,7 +2359,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 @set_module("pandas.api.typing")
 # error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
 # definition in base class "DatetimeIndexResampler"
-class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+class TimedeltaIndexResamplerGroupBy(  # type: ignore[misc]
     _GroupByMixin, TimedeltaIndexResampler
 ):
     """
@@ -2649,7 +2651,7 @@ class TimeGrouper(Grouper):
         # GH#43486: filter NaTs up front, mirroring _get_period_bins
         nat_count = 0
         if ax.hasnans:
-            nat_count = ax.isna().sum()
+            nat_count = ax.isna().sum()  # type: ignore[assignment]
             ax = ax[~ax.isna()]
 
         if len(ax) == 0:
@@ -3162,12 +3164,8 @@ def _adjust_dates_anchored(
             lresult_int = last._value + (freq_value - loffset)
         else:
             lresult_int = last._value + freq_value
-    fresult = Timestamp(fresult_int, unit=unit)
-    lresult = Timestamp(lresult_int, unit=unit)
-    if first_tzinfo is not None:
-        fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
-    if last_tzinfo is not None:
-        lresult = lresult.tz_localize("UTC").tz_convert(last_tzinfo)
+    fresult = Timestamp._from_value_and_reso(fresult_int, first._creso, first_tzinfo)
+    lresult = Timestamp._from_value_and_reso(lresult_int, last._creso, last_tzinfo)
     return fresult, lresult
 
 

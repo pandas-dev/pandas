@@ -10,10 +10,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
-from pandas import (
-    Categorical,
-    Index,
-)
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -167,9 +164,26 @@ def test_interval_dtype(left, right):
 
 @pytest.mark.parametrize("dtype", interval_dtypes)
 def test_interval_dtype_with_categorical(dtype):
-    obj = Index([], dtype=dtype)
+    obj = pd.Index([], dtype=dtype)
 
-    cat = Categorical([], categories=obj)
+    cat = pd.Categorical([], categories=obj)
 
     result = find_common_type([dtype, cat.dtype])
     assert result == dtype
+
+
+@pytest.mark.parametrize("subtype", ["M8", "m8"])
+def test_sparse_datetimelike_keeps_subtype(subtype):
+    # GH#69028 - two datetimelike subtypes keep the subtype, as the dense dtypes do
+    dtype = pd.SparseDtype(f"{subtype}[s]")
+    other = pd.SparseDtype(f"{subtype}[us]")
+    assert find_common_type([dtype, other]) == other
+
+
+@pytest.mark.parametrize("numeric", ["int64", "float64"])
+def test_sparse_bool_with_numeric(numeric):
+    # GH#69028 - bool and a numeric resolve to object, as the dense dtypes do
+    dtype = pd.SparseDtype(bool, False)
+    other = pd.SparseDtype(numeric, 0)  # matching fill values: no PerformanceWarning
+    assert find_common_type([dtype, other]).subtype == object
+    assert find_common_type([other, dtype]).subtype == object

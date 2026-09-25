@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import roperator
 
 
 def test_singleton():
@@ -62,13 +63,22 @@ def test_arithmetic_ops(all_arithmetic_functions, other):
 
     if op.__name__ in ("pow", "rpow", "rmod") and isinstance(other, (str, bytes)):
         pytest.skip(reason=f"{op.__name__} with NA and {other} not defined.")
-    if op.__name__ in ("divmod", "rdivmod"):
-        assert op(NA, other) is (NA, NA)
-    else:
-        if op.__name__ == "rpow":
-            # avoid special case
-            other += 1
-        assert op(NA, other) is NA
+    if op.__name__ == "rpow":
+        # avoid special case
+        other += 1
+    assert op(NA, other) is NA
+
+
+@pytest.mark.parametrize("op", [divmod, roperator.rdivmod])
+@pytest.mark.parametrize(
+    "other", [NA, 1, 1.0, "a", b"a", np.int64(1), np.nan], ids=repr
+)
+def test_divmod_ops(op, other):
+    # GH#66493 divmod is not part of the all_arithmetic_functions fixture,
+    # so it needs its own test.
+    div, mod = op(NA, other)
+    assert div is NA
+    assert mod is NA
 
 
 @pytest.mark.parametrize(

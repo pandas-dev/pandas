@@ -73,7 +73,10 @@ from pandas.core.tools.datetimes import (
     to_datetime,
 )
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -336,7 +339,10 @@ def read_sql_table(
         List of column names to select from SQL table.
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
-        rows to include in each chunk.
+        rows to include in each chunk. By itself this typically does not
+        reduce peak memory usage, as most drivers buffer the full result set
+        unless a server-side cursor is used; see the :ref:`user guide
+        <io.sql.chunksize>` on streaming results.
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -452,7 +458,11 @@ def read_sql_query(
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
-        decimal.Decimal) to floating point. Useful for SQL result sets.
+        decimal.Decimal) to floating point. Useful for SQL result sets. This
+        can lose precision: an integral ``decimal.Decimal`` larger than ``2**53``
+        has no exact ``float64`` representation, so a long identifier can be
+        silently rounded. Pass ``False`` to leave such values as Python objects
+        in an ``object``-dtype column.
     params : list, tuple or mapping, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
@@ -470,7 +480,10 @@ def read_sql_query(
           such as SQLite.
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the number of
-        rows to include in each chunk.
+        rows to include in each chunk. By itself this typically does not
+        reduce peak memory usage, as most drivers buffer the full result set
+        unless a server-side cursor is used; see the :ref:`user guide
+        <io.sql.chunksize>` on streaming results.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
         {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
@@ -600,7 +613,11 @@ def read_sql(
         Column(s) to set as index(MultiIndex).
     coerce_float : bool, default True
         Attempts to convert values of non-string, non-numeric objects (like
-        decimal.Decimal) to floating point, useful for SQL result sets.
+        decimal.Decimal) to floating point, useful for SQL result sets. This
+        can lose precision: an integral ``decimal.Decimal`` larger than ``2**53``
+        has no exact ``float64`` representation, so a long identifier can be
+        silently rounded. Pass ``False`` to leave such values as Python objects
+        in an ``object``-dtype column.
     params : list, tuple or dict, optional, default: None
         List of parameters to pass to execute method.  The syntax used
         to pass parameters is database driver dependent. Check your
@@ -621,7 +638,10 @@ def read_sql(
         a table).
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
-        number of rows to include in each chunk.
+        number of rows to include in each chunk. By itself this typically
+        does not reduce peak memory usage, as most drivers buffer the full
+        result set unless a server-side cursor is used; see the
+        :ref:`user guide <io.sql.chunksize>` on streaming results.
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -1060,7 +1080,7 @@ class SQLTable(PandasObject):
             temp = self.frame.copy(deep=False)
             temp.index.names = self.index
             try:
-                temp.reset_index(inplace=True)
+                temp = temp.reset_index()
             except ValueError as err:
                 raise ValueError(f"duplicate name in index/columns: {err}") from err
         else:
@@ -1184,7 +1204,7 @@ class SQLTable(PandasObject):
                 )
 
                 if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+                    self.frame = self.frame.set_index(self.index)
 
                 yield self.frame
 
@@ -1231,7 +1251,7 @@ class SQLTable(PandasObject):
             )
 
             if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                self.frame = self.frame.set_index(self.index)
 
             return self.frame
 
@@ -2438,7 +2458,8 @@ class ADBCDatabase(PandasSQL):
                 self.delete_rows(name, schema)
 
         try:
-            tbl = pa.Table.from_pandas(frame, preserve_index=index)
+            with suppress_pyarrow_values_warning():
+                tbl = pa.Table.from_pandas(frame, preserve_index=index)
         except pa.ArrowNotImplementedError as exc:
             raise ValueError("datatypes not supported") from exc
 

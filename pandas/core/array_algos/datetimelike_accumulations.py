@@ -9,11 +9,45 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from pandas._libs import iNaT
+from pandas._libs.tslibs import OutOfBoundsTimedelta
 
 from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+def _check_cumsum_overflow(
+    values: np.ndarray, result: np.ndarray, mask: np.ndarray
+) -> None:
+    """
+    Raise if a running total wrapped around or landed on the NaT sentinel.
+
+    Parameters
+    ----------
+    values : np.ndarray[int64]
+        The addends, with NA positions already zeroed out.
+    result : np.ndarray[int64]
+        The running totals, before NA positions are set to NaT.
+    mask : np.ndarray[bool]
+        Positions whose result will be NaT regardless, and so are exempt.
+    """
+    # Whether each running total is greater than the one before it, taking the
+    #  total before the first entry to be zero.
+    stepped_up = np.empty(result.shape, dtype=bool)
+    np.greater(result[:1], 0, out=stepped_up[:1])
+    np.greater(result[1:], result[:-1], out=stepped_up[1:])
+
+    # Absent a signed wrap, the total goes up exactly when the addend is
+    #  positive; a wrap flips the direction of the step.
+    invalid = (values > 0) != stepped_up
+    # A total of exactly int64.min does not wrap, but is indistinguishable
+    #  from NaT once stored.
+    invalid |= result == iNaT
+    invalid &= ~mask
+
+    if invalid.any():
+        raise OutOfBoundsTimedelta("overflow in timedelta operation")
 
 
 def _cum_func(
@@ -54,6 +88,9 @@ def _cum_func(
 
     # GH 57956
     result = func(y, axis=0)
+    if func is np.cumsum:
+        # GH#66551: cummin/cummax cannot leave the range, cumsum can
+        _check_cumsum_overflow(y, result, mask)
     result[mask] = iNaT
 
     if values.dtype.kind in "mM":

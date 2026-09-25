@@ -88,12 +88,34 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
     return meta.base
 
 
+cdef int get_unit_count_from_dtype(cnp.dtype dtype):
+    # NB: caller is responsible for ensuring this is *some* datetime64 or
+    #  timedelta64 dtype, otherwise we can segfault
+    cdef:
+        cnp.PyArray_Descr* descr = <cnp.PyArray_Descr*>dtype
+        PyArray_DatetimeMetaData meta
+    meta = get_datetime_metadata_from_dtype(descr)
+    return meta.num
+
+
+cdef raise_if_unit_multiplier(cnp.dtype dtype):
+    """
+    Reject e.g. "m8[10s]": the multiplier is not part of a pandas resolution,
+    so reading the dtype as "m8[s]" would silently scale every value. GH#25611
+    """
+    if get_unit_count_from_dtype(dtype) != 1:
+        raise ValueError(
+            f"units containing a multiplier are not supported, got dtype {dtype}"
+        )
+
+
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
 
 
 def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    raise_if_unit_multiplier(dtype)
     reso = get_unit_from_dtype(dtype)
     new_reso = get_supported_reso(reso)
     new_unit = npy_unit_to_abbrev(new_reso)
@@ -112,7 +134,7 @@ def is_supported_dtype(dtype: cnp.dtype) -> bool:
         raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
     cdef:
         NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
-    return is_supported_unit(unit)
+    return is_supported_unit(unit) and get_unit_count_from_dtype(dtype) == 1
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
@@ -245,6 +267,40 @@ cdef get_implementation_bounds(
 cdef str dts_to_iso_string(npy_datetimestruct *dts):
     return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
             f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+
+cdef str dts_to_iso_string_ns(npy_datetimestruct *dts):
+    """
+    Render `dts`, including its sub-second digits if it has any.
+
+    For callers where the sub-second digits are what put the value out of
+    bounds, so that truncating to seconds would name a representable value.
+    Trailing zeros are dropped so that a coarser-than-nanosecond `dts` is not
+    given precision it does not have; the digits shown are always exact.
+    """
+    cdef:
+        int64_t nanos = dts.us * 1000 + dts.ps // 1000
+        str digits
+
+    if nanos == 0:
+        return dts_to_iso_string(dts)
+    digits = f"{nanos:09d}".rstrip("0")
+    return f"{dts_to_iso_string(dts)}.{digits}"
+
+
+cdef _raise_nat_sentinel(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit):
+    """
+    Out-of-line raise for check_nat_sentinel (see np_datetime.pxd).
+
+    NPY_NAT is INT64_MIN, so a rendered or tz-shifted value that lands on it is
+    not NaT but is indistinguishable from it downstream: it reads back as NaT as
+    soon as it is stored in a datetime64 array, and wraps if converted to another
+    unit. (GH#66510)
+    """
+    attrname = npy_unit_to_attrname[unit]
+    raise OutOfBoundsDatetime(
+        f"Out of bounds {attrname} timestamp: {dts_to_iso_string_ns(dts)}"
+    )
 
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
@@ -393,6 +449,15 @@ cpdef ndarray astype_overflowsafe(
             "astype_overflowsafe values.dtype and dtype must be either "
             "both-datetime64 or both-timedelta64."
         )
+
+    if not cnp.PyDataType_ISNOTSWAPPED(dtype):
+        # GH#68565 the conversions below view their natively-written results as
+        #  `dtype`, so a non-native target would read back byteswapped; pandas
+        #  stores datetimelike data natively in any case
+        dtype = (<object>dtype).newbyteorder("=")
+
+    raise_if_unit_multiplier(values.dtype)
+    raise_if_unit_multiplier(dtype)
 
     cdef:
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
@@ -806,12 +871,26 @@ cdef int64_t _convert_reso_with_dtstruct(
     return result
 
 
+# The reductions in add_overflowsafe's fast path cost a fixed ~1us that the
+#  per-element loop does not pay, putting the measured crossover at a few
+#  hundred elements.  Round up so that small inputs, the common case for
+#  scalar-broadcast arithmetic, stay on the loop.
+cdef Py_ssize_t _ADD_VECTORIZED_MIN_SIZE = 1000
+
+
 @cython.overflowcheck(True)
-cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+cpdef cnp.ndarray add_overflowsafe(
+    cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=False
+):
     """
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
     `right` may either be zero-dim or of the same shape as `left`.
+
+    A sum landing exactly on NPY_DATETIME_NAT is rejected, since as a datetime64
+    or timedelta64 value it would be indistinguishable from a missing one. Pass
+    ``sentinel_ok=True`` where the result is a count rather than such a value,
+    so that NPY_DATETIME_NAT is a legitimate answer (GH#66552).
 
     TODO(numpy>=2.5): numpy raises OverflowError natively for datetime64/
     timedelta64 add and subtract (numpy GH-31378); remove this once the numpy
@@ -820,6 +899,26 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     cdef:
         Py_ssize_t _, N = left.size
         int64_t lval, rval, res_value
+        int64_t lmin, lmax, rmin, rmax
+
+    # Fast path: bound the result from the operands' min/max, and when every
+    #  sum provably stays inside (NPY_DATETIME_NAT, INT64_MAX] hand the whole
+    #  thing to numpy.  NPY_DATETIME_NAT is INT64_MIN, so a minimum above it
+    #  also rules out NaT operands.
+    if N >= _ADD_VECTORIZED_MIN_SIZE and right.size > 0:
+        lmin = left.min()
+        rmin = right.min()
+        if lmin > NPY_DATETIME_NAT and rmin > NPY_DATETIME_NAT:
+            lmax = left.max()
+            rmax = right.max()
+            # Each bound is phrased to keep the subtraction itself in range.
+            if (
+                (rmin >= 0 or lmin > NPY_DATETIME_NAT - rmin)
+                and (rmax <= 0 or lmax <= INT64_MAX - rmax)
+            ):
+                return left + right
+
+    cdef:
         ndarray iresult = cnp.PyArray_EMPTY(
             left.ndim, left.shape, cnp.NPY_INT64, 0
         )
@@ -839,6 +938,11 @@ cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
                 res_value = NPY_DATETIME_NAT
             else:
                 res_value = lval + rval
+                if res_value == NPY_DATETIME_NAT and not sentinel_ok:
+                    # GH#66549 int64 can hold this sum, but the value is the
+                    #  NaT sentinel, so it would be indistinguishable from a
+                    #  missing value downstream. Treat it as an overflow.
+                    raise OverflowError
 
             # Analogous to: result[i] = res_value
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value

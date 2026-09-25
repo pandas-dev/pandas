@@ -16,6 +16,8 @@ defaults:
 jobs:
   cleanup:
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write
     if: github.repository_owner == 'pandas-dev'
     steps:
       - name: Clean closed pull request caches

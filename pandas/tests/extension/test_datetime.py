@@ -142,7 +142,7 @@ class TestDatetimeArray(base.ExtensionTests):
             return super().check_reduce(ser, op_name, skipna)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     def test_values_for_json(self, data):
         # GH 65127
@@ -151,7 +151,7 @@ class TestDatetimeArray(base.ExtensionTests):
         super().test_values_for_json(data)
 
     @pytest.mark.filterwarnings(
-        "ignore:The default 'epoch' date format is deprecated:DeprecationWarning"
+        "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"
     )
     @pytest.mark.xfail(
         raises=AssertionError, reason="DatetimeArray does not support JSON roundtrip."
@@ -162,6 +162,14 @@ class TestDatetimeArray(base.ExtensionTests):
         # on the default 'epoch' format for datetimes, leading to the filtered
         # Pandas4Warning.
         super().test_json_roundtrip(data)
+
+    @pytest.mark.xfail(raises=AssertionError, reason="numpy array are different")
+    def test_plot_on_x_axis(self, plot_data):
+        # GH 64535, GH 65915
+        # A tz-aware DatetimeArray on the x-axis is converted to a PeriodArray and
+        # thereby loses its tz information. Therefore the check that the plotted data
+        # is matching the expected converted data fails.
+        super().test_plot_on_x_axis(plot_data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

@@ -4,10 +4,6 @@ import pytest
 from pandas.core.dtypes.common import is_float_dtype
 
 import pandas as pd
-from pandas import (
-    DataFrame,
-    Series,
-)
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -17,15 +13,15 @@ def backend(request):
     if request.param == "numpy":
 
         def make_dataframe(*args, **kwargs):
-            return DataFrame(*args, **kwargs)
+            return pd.DataFrame(*args, **kwargs)
 
         def make_series(*args, **kwargs):
-            return Series(*args, **kwargs)
+            return pd.Series(*args, **kwargs)
 
     elif request.param == "nullable":
 
         def make_dataframe(*args, **kwargs):
-            df = DataFrame(*args, **kwargs)
+            df = pd.DataFrame(*args, **kwargs)
             df_nullable = df.convert_dtypes()
             # convert_dtypes will try to cast float to int if there is no loss in
             # precision -> undo that change
@@ -38,7 +34,7 @@ def backend(request):
             return df_nullable.copy()
 
         def make_series(*args, **kwargs):
-            ser = Series(*args, **kwargs)
+            ser = pd.Series(*args, **kwargs)
             return ser.convert_dtypes().copy()
 
     return request.param, make_dataframe, make_series
@@ -503,7 +499,7 @@ def test_subset_chained_getitem_series(backend, method):
 
 def test_subset_chained_single_block_row():
     # not parametrizing this for dtype backend, since this explicitly tests single block
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     df_orig = df.copy()
 
     # modify subset -> don't modify parent
@@ -514,7 +510,7 @@ def test_subset_chained_single_block_row():
     # modify parent -> don't modify subset
     subset = df[:].iloc[0].iloc[0:2]
     df.iloc[0, 0] = 0
-    expected = Series([1, 4], index=["a", "b"], name=0)
+    expected = pd.Series([1, 4], index=["a", "b"], name=0)
     tm.assert_series_equal(subset, expected)
 
 
@@ -603,7 +599,7 @@ def test_series_getitem_slice(backend):
 
 def test_series_getitem_ellipsis():
     # Case: taking a view of a Series using Ellipsis + afterwards modifying the subset
-    s = Series([1, 2, 3])
+    s = pd.Series([1, 2, 3])
     s_orig = s.copy()
 
     subset = s[...]
@@ -614,7 +610,7 @@ def test_series_getitem_ellipsis():
 
     assert not np.shares_memory(get_array(subset), get_array(s))
 
-    expected = Series([0, 2, 3])
+    expected = pd.Series([0, 2, 3])
     tm.assert_series_equal(subset, expected)
 
     # original parent series is not modified (CoW)
@@ -813,7 +809,7 @@ def test_dataframe_add_column_from_series(backend):
 def test_set_value_copy_only_necessary_column(indexer_func, indexer, val, col):
     # When setting inplace, only copy column that is modified instead of the whole
     # block (by splitting the block)
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": col})
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": col})
     df_orig = df.copy()
     view = df[:]
 
@@ -829,7 +825,7 @@ def test_set_value_copy_only_necessary_column(indexer_func, indexer, val, col):
 
 
 def test_series_midx_slice():
-    ser = Series([1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]]))
+    ser = pd.Series([1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]]))
     ser_orig = ser.copy()
     result = ser[1]
     assert np.shares_memory(get_array(ser), get_array(result))
@@ -838,7 +834,7 @@ def test_series_midx_slice():
 
 
 def test_getitem_midx_slice():
-    df = DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
+    df = pd.DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
     df_orig = df.copy()
     new_df = df[("a",)]
 
@@ -850,14 +846,14 @@ def test_getitem_midx_slice():
 
 
 def test_series_midx_tuples_slice():
-    ser = Series(
+    ser = pd.Series(
         [1, 2, 3],
         index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
     )
     result = ser[(1, 2)]
     assert np.shares_memory(get_array(ser), get_array(result))
     result.iloc[0] = 100
-    expected = Series(
+    expected = pd.Series(
         [1, 2, 3],
         index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
     )
@@ -875,7 +871,7 @@ def test_midx_read_only_bool_indexer():
     cols = pd.MultiIndex.from_tuples(
         [("a", "foo"), ("a", "bar"), ("b", "foo"), ("b", "bah")], names=["lvl0", "lvl1"]
     )
-    df = DataFrame(1, index=idx, columns=cols).sort_index().sort_index(axis=1)
+    df = pd.DataFrame(1, index=idx, columns=cols).sort_index().sort_index(axis=1)
 
     mask = df[("a", "foo")] == 1
     expected_mask = mask.copy()
@@ -886,8 +882,8 @@ def test_midx_read_only_bool_indexer():
 
 
 def test_loc_enlarging_with_dataframe():
-    df = DataFrame({"a": [1, 2, 3]})
-    rhs = DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    rhs = pd.DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
     rhs_orig = rhs.copy()
     df.loc[:, ["b", "c"]] = rhs
     assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))

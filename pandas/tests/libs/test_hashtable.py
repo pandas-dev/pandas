@@ -600,6 +600,33 @@ def test_no_reallocation_StringHashTable(N):
 
 
 @pytest.mark.parametrize(
+    "keys",
+    [
+        ["", "\x00"],
+        ["x\x00y", "x\x00z"],
+        ["a", "a\x00", "a\x00\x00", "\x00a"],
+        ["\x00" * 3, "\x00" * 4],
+    ],
+)
+def test_StringHashTable_embedded_null(keys):
+    # GH#34551 the table used to key on a NUL-terminated C string, so distinct
+    #  values sharing a prefix up to their first NUL collapsed into one entry.
+    arr = np.empty(len(keys), dtype=np.object_)
+    arr[:] = keys
+
+    table = ht.StringHashTable()
+    table.map_locations(arr)
+    assert len(table) == len(keys)
+    for i, key in enumerate(keys):
+        assert table.get_item(key) == i
+
+    tm.assert_numpy_array_equal(
+        table.get_indexer(arr), np.arange(len(keys), dtype=np.intp)
+    )
+    assert list(ht.StringHashTable().unique(arr)) == keys
+
+
+@pytest.mark.parametrize(
     "table_type, dtype",
     [
         (ht.Float64HashTable, np.float64),
