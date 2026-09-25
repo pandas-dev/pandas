@@ -1973,6 +1973,28 @@ def test_setitem_null_slice_cow():
     tm.assert_frame_equal(df, expected)
 
 
+def test_setitem_0d_ndarray():
+    # GH#69443 assigning a length-1 ndarray unwraps to 0-d in
+    #  SingleBlockManager.setitem_inplace; the 0-d value is scalar-like and
+    #  must be accepted, not raise.
+    df = pd.DataFrame({"A": pd.array([5000.0], dtype="double[pyarrow]")})
+    df.loc[:, "A"] = df["A"].astype(float).round(6)
+    expected = pd.DataFrame({"A": pd.array([5000.0], dtype="double[pyarrow]")})
+    tm.assert_frame_equal(df, expected)
+
+    # the unwrapped 0-d value broadcasts like a scalar on multi-row frames
+    df2 = pd.DataFrame({"A": pd.array([1.0, 2.0], dtype="double[pyarrow]")})
+    df2.loc[:, "A"] = np.array([7.5])
+    expected2 = pd.DataFrame({"A": pd.array([7.5, 7.5], dtype="double[pyarrow]")})
+    tm.assert_frame_equal(df2, expected2)
+
+    # string-backed ArrowDtype goes through its own setitem validation
+    df3 = pd.DataFrame({"A": pd.array(["x"], dtype="string[pyarrow]")})
+    df3.loc[:, "A"] = np.array(["y"])
+    expected3 = pd.DataFrame({"A": pd.array(["y"], dtype="string[pyarrow]")})
+    tm.assert_frame_equal(df3, expected3)
+
+
 def test_setitem_invalid_dtype(data):
     # GH50248
     pa_type = data._pa_array.type
