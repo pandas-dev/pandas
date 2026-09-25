@@ -477,3 +477,10 @@ def test_get_indexer_non_unique_empty_index(dtype, target_values):
 
     tm.assert_numpy_array_equal(result_idx, np.array([-1, -1], dtype=np.intp))
     tm.assert_numpy_array_equal(result_missing, np.array([0, 1], dtype=np.intp))
+
+
+def test_get_indexer_nearest_non_native_byteorder():
+    # GH#53234
+    idx = pd.Index(np.arange(6, dtype=">f4"))
+    result = idx.get_indexer([1.3, 4.6], method="nearest")
+    tm.assert_numpy_array_equal(result, np.array([1, 5], dtype=np.intp))

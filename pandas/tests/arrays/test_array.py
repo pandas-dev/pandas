@@ -488,6 +488,16 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [(">i8", "Int64"), (">f4", "Float32"), (">c16", "complex128")],
+)
+def test_array_inference_non_native_byteorder(dtype, expected):
+    # GH#53234
+    result = pd.array(np.array([1, 2], dtype=dtype))
+    tm.assert_extension_array_equal(result, pd.array([1, 2], dtype=expected))
+
+
 @pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
