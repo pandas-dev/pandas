@@ -191,6 +191,19 @@ class StringMethods(NoNewAttributesMixin):
     def __init__(self, data) -> None:
         from pandas.core.arrays.string_ import StringDtype
 
+        if isinstance(data.dtype, ArrowDtype):
+            import pyarrow as pa
+            import pyarrow.compute as pc
+
+            if pa.types.is_dictionary(data.dtype.pyarrow_dtype):
+                array = data.array._from_pyarrow_array(
+                    pc.dictionary_decode(data.array._pa_array)
+                )
+                kwargs = {"name": data.name, "copy": False}
+                if isinstance(data, ABCSeries):
+                    kwargs["index"] = data.index
+                data = data._constructor(array, **kwargs)
+
         self._inferred_dtype = self._validate(data)
         self._is_categorical = isinstance(data.dtype, CategoricalDtype)
         self._is_string = isinstance(data.dtype, StringDtype)
