@@ -50,6 +50,7 @@ from pandas.errors import (
 )
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -1139,18 +1140,7 @@ class TestArrowArray(base.ExtensionTests):
 
         # Certain dtypes fail with NA values
         if plot_data["Data"].isna().any():
-            if (
-                pa.types.is_integer(pa_dtype)
-                or pa.types.is_floating(pa_dtype)
-                or pa.types.is_time(pa_dtype)
-            ):
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "float() argument must be a string or a real number, not 'NAType'"
-                )
-            elif (
-                pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None
-            ) or pa.types.is_decimal(pa_dtype):
+            if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
                 err_cls = TypeError
                 err_msg = re.escape("Failed to convert value(s) to axis units: array(")
 
@@ -1197,14 +1187,6 @@ class TestArrowArray(base.ExtensionTests):
                 err_cls = TypeError
                 err_msg = re.escape(
                     "Failed to convert value(s) to axis units: masked_array(data="
-                )
-            elif pa.types.is_duration(pa_dtype):
-                err_cls = AssertionError
-                err_msg = "numpy array are different"
-            elif pa.types.is_boolean(pa_dtype):
-                err_cls = TypeError
-                err_msg = re.escape(
-                    "float() argument must be a string or a real number, not 'NAType'"
                 )
 
         # Call test, errors and warnings should only be raised for unsupported dtypes
@@ -2012,6 +1994,168 @@ def test_setitem_invalid_dtype(data):
         msg = "Invalid value 'foo' for dtype"
     with pytest.raises(err, match=msg):
         data[:] = fill_value
+
+
+@pytest.mark.parametrize(
+    "target_tz, value_tz", [(None, "US/Eastern"), ("US/Eastern", None)]
+)
+@pytest.mark.parametrize("as_pydatetime", [False, True])
+def test_setitem_timestamp_tz_mismatch_raises(target_tz, value_tz, as_pydatetime):
+    # GH#69029 the value was stored as its UTC offset, which under a target of the
+    #  other tz-awareness names a different instant. A plain datetime.datetime is
+    #  reinterpreted the same way, so the guard is on datetime, not on Timestamp
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.timestamp("ns", tz=target_tz)))
+    value = pd.Timestamp("2016-01-01", tz=value_tz)
+    if as_pydatetime:
+        value = value.to_pydatetime()
+    msg = re.escape(f"Invalid value '{value}' for dtype '{arr.dtype}'")
+
+    with pytest.raises(TypeError, match=msg):
+        arr[0] = value
+    with pytest.raises(TypeError, match=msg):
+        arr[:1] = value
+    with pytest.raises(TypeError, match=msg):
+        pd.Series(arr).fillna(value)
+    with pytest.raises(TypeError, match=msg):
+        pd.Series(arr).where([False, True], value)
+    with pytest.raises(TypeError, match=msg):
+        pd.Series(arr).mask([True, False], value)
+    with pytest.raises(TypeError, match=msg):
+        # to_replace has to match, or nothing reaches the boxing step
+        pd.Series(arr).replace(arr[0], value)
+    with pytest.raises(TypeError, match=msg):
+        # take() fills through _validate_setitem_value, so reindex is guarded too
+        pd.Series(arr).reindex([0, 1, 2], fill_value=value)
+
+
+@pytest.mark.parametrize(
+    "target_tz, value_tz", [(None, "US/Eastern"), ("US/Eastern", None)]
+)
+def test_setitem_pa_scalar_tz_mismatch_raises(target_tz, value_tz):
+    # GH#69029 a pa.Scalar skips the datetime guard and reaches the boundary at the
+    #  trailing cast instead; a null still crosses, since it names no instant
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.timestamp("ns", tz=target_tz)))
+    value = pa.scalar(pd.Timestamp("2016-01-01", tz=value_tz))
+
+    msg = re.escape(f"Invalid value '{value}' for dtype '{arr.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        arr[0] = value
+
+    arr[0] = pa.scalar(None, type=pa.timestamp("ns", tz=value_tz))
+    assert arr[0] is pd.NA
+
+
+def test_setitem_timestamp_other_tz_converts():
+    # GH#69029 two tz-aware operands name the same instant, so this is not a mismatch
+    arr = pd.array([1, None], dtype=ArrowDtype(pa.timestamp("ns", tz="US/Eastern")))
+    arr[0] = pd.Timestamp("2016-01-01 00:00", tz="UTC")
+    assert arr[0] == pd.Timestamp("2015-12-31 19:00", tz="US/Eastern")
+
+
+@pytest.mark.parametrize(
+    "target_tz, value_tz", [(None, "US/Eastern"), ("US/Eastern", None)]
+)
+@pytest.mark.parametrize("method", ["where", "putmask"])
+def test_index_tz_mismatch_casts_to_object(target_tz, value_tz, method):
+    # GH#69029 Index catches the TypeError and widens, as DatetimeIndex does
+    idx = pd.Index(pd.array([1, 2], dtype=ArrowDtype(pa.timestamp("ns", tz=target_tz))))
+    value = pd.Timestamp("2016-01-01", tz=value_tz)
+    result = getattr(idx, method)(
+        [False, True] if method == "where" else [True, False], value
+    )
+    assert result.dtype == object
+    assert result[0] == value
+    # the entry the mask did not select keeps its timezone; without the
+    #  _get_common_dtype fix the whole index is relabelled tz-naive
+    assert result[1] == idx[1]
+
+
+def test_concat_timestamp_tz_aware_and_naive():
+    # GH#69029 the common dtype went through numpy_dtype, which drops the tz, so
+    #  the tz-aware values came back shifted by their UTC offset
+    aware = pd.Series(
+        pd.array(
+            [pd.Timestamp("2016-01-05", tz="US/Eastern")],
+            dtype=ArrowDtype(pa.timestamp("ns", tz="US/Eastern")),
+        )
+    )
+    naive = pd.Series(
+        pd.array([pd.Timestamp("2016-01-06")], dtype=ArrowDtype(pa.timestamp("ns")))
+    )
+
+    result = pd.concat([aware, naive], ignore_index=True)
+
+    assert result.dtype == object
+    assert result[0] == pd.Timestamp("2016-01-05", tz="US/Eastern")
+    assert result[1] == pd.Timestamp("2016-01-06")
+
+
+@pytest.mark.parametrize(
+    "other, expected",
+    [
+        (ArrowDtype(pa.timestamp("ns")), None),
+        (ArrowDtype(pa.timestamp("ns", tz="UTC")), None),
+        (np.dtype("M8[ns]"), None),
+        (
+            ArrowDtype(pa.timestamp("us", tz="US/Eastern")),
+            pa.timestamp("ns", tz="US/Eastern"),
+        ),
+        (
+            pd.DatetimeTZDtype("ns", "US/Eastern"),
+            pa.timestamp("ns", tz="US/Eastern"),
+        ),
+    ],
+)
+def test_get_common_dtype_timestamp_tz(other, expected):
+    # GH#69029 disagreeing tz-awareness has no common ArrowDtype, matching
+    #  datetime64; a shared tz survives a unit difference or a numpy spelling
+    dtype = ArrowDtype(pa.timestamp("ns", tz="US/Eastern"))
+    result = dtype._get_common_dtype([dtype, other])
+    assert result == (None if expected is None else ArrowDtype(expected))
+
+
+def test_concat_null_and_numpy_tz_aware():
+    # GH#69029 a null[pyarrow] column names no type, so the tz-aware column decides
+    #  the result; it arrow-ifies, as a numpy int64 column beside a null[pyarrow]
+    #  one already does
+    nullcol = pd.Series(pd.array([None], dtype=ArrowDtype(pa.null())))
+    numpy_tz = pd.Series(
+        pd.DatetimeIndex(["2016-01-06"]).tz_localize("US/Eastern").as_unit("us")
+    )
+
+    result = pd.concat([numpy_tz, nullcol], ignore_index=True)
+
+    assert result.dtype == ArrowDtype(pa.timestamp("us", tz="US/Eastern"))
+    assert result[0] == pd.Timestamp("2016-01-06", tz="US/Eastern")
+    assert result[1] is pd.NA
+
+
+def test_concat_timestamp_tz_arrow_and_numpy():
+    # GH#69029 the tz was dropped on the way through numpy_dtype, so two equivalent
+    #  tz-aware dtypes had no common dtype and the result fell back to object
+    dtype = ArrowDtype(pa.timestamp("ns", tz="US/Eastern"))
+    arrow = pd.Series(
+        pd.array([pd.Timestamp("2016-01-05", tz="US/Eastern")], dtype=dtype)
+    )
+    numpy = pd.Series(
+        pd.DatetimeIndex(["2016-01-06"]).tz_localize("US/Eastern").as_unit("ns")
+    )
+
+    result = pd.concat([arrow, numpy], ignore_index=True)
+
+    assert result.dtype == dtype
+    assert result[0] == pd.Timestamp("2016-01-05", tz="US/Eastern")
+    assert result[1] == pd.Timestamp("2016-01-06", tz="US/Eastern")
+
+
+def test_get_common_dtype_unresolvable_tz():
+    # GH#69029 pa.timestamp does not validate its tz, so it can carry a label
+    #  pandas cannot resolve; resolving a common dtype must not raise
+    dtype = ArrowDtype(pa.timestamp("s", tz="Z"))
+    other = ArrowDtype(pa.timestamp("ns", tz="Z"))
+
+    assert dtype._get_common_dtype([dtype, other]) is None
+    assert find_common_type([dtype, other]) == object
 
 
 @pytest.mark.parametrize(
