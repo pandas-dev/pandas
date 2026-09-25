@@ -219,6 +219,14 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout release notes templates
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/release_notes
+          sparse-checkout-cone-mode: false
+
       - name: Download sdist
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -229,30 +237,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          export VERSION="${GITHUB_REF_NAME#v}"
+          export BASE_VERSION="${VERSION%%rc*}"
+          export MINOR_VERSION="${BASE_VERSION%.*}"
+
           if [[ "$VERSION" == *rc* ]]; then
+            TEMPLATE="rc"
             PRERELEASE="--prerelease"
+          elif [[ "${BASE_VERSION##*.}" != "0" ]]; then
+            TEMPLATE="patch"
+            PRERELEASE=""
           else
+            TEMPLATE="minor"
             PRERELEASE=""
           fi
 
-          cat > notes.md <<EOF
-          We are pleased to announce the release of pandas $VERSION.
-
-          See the [full whatsnew](https://pandas.pydata.org/docs/whatsnew/v$VERSION.html) for a list of all the changes.
-
-          The release can be installed from PyPI:
-
-              python -m pip install --upgrade pandas==$VERSION
-
-          Or from conda-forge
-
-              conda install -c conda-forge pandas=$VERSION
-
-          Please report any issues with the release on the [pandas issue tracker](https://github.com/pandas-dev/pandas/issues).
-
-          Thanks to all the contributors who made this release possible.
-          EOF
+          envsubst '${VERSION} ${BASE_VERSION} ${MINOR_VERSION}' \
+            < ".github/release_notes/$TEMPLATE.md" > notes.md
+          cat notes.md
 
           gh release create "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
