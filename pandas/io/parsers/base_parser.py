@@ -560,7 +560,8 @@ class ParserBase:
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
-                result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+                if result.dtype.kind not in "mM":
+                    result = ArrowExtensionArray(pa.array(result, from_pandas=True))
             elif isinstance(result, BaseMaskedArray):
                 if result._mask.all():
                     # We want an arrow null array here
