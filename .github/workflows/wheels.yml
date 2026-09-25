@@ -211,6 +211,7 @@ jobs:
 
     needs:
       - build_sdist
+      - publish
 
     runs-on: ubuntu-24.04
 
