@@ -1116,8 +1116,7 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
         >>> mi
-        MultiIndex([('a', 'b', 'c')],
-                   )
+        MultiIndex([('a', 'b', 'c')])
         >>> mi.nlevels
         3
         """
@@ -1144,8 +1143,7 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
         >>> mi
-        MultiIndex([('a', 'b', 'c')],
-                   )
+        MultiIndex([('a', 'b', 'c')])
         >>> mi.levshape
         (1, 1, 1)
         """
@@ -1426,11 +1424,9 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
         >>> mi
-        MultiIndex([('a', 'b', 'c')],
-                   )
+        MultiIndex([('a', 'b', 'c')])
         >>> mi.copy()
-        MultiIndex([('a', 'b', 'c')],
-                   )
+        MultiIndex([('a', 'b', 'c')])
         """
         names = self._validate_names(name=name, names=names, deep=deep)
         keep_id = not deep
@@ -1505,8 +1501,7 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"], ["c"]])
         >>> mi
-        MultiIndex([('a', 'b', 'c')],
-                   )
+        MultiIndex([('a', 'b', 'c')])
 
         >>> "a" in mi
         True
@@ -2031,12 +2026,10 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays(([np.nan, np.nan, 2.0], [3.0, np.nan, 4.0]))
         >>> mi.dropna()
-        MultiIndex([(2.0, 4.0)],
-                   )
+        MultiIndex([(2.0, 4.0)])
         >>> mi.dropna(how="all")
         MultiIndex([(nan, 3.0),
-                    (2.0, 4.0)],
-                   )
+                    (2.0, 4.0)])
         """
         nans = [level_codes == -1 for level_codes in self.codes]
         if how == "any":
@@ -2173,13 +2166,11 @@ class MultiIndex(Index):
         MultiIndex([('a', 'd'),
                     ('b', 'e'),
                     ('c', 'f'),
-                    ('a', 'd')],
-                   )
+                    ('a', 'd')])
         >>> mi.unique()
         MultiIndex([('a', 'd'),
                     ('b', 'e'),
-                    ('c', 'f')],
-                   )
+                    ('c', 'f')])
         """
         if level is None:
             return self.drop_duplicates()
@@ -2225,8 +2216,7 @@ class MultiIndex(Index):
         >>> mi = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]])
         >>> mi
         MultiIndex([('a', 'c'),
-                    ('b', 'd')],
-                   )
+                    ('b', 'd')])
 
         >>> df = mi.to_frame()
         >>> df
@@ -2390,15 +2380,13 @@ class MultiIndex(Index):
         MultiIndex([('a', 'bb'),
                     ('a', 'aa'),
                     ('b', 'bb'),
-                    ('b', 'aa')],
-                   )
+                    ('b', 'aa')])
 
         >>> mi.sort_values()
         MultiIndex([('a', 'aa'),
                     ('a', 'bb'),
                     ('b', 'aa'),
-                    ('b', 'bb')],
-                   )
+                    ('b', 'bb')])
         """
         if self._is_lexsorted() and self.is_monotonic_increasing:
             return self
@@ -2466,13 +2454,11 @@ class MultiIndex(Index):
         MultiIndex([(0, 'a'),
                     (0, 'b'),
                     (1, 'a'),
-                    (1, 'b')],
-                   )
+                    (1, 'b')])
 
         >>> mi[2:]
         MultiIndex([(1, 'a'),
-                    (1, 'b')],
-                   )
+                    (1, 'b')])
 
         The 0 from the first level is not represented
         and can be removed
@@ -2654,14 +2640,12 @@ class MultiIndex(Index):
         >>> idx
         MultiIndex([('a', 1),
                     ('b', 2),
-                    ('c', 3)],
-                   )
+                    ('c', 3)])
         >>> idx.take([2, 2, 1, 0])
         MultiIndex([('c', 3),
                     ('c', 3),
                     ('b', 2),
-                    ('a', 1)],
-                   )
+                    ('a', 1)])
         """
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
@@ -2738,11 +2722,9 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a"], ["b"]])
         >>> mi
-        MultiIndex([('a', 'b')],
-                   )
+        MultiIndex([('a', 'b')])
         >>> mi.append(mi)
-        MultiIndex([('a', 'b'), ('a', 'b')],
-                   )
+        MultiIndex([('a', 'b'), ('a', 'b')])
         """
         if not isinstance(other, (list, tuple)):
             other = [other]
@@ -2816,8 +2798,7 @@ class MultiIndex(Index):
         >>> midx = pd.MultiIndex.from_arrays([[3, 2], ["e", "c"]])
         >>> midx
         MultiIndex([(3, 'e'),
-                    (2, 'c')],
-                   )
+                    (2, 'c')])
 
         >>> order = midx.argsort()
         >>> order
@@ -2825,8 +2806,7 @@ class MultiIndex(Index):
 
         >>> midx[order]
         MultiIndex([(2, 'c'),
-                    (3, 'e')],
-                  )
+                    (3, 'e')])
 
         >>> midx = pd.MultiIndex.from_arrays([[2, 2], [np.nan, 0]])
         >>> midx.argsort(na_position="first")
@@ -2872,24 +2852,21 @@ class MultiIndex(Index):
         >>> idx
         MultiIndex([('a', 1),
                     ('b', 2),
-                    ('c', 3)],
-                   )
+                    ('c', 3)])
         >>> idx.repeat(2)
         MultiIndex([('a', 1),
                     ('a', 1),
                     ('b', 2),
                     ('b', 2),
                     ('c', 3),
-                    ('c', 3)],
-                   )
+                    ('c', 3)])
         >>> idx.repeat([1, 2, 3])
         MultiIndex([('a', 1),
                     ('b', 2),
                     ('b', 2),
                     ('c', 3),
                     ('c', 3),
-                    ('c', 3)],
-                   )
+                    ('c', 3)])
         """
         nv.validate_repeat((), {"axis": axis})
         # error: Incompatible types in assignment (expression has type "ndarray",
@@ -3079,26 +3056,22 @@ class MultiIndex(Index):
         MultiIndex([('a', 'bb', 'bbb'),
                     ('a', 'aa', 'aaa'),
                     ('b', 'bb', 'bbb'),
-                    ('b', 'aa', 'aaa')],
-                   )
+                    ('b', 'aa', 'aaa')])
         >>> mi.swaplevel()
         MultiIndex([('a', 'bbb', 'bb'),
                     ('a', 'aaa', 'aa'),
                     ('b', 'bbb', 'bb'),
-                    ('b', 'aaa', 'aa')],
-                   )
+                    ('b', 'aaa', 'aa')])
         >>> mi.swaplevel(0)
         MultiIndex([('bbb', 'bb', 'a'),
                     ('aaa', 'aa', 'a'),
                     ('bbb', 'bb', 'b'),
-                    ('aaa', 'aa', 'b')],
-                   )
+                    ('aaa', 'aa', 'b')])
         >>> mi.swaplevel(0, 1)
         MultiIndex([('bb', 'a', 'bbb'),
                     ('aa', 'a', 'aaa'),
                     ('bb', 'b', 'bbb'),
-                    ('aa', 'b', 'aaa')],
-                )
+                    ('aa', 'b', 'aaa')])
         """
         new_levels = list(self.levels)
         new_codes = list(self.codes)
@@ -3268,28 +3241,23 @@ class MultiIndex(Index):
         >>> mi = pd.MultiIndex.from_arrays([[0, 0], [2, 1]])
         >>> mi
         MultiIndex([(0, 2),
-                    (0, 1)],
-                   )
+                    (0, 1)])
 
         >>> mi.sortlevel()
         (MultiIndex([(0, 1),
-                    (0, 2)],
-                   ), array([1, 0]))
+                    (0, 2)]), array([1, 0]))
 
         >>> mi.sortlevel(sort_remaining=False)
         (MultiIndex([(0, 2),
-                    (0, 1)],
-                   ), array([0, 1]))
+                    (0, 1)]), array([0, 1]))
 
         >>> mi.sortlevel(1)
         (MultiIndex([(0, 1),
-                    (0, 2)],
-                   ), array([1, 0]))
+                    (0, 2)]), array([1, 0]))
 
         >>> mi.sortlevel(1, ascending=False)
         (MultiIndex([(0, 2),
-                    (0, 1)],
-                   ), array([0, 1]))
+                    (0, 1)]), array([0, 1]))
         """
         if not is_list_like(level):
             level = [level]
@@ -4548,11 +4516,9 @@ class MultiIndex(Index):
         --------
         >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
         >>> mi
-        MultiIndex([('a', 'x'), ('b', 'y'), ('c', 'z')],
-                   )
+        MultiIndex([('a', 'x'), ('b', 'y'), ('c', 'z')])
         >>> mi.truncate(before="a", after="b")
-        MultiIndex([('a', 'x'), ('b', 'y')],
-                   )
+        MultiIndex([('a', 'x'), ('b', 'y')])
         """
         if after and before and after < before:
             raise ValueError("after < before")
@@ -4771,13 +4737,11 @@ class MultiIndex(Index):
         >>> mi
         MultiIndex([(1, 4),
                     (2, 5),
-                    (3, 6)],
-                   )
+                    (3, 6)])
         >>> mi.astype("object")
         MultiIndex([(1, 4),
                     (2, 5),
-                    (3, 6)],
-                   )
+                    (3, 6)])
         """
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, CategoricalDtype):
