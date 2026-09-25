@@ -4509,8 +4509,8 @@ class MultiIndex(Index):
                 # flip order for negative step
                 new_order = np.arange(n - 1, -1, -1)[indexer]
             elif isinstance(k, slice) and k.start is None and k.stop is None:
-                # slice(None) should not determine order GH#31330
-                new_order = np.ones((n,), dtype=np.intp)[indexer]
+                # Preserve outer-group ordering for later list-like keys.
+                new_order = self.codes[i][indexer]
             else:
                 # For all other case, use the same order as the level
                 new_order = np.arange(n)[indexer]
