@@ -9862,34 +9862,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
+        def rank_values(values: ArrayLike, values_axis: AxisInt) -> ArrayLike:
+            if isinstance(values, ExtensionArray) and values.ndim == 1:
+                return values._rank(
+                    axis=values_axis,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
-            else:
-                ranks = algos.rank(
-                    values,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+            return algos.rank(
+                values,
+                axis=values_axis,
+                method=method,
+                ascending=ascending,
+                na_option=na_option,
+                pct=pct,
+            )
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
@@ -9902,7 +9891,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        if data.ndim == 2 and axis_int == 0:
+            # GH#52829 ranking block by block retains extension dtypes; a block's
+            #  rows are its last axis
+            res_mgr = data._mgr.apply(
+                lambda values: rank_values(values, values.ndim - 1)
+            )
+            ranks_obj = data._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
+        else:
+            # axis=1 needs all of a row's entries in one dtype, so it cannot go
+            #  block by block
+            values = data.values if data.ndim == 2 else data._values
+            ranks_obj = self._constructor(
+                rank_values(values, axis_int), **data._construct_axes_dict()
+            )
+        return ranks_obj.__finalize__(self, method="rank")
 
     def compare(
         self,
