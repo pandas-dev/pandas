@@ -93,7 +93,6 @@ if git ls-remote --exit-code --tags "$REMOTE" "$TAG" >/dev/null 2>&1; then
 fi
 
 echo "About to release pandas $VERSION from branch '$BRANCH' (remote '$REMOTE')."
-echo "  - 'git clean -xdf' will DELETE all untracked files in the working tree."
 echo "  - An empty 'RLS: $VERSION' commit and tag '$TAG' will be pushed to '$REMOTE/$BRANCH'."
 if [[ "$IS_RC" == "true" ]]; then
   echo "  - Maintenance branch '$RC_BRANCH' will be created and pushed."

@@ -418,17 +418,28 @@ to create the new branch.
    # e.g. A release candidate
    scripts/push_tag_for_release.sh 3.0.0rc0 main --rc-branch 3.0.x
 
+.. note::
+
+   After releasing a release candidate, start the development of the next version on ``main``
+   by pushing an empty commit and a ``dev0`` tag, e.g. for 3.1.0
+
+   .. code-block:: bash
+      git checkout main
+      git commit --allow-empty -m "Start 3.1.0"
+      git tag -a v3.1.0.dev0 -m "DEV: Start 3.1.0"
+      git push upstream main --follow-tags
+
 The release automation will then:
 
-- Create a `GitHub release <https://github.com/pandas-dev/pandas/releases>`_ with the source distribution.
+- Upload the source distribution and wheels to `PyPI <https://pypi.org/project/pandas/#history>`_ via
+  `"Trusted Publishing" <https://docs.pypi.org/trusted-publishers/>`__
+
+- Create a draft `GitHub release <https://github.com/pandas-dev/pandas/releases>`_ with the source distribution.
 
    .. note::
 
       By default, the new Github release will be marked as the latest release.
       For patch releases for an older version, unmark it as the latest release on the Github release page.
-
-- Upload the source distribution and wheels to `PyPI <https://pypi.org/project/pandas/#history>`_ via
-  `"Trusted Publishing" <https://docs.pypi.org/trusted-publishers/>`__
 
 - Create an `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_ from the new Github release.
   This PR will need to be merged manually once its CI is green in order to generate conda-forge packages.
