@@ -15,7 +15,6 @@ Arguments:
 Options:
   --remote NAME          Remote to push to (default: upstream)
   --rc-branch X.Y.x      New maintenance branch to create (release candidate only)
-  --next-version X.Y.Z   Start the next dev cycle on <branch> (release candidate only)
   --yes                  Skip the interactive confirmation prompt
   -h, --help             Show this help and exit
 USAGE
@@ -30,7 +29,6 @@ VERSION=""
 BRANCH=""
 REMOTE="upstream"
 RC_BRANCH=""
-NEXT_VERSION=""
 ASSUME_YES="false"
 
 POSITIONAL=()
@@ -44,11 +42,6 @@ while [[ $# -gt 0 ]]; do
     --rc-branch)
       [[ $# -ge 2 ]] || die "--rc-branch requires a value"
       RC_BRANCH="$2"
-      shift 2
-      ;;
-    --next-version)
-      [[ $# -ge 2 ]] || die "--next-version requires a value"
-      NEXT_VERSION="$2"
       shift 2
       ;;
     --yes)
@@ -74,7 +67,6 @@ VERSION="${POSITIONAL[0]}"
 BRANCH="${POSITIONAL[1]}"
 
 version_pat='^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$'
-next_version_pat='^[0-9]+\.[0-9]+\.[0-9]+$'
 
 [[ "$VERSION" =~ $version_pat ]] || die "Invalid version '$VERSION' (expected e.g. 1.5.2 or 1.4.0rc0)"
 
@@ -84,10 +76,9 @@ if [[ "$VERSION" == *rc* ]]; then
 fi
 
 if [[ "$IS_RC" == "true" ]]; then
-  [[ -n "$RC_BRANCH" && -n "$NEXT_VERSION" ]] || die "Release candidate requires both --rc-branch and --next-version"
-  [[ "$NEXT_VERSION" =~ $next_version_pat ]] || die "Invalid --next-version '$NEXT_VERSION' (expected e.g. 1.5.0)"
+  [[ -n "$RC_BRANCH" ]] || die "Release candidate requires --rc-branch"
 else
-  [[ -z "$RC_BRANCH" && -z "$NEXT_VERSION" ]] || die "--rc-branch/--next-version are only valid for a release candidate"
+  [[ -z "$RC_BRANCH" ]] || die "--rc-branch is only valid for a release candidate"
 fi
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "Not inside a git work tree"
@@ -106,7 +97,6 @@ echo "  - 'git clean -xdf' will DELETE all untracked files in the working tree."
 echo "  - An empty 'RLS: $VERSION' commit and tag '$TAG' will be pushed to '$REMOTE/$BRANCH'."
 if [[ "$IS_RC" == "true" ]]; then
   echo "  - Maintenance branch '$RC_BRANCH' will be created and pushed."
-  echo "  - The next dev cycle '$NEXT_VERSION' (tag 'v$NEXT_VERSION.dev0') will be started on '$BRANCH'."
 fi
 
 if [[ "$ASSUME_YES" != "true" ]]; then
@@ -127,9 +117,6 @@ if [[ "$IS_RC" == "true" ]]; then
   git checkout -b "$RC_BRANCH"
   git push "$REMOTE" "$RC_BRANCH"
   git checkout "$BRANCH"
-  git commit --allow-empty -m "Start $NEXT_VERSION"
-  git tag -a "v$NEXT_VERSION.dev0" -m "DEV: Start $NEXT_VERSION"
-  git push "$REMOTE" "$BRANCH" --follow-tags
 fi
 
 echo "Done. Pushed $TAG to $REMOTE/$BRANCH."

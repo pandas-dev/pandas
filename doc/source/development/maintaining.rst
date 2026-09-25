@@ -408,15 +408,15 @@ Run ``scripts/push_tag_for_release.sh`` from the root of your pandas clone to in
 release process by locally creating and pushing a tagged commit, triggering the release automation.
 Specify the version and branch to release as arguments.
 
-If the release is a release candidate, specify the ``--rc-branch`` and ``--next-version`` options
-to create the new branch and start the development of the next version.
+If the release is a release candidate, specify the ``--rc-branch`` option
+to create the new branch.
 
 .. code-block:: bash
 
    # e.g. A patch release
    scripts/push_tag_for_release.sh 3.0.5 3.0.x
    # e.g. A release candidate
-   scripts/push_tag_for_release.sh 3.0.0rc0 main --rc-branch 3.0.x --next-version 3.1.0
+   scripts/push_tag_for_release.sh 3.0.0rc0 main --rc-branch 3.0.x
 
 The release automation will then:
 
