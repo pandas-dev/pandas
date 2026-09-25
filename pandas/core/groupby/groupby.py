@@ -1526,7 +1526,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
         try:
-            res_values = self._grouper.agg_series(ser, alt, preserve_dtype=True)
+            res_values = self._grouper.agg_series(ser, alt)
         except Exception as err:
             msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
             # preserve the kind of exception that raised
@@ -1576,7 +1576,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 _how = how
             try:
                 result = self._grouper._cython_operation(
-                    "aggregate",
                     values,
                     _how,
                     axis=data.ndim - 1,
@@ -2875,19 +2874,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat below
                 return obj.sum(skipna=skipna)
 
-            # If we are grouping on categoricals we want unobserved categories to
-            # return zero, rather than the default of NaN which the reindexing in
-            # _agg_general() returns. GH #31422
-            with com.temp_setattr(self, "observed", True):
-                result = self._agg_general(
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                    alias="sum",
-                    npfunc=sum_compat,
-                    skipna=skipna,
-                )
-
-            return result
+            return self._agg_general(
+                numeric_only=numeric_only,
+                min_count=min_count,
+                alias="sum",
+                npfunc=sum_compat,
+                skipna=skipna,
+            )
 
     @final
     def prod(
@@ -3482,7 +3475,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise DataError("No numeric types to aggregate")
 
             res_values = self._grouper._cython_operation(
-                "aggregate", obj._values, "ohlc", axis=0, min_count=-1
+                obj._values, "ohlc", axis=0, min_count=-1
             )
 
             agg_names = ["open", "high", "low", "close"]
@@ -3758,8 +3751,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
         closed : str, default None
             Determines the inclusivity of points in the window

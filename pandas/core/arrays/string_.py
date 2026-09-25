@@ -414,6 +414,9 @@ class BaseStringArray(ExtensionArray):
     # TODO(4.0): Once the deprecation here is enforced, this method can be
     #  removed and we use the parent class method instead.
     def _logical_method(self, other, op):
+        # the GH#60234 arm below silently broadcasts a 2-D ndarray
+        ops.raise_if_2d(other)
+
         if (
             op in (roperator.ror_, roperator.rand_, roperator.rxor)
             and isinstance(other, np.ndarray)
@@ -1232,6 +1235,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             BooleanArray,
         )
 
+        ops.raise_if_2d(other)
+
         if (
             isinstance(other, BaseStringArray)
             and self.dtype.na_value is not libmissing.NA
@@ -1271,7 +1276,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                     stacklevel=find_stack_level(),
                 )
             if len(other) != len(self):
-                # prevent improper broadcasting when other is 2D
                 raise ValueError(
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )

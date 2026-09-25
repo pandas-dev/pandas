@@ -360,6 +360,36 @@ class TestPutmask:
             index.putmask("foo", fill)
 
 
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        ("int64", 2),
+        ("float64", 2.0),
+        ("Int64", 2),
+        ("category", 2),
+        ("datetime64[ns]", pd.Timestamp(2)),
+    ],
+)
+def test_getitem_scalar_result_type(dtype, expected, using_python_scalars):
+    # GH#64266
+    idx = pd.Index([1, 2, 3], dtype=dtype)
+    result = idx[1]
+    assert result == expected
+    if using_python_scalars or isinstance(expected, pd.Timestamp):
+        assert type(result) is type(expected)
+    else:
+        assert isinstance(result, np.generic)
+
+
+def test_getitem_object_dtype_preserves_numpy_scalars():
+    # GH#64266
+    value = np.int8(1)
+    idx = pd.Index([value, np.int8(2)], dtype=object)
+    with pd.option_context("future.python_scalars", True):
+        result = idx[0]
+    assert result is value
+
+
 @pytest.mark.parametrize("idx", [[1, 2, 3], [0.1, 0.2, 0.3], ["a", "b", "c"]])
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191

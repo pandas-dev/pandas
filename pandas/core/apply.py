@@ -1886,7 +1886,7 @@ class ResamplerWindowApply(GroupByApply):
 
 
 def reconstruct_func(
-    func: AggFuncType | None, **kwargs
+    func: AggFuncType | None, allow_skip_normalization: bool = False, /, **kwargs
 ) -> tuple[bool, AggFuncType, tuple[str, ...] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
@@ -1902,10 +1902,22 @@ def reconstruct_func(
     names, and the reconstructed order of columns.
     If relabeling is False, the columns and order will be None.
 
+    Named aggregation is the one exception: when ``allow_skip_normalization`` is
+    True, every output name equals its source column name, and every aggfunc
+    reduces to a scalar, relabeling is reported as False (and columns/order as
+    None) even though named aggregation was used, because the caller can consume
+    the un-normalized func directly.
+
     Parameters
     ----------
     func: agg function (e.g. 'min' or Callable) or list of agg functions
         (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
+    allow_skip_normalization: bool, default False
+        Whether the caller can handle the un-normalized ``{column: aggfunc}`` form
+        that named aggregation reduces to when every output name equals its source
+        column name and every aggfunc is a scalar reduction. Callers that rely on
+        ``columns``/``order`` being returned whenever named aggregation was used
+        must leave this False.
     **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
         normalize_keyword_aggregation function for relabelling
 
@@ -1924,6 +1936,9 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
+    # deferred: pandas.core.groupby.generic imports from this module at import
+    #  time, so a top-level import here would be circular
+    from pandas.core.groupby.base import reduction_kernels
     from pandas.core.groupby.generic import NamedAgg
 
     relabeling = func is None and (
@@ -1946,7 +1961,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
-        normalization_needed = False
+        normalization_needed = not allow_skip_normalization
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1964,7 +1979,17 @@ def reconstruct_func(
             else:
                 column, aggfunc = val
 
-            if column != key:
+            # The un-normalized {column: aggfunc} form only matches the normalized
+            #  one when the aggfunc reduces each group to a single scalar. A
+            #  list-like aggfunc, or a string naming a non-reduction groupby method
+            #  (e.g. "describe"/"ohlc", which give a frame per group), would widen
+            #  the result past the one output column per keyword named aggregation
+            #  promises.
+            if (
+                column != key
+                or is_list_like(aggfunc)
+                or (isinstance(aggfunc, str) and aggfunc not in reduction_kernels)
+            ):
                 normalization_needed = True
             converted_kwargs[key] = column, aggfunc
 
