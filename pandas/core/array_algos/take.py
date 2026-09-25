@@ -279,6 +279,10 @@ def _get_take_nd_function_cached(
     can be cached (mask_info potentially contains a numpy ndarray which is not
     hashable and thus cannot be used as argument for cached function).
     """
+    if not arr_dtype.isnative or not out_dtype.isnative:
+        # GH#53234 the cython kernels only accept native byteorder
+        return None
+
     tup = (arr_dtype.name, out_dtype.name)
     if ndim == 1:
         func = _take_1d_dict.get(tup, None)
