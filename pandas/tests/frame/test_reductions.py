@@ -1770,6 +1770,24 @@ class TestDataFrameReductions:
         result_agg = df.agg(method, axis=1)
         tm.assert_series_equal(result_agg, expected)
 
+    def test_agg_abs_axis1_empty_matches_nonempty(self):
+        # GH#32802: empty axis=1 agg("abs") must follow the same transpose
+        # path as a non-empty frame, not the reduction short-circuit.
+        df = pd.DataFrame({"a": [1.5, -2.5], "b": [3.5, 4.5]})
+        result = df.agg("abs", axis=1)
+        empty = df.iloc[:0].agg("abs", axis=1)
+        tm.assert_frame_equal(empty, result.iloc[:0])
+
+    @pytest.mark.parametrize("how", ["sum", "mean", "skew"])
+    def test_agg_reduction_axis1_empty_matches_nonempty(self, how):
+        # sum/mean still use the empty-frame reduction short-circuit.
+        # skew stays on the transpose path: apply_str rejects axis=1.
+        # Either way the empty result must match the non-empty slice.
+        df = pd.DataFrame({"a": [1.5, -2.5], "b": [3.5, 4.5]})
+        result = df.agg(how, axis=1)
+        empty = df.iloc[:0].agg(how, axis=1)
+        tm.assert_series_equal(empty, result.iloc[:0])
+
     def test_min_max_dt64_api_consistency_empty_df(self):
         # check DataFrame/Series api consistency when calling min/max on an empty
         # DataFrame/Series.
