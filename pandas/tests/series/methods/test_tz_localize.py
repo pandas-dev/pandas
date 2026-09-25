@@ -7,14 +7,7 @@ import pytest
 
 from pandas._libs.tslibs import timezones
 
-from pandas import (
-    DatetimeIndex,
-    NaT,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -23,13 +16,13 @@ class TestTZLocalize:
         # make sure that we are correctly accepting bool values as ambiguous
 
         # GH#14402
-        ts = Timestamp("2015-11-01 01:00:03")
-        expected0 = Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
-        expected1 = Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
+        ts = pd.Timestamp("2015-11-01 01:00:03")
+        expected0 = pd.Timestamp("2015-11-01 01:00:03-0500", tz="US/Central")
+        expected1 = pd.Timestamp("2015-11-01 01:00:03-0600", tz="US/Central")
 
-        ser = Series([ts])
-        expected0 = Series([expected0])
-        expected1 = Series([expected1])
+        ser = pd.Series([ts])
+        expected0 = pd.Series([expected0])
+        expected1 = pd.Series([expected1])
 
         with tm.external_error_raised(ValueError):
             ser.dt.tz_localize("US/Central")
@@ -49,14 +42,14 @@ class TestTZLocalize:
     def test_series_tz_localize_matching_index(self):
         # Matching the index of the result with that of the original series
         # GH 43080
-        dt_series = Series(
-            date_range(start="2021-01-01T02:00:00", periods=5, freq="1D"),
+        dt_series = pd.Series(
+            pd.date_range(start="2021-01-01T02:00:00", periods=5, freq="1D"),
             index=[2, 6, 7, 8, 11],
             dtype="category",
         )
         result = dt_series.dt.tz_localize("Europe/Berlin")
-        expected = Series(
-            date_range(
+        expected = pd.Series(
+            pd.date_range(
                 start="2021-01-01T02:00:00", periods=5, freq="1D", tz="Europe/Berlin"
             ),
             index=[2, 6, 7, 8, 11],
@@ -69,7 +62,7 @@ class TestTZLocalize:
         [
             ["shift_forward", "2015-03-29 03:00:00"],
             ["shift_backward", "2015-03-29 01:59:59.999999999"],
-            ["NaT", NaT],
+            ["NaT", pd.NaT],
             ["raise", None],
             ["foo", "invalid"],
         ],
@@ -81,10 +74,10 @@ class TestTZLocalize:
             # zoneinfo tz passed as string
             pytest.skip("ZoneInfo required for year 2201")
         n = 60
-        dti = date_range(
+        dti = pd.date_range(
             start=f"{year}-03-29 02:00:00", periods=n, freq="min", unit=unit
         )
-        ser = Series(1, index=dti)
+        ser = pd.Series(1, index=dti)
         df = ser.to_frame()
 
         if method == "raise":
@@ -112,7 +105,9 @@ class TestTZLocalize:
             if isinstance(exp, str):
                 exp = exp.replace("2015", year)
             result = ser.tz_localize(tz, nonexistent=method)
-            expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz).as_unit(unit))
+            expected = pd.Series(
+                1, index=pd.DatetimeIndex([exp] * n, tz=tz).as_unit(unit)
+            )
             tm.assert_series_equal(result, expected)
 
             result = df.tz_localize(tz, nonexistent=method)
@@ -122,22 +117,24 @@ class TestTZLocalize:
             res_index = dti.tz_localize(tz, nonexistent=method)
             tm.assert_index_equal(res_index, expected.index)
 
-    @pytest.mark.parametrize("offset", [Timedelta("1h"), timedelta(hours=1)])
+    @pytest.mark.parametrize("offset", [pd.Timedelta("1h"), timedelta(hours=1)])
     def test_tz_localize_nonexistent_timedelta(self, warsaw, unit, offset):
         # GH#58517 nonexistent= also accepts a timedelta, but that form was
         #  only covered for DatetimeIndex, not for Series/DataFrame
         tz = warsaw
-        dti = date_range(start="2015-03-29 02:00:00", periods=3, freq="min", unit=unit)
-        ser = Series(1, index=dti)
+        dti = pd.date_range(
+            start="2015-03-29 02:00:00", periods=3, freq="min", unit=unit
+        )
+        ser = pd.Series(1, index=dti)
 
         # localizing shifts the nonexistent times by offset and keeps the unit
         expected_index = (dti + offset).tz_localize(tz).as_unit(unit)
 
         result = ser.tz_localize(tz, nonexistent=offset)
-        tm.assert_series_equal(result, Series(1, index=expected_index))
+        tm.assert_series_equal(result, pd.Series(1, index=expected_index))
 
         result = ser.to_frame().tz_localize(tz, nonexistent=offset)
-        tm.assert_frame_equal(result, Series(1, index=expected_index).to_frame())
+        tm.assert_frame_equal(result, pd.Series(1, index=expected_index).to_frame())
 
         res_index = dti.tz_localize(tz, nonexistent=offset)
         tm.assert_index_equal(res_index, expected_index)
@@ -145,7 +142,7 @@ class TestTZLocalize:
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_series_tz_localize_empty(self, tzstr):
         # GH#2248
-        ser = Series(dtype=object)
+        ser = pd.Series(dtype=object)
 
         ser2 = ser.tz_localize("utc")
         assert ser2.index.tz == UTC

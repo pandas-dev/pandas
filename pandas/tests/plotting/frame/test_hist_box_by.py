@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
@@ -17,7 +17,7 @@ pytest.importorskip("matplotlib")
 
 @pytest.fixture
 def hist_df():
-    df = DataFrame(
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((30, 2)), columns=["A", "B"]
     )
     df["C"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)

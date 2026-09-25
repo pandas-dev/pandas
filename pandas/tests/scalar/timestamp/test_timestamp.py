@@ -33,11 +33,7 @@ from pandas.compat.numpy import (
 )
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    NaT,
-    Timedelta,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries import offsets
@@ -48,22 +44,22 @@ class TestTimestampProperties:
     def test_properties_business(self):
         freq = to_offset("B")
 
-        ts = Timestamp("2017-10-01")
+        ts = pd.Timestamp("2017-10-01")
         assert ts.day_of_week == 6
         assert ts.is_month_start  # not a weekday
         assert not freq.is_month_start(ts)
-        assert freq.is_month_start(ts + Timedelta(days=1))
+        assert freq.is_month_start(ts + pd.Timedelta(days=1))
         assert not freq.is_quarter_start(ts)
-        assert freq.is_quarter_start(ts + Timedelta(days=1))
+        assert freq.is_quarter_start(ts + pd.Timedelta(days=1))
 
-        ts = Timestamp("2017-09-30")
+        ts = pd.Timestamp("2017-09-30")
         assert ts.day_of_week == 5
         assert ts.is_month_end
         assert not freq.is_month_end(ts)
-        assert freq.is_month_end(ts - Timedelta(days=1))
+        assert freq.is_month_end(ts - pd.Timedelta(days=1))
         assert ts.is_quarter_end
         assert not freq.is_quarter_end(ts)
-        assert freq.is_quarter_end(ts - Timedelta(days=1))
+        assert freq.is_quarter_end(ts - pd.Timedelta(days=1))
 
     @pytest.mark.parametrize(
         "old_attr, new_attr",
@@ -75,7 +71,7 @@ class TestTimestampProperties:
     )
     def test_deprecated_day_attrs(self, old_attr, new_attr):
         # GH#46768
-        ts = Timestamp("2020-03-14")
+        ts = pd.Timestamp("2020-03-14")
         msg = f"Timestamp.{old_attr} is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             old_val = getattr(ts, old_attr)
@@ -103,7 +99,7 @@ class TestTimestampProperties:
     def test_fields(self, attr, expected, tz):
         # GH 10050
         # GH 13303
-        ts = Timestamp("2014-12-31 23:59:00", tz=tz)
+        ts = pd.Timestamp("2014-12-31 23:59:00", tz=tz)
         result = getattr(ts, attr)
         # that we are int like
         assert isinstance(result, int)
@@ -111,7 +107,7 @@ class TestTimestampProperties:
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_millisecond_raises(self, tz):
-        ts = Timestamp("2014-12-31 23:59:00", tz=tz)
+        ts = pd.Timestamp("2014-12-31 23:59:00", tz=tz)
         msg = "'Timestamp' object has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
             ts.millisecond
@@ -121,13 +117,13 @@ class TestTimestampProperties:
     )
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_is_start(self, start, tz):
-        ts = Timestamp("2014-01-01 00:00:00", tz=tz)
+        ts = pd.Timestamp("2014-01-01 00:00:00", tz=tz)
         assert getattr(ts, start)
 
     @pytest.mark.parametrize("end", ["is_month_end", "is_year_end", "is_quarter_end"])
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_is_end(self, end, tz):
-        ts = Timestamp("2014-12-31 23:59:59", tz=tz)
+        ts = pd.Timestamp("2014-12-31 23:59:59", tz=tz)
         assert getattr(ts, end)
 
     # GH 12806
@@ -139,7 +135,7 @@ class TestTimestampProperties:
     def test_names(self, tz, time_locale):
         # GH 17354
         # Test .day_name(), .month_name
-        data = Timestamp("2017-08-28 23:00:00", tz=tz)
+        data = pd.Timestamp("2017-08-28 23:00:00", tz=tz)
         if time_locale is None:
             expected_day = "Monday"
             expected_month = "August"
@@ -163,7 +159,7 @@ class TestTimestampProperties:
         assert result_month == expected_month
 
         # Test NaT
-        nan_ts = Timestamp(NaT)
+        nan_ts = pd.Timestamp(pd.NaT)
         assert np.isnan(nan_ts.day_name(time_locale))
         assert np.isnan(nan_ts.month_name(time_locale))
 
@@ -175,49 +171,49 @@ class TestTimestampProperties:
                 "tzlocal() on a 32 bit platform causes internal overflow errors"
             )
         # GH 13727
-        dt = Timestamp("2000-01-01 00:00:00", tz=tz)
+        dt = pd.Timestamp("2000-01-01 00:00:00", tz=tz)
         assert dt.is_leap_year
         assert isinstance(dt.is_leap_year, bool)
 
-        dt = Timestamp("1999-01-01 00:00:00", tz=tz)
+        dt = pd.Timestamp("1999-01-01 00:00:00", tz=tz)
         assert not dt.is_leap_year
 
-        dt = Timestamp("2004-01-01 00:00:00", tz=tz)
+        dt = pd.Timestamp("2004-01-01 00:00:00", tz=tz)
         assert dt.is_leap_year
 
-        dt = Timestamp("2100-01-01 00:00:00", tz=tz)
+        dt = pd.Timestamp("2100-01-01 00:00:00", tz=tz)
         assert not dt.is_leap_year
 
     def test_woy_boundary(self):
         # make sure weeks at year boundaries are correct
         d = datetime(2013, 12, 31)
-        result = Timestamp(d).week
+        result = pd.Timestamp(d).week
         expected = 1  # ISO standard
         assert result == expected
 
         d = datetime(2008, 12, 28)
-        result = Timestamp(d).week
+        result = pd.Timestamp(d).week
         expected = 52  # ISO standard
         assert result == expected
 
         d = datetime(2009, 12, 31)
-        result = Timestamp(d).week
+        result = pd.Timestamp(d).week
         expected = 53  # ISO standard
         assert result == expected
 
         d = datetime(2010, 1, 1)
-        result = Timestamp(d).week
+        result = pd.Timestamp(d).week
         expected = 53  # ISO standard
         assert result == expected
 
         d = datetime(2010, 1, 3)
-        result = Timestamp(d).week
+        result = pd.Timestamp(d).week
         expected = 53  # ISO standard
         assert result == expected
 
         result = np.array(
             [
-                Timestamp(datetime(*args)).week
+                pd.Timestamp(datetime(*args)).week
                 for args in [(2000, 1, 1), (2000, 1, 2), (2005, 1, 1), (2005, 1, 2)]
             ]
         )
@@ -225,16 +221,16 @@ class TestTimestampProperties:
 
     def test_resolution(self):
         # GH#21336, GH#21365
-        dt = Timestamp("2100-01-01 00:00:00.000000000")
-        assert dt.resolution == Timedelta(nanoseconds=1)
+        dt = pd.Timestamp("2100-01-01 00:00:00.000000000")
+        assert dt.resolution == pd.Timedelta(nanoseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib datetime behavior
-        assert Timestamp.resolution == Timedelta(nanoseconds=1)
+        assert pd.Timestamp.resolution == pd.Timedelta(nanoseconds=1)
 
-        assert dt.as_unit("us").resolution == Timedelta(microseconds=1)
-        assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
-        assert dt.as_unit("s").resolution == Timedelta(seconds=1)
+        assert dt.as_unit("us").resolution == pd.Timedelta(microseconds=1)
+        assert dt.as_unit("ms").resolution == pd.Timedelta(milliseconds=1)
+        assert dt.as_unit("s").resolution == pd.Timedelta(seconds=1)
 
     @pytest.mark.parametrize(
         "date_string, expected",
@@ -248,7 +244,7 @@ class TestTimestampProperties:
     )
     def test_dow_historic(self, date_string, expected):
         # GH 53738
-        ts = Timestamp(date_string)
+        ts = pd.Timestamp(date_string)
         dow = ts.weekday()
         assert dow == expected
 
@@ -272,7 +268,7 @@ class TestTimestampProperties:
             f"-{str(ts.month).zfill(2)}"
             f"-{str(ts.day).zfill(2)}"
         )
-        result = Timestamp(ts).weekday()
+        result = pd.Timestamp(ts).weekday()
         expected = (
             (np.datetime64(ts) - np.datetime64("1970-01-01")).astype("int64") - 4
         ) % 7
@@ -283,7 +279,7 @@ class TestTimestamp:
     @pytest.mark.parametrize("tz", [None, zoneinfo.ZoneInfo("US/Pacific")])
     def test_disallow_setting_tz(self, tz):
         # GH#3746
-        ts = Timestamp("2010")
+        ts = pd.Timestamp("2010")
         msg = "Cannot directly set timezone"
         with pytest.raises(AttributeError, match=msg):
             ts.tz = tz
@@ -291,22 +287,22 @@ class TestTimestamp:
     def test_default_to_stdlib_utc(self):
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert Timestamp.utcnow().tz is UTC  # noqa: TID251
-        assert Timestamp.now("UTC").tz is UTC  # noqa: TID251
-        assert Timestamp("2016-01-01", tz="UTC").tz is UTC
+            assert pd.Timestamp.utcnow().tz is UTC  # noqa: TID251
+        assert pd.Timestamp.now("UTC").tz is UTC  # noqa: TID251
+        assert pd.Timestamp("2016-01-01", tz="UTC").tz is UTC
 
     def test_tz(self):
         tstr = "2014-02-01 09:00"
-        ts = Timestamp(tstr)
+        ts = pd.Timestamp(tstr)
         local = ts.tz_localize("Asia/Tokyo")
         assert local.hour == 9
-        assert local == Timestamp(tstr, tz="Asia/Tokyo")
+        assert local == pd.Timestamp(tstr, tz="Asia/Tokyo")
         conv = local.tz_convert("US/Eastern")
-        assert conv == Timestamp("2014-01-31 19:00", tz="US/Eastern")
+        assert conv == pd.Timestamp("2014-01-31 19:00", tz="US/Eastern")
         assert conv.hour == 19
 
         # preserves nanosecond
-        ts = Timestamp(tstr) + offsets.Nano(5)
+        ts = pd.Timestamp(tstr) + offsets.Nano(5)
         local = ts.tz_localize("Asia/Tokyo")
         assert local.hour == 9
         assert local.nanosecond == 5
@@ -315,59 +311,64 @@ class TestTimestamp:
         assert conv.hour == 19
 
     def test_utc_z_designator(self):
-        assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is UTC
+        assert get_timezone(pd.Timestamp("2014-11-02 01:00Z").tzinfo) is UTC
 
     def test_asm8(self):
-        ns = [Timestamp.min._value, Timestamp.max._value, 1000]
+        ns = [pd.Timestamp.min._value, pd.Timestamp.max._value, 1000]
 
         for n in ns:
             assert (
-                Timestamp(n).asm8.view("i8") == np.datetime64(n, "ns").view("i8") == n
+                pd.Timestamp(n).asm8.view("i8")
+                == np.datetime64(n, "ns").view("i8")
+                == n
             )
 
-        assert Timestamp("nat").asm8.view("i8") == np.datetime64("nat", "ns").view("i8")
+        assert pd.Timestamp("nat").asm8.view("i8") == np.datetime64("nat", "ns").view(
+            "i8"
+        )
 
     def test_class_ops(self):
         def compare(x, y):
-            assert int((Timestamp(x)._value - Timestamp(y)._value) / 1e9) == 0
+            assert int((pd.Timestamp(x)._value - pd.Timestamp(y)._value) / 1e9) == 0
 
-        compare(Timestamp.now(), datetime.now())  # noqa: TID251
-        compare(Timestamp.now("UTC"), datetime.now(UTC))  # noqa: TID251
-        compare(Timestamp.now("UTC"), datetime.now(tzutc()))  # noqa: TID251
+        compare(pd.Timestamp.now(), datetime.now())  # noqa: TID251
+        compare(pd.Timestamp.now("UTC"), datetime.now(UTC))  # noqa: TID251
+        compare(pd.Timestamp.now("UTC"), datetime.now(tzutc()))  # noqa: TID251
         msg = "Timestamp.utcnow is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            compare(Timestamp.utcnow(), datetime.now(UTC))  # noqa: TID251
-        compare(Timestamp.today(), datetime.today())  # noqa: TID251
+            compare(pd.Timestamp.utcnow(), datetime.now(UTC))  # noqa: TID251
+        compare(pd.Timestamp.today(), datetime.today())  # noqa: TID251
         current_time = calendar.timegm(datetime.now().utctimetuple())  # noqa: TID251
 
         msg = "Timestamp.utcfromtimestamp is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            ts_utc = Timestamp.utcfromtimestamp(current_time)
+            ts_utc = pd.Timestamp.utcfromtimestamp(current_time)
         assert ts_utc.timestamp() == current_time
         compare(
-            Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
+            pd.Timestamp.fromtimestamp(current_time),
+            datetime.fromtimestamp(current_time),
         )
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
-            Timestamp.fromtimestamp(current_time, "UTC"),
+            pd.Timestamp.fromtimestamp(current_time, "UTC"),
             datetime.fromtimestamp(current_time, UTC),
         )
         compare(
             # Support tz kwarg in Timestamp.fromtimestamp
-            Timestamp.fromtimestamp(current_time, tz="UTC"),
+            pd.Timestamp.fromtimestamp(current_time, tz="UTC"),
             datetime.fromtimestamp(current_time, UTC),
         )
 
         date_component = datetime.now(UTC)  # noqa: TID251
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
-            Timestamp.combine(date_component, time_component),
+            pd.Timestamp.combine(date_component, time_component),
             datetime.combine(date_component, time_component),
         )
 
     def test_basics_nanos(self):
         val = np.int64(946_684_800_000_000_000).view("M8[ns]")
-        stamp = Timestamp(val.view("i8") + 500)
+        stamp = pd.Timestamp(val.view("i8") + 500)
         assert stamp.year == 2000
         assert stamp.month == 1
         assert stamp.microsecond == 0
@@ -375,7 +376,7 @@ class TestTimestamp:
 
         # GH 14415
         val = np.iinfo(np.int64).min + 80_000_000_000_000
-        stamp = Timestamp(val)
+        stamp = pd.Timestamp(val)
         assert stamp.year == 1677
         assert stamp.month == 9
         assert stamp.day == 21
@@ -385,32 +386,32 @@ class TestTimestamp:
     def test_roundtrip(self):
         # test value to string and back conversions
         # further test accessors
-        base = Timestamp("20140101 00:00:00").as_unit("ns")
+        base = pd.Timestamp("20140101 00:00:00").as_unit("ns")
 
-        result = Timestamp(base._value + Timedelta("5ms").value)
-        assert result == Timestamp(f"{base}.005000")
+        result = pd.Timestamp(base._value + pd.Timedelta("5ms").value)
+        assert result == pd.Timestamp(f"{base}.005000")
         assert result.microsecond == 5000
 
-        result = Timestamp(base._value + Timedelta("5us").value)
-        assert result == Timestamp(f"{base}.000005")
+        result = pd.Timestamp(base._value + pd.Timedelta("5us").value)
+        assert result == pd.Timestamp(f"{base}.000005")
         assert result.microsecond == 5
 
-        result = Timestamp(base._value + Timedelta("5ns")._value)
-        assert result == Timestamp(f"{base}.000000005")
+        result = pd.Timestamp(base._value + pd.Timedelta("5ns")._value)
+        assert result == pd.Timestamp(f"{base}.000000005")
         assert result.nanosecond == 5
         assert result.microsecond == 0
 
-        result = Timestamp(base._value + Timedelta("6ms 5us").value)
-        assert result == Timestamp(f"{base}.006005")
+        result = pd.Timestamp(base._value + pd.Timedelta("6ms 5us").value)
+        assert result == pd.Timestamp(f"{base}.006005")
         assert result.microsecond == 5 + 6 * 1000
 
-        result = Timestamp(base._value + Timedelta("200ms 5us").value)
-        assert result == Timestamp(f"{base}.200005")
+        result = pd.Timestamp(base._value + pd.Timedelta("200ms 5us").value)
+        assert result == pd.Timestamp(f"{base}.200005")
         assert result.microsecond == 5 + 200 * 1000
 
     def test_hash_equivalent(self):
         d = {datetime(2011, 1, 1): 5}
-        stamp = Timestamp(datetime(2011, 1, 1))
+        stamp = pd.Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
 
     @pytest.mark.parametrize(
@@ -420,7 +421,7 @@ class TestTimestamp:
     def test_hash_timestamp_with_fold(self, timezone, year, month, day, hour):
         # see gh-33931
         test_timezone = gettz(timezone)
-        transition_1 = Timestamp(
+        transition_1 = pd.Timestamp(
             year=year,
             month=month,
             day=day,
@@ -429,7 +430,7 @@ class TestTimestamp:
             fold=0,
             tzinfo=test_timezone,
         )
-        transition_2 = Timestamp(
+        transition_2 = pd.Timestamp(
             year=year,
             month=month,
             day=day,
@@ -443,44 +444,44 @@ class TestTimestamp:
 
 class TestTimestampNsOperations:
     def test_nanosecond_string_parsing(self):
-        ts = Timestamp("2013-05-01 07:15:45.123456789")
+        ts = pd.Timestamp("2013-05-01 07:15:45.123456789")
         # GH 7878
         expected_repr = "2013-05-01 07:15:45.123456789"
         expected_value = 1_367_392_545_123_456_789
         assert ts._value == expected_value
         assert expected_repr in repr(ts)
 
-        ts = Timestamp("2013-05-01 07:15:45.123456789+09:00", tz="Asia/Tokyo")
+        ts = pd.Timestamp("2013-05-01 07:15:45.123456789+09:00", tz="Asia/Tokyo")
         assert ts._value == expected_value - 9 * 3600 * 1_000_000_000
         assert expected_repr in repr(ts)
 
-        ts = Timestamp("2013-05-01 07:15:45.123456789", tz="UTC")
+        ts = pd.Timestamp("2013-05-01 07:15:45.123456789", tz="UTC")
         assert ts._value == expected_value
         assert expected_repr in repr(ts)
 
-        ts = Timestamp("2013-05-01 07:15:45.123456789", tz="US/Eastern")
+        ts = pd.Timestamp("2013-05-01 07:15:45.123456789", tz="US/Eastern")
         assert ts._value == expected_value + 4 * 3600 * 1_000_000_000
         assert expected_repr in repr(ts)
 
         # GH 10041
-        ts = Timestamp("20130501T071545.123456789")
+        ts = pd.Timestamp("20130501T071545.123456789")
         assert ts._value == expected_value
         assert expected_repr in repr(ts)
 
     def test_nanosecond_timestamp(self):
         # GH 7610
         expected = 1_293_840_000_000_000_005
-        t = Timestamp("2011-01-01") + offsets.Nano(5)
+        t = pd.Timestamp("2011-01-01") + offsets.Nano(5)
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000005')"
         assert t._value == expected
         assert t.nanosecond == 5
 
-        t = Timestamp(t)
+        t = pd.Timestamp(t)
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000005')"
         assert t._value == expected
         assert t.nanosecond == 5
 
-        t = Timestamp("2011-01-01 00:00:00.000000005")
+        t = pd.Timestamp("2011-01-01 00:00:00.000000005")
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000005')"
         assert t._value == expected
         assert t.nanosecond == 5
@@ -491,12 +492,12 @@ class TestTimestampNsOperations:
         assert t._value == expected
         assert t.nanosecond == 10
 
-        t = Timestamp(t)
+        t = pd.Timestamp(t)
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000010')"
         assert t._value == expected
         assert t.nanosecond == 10
 
-        t = Timestamp("2011-01-01 00:00:00.000000010")
+        t = pd.Timestamp("2011-01-01 00:00:00.000000010")
         assert repr(t) == "Timestamp('2011-01-01 00:00:00.000000010')"
         assert t._value == expected
         assert t.nanosecond == 10
@@ -505,7 +506,7 @@ class TestTimestampNsOperations:
 class TestTimestampConversion:
     def test_conversion(self):
         # GH#9255
-        ts = Timestamp("2000-01-01").as_unit("ns")
+        ts = pd.Timestamp("2000-01-01").as_unit("ns")
 
         result = ts.to_pydatetime()
         expected = datetime(2000, 1, 1)
@@ -521,13 +522,13 @@ class TestTimestampConversion:
     def test_to_period_tz_warning(self):
         # GH#21333 make sure a warning is issued when timezone
         # info is lost
-        ts = Timestamp("2009-04-15 16:17:18", tz="US/Eastern")
+        ts = pd.Timestamp("2009-04-15 16:17:18", tz="US/Eastern")
         with tm.assert_produces_warning(UserWarning, match="drop timezone information"):
             ts.to_period("D")
 
     def test_to_period_unsupported_freq(self):
         # GH#38914 unsupported freqs should raise a helpful error, not AttributeError
-        ts = Timestamp("2018-12-01")
+        ts = pd.Timestamp("2018-12-01")
         msg = "for Period, please use 'M' instead of 'MS'"
         with pytest.raises(ValueError, match=msg):
             ts.to_period("MS")
@@ -537,7 +538,7 @@ class TestTimestampConversion:
 
     def test_to_numpy_alias(self):
         # GH 24653: alias .to_numpy() for scalars
-        ts = Timestamp(datetime(2011, 1, 1))
+        ts = pd.Timestamp(datetime(2011, 1, 1))
         assert ts.to_datetime64() == ts.to_numpy()
 
         # GH#44460
@@ -561,12 +562,12 @@ class TestNonNano:
 
     @pytest.fixture
     def ts(self, dt64):
-        return Timestamp._from_dt64(dt64)
+        return pd.Timestamp._from_dt64(dt64)
 
     @pytest.fixture
     def ts_tz(self, ts, tz_aware_fixture):
         tz = maybe_get_tz(tz_aware_fixture)
-        return Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
+        return pd.Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
 
     def test_non_nano_construction(self, dt64, ts, reso):
         assert ts._value == dt64.view("i8")
@@ -579,7 +580,7 @@ class TestNonNano:
             assert ts._creso == NpyDatetimeUnit.NPY_FR_us.value
 
     def test_non_nano_fields(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
 
         assert ts.year == alt.year
         assert ts.month == alt.month
@@ -608,31 +609,31 @@ class TestNonNano:
         assert not ts.is_month_end
 
     def test_day_name(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
         assert ts.day_name() == alt.day_name()
 
     def test_month_name(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
         assert ts.month_name() == alt.month_name()
 
     def test_tz_convert(self, ts):
-        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, UTC)
+        ts = pd.Timestamp._from_value_and_reso(ts._value, ts._creso, UTC)
 
         tz = zoneinfo.ZoneInfo("US/Pacific")
         result = ts.tz_convert(tz)
 
-        assert isinstance(result, Timestamp)
+        assert isinstance(result, pd.Timestamp)
         assert result._creso == ts._creso
         assert tz_compare(result.tz, tz)
 
     def test_repr(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
 
         assert str(ts) == str(alt)
         assert repr(ts) == repr(alt)
 
     def test_comparison(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
 
         assert ts == dt64
         assert dt64 == ts
@@ -667,11 +668,11 @@ class TestNonNano:
     def test_cmp_cross_reso(self):
         # numpy gets this wrong because of silent overflow
         dt64 = np.datetime64(9223372800, "s")  # won't fit in M8[ns]
-        ts = Timestamp._from_dt64(dt64)
+        ts = pd.Timestamp._from_dt64(dt64)
 
         # subtracting 3600*24 gives a datetime64 that _can_ fit inside the
         #  nanosecond implementation bounds.
-        other = Timestamp(dt64 - np.timedelta64(3600 * 24, "s")).as_unit("ns")
+        other = pd.Timestamp(dt64 - np.timedelta64(3600 * 24, "s")).as_unit("ns")
         assert other < ts
         if not is_numpy_dev and not np_version_gt2_5:
             assert other.asm8 > ts.asm8  # <- numpy gets this wrong
@@ -684,21 +685,21 @@ class TestNonNano:
     @pytest.mark.xfail(reason="Dispatches to np.datetime64 which is wrong")
     def test_cmp_cross_reso_reversed_dt64(self):
         dt64 = np.datetime64(106752, "D")  # won't fit in M8[ns]
-        ts = Timestamp._from_dt64(dt64)
-        other = Timestamp(dt64 - 1)
+        ts = pd.Timestamp._from_dt64(dt64)
+        other = pd.Timestamp(dt64 - 1)
 
         assert other.asm8 < ts
 
     def test_pickle(self, ts, tz_aware_fixture, temp_file):
         tz = tz_aware_fixture
         tz = maybe_get_tz(tz)
-        ts = Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
+        ts = pd.Timestamp._from_value_and_reso(ts._value, ts._creso, tz)
         rt = tm.round_trip_pickle(ts, temp_file)
         assert rt._creso == ts._creso
         assert rt == ts
 
     def test_normalize(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
         result = ts.normalize()
         assert result._creso == ts._creso
         assert result == alt.normalize()
@@ -719,34 +720,34 @@ class TestNonNano:
         assert res.dtype == dt64.dtype
 
     def test_timestamp(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
         assert ts.timestamp() == alt.timestamp()
 
     def test_to_period(self, dt64, ts):
-        alt = Timestamp(dt64)
+        alt = pd.Timestamp(dt64)
         assert ts.to_period("D") == alt.to_period("D")
 
     @pytest.mark.parametrize(
-        "td", [timedelta(days=4), Timedelta(days=4), np.timedelta64(4, "D")]
+        "td", [timedelta(days=4), pd.Timedelta(days=4), np.timedelta64(4, "D")]
     )
     def test_addsub_timedeltalike_non_nano(self, dt64, ts, td):
-        exp_reso = max(ts._creso, Timedelta(td)._creso)
+        exp_reso = max(ts._creso, pd.Timedelta(td)._creso)
 
         result = ts - td
-        expected = Timestamp(dt64) - td
-        assert isinstance(result, Timestamp)
+        expected = pd.Timestamp(dt64) - td
+        assert isinstance(result, pd.Timestamp)
         assert result._creso == exp_reso
         assert result == expected
 
         result = ts + td
-        expected = Timestamp(dt64) + td
-        assert isinstance(result, Timestamp)
+        expected = pd.Timestamp(dt64) + td
+        assert isinstance(result, pd.Timestamp)
         assert result._creso == exp_reso
         assert result == expected
 
         result = td + ts
-        expected = td + Timestamp(dt64)
-        assert isinstance(result, Timestamp)
+        expected = td + pd.Timestamp(dt64)
+        assert isinstance(result, pd.Timestamp)
         assert result._creso == exp_reso
         assert result == expected
 
@@ -755,7 +756,7 @@ class TestNonNano:
         off = offsets.YearEnd(1)
         result = ts_tz + off
 
-        assert isinstance(result, Timestamp)
+        assert isinstance(result, pd.Timestamp)
         assert result._creso == ts_tz._creso
         if ts_tz.month == 12 and ts_tz.day == 31:
             assert result.year == ts_tz.year + 1
@@ -767,7 +768,7 @@ class TestNonNano:
 
         result = ts_tz - off
 
-        assert isinstance(result, Timestamp)
+        assert isinstance(result, pd.Timestamp)
         assert result._creso == ts_tz._creso
         assert result.year == ts_tz.year - 1
         assert result.day == 31
@@ -790,18 +791,18 @@ class TestNonNano:
         assert other._creso != ts._creso
 
         result = ts - other
-        assert isinstance(result, Timedelta)
+        assert isinstance(result, pd.Timedelta)
         assert result._value == 0
         assert result._creso == max(ts._creso, other._creso)
 
         result = other - ts
-        assert isinstance(result, Timedelta)
+        assert isinstance(result, pd.Timedelta)
         assert result._value == 0
         assert result._creso == max(ts._creso, other._creso)
 
         if ts._creso < other._creso:
             # Case where rounding is lossy
-            other2 = other + Timedelta._from_value_and_reso(1, other._creso)
+            other2 = other + pd.Timedelta._from_value_and_reso(1, other._creso)
             exp = ts.as_unit(other.unit) - other2
 
             res = ts - other2
@@ -812,7 +813,7 @@ class TestNonNano:
             assert res == -exp
             assert res._creso == max(ts._creso, other._creso)
         else:
-            ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
+            ts2 = ts + pd.Timedelta._from_value_and_reso(1, ts._creso)
             exp = ts2 - other.as_unit(ts2.unit)
 
             res = ts2 - other
@@ -834,22 +835,22 @@ class TestNonNano:
             NpyDatetimeUnit.NPY_FR_ms.value: "s",
             NpyDatetimeUnit.NPY_FR_s.value: "us",
         }[ts._creso]
-        other = Timedelta(0).as_unit(unit)
+        other = pd.Timedelta(0).as_unit(unit)
         assert other._creso != ts._creso
 
         result = ts + other
-        assert isinstance(result, Timestamp)
+        assert isinstance(result, pd.Timestamp)
         assert result == ts
         assert result._creso == max(ts._creso, other._creso)
 
         result = other + ts
-        assert isinstance(result, Timestamp)
+        assert isinstance(result, pd.Timestamp)
         assert result == ts
         assert result._creso == max(ts._creso, other._creso)
 
         if ts._creso < other._creso:
             # Case where rounding is lossy
-            other2 = other + Timedelta._from_value_and_reso(1, other._creso)
+            other2 = other + pd.Timedelta._from_value_and_reso(1, other._creso)
             exp = ts.as_unit(other.unit) + other2
             res = ts + other2
             assert res == exp
@@ -858,7 +859,7 @@ class TestNonNano:
             assert res == exp
             assert res._creso == max(ts._creso, other._creso)
         else:
-            ts2 = ts + Timedelta._from_value_and_reso(1, ts._creso)
+            ts2 = ts + pd.Timedelta._from_value_and_reso(1, ts._creso)
             exp = ts2 + other.as_unit(ts2.unit)
 
             res = ts2 + other
@@ -870,8 +871,8 @@ class TestNonNano:
 
     def test_addition_doesnt_downcast_reso(self):
         # https://github.com/pandas-dev/pandas/pull/48748#pullrequestreview-1122635413
-        ts = Timestamp(year=2022, month=1, day=1, microsecond=999999).as_unit("us")
-        td = Timedelta(microseconds=1).as_unit("us")
+        ts = pd.Timestamp(year=2022, month=1, day=1, microsecond=999999).as_unit("us")
+        td = pd.Timedelta(microseconds=1).as_unit("us")
         res = ts + td
         assert res._creso == ts._creso
 
@@ -886,7 +887,7 @@ class TestNonNano:
     def test_min(self, ts):
         assert ts.min <= ts
         assert ts.min._creso == ts._creso
-        assert ts.min._value == NaT._value + 1
+        assert ts.min._value == pd.NaT._value + 1
 
     def test_max(self, ts):
         assert ts.max >= ts
@@ -894,42 +895,42 @@ class TestNonNano:
         assert ts.max._value == np.iinfo(np.int64).max
 
     def test_resolution(self, ts):
-        expected = Timedelta._from_value_and_reso(1, ts._creso)
+        expected = pd.Timedelta._from_value_and_reso(1, ts._creso)
         result = ts.resolution
         assert result == expected
         assert result._creso == expected._creso
 
     def test_out_of_ns_bounds(self):
         # https://github.com/pandas-dev/pandas/issues/51060
-        result = Timestamp(-52700112000, unit="s")
-        assert result == Timestamp("0300-01-01")
+        result = pd.Timestamp(-52700112000, unit="s")
+        assert result == pd.Timestamp("0300-01-01")
         assert result.to_numpy() == np.datetime64("0300-01-01T00:00:00", "s")
 
 
 def test_timestamp_class_min_max_resolution():
     # when accessed on the class (as opposed to an instance), we default
     #  to nanoseconds
-    assert Timestamp.min == Timestamp(NaT._value + 1)
-    assert Timestamp.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert pd.Timestamp.min == pd.Timestamp(pd.NaT._value + 1)
+    assert pd.Timestamp.min._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
-    assert Timestamp.max == Timestamp(np.iinfo(np.int64).max)
-    assert Timestamp.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert pd.Timestamp.max == pd.Timestamp(np.iinfo(np.int64).max)
+    assert pd.Timestamp.max._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
-    assert Timestamp.resolution == Timedelta(1)
-    assert Timestamp.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
+    assert pd.Timestamp.resolution == pd.Timedelta(1)
+    assert pd.Timestamp.resolution._creso == NpyDatetimeUnit.NPY_FR_ns.value
 
 
 def test_delimited_date():
     # https://github.com/pandas-dev/pandas/issues/50231
     with tm.assert_produces_warning(None):
-        result = Timestamp("13-01-2000")
-    expected = Timestamp(2000, 1, 13)
+        result = pd.Timestamp("13-01-2000")
+    expected = pd.Timestamp(2000, 1, 13)
     assert result == expected
 
 
 def test_utctimetuple():
     # GH 32174
-    ts = Timestamp("2000-01-01", tz="UTC")
+    ts = pd.Timestamp("2000-01-01", tz="UTC")
     result = ts.utctimetuple()
     expected = time.struct_time((2000, 1, 1, 0, 0, 0, 5, 1, 0))
     assert result == expected
@@ -937,7 +938,7 @@ def test_utctimetuple():
 
 def test_negative_dates():
     # https://github.com/pandas-dev/pandas/issues/50787
-    ts = Timestamp("-2000-01-01")
+    ts = pd.Timestamp("-2000-01-01")
     msg = (
         " not yet supported on Timestamps which are outside the range of "
         "Python's standard library. For now, please call the components you need "
@@ -979,7 +980,7 @@ def test_negative_year_iso8601(date_string, expected_year):
     # GH#55954 a leading "-" used to be silently dropped by dateutil for
     # years with fewer than 4 digits (e.g. "-111-01-01" parsed as year 111);
     # the iso8601 path now accepts 1-4 digit BC years like NumPy does.
-    ts = Timestamp(date_string)
+    ts = pd.Timestamp(date_string)
     assert ts.year == expected_year
     assert ts.month == 1
     assert ts.day == 1
@@ -991,4 +992,4 @@ def test_negative_prefix_non_iso_raises(date_string):
     # used to be silently mishandled by dateutil (which strips the "-").
     msg = f"Unknown datetime string format, unable to parse: {date_string}"
     with pytest.raises(ValueError, match=re.escape(msg)):
-        Timestamp(date_string)
+        pd.Timestamp(date_string)

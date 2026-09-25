@@ -73,7 +73,10 @@ from pandas.core.tools.datetimes import (
     to_datetime,
 )
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -1077,7 +1080,7 @@ class SQLTable(PandasObject):
             temp = self.frame.copy(deep=False)
             temp.index.names = self.index
             try:
-                temp.reset_index(inplace=True)
+                temp = temp.reset_index()
             except ValueError as err:
                 raise ValueError(f"duplicate name in index/columns: {err}") from err
         else:
@@ -1201,7 +1204,7 @@ class SQLTable(PandasObject):
                 )
 
                 if self.index is not None:
-                    self.frame.set_index(self.index, inplace=True)
+                    self.frame = self.frame.set_index(self.index)
 
                 yield self.frame
 
@@ -1248,7 +1251,7 @@ class SQLTable(PandasObject):
             )
 
             if self.index is not None:
-                self.frame.set_index(self.index, inplace=True)
+                self.frame = self.frame.set_index(self.index)
 
             return self.frame
 
@@ -2455,7 +2458,8 @@ class ADBCDatabase(PandasSQL):
                 self.delete_rows(name, schema)
 
         try:
-            tbl = pa.Table.from_pandas(frame, preserve_index=index)
+            with suppress_pyarrow_values_warning():
+                tbl = pa.Table.from_pandas(frame, preserve_index=index)
         except pa.ArrowNotImplementedError as exc:
             raise ValueError("datatypes not supported") from exc
 

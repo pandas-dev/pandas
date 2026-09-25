@@ -10,7 +10,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.feather_format import read_feather
@@ -149,7 +149,7 @@ class TestS3:
                 # Read a couple of chunks and make sure we see them
                 # properly.
                 df = df_reader.get_chunk()
-                assert isinstance(df, DataFrame)
+                assert isinstance(df, pd.DataFrame)
                 assert not df.empty
                 true_df = tips_df.iloc[chunksize * i_chunk : chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
@@ -192,7 +192,7 @@ class TestS3:
 
         with BytesIO(s3_object.get()["Body"].read()) as buffer:
             result = read_csv(buffer, encoding="utf8")
-        assert isinstance(result, DataFrame)
+        assert isinstance(result, pd.DataFrame)
         assert not result.empty
 
         expected = read_csv(tips_file)
@@ -201,7 +201,7 @@ class TestS3:
     @pytest.mark.single_cpu
     def test_read_csv_chunked_download(self, s3_bucket_public, s3so, caplog):
         # 8 MB, S3FS uses 5MB chunks
-        df = DataFrame(np.zeros((100000, 4)), columns=list("abcd"))
+        df = pd.DataFrame(np.zeros((100000, 4)), columns=list("abcd"))
         with BytesIO(df.to_csv().encode("utf-8")) as buf:
             s3_bucket_public.put_object(Key="large-file.csv", Body=buf)
             uri = f"{s3_bucket_public.name}/large-file.csv"

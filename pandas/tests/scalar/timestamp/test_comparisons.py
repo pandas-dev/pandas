@@ -7,7 +7,7 @@ import operator
 import numpy as np
 import pytest
 
-from pandas import Timestamp
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -15,13 +15,13 @@ class TestTimestampComparison:
     def test_compare_non_nano_dt64(self):
         # don't raise when converting dt64 to Timestamp in __richcmp__
         dt = np.datetime64("1066-10-14")
-        ts = Timestamp(dt)
+        ts = pd.Timestamp(dt)
 
         assert dt == ts
 
     def test_comparison_dt64_ndarray(self):
-        ts = Timestamp("2021-01-01")
-        ts2 = Timestamp("2019-04-05")
+        ts = pd.Timestamp("2021-01-01")
+        ts2 = pd.Timestamp("2019-04-05")
         arr = np.array([[ts.asm8, ts2.asm8]], dtype="M8[ns]")
 
         result = ts == arr
@@ -57,7 +57,7 @@ class TestTimestampComparison:
 
     @pytest.mark.parametrize("reverse", [True, False])
     def test_comparison_dt64_ndarray_tzaware(self, reverse, comparison_op):
-        ts = Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
+        ts = pd.Timestamp("2021-01-01 00:00:00.00000", tz="UTC")
         arr = np.array([ts.asm8, ts.asm8], dtype="M8[ns]")
 
         left, right = ts, arr
@@ -79,9 +79,9 @@ class TestTimestampComparison:
 
     def test_comparison_object_array(self):
         # GH#15183
-        ts = Timestamp("2011-01-03 00:00:00-0500", tz="US/Eastern")
-        other = Timestamp("2011-01-01 00:00:00-0500", tz="US/Eastern")
-        naive = Timestamp("2011-01-01 00:00:00")
+        ts = pd.Timestamp("2011-01-03 00:00:00-0500", tz="US/Eastern")
+        other = pd.Timestamp("2011-01-01 00:00:00-0500", tz="US/Eastern")
+        naive = pd.Timestamp("2011-01-01 00:00:00")
 
         arr = np.array([other, ts], dtype=object)
         res = arr == ts
@@ -105,7 +105,7 @@ class TestTimestampComparison:
         # 5-18-2012 00:00:00.000
         stamp = 1337299200000000000
 
-        val = Timestamp(stamp)
+        val = pd.Timestamp(stamp)
 
         assert val == val
         assert not val != val
@@ -122,7 +122,7 @@ class TestTimestampComparison:
         assert not val > other
         assert val >= other
 
-        other = Timestamp(stamp + 100)
+        other = pd.Timestamp(stamp + 100)
 
         assert val != other
         assert val != other
@@ -133,7 +133,7 @@ class TestTimestampComparison:
 
     def test_compare_invalid(self):
         # GH#8058
-        val = Timestamp("20130101 12:01:02")
+        val = pd.Timestamp("20130101 12:01:02")
         assert not val == "foo"
         assert not val == 10.0
         assert not val == 1
@@ -153,7 +153,7 @@ class TestTimestampComparison:
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_compare_date(self, tz):
         # GH#36131 comparing Timestamp with date object is deprecated
-        ts = Timestamp("2021-01-01 00:00:00.00000", tz=tz)
+        ts = pd.Timestamp("2021-01-01 00:00:00.00000", tz=tz)
         dt = ts.to_pydatetime().date()
         # in 2.0 we disallow comparing pydate objects with Timestamps,
         #  following the stdlib datetime behavior.
@@ -174,8 +174,8 @@ class TestTimestampComparison:
 
     def test_cant_compare_tz_naive_w_aware(self, utc_fixture):
         # see GH#1404
-        a = Timestamp("3/12/2012")
-        b = Timestamp("3/12/2012", tz=utc_fixture)
+        a = pd.Timestamp("3/12/2012")
+        b = pd.Timestamp("3/12/2012", tz=utc_fixture)
 
         msg = "Cannot compare tz-naive and tz-aware timestamps"
         assert not a == b
@@ -206,8 +206,8 @@ class TestTimestampComparison:
     def test_timestamp_compare_scalars(self):
         # case where ndim == 0
         lhs = np.datetime64(datetime(2013, 12, 6))
-        rhs = Timestamp("2011-01-01 09:42:00.123456")
-        nat = Timestamp("nat")
+        rhs = pd.Timestamp("2011-01-01 09:42:00.123456")
+        nat = pd.Timestamp("nat")
 
         ops = {"gt": "lt", "lt": "gt", "ge": "le", "le": "ge", "eq": "eq", "ne": "ne"}
 
@@ -225,7 +225,7 @@ class TestTimestampComparison:
 
     def test_timestamp_compare_with_early_datetime(self):
         # e.g. datetime.min
-        stamp = Timestamp("2012-01-01")
+        stamp = pd.Timestamp("2012-01-01")
 
         assert not stamp == datetime.min
         assert not stamp == datetime(1600, 1, 1)
@@ -238,37 +238,37 @@ class TestTimestampComparison:
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
 
-        other = Timestamp.min.to_pydatetime(warn=False)
-        assert other - timedelta(microseconds=1) < Timestamp.min
+        other = pd.Timestamp.min.to_pydatetime(warn=False)
+        assert other - timedelta(microseconds=1) < pd.Timestamp.min
 
     def test_timestamp_compare_oob_dt64(self):
         us = np.timedelta64(1, "us")
-        other = np.datetime64(Timestamp.min).astype("M8[us]")
+        other = np.datetime64(pd.Timestamp.min).astype("M8[us]")
 
         # This may change if the implementation bound is dropped to match
         #  DatetimeArray/DatetimeIndex GH#24124
-        assert Timestamp.min > other
+        assert pd.Timestamp.min > other
         # Note: numpy gets the reversed comparison wrong
 
-        other = np.datetime64(Timestamp.max).astype("M8[us]")
-        assert Timestamp.max > other  # not actually OOB
-        assert other < Timestamp.max
+        other = np.datetime64(pd.Timestamp.max).astype("M8[us]")
+        assert pd.Timestamp.max > other  # not actually OOB
+        assert other < pd.Timestamp.max
 
-        assert Timestamp.max < other + us
+        assert pd.Timestamp.max < other + us
         # Note: numpy gets the reversed comparison wrong
 
         # GH-42794
         other = datetime(9999, 9, 9)
-        assert Timestamp.min < other
-        assert other > Timestamp.min
-        assert Timestamp.max < other
-        assert other > Timestamp.max
+        assert pd.Timestamp.min < other
+        assert other > pd.Timestamp.min
+        assert pd.Timestamp.max < other
+        assert other > pd.Timestamp.max
 
         other = datetime(1, 1, 1)
-        assert Timestamp.max > other
-        assert other < Timestamp.max
-        assert Timestamp.min > other
-        assert other < Timestamp.min
+        assert pd.Timestamp.max > other
+        assert other < pd.Timestamp.max
+        assert pd.Timestamp.min > other
+        assert other < pd.Timestamp.min
 
     def test_compare_zerodim_array(self, fixed_now_ts):
         # GH#26916
@@ -304,7 +304,7 @@ def test_rich_comparison_with_unsupported_type():
             return isinstance(other, Inf)
 
     inf = Inf()
-    timestamp = Timestamp("2018-11-30")
+    timestamp = pd.Timestamp("2018-11-30")
 
     for left, right in [(inf, timestamp), (timestamp, inf)]:
         assert left > right or left < right

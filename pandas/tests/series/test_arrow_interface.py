@@ -28,6 +28,17 @@ def test_series_arrow_interface():
     assert ca.equals(expected)
 
 
+def test_series_arrow_interface_tz_aware():
+    # GH#68426 pyarrow reading .values should not surface a deprecation warning
+    ser = pd.Series(pd.date_range("2025-01-01", periods=3, tz="US/Eastern"))
+
+    with tm.assert_produces_warning(None):
+        ca = pa.chunked_array(ser)
+    pa_type = pa.timestamp("us", tz="US/Eastern")
+    expected = pa.chunked_array([pa.array(ser.to_numpy(dtype="M8[us]"), type=pa_type)])
+    assert ca.equals(expected)
+
+
 def test_series_arrow_interface_arrow_dtypes():
     s = pd.Series([1, 4, 2], dtype="Int64[pyarrow]")
 
@@ -123,6 +134,9 @@ def test_series_from_arrow_pyarrow_name():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_series_from_arrow_custom_conversion():
     # ensuring that we use our custom conversion and not the default pyarrow to_pandas
     arr = pa.array([1, 2, 3], type=pa.timestamp("ns", tz="America/New_York"))

@@ -29,15 +29,6 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    NaT,
-    Series,
-    TimedeltaIndex,
-    date_range,
-    period_range,
-)
 import pandas._testing as tm
 
 fix_now = pd.Timestamp("2021-01-01")
@@ -55,17 +46,17 @@ def test_notna_notnull(notna_f):
 @pytest.mark.parametrize(
     "ser",
     [
-        Series(
+        pd.Series(
             [str(i) for i in range(5)],
-            index=Index([str(i) for i in range(5)], dtype=object),
+            index=pd.Index([str(i) for i in range(5)], dtype=object),
             dtype=object,
         ),
-        Series(range(5), date_range("2020-01-01", periods=5)),
-        Series(range(5), period_range("2020-01-01", periods=5)),
+        pd.Series(range(5), pd.date_range("2020-01-01", periods=5)),
+        pd.Series(range(5), pd.period_range("2020-01-01", periods=5)),
     ],
 )
 def test_null_check_is_series(null_func, ser):
-    assert isinstance(null_func(ser), Series)
+    assert isinstance(null_func(ser), pd.Series)
 
 
 class TestIsNA:
@@ -95,8 +86,8 @@ class TestIsNA:
         assert not isna_f(-np.inf)
 
         # type
-        assert not isna_f(type(Series(dtype=object)))
-        assert not isna_f(type(Series(dtype=np.float64)))
+        assert not isna_f(type(pd.Series(dtype=object)))
+        assert not isna_f(type(pd.Series(dtype=np.float64)))
         assert not isna_f(type(pd.DataFrame()))
 
     @pytest.mark.parametrize("isna_f", [isna, isnull])
@@ -105,16 +96,16 @@ class TestIsNA:
         [
             np.arange(4, dtype=float),
             [0.0, 1.0, 0.0, 1.0],
-            Series(list("abcd"), dtype=object),
-            date_range("2020-01-01", periods=4),
+            pd.Series(list("abcd"), dtype=object),
+            pd.date_range("2020-01-01", periods=4),
         ],
     )
     @pytest.mark.parametrize(
         "index",
         [
-            date_range("2020-01-01", periods=4),
+            pd.date_range("2020-01-01", periods=4),
             range(4),
-            period_range("2020-01-01", periods=4),
+            pd.period_range("2020-01-01", periods=4),
         ],
     )
     def test_isna_isnull_frame(self, isna_f, data, index):
@@ -148,18 +139,18 @@ class TestIsNA:
         tm.assert_numpy_array_equal(result, exp)
 
     def test_isna_nat(self):
-        result = isna([NaT])
+        result = isna([pd.NaT])
         exp = np.array([True])
         tm.assert_numpy_array_equal(result, exp)
 
-        result = isna(np.array([NaT], dtype=object))
+        result = isna(np.array([pd.NaT], dtype=object))
         exp = np.array([True])
         tm.assert_numpy_array_equal(result, exp)
 
     def test_isna_numpy_nat(self):
         arr = np.array(
             [
-                NaT,
+                pd.NaT,
                 np.datetime64("NaT", "ns"),
                 np.timedelta64("NaT", "ns"),
                 np.datetime64("NaT", "s"),
@@ -173,13 +164,13 @@ class TestIsNA:
         assert not isna(datetime(2011, 1, 1))
         assert notna(datetime(2011, 1, 1))
 
-        idx = date_range("1/1/1990", periods=20)
+        idx = pd.date_range("1/1/1990", periods=20)
         exp = np.ones(len(idx), dtype=bool)
         tm.assert_numpy_array_equal(notna(idx), exp)
 
         idx = np.asarray(idx)
         idx[0] = iNaT
-        idx = DatetimeIndex(idx)
+        idx = pd.DatetimeIndex(idx)
         mask = isna(idx)
         assert mask[0]
         exp = np.array([True] + [False] * (len(idx) - 1), dtype=bool)
@@ -198,9 +189,9 @@ class TestIsNA:
 
     def test_isna_old_datetimelike(self):
         # isna_old should work for dt64tz, td64, and period, not just tznaive
-        dti = date_range("2016-01-01", periods=3)
+        dti = pd.date_range("2016-01-01", periods=3)
         dta = dti._data
-        dta[-1] = NaT
+        dta[-1] = pd.NaT
         expected = np.array([False, False, True], dtype=bool)
 
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
@@ -234,7 +225,7 @@ class TestIsNA:
             tm.assert_numpy_array_equal(result, expected)
 
     def test_datetime_other_units(self):
-        idx = DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
+        idx = pd.DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -254,23 +245,23 @@ class TestIsNA:
         ],
     )
     def test_datetime_other_units_astype(self, dtype):
-        idx = DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
+        idx = pd.DatetimeIndex(["2011-01-01", "NaT", "2011-01-02"])
         values = idx.values.astype(dtype)
 
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(values), exp)
         tm.assert_numpy_array_equal(notna(values), ~exp)
 
-        exp = Series([False, True, False])
-        s = Series(values)
+        exp = pd.Series([False, True, False])
+        s = pd.Series(values)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-        s = Series(values, dtype=object)
+        s = pd.Series(values, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
     def test_timedelta_other_units(self):
-        idx = TimedeltaIndex(["1 days", "NaT", "2 days"])
+        idx = pd.TimedeltaIndex(["1 days", "NaT", "2 days"])
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
@@ -290,18 +281,18 @@ class TestIsNA:
         ],
     )
     def test_timedelta_other_units_dtype(self, dtype):
-        idx = TimedeltaIndex(["1 days", "NaT", "2 days"])
+        idx = pd.TimedeltaIndex(["1 days", "NaT", "2 days"])
         values = idx.values.astype(dtype)
 
         exp = np.array([False, True, False])
         tm.assert_numpy_array_equal(isna(values), exp)
         tm.assert_numpy_array_equal(notna(values), ~exp)
 
-        exp = Series([False, True, False])
-        s = Series(values)
+        exp = pd.Series([False, True, False])
+        s = pd.Series(values)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-        s = Series(values, dtype=object)
+        s = pd.Series(values, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
@@ -311,11 +302,11 @@ class TestIsNA:
         tm.assert_numpy_array_equal(isna(idx), exp)
         tm.assert_numpy_array_equal(notna(idx), ~exp)
 
-        exp = Series([False, True, False])
-        s = Series(idx)
+        exp = pd.Series([False, True, False])
+        s = pd.Series(idx)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
-        s = Series(idx, dtype=object)
+        s = pd.Series(idx, dtype=object)
         tm.assert_series_equal(isna(s), exp)
         tm.assert_series_equal(notna(s), ~exp)
 
@@ -339,8 +330,8 @@ class TestIsNA:
         tm.assert_numpy_array_equal(result, ~expected)
 
         # series
-        ser = Series(arr)
-        expected = Series(expected)
+        ser = pd.Series(arr)
+        expected = pd.Series(expected)
         result = isna(ser)
         tm.assert_series_equal(result, expected)
 
@@ -348,7 +339,7 @@ class TestIsNA:
         tm.assert_series_equal(result, ~expected)
 
         # index
-        idx = Index(arr)
+        idx = pd.Index(arr)
         expected = np.array([False, True])
         result = isna(idx)
         tm.assert_numpy_array_equal(result, expected)
@@ -397,10 +388,10 @@ def test_array_equivalent(dtype_equal):
         np.array(["a", "b", "c", "d"]), np.array(["e", "e"]), dtype_equal=dtype_equal
     )
     assert array_equivalent(
-        Index([0, np.nan]), Index([0, np.nan]), dtype_equal=dtype_equal
+        pd.Index([0, np.nan]), pd.Index([0, np.nan]), dtype_equal=dtype_equal
     )
     assert not array_equivalent(
-        Index([0, np.nan]), Index([1, np.nan]), dtype_equal=dtype_equal
+        pd.Index([0, np.nan]), pd.Index([1, np.nan]), dtype_equal=dtype_equal
     )
 
 
@@ -463,13 +454,13 @@ def test_array_equivalent_complex_nan_component(dtype, dtype_equal):
 @pytest.mark.parametrize("dtype_equal", [True, False])
 def test_array_equivalent_tdi(dtype_equal):
     assert array_equivalent(
-        TimedeltaIndex([0, np.nan]),
-        TimedeltaIndex([0, np.nan]),
+        pd.TimedeltaIndex([0, np.nan]),
+        pd.TimedeltaIndex([0, np.nan]),
         dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
-        TimedeltaIndex([0, np.nan]),
-        TimedeltaIndex([1, np.nan]),
+        pd.TimedeltaIndex([0, np.nan]),
+        pd.TimedeltaIndex([1, np.nan]),
         dtype_equal=dtype_equal,
     )
 
@@ -477,15 +468,19 @@ def test_array_equivalent_tdi(dtype_equal):
 @pytest.mark.parametrize("dtype_equal", [True, False])
 def test_array_equivalent_dti(dtype_equal):
     assert array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
+        pd.DatetimeIndex([0, np.nan]),
+        pd.DatetimeIndex([0, np.nan]),
+        dtype_equal=dtype_equal,
     )
     assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
+        pd.DatetimeIndex([0, np.nan]),
+        pd.DatetimeIndex([1, np.nan]),
+        dtype_equal=dtype_equal,
     )
 
-    dti1 = DatetimeIndex([0, np.nan], tz="US/Eastern")
-    dti2 = DatetimeIndex([0, np.nan], tz="CET")
-    dti3 = DatetimeIndex([1, np.nan], tz="US/Eastern")
+    dti1 = pd.DatetimeIndex([0, np.nan], tz="US/Eastern")
+    dti2 = pd.DatetimeIndex([0, np.nan], tz="CET")
+    dti3 = pd.DatetimeIndex([1, np.nan], tz="US/Eastern")
 
     assert array_equivalent(
         dti1,
@@ -498,13 +493,15 @@ def test_array_equivalent_dti(dtype_equal):
         dtype_equal=dtype_equal,
     )
     # The rest are not dtype_equal
-    assert not array_equivalent(DatetimeIndex([0, np.nan]), dti1)
+    assert not array_equivalent(pd.DatetimeIndex([0, np.nan]), dti1)
     assert array_equivalent(
         dti2,
         dti1,
     )
 
-    assert not array_equivalent(DatetimeIndex([0, np.nan]), TimedeltaIndex([0, np.nan]))
+    assert not array_equivalent(
+        pd.DatetimeIndex([0, np.nan]), pd.TimedeltaIndex([0, np.nan])
+    )
 
 
 @pytest.mark.parametrize(
@@ -512,7 +509,7 @@ def test_array_equivalent_dti(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
-    assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+    assert not array_equivalent(pd.Series([arr, arr]), pd.Series([arr, val]))
 
 
 def test_array_equivalent_array_mismatched_shape():
@@ -521,8 +518,8 @@ def test_array_equivalent_array_mismatched_shape():
     first = np.array([1, 2, 3])
     second = np.array([1, 2])
 
-    left = Series([first, "a"], dtype=object)
-    right = Series([second, "a"], dtype=object)
+    left = pd.Series([first, "a"], dtype=object)
+    right = pd.Series([second, "a"], dtype=object)
     assert not array_equivalent(left, right)
 
 
@@ -531,8 +528,8 @@ def test_array_equivalent_array_mismatched_dtype():
     first = np.array([1, 2], dtype=np.float64)
     second = np.array([1, 2])
 
-    left = Series([first, "a"], dtype=object)
-    right = Series([second, "a"], dtype=object)
+    left = pd.Series([first, "a"], dtype=object)
+    right = pd.Series([second, "a"], dtype=object)
     assert array_equivalent(left, right)
 
 
@@ -704,15 +701,15 @@ def test_array_equivalent_nested_dicts(strict_nan):
 
 def test_array_equivalent_index_with_tuples():
     # GH#48446
-    idx1 = Index(np.array([(pd.NA, 4), (1, 1)], dtype="object"))
-    idx2 = Index(np.array([(1, 1), (pd.NA, 4)], dtype="object"))
+    idx1 = pd.Index(np.array([(pd.NA, 4), (1, 1)], dtype="object"))
+    idx2 = pd.Index(np.array([(1, 1), (pd.NA, 4)], dtype="object"))
     assert not array_equivalent(idx1, idx2)
     assert not idx1.equals(idx2)
     assert not array_equivalent(idx2, idx1)
     assert not idx2.equals(idx1)
 
-    idx1 = Index(np.array([(4, pd.NA), (1, 1)], dtype="object"))
-    idx2 = Index(np.array([(1, 1), (4, pd.NA)], dtype="object"))
+    idx1 = pd.Index(np.array([(4, pd.NA), (1, 1)], dtype="object"))
+    idx2 = pd.Index(np.array([(1, 1), (4, pd.NA)], dtype="object"))
     assert not array_equivalent(idx1, idx2)
     assert not idx1.equals(idx2)
     assert not array_equivalent(idx2, idx1)
@@ -725,8 +722,8 @@ def test_array_equivalent_index_with_tuples():
         # Datetime-like
         (np.dtype("M8[ns]"), np.datetime64("NaT", "ns")),
         (np.dtype("m8[ns]"), np.timedelta64("NaT", "ns")),
-        (DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]"), NaT),
-        (PeriodDtype("M"), NaT),
+        (DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]"), pd.NaT),
+        (PeriodDtype("M"), pd.NaT),
         # Integer
         ("u1", 0),
         ("u2", 0),
@@ -777,7 +774,7 @@ class TestNAObj:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
-        arr = np.array([1, None, "foo", -5.1, NaT, np.nan])
+        arr = np.array([1, None, "foo", -5.1, pd.NaT, np.nan])
         expected = np.array([False, True, False, False, True, True])
 
         self._check_behavior(arr, expected)
@@ -813,7 +810,7 @@ m8_units = ["as", "ps", "ns", "us", "ms", "s", "m", "h", "D", "W", "M", "Y"]
 na_vals = (
     [
         None,
-        NaT,
+        pd.NaT,
         float("NaN"),
         complex("NaN"),
         np.nan,
@@ -839,8 +836,8 @@ inf_vals = [
 
 int_na_vals = [
     # Values that match iNaT, which we treat as null in specific cases
-    np.int64(NaT._value),
-    int(NaT._value),
+    np.int64(pd.NaT._value),
+    int(pd.NaT._value),
 ]
 
 sometimes_na_vals = [Decimal("NaN")]
@@ -917,15 +914,15 @@ class TestLibMissing:
 class TestIsValidNAForDtype:
     def test_is_valid_na_for_dtype_interval(self):
         dtype = IntervalDtype("int64", "left")
-        assert not is_valid_na_for_dtype(NaT, dtype)
+        assert not is_valid_na_for_dtype(pd.NaT, dtype)
 
         dtype = IntervalDtype("datetime64[ns]", "both")
-        assert not is_valid_na_for_dtype(NaT, dtype)
+        assert not is_valid_na_for_dtype(pd.NaT, dtype)
 
     def test_is_valid_na_for_dtype_categorical(self):
         dtype = CategoricalDtype(categories=[0, 1, 2])
         assert is_valid_na_for_dtype(np.nan, dtype)
 
-        assert not is_valid_na_for_dtype(NaT, dtype)
+        assert not is_valid_na_for_dtype(pd.NaT, dtype)
         assert not is_valid_na_for_dtype(np.datetime64("NaT", "ns"), dtype)
         assert not is_valid_na_for_dtype(np.timedelta64("NaT", "ns"), dtype)

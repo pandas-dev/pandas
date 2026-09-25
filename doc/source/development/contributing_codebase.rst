@@ -492,6 +492,26 @@ be located.
 
    - tests.extension
 
+.. _contributing.test_imports:
+
+Imports in tests
+~~~~~~~~~~~~~~~~
+
+Objects in the top-level pandas namespace are reached through ``pd`` rather than
+imported directly:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   ser = pd.Series([1, 2, 3])
+
+Everything else is imported from the module which defines it, e.g.
+``import pandas._testing as tm`` or
+``from pandas.core.dtypes.common import is_integer_dtype``.  The ``test-imports``
+pre-commit hook checks that test files do not import from the ``pandas``
+namespace directly.
+
 Using ``pytest``
 ~~~~~~~~~~~~~~~~
 
@@ -768,6 +788,13 @@ speed by skipping some tests using the ``-m`` mark flag:
   no database is running, so ``-m "not db"`` is only needed to avoid the cost
   of checking for one
 - single_cpu: tests that should run on a single cpu only
+
+Tests marked ``high_memory`` need >5GB of memory, so they are skipped unless you
+ask for them:
+
+.. code-block:: bash
+
+    pytest pandas/tests/io/test_parquet.py --run-high-memory
 
 You might want to enable the following option if it's relevant for you:
 

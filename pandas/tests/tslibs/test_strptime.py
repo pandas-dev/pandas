@@ -9,10 +9,7 @@ import pytest
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.strptime import array_strptime
 
-from pandas import (
-    NaT,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 
 creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
@@ -20,7 +17,7 @@ creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
 
 class TestArrayStrptimeResolutionInference:
     def test_array_strptime_resolution_all_nat(self):
-        arr = np.array([NaT, np.nan], dtype=object)
+        arr = np.array([pd.NaT, np.nan], dtype=object)
 
         fmt = "%Y-%m-%d %H:%M:%S"
         res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
@@ -58,11 +55,11 @@ class TestArrayStrptimeResolutionInference:
     def test_array_strptime_resolution_mixed(self, tz):
         dt = datetime(2016, 1, 2, 3, 4, 5, 678900, tzinfo=tz)
 
-        ts = Timestamp(dt).as_unit("ns")
+        ts = pd.Timestamp(dt).as_unit("ns")
 
         arr = np.array([dt, ts], dtype=object)
         expected = np.array(
-            [Timestamp(dt).as_unit("ns").asm8, ts.asm8],
+            [pd.Timestamp(dt).as_unit("ns").asm8, ts.asm8],
             dtype="M8[ns]",
         )
 
@@ -78,7 +75,7 @@ class TestArrayStrptimeResolutionInference:
         # specifically case where today/now is the *first* item
         vals = np.array(["today", np.datetime64("2017-01-01", "us")], dtype=object)
 
-        now = Timestamp("now").asm8  # current-time-ok
+        now = pd.Timestamp("now").asm8  # current-time-ok
         res, _ = array_strptime(vals, fmt="%Y-%m-%d", utc=False, creso=creso_infer)
         res2, _ = array_strptime(
             vals[::-1], fmt="%Y-%m-%d", utc=False, creso=creso_infer

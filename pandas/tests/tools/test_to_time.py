@@ -5,7 +5,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.tools.times import to_time
 
@@ -61,7 +61,7 @@ class TestToTime:
             to_time(arg, format="%I:%M%p", errors="raise")
 
         tm.assert_series_equal(
-            to_time(Series(arg, name="test")), Series(expected_arr, name="test")
+            to_time(pd.Series(arg, name="test")), pd.Series(expected_arr, name="test")
         )
 
         res = to_time(np.array(arg))

@@ -207,7 +207,7 @@ pc_east_asian_width_doc = """
 : boolean
     Whether to use the Unicode East Asian Width to calculate the display text
     width.
-    Enabling this may affect to the performance (default: False)
+    Enabling this may affect performance (default: False)
 """
 
 
@@ -432,8 +432,8 @@ with cf.config_prefix("mode"):
 # user warnings
 chained_assignment = """
 : string
-    Raise an exception, warn, or no action if trying to use chained assignment,
-    The default is warn
+    No longer used. This option has had no effect since SettingWithCopyWarning
+    was removed in pandas 3.0. This option will be removed in pandas 4.0.
 """
 
 with cf.config_prefix("mode"):
@@ -461,7 +461,7 @@ with cf.config_prefix("mode"):
 max_threads_doc = """
 : int or None
     Maximum number of worker threads for parallel operations (e.g. ``read_csv``
-    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 4)``,
+    for large files).  ``None`` (the default) means use ``min(os.cpu_count(), 6)``,
     further limited to the CPUs available to the process (CPU affinity and cgroup
     limits).  Set to ``1`` to disable parallel execution, or to a fixed number to
     raise the cap or to limit thread usage when pandas is embedded in a larger
@@ -981,9 +981,10 @@ with cf.config_prefix("future"):
         legacy=False,
         default=True,
         upcoming=True,
-        doc="Whether to infer sequence of str objects as pyarrow string "
-        "dtype, which will be the default in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        doc="Whether to infer a sequence of str objects as str dtype rather "
+        "than object dtype. This has been the default since pandas 3.0. This "
+        "option is deprecated and will be removed in pandas 4.0, at which "
+        "point str dtype will always be inferred.",
         validator=is_one_of_factory([True, False]),
     )
 
@@ -1040,6 +1041,16 @@ with cf.config_prefix("future"):
 
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
+# GH#68436
+cf.deprecate_option(
+    "future.infer_string",
+    Pandas4Warning,
+    msg=(
+        "The 'future.infer_string' option is deprecated and will be removed in "
+        "pandas 4.0. Inferring str dtype for string data has been the default "
+        "since pandas 3.0, and it will no longer be possible to disable it."
+    ),
+)
 cf.deprecate_option(
     "mode.copy_on_write",
     Pandas4Warning,
@@ -1047,5 +1058,16 @@ cf.deprecate_option(
         "The 'mode.copy_on_write' option is deprecated. Copy-on-Write can no longer "
         "be disabled (it is always enabled with pandas >= 3.0), and setting the option "
         "has no impact. This option will be removed in pandas 4.0."
+    ),
+)
+cf.deprecate_option(
+    "mode.chained_assignment",
+    Pandas4Warning,
+    msg=(
+        "The 'mode.chained_assignment' option is deprecated. It has had no effect "
+        "since pandas 3.0, which removed the SettingWithCopyWarning it controlled. "
+        "Chained assignment now emits a ChainedAssignmentError warning instead; use "
+        "warnings.filterwarnings with category=ChainedAssignmentError to silence or "
+        "escalate it. This option will be removed in pandas 4.0."
     ),
 )

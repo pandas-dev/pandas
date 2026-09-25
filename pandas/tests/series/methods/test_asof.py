@@ -4,26 +4,15 @@ import pytest
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas.errors import Pandas4Warning
 
-from pandas import (
-    DatetimeIndex,
-    Period,
-    PeriodIndex,
-    Series,
-    Timestamp,
-    date_range,
-    isna,
-    notna,
-    offsets,
-    period_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestSeriesAsof:
     def test_asof_nanosecond_index_access(self):
-        ts = Timestamp("20130101").as_unit("ns")._value
-        dti = DatetimeIndex([ts + 50 + i for i in range(100)])
-        ser = Series(np.random.default_rng(2).standard_normal(100), index=dti)
+        ts = pd.Timestamp("20130101").as_unit("ns")._value
+        dti = pd.DatetimeIndex([ts + 50 + i for i in range(100)])
+        ser = pd.Series(np.random.default_rng(2).standard_normal(100), index=dti)
 
         first_value = ser.asof(ser.index[0])
 
@@ -35,23 +24,23 @@ class TestSeriesAsof:
         assert first_value == ser["2013-01-01 00:00:00.000000050"]
 
         expected_ts = np.datetime64("2013-01-01 00:00:00.000000050", "ns")
-        assert first_value == ser[Timestamp(expected_ts)]
+        assert first_value == ser[pd.Timestamp(expected_ts)]
 
     def test_basic(self):
         # array or list or dates
         N = 50
-        rng = date_range("1/1/1990", periods=N, freq="53s")
-        ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
-        dates = date_range("1/1/1990", periods=N * 3, freq="25s")
+        dates = pd.date_range("1/1/1990", periods=N * 3, freq="25s")
 
         result = ts.asof(dates)
-        assert notna(result).all()
+        assert pd.notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        assert notna(result).all()
+        assert pd.notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
@@ -64,9 +53,9 @@ class TestSeriesAsof:
 
     def test_scalar(self):
         N = 30
-        rng = date_range("1/1/1990", periods=N, freq="53s")
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
         # Explicit cast to float avoid implicit cast when setting nan
-        ts = Series(np.arange(N), index=rng, dtype="float")
+        ts = pd.Series(np.arange(N), index=rng, dtype="float")
         ts.iloc[5:10] = np.nan
         ts.iloc[15:20] = np.nan
 
@@ -85,57 +74,57 @@ class TestSeriesAsof:
         assert result == ts.iloc[3]
 
         # no as of value
-        d = ts.index[0] - offsets.BDay()
+        d = ts.index[0] - pd.offsets.BDay()
         assert np.isnan(ts.asof(d))
 
     def test_with_nan(self):
         # basic asof test
-        rng = date_range("1/1/2000", "1/2/2000", freq="4h")
-        s = Series(np.arange(len(rng)), index=rng)
+        rng = pd.date_range("1/1/2000", "1/2/2000", freq="4h")
+        s = pd.Series(np.arange(len(rng)), index=rng)
         r = s.resample("2h").mean()
 
         result = r.asof(r.index)
-        expected = Series(
+        expected = pd.Series(
             [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6.0],
-            index=date_range("1/1/2000", "1/2/2000", freq="2h"),
+            index=pd.date_range("1/1/2000", "1/2/2000", freq="2h"),
         )
         tm.assert_series_equal(result, expected)
 
         r.iloc[3:5] = np.nan
         result = r.asof(r.index)
-        expected = Series(
+        expected = pd.Series(
             [0, 0, 1, 1, 1, 1, 3, 3, 4, 4, 5, 5, 6.0],
-            index=date_range("1/1/2000", "1/2/2000", freq="2h"),
+            index=pd.date_range("1/1/2000", "1/2/2000", freq="2h"),
         )
         tm.assert_series_equal(result, expected)
 
         r.iloc[-3:] = np.nan
         result = r.asof(r.index)
-        expected = Series(
+        expected = pd.Series(
             [0, 0, 1, 1, 1, 1, 3, 3, 4, 4, 4, 4, 4.0],
-            index=date_range("1/1/2000", "1/2/2000", freq="2h"),
+            index=pd.date_range("1/1/2000", "1/2/2000", freq="2h"),
         )
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
         # array or list or dates
         N = 50
-        rng = period_range("1/1/1990", periods=N, freq="h")
-        ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
+        rng = pd.period_range("1/1/1990", periods=N, freq="h")
+        ts = pd.Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
-        dates = date_range("1/1/1990", periods=N * 3, freq="37min")
+        dates = pd.date_range("1/1/1990", periods=N * 3, freq="37min")
 
         result = ts.asof(dates)
-        assert notna(result).all()
+        assert pd.notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        assert notna(result).all()
+        assert pd.notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
-        pix = PeriodIndex(result.index.values, freq="h")
+        pix = pd.PeriodIndex(result.index.values, freq="h")
         mask = (pix >= lb) & (pix < ub)
         rs = result[mask]
         assert (rs == ts[lb]).all()
@@ -157,8 +146,8 @@ class TestSeriesAsof:
         assert ts.asof(ts.index[3]) == ts.iloc[3]
 
         # no as of value
-        d = ts.index[0].to_timestamp() - offsets.BDay()
-        assert isna(ts.asof(d))
+        d = ts.index[0].to_timestamp() - pd.offsets.BDay()
+        assert pd.isna(ts.asof(d))
 
         # Mismatched freq
         msg = "Input has different freq"
@@ -166,9 +155,13 @@ class TestSeriesAsof:
             ts.asof(rng.asfreq("D"))
 
     def test_errors(self):
-        s = Series(
+        s = pd.Series(
             [1, 2, 3],
-            index=[Timestamp("20130101"), Timestamp("20130103"), Timestamp("20130102")],
+            index=[
+                pd.Timestamp("20130101"),
+                pd.Timestamp("20130103"),
+                pd.Timestamp("20130102"),
+            ],
         )
 
         # non-monotonic
@@ -178,8 +171,8 @@ class TestSeriesAsof:
 
         # subset with Series
         N = 10
-        rng = date_range("1/1/1990", periods=N, freq="53s")
-        s = Series(np.random.default_rng(2).standard_normal(N), index=rng)
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
+        s = pd.Series(np.random.default_rng(2).standard_normal(N), index=rng)
         with pytest.raises(ValueError, match="not valid for Series"):
             s.asof(s.index[0], subset="foo")
 
@@ -189,21 +182,21 @@ class TestSeriesAsof:
 
         # testing non-default indexes
         N = 50
-        rng = date_range("1/1/1990", periods=N, freq="53s")
+        rng = pd.date_range("1/1/1990", periods=N, freq="53s")
 
-        dates = date_range("1/1/1990", periods=N * 3, freq="25s")
-        result = Series(np.nan, index=rng).asof(dates)
-        expected = Series(np.nan, index=dates)
+        dates = pd.date_range("1/1/1990", periods=N * 3, freq="25s")
+        result = pd.Series(np.nan, index=rng).asof(dates)
+        expected = pd.Series(np.nan, index=dates)
         tm.assert_series_equal(result, expected)
 
         # testing scalar input
-        date = date_range("1/1/1990", periods=N * 3, freq="25s")[0]
-        result = Series(np.nan, index=rng).asof(date)
-        assert isna(result)
+        date = pd.date_range("1/1/1990", periods=N * 3, freq="25s")[0]
+        result = pd.Series(np.nan, index=rng).asof(date)
+        assert pd.isna(result)
 
         # test name is propagated
-        result = Series(np.nan, index=[1, 2, 3, 4], name="test").asof([4, 5])
-        expected = Series(np.nan, index=[4, 5], name="test")
+        result = pd.Series(np.nan, index=[1, 2, 3, 4], name="test").asof([4, 5])
+        expected = pd.Series(np.nan, index=[4, 5], name="test")
         tm.assert_series_equal(result, expected)
 
 
@@ -211,8 +204,8 @@ def test_asof_quarterly_string_deprecated():
     # GH#50907 asof converts a string `where` with Timestamp before casting it
     # to a Period, so a quarterly string warns even on a PeriodIndex -- as with
     # truncate, the parsed value is the one actually used
-    pi = period_range("2000Q1", periods=8, freq="Q")
-    ser = Series(range(len(pi)), index=pi)
+    pi = pd.period_range("2000Q1", periods=8, freq="Q")
+    ser = pd.Series(range(len(pi)), index=pi)
 
     with tm.assert_produces_warning(
         Pandas4Warning, match="quarterly string is deprecated"
@@ -221,4 +214,4 @@ def test_asof_quarterly_string_deprecated():
     assert result == 1
 
     # following the deprecation message preserves the behavior
-    assert result == ser.asof(Period("2000Q2").to_timestamp())
+    assert result == ser.asof(pd.Period("2000Q2").to_timestamp())
