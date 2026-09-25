@@ -529,6 +529,8 @@ This is now deprecated and emits a :class:`~pandas.errors.Pandas4Warning`. In
 pandas 4.0, ``.values`` will return the ExtensionArray for these dtypes as well
 (:issue:`54717`, :issue:`55128`).
 
+Current behavior for a timezone-aware Series:
+
 .. code-block:: python
 
     >>> ser = pd.Series(pd.date_range("2016-01-01", periods=2, tz="US/Pacific"))
@@ -539,8 +541,8 @@ pandas 4.0, ``.values`` will return the ExtensionArray for these dtypes as well
 
 Use :attr:`Series.array` to get the ExtensionArray, or :meth:`Series.to_numpy`
 to get a NumPy array. For timezone-aware data, ``to_numpy()`` returns an
-object-dtype array of :class:`Timestamp` objects; pass a ``datetime64`` dtype
-to keep the current result:
+object-dtype array of :class:`Timestamp` objects. To keep the current result,
+use ``tz_convert(None)``, which converts to UTC and drops the timezone:
 
 .. code-block:: python
 
@@ -548,11 +550,12 @@ to keep the current result:
     <DatetimeArray>
     ['2016-01-01 00:00:00-08:00', '2016-01-02 00:00:00-08:00']
     Length: 2, dtype: datetime64[us, US/Pacific]
-    >>> ser.to_numpy(dtype="datetime64[us]")
+    >>> ser.dt.tz_convert(None).to_numpy()
     array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
           dtype='datetime64[us]')
 
-:attr:`DataFrame.values` and ``np.asarray(ser)`` are not affected.
+:attr:`DataFrame.values` and ``np.asarray(ser)`` are not affected (those already
+return an object-dtype NumPy array of objects for all three cases).
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
