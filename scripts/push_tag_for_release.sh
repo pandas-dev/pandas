@@ -119,7 +119,6 @@ fi
 
 git checkout "$BRANCH"
 git pull --ff-only "$REMOTE" "$BRANCH"
-git clean -xdf
 git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: $VERSION"
 git tag -a "$TAG" -m "Version $VERSION"
 git push "$REMOTE" "$BRANCH" --follow-tags
