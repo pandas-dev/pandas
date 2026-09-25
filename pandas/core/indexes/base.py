@@ -608,6 +608,9 @@ class Index(IndexOpsMixin, PandasObject):
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
 
+        if isinstance(data, np.ndarray) and not data.dtype.isnative:
+            # GH#53234 the cython routines only accept native byteorder
+            return data.astype(data.dtype.newbyteorder("="))
         if copy:
             # asarray_tuplesafe does not always copy underlying data,
             #  so need to make sure that this happens

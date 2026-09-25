@@ -398,6 +398,10 @@ def array(
             return result
 
         data = cast("np.ndarray", data)
+        if not data.dtype.isnative:
+            # GH#53234 the dtype mappings below only have native byteorder
+            data = data.astype(data.dtype.newbyteorder("="))
+            copy = False
         result = ensure_wrapped_if_datetimelike(data)
         if result is not data:
             result = cast("DatetimeArray | TimedeltaArray", result)

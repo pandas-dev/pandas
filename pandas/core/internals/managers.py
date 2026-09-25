@@ -2434,6 +2434,10 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     groups: dict[Hashable, list[tuple[int, ArrayLike]]] = {}
     for i, arr in tuples:
         dtype = arr.dtype
+        if isinstance(dtype, np.dtype) and not dtype.isnative:
+            # GH#53234 the cython routines only accept native byteorder
+            dtype = dtype.newbyteorder("=")
+            arr = arr.astype(dtype)
         # Extension dtypes each get their own block regardless, so use id()
         # to avoid a potentially expensive __hash__ (e.g. CategoricalDtype
         # hashes all categories).
