@@ -1184,7 +1184,6 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-- Bug in :meth:`.DataFrameGroupBy.resample` with ``on=`` assigning values to the wrong time bins when the DataFrame had a non-default index (:issue:`59350`)
 - :meth:`DataFrame.ewm` and :meth:`Series.ewm` now raise an informative ``NotImplementedError`` instead of a confusing ``AttributeError`` when ``agg``/``aggregate`` is passed an arbitrary callable (:issue:`41700`)
 - Bug in :class:`PeriodIndex` resampling to a finer frequency where aggregation methods returned the original values instead of aggregating, e.g. ``count`` returned the data values rather than the number of observations per bin; empty bins now contain the method's identity value (e.g. ``0`` for ``sum`` instead of ``NaN``), consistent with :class:`DatetimeIndex` resampling (:issue:`42763`)
 - Bug in :meth:`.DataFrameGroupBy.agg` when there are no groups, multiple keys, and ``group_keys=False`` (:issue:`51445`)
@@ -1193,6 +1192,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, and :meth:`.DataFrameGroupBy.cummax` (and Series variants) returning ``Float64`` instead of preserving the nullable integer dtype (e.g. ``Int64``) when the group key contains ``NA`` (:issue:`65550`)
 - Bug in :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.idxmin` (and :class:`Series` variants) with ``skipna=False`` returning incorrect results when the input contained no ``NA`` values (:issue:`56903`)
 - Bug in :meth:`.DataFrameGroupBy.min` and :meth:`.DataFrameGroupBy.max` (and :class:`Series` variants) ignoring ``skipna=False`` for object, :class:`StringDtype`, :class:`IntervalDtype`, and other extension dtypes, returning a value where a missing value was expected (:issue:`18588`)
+- Bug in :meth:`.DataFrameGroupBy.resample` with ``on=`` assigning values to the wrong time bins when the DataFrame had a non-default index (:issue:`59350`)
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.DataFrameGroupBy.prod` (and :class:`Series` variants) ignoring ``skipna=False`` for extension dtypes, and for object dtype with ``prod``, returning a value where a missing value was expected (:issue:`18588`)
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` on ``timedelta64`` data where a group total that left the representable range silently wrapped to an unrelated value, or landed on the ``NaT`` sentinel and came back as a missing value, instead of raising ``OutOfBoundsTimedelta`` (:issue:`66551`)
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with ``skipna=False`` returning ``NaT`` for a ``timedelta64`` group containing no missing values, when its running total happened to pass through the ``NaT`` sentinel (:issue:`66551`)
