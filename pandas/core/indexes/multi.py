@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    NoReturn,
     Self,
     cast,
 )
@@ -3548,6 +3549,10 @@ class MultiIndex(Index):
         return super().slice_locs(start, end, step)
 
     def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
+        if len(tup) > self.nlevels:
+            # GH#45762 no amount of sorting brings a key this deep into range,
+            #  so the lexsort complaint below would be blaming the wrong thing
+            _raise_key_length_error(len(tup), self.nlevels)
         if len(tup) > self._lexsort_depth:
             raise UnsortedIndexError(
                 f"Key length ({len(tup)}) was greater than MultiIndex lexsort depth "
@@ -3695,9 +3700,7 @@ class MultiIndex(Index):
 
         keylen = len(key)
         if self.nlevels < keylen:
-            raise KeyError(
-                f"Key length ({keylen}) exceeds index depth ({self.nlevels})"
-            )
+            _raise_key_length_error(keylen, self.nlevels)
 
         if keylen == self.nlevels:
             # TODO: what if we have an IntervalIndex level?
@@ -3899,6 +3902,16 @@ class MultiIndex(Index):
                     return indexer, new_index
             except (TypeError, InvalidIndexError):
                 pass
+
+            # GH#45762 A trailing null slice is not a per-level key: the loop
+            #  below skips it, and .loc arrives with the column selector still
+            #  attached, as df.loc["a", :, :]. A bool indexer is not exempt
+            #  here -- unlike get_locs, this loop resolves one against its level
+            depth = len(key)
+            while depth > self.nlevels and com.is_null_slice(key[depth - 1]):
+                depth -= 1
+            if depth > self.nlevels:
+                _raise_key_length_error(len(key), self.nlevels)
 
             if not any(isinstance(k, slice) for k in key):
                 if len(key) == self.nlevels:
@@ -4173,14 +4186,8 @@ class MultiIndex(Index):
         array([2], dtype=int64)
         """
 
-        # must be lexsorted to at least as many levels
-        true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
-        if true_slices and true_slices[-1] >= self._lexsort_depth:
-            raise UnsortedIndexError(
-                "MultiIndex slicing requires the index to be lexsorted: slicing "
-                f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
-            )
-
+        # GH#45762 Checked first: an Ellipsis is never supported at all, so
+        #  neither the length nor the lexsort depth below is the real problem
         if any(x is Ellipsis for x in seq):
             raise NotImplementedError(
                 "MultiIndex does not support indexing with Ellipsis"
@@ -4188,10 +4195,12 @@ class MultiIndex(Index):
 
         # GH#64807 A level key is traversed more than once below (and again by
         #  _reorder_indexer), so an iterator has to be materialized up front:
-        #  the _get_level_indexer probe below drains it. Every other list-like
-        #  survives that probe, so it is left alone here -- a re-iterable one
-        #  that is also hashable (e.g. a range or frozenset) may be a level
-        #  label rather than a sequence of them, and only the probe can tell.
+        #  the _get_level_indexer probe below drains it, and is_bool_indexer in
+        #  the depth check reads an iterator as a level key. Every other
+        #  list-like survives that probe, so it is left alone here -- a
+        #  re-iterable one that is also hashable (e.g. a range or frozenset) may
+        #  be a level label rather than a sequence of them, and only the probe
+        #  can tell.
         materialized = list(seq)
         changed = False
         for pos, key in enumerate(materialized):
@@ -4200,6 +4209,26 @@ class MultiIndex(Index):
                 changed = True
         if changed:
             seq = tuple(materialized)
+
+        # GH#45762 Checked before the lexsort depth below, which would otherwise
+        #  take the blame. Trailing null slices and bool indexers consume no
+        #  level; .loc routes the column selector here too, as df.loc[:, key, :]
+        depth = len(materialized)
+        if depth > self.nlevels:
+            for key in reversed(materialized[self.nlevels :]):
+                if not (com.is_null_slice(key) or com.is_bool_indexer(key)):
+                    break
+                depth -= 1
+        if depth > self.nlevels:
+            _raise_key_length_error(len(materialized), self.nlevels)
+
+        # must be lexsorted to at least as many levels
+        true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
+        if true_slices and true_slices[-1] >= self._lexsort_depth:
+            raise UnsortedIndexError(
+                "MultiIndex slicing requires the index to be lexsorted: slicing "
+                f"on levels {true_slices}, lexsort depth {self._lexsort_depth}"
+            )
 
         n = len(self)
 
@@ -5030,6 +5059,11 @@ class MultiIndex(Index):
     __pos__ = make_invalid_op("__pos__")
     __abs__ = make_invalid_op("__abs__")
     __invert__ = make_invalid_op("__invert__")
+
+
+def _raise_key_length_error(key_length: int, nlevels: int) -> NoReturn:
+    """One spelling of the over-long-key message for every site that raises it."""
+    raise KeyError(f"Key length ({key_length}) exceeds index depth ({nlevels})")
 
 
 def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:

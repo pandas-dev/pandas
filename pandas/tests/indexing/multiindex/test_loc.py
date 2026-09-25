@@ -1117,3 +1117,35 @@ def test_loc_multiindex_interval_level_inf_break():
     # list of tuples, one of which falls in the [59, inf) interval
     result = mapper.loc[[(False, 45), (False, 99)], :]
     tm.assert_frame_equal(result, mapper.iloc[[1, 2]])
+
+
+def test_get_locs_iterator_bool_indexer_not_counted_as_level():
+    # GH#45762 a bool indexer consumes no level, including when it arrives as an
+    #  iterator -- is_bool_indexer reads an unmaterialized one as a level key
+    mi = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    mask = [True, True, False, False, False, False]
+
+    expected = mi.get_locs([["a"], slice(1, 2), mask])
+    result = mi.get_locs([["a"], slice(1, 2), iter(mask)])
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("pad", [2, 3])
+def test_loc_scalar_level_key_trailing_null_slices(pad):
+    # GH#45762 - the key-length guard must discount the trailing null slices
+    # .loc leaves on the key, or df.loc["a", :, :] stops dropping level 0.
+    # pad starts at 2: a 2-tuple is split into row and column selectors by .loc,
+    # so only a deeper key reaches the guard
+    mi = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    df = pd.DataFrame({"x": range(6), "y": range(6)}, index=mi)
+    expected = pd.DataFrame({"x": range(3), "y": range(3)}, index=pd.Index([1, 2, 3]))
+
+    result = df.loc[("a",) + (slice(None),) * pad]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.xs(("a",) + (slice(None),) * pad)
+    tm.assert_frame_equal(result, expected)
+
+    result = df["x"].loc[("a",) + (slice(None),) * pad]
+    tm.assert_series_equal(result, expected["x"])

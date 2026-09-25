@@ -7,7 +7,10 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas.compat import PY312
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    UnsortedIndexError,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -1170,6 +1173,103 @@ def test_get_locs_list_like_empty_typed():
     idx = pd.MultiIndex.from_product([[1, 2], [1, 2, 3]])
     result = idx.get_locs((np.array([], dtype=np.int64), [1]))
     tm.assert_numpy_array_equal(result, np.array([], dtype=np.intp))
+
+
+@pytest.mark.parametrize("extra", [slice(4, 6), 3, [3], np.array([3])])
+def test_get_locs_too_many_levels(extra):
+    # GH#45762 - a key with more entries than the index has levels is too
+    #  long, whatever the extra entry is; the lexsort depth is not the problem
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    msg = r"Key length \(3\) exceeds index depth \(2\)"
+    with pytest.raises(KeyError, match=msg):
+        idx.get_locs([slice("a", "b"), slice(1, 2), extra])
+
+
+def test_get_locs_too_many_levels_reports_full_length():
+    # GH#45762 - the message reports what the caller passed, as get_loc does,
+    #  not the length left after the exempt trailing entries are discounted
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    msg = r"Key length \(4\) exceeds index depth \(2\)"
+    with pytest.raises(KeyError, match=msg):
+        idx.get_locs([["a"], 1, "c", slice(None)])
+
+
+def test_get_locs_too_many_levels_loc():
+    # GH#45762
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    df = pd.DataFrame({"x": range(6)}, index=idx)
+    msg = r"Key length \(3\) exceeds index depth \(2\)"
+    with pytest.raises(KeyError, match=msg):
+        df.loc[pd.IndexSlice["a":"b", 1:2, 4:6], :]
+
+
+@pytest.mark.parametrize("pad", [1, 2])
+@pytest.mark.parametrize(
+    "filler", [slice(None), [True, True, False, False, False, False]]
+)
+def test_get_locs_trailing_non_level_keys_allowed(pad, filler):
+    # GH#45762 - a trailing entry that consumes no level does not make the key
+    #  too long: a null slice is skipped, and a bool indexer picks positions
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    result = idx.get_locs([["a"], slice(1, 2)] + [filler] * pad)
+    tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
+
+
+def test_get_locs_trailing_bool_indexer_narrows():
+    # GH#45762 - the exempt trailing bool indexer still selects, it is only
+    #  discounted from the length
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    mask = [True, False, True, False, True, False]
+    result = idx.get_locs([slice("a", "b"), slice(1, 2), mask])
+    tm.assert_numpy_array_equal(result, np.array([0, 4], dtype=np.intp))
+
+
+@pytest.mark.parametrize("pos", [0, 2])
+def test_get_locs_too_many_levels_ellipsis(pos):
+    # GH#45762 - an Ellipsis is never supported, so the length check must not
+    #  shadow the message that says so
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    key = [slice("a", "b"), slice(1, 2)]
+    key.insert(pos, ...)
+    with pytest.raises(NotImplementedError, match="does not support.*Ellipsis"):
+        idx.get_locs(key)
+
+
+def test_get_loc_level_too_many_levels():
+    # GH#45762 - get_loc and get_locs both report the length; a key holding a
+    #  slice used to reach the level loop here and leak an IndexError
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    msg = r"Key length \(3\) exceeds index depth \(2\)"
+    with pytest.raises(KeyError, match=msg):
+        idx.get_loc_level(("a", slice(None), 4))
+
+
+def test_get_loc_level_long_tuple_level_label():
+    # GH#45762 - the length check must not preempt a tuple that is a label in
+    #  level 0 rather than one key per level
+    idx = pd.MultiIndex.from_arrays([[("a", 1, 4), ("b", 2, 5)], ["x", "y"]])
+    _, new_index = idx.get_loc_level(("a", 1, 4))
+    tm.assert_index_equal(new_index, pd.Index(["x"], dtype=idx.levels[1].dtype))
+
+
+def test_slice_locs_too_many_levels():
+    # GH#45762 - the index is fully lexsorted, so blaming the lexsort depth
+    #  for a key deeper than the index is misleading
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    assert idx._is_lexsorted()
+    msg = r"Key length \(3\) exceeds index depth \(2\)"
+    with pytest.raises(KeyError, match=msg):
+        idx.slice_locs(("a", 1, 4))
+
+
+def test_slice_locs_lexsort_depth_still_reported():
+    # GH#45762 - a key the index really is too unsorted for keeps the
+    #  lexsort-depth message
+    idx = pd.MultiIndex.from_tuples([("b", 2), ("a", 1), ("b", 1)])
+    assert idx._lexsort_depth == 0
+    msg = r"Key length \(2\) was greater than MultiIndex lexsort depth \(0\)"
+    with pytest.raises(UnsortedIndexError, match=msg):
+        idx.slice_locs(("a", 1))
 
 
 @pytest.mark.skipif(not PY312, reason="a slice is unhashable before 3.12")
