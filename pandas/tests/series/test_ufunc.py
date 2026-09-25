@@ -238,6 +238,17 @@ def test_binary_ufunc_drops_series_name(ufunc, sparse, arrays_for_binary_ufunc):
     assert result.name is None
 
 
+def test_binary_ufunc_aligns_duplicate_labels():
+    # GH#54416
+    ser1 = pd.Series([1.0, 2.0], index=[0, 0])
+    ser2 = pd.Series([3.0, 4.0], index=[0, 1])
+    result = np.heaviside(ser1, ser2)
+    expected = pd.Series(
+        np.heaviside([1.0, 2.0, np.nan], [3.0, 3.0, 4.0]), index=[0, 0, 1]
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_binary_ufunc_out_pandas_object():
     # GH#43190 passing a Series as the ufunc `out` argument used to recurse
     #  infinitely (RecursionError / segfault) instead of writing the result.
