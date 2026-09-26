@@ -128,6 +128,32 @@ def test_groupby_resample_on_api_with_getitem():
     tm.assert_series_equal(result, exp)
 
 
+@pytest.mark.parametrize("index", [[1, 0, 3, 2], [10, 20, 30, 40]])
+def test_groupby_resample_on_with_non_default_index(index):
+    # GH 59350
+    dates = date_range("2024-01-01", periods=4, freq="min")
+    df = pd.DataFrame(
+        {
+            "group": ["a", "a", "b", "b"],
+            "date": dates,
+            "value": [100, 200, 1000, 2000],
+        },
+        index=index,
+    )
+    expected_index = pd.MultiIndex.from_arrays(
+        [["a", "a", "b", "b"], dates],
+        names=["group", "date"],
+    )
+    expected = pd.DataFrame({"value": [100, 200, 1000, 2000]}, index=expected_index)
+
+    result = df.groupby("group").resample("1min", on="date").agg({"value": "sum"})
+    tm.assert_frame_equal(result, expected)
+
+    expected_series = expected["value"]
+    result_series = df.groupby("group").resample("1min", on="date")["value"].sum()
+    tm.assert_series_equal(result_series, expected_series)
+
+
 def test_groupby_with_origin():
     # GH 31809
 
