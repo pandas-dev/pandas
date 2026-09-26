@@ -4994,8 +4994,25 @@ class Index(IndexOpsMixin, PandasObject):
             right, how=how, return_indexers=True
         )
 
+        old_codes = left.codes[level]
+        missing_value = None
+        right_missing_indexer = -1
+        if right.hasnans:
+            missing_value = old_level.take([-1], allow_fill=True)
+            right_missing_indexer = right.get_indexer(missing_value)[0]
+
         if left_lev_indexer is None:
-            if keep_order or len(left) == 0:
+            drop_missing = (
+                how in ("inner", "right")
+                and right_missing_indexer == -1
+                and len(old_codes) > 0
+                and old_codes.min() == -1
+            )
+            if drop_missing:
+                missing = old_codes == -1
+                left_indexer = np.arange(len(left), dtype=np.intp)[~missing]
+                join_index = left[left_indexer]
+            elif keep_order or len(left) == 0:
                 left_indexer = None
                 join_index = left
             else:  # sort the leaves
@@ -5005,10 +5022,8 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             left_lev_indexer = ensure_platform_int(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer, len(old_level))
-            old_codes = left.codes[level]
-
-            taker = old_codes[old_codes != -1]
-            new_lev_codes = rev_indexer.take(taker)
+            new_lev_codes = algos.take_nd(rev_indexer, old_codes, fill_value=-1)
+            missing = old_codes == -1
 
             new_codes = list(left.codes)
             new_codes[level] = new_lev_codes
@@ -5016,32 +5031,43 @@ class Index(IndexOpsMixin, PandasObject):
             new_levels = list(left.levels)
             new_levels[level] = new_level
 
-            if keep_order:  # just drop missing values. o.w. keep order
+            mask = new_lev_codes != -1
+            if right_missing_indexer != -1:
+                mask[missing] = True
+            if how in ("left", "outer"):
+                mask[:] = True
+
+            sort_lev_codes = new_lev_codes
+            if right_missing_indexer != -1 and missing.any():
+                assert missing_value is not None
+                new_level_missing_indexer = new_level.get_indexer(missing_value)[0]
+                if new_level_missing_indexer != -1:
+                    sort_lev_codes = new_lev_codes.copy()
+                    sort_lev_codes[missing] = new_level_missing_indexer
+
+            if keep_order:  # just drop values missing from the joined level
                 left_indexer = np.arange(len(left), dtype=np.intp)
                 left_indexer = cast("np.ndarray", left_indexer)
-                mask = new_lev_codes != -1
                 if not mask.all():
                     new_codes = [lab[mask] for lab in new_codes]
                     left_indexer = left_indexer[mask]
 
             elif level == 0:  # outer most level, take the fast route
-                max_new_lev = 0 if len(new_lev_codes) == 0 else new_lev_codes.max()
+                sort_lev_codes = sort_lev_codes[mask]
+                max_new_lev = 0 if len(sort_lev_codes) == 0 else sort_lev_codes.max()
                 ngroups = 1 + max_new_lev
-                left_indexer, counts = libalgos.groupsort_indexer(
-                    new_lev_codes, ngroups
-                )
-
-                # missing values are placed first; drop them!
-                left_indexer = left_indexer[counts[0] :]
+                sorter, _ = libalgos.groupsort_indexer(sort_lev_codes, ngroups)
+                left_indexer = mask.nonzero()[0][sorter]
                 new_codes = [lab[left_indexer] for lab in new_codes]
 
             else:  # sort the leaves
-                mask = new_lev_codes != -1
                 mask_all = mask.all()
                 if not mask_all:
                     new_codes = [lab[mask] for lab in new_codes]
 
-                left_indexer = _get_leaf_sorter(new_codes[: level + 1])
+                sort_codes = list(new_codes)
+                sort_codes[level] = sort_lev_codes[mask]
+                left_indexer = _get_leaf_sorter(sort_codes[: level + 1])
                 new_codes = [lab[left_indexer] for lab in new_codes]
 
                 # left_indexers are w.r.t masked frame.
@@ -5057,9 +5083,18 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if right_lev_indexer is not None:
-            right_indexer = right_lev_indexer.take(join_index.codes[level])
+            right_indexer = algos.take_nd(
+                right_lev_indexer, join_index.codes[level], fill_value=-1
+            )
         else:
             right_indexer = join_index.codes[level]
+
+        if right_missing_indexer != -1:
+            missing = join_index.codes[level] == -1
+            if missing.any():
+                if right_lev_indexer is None:
+                    right_indexer = right_indexer.copy()
+                right_indexer[missing] = right_missing_indexer
 
         if flip_order:
             left_indexer, right_indexer = right_indexer, left_indexer
