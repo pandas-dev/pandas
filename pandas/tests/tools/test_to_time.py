@@ -1,9 +1,8 @@
 from datetime import time
+import locale
 
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -16,30 +15,31 @@ class TestToTime:
         [
             "14:15",
             "1415",
-            pytest.param("2:15pm", marks=td.skip_if_not_english_lc_time),
-            pytest.param("0215pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("2:15pm"),
+            pytest.param("0215pm"),
             "14:15:00",
             "141500",
-            pytest.param("2:15:00pm", marks=td.skip_if_not_english_lc_time),
-            pytest.param("021500pm", marks=td.skip_if_not_english_lc_time),
-            pytest.param("2:15 pm", marks=td.skip_if_not_english_lc_time),
-            pytest.param("0215 pm", marks=td.skip_if_not_english_lc_time),
-            pytest.param("2:15:00 pm", marks=td.skip_if_not_english_lc_time),
-            pytest.param("021500 pm", marks=td.skip_if_not_english_lc_time),
+            pytest.param("2:15:00pm"),
+            pytest.param("021500pm"),
+            pytest.param("2:15 pm"),
+            pytest.param("0215 pm"),
+            pytest.param("2:15:00 pm"),
+            pytest.param("021500 pm"),
             time(14, 15),
         ],
     )
     def test_parsers_time(self, time_string):
-        # GH#11818
-        assert to_time(time_string) == time(14, 15)
+        with tm.set_locale("C", locale.LC_TIME):
+            # GH#11818
+            assert to_time(time_string) == time(14, 15)
 
-    @td.skip_if_not_english_lc_time
     def test_parsers_time_space_before_meridiem(self):
-        # GH#18793 the space before AM/PM used to make these unparsable
-        arg = ["3:25:00 AM", "3:25:00 PM", "12:30:00 AM", "12:30:00 PM"]
-        expected = [time(3, 25), time(15, 25), time(0, 30), time(12, 30)]
-        assert to_time(arg) == expected
-        assert to_time(arg, infer_time_format=True) == expected
+        with tm.set_locale("C", locale.LC_TIME):
+            # GH#18793 the space before AM/PM used to make these unparsable
+            arg = ["3:25:00 AM", "3:25:00 PM", "12:30:00 AM", "12:30:00 PM"]
+            expected = [time(3, 25), time(15, 25), time(0, 30), time(12, 30)]
+            assert to_time(arg) == expected
+            assert to_time(arg, infer_time_format=True) == expected
 
     def test_odd_format(self):
         new_string = "14.15"

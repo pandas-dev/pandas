@@ -24,6 +24,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import locale
 import operator
 import pickle
 import re
@@ -48,7 +49,6 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import pandas_dtype
@@ -5680,13 +5680,13 @@ def test_string_to_time_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
 def test_string_to_time_parsing_cast_meridiem(dtype):
-    # GH#18793 the space before AM/PM used to make these coerce to null
-    result = pd.Series(["3:25:00 PM"], dtype=dtype)
-    expected = pd.Series(["15:25:00"], dtype=dtype)
-    tm.assert_series_equal(result, expected)
+    with tm.set_locale("C", locale.LC_TIME):
+        # GH#18793 the space before AM/PM used to make these coerce to null
+        result = pd.Series(["3:25:00 PM"], dtype=dtype)
+        expected = pd.Series(["15:25:00"], dtype=dtype)
+        tm.assert_series_equal(result, expected)
 
 
 def test_to_numpy_float():
