@@ -162,7 +162,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
 @set_module("pandas.arrays")
 class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
-    Pandas ExtensionArray for tz-naive or tz-aware datetime data.
+    Pandas ExtensionArray  this class provides optimised storage and operations for arrays of datetime data
 
     .. warning::
 
@@ -173,7 +173,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     Parameters
     ----------
-    data : Series, Index, DatetimeArray, ndarray
+     data : Series, Index, DatetimeArrays, ndarrays
         The datetime data.
 
         For DatetimeArray `values` (or a Series or Index boxing one),
