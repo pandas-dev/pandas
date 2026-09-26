@@ -1199,11 +1199,18 @@ class FrameApply(NDFrameApply):
                 if not lost.any():
                     pieces.append(stacked)
                     continue
-                for pos in np.nonzero(lost)[0].tolist():
-                    stacked.isetitem(
-                        pos, np.array([row.iloc[pos] for row in rows], dtype=object)
-                    )
-                pieces.append(stacked)
+                # one partition rather than an isetitem per column, since each
+                # isetitem splits the block
+                lost_pos = np.nonzero(lost)[0]
+                values = np.empty((len(rows), len(lost_pos)), dtype=object)
+                for pos, row in enumerate(rows):
+                    values[pos] = row.to_numpy(dtype=object)[lost_pos]
+                demoted = obj._constructor(
+                    values, index=stacked.index, columns=stacked.columns[lost_pos]
+                )
+                # column order is restored by the reindex at the end
+                pieces.append(stacked.iloc[:, np.nonzero(~lost)[0]])
+                pieces.append(demoted)
                 continue
 
             values = np.empty((len(rows), len(cols)), dtype=object)
