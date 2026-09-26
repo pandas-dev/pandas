@@ -619,6 +619,192 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
+    @pytest.mark.parametrize(
+        "col_indexer, value, expected",
+        [
+            (
+                slice(None, None, -1),
+                np.array([100.0, 101.0, 102.0]),
+                [
+                    [102.0, 101.0, 100.0],
+                    [3.0, 4.0, 5.0],
+                    [102.0, 101.0, 100.0],
+                    [9.0, 10.0, 11.0],
+                ],
+            ),
+            (
+                slice(0, 2),
+                np.array([[100.0, 101.0], [200.0, 201.0]]),
+                [
+                    [200.0, 201.0, 2.0],
+                    [3.0, 4.0, 5.0],
+                    [100.0, 101.0, 8.0],
+                    [9.0, 10.0, 11.0],
+                ],
+            ),
+        ],
+    )
+    def test_iloc_setitem_slice_column_indexer_referenced_block(
+        self, col_indexer, value, expected
+    ):
+        # GH#65446 a slice column indexer selects the cross product with the
+        #  row indexer; a reversed one was re-expressed as an array on a
+        #  referenced frame, which broadcasts against the rows instead
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.iloc[[2, 0], col_indexer] = value
+        df._mgr._verify_integrity()
+        tm.assert_frame_equal(df, pd.DataFrame(expected, columns=list("abc")))
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize(
+        "row_indexer, col_indexer",
+        [
+            (range(2, 0, -1), [0, 2]),
+            ((2, 1), [0, 2]),
+            (pd.array([2, 1], dtype="Int64"), [0, 2]),
+            (np.array([2, 1]), range(0, 3, 2)),
+            (np.array([2, 1]), pd.array([0, 2], dtype="Int64")),
+        ],
+    )
+    def test_iloc_setitem_non_slice_column_indexer_referenced_block(
+        self, row_indexer, col_indexer
+    ):
+        # GH#65446 an increasing column indexer was collapsed to a slice, which
+        #  takes the cross product; both keys have to keep broadcasting against
+        #  each other, as they do with no reference alive
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.iloc[row_indexer, col_indexer] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.loc[2, "a"] = 99.0
+        expected.loc[1, "c"] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("referenced", [True, False])
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    @pytest.mark.parametrize("key", [([2, 1, 0], Ellipsis), (Ellipsis, [2, 0, 1])])
+    def test_iloc_setitem_ellipsis_indexer(self, key, dtype, referenced):
+        # GH#65446 Ellipsis fills the remaining axis, so it has to select the
+        #  same cells as the slice(None) spelling rather than read as an
+        #  advanced key and broadcast against the other one
+        df = pd.DataFrame(
+            np.arange(9, dtype="i8").reshape(3, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        value = np.arange(100, 109, dtype="i8").reshape(3, 3).astype(dtype)
+
+        ref = df[["a", "b", "c"]] if referenced else None
+        df.iloc[key] = value
+        df._mgr._verify_integrity()
+
+        arr = df_orig.to_numpy().copy()
+        arr[key] = value
+        tm.assert_frame_equal(df, pd.DataFrame(arr, columns=list("abc")))
+        if referenced:
+            tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_newaxis_column_key_referenced_block(self):
+        # GH#65446 np.newaxis inserts an axis rather than selecting columns
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.iloc[np.array([0, 2]), None] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[[0, 2]] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_row_only_tuple_key_referenced_block(self):
+        # GH#65446 a trailing comma leaves the column key implicit
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        expected = df.copy()
+        expected.iloc[[0, 2],] = 99.0
+        ref = df[["a", "b", "c"]]
+        df.iloc[[0, 2],] = 99.0
+        df._mgr._verify_integrity()
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    def test_iloc_setitem_double_ellipsis_referenced_block(self, dtype):
+        # GH#65446 numpy rejects two Ellipses; a referenced frame must too
+        df = pd.DataFrame(
+            np.arange(9, dtype="i8").reshape(3, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        with pytest.raises(IndexError, match="single ellipsis"):
+            df.iloc[..., ...] = df_orig.iloc[0, 0]
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_2d_row_indexer_referenced_block(self):
+        # GH#65446 a 2d row indexer selects the cross product with a slice
+        #  column indexer; on a referenced frame the column key became an
+        #  array, which the row indexer could not broadcast against
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.iloc[np.array([[1, 0]]), ::-1] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[:2] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_setitem_boolean_row_mask_slice_column_indexer_referenced_block(
+        self, indexer_li
+    ):
+        # GH#65446 a boolean row mask reaches this through DataFrame.loc too,
+        #  since a reversed label slice leaves loc's column indexer unsorted
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        mask = np.array([True, False, True, False])
+        cols = slice(None, None, -1) if indexer_li is tm.iloc else slice("c", "a", -1)
+        indexer_li(df)[mask, cols] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[[0, 2]] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_datetimelike_slice_column_indexer_referenced_block(self):
+        # GH#65446 a datetimelike block swaps the indexer entries and
+        #  transposes the value; the selection is non-square, so a wrong
+        #  orientation raises rather than writing silently
+        df = pd.DataFrame(
+            np.arange(9, dtype="i8").view("M8[s]").reshape(3, 3), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        value = np.arange(100, 106, dtype="i8").view("M8[s]").reshape(2, 3)
+        df.iloc[[2, 0], ::-1] = value
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[2] = value[0, ::-1]
+        expected.iloc[0] = value[1, ::-1]
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
     # TODO: GH#27620 this test used to compare iloc against ix; check if this
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
