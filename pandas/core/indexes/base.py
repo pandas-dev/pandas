@@ -958,6 +958,10 @@ class Index(IndexOpsMixin, PandasObject):
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
+        # self._values only reaches the ExtensionArray guard when it is an EA, so a
+        #  bool Index against datetimelike data needs this here
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
             self, ufunc, method, *inputs, **kwargs
         )
@@ -1559,9 +1563,21 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
-            return cast("np.ndarray", self.values)
-        return self.astype(object, copy=False)._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+        if isinstance(self.dtype, np.dtype) and self.dtype.kind == "M":
+            return self.astype(object, copy=False)._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+        elif isinstance(self.dtype, ExtensionDtype):
+            values = cast("ExtensionArray", self._values)
+            if self.dtype.kind in "mM":
+                # e.g. ArrowDtype - relying on default of NaT for those dtypes
+                # (explicitly specifying NaT raises an error)
+                return values.to_numpy()
+            if self.dtype.kind == "O":
+                return values.to_numpy(na_value=None)
+            if self.hasnans:
+                return values.to_numpy(na_value=np.nan)
+            else:
+                return values.to_numpy()
+        return self._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
 
     _default_na_rep = "NaN"
 
@@ -5682,7 +5698,7 @@ class Index(IndexOpsMixin, PandasObject):
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key)
-            return getitem(key)  # pyright: ignore[reportReturnType]
+            return maybe_unbox_numpy_scalar(getitem(key), object_with_dtype=self)
 
         if isinstance(key, slice):
             # This case is separated from the conditional above to avoid
@@ -7978,9 +7994,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -8042,9 +8058,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
-        np.int64(2)
+        2
         >>> idx.argmin()
-        np.int64(0)
+        0
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
