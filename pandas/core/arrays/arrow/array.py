@@ -95,7 +95,10 @@ from pandas.core.arrays.base import (
     ExtensionArrayNaResult,
 )
 from pandas.core.arrays.masked import BaseMaskedArray
-from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_ import (
+    StringArray,
+    StringDtype,
+)
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import (
@@ -3731,6 +3734,26 @@ class ArrowExtensionArray(
         ids: npt.NDArray[np.intp],
         **kwargs,
     ):
+        # GH#59088: groupby.rank on Arrow string columns.
+        # pyarrow has no rank transform, _groupby_op_pyarrow returns
+        # None, and _to_groupby_compatible() -> _to_masked() doesn't
+        # support strings. Route rank through a python-backed
+        # StringArray whose _groupby_op uses the cython/numpy path.
+        if how == "rank":
+            pa_type = self._pa_array.type
+            if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
+                values: ExtensionArray = StringArray._from_sequence(
+                    self.tolist(),
+                    dtype=StringDtype(storage="python", na_value=np.nan),
+                )
+                return values._groupby_op(
+                    how=how,
+                    has_dropped_na=has_dropped_na,
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    ids=ids,
+                    **kwargs,
+                )
         if isinstance(self.dtype, StringDtype):
             if how in [
                 "prod",

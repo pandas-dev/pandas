@@ -6,6 +6,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+pa = pytest.importorskip("pyarrow")
+
 
 def test_rank_unordered_categorical_typeerror():
     # GH#51034 should be TypeError, not NotImplementedError
@@ -22,6 +24,44 @@ def test_rank_unordered_categorical_typeerror():
     gb2 = df.groupby(cat, observed=False)
     with pytest.raises(TypeError, match=msg):
         gb2.rank()
+
+
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
+@pytest.mark.parametrize("method", ["average", "first"])
+@pytest.mark.parametrize("ascending", [True, False])
+def test_rank_arrow_string_dtype(pa_type, method, ascending):
+    # GH#59088
+    arr = pa.array(["b", "a", "d", "c"], type=pa_type)
+    value = pd.arrays.ArrowExtensionArray(arr)
+
+    df = pd.DataFrame({"key": [1, 1, 2, 2], "value": value})
+
+    result = df.groupby("key")["value"].rank(
+        method=method, ascending=ascending, na_option="bottom"
+    )
+    expected = (
+        df.assign(value=df["value"].astype("string"))
+        .groupby("key")["value"]
+        .rank(method=method, ascending=ascending, na_option="bottom")
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
+def test_rank_arrow_string_dtype_with_na(pa_type):
+    # GH#59088
+    arr = pa.array(["b", None, "a", "c"], type=pa_type)
+    value = pd.arrays.ArrowExtensionArray(arr)
+
+    df = pd.DataFrame({"key": [1, 1, 1, 1], "value": value})
+
+    result = df.groupby("key")["value"].rank(na_option="bottom")
+    expected = (
+        df.assign(value=df["value"].astype("string"))
+        .groupby("key")["value"]
+        .rank(na_option="bottom")
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_rank_apply():
