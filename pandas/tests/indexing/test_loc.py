@@ -2216,7 +2216,7 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_expansion_partial_string_no_matches_column(self):
         # GH#57596
         dti = pd.to_datetime(["2024-02-24 10:00:30", "2024-02-24 10:20:30"])
-        df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=dti)
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=dti)
 
         df.loc[:, "2024-02-24 10:08"] = 9
 
