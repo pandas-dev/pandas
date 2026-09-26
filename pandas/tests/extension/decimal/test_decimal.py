@@ -109,9 +109,13 @@ class TestDecimalArray(base.ExtensionTests):
 
         if op_name != "count":
             # https://github.com/pandas-dev/pandas/pull/63512
-            # DecimalArray does not implement sum et all as attributes.
-            msg = f"object has no attribute '{op_name}'"
-            with pytest.raises(AttributeError, match=msg):
+            # DecimalArray does not overwrite the base reduction methods to forward
+            # them to _reduce.
+            msg = (
+                f"'DecimalArray' with dtype decimal does not support operation "
+                f"'{op_name}'"
+            )
+            with pytest.raises(TypeError, match=msg):
                 getattr(ser.array, op_name)()
         else:
             return super().test_reduce_array(request, data, all_reductions, skipna)
