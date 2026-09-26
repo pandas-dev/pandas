@@ -55,26 +55,39 @@ jobs:
   needs_triage:
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
       issues: write
     if: >-
       github.repository_owner == 'pandas-dev' &&
       github.event_name == 'issues'
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: .github/scripts
-          persist-credentials: false
-      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      # Apply `Needs Triage` to an issue opened by someone other than an owner,
+      # member, collaborator, or bot, unless the label has been applied or
+      # removed before.
+      - &needs_triage_step
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const needsTriage = require('./.github/scripts/needs_triage.js');
-            await needsTriage({ github, context, issue: context.payload.issue });
+            const LABEL = 'Needs Triage';
+            const EXEMPT_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            // Only apply going forward; not retroactively.
+            const ROLLOUT_CUTOFF = new Date('????-??-??T00:00:00Z');
+            const issue = context.payload.issue;
+            const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
+            if (labels.includes(LABEL)) return;
+            if (new Date(issue.created_at) < ROLLOUT_CUTOFF) return;
+            if (issue.user.type === 'Bot' || EXEMPT_ASSOCIATIONS.includes(issue.author_association)) return;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const events = await github.paginate(github.rest.issues.listEvents, {
+              ...repo, issue_number: issue.number, per_page: 100,
+            });
+            const seen = events.some(event =>
+              ['labeled', 'unlabeled'].includes(event.event) && event.label?.name === LABEL);
+            if (seen) return;
+            await github.rest.issues.addLabels({ ...repo, issue_number: issue.number, labels: [LABEL] });
 
   take:
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
       issues: write
     if: >-
       github.repository_owner == 'pandas-dev' &&
@@ -83,15 +96,12 @@ jobs:
     concurrency:
       group: assign-${{ github.event.issue.number }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: .github/scripts
-          persist-credentials: false
+      # Covers a `/take` that runs before the `needs_triage` job labels the issue
+      - *needs_triage_step
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             if (context.payload.comment.body.trim() !== '/take') return;
-            const needsTriage = require('./.github/scripts/needs_triage.js');
             const msg = (name, vars) => process.env[name].replace(
               /{(\w+)}/g, (_, key) => ({ docs: process.env.DOCS_URL, ...vars })[key]);
             // Avoid race condition between two different `/take` submissions
@@ -100,8 +110,6 @@ jobs:
             });
             const user = context.payload.comment.user.login;
             const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
-            // Covers a `/take` that runs before the `needs_triage` job labels the issue
-            if (await needsTriage({ github, context, issue })) labels.push('Needs Triage');
             const assignees = issue.assignees.map(assignee => assignee.login);
             const blocking = ['Needs Triage', 'Needs Discussion', 'Needs Info', 'Closing Candidate']
               .find(label => labels.includes(label));
