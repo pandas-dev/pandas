@@ -8627,7 +8627,16 @@ def get_values_for_csv(
                 else:
                     values = values.astype(str)
             else:
-                values = np.array(values, dtype="object")
+                if isinstance(values, ExtensionArray):
+                    values = values.to_numpy(na_value=np.nan)
+                if values.dtype.itemsize < 8:
+                    # GH#60699 keep numpy scalars; Python floats would be
+                    # written with the float64 repr, e.g. 8.569999694824219
+                    result = np.empty(values.size, dtype=object)
+                    result[:] = list(values.ravel())
+                    values = result.reshape(values.shape)
+                else:
+                    values = np.array(values, dtype="object")
 
             values[mask] = na_rep
             values = values.astype(object, copy=False)
