@@ -1476,12 +1476,13 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
         See Also
         --------
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
 
         Examples
@@ -1587,7 +1588,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
@@ -1732,7 +1733,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
@@ -1856,7 +1857,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             The matplotlib axes containing the box plot.
 
         See Also
@@ -1913,7 +1914,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             The matplotlib axes containing the histogram plot.
 
         See Also
@@ -2100,7 +2101,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or numpy.ndarray
+        matplotlib.axes.Axes or numpy.ndarray of them
             Area plot, or array of area plots if subplots is True.
 
         See Also
@@ -2178,7 +2179,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             A NumPy array is returned when `subplots` is True.
 
         See Also
@@ -2273,7 +2274,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             The matplotlib axes containing the scatter plot.
 
         See Also
@@ -2364,8 +2365,8 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes
-            The matplotlib ``Axes`` on which the hexbin is plotted.
+        matplotlib.axes.Axes or numpy.ndarray of them
+            The matplotlib axes on which the hexbin is plotted.
 
         See Also
         --------
