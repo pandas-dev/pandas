@@ -2231,6 +2231,13 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    @pytest.mark.parametrize("name", ["skew", "kurt"])
+    def test_skew_kurt_bias_none_raises(self, frame_or_series, name):
+        obj = frame_or_series([1, 2, 3])
+        msg = 'For argument "bias" expected type bool, received type NoneType.'
+        with pytest.raises(ValueError, match=msg):
+            getattr(obj, name)(bias=None)
+
     def test_reduction_timestamp_smallest_unit(self):
         # GH#52524
         df = pd.DataFrame(
@@ -3020,6 +3027,38 @@ def test_numeric_ea_axis_1(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("bias", [True, False])
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+def test_axis1_extension_array_bias(name, sp_func, bias, skipna):
+    sp_stats = pytest.importorskip("scipy.stats")
+    df = pd.DataFrame(
+        {
+            "a": pd.array([1, 2, pd.NA, 3], dtype="Int64"),
+            "b": pd.array([5, 1, 9, 2], dtype="Int64"),
+            "c": pd.array([3, 8, 4, 6], dtype="Int64"),
+            "d": pd.array([7, 2, 5, 1], dtype="Int64"),
+            "e": pd.array([2, 4, 6, 3], dtype="Int64"),
+        }
+    )
+    result = getattr(df, name)(axis=1, bias=bias, skipna=skipna)
+
+    compare_func = getattr(sp_stats, sp_func)
+    values = df.to_numpy(dtype="float64", na_value=np.nan)
+    expected = pd.Series(
+        pd.array(
+            [
+                pd.NA
+                if not skipna and np.isnan(row).any()
+                else compare_func(row[~np.isnan(row)], bias=bias)
+                for row in values
+            ],
+            dtype="Float64",
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
@@ -3124,13 +3163,22 @@ def test_numeric_only_validates_bool():
     df_num = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
     msg = "Passing non-boolean values for 'numeric_only' is deprecated"
 
-    # _stat_function family: mean, min, max, median, skew, kurt
-    for method in ["mean", "min", "max", "median", "skew", "kurt"]:
+    # _stat_function family: mean, min, max, median
+    for method in ["mean", "min", "max", "median"]:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only=1)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df, method)(numeric_only="yes")
         # None is falsy so _reduce includes all columns; use numeric-only df
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df_num, method)(numeric_only=None)
+
+    # _stat_function_bias family: skew, kurt
+    for method in ["skew", "kurt"]:
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            getattr(df, method)(numeric_only="yes")
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             getattr(df_num, method)(numeric_only=None)
 
