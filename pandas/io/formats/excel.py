@@ -638,7 +638,8 @@ class ExcelFormatter:
         for lnum, (spans, levels, level_codes) in enumerate(
             zip(level_lengths, columns.levels, columns.codes, strict=True)
         ):
-            values = levels.take(level_codes)
+            # GH#62340 NaN labels have code -1, which would otherwise wrap around
+            values = levels.take(level_codes, allow_fill=True)
             for i, span_val in spans.items():
                 mergestart, mergeend = None, None
                 if merge_columns and span_val > 1:
