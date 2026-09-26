@@ -63,8 +63,8 @@ class TestDataFrameReplace:
                     pd.Timestamp("1939-05-27"),
                     pd.Timestamp("1940-04-25"),
                 ],
-                "name": ["Alfred", "Batman", ""],
-                "toy": [None, "Batmobile", "Joker"],
+                "name": pd.Series(["Alfred", "Batman", ""], dtype=object),
+                "toy": pd.Series([None, "Batmobile", "Joker"], dtype=object),
             }
         )
         once = df.replace({np.nan: None})
@@ -522,6 +522,39 @@ class TestDataFrameReplace:
         expected = frame_or_series(expected, dtype=dtype)
 
         tm.assert_equal(result, expected)
+
+    def test_replace_nan_with_none_consistent(self):
+        # GH 65892
+        df = pd.DataFrame(
+            {
+                "age": [5.0, 6.0, np.nan],
+                "born": [
+                    pd.NaT,
+                    pd.Timestamp("1939-05-27"),
+                    pd.Timestamp("1940-04-25"),
+                ],
+                "name": pd.Series(["Alfred", "Batman", ""], dtype="string"),
+                "toy": pd.Series([None, "Batmobile", "Joker"], dtype="string"),
+            }
+        )
+
+        expected = pd.DataFrame(
+            {
+                "age": pd.Series([5.0, 6.0, None], dtype=object),
+                "born": pd.Series(
+                    [None, pd.Timestamp("1939-05-27"), pd.Timestamp("1940-04-25")],
+                    dtype=object,
+                ),
+                "name": pd.Series(["Alfred", "Batman", ""], dtype="string"),
+                "toy": pd.Series([None, "Batmobile", "Joker"], dtype="string"),
+            }
+        )
+
+        result_scalar = df.replace(np.nan, None)
+        result_list = df.replace([np.nan], [None])
+
+        tm.assert_frame_equal(result_scalar, expected)
+        tm.assert_frame_equal(result_list, expected)
 
     def test_replace(self, datetime_frame):
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
@@ -1718,3 +1751,23 @@ def test_replace_list_multiple_unchanged_columns(replace_kwargs):
 
     expected = pd.DataFrame({"a": ["x", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_replace_stringdtype_none() -> None:
+    # GH#65892
+    df = pd.DataFrame({"A": pd.Series(["a", "b", "c"], dtype="string")})
+    result = df.replace("a", None)
+    expected = pd.DataFrame({"A": pd.Series([None, "b", "c"], dtype="string")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_replace_stringdtype_none_inplace_refs() -> None:
+    # GH#65892
+    df = pd.DataFrame({"A": pd.Series(["a", "b", "c"], dtype="string")})
+    view = df[:]
+    df.replace("a", None, inplace=True)
+    expected = pd.DataFrame({"A": pd.Series([None, "b", "c"], dtype="string")})
+    tm.assert_frame_equal(df, expected)
+    # Check CoW semantics: original view should not be modified
+    expected_view = pd.DataFrame({"A": pd.Series(["a", "b", "c"], dtype="string")})
+    tm.assert_frame_equal(view, expected_view)
