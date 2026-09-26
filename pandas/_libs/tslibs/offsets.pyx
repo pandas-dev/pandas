@@ -4454,6 +4454,10 @@ cdef class QuarterEnd(QuarterOffset):
 
     See Also
     --------
+    :class:`~pandas.tseries.offsets.HalfYearEnd` :
+        Similar offset anchored on startingMonth regardless of ``n``; use
+        this instead of a non-unitary ``QuarterEnd`` (e.g. ``n=2``) for a
+        stable, data-independent half-year phase.
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
@@ -4503,6 +4507,10 @@ cdef class QuarterBegin(QuarterOffset):
 
     See Also
     --------
+    :class:`~pandas.tseries.offsets.HalfYearBegin` :
+        Similar offset anchored on startingMonth regardless of ``n``; use
+        this instead of a non-unitary ``QuarterBegin`` (e.g. ``n=2``) for a
+        stable, data-independent half-year phase.
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
