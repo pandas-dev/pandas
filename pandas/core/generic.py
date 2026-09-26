@@ -7992,12 +7992,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
-        if not (
-            is_scalar(to_replace)
-            or to_replace is Ellipsis  # GH#50373
-            or is_re_compilable(to_replace)
-            or is_list_like(to_replace)
-        ):
+        if callable(to_replace):
             raise TypeError(
                 "Expecting 'to_replace' to be either a scalar, array-like, "
                 "dict or None, got invalid type "
