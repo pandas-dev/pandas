@@ -600,6 +600,64 @@ class TestAstypeCategorical:
         tm.assert_series_equal(result, expected)
         tm.assert_index_equal(result.cat.categories, pd.Index(["a", "b", "c"]))
 
+    @pytest.mark.parametrize(
+        "values, categories",
+        [
+            ([1, 2], pd.Index(["1", "2"], dtype="string")),
+            (np.array(["1", "2"], dtype=object), pd.Index([1, 2])),
+        ],
+    )
+    def test_astype_categoricaldtype_casts_values(self, values, categories):
+        # GH#66688
+        dtype = pd.CategoricalDtype(categories)
+
+        with tm.assert_produces_warning(None):
+            result = pd.Series(values).astype(dtype)
+
+        expected = pd.Series(pd.Categorical(categories, dtype=dtype))
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_categoricaldtype_cast_raises(self):
+        # GH#66688
+        dtype = pd.CategoricalDtype(pd.Index([1, 2]))
+
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            pd.Series(np.array(["1", "a"], dtype=object)).astype(dtype)
+
+    @pytest.mark.parametrize(
+        "values, categories, codes",
+        [
+            ([1.5, 2.0], pd.Index([1, 2, 3]), [-1, 1]),
+            (
+                np.array([200], dtype="int64"),
+                pd.Index([-56], dtype="int8"),
+                [-1],
+            ),
+        ],
+    )
+    def test_astype_categoricaldtype_does_not_cast_numeric_values(
+        self, values, categories, codes
+    ):
+        # GH#66688
+        dtype = pd.CategoricalDtype(categories)
+        msg = "Constructing a Categorical with a dtype and values containing"
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.Series(values).astype(dtype)
+
+        expected = pd.Series(pd.Categorical.from_codes(codes, dtype=dtype))
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_categoricaldtype_casts_values(self):
+        # GH#66688
+        dtype = pd.CategoricalDtype(pd.Index(["1", "2"], dtype="string"))
+
+        with tm.assert_produces_warning(None):
+            result = pd.Series([1, 2], dtype=dtype)
+
+        expected = pd.Series(["1", "2"], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("name", [None, "foo"])
     @pytest.mark.parametrize("dtype_ordered", [True, False])
     @pytest.mark.parametrize("series_ordered", [True, False])
