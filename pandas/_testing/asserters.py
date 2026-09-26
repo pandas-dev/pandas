@@ -844,6 +844,16 @@ def assert_numpy_array_equal(
                     obj, f"{obj} shapes are different", left.shape, right.shape
                 )
 
+            if (
+                check_dtype
+                and left.dtype.kind in "mM"
+                and right.dtype.kind in "mM"
+                and left.dtype != right.dtype
+            ):
+                raise_assert_detail(
+                    obj, f"{obj} dtypes are different", left.dtype, right.dtype
+                )
+
             diff = 0.0
             # ravel so the count is over values, matching the `left.size` total
             for left_val, right_val in zip(left.ravel(), right.ravel(), strict=True):
@@ -857,8 +867,24 @@ def assert_numpy_array_equal(
 
         raise AssertionError(err_msg)
 
+    # NumPy compares datetime-like values across units, while array_equivalent
+    # requires matching datetime-like dtypes. Use NumPy's unit-aware comparison
+    # when the caller has explicitly disabled the dtype check.
+    if (
+        not check_dtype
+        and left.dtype.kind in "mM"
+        and left.dtype.kind == right.dtype.kind
+        and left.dtype != right.dtype
+    ):
+        try:
+            values_equivalent = np.array_equal(left, right, equal_nan=True)
+        except TypeError:
+            values_equivalent = False
+    else:
+        values_equivalent = array_equivalent(left, right, strict_nan=strict_nan)
+
     # compare shape and values
-    if not array_equivalent(left, right, strict_nan=strict_nan):
+    if not values_equivalent:
         _raise(left, right, err_msg)
 
     if check_dtype:
