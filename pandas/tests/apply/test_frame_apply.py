@@ -2017,6 +2017,125 @@ def test_agg_list_like_empty_frame_reduction():
     tm.assert_frame_equal(result, expected)
 
 
+# "Sparse[uint64]" is in the roster because its elements stay numpy scalars, which
+# compare equal to the rounded float64 they would be widened back to
+@pytest.mark.parametrize(
+    "dtype", ["uint64", "UInt64", "uint64[pyarrow]", "Sparse[uint64]"]
+)
+@pytest.mark.parametrize("funcs", [["max", "count"], ["max", "count", "mean"]])
+def test_agg_list_like_unsigned_not_cast_to_float(dtype, funcs):
+    # GH#65031 max returns unsigned and count signed, and the dtype that holds
+    # both rounds away values above 2**53 (the pyarrow spelling raised
+    # ArrowInvalid on the same cast instead)
+    if dtype == "uint64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    big = 2**64 - 3
+    df = pd.DataFrame({"a": pd.Series([big, 1], dtype=dtype)})
+
+    result = df.agg(funcs)
+
+    # object is the fallback for results the stacked dtype cannot hold, not the
+    # goal; asserted entry-wise because mean's own result is not under test
+    assert result["a"].dtype == object
+    assert result.loc["max", "a"] == big
+    assert result.loc["count", "a"] == 2
+
+
+def test_agg_list_like_representable_results_keep_their_dtype():
+    # GH#65031 the object fallback above is only for results the stacked dtype
+    # cannot hold; ordinary magnitudes must stay on the fast path
+    df = pd.DataFrame({"a": pd.Series([5, 1], dtype="uint64")})
+
+    result = df.agg(["max", "count", "mean"])
+
+    expected = pd.DataFrame({"a": [5.0, 2.0, 3.0]}, index=["max", "count", "mean"])
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["uint64", "UInt64", "uint64[pyarrow]", "Sparse[uint64]"]
+)
+def test_agg_list_like_object_fallback_is_per_column(dtype):
+    # GH#65031 a column whose result the stacked dtype cannot hold must not
+    # decide the dtype of its neighbours
+    if dtype == "uint64[pyarrow]":
+        pytest.importorskip("pyarrow")
+    big = 2**64 - 3
+    df = pd.DataFrame(
+        {"a": pd.Series([big, 1], dtype=dtype), "b": pd.Series([5, 1], dtype=dtype)}
+    )
+
+    result = df.agg(["max", "count"])
+
+    assert result["a"].dtype == object
+    assert result.loc["max", "a"] == big
+    assert result["b"].dtype != object
+    # "b" is whatever it would have been on its own, whichever backend that is
+    alone = pd.DataFrame({"b": df["b"]}).agg(["max", "count"])
+    tm.assert_series_equal(result["b"], alone["b"])
+
+
+def test_agg_list_like_exact_sum_falls_back_to_object():
+    # GH#65031 the fallback is not about unsignedness: a sum past 2**53 beside a
+    # float-valued reduction is the same loss, and pandas 3.0 returned the
+    # rounded float64
+    df = pd.DataFrame({"a": pd.Series([2**60, 2**60 + 1], dtype="int64")})
+
+    result = df.agg(["sum", "mean"])
+
+    assert result["a"].dtype == object
+    assert result.loc["sum", "a"] == 2**61 + 1
+
+
+def test_agg_list_like_axis_1_not_cast_to_float():
+    # GH#65031 axis=1 reduces the transpose, so a result the stacked dtype cannot
+    # hold has to be kept there too
+    big = 2**64 - 3
+    df = pd.DataFrame({"a": pd.Series([big, 5], dtype="uint64")})
+
+    result = df.agg(["max", "count"], axis=1)
+
+    # the dtype assert is what fires: a rounded np.float64 still compares equal to
+    # big, because numpy widens the int rather than comparing it exactly
+    assert result["max"].dtype == object
+    assert result.loc[0, "max"] == big
+
+
+def test_agg_list_like_empty_func_list_raises():
+    # GH#65031 the reductions fast path must not swallow concat's complaint about
+    # an empty list of functions
+    df = pd.DataFrame({"a": [1, 2]})
+
+    with pytest.raises(ValueError, match="No objects to concatenate"):
+        df.agg([])
+
+
+def test_agg_list_like_all_na_masked_column():
+    # GH#65031 both sides of the loss check are pd.NA here, and pd.NA has no
+    # boolean value, so the check has to compare NA-ness rather than the values
+    df = pd.DataFrame({"a": pd.Series([None, None], dtype="UInt64")})
+
+    result = df.agg(["max", "count"])
+
+    expected = pd.DataFrame(
+        {"a": pd.array([pd.NA, 0], dtype="Float64")}, index=["max", "count"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_object_column_of_arrays():
+    # GH#65031 the sum of this column is an ndarray, which has no truth value, so
+    # the loss check has to leave the row it sits in alone
+    df = pd.DataFrame(
+        {"a": pd.Series([np.array([1, 2]), np.array([3, 4])], dtype=object)}
+    )
+
+    result = df.agg(["sum", "count"])
+
+    tm.assert_numpy_array_equal(result.loc["sum", "a"], np.array([4, 6]))
+    assert result.loc["count", "a"] == 2
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = pd.DataFrame(

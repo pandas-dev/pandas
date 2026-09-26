@@ -41,6 +41,7 @@ from pandas.core.dtypes.generic import (
     ABCNDFrame,
     ABCSeries,
 )
+from pandas.core.dtypes.missing import isna
 
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
@@ -115,6 +116,35 @@ _frame_reduction_names = frozenset(
         "var",
     }
 )
+
+
+def _lost_values(stacked: DataFrame, rows: list[Series]) -> npt.NDArray[np.bool_]:
+    """
+    Which columns hold an aggregation result that stacking did not leave unchanged.
+
+    Per column rather than per row, so that one column whose result the stacked
+    dtype cannot hold does not demote the rest of its dtype group.
+
+    Compared as object arrays: a numpy scalar would widen the original back to the
+    stacked dtype and so compare a rounded value against itself. ``Series.tolist``
+    is not enough, since a ``Sparse`` column's elements stay numpy scalars.
+    """
+    lost = np.zeros(stacked.shape[1], dtype=bool)
+    for pos, row in enumerate(rows):
+        stacked_row = stacked.iloc[pos]
+        if stacked_row.dtype == row.dtype:
+            # nothing was cast, so nothing was reconciled away; this also skips the
+            # rows that can hold list-likes, which the comparison below cannot handle
+            continue
+        values = stacked_row.to_numpy(dtype=object)
+        originals = row.to_numpy(dtype=object)
+        na_values = isna(values)
+        na_originals = isna(originals)
+        lost |= na_values ^ na_originals
+        # NA compared with != gives pd.NA rather than a bool, so skip those entries
+        known = ~(na_values | na_originals)
+        lost[known] |= values[known] != originals[known]
+    return lost
 
 
 @set_module("pandas.api.executors")
@@ -1128,7 +1158,7 @@ class FrameApply(NDFrameApply):
         for dtype in groups:
             cols = groups[dtype]
             sub = obj[cols]
-            group_pieces: list[DataFrame] = []
+            rows: list[Series] = []
             for func_name in func_names:
                 try:
                     row = getattr(sub, func_name)(*self.args, **self.kwargs)
@@ -1141,11 +1171,66 @@ class FrameApply(NDFrameApply):
                 if not row.index.equals(sub.columns):
                     # Backstop: a genuine column-wise reduction is indexed
                     # by the columns; anything else would silently misalign
-                    # in the concat below.
+                    # in the stacking below.
                     return None
-                # to_frame().T avoids the slow DataFrame(list-of-Series) path
-                group_pieces.append(row.to_frame(func_name).T)
-            pieces.append(concat(group_pieces))
+                rows.append(row)
+
+            # to_frame().T avoids the slow DataFrame(list-of-Series) path
+            frames = [
+                row.to_frame(name).T for name, row in zip(func_names, rows, strict=True)
+            ]
+            if len({row.dtype for row in rows}) <= 1:
+                # <= so that an empty func list still raises out of concat below,
+                # rather than being caught as a refused cast
+                pieces.append(concat(frames))
+                continue
+
+            # GH#65031 the funcs disagree on dtype, so stacking reconciles them
+            # to one that may not hold every result; see
+            # test_agg_list_like_unsigned_not_cast_to_float
+            try:
+                stacked = concat(frames)
+            except ValueError:
+                # pyarrow refuses the cast outright rather than rounding
+                stacked = None
+
+            if stacked is not None:
+                lost = _lost_values(stacked, rows)
+                if not lost.any():
+                    pieces.append(stacked)
+                    continue
+                # one partition rather than an isetitem per column, since each
+                # isetitem splits the block
+                lost_pos = np.nonzero(lost)[0]
+                values = np.empty((len(rows), len(lost_pos)), dtype=object)
+                for pos, row in enumerate(rows):
+                    values[pos] = row.to_numpy(dtype=object)[lost_pos]
+                demoted = obj._constructor(
+                    values, index=stacked.index, columns=stacked.columns[lost_pos]
+                )
+                # column order is restored by the reindex at the end
+                pieces.append(stacked.iloc[:, np.nonzero(~lost)[0]])
+                pieces.append(demoted)
+                continue
+
+            values = np.empty((len(rows), len(cols)), dtype=object)
+            for pos, row in enumerate(rows):
+                values[pos] = row.to_numpy(dtype=object)
+            piece = obj._constructor(values, index=func_names, columns=cols)
+            # the refused cast may have been another column's, so give each one
+            # its own chance rather than demoting the whole group
+            for pos in range(len(cols)):
+                try:
+                    col_stacked = concat(
+                        [frame.iloc[:, pos : pos + 1] for frame in frames]
+                    )
+                except ValueError:
+                    continue
+                if not _lost_values(
+                    col_stacked, [row.iloc[pos : pos + 1] for row in rows]
+                ).any():
+                    piece.isetitem(pos, col_stacked.iloc[:, 0])
+            pieces.append(piece)
 
         result = concat(pieces, axis=1)
         result = result.reindex(columns=obj.columns)
