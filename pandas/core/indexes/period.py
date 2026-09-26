@@ -731,6 +731,21 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
+        if reso in (Resolution.RESO_QTR, Resolution.RESO_YR):
+            try:
+                same_reso = reso == self._resolution_obj
+            except KeyError:
+                # Some freqs have no Resolution at all (weekly raises here), in
+                # which case the label cannot be at the index's own resolution.
+                same_reso = False
+            if same_reso:
+                # A quarterly/annual label at the index's own resolution names
+                # the index's own period. The calendar-freq Period + asfreq
+                # round-trip below drops a non-default anchor month, spilling
+                # the bounds onto the neighbouring period - get_loc already
+                # resolves this via _cast_partial_indexing_scalar, so mirror it.
+                iv = self._cast_partial_indexing_scalar(parsed)
+                return (iv, iv)
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         iv = Period(parsed, freq=freq)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
