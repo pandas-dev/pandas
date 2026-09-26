@@ -799,9 +799,9 @@ class Block(PandasObject, libinternals.Block):
             return [self.copy(deep=False)]
 
         if isinstance(self.dtype, ArrowDtype) and regex_can_match:
-            # can_hold_element returns True for every ArrowDtype, so it cannot
-            #  answer this (GH#69026). Only a string or NA fits an arrow string
-            #  array; a regex value is left to raise on write, as StringDtype does
+            # can_hold_element returns True for every ArrowDtype (GH#69026).
+            #  Refuse bytes, which pyarrow would decode, so they upcast as with
+            #  StringDtype; a regex value raises on write (pyarrow's own error)
             can_hold_value = (
                 isinstance(value, str)
                 or is_re(value)

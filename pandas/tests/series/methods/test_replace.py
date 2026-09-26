@@ -820,8 +820,8 @@ def test_replace_regex_arrow_dtype_non_string_value(pa_type, kwargs):
     # GH#69026 a replacement the arrow column cannot hold upcasts to object, as it
     #  does for the other string dtypes, instead of no-oping, raising or storing "1"
     pa = pytest.importorskip("pyarrow")
-    ser = pd.Series(["ab", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
-    expected = pd.Series([1, "b"], dtype=object)
+    ser = pd.Series(["ab", "b", None], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+    expected = pd.Series([1, "b", pd.NA], dtype=object)
 
     tm.assert_series_equal(ser.replace(**kwargs), expected)
 
@@ -840,8 +840,8 @@ def test_replace_regex_arrow_dtype_na_value(pa_type):
 
 @pytest.mark.parametrize("pa_type", ["string", "large_string"])
 def test_replace_regex_arrow_dtype_regex_value_raises(pa_type):
-    # GH#69026 a regex replacement is left to raise on write instead of upcasting,
-    #  which is what StringDtype does with it
+    # GH#69026 a regex replacement raises on write instead of upcasting, as with
+    #  StringDtype, though with pyarrow's own error
     pa = pytest.importorskip("pyarrow")
     ser = pd.Series(["ab", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
 
