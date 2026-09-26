@@ -1781,7 +1781,8 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            if dtype.itemsize < tipo.itemsize:  # type: ignore[union-attr]
+            # unpack e.g. SparseDtype, which has no itemsize of its own
+            if dtype.itemsize < getattr(tipo, "subtype", tipo).itemsize:  # type: ignore[union-attr]
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
@@ -1795,7 +1796,11 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     raise LossySetitemError
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
-                np_can_hold_element(dtype, np.asarray(arr))
+                #  np.asarray widens a SparseArray to the fill_value's dtype, so
+                #  ask for the subtype to keep e.g. Sparse[int8] out of int64.
+                np_can_hold_element(
+                    dtype, np.asarray(arr, dtype=getattr(arr.dtype, "subtype", None))
+                )
                 return element
 
             return element

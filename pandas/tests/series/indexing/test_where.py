@@ -412,6 +412,18 @@ def test_where_sparse():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_int_with_sparse_int_other(method):
+    # SparseDtype has no itemsize, so this raised AttributeError
+    ser = pd.Series([1, 2, 3])
+    other = pd.Series(pd.arrays.SparseArray([4, 5, 6]))
+    cond = np.array([True, False, True])
+    if method == "mask":
+        cond = ~cond
+    result = getattr(ser, method)(cond, other)
+    tm.assert_series_equal(result, pd.Series([1, 5, 3]))
+
+
 def test_where_empty_series_and_empty_cond_having_non_bool_dtypes():
     # https://github.com/pandas-dev/pandas/issues/34592
     ser = pd.Series([], dtype=float)
