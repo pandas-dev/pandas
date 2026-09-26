@@ -1003,3 +1003,45 @@ def test_leading_plus_fractional_leading_zeros(value):
     # check_exact: the default atol=1e-8 compares the pre-fix 0.0 equal to the
     # 5e-25 it should be, so without this the test passes either way
     tm.assert_series_equal(result, pd.Series([float(value)]), check_exact=True)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_nan_mask_sync(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = pd.Series([1.0, np.nan], dtype=np.float64)
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+
+    assert result.isna().sum() == 1
+    assert result.dropna().size == 1
+    expected_dtype = (
+        "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
+    )
+    expected = pd.Series([1.0, pd.NA], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", ["numpy_nullable", "pyarrow"])
+def test_to_numeric_masked_float_nan_sync(dtype_backend):
+    # GH 63732
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", 2.0, np.nan, 4.0, np.nan], dtype="Float64")
+    ser.iloc[0] = pd.NA
+    result = pd.to_numeric(ser, dtype_backend=dtype_backend)
+
+    expected_dtype = (
+        "Float64" if dtype_backend == "numpy_nullable" else "double[pyarrow]"
+    )
+    expected = pd.Series([pd.NA, 2.0, pd.NA, 4.0, pd.NA], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_to_numeric_arrow_with_numpy_nullable():
+    # GH 63732
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["1", "x", None], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.to_numeric(ser, errors="coerce", dtype_backend="numpy_nullable")
+    expected = pd.Series([1, pd.NA, pd.NA], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
