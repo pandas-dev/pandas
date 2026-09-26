@@ -1027,3 +1027,40 @@ def test_dt_freq_no_warning_when_unable_to_infer():
     ser = pd.Series(pd.to_datetime(["2020-01-01", "2020-03-07", "2020-08-15"]))
     with tm.assert_produces_warning(None):
         assert ser.dt.freq is None
+
+
+def test_dt_accessor_arrow_dictionary():
+    # GH#69462
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()),
+        pa.array(
+            [datetime(2020, 1, 1), datetime(2020, 1, 2)],
+            type=pa.timestamp("us"),
+        ),
+    )
+    ser = pd.Series(pd.arrays.ArrowExtensionArray(arr))
+
+    result = ser.dt.year
+
+    assert result.tolist() == [2020, 2020, 2020]
+
+
+def test_dt_accessor_arrow_dictionary_duration():
+    # GH#69462
+    pa = pytest.importorskip("pyarrow")
+    import datetime as dt
+
+    arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()),
+        pa.array(
+            [dt.timedelta(days=1), dt.timedelta(days=2)],
+            type=pa.duration("us"),
+        ),
+    )
+    ser = pd.Series(pd.arrays.ArrowExtensionArray(arr))
+
+    result = ser.dt.days
+
+    assert result.tolist() == [1, 2, 1]

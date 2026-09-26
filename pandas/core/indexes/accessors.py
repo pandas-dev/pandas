@@ -735,6 +735,17 @@ class CombinedDatetimelikeProperties(
             )
 
         if isinstance(data.dtype, ArrowDtype) and data.dtype.kind in "Mm":
+            import pyarrow as pa
+            import pyarrow.compute as pc
+
+            if pa.types.is_dictionary(data.dtype.pyarrow_dtype):
+                arrow_array = cast("ArrowExtensionArray", data.array)
+                array = arrow_array._from_pyarrow_array(
+                    pc.dictionary_decode(arrow_array._pa_array)
+                )
+                data = data._constructor(
+                    array, index=data.index, name=data.name, copy=False
+                )
             return ArrowTemporalProperties(data, orig)
         if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeProperties(data, orig)
