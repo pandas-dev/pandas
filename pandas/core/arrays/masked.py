@@ -813,7 +813,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if step == 1 and unit != "generic":
                 # to_numpy narrows through int64 without checking (GH#68926);
                 #  a unitless or multiplier dtype it rejects outright instead.
-                raise_if_float_outside_int64(self._data[~self._mask], dtype)
+                raise_if_float_outside_int64(self._data, dtype, mask=self._mask)
 
         # to_numpy will also raise, but we get somewhat nicer exception messages here
         if dtype.kind in "iu" and self._hasna:

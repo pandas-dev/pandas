@@ -478,7 +478,7 @@ def _convert_listlike_datetimes(
         #  so blanking just those entries leaves every other element unchanged.
         oob = float_outside_int64(np.asarray(arg))
         if not oob.any():
-            # unreachable while the guard is the only raiser with this predicate
+            # defensive
             raise
         arg = np.where(oob, np.nan, arg)
         arg, _ = maybe_convert_dtype(arg, copy=False, tz=libtimezones.maybe_get_tz(tz))

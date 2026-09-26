@@ -4959,6 +4959,15 @@ def test_to_datetime_float_out_of_bounds_coerce(box):
         tm.assert_index_equal(result, expected)
 
 
+def test_to_datetime_float_all_out_of_bounds_coerce():
+    # GH#68926 an all-out-of-range input gets the same resolution as all-NaN
+    result = pd.to_datetime(np.array([np.inf, -np.inf]), errors="coerce")
+
+    expected = pd.to_datetime(np.array([np.nan, np.nan]), errors="coerce")
+    assert expected.dtype == "M8[s]"
+    tm.assert_index_equal(result, expected)
+
+
 def test_to_datetime_float_out_of_bounds_raises():
     # GH#68926 errors="raise" keeps the message naming the offending value
     msg = re.escape("cannot convert input inf with the unit 'ns'")

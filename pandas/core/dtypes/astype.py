@@ -183,17 +183,23 @@ def float_outside_int64(values: np.ndarray) -> np.ndarray:
     """
     Mask of floats that a narrowing to int64 would alias to NaT or saturate.
     """
-    # NaN compares False both ways, so it still casts to NaT. float(iNaT) is
-    #  admitted and round-trips to NaT, matching cast_from_unit_vectorized.
+    # NaN compares False both ways. float(iNaT) is admitted and round-trips
+    #  to NaT, matching cast_from_unit_vectorized.
     return (values >= np.float64(2**63)) | (values < np.float64(iNaT))
 
 
-def raise_if_float_outside_int64(values: np.ndarray, dtype: np.dtype) -> None:
+def raise_if_float_outside_int64(
+    values: np.ndarray, dtype: np.dtype, mask: np.ndarray | None = None
+) -> None:
     """
     Reject floats that a cast to the given datetime64/timedelta64 dtype would
     alias to NaT or saturate to an in-bounds-looking value.
+
+    Entries where ``mask`` is True are ignored.
     """
     oob = float_outside_int64(values)
+    if mask is not None:
+        oob &= ~mask
     if oob.any():
         bad = values[oob][0]
         unit = np.datetime_data(dtype)[0]
