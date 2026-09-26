@@ -3,7 +3,10 @@ The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
 
-from datetime import datetime
+from datetime import (
+    date,
+    datetime,
+)
 import operator
 
 import numpy as np
@@ -12,6 +15,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
@@ -1062,3 +1066,30 @@ def test_difference_datetimelike_vs_parsable_strings(index, sort):
 
     result = other.difference(index, sort=sort)
     tm.assert_index_equal(result, other)
+
+
+def test_difference_interval_vs_contained_scalars(sort):
+    # GH#58971 a scalar inside an interval is not an element of the IntervalIndex
+    index = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+    other = pd.Index([0.5, 2.0, 3.0])
+
+    result = index.difference(other, sort=sort)
+    tm.assert_index_equal(result, index)
+
+    result = other.difference(index, sort=sort)
+    tm.assert_index_equal(result, other)
+
+
+def test_difference_date_objects_vs_datetimeindex_deprecated():
+    # GH#62158 date objects still match Timestamps until the deprecation is enforced
+    dti = pd.date_range("2022-01-01", periods=3)
+    dates = pd.Index([date(2022, 1, 1), date(2022, 1, 2)], dtype=object)
+    msg = "datetime.date"
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = dates.difference(dti)
+    tm.assert_index_equal(result, dates[:0])
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = dti.difference(dates)
+    tm.assert_index_equal(result, dti[2:])

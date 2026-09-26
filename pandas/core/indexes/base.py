@@ -3625,8 +3625,18 @@ class Index(IndexOpsMixin, PandasObject):
             this = this.dropna()
         other = other.unique()
         lookup = this
-        if this.dtype != other.dtype:
-            # Align dtypes first; otherwise get_indexer casts labels the way
+        if (
+            this.dtype != other.dtype
+            and isinstance(
+                other,
+                (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ABCIntervalIndex),
+            )
+            # keep the deprecated date-object matching until GH#62158 is enforced
+            and not (
+                this.inferred_type == "date" and isinstance(other, ABCDatetimeIndex)
+            )
+        ):
+            # Align dtypes first; otherwise get_indexer matches labels the way
             #  .loc does, so e.g. "2022-01" would match Period("2022-01") GH#58971
             dtype = this._find_common_type_compat(other)
             lookup = this.astype(dtype, copy=False)
