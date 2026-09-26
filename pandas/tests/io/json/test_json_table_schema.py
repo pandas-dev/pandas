@@ -1117,10 +1117,12 @@ class TestTableOrientReader:
     def test_read_json_table_orient_unmatched_float_label(self):
         # GH#19129 double_precision rounds the label in the schema but not the
         #  "data" key, so the two no longer line up
-        df = pd.DataFrame([[1.0]], columns=[1 / 3])
+        df = pd.DataFrame([[1.0], [2.0]], columns=[1 / 3])
         out = StringIO(df.to_json(orient="table"))
         msg = "have no matching key in 'data'; to_json writes a float label at"
-        with pytest.raises(ValueError, match=msg):
+        # the orphan key is listed once, not once per record
+        orphans = re.escape(f"; {[repr(1 / 3)]} match no field name")
+        with pytest.raises(ValueError, match=f"{msg}.*{orphans}$"):
             pd.read_json(out, orient="table")
 
         # a label that survives the rounding still round-trips

@@ -504,22 +504,19 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         #  missing, or a key may spell it differently. A key that no field
         #  claims is the evidence for the second, and without one the column
         #  reads as all-missing, which is what a string label already does
-        claimed = {str(name) for name in names}
-        orphans = sorted(
-            key
-            for record in rows
-            if isinstance(record, dict)
-            for key in record
-            if key not in claimed
-        )
-        if unmatched and orphans:
-            msg = f"Field names {unmatched} have no matching key in 'data'"
-            if any(isinstance(name, float) for name in unmatched):
-                msg += (
-                    "; to_json writes a float label at 'double_precision' "
-                    "digits, 15 at most, but keys its values by the full repr"
-                )
-            raise ValueError(f"{msg}; {orphans} match no field name")
+        if unmatched:
+            orphans = sorted(
+                {key for record in rows if isinstance(record, dict) for key in record}
+                - set(col_order)
+            )
+            if orphans:
+                msg = f"Field names {unmatched} have no matching key in 'data'"
+                if any(isinstance(name, float) for name in unmatched):
+                    msg += (
+                        "; to_json writes a float label at 'double_precision' "
+                        "digits, 15 at most, but keys its values by the full repr"
+                    )
+                raise ValueError(f"{msg}; {orphans} match no field name")
     df = DataFrame(records, columns=col_order)
     # address the frame by position from here on: pandas conflates 1, 1.0 and
     #  True and reads None back as NaN, so a label is not a safe key
@@ -570,7 +567,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     # undo the stringification; rebuilding from a plain list also lets a
     #  uniform label type infer its own dtype rather than staying object
     if df.columns.empty:
-        # nothing to infer from, so borrow the field names' own dtype
+        # nothing to infer from, so borrow the dtype of the field names, which
+        #  are only the index names when there are no columns
         df.columns = Index(names)[:0]
     else:
         df.columns = [names[pos] for pos in df.columns]
