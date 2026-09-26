@@ -2,6 +2,8 @@ name: Comment Commands
 on:
   issue_comment:
     types: [created, edited]
+  issues:
+    types: [opened]
 
 permissions: {}
 
@@ -50,9 +52,29 @@ jobs:
           previewer-server: "https://pandas.pydata.org/preview"
           artifact-job: "Doc Build and Upload"
 
+  needs_triage:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      github.event_name == 'issues'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const needsTriage = require('./.github/scripts/needs_triage.js');
+            await needsTriage({ github, context, issue: context.payload.issue });
+
   take:
     runs-on: ubuntu-24.04
     permissions:
+      contents: read
       issues: write
     if: >-
       github.repository_owner == 'pandas-dev' &&
@@ -61,10 +83,15 @@ jobs:
     concurrency:
       group: assign-${{ github.event.issue.number }}
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             if (context.payload.comment.body.trim() !== '/take') return;
+            const needsTriage = require('./.github/scripts/needs_triage.js');
             const msg = (name, vars) => process.env[name].replace(
               /{(\w+)}/g, (_, key) => ({ docs: process.env.DOCS_URL, ...vars })[key]);
             // Avoid race condition between two different `/take` submissions
@@ -73,6 +100,8 @@ jobs:
             });
             const user = context.payload.comment.user.login;
             const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
+            // Covers a `/take` that runs before the `needs_triage` job labels the issue
+            if (await needsTriage({ github, context, issue })) labels.push('Needs Triage');
             const assignees = issue.assignees.map(assignee => assignee.login);
             const blocking = ['Needs Triage', 'Needs Discussion', 'Needs Info', 'Closing Candidate']
               .find(label => labels.includes(label));
