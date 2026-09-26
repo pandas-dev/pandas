@@ -162,7 +162,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
 @set_module("pandas.arrays")
 class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
-    Pandas ExtensionArray  this class provides optimised storage and operations for arrays of datetime data
+    Pandas ExtensionArray  for date times.
 
     .. warning::
 
