@@ -656,15 +656,14 @@ def test_numpy_array_ufunc(dtype, box):
     # custom ufunc that works with string (object) input -> returning numeric
     str_len_ufunc = np.frompyfunc(lambda x: len(x), 1, 1)
     result = str_len_ufunc(arr)
-    if dtype.na_value is np.nan:
-        expected = (
-            pd.Series([1, 2, 3], dtype="int64")
-            if box is pd.Series
-            else np.array([1, 2, 3], dtype="int64")
-        )
-    else:
-        expected = box([1, 2, 3], dtype="Int64")
+    expected = (
+        pd.Series([1, 2, 3], dtype="int64")
+        if box is pd.Series
+        else np.array([1, 2, 3], dtype="int64")
+    )
     tm.assert_equal(result, expected)
+    if box is pd.Series:
+        tm.assert_equal(result, arr.map(len))
 
     # custom ufunc returning strings
     str_multiply_ufunc = np.frompyfunc(lambda x: x * 2, 1, 1)
@@ -682,14 +681,11 @@ def test_numpy_array_ufunc(dtype, box):
     # Multiple-output ufuncs should infer each result independently.
     split_ufunc = np.frompyfunc(lambda x: (len(x), x * 2), 1, 2)
     numeric_result, string_result = split_ufunc(arr)
-    if dtype.na_value is np.nan:
-        expected_numeric = (
-            pd.Series([1, 2, 3], dtype="int64")
-            if box is pd.Series
-            else np.array([1, 2, 3], dtype="int64")
-        )
-    else:
-        expected_numeric = box([1, 2, 3], dtype="Int64")
+    expected_numeric = (
+        pd.Series([1, 2, 3], dtype="int64")
+        if box is pd.Series
+        else np.array([1, 2, 3], dtype="int64")
+    )
     expected_string = box(["aa", "bbbb", "cccccc"], dtype=dtype)
     tm.assert_equal(numeric_result, expected_numeric)
     tm.assert_equal(string_result, expected_string)
