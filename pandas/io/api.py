@@ -19,6 +19,8 @@ from pandas.io.parsers import (
     read_fwf,
     read_table,
 )
+
+# to_pickle stays: GH#48402 deprecates pandas.to_pickle, not this name
 from pandas.io.pickle import (
     read_pickle,
     to_pickle,

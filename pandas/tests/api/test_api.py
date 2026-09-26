@@ -7,7 +7,10 @@ import pkgutil
 
 import pytest
 
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    Pandas4Warning,
+    PandasChangeWarning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -184,13 +187,13 @@ class TestPDApi(Base):
     funcs_json = ["json_normalize"]
 
     # top-level to_* funcs
-    funcs_to = ["to_datetime", "to_numeric", "to_pickle", "to_timedelta"]
+    funcs_to = ["to_datetime", "to_numeric", "to_timedelta"]
 
     # top-level to deprecate in the future
     deprecated_funcs_in_future: list[str] = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs: list[str] = []
+    deprecated_funcs: list[str] = ["to_pickle"]
 
     # private modules in pandas namespace
     private_modules = [
@@ -249,8 +252,36 @@ class TestPDApi(Base):
             + self.deprecated_funcs_in_future
         )
         for depr in deprecated_list:
-            with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+            with tm.assert_produces_warning(PandasChangeWarning, match="deprecated"):
                 _ = getattr(pd, depr)
+
+    def test_to_pickle_deprecated(self):
+        # GH#48402
+        msg = "pandas.to_pickle is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.to_pickle
+
+        assert result is pd.io.pickle.to_pickle
+        # not "pandas", or reflective lookups route back through the deprecated name
+        assert result.__module__ == "pandas.io.pickle"
+
+    def test_to_pickle_not_deprecated_elsewhere(self):
+        # GH#48402 only the top-level name is deprecated
+        with tm.assert_produces_warning(None):
+            assert pd.io.api.to_pickle is pd.io.pickle.to_pickle
+
+    def test_to_pickle_deprecated_import(self):
+        # GH#48402 the "from pandas import to_pickle" spelling, which the
+        # test-imports hook forbids writing directly
+        msg = "pandas.to_pickle is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = __import__("pandas", fromlist=["to_pickle"]).to_pickle
+
+        assert result is pd.io.pickle.to_pickle
+
+    def test_unknown_attribute(self):
+        with pytest.raises(AttributeError, match="has no attribute 'DoesNotExist'"):
+            pd.DoesNotExist
 
 
 class TestApi(Base):

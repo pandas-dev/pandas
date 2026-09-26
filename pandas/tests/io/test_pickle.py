@@ -44,6 +44,7 @@ from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 from pandas.util.version import Version
 
 import pandas.io.common as icom
+from pandas.io.pickle import to_pickle
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
@@ -214,19 +215,19 @@ def flatten(data: dict) -> list[tuple[str, Any]]:
     "pickle_writer",
     [
         pytest.param(python_pickler, id="python"),
-        pytest.param(pd.to_pickle, id="pandas_proto_default"),
+        pytest.param(to_pickle, id="pandas_proto_default"),
         pytest.param(
-            functools.partial(pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            functools.partial(to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
             id="pandas_proto_highest",
         ),
-        pytest.param(functools.partial(pd.to_pickle, protocol=4), id="pandas_proto_4"),
+        pytest.param(functools.partial(to_pickle, protocol=4), id="pandas_proto_4"),
         pytest.param(
-            functools.partial(pd.to_pickle, protocol=5),
+            functools.partial(to_pickle, protocol=5),
             id="pandas_proto_5",
         ),
     ],
 )
-@pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
+@pytest.mark.parametrize("writer", [to_pickle, python_pickler])
 @pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
 def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
     path = temp_file
