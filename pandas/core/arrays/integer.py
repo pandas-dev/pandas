@@ -59,16 +59,18 @@ class IntegerDtype(NumericDtype):
         "safe" in this context means the casting is lossless. e.g. if 'values'
         has a floating dtype, each value must be an integer.
         """
-        try:
-            return values.astype(dtype, casting="safe", copy=copy)
-        except TypeError as err:
-            casted = values.astype(dtype, copy=copy)
-            if (casted == values).all():
-                return casted
+        if np.can_cast(values.dtype, dtype, casting="safe"):
+            # asked and answered in ~0.2us; raising to find out costs ~5us per
+            #  call, which read_csv pays per column per chunk (GH#55232)
+            return values.astype(dtype, copy=copy)
 
-            raise TypeError(
-                f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
-            ) from err
+        casted = values.astype(dtype, copy=copy)
+        if (casted == values).all():
+            return casted
+
+        raise TypeError(
+            f"cannot safely cast non-equivalent {values.dtype} to {np.dtype(dtype)}"
+        )
 
 
 @set_module("pandas.arrays")

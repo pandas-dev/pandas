@@ -30,7 +30,10 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas import DataFrame
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import (
     IOHandles,
     check_parent_directory,
@@ -217,7 +220,8 @@ class PyArrowImpl(BaseImpl):
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
-        table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        with suppress_pyarrow_values_warning():
+            table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
         if df.attrs:
             df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}

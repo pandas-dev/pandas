@@ -114,6 +114,34 @@ of booleans passed this way is likely intended as a mask, it now issues a ``User
 pass ``items`` to select labels or ``cond`` to filter with a mask. Selecting labels with
 ``items``, ``like``, or ``regex`` will be deprecated in a future version.
 
+.. _whatsnew_310.enhancements.read_csv:
+
+Faster :func:`read_csv`, with parallel reads of large files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Reading CSV files with the default ``engine="c"`` is considerably faster in
+this release: tokenizing, type inference, and the conversion of integer, float,
+string and datetime columns have all been sped up. A single-threaded read is
+typically two to three times faster than in 3.0, with the parallel reads
+described below on top of that.
+
+Most notably, large files are now read in parallel across several CPU cores.
+This is enabled by default and applies when the input is a local, uncompressed
+file of at least 5 MB and no options are passed that require parsing the file
+as a whole; the result is identical to a serial read. The number of threads is
+controlled with the new ``mode.max_threads`` option, which defaults to the
+number of CPUs available to the process, capped at 6. Set it to ``1`` to
+read serially, for instance when pandas runs inside an application that already
+parallelizes work:
+
+.. code-block:: python
+
+   with pd.option_context("mode.max_threads", 1):
+       df = pd.read_csv("large.csv")
+
+See :ref:`io.csv.parallel` for the full list of conditions under which a read
+is parallelized (:issue:`64347`).
+
 .. _whatsnew_310.enhancements.enhancement2:
 
 enhancement2
@@ -186,7 +214,8 @@ where floating-point rounding previously differed (:issue:`46819`).
 :func:`read_csv` with ``dtype="category"`` and the ``c`` or ``python`` engine
 produced string categories for numeric and boolean columns, while the
 ``pyarrow`` engine inferred numeric and boolean categories. All engines now
-infer numeric and boolean categories under the default ``dtype_backend``
+infer numeric and boolean categories, as do the other readers built on the
+shared text parser, :func:`read_table`, :func:`read_fwf` and :func:`read_excel`
 (:issue:`56044`).
 
 .. code-block:: ipython
@@ -198,75 +227,22 @@ infer numeric and boolean categories under the default ``dtype_backend``
     In [3]: pd.read_csv(StringIO(data), dtype="category")["a"].dtype
     Out[3]: CategoricalDtype(categories=[1, 2], ordered=False, categories_dtype=int64)
 
-    In [4]: data = "a\nTrue\nFalse\nTrue"
-
-    In [5]: pd.read_csv(StringIO(data), dtype="category")["a"].dtype
-    Out[5]: CategoricalDtype(categories=[False, True], ordered=False, categories_dtype=bool)
-
-Identifier-like columns are worth a second look: a column of zero-padded
-account numbers or zip codes now gets integer categories, dropping the
-leading zeros exactly as it does without ``dtype="category"``. To keep the
+Identifier-like columns are the main thing to watch for: a column of
+zero-padded account numbers or zip codes now gets integer categories, dropping
+the leading zeros exactly as it does without ``dtype="category"``. To keep the
 old string categories, read the column as ``str`` and convert afterwards:
 
 .. code-block:: ipython
 
-    In [6]: data = "a\n1\n1\n2"
+    In [4]: pd.read_csv(StringIO(data), dtype="str").astype("category")["a"].dtype
+    Out[4]: CategoricalDtype(categories=['1', '2'], ordered=False, categories_dtype=str)
 
-    In [7]: pd.read_csv(StringIO(data), dtype="str").astype("category")["a"].dtype
-    Out[7]: CategoricalDtype(categories=['1', '2'], ordered=False, categories_dtype=str)
-
-Some columns keep string categories:
-
-* those whose values do not all parse as numeric or boolean;
-* those read with non-default ``thousands`` or ``decimal`` options;
-* datetime-like columns on the ``c`` and ``python`` engines, where the
-  ``pyarrow`` engine instead gives ``datetime64`` categories for timestamps and
-  ``object`` categories of :class:`datetime.date` for date-only columns.
-
-Two cases differ from what the same column receives without
-``dtype="category"``:
-
-* an integer or boolean column containing missing values gets integer or
-  boolean categories rather than ``float64`` or ``object``, since the codes
-  already carry the missing values;
-* under a non-default ``dtype_backend`` the ``c`` engine still gives
-  numpy-backed categories, as does the ``python`` engine with
-  ``dtype_backend="numpy_nullable"`` (:issue:`66382`).
-
-As with every other dtype, the inference sees one chunk at a time when reading
-with ``chunksize`` or ``iterator=True``, so chunks of the same column can now
-end up with different category dtypes; previously they were always strings and
-so always comparable. The buffer chunking that ``low_memory=True`` does inside a
-single read adds no such divergence, since it infers once, after those chunks
-are combined.
-
-The same inference now applies to every other reader built on the shared text
-parser, :func:`read_table`, :func:`read_fwf` and :func:`read_excel` included,
-each of which already inferred numeric and boolean types for these columns
-without ``dtype="category"``.
-
-The ``pyarrow`` engine gave nullable ``Int64`` categories for integer columns
-under the default ``dtype_backend``; it now gives numpy ``int64`` like the other
-engines.
-
-Three further inconsistencies in the ``c`` and ``python`` engines are fixed:
-
-* ``low_memory=True`` (the default for the ``c`` engine) no longer leaves
-  string categories in the order the file's buffer chunks happened to produce
-  them;
-* it no longer raises ``TypeError: dtype of categories must be the same`` when
-  one of a column's buffer chunks holds only missing values;
-* a :class:`CategoricalDtype` that specifies ``ordered=True`` without
-  specifying ``categories`` no longer discards ``ordered``:
-
-.. code-block:: ipython
-
-    In [8]: from pandas.api.types import CategoricalDtype
-
-    In [9]: data = "a\n2\n1"
-
-    In [10]: pd.read_csv(StringIO(data), dtype={"a": CategoricalDtype(ordered=True)})["a"].dtype
-    Out[10]: CategoricalDtype(categories=[1, 2], ordered=True, categories_dtype=int64)
+Columns whose values do not all parse as numeric or boolean keep string
+categories, as do datetime-like columns on the ``c`` and ``python`` engines and
+columns read with non-default ``thousands`` or ``decimal`` options. Categories
+pick up the requested ``dtype_backend`` only with the ``pyarrow`` engine, and
+with the ``python`` engine under ``dtype_backend="pyarrow"``; the ``c`` engine
+always gives numpy-backed categories (:issue:`66382`).
 
 .. _whatsnew_310.notable_bug_fixes.timestamp_ignored_arguments:
 
@@ -558,7 +534,6 @@ Other deprecations
 - Deprecated implicit conversion of ``datetime.date`` objects to :class:`Timestamp` when indexing or joining a :class:`DatetimeIndex`. Use :func:`to_datetime` to explicitly convert to :class:`DatetimeIndex` instead (:issue:`62158`)
 - Deprecated indexing with ``[]`` on the result of :meth:`.GroupBy.nth` (e.g. ``gb.nth[0, 1]``); call it instead (e.g. ``gb.nth([0, 1])``) (:issue:`66346`)
 - Deprecated parsing quarterly strings (e.g. ``"2014Q2"``) in :class:`Timestamp`, :func:`to_datetime`, :class:`DatetimeIndex`, and partial-string indexing on a :class:`DatetimeIndex` (e.g. ``ser["2014Q2"]``). This extends to string arguments that are parsed as datetimes internally, such as the bounds of :meth:`Series.truncate` and the ``where`` of :meth:`Series.asof`, which warn even when the index is a :class:`PeriodIndex`. Use :class:`Period` or :class:`PeriodIndex` with :meth:`PeriodIndex.to_timestamp` instead (:issue:`50907`)
-- Deprecated passing ``"datetimetz"`` or ``"datetime64tz"`` to the ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`. Pass :class:`DatetimeTZDtype` to select all timezone-aware columns, or a string such as ``"datetime64[ns, US/Eastern]"`` to select a single timezone (:issue:`24558`)
 - Deprecated passing ``None`` inside the list-like ``include`` or ``exclude`` argument of :meth:`DataFrame.select_dtypes`, which silently selects float64 columns. Pass ``"float64"`` explicitly instead (:issue:`28943`)
 - Deprecated passing a ``dict`` to :meth:`DataFrame.from_records`, use the :class:`DataFrame` constructor or :meth:`DataFrame.from_dict` instead (:issue:`22025`)
 - Deprecated passing a ``format`` for integer or float columns to :func:`read_sql`, :func:`read_sql_query`, and :func:`read_sql_table` via ``parse_dates``. Cast the column to string and call :func:`to_datetime` after reading instead (:issue:`55663`)
@@ -636,31 +611,11 @@ Performance improvements
 - Performance improvement in :func:`merge` with ``how="left"`` (:issue:`64370`)
 - Performance improvement in :func:`merge` with ``how="left"`` and ``sort=False`` when joining on a right index with unique keys (:issue:`65160`)
 - Performance improvement in :func:`merge` with ``sort=False`` for single-key ``how="left"``/``how="right"`` joins when the opposite join key is sorted, unique, and range-like (:issue:`64146`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`64515`)
-- Performance improvement in :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.sem`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, and their :class:`Series` counterparts on object-dtype data (:issue:`34671`)
-- Performance improvement in :meth:`Series.combine` (:issue:`67446`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` and ``parse_dates`` for columns containing ISO8601 datetime strings; concurrent reads from multiple threads also scale better (:issue:`65353`, :issue:`66278`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` during dtype inference: columns that do not parse as numeric or boolean (e.g. string columns) are now rejected before allocating a result buffer for the attempt (:issue:`66273`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns (:issue:`65767`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for float columns with default settings (:issue:`66239`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and string columns (:issue:`65350`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for large uncompressed local files, which are now read in parallel across multiple CPU cores; this is enabled by default and can be controlled with the ``mode.max_threads`` option (:issue:`64347`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, growing with the number of columns in the file (:issue:`66619`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, largest for files of short strings such as codes, categories and identifiers; concurrent reads from multiple threads also scale better (:issue:`66756`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, most of all for files with several string columns read in parallel (:issue:`68379`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns under ``future.infer_string`` or ``dtype_backend="pyarrow"``, particularly when strings do not repeat (:issue:`65283`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns, particularly for multi-threaded reads and chunked (``low_memory``) reads (:issue:`66277`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when ``na_filter`` is enabled (the default), largest for numeric and boolean columns and for wide files with many columns (:issue:`68314`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when an extension dtype is requested (e.g. ``dtype="Int64"``, ``dtype="boolean"``, or ``dtype="int64[pyarrow]"``) (:issue:`66279`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when converting numeric columns of wide files and of parallel reads (:issue:`68380`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing float columns (:issue:`66457`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when parsing integer columns (:issue:`65347`, :issue:`66459`, :issue:`66487`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for integer and float columns, and when an extension dtype such as ``dtype="Int64"``, ``dtype="boolean"`` or ``dtype="int64[pyarrow]"`` is requested (:issue:`65347`, :issue:`65767`, :issue:`66239`, :issue:`66279`, :issue:`66457`, :issue:`66459`, :issue:`66487`, :issue:`68380`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` for string columns, in particular under ``future.infer_string`` or ``dtype_backend="pyarrow"``; reads issued concurrently from several threads also scale better (:issue:`65283`, :issue:`66277`, :issue:`66619`, :issue:`66756`, :issue:`68379`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` and ``parse_dates`` for columns containing ISO8601 datetime strings; reads issued concurrently from several threads also scale better (:issue:`65353`, :issue:`66278`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when reading in parallel: closing a parser no longer blocks the other parser threads while its buffers are freed (:issue:`66272`)
-- Performance improvement in :func:`read_csv` with ``engine="c"`` when reading large files in parallel: the number of pieces the file is split into now scales with its size rather than only the thread count, so a large file is no longer read as coarsely as a small one (:issue:`66798`)
-- Performance improvement in :func:`read_csv` with ``engine="c"``, especially for large files and parallel reads (:issue:`66271`)
-- Performance improvement in :func:`read_csv` with ``engine="c"``, most visibly for integer columns, wide frames, and parallel reads (:issue:`66276`)
-- Performance improvement in :func:`read_csv` with ``engine="c"``: runs of unquoted fields are now tokenized 16 bytes at a time with SIMD, improving throughput on most inputs, string-heavy ones in particular (:issue:`66274`)
 - Performance improvement in :func:`read_hdf` for the fixed (default) format, especially on large frames (:issue:`47726`)
 - Performance improvement in :func:`read_html` and the Python CSV parser when ``thousands`` is set, fixing catastrophic regex backtracking on cells with many comma-separated digit groups followed by non-numeric text (:issue:`52619`)
 - Performance improvement in :func:`read_sas` by reading page header fields directly in Cython instead of falling back to Python (:issue:`47339`)
@@ -701,6 +656,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_hdf` and :meth:`HDFStore.append` for table format when appending to an existing wide table with many ``data_columns`` (:issue:`25839`)
 - Performance improvement in :meth:`DataFrame.to_stata` when writing object-dtype datetime columns with date formats that require year/month extraction (:issue:`64555`)
 - Performance improvement in :meth:`DataFrame.unstack` and :meth:`Series.unstack` when the :class:`MultiIndex` is already sorted and the unstacked level is the last level (:issue:`65107`)
+- Performance improvement in :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.sem`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, and their :class:`Series` counterparts on object-dtype data (:issue:`34671`)
 - Performance improvement in :meth:`DataFrame.where`, :meth:`DataFrame.mask`, :meth:`DataFrame.clip`, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.clip`, and boolean-mask ``__setitem__`` with a boolean ``cond``; largest when ``cond`` does not share the object's index (:issue:`51547`)
 - Performance improvement in :meth:`DataFrame.xs` and :meth:`Series.xs` with a partial key on a :class:`MultiIndex` (:issue:`38650`)
 - Performance improvement in :meth:`DataFrame` reductions (e.g. :meth:`DataFrame.any`, :meth:`DataFrame.sum`, :meth:`DataFrame.idxmax`) with ``axis=1`` on extension array dtypes such as :class:`BooleanDtype`, nullable integer/float, and :class:`ArrowDtype` (:issue:`56903`)
@@ -718,6 +674,7 @@ Performance improvements
 - Performance improvement in :meth:`IntervalIndex.get_indexer` for monotonic non-overlapping indexes, which now uses binary search instead of the interval tree (:issue:`47614`)
 - Performance improvement in :meth:`NDFrame.__finalize__`, :meth:`Series.to_numpy`, :attr:`DataFrame.dtypes`, and :meth:`DataFrame.__getitem__` (:issue:`57431`)
 - Performance improvement in :meth:`PeriodIndex.from_fields` (:issue:`65921`)
+- Performance improvement in :meth:`Series.combine` (:issue:`67446`)
 - Performance improvement in :meth:`Series.corr` with ``method="pearson"`` by avoiding an unnecessary correlation matrix calculation for 1D inputs (:issue:`65502`)
 - Performance improvement in :meth:`Series.skew`, :meth:`Series.kurt`, and their :class:`DataFrame` counterparts when axis is ``None`` or ``0`` (:issue:`64884`)
 - Performance improvement in :meth:`Series.str.isascii` for :class:`StringDtype` with storage ``"pyarrow"``, which fell back to an object-dtype implementation instead of using PyArrow's ``string_is_ascii`` kernel (:issue:`66335`)
@@ -784,6 +741,7 @@ Datetimelike
 - Bug in :attr:`DatetimeIndex.year` and :attr:`Series.dt.year` silently returning a wrapped year, e.g. ``219250468`` for year ``292277026596``, for second-resolution datetimes with a year beyond ``2**31``; these now raise ``ValueError``, and :attr:`DatetimeIndex.is_leap_year` no longer takes the leap-year status from the wrapped year (:issue:`66549`)
 - Bug in :attr:`Timestamp.days_in_month`, and in month-end and business-day offsets, using a wrapped year to decide whether the year is a leap year, for second-resolution datetimes with a year beyond ``2**31`` (:issue:`66549`)
 - Bug in :class:`ArrowExtensionArray` where adding a :class:`DateOffset` to a ``date32[pyarrow]`` or ``date64[pyarrow]`` Series raised an ``ArrowTypeError`` (:issue:`57168`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` constructors failing to raise ``ValueError`` when passed a 0-dimensional ``ndarray`` input (:issue:`69411`)
 - Bug in :class:`DatetimeIndex` constructor raising ``ValueError`` when passing equivalent but not equal frequencies (e.g. ``QS-FEB`` vs ``QS-MAY``) (:issue:`61086`)
 - Bug in :class:`DatetimeIndex` raising ``AttributeError`` when comparing against Arrow date types (date32, date64) (:issue:`62051`)
 - Bug in :class:`Series`, :class:`DataFrame`, :class:`Index`, :class:`Timedelta`, :func:`array`, :func:`to_datetime` and :func:`to_timedelta` construction from ``datetime64``/``timedelta64`` input whose unit carries a multiplier (e.g. ``np.array([1, 2], dtype="m8[10s]")``): every timedelta64 value came back divided by the multiplier and datetime64 input raised a bare ``AssertionError``. Such input, and a ``dtype`` argument such as ``"m8[10s]"``, now raise ``ValueError`` (:issue:`25611`)
@@ -931,6 +889,7 @@ Conversion
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
 - Bug in :class:`Series` construction and :class:`DataFrame` column assignment from a ``numpy.ma.MaskedArray`` where ``.values`` returned a ``MaskedArray`` instead of a ``ndarray`` (:issue:`65458`)
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
+- Bug in :func:`pd.array` silently wrapping around instead of raising when converting a nullable integer array to a nullable integer dtype that cannot hold its values (:issue:`55232`)
 - Bug in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` converting a float column to ``Int64`` one off from its true value when it held a value equal to ``2**63``, and raising a spurious ``RuntimeWarning`` for other floats outside the ``int64`` range (:issue:`68315`)
 - Bug in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` raising ``OverflowError`` for ``object``-dtype data holding integers outside the ``int64``/``uint64`` range; these now retain ``object`` dtype, and data holding both ``NA`` and integers above the ``int64`` range now converts to ``UInt64`` (:issue:`66517`)
 - Bug in :meth:`Series.astype` to an :class:`ArrowDtype` ``duration`` with a non-nanosecond unit silently returning wrong values (often all zeros) when converting a string column that had been sliced, including the default ``str`` dtype (:issue:`64320`)
@@ -939,6 +898,7 @@ Conversion
 - Bug in reductions and other operations returning a NumPy scalar raising ``AttributeError: module 'numpy' has no attribute 'complex256'`` with the ``future.python_scalars`` option enabled on platforms without extended-precision floating point types, e.g. macOS arm64 and Windows (:issue:`68068`)
 - Fixed :func:`pandas.array` to preserve mask information when converting NumPy masked arrays, converting masked values to missing values (:issue:`63879`)
 - Fixed bug in :class:`DataFrame` constructor where mutating the result could corrupt the source :class:`Series` or :class:`Index` when built with ``dtype="str"`` and ``infer_string=False`` (:issue:`63936`)
+- Fixed bug in :func:`to_numeric` raising ``TypeError`` for a :class:`Series` with :class:`PeriodDtype`; it now returns the period ordinals, matching :class:`PeriodIndex` (:issue:`69448`)
 - Fixed bug in :func:`to_numeric` where a string containing an embedded NUL byte was converted using only the bytes before the NUL, so e.g. ``"1.5\x00xyz"`` silently became ``1.5``; such values now raise, or become ``NaN`` with ``errors="coerce"`` (:issue:`66524`)
 - Fixed bug in :func:`to_numeric` where values preceding the first complex number in ``object``-dtype data were replaced with uninitialized memory, so e.g. ``to_numeric(Series(["1.5", 2j]))`` returned ``0j`` in place of ``1.5+0j`` (:issue:`35051`)
 - Fixed bug in :func:`to_numeric`, and the readers built on it such as :func:`read_html`, :func:`read_xml`, :func:`read_excel`, :func:`read_fwf` and :func:`read_csv` with ``engine="python"`` or ``dtype="category"``, where a value written with a leading ``+`` and leading zeros after the decimal point lost significant digits, so e.g. ``"+0.0001234567890123456789"`` kept only 14 of them and ``"+0.0000000000000000000000005"`` became ``0.0`` (:issue:`68311`)
@@ -1018,6 +978,7 @@ Indexing
 - Bug in boolean-mask setitem, :meth:`Series.where`, :meth:`Series.mask`, and :meth:`Series.combine_first` aborting the Python process when applied to an :class:`ArrowDtype` column with null type (:issue:`66703`)
 - Bug in setitem (e.g. :meth:`Series.iloc`) silently storing corrupted values in the untouched entries of an :class:`ArrowDtype` ``binary`` or ``large_binary`` column when assigning ``NA`` to a column that had been sliced; later operations on the column, such as :meth:`DataFrame.to_parquet`, could then raise ``ArrowInvalid`` (:issue:`64320`)
 - Bug in setitem (e.g. :meth:`Series.iloc`) silently storing wrong values when assigning a nullable or :class:`ArrowDtype` extension array into a NumPy-dtype column that could not hold it losslessly, such as a negative value into an unsigned-integer column (``-1`` became ``18446744073709551615``) or a value overflowing a narrower float dtype (:issue:`47776`)
+- Bug in setitem (e.g. :meth:`Series.iloc`), :meth:`Series.fillna`, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.replace`, :meth:`Series.reindex` and their :class:`DataFrame` counterparts on an :class:`ArrowDtype` ``timestamp`` column silently shifting a scalar :class:`Timestamp` or ``datetime.datetime`` value by the UTC offset when the value and the column disagreed about being timezone-aware; these now raise ``TypeError`` (:issue:`69029`)
 - Bug in setitem on nullable masked arrays (``Int64``, ``Float64``, ``boolean``, ...) silently coercing list-like values that the equivalent scalar setitem would reject — e.g. ``arr[[0]] = ['1']`` parsed the string into the numeric dtype, ``arr[[0]] = [True]`` on ``Int64``/``Float64`` coerced the boolean to ``1``, and an out-of-bounds value such as ``arr[[0]] = [1000]`` on ``Int8`` silently wrapped instead of raising (:issue:`45404`)
 - Bug in setitem, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.fillna` and their :class:`DataFrame` counterparts on :class:`ArrowDtype` data silently reinterpreting a value through its integer storage representation, or raising ``AttributeError``, instead of raising ``TypeError`` when the value's dtype and the column's disagree (:issue:`68419`)
 - Bug in setitem, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.fillna` and their :class:`DataFrame` counterparts on :class:`ArrowDtype` temporal data raising ``ArrowNotImplementedError`` instead of assigning NA when the value was an all-NA numeric or boolean array, such as the column produced by aligning on a non-overlapping index (:issue:`68419`)
@@ -1049,16 +1010,16 @@ MultiIndex
 
 I/O
 ^^^
-- :func:`read_csv` and :func:`read_table` now apply ``na_values`` and the default NA strings to the values a ``converters`` entry returns; previously the default ``c`` engine silently ignored both for a converter column, so an empty field under ``converters={"a": str}`` now reads as ``NaN`` (:issue:`13302`)
 - :func:`read_csv` and :func:`read_table` now raise an informative ``ValueError`` for ``sep="\r"`` or ``delimiter="\r"``, which were silently mis-parsed into a frame of one column plus all-NaN padding, matching the error already raised for ``"\n"``; the error message no longer misattributes the failure to the ``python`` engine, and passing a different ``lineterminator`` is still allowed (:issue:`43528`, :issue:`51801`)
+- :func:`read_csv` and :func:`read_table` now apply ``na_values`` and the default NA strings to the values a ``converters`` entry returns; previously the default ``c`` engine silently ignored both for a converter column, so an empty field under ``converters={"a": str}`` now reads as ``NaN`` (:issue:`13302`)
 - :func:`read_csv` and :func:`read_table` with ``thousands`` no longer lose significant digits from a value with leading zeros after the decimal point; previously ``0.0001234567890123456789`` kept only 14 of them and ``0.0000000000000000000000005`` came back as ``0.0`` (:issue:`68311`)
+- :func:`read_csv` with ``engine="pyarrow"`` and ``dtype="category"`` now gives numpy ``int64`` categories for integer columns under the default ``dtype_backend``, matching the other engines, instead of nullable ``Int64`` (:issue:`56044`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``EmptyDataError`` (matching the ``c`` and ``python`` engines) instead of a cryptic ``ParserError`` reporting ``Empty CSV file or block`` when no columns can be parsed from the input (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises ``ValueError`` for the unsupported ``na_filter=False`` instead of silently ignoring it (:issue:`66053`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``TypeError`` when passed a text-mode file handle (the engine requires a binary buffer) instead of a cryptic ``a bytes-like object is required`` error (:issue:`66065`)
 - :func:`read_csv` with ``engine="pyarrow"`` now raises an informative ``ValueError`` for a list-valued ``header`` (MultiIndex columns are not supported by this engine) instead of a cryptic ``TypeError`` (:issue:`66059`)
 - :func:`read_csv` with ``engine="python"`` and ``index_col=False`` now honors ``on_bad_lines``, matching the ``c`` engine; previously a row with more fields than the first data row was truncated whatever ``on_bad_lines`` asked for, so ``"error"`` did not raise and a callable was never called (:issue:`49279`)
 - :func:`read_csv` with ``memory_map=True`` and an in-memory buffer (e.g. ``BytesIO``) now raises a clear ``ValueError`` instead of a cryptic ``UnsupportedOperation: fileno`` (:issue:`45630`)
-- :func:`read_csv` with a converter using a thread-affine resource now raises an actionable ``RuntimeError`` when the converter is executed in a parallel parser worker, instead of exposing the underlying thread-affinity exception (:issue:`68505`)
 - :func:`read_csv`, :func:`read_fwf`, and :func:`read_excel` with a numeric :class:`ArrowDtype` (e.g. ``dtype="double[pyarrow]"``) now raise ``ValueError`` for an empty field that is not treated as missing (e.g. with ``keep_default_na=False``), matching the behavior of numpy dtypes such as ``float64``; previously the value was silently stored as ``NaN`` but was not considered missing by :meth:`Series.isna` and :meth:`Series.fillna` (:issue:`66834`)
 - :func:`read_csv`, :func:`read_fwf`, and :func:`read_table` now raise ``ValueError`` for a non-bool ``cache_dates``, ``dayfirst``, ``doublequote``, ``iterator``, ``keep_default_na``, ``low_memory``, ``memory_map``, ``na_filter``, ``skip_blank_lines`` or ``skipinitialspace``; previously the value was taken for its truthiness, so e.g. ``keep_default_na="False"`` silently did the opposite of what was asked. :func:`read_excel` (for ``keep_default_na`` and ``na_filter``) and :func:`read_html` (for ``keep_default_na``) now raise for the same reason (:issue:`68341`)
 - :func:`read_html` and :func:`read_json` now raise the underlying error when a file cannot be read -- ``IsADirectoryError``, ``PermissionError``, an over-long-path ``OSError``, or for :func:`read_json` a ``URLError`` from a failed fetch -- instead of raising ``FileNotFoundError`` for every such failure (:issue:`29125`)
@@ -1077,23 +1038,23 @@ I/O
 - :meth:`DataFrame.to_json` and :meth:`Series.to_json` now raise an informative ``ValueError`` instead of a cryptic ``OverflowError: Maximum recursion level reached`` when a column contains an unsupported object type such as :class:`pathlib.Path` (:issue:`36211`)
 - :meth:`DataFrame.to_sql` now raises a clearer ``ValueError`` when a non-string ``dtype`` is passed for a raw DB-API (e.g. sqlite3) connection (:issue:`61385`)
 - Bug in :func:`read_csv` and :func:`read_table` with the default ``c`` engine raising ``ValueError`` for ``sep="\n"`` when a different ``lineterminator`` was given, instead of parsing the newline as an ordinary separator (:issue:`51801`)
-- Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
-- Fixed :meth:`DataFrame.to_json` and :meth:`Series.to_json` silently returning invalid or incorrect JSON when the error raised while serializing one element of a ``list``, ``tuple``, ``set``, or ``dict`` was discarded while serializing a later element (:issue:`66356`)
-- Fixed buffer overflow in :meth:`DataFrame.to_json` and :meth:`Series.to_json` that corrupted the output or crashed the interpreter when serializing deeply nested values with ``indent``, or values holding strings that need escaping (:issue:`67929`)
 - Fixed bug in :func:`read_csv` and :func:`read_table` where an explicit ``delimiter=None`` was treated as if no separator had been passed, so the default separator was used instead of detecting the separator as ``sep=None`` does (:issue:`47024`)
 - Fixed bug in :func:`read_csv` where a field containing an embedded NUL byte was parsed as a float from the bytes before the NUL with both the ``c`` and the ``python`` engine, so e.g. ``"1.5\x00xyz"``, ``"1e3\x00xyz"`` and ``"inf\x00xyz"`` were read as ``1.5``, ``1000.0`` and ``inf`` with the trailing bytes silently discarded; such columns are now read as strings (:issue:`66524`)
 - Fixed bug in :func:`read_csv` where a non-ASCII single-character ``sep`` was handed to the ``c`` engine instead of falling back to the ``python`` engine on platforms whose filesystem encoding is not UTF-8, silently mis-splitting the file or raising ``UnicodeDecodeError`` (:issue:`46456`)
+- Fixed bug in :func:`read_csv` with ``engine="c"`` or ``engine="python"`` where a value outside the range of the requested integer ``dtype`` (e.g. ``-1`` with ``dtype="UInt8"``) was silently wrapped around, or the requested ``dtype`` silently ignored, instead of raising (:issue:`55232`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where ``names`` was silently ignored when ``header`` was also an integer; ``names`` now replaces the header row, extra leading columns form the index, and passing too many ``names`` raises ``ValueError`` as with the other engines. ``usecols`` together with ``names`` and an integer ``header`` is not supported by this engine and now raises an informative ``ValueError`` (:issue:`65862`)
-- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where ``parse_dates`` did not parse numeric-looking date columns or index columns, leaving them as integers or strings instead of datetimes (:issue:`34066`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where ``skiprows`` was silently ignored unless ``header=None``, so the rows meant to be skipped were read as the header and as data; a negative ``skiprows`` now skips nothing as the other engines do, instead of raising ``ParserError`` (:issue:`48507`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where a ``defaultdict`` passed as ``dtype`` did not apply its default to columns not explicitly listed (:issue:`41574`)
-- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where a requested dtype whose conversion must start from the original text was applied only after pyarrow's type inference, giving results that differed from the other engines: values with leading zeros lost the zeros under a string dtype, and ``dtype=object`` produced the inferred values instead of the raw strings. Such columns are now parsed as strings. For a scalar ``dtype`` (e.g. ``dtype=str``) this additionally requires pyarrow 25.0 or newer (:issue:`9435`, :issue:`57666`, :issue:`58260`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where an empty ``usecols`` (e.g. ``usecols=[]``) was ignored and returned all columns instead of an empty frame, unlike the other engines (:issue:`66056`)
-- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where invalid ``sep``, ``quotechar``, ``escapechar``, and ``decimal`` arguments raised cryptic errors, or in the case of ``quotechar=None`` were silently ignored, instead of raising the same informative errors as the other engines (:issue:`66317`)
-- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing a scalar (non-dict) ``dtype`` together with ``index_col`` raised ``AttributeError``; the scalar ``dtype`` is now also applied to the index column, matching the default ``c`` engine (:issue:`45801`)
 - Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing tuples in ``names`` produced flat columns instead of :class:`MultiIndex` columns as with the other engines (:issue:`65862`)
+- Fixed bug in :func:`read_csv` with the ``c`` or ``python`` engine and ``dtype="category"`` where a :class:`CategoricalDtype` that specifies ``ordered=True`` without specifying ``categories`` discarded ``ordered`` (:issue:`56044`)
+- Fixed bug in :func:`read_csv`, :func:`read_fwf`, and :func:`read_table` with a pyarrow-backed integer ``dtype`` (e.g. ``dtype="int64[pyarrow]"``) where a missing value in the column sent the rest of it through ``float64``, so integers above ``2**53`` came back rounded (:issue:`56135`)
+- Fixed bug in :func:`read_stata` where a ``%tC`` (leap-second-adjusted datetime) column, which is left in Stata Internal Format rather than converted, was handed back cast to ``int64``, so a value outside the ``int64`` bounds came back saturated at ``9223372036854775807`` instead of the value stored in the file; the file's own values are now returned unchanged, so a ``%tC`` column stored as a Stata ``double`` comes back as floats rather than as truncated integers (:issue:`68034`)
+- Fixed bug in :func:`read_stata` where a date column held in one of the narrower Stata numeric types (e.g. ``byte``) decoded to an unrelated date, or raised ``OverflowError``, when the shift to the Stata epoch overflowed that type; this affected the ``%tm``, ``%tq``, ``%th`` and ``%ty`` formats, e.g. a ``%tm`` value of ``-100`` reading back as ``1973-01-01`` instead of ``1951-09-01`` (:issue:`36096`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where a requested dtype whose conversion must start from the original text was applied only after pyarrow's type inference, giving results that differed from the other engines: values with leading zeros lost the zeros under a string dtype, and ``dtype=object`` produced the inferred values instead of the raw strings. Such columns are now parsed as strings. For a scalar ``dtype`` (e.g. ``dtype=str``) this additionally requires pyarrow 25.0 or newer (:issue:`9435`, :issue:`57666`, :issue:`58260`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine and ``chunksize``, ``iterator=True``, or ``nrows`` where a line with too many fields at the start of a chunk escaped ``on_bad_lines`` handling: instead of raising ``ParserError`` (or being skipped with ``on_bad_lines="skip"``/``"warn"``), the line was silently truncated to the table width and kept (:issue:`40587`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine and ``dtype="category"`` where ``encoding_errors`` was ignored, so an undecodable byte raised ``UnicodeDecodeError`` even with ``encoding_errors="replace"`` (:issue:`66525`)
+- Fixed bug in :func:`read_csv` with the ``c`` engine and ``dtype="category"`` where ``low_memory=True`` (the default) left string categories in the order the file's internal chunks happened to produce them, and raised ``TypeError: dtype of categories must be the same`` when one of a column's internal chunks held only missing values (:issue:`56044`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine and ``low_memory=True`` (the default) where consecutive lines with too few fields could raise a spurious ``ParserError`` (``Expected N fields ... saw M``) depending on where they fell relative to an internal chunk boundary, even though the same file read fine with ``low_memory=False`` (:issue:`40587`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine and a ``thousands`` separator where numbers written with leading zeros (e.g. ``"000000000010084566"`` or ``"0.00564728024629623"``) lost low-order significant digits (:issue:`64184`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where ``encoding`` was ignored for a binary buffer that reports no ``mode``, such as an ``mmap.mmap`` object or a stream from ``boto3``/``botocore``, so non-UTF-8 data raised ``UnicodeDecodeError`` or was silently decoded to the wrong characters (:issue:`52252`)
@@ -1111,31 +1072,34 @@ I/O
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with ``dtype="S"`` (:issue:`19886`)
 - Fixed bug in :func:`read_csv` with the ``c`` engine where two fields differing only after an embedded NUL byte were read as the same value with an explicit string-like ``dtype`` (``object``, ``"str"``, ``"string"`` or ``"category"``) (:issue:`66525`)
 - Fixed bug in :func:`read_csv` with the ``python`` engine, :func:`read_fwf` and :func:`read_excel` where ``skipfooter`` counted the rows it had parsed rather than the lines of the file, so lines the parser had already skipped -- ``skiprows`` lines, and blank or comment lines above the data -- did not count towards it and too many rows were dropped from the end, sometimes leaving an empty ``DataFrame`` (:issue:`36827`)
-- Fixed bug in :func:`read_csv`, :func:`read_fwf`, and :func:`read_table` with a pyarrow-backed integer ``dtype`` (e.g. ``dtype="int64[pyarrow]"``) where a missing value in the column sent the rest of it through ``float64``, so integers above ``2**53`` came back rounded (:issue:`56135`)
 - Fixed bug in :func:`read_excel` and :class:`ExcelFile` where passing an ``xlrd.Book`` without an explicit ``engine`` raised ``AttributeError: 'Book' object has no attribute 'seek'`` instead of reading the workbook (:issue:`68086`)
-- Fixed bug in :func:`read_excel` and :meth:`DataFrame.to_excel` with ``engine="odf"`` where line breaks inside a cell were lost when writing, and dropped when reading files that store them as ``<text:line-break/>`` elements or multiple ``<text:p>`` paragraphs (:issue:`55728`, :issue:`53924`)
 - Fixed bug in :func:`read_excel` where usage of ``skiprows`` could lead to an infinite loop (:issue:`64027`)
 - Fixed bug in :func:`read_excel` with ``engine="odf"`` where ``<table:covered-table-cell>`` elements with explicit ``office:value`` attributes were incorrectly read as missing values. (:issue:`66579`)
+- Fixed bug in :func:`read_excel` and :meth:`DataFrame.to_excel` with ``engine="odf"`` where line breaks inside a cell were lost when writing, and dropped when reading files that store them as ``<text:line-break/>`` elements or multiple ``<text:p>`` paragraphs (:issue:`55728`, :issue:`53924`)
 - Fixed bug in :func:`read_excel` with the ``openpyxl`` engine where reading a sheet set its ``max_row`` and ``max_column`` to ``None`` on the workbook exposed through ``ExcelFile.book`` (:issue:`63010`)
 - Fixed bug in :func:`read_feather`, :func:`read_parquet`, :func:`read_orc` and the other readers that build a frame from an Arrow table where, with the ``future.infer_string`` option disabled, an *ordered* categorical column came back with ``str`` categories instead of the ``object`` categories an unordered one gets (:issue:`64659`)
-- Fixed bug in :func:`read_pickle` where the timezone of a :class:`Timestamp` was silently dropped when reading a pickle written by pandas 1.2 or earlier, so the timestamp came back tz-naive at its UTC wall time (:issue:`61792`, :issue:`31930`)
 - Fixed bug in :func:`read_sas` where ``encoding="infer"`` raised ``LookupError: unknown encoding: infer`` instead of falling back to latin-1, for SAS7BDAT files recording an encoding pandas does not recognize and for XPORT files, which record no encoding at all (:issue:`66470`)
 - Fixed bug in :func:`read_sas` where a SAS7BDAT date column holding a fractional day count was read at midnight, dropping the time of day, and for a date before 1960 at the *following* midnight, giving the wrong date (:issue:`47339`)
 - Fixed bug in :func:`read_sas` where a SAS7BDAT reader created with ``iterator=True`` or ``chunksize`` held the file open after the caller dropped it, until the next cyclic garbage collection, instead of closing it right away (:issue:`68973`)
-- Fixed bug in :func:`read_stata` where a ``%tC`` (leap-second-adjusted datetime) column, which is left in Stata Internal Format rather than converted, was handed back cast to ``int64``, so a value outside the ``int64`` bounds came back saturated at ``9223372036854775807`` instead of the value stored in the file; the file's own values are now returned unchanged, so a ``%tC`` column stored as a Stata ``double`` comes back as floats rather than as truncated integers (:issue:`68034`)
-- Fixed bug in :func:`read_stata` where a date column held in one of the narrower Stata numeric types (e.g. ``byte``) decoded to an unrelated date, or raised ``OverflowError``, when the shift to the Stata epoch overflowed that type; this affected the ``%tm``, ``%tq``, ``%th`` and ``%ty`` formats, e.g. a ``%tm`` value of ``-100`` reading back as ``1973-01-01`` instead of ``1951-09-01`` (:issue:`36096`)
 - Fixed bug where :func:`read_html` parsed nested tables incorrectly when using ``html5lib`` or ``bs4`` flavors (:issue:`64524`)
-- Fixed bug where a file opened by pandas was left open when :func:`read_csv` and other readers raised while opening it -- for example a ZIP or TAR archive holding more than one file -- so on Windows the file could not be renamed or deleted (:issue:`58131`)
 - Fixed bugs in :func:`read_csv` with ``engine="pyarrow"`` where column names were handled inconsistently with the other engines: duplicated names were not de-duplicated to ``"x.1"``-style names, empty header fields did not get ``"Unnamed: {i}"`` placeholder names, and an unnamed ``index_col`` produced an index named ``""`` instead of an unnamed index (:issue:`13017`, :issue:`35211`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where ``parse_dates`` did not parse numeric-looking date columns or index columns, leaving them as integers or strings instead of datetimes (:issue:`34066`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where invalid ``sep``, ``quotechar``, ``escapechar``, and ``decimal`` arguments raised cryptic errors, or in the case of ``quotechar=None`` were silently ignored, instead of raising the same informative errors as the other engines (:issue:`66317`)
+- Fixed bug in :func:`read_csv` with ``engine="pyarrow"`` where passing a scalar (non-dict) ``dtype`` together with ``index_col`` raised ``AttributeError``; the scalar ``dtype`` is now also applied to the index column, matching the default ``c`` engine (:issue:`45801`)
+- Fixed bug in :func:`read_pickle` where the timezone of a :class:`Timestamp` was silently dropped when reading a pickle written by pandas 1.2 or earlier, so the timestamp came back tz-naive at its UTC wall time (:issue:`61792`, :issue:`31930`)
+- Fixed buffer overflow in :meth:`DataFrame.to_json` and :meth:`Series.to_json` that corrupted the output or crashed the interpreter when serializing deeply nested values with ``indent``, or values holding strings that need escaping (:issue:`67929`)
+- Fixed bug where a file opened by pandas was left open when :func:`read_csv` and other readers raised while opening it -- for example a ZIP or TAR archive holding more than one file -- so on Windows the file could not be renamed or deleted (:issue:`58131`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
 - Fixed memory leak in :func:`read_csv` with ``engine="c"`` when a string or ``category`` column failed to decode, for example invalid UTF-8 under the default ``encoding_errors="strict"`` (:issue:`67931`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing object-dtype ``numpy.datetime64`` values (:issue:`67930`)
-- Fixed memory leaks in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serialization failed, particularly for large outputs and for index or column labels that could not be encoded (:issue:`66356`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
 - Fixed segfault when instantiating the internal ``pandas._libs.parsers.TextReader`` with no arguments; it now raises ``TypeError`` (:issue:`53131`)
-- Fixed segfaults in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing dictionary keys or labels that cannot be encoded as UTF-8 or that are integers too large to stringify under ``sys.get_int_max_str_digits()``, and when serializing objects with a raising ``__dir__`` or ``set`` subclasses with a raising ``__iter__``; these now raise instead (:issue:`66356`, :issue:`66489`)
 - Fixed several segfaults in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing python objects that are very abnormal, including massive :class:`int` values, and strings that cannot be encoded as utf-8 (:issue:`66356`)
+- Fixed segfaults in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing dictionary keys or labels that cannot be encoded as UTF-8 or that are integers too large to stringify under ``sys.get_int_max_str_digits()``, and when serializing objects with a raising ``__dir__`` or ``set`` subclasses with a raising ``__iter__``; these now raise instead (:issue:`66356`, :issue:`66489`)
+- Fixed :meth:`DataFrame.to_json` and :meth:`Series.to_json` silently returning invalid or incorrect JSON when the error raised while serializing one element of a ``list``, ``tuple``, ``set``, or ``dict`` was discarded while serializing a later element (:issue:`66356`)
+- Fixed memory leaks in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serialization failed, particularly for large outputs and for index or column labels that could not be encoded (:issue:`66356`)
+- Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
 - Bug in :meth:`DataFrame.__repr__` raising ``TypeError`` for a column with a NumPy structured dtype (e.g. produced by :meth:`DataFrame.from_records` from a structured ``ndarray``) (:issue:`55011`)
@@ -1258,6 +1222,7 @@ Reshaping
 ^^^^^^^^^
 - :func:`concat` with ``keys`` now raises an informative ``ValueError`` instead of an ``AssertionError`` when the concatenated objects do not all have the same number of index levels (:issue:`25413`)
 - :meth:`DataFrame.pivot` and :func:`pivot` now raise an informative ``KeyError`` naming the offending labels when ``index``, ``columns``, or ``values`` are not columns of the frame, instead of a cryptic ``TypeError`` (:issue:`35785`)
+- Bug in :func:`concat` and :meth:`Series.combine_first` silently dropping the timezone of an :class:`ArrowDtype` ``timestamp`` column, shifting its values by the UTC offset, when it was combined with a ``timestamp`` column of a different dtype; the result is now ``object`` when the two timezones disagree, and otherwise keeps the timezone, including against a timezone-aware ``datetime64`` column that previously gave ``object`` (:issue:`69029`)
 - Bug in :func:`concat` raising ``InvalidIndexError`` when ``keys`` or the concatenated objects' index was an overlapping :class:`IntervalIndex` (:issue:`64825`)
 - Bug in :func:`concat` with a ``null[pyarrow]`` column incorrectly changing the dtype of the other columns, e.g. casting ``date32[pyarrow]`` to ``timestamp[ms][pyarrow]``, dropping the timezone of a tz-aware ``timestamp[pyarrow]``, or casting ``decimal128[pyarrow]`` to ``object`` (:issue:`62343`)
 - Bug in :func:`merge_asof` where a negative tolerance raised ``MergeError`` with the misleading message "tolerance must be positive" even though ``tolerance=0`` is accepted; the message now reads "tolerance must be non-negative" (:issue:`66289`)
@@ -1390,6 +1355,7 @@ Other
 - Bug in :meth:`DataFrame.__setitem__` and :meth:`Series.__setitem__` emitting a spurious :class:`errors.ChainedAssignmentError` warning for a valid assignment made from compiled code, e.g. from a Cython extension module (:issue:`51315`)
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
 - Bug in :meth:`DataFrame.from_dict` where passing a dict of only scalar values raised a :class:`ValueError` telling users to pass an ``index``, even though :meth:`DataFrame.from_dict` has no ``index`` parameter; the message now points to ``orient='index'`` or the :class:`DataFrame` constructor (:issue:`25515`)
+- Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` raising ``UndefinedVariableError`` when accessing an attribute of a class with the ``@`` prefix, e.g. ``df.query("x == @A.a")`` (:issue:`48694`)
 - Bug in :meth:`DataFrame.query` where an expression referencing a duplicated column label returned an unfiltered all-``NaN`` frame instead of selecting rows; it now raises ``ValueError`` unless the expression evaluates to a one-dimensional row mask (:issue:`65588`)
 - Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` where the result stopped being copy-on-write protected, so a view taken afterwards shared memory with it and writing to either one silently modified the other (:issue:`58966`)
 - Bug in :meth:`DataFrame.replace` raising ``IndexError`` instead of replacing when ``to_replace`` was list-like or dict-like, the replacement changed a column's dtype, and two or more other columns were left unchanged (:issue:`61972`)
