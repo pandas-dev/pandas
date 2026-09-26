@@ -1054,8 +1054,21 @@ class TestiLocBaseIndependent:
             [pd.Index([1, 2]), pd.Index([3, 4])],
             [pd.array([1, 2]), pd.array([3, 4])],
             np.array([[1, 2], [3, 4]]),
+            [[1], [2]],
+            np.array([[1], [2]]),
+            np.array([[1]]),
         ],
-        ids=["lists", "ndarrays", "Series", "Index", "pd.array", "2d-ndarray"],
+        ids=[
+            "lists",
+            "ndarrays",
+            "Series",
+            "Index",
+            "pd.array",
+            "2d-ndarray",
+            "width-1-lists",
+            "width-1-2d-ndarray",
+            "1x1-ndarray",
+        ],
     )
     # the second column's dtype decides whether the frame is single-block, and
     #  so whether the setitem takes the split path
@@ -1063,7 +1076,7 @@ class TestiLocBaseIndependent:
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_2d_value_into_object_cell(self, indexer, other_dtype, value):
         # GH#69152 a single object cell stores a 2D value as-is, whatever the
-        #  frame's block layout; the split path used to raise instead
+        #  frame's block layout; the split path used to raise or flatten it
         df = pd.DataFrame(
             {"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=other_dtype)}
         )
