@@ -899,8 +899,13 @@ class PlotAccessor(PandasObject):
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
     color : str, array-like, or dict, optional
-        Color for the plot elements. A dict can map DataFrame column names
-        to colors.
+        Color for the plot elements when using the default ``matplotlib``
+        backend. Supported for ``kind`` values ``"line"``, ``"bar"``,
+        ``"barh"``, ``"hist"``, ``"kde"``, ``"density"``, ``"area"``,
+        ``"box"``, and ``"scatter"``. A dict maps DataFrame column names to
+        colors except for box and scatter plots. For box plots, a dict maps
+        ``"boxes"``, ``"whiskers"``, ``"medians"``, and ``"caps"`` to colors.
+        For scatter plots, an array-like specifies the color of each point.
     colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
         plots).
