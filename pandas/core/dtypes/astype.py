@@ -15,6 +15,11 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    iNaT,
+)
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
@@ -74,6 +79,9 @@ def _astype_nansafe(
     ------
     ValueError
         The dtype was a datetime64/timedelta64 dtype, but it had no unit.
+    OutOfBoundsDatetime or OutOfBoundsTimedelta
+        The dtype was a datetime64/timedelta64 dtype and the float data fell
+        outside the int64 domain.
     """
 
     # dispatch on extension dtype if needed
@@ -134,6 +142,15 @@ def _astype_nansafe(
         )
         raise ValueError(msg)
 
+    if (
+        np.issubdtype(arr.dtype, np.floating)
+        and dtype.kind in "mM"
+        and np.datetime_data(dtype)[1] == 1
+    ):
+        # a multiplier dtype, e.g. "M8[10s]", is rejected downstream (GH#25611)
+        #  whatever the values, so the saturated value never surfaces
+        raise_if_float_outside_int64(arr, dtype)
+
     if copy or object in (arr.dtype, dtype):
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
@@ -160,6 +177,34 @@ def astype_float_to_int_nansafe(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         return values.astype(dtype, copy=copy)
+
+
+def float_outside_int64(values: np.ndarray) -> np.ndarray:
+    """
+    Mask of floats that a narrowing to int64 would alias to NaT or saturate.
+    """
+    # NaN compares False both ways. float(iNaT) is admitted and round-trips
+    #  to NaT, matching cast_from_unit_vectorized.
+    return (values >= np.float64(2**63)) | (values < np.float64(iNaT))
+
+
+def raise_if_float_outside_int64(
+    values: np.ndarray, dtype: np.dtype, mask: np.ndarray | None = None
+) -> None:
+    """
+    Reject floats that a cast to the given datetime64/timedelta64 dtype would
+    alias to NaT or saturate to an in-bounds-looking value.
+
+    Entries where ``mask`` is True are ignored.
+    """
+    oob = float_outside_int64(values)
+    if mask is not None:
+        oob &= ~mask
+    if oob.any():
+        bad = values[oob][0]
+        unit = np.datetime_data(dtype)[0]
+        err = OutOfBoundsDatetime if dtype.kind == "M" else OutOfBoundsTimedelta
+        raise err(f"cannot convert input {bad} with the unit '{unit}'")
 
 
 def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:

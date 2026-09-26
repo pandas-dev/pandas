@@ -3,14 +3,20 @@ from datetime import (
     timedelta,
 )
 from importlib import reload
+import re
 import string
 import sys
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -778,3 +784,100 @@ def test_astype_object_to_datetimelike_no_unit(dtype):
 
     with pytest.raises(ValueError, match="dtype with no precision is not allowed"):
         ser.astype(dtype)
+
+
+@pytest.mark.parametrize("value", [np.inf, -np.inf, 1e30, -1e30, float(2**63)])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_astype_float_to_datetimelike_out_of_bounds(value, unit):
+    # GH#68926 the cast narrows to int64, where an out-of-range float saturates
+    #  to a real-looking timestamp or lands on the NaT sentinel
+    ser = pd.Series([value])
+
+    msg = f"cannot convert input {value} with the unit '{unit}'"
+    with pytest.raises(OutOfBoundsDatetime, match=re.escape(msg)):
+        ser.astype(f"M8[{unit}]")
+    with pytest.raises(OutOfBoundsTimedelta, match=re.escape(msg)):
+        ser.astype(f"m8[{unit}]")
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]", "datetime64[ns, UTC]"])
+def test_astype_float_to_datetimelike_in_bounds_unchanged(dtype):
+    # GH#68926 in-range floats still truncate toward zero, NaN and the NaT
+    #  sentinel still give NaT
+    largest = np.nextafter(np.float64(2**63), 0)
+    ser = pd.Series([1.5, -1.5, np.nan, float(iNaT), largest])
+
+    result = ser.astype(dtype)
+
+    expected = pd.Series([1, -1, iNaT, iNaT, int(largest)]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Float64", "Float32"])
+@pytest.mark.parametrize("spelling", ["astype", "constructor", "index"])
+def test_astype_masked_float_to_datetime64_out_of_bounds(dtype, spelling):
+    # GH#68926 the masked spellings narrow through the same int64 cast, so they
+    #  have to agree with the numpy ones rather than with each other
+    arr = pd.array([np.inf], dtype=dtype)
+
+    with pytest.raises(OutOfBoundsDatetime, match="cannot convert input inf"):
+        if spelling == "astype":
+            pd.Series(arr).astype("M8[ns]")
+        elif spelling == "constructor":
+            pd.Series(arr, dtype="M8[ns]")
+        else:
+            pd.DatetimeIndex(arr)
+
+
+def test_astype_masked_float_to_timedelta64_out_of_bounds():
+    # GH#68926 masked astype is the only spelling that reached the timedelta64
+    #  narrowing unguarded; the TimedeltaIndex peer already raised
+    arr = pd.array([np.inf], dtype="Float64")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input inf"):
+        pd.Series(arr).astype("m8[ns]")
+
+
+def test_astype_masked_float_to_datetime64_in_bounds_unchanged():
+    # GH#68926 the guard only looks at the unmasked values, so NA and an
+    #  out-of-range float parked behind the mask both still give NaT
+    arr = pd.arrays.FloatingArray(
+        np.array([1.5, 0.0, np.inf]), np.array([False, True, True])
+    )
+
+    result = pd.Series(arr).astype("M8[ns]")
+
+    expected = pd.Series([1, iNaT, iNaT]).astype("M8[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["M8", "m8"])
+def test_astype_masked_float_to_datetimelike_no_unit(dtype):
+    # GH#68926 an out-of-range value must not preempt the unitless-dtype
+    #  complaint, which is what the narrowing would have to be checked against
+    ser = pd.Series(pd.array([np.inf], dtype="Float64"))
+
+    with pytest.raises(TypeError, match="values must have a unit specified"):
+        ser.astype(dtype)
+
+
+@pytest.mark.parametrize("dtype", ["M8[10s]", "m8[10s]"])
+@pytest.mark.parametrize("box", ["numpy", "masked"])
+def test_astype_float_to_datetimelike_multiplier_dtype(dtype, box):
+    # GH#68926 a multiplier dtype is refused whatever the values, so the
+    #  out-of-range guard must not preempt it with the multiplier stripped off
+    data = np.array([np.inf]) if box == "numpy" else pd.array([np.inf], dtype="Float64")
+
+    with warnings.catch_warnings():
+        # numpy may warn on the saturating cast before pandas rejects the dtype
+        warnings.simplefilter("ignore", RuntimeWarning)
+        with pytest.raises(ValueError, match="multiplier are not supported"):
+            pd.Series(data).astype(dtype)
+
+
+def test_astype_float32_to_datetime64_out_of_bounds():
+    # GH#68926 every float width narrows to int64, not just float64
+    ser = pd.Series(np.array([np.inf], dtype=np.float32))
+
+    with pytest.raises(OutOfBoundsDatetime, match="cannot convert input inf"):
+        ser.astype("M8[ns]")

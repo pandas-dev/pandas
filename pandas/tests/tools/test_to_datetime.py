@@ -4983,3 +4983,53 @@ def test_to_datetime_quarterly_string_warns_once_mixed_resolution_tzaware():
     ]
     assert len(quarter_warnings) == 1
     assert result[0] == pd.Timestamp("2014-04-01", tz="UTC")
+
+
+@pytest.mark.parametrize("box", [np.array, pd.Series])
+def test_to_datetime_float_out_of_bounds_coerce(box):
+    # GH#68926 one out-of-range float must not take the whole array down; the
+    #  timedelta64 peer already coerces per element
+    arg = box([1.0, np.inf, 2.0])
+
+    result = pd.to_datetime(arg, errors="coerce")
+
+    expected = pd.DatetimeIndex(
+        ["1970-01-01 00:00:00.000000001", "NaT", "1970-01-01 00:00:00.000000002"]
+    )
+    if box is pd.Series:
+        tm.assert_series_equal(result, pd.Series(expected))
+    else:
+        tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_float_all_out_of_bounds_coerce():
+    # GH#68926 an all-out-of-range input gets the same resolution as all-NaN
+    result = pd.to_datetime(np.array([np.inf, -np.inf]), errors="coerce")
+
+    expected = pd.to_datetime(np.array([np.nan, np.nan]), errors="coerce")
+    assert expected.dtype == "M8[s]"
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_float_out_of_bounds_raises():
+    # GH#68926 errors="raise" keeps the message naming the offending value
+    msg = re.escape("cannot convert input inf with the unit 'ns'")
+    with pytest.raises(OutOfBoundsDatetime, match=msg):
+        pd.to_datetime(np.array([1.0, np.inf]))
+
+
+def test_to_datetime_float_out_of_bounds_coerce_with_format():
+    # GH#68926 coercing the bad entries must leave the others alone. `format`
+    #  is the spelling that catches a detour through object dtype, which
+    #  reaches strptime rather than the epoch path.
+    msg = "Parsing integer or float values with a format"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.to_datetime(
+            np.array([2020.0, np.inf]), format="%Y", errors="coerce"
+        )
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.to_datetime(
+            np.array([2020.0, np.nan]), format="%Y", errors="coerce"
+        )
+
+    tm.assert_index_equal(result, expected)
