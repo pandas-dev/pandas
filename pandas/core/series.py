@@ -7493,7 +7493,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
         with np.errstate(all="ignore"):
-            if func in {operator.eq, operator.ne, operator.lt, operator.le, operator.gt, operator.ge}:
+            if func in {
+                operator.eq,
+                operator.ne,
+                operator.lt,
+                operator.le,
+                operator.gt,
+                operator.ge,
+            }:
                 result = ops.comparison_op(this_vals, other_vals, func)
             else:
                 result = func(this_vals, other_vals)
@@ -7501,7 +7508,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ops.get_op_result_name(self, other)
 
         out = this._construct_result(result, name, other)
-        return cast("Series", out)
+        return out
 
     @overload
     def _construct_result(
