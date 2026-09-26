@@ -1783,15 +1783,15 @@ class EABackedBlock(Block):
             #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
             #  whose __setitem__ does not check the flag.
             raise ValueError("Cannot modify read-only array")
-        transposed = newaxis = False
+        transposed = newaxis = deep = False
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
                 indexer = (indexer,)
             # GH#68521 np.newaxis adds an axis instead of consuming one, so
-            #  none of the reasoning below applies to a key that has one:
-            #  Ellipsis no longer stands for a single axis either
+            #  Ellipsis no longer stands for a single axis, and the
+            #  normalization and reorientation below do not apply
             newaxis = any(x is None for x in indexer)
             # np.ndim(Ellipsis) is 0, so it would read as a scalar below; it
             #  stands in for the full slice and does transpose. A second one is
@@ -1807,13 +1807,13 @@ class EABackedBlock(Block):
                     ndims = tuple(_indexer_entry_ndim(x) for x in indexer)
                     # GH#68521 the swap transposes the selection only when the
                     #  entries index separate axes: a scalar entry drops one,
-                    #  and two advanced indexers broadcast against each other.
-                    #  A key of 2 or more dimensions makes the selection 3-D,
-                    #  which neither .T nor reshape(-1, 1) reorients
-                    transposed = (
-                        None in ndims
-                        and 0 not in ndims
-                        and not any(nd is not None and nd > 1 for nd in ndims)
+                    #  and two advanced indexers broadcast against each other
+                    transposed = None in ndims and all(nd in (None, 1) for nd in ndims)
+                    # a >1-D key alongside a slice makes the selection 3-D,
+                    #  which neither .T nor reshape(-1, 1) reorients in general;
+                    #  .T at least lands a (1, n) key correctly
+                    deep = None in ndims and any(
+                        nd is not None and nd > 1 for nd in ndims
                     )
                 indexer = indexer[::-1]
             if transposed:
@@ -1836,7 +1836,9 @@ class EABackedBlock(Block):
                 elif getattr(value, "ndim", 0) == 1:
                     # a 1D value is per-column, repeated across the selected rows
                     value = value.reshape(-1, 1)
-            elif newaxis and isinstance(value, np.ndarray) and value.ndim == 2:
+            elif (
+                (newaxis or deep) and isinstance(value, np.ndarray) and value.ndim == 2
+            ):
                 value = value.T
         check_setitem_lengths(indexer, value, values)
 

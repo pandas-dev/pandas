@@ -2571,6 +2571,27 @@ def test_iloc_setitem_2d_ea_block_2d_row_key_1d_value_does_not_write():
     tm.assert_frame_equal(df, original)
 
 
+def test_iloc_setitem_2d_ea_block_1xn_key_2d_value_matches_numeric():
+    # GH#68521 a 2-D value against a (1, n) key keeps its transpose, so it
+    #  lands the same as on a numeric frame
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    value = np.arange(100, 102).reshape(2, 1)
+    df = pd.DataFrame(arr.copy().view("M8[s]"))
+    numeric = pd.DataFrame(arr.copy())
+
+    numeric.iloc[np.array([[1, 2]])] = value
+    df.iloc[np.array([[1, 2]])] = value.view("M8[s]")
+    tm.assert_frame_equal(df, numeric.astype("M8[s]"))
+
+    df = pd.DataFrame(arr.copy().view("M8[s]"))
+    original = df.copy()
+    with pytest.raises(ValueError, match="setting an array element"):
+        numeric.iloc[:, np.array([[0, 2]])] = value
+    with pytest.raises(OutOfBoundsDatetime, match="Incompatible"):
+        df.iloc[:, np.array([[0, 2]])] = value.view("M8[s]")
+    tm.assert_frame_equal(df, original)
+
+
 def test_iloc_setitem_2d_ea_block_length_one_value_is_not_a_shape_error():
     # GH#68521 assignment drops a leading length-1 axis that broadcasting alone
     #  does not, so a length-1 value into one cell is not a shape failure. The
