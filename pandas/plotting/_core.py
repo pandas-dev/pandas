@@ -1476,12 +1476,13 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
         See Also
         --------
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
 
         Examples
@@ -1547,7 +1548,7 @@ class PlotAccessor(PandasObject):
         **kwargs,
     ) -> PlotAccessor:
         """
-        Vertical bar plot.
+        Make a vertical bar plot.
 
         A bar plot is a plot that presents categorical data with
         rectangular bars with lengths proportional to the values that they
@@ -1587,7 +1588,7 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
@@ -1732,14 +1733,14 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             An ndarray is returned with one :class:`matplotlib.axes.Axes`
             per column when ``subplots=True``.
 
         See Also
         --------
         DataFrame.plot.bar : Vertical bar plot.
-        DataFrame.plot : Make plots of DataFrame using matplotlib.
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
         Examples
@@ -1851,16 +1852,17 @@ class PlotAccessor(PandasObject):
             Column in the DataFrame to group by.
 
         **kwargs
-            Additional keywords are documented in
+            Additional keyword arguments are documented in
             :meth:`DataFrame.plot`.
 
         Returns
         -------
-        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             The matplotlib axes containing the box plot.
 
         See Also
         --------
+        DataFrame.plot : Make plots of a DataFrame.
         DataFrame.boxplot: Another method to draw a box plot.
         Series.plot.box: Draw a box plot from a Series object.
         matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
@@ -1912,11 +1914,12 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        :class:`matplotlib.axes.Axes`
-            Return a histogram plot.
+        matplotlib.axes.Axes or numpy.ndarray of them
+            The matplotlib axes containing the histogram plot.
 
         See Also
         --------
+        DataFrame.plot : Make plots of a DataFrame.
         DataFrame.hist : Draw histograms per DataFrame's Series.
         Series.hist : Draw a histogram with Series' data.
 
@@ -1991,6 +1994,7 @@ class PlotAccessor(PandasObject):
 
         See Also
         --------
+        DataFrame.plot : Make plots of a DataFrame.
         scipy.stats.gaussian_kde : Representation of a kernel-density
             estimate using Gaussian kernels. This is the function used
             internally to estimate the PDF.
@@ -2097,12 +2101,12 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.axes.Axes or numpy.ndarray
+        matplotlib.axes.Axes or numpy.ndarray of them
             Area plot, or array of area plots if subplots is True.
 
         See Also
         --------
-        DataFrame.plot : Make plots of DataFrame using matplotlib.
+        DataFrame.plot : Make plots of a DataFrame.
 
         Examples
         --------
@@ -2170,11 +2174,12 @@ class PlotAccessor(PandasObject):
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
         **kwargs
-            Keyword arguments to pass on to :meth:`DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
-        matplotlib.axes.Axes or np.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             A NumPy array is returned when `subplots` is True.
 
         See Also
@@ -2264,15 +2269,17 @@ class PlotAccessor(PandasObject):
               marker points according to a colormap.
 
         **kwargs
-            Keyword arguments to pass on to :meth:`DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`DataFrame.plot`.
 
         Returns
         -------
-        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray of them
             The matplotlib axes containing the scatter plot.
 
         See Also
         --------
+        DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.scatter : Scatter plot using multiple input data
             formats.
 
@@ -2358,8 +2365,8 @@ class PlotAccessor(PandasObject):
 
         Returns
         -------
-        matplotlib.Axes
-            The matplotlib ``Axes`` on which the hexbin is plotted.
+        matplotlib.axes.Axes or numpy.ndarray of them
+            The matplotlib axes on which the hexbin is plotted.
 
         See Also
         --------
