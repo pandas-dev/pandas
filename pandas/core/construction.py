@@ -561,6 +561,15 @@ def ensure_wrapped_if_datetimelike(arr):
     return arr
 
 
+def ensure_s_converted_to_obj(arr):
+    """
+    Convert numpy S dtype to function astype(object).
+    """
+    if isinstance(arr.dtype, np.dtype) and arr.dtype.kind == "S":
+        arr = arr.astype(object)
+    return arr
+
+
 def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     Convert numpy MaskedArray to a plain ndarray with the masked entries filled.
