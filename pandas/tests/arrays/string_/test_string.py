@@ -657,7 +657,11 @@ def test_numpy_array_ufunc(dtype, box):
     str_len_ufunc = np.frompyfunc(lambda x: len(x), 1, 1)
     result = str_len_ufunc(arr)
     if dtype.na_value is np.nan:
-        expected = pd.Series([1, 2, 3]) if box is pd.Series else np.array([1, 2, 3])
+        expected = (
+            pd.Series([1, 2, 3], dtype="int64")
+            if box is pd.Series
+            else np.array([1, 2, 3], dtype="int64")
+        )
     else:
         expected = box([1, 2, 3], dtype="Int64")
     tm.assert_equal(result, expected)
@@ -680,7 +684,9 @@ def test_numpy_array_ufunc(dtype, box):
     numeric_result, string_result = split_ufunc(arr)
     if dtype.na_value is np.nan:
         expected_numeric = (
-            pd.Series([1, 2, 3]) if box is pd.Series else np.array([1, 2, 3])
+            pd.Series([1, 2, 3], dtype="int64")
+            if box is pd.Series
+            else np.array([1, 2, 3], dtype="int64")
         )
     else:
         expected_numeric = box([1, 2, 3], dtype="Int64")
