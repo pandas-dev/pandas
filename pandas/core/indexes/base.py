@@ -3640,7 +3640,24 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self, ABCCategoricalIndex) and self.hasnans and other.hasnans:
             this = this.dropna()
         other = other.unique()
-        the_diff = this[other.get_indexer_for(this) == -1]
+        lookup = this
+        if (
+            this.dtype != other.dtype
+            and isinstance(
+                other,
+                (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex, ABCIntervalIndex),
+            )
+            # keep the deprecated date-object matching until GH#62158 is enforced
+            and not (
+                this.inferred_type == "date" and isinstance(other, ABCDatetimeIndex)
+            )
+        ):
+            # Align dtypes first; otherwise get_indexer matches labels the way
+            #  .loc does, so e.g. "2022-01" would match Period("2022-01") GH#58971
+            dtype = this._find_common_type_compat(other)
+            lookup = this.astype(dtype, copy=False)
+            other = other.astype(dtype, copy=False)
+        the_diff = this[other.get_indexer_for(lookup) == -1]
         the_diff = the_diff if this.is_unique else the_diff.unique()
         the_diff = cast("Index", _maybe_try_sort(the_diff, sort))
         return the_diff
