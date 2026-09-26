@@ -75,16 +75,29 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert pd.Series([1]).item() == 1
 
 
+def _clear_engines_deep(obj):
+    # the fixture objects are shared across tests; nested Indexes (categorical
+    # categories, MultiIndex levels) may have had their engines built by other
+    # tests, and a populated engine retains extra values once
+    # memory_usage(deep=True) accounts for them (GH#66593), so clear them all
+    # to start from a pristine state
+    if isinstance(obj, pd.Series):
+        _clear_engines_deep(obj.index)
+        return
+    if isinstance(obj, pd.MultiIndex):
+        for level in obj.levels:
+            _clear_engines_deep(level)
+    elif isinstance(obj.dtype, pd.CategoricalDtype):
+        _clear_engines_deep(obj.dtype.categories)
+    obj._engine.clear_mapping()
+
+
 @pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_memory_obj):
     obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
-    if isinstance(obj, pd.Series):
-        is_ser = True
-        obj.index._engine.clear_mapping()
-    else:
-        is_ser = False
-        obj._engine.clear_mapping()
+    is_ser = isinstance(obj, pd.Series)
+    _clear_engines_deep(obj)
 
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
