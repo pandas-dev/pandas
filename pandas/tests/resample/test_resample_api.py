@@ -138,6 +138,18 @@ def test_pipe(test_frame, _test_series):
     tm.assert_frame_equal(result, expected)
 
 
+def test_pipe_args_kwargs(_test_series):
+    # GH#58517 positional and keyword arguments are passed through to func
+    r = _test_series.resample("h")
+
+    def f(x, a, b=0):
+        return x.max() * a + b
+
+    result = r.pipe(f, 2, b=1)
+    expected = r.max() * 2 + 1
+    tm.assert_series_equal(result, expected)
+
+
 def test_getitem(test_frame):
     r = test_frame.resample("h")
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
