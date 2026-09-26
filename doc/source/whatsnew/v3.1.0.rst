@@ -1321,6 +1321,7 @@ Sparse
 ExtensionArray
 ^^^^^^^^^^^^^^
 - :func:`api.extensions.register_extension_dtype` now raises an informative ``TypeError`` at registration when the :class:`~pandas.api.extensions.ExtensionDtype` subclass does not define a string ``name`` attribute, instead of a bare ``AssertionError`` when the dtype is later used (:issue:`46093`)
+- Bug in :func:`factorize` and groupby operations with a PyArrow ``dictionary`` dtype producing a group for a value absent from the data, e.g. after filtering, or splitting one value across two groups; ``uniques`` are now ordered by first appearance, as they are for every other dtype, rather than by the stored dictionary (:issue:`69024`)
 - Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` not propagating ``pd.NA`` on numpy-nullable columns (``boolean``, ``Int*``, ``UInt*``, ``Float*``); ``axis=0`` raised ``ValueError`` and ``axis=1`` returned a concrete ``True``/``False`` (:issue:`65710`)
 - Bug in arithmetic, comparison, and logical operations between PyArrow-backed or :class:`StringDtype` data and a two-dimensional operand raising an assortment of internal or misleading errors, or silently returning a wrong result; these now raise ``NotImplementedError`` (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and a differently-sized array or list raising ``pyarrow.ArrowInvalid`` instead of reporting the length mismatch (:issue:`62682`)
