@@ -50,6 +50,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core import (
+    arraylike,
     missing,
     nanops,
     ops,
@@ -464,6 +465,18 @@ class BaseStringArray(ExtensionArray):
         )
         return formatter
 
+    def _maybe_convert_ufunc_result(self, result: Any) -> Any:
+        """Infer a pandas array for NumPy ufunc results when possible."""
+        if isinstance(result, tuple):
+            return tuple(self._cast_pointwise_result(value) for value in result)
+        if not isinstance(result, np.ndarray):
+            return result
+
+        if len(result) == 0 or result.dtype.kind == "U":
+            return type(self)._from_sequence(result, dtype=self.dtype)
+
+        return self._cast_pointwise_result(result)
+
     def _str_map(
         self,
         f,
@@ -699,6 +712,46 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        out = kwargs.get("out", ())
+
+        result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
+        if "out" in kwargs:
+            return arraylike.dispatch_ufunc_with_out(
+                self, ufunc, method, *inputs, **kwargs
+            )
+
+        if method == "reduce":
+            result = arraylike.dispatch_reduction_ufunc(
+                self, ufunc, method, *inputs, **kwargs
+            )
+            if result is not NotImplemented:
+                return result
+
+        inputs = tuple(
+            x._ndarray if isinstance(x, NumpyExtensionArray) else x for x in inputs
+        )
+        if out:
+            kwargs["out"] = tuple(
+                x._ndarray if isinstance(x, NumpyExtensionArray) else x for x in out
+            )
+        result = getattr(ufunc, method)(*inputs, **kwargs)
+
+        if ufunc.nout > 1:
+            return self._maybe_convert_ufunc_result(result)
+        elif method == "at":
+            return None
+        elif method == "reduce":
+            if isinstance(result, np.ndarray):
+                return type(self)(result)
+            return result
+        return self._maybe_convert_ufunc_result(result)
 
     def __init__(
         self, values, *, dtype: StringDtype | None = None, copy: bool = False
