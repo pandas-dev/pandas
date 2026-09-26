@@ -1217,6 +1217,16 @@ class TestSeriesConstructors:
         assert expected.dtype == "M8[ms]"
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", [">i8", ">u2", ">f4", ">c16"])
+    def test_constructor_numeric_bigendian(self, dtype):
+        # GH#43042 values must survive; GH#53234 stored in native byteorder
+        arr = np.array([3, 1, 3], dtype=dtype)
+        native = arr.dtype.newbyteorder("=")
+        expected = pd.Series(arr.astype(native))
+        tm.assert_series_equal(pd.Series(arr), expected)
+        tm.assert_series_equal(pd.Series([3, 1, 3], dtype=dtype), expected)
+        tm.assert_series_equal(pd.Series([3, 1, 3]).astype(dtype), expected)
+
     @pytest.mark.parametrize("unit", ["D", "h", "s", "ms", "us", "ns", "ps", "fs"])
     def test_constructor_timedelta64_bigendian(self, unit):
         # GH#68342 the byteswap also turned NaT into an ordinary duration; ps/fs
@@ -2326,19 +2336,3 @@ def test_constructor_from_series_with_incompatible_dtype_raises():
     ser = pd.Series([1, 2, "x", 4, 5])
     with pytest.raises(ValueError, match="invalid literal"):
         pd.Series(ser, dtype=int)
-
-
-def test_constructor_preserves_byteorder():
-    # GH#43042 non-native byteorder (and the values) must be preserved
-    arr = np.array([0, 256, 2**40], dtype=">i8")
-    expected = [0, 256, 2**40]
-
-    # inferred from a big-endian ndarray
-    result = pd.Series(arr)
-    assert result.dtype == np.dtype(">i8")
-    assert result.tolist() == expected
-
-    # explicit big-endian dtype from a python list
-    result = pd.Series([0, 256, 2**40], dtype=">i8")
-    assert result.dtype == np.dtype(">i8")
-    assert result.tolist() == expected
