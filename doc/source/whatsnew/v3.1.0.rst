@@ -295,6 +295,31 @@ timezone instead of returning a naive result; it still drops nanoseconds, and
 still raises ``ValueError`` for a ``fold=1`` (DST-ambiguous) timestamp
 (:issue:`31930`, :issue:`45307`).
 
+.. _whatsnew_310.notable_bug_fixes.partial_string_no_matches:
+
+Partial string indexing that matches no entries raises ``KeyError``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Indexing a :class:`DatetimeIndex` or :class:`PeriodIndex` with a partial string
+that matched none of its entries sometimes returned an empty result instead of
+raising ``KeyError``:
+
+.. code-block:: ipython
+
+    In [1]: dti = pd.to_datetime(["2024-02-24 10:00:30", "2024-02-24 10:20:30"])
+
+    In [2]: ser = pd.Series([1, 2], index=dti)
+
+    In [3]: ser["2024-02-24 10:08"]
+    Out[3]: Series([], dtype: int64)
+
+Such a key now raises ``KeyError`` in every case, including on an empty index.
+Consequently ``"2024-02-24 10:08" in dti`` is now ``False``, assigning to such a
+label with :meth:`Series.loc` or :meth:`DataFrame.loc` adds it to the object
+instead of silently discarding the assignment, and a :class:`MultiIndex` slice
+bounded by such a string no longer selects entries past the bound
+(:issue:`57596`).
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
 

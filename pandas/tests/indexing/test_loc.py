@@ -2203,6 +2203,29 @@ class TestLocSetitemWithExpansion:
         expected = pd.Series(1, index=idxs)
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_expansion_partial_string_no_matches(self):
+        # GH#57596 a partial string matching nothing is a new label, not a
+        #  zero-length match that silently swallows the assignment
+        dti = pd.to_datetime(["2024-02-24 10:00:30", "2024-02-24 10:20:30"])
+        ser = pd.Series([1, 2], index=dti)
+
+        ser.loc["2024-02-24 10:08"] = 99
+
+        ts = pd.Timestamp("2024-02-24 10:08")
+        expected = pd.Series([1, 2, 99], index=dti.insert(2, ts))
+        tm.assert_series_equal(ser, expected)
+
+    def test_loc_setitem_expansion_partial_string_no_matches_column(self):
+        # GH#57596
+        dti = pd.to_datetime(["2024-02-24 10:00:30", "2024-02-24 10:20:30"])
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=dti)
+
+        df.loc[:, "2024-02-24 10:08"] = 9
+
+        ts = pd.Timestamp("2024-02-24 10:08")
+        expected = pd.DataFrame([[0, 1, 9], [2, 3, 9]], columns=dti.insert(2, ts))
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize(
         "conv",
         [

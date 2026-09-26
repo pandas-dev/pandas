@@ -590,3 +590,60 @@ def test_partial_slice_quarter_generic_dateoffset_freq(offset, reverse):
     ):
         result = ser["2022Q1"]
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("order", ["increasing", "decreasing", "unordered"])
+def test_partial_slice_no_matches_raises(order):
+    # GH#57596 a partial string matching none of our entries is an absent
+    #  label, not a zero-length match
+    dti = pd.to_datetime(
+        ["2024-02-24 10:00:30", "2024-02-24 10:10:30", "2024-02-24 10:20:30"]
+    )
+    if order == "decreasing":
+        dti = dti[::-1]
+    elif order == "unordered":
+        dti = dti[[1, 0, 2]]
+    ser = pd.Series(np.arange(3), index=dti)
+
+    assert "2024-02-24 10:08" not in dti
+    with pytest.raises(KeyError, match="2024-02-24 10:08"):
+        dti.get_loc("2024-02-24 10:08")
+    with pytest.raises(KeyError, match="2024-02-24 10:08"):
+        ser["2024-02-24 10:08"]
+    with pytest.raises(KeyError, match="2024-02-24 10:08"):
+        ser.at["2024-02-24 10:08"]
+    with pytest.raises(KeyError, match="2024-02-24 10:08"):
+        ser.to_frame().loc["2024-02-24 10:08"]
+
+    # out of range entirely, which only the unordered arm used to get wrong
+    with pytest.raises(KeyError, match="2030"):
+        ser["2030"]
+
+    # a window that does hold entries still selects them
+    expected = ser[dti == "2024-02-24 10:10:30"]
+    tm.assert_series_equal(ser["2024-02-24 10:10"], expected)
+
+
+def test_partial_slice_multiindex_level_bound_no_matches():
+    # GH#57596 a slice bound matching no entry of the level used to select past
+    #  it, unlike the same slice on the level itself
+    lev = pd.to_datetime(
+        ["2024-02-24 10:00:30", "2024-02-24 10:10:30", "2024-02-24 10:20:30"]
+    )
+    ser = pd.Series(range(6), index=pd.MultiIndex.from_product([lev, ["a", "b"]]))
+
+    result = ser.loc["2024-02-24 10:08":"2024-02-24 10:12"]
+
+    expected = pd.Series(
+        [2, 3], index=pd.MultiIndex.from_product([lev[1:2], ["a", "b"]])
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_partial_slice_empty_index_raises():
+    # GH#57596 an empty index matches nothing either, as a plain empty Index does
+    dti = pd.DatetimeIndex([])
+
+    assert "2024" not in dti
+    with pytest.raises(KeyError, match="2024"):
+        dti.get_loc("2024")
