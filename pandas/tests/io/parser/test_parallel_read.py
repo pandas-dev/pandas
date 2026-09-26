@@ -17,6 +17,7 @@ import io
 import itertools
 import mmap
 import os
+import sqlite3
 from typing import TYPE_CHECKING
 import warnings
 
@@ -1648,6 +1649,36 @@ def test_parallel_worker_exception_still_warns(tmp_path, monkeypatch):
     assert [str(warning.message) for warning in recorded] == [
         _converter_dtype_warning("col1")
     ]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
+def test_parallel_converter_thread_affinity_error(tmp_path, monkeypatch):
+    # Regression test for GH#68505: converters using thread-affine resources
+    # should produce an actionable error when parallel parsing is enabled.
+    raw = b"col1,col2\n" + b"".join(f"{i},{i * 2}\n".encode() for i in range(1000))
+    path = tmp_path / "thread_affinity.csv"
+    path.write_bytes(raw)
+
+    connection = sqlite3.connect(":memory:")
+    connection.execute("CREATE TABLE values_table (value INTEGER)")
+    connection.execute("INSERT INTO values_table VALUES (1)")
+
+    def converter(value):
+        connection.execute("SELECT value FROM values_table")
+        return int(value)
+
+    outcomes = _track_parallel(monkeypatch)
+
+    try:
+        with pytest.raises(
+            RuntimeError, match="thread-affinity error.*mode.max_threads=1"
+        ) as exc_info:
+            _read_forced_parallel(path, monkeypatch, converters={"col1": converter})
+
+        assert outcomes == ["raised"]
+        assert isinstance(exc_info.value.__cause__, sqlite3.ProgrammingError)
+    finally:
+        connection.close()
 
 
 @pytest.mark.skipif(WASM, reason="WASM stays serial, so no worker raises")
