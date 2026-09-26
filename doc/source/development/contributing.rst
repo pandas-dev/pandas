@@ -125,7 +125,8 @@ current issues is closed or you release it with ``/untake``. pandas maintainers
 are exempt from this limit.
 
 If you change your mind, comment ``/untake`` to release the issue so others can
-pick it up.
+pick it up. ``/untake`` will be declined while you have an open pull request
+for the issue; close the pull request first.
 
 Opening a pull request
 ----------------------
@@ -138,9 +139,8 @@ open one linked to an issue nobody has claimed, the bot adds the
 ``Needs Issue Assignment`` label and comments with what to do next: comment
 ``/take`` on the issue to claim it. The pull request stays open, but it is
 unlikely to be reviewed until the issue is assigned to you. Once you hold the
-assignment, the daily job removes the label. If you later lose the assignment
-— for example by commenting ``/untake``, or after it is released for
-inactivity — the daily job applies the label again and the same rules apply.
+assignment, the daily job removes the label. If you later lose the assignment,
+the daily job applies the label again and the same rules apply.
 
 Review and staleness
 --------------------
