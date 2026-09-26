@@ -5236,7 +5236,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Accepted combinations are:
 
             - function
-            - string function name
+            - string function name, looked up via :func:`getattr` on the
+              aggregated object first (so ``"mean"`` resolves to
+              :meth:`Series.mean`), with a fallback to the :mod:`numpy`
+              namespace when the object supports the buffer protocol
+              (``obj.__array__`` exists); e.g. ``"sum"`` resolves to
+              :func:`numpy.sum`. Raises ``AttributeError`` if no match
+              is found.
             - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
             - dict of axis labels -> functions, function names or list of such.
         axis : {0 or 'index'}
