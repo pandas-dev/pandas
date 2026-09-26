@@ -374,6 +374,16 @@ Categories must also not be ``NaN`` or a ``ValueError`` is raised:
     except ValueError as e:
         print("ValueError:", str(e))
 
+To merge several categories into one, use :meth:`Series.replace` to replace the
+values and then drop the categories that are no longer used with
+:meth:`~Series.cat.remove_unused_categories`:
+
+.. ipython:: python
+
+    s = pd.Series(["a", "b", "c", "a"], dtype="category")
+    s = s.replace({"a": "b"}).cat.remove_unused_categories()
+    s
+
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
