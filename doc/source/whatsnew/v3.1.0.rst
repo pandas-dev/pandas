@@ -1353,6 +1353,7 @@ Other
 - Bug in :func:`testing.assert_series_equal`, :func:`testing.assert_frame_equal` and :func:`testing.assert_extension_array_equal` raising ``TypeError`` instead of reporting the difference when comparing unequal :class:`~pandas.api.extensions.ExtensionArray` objects whose scalars define ``__len__``, such as ``pint``'s ``Quantity`` (:issue:`45240`)
 - Bug in :func:`util.hash_array` and :func:`util.hash_pandas_object` with float and complex dtypes returning different hashes for ``0.0`` and ``-0.0``, and for ``NaN`` values whose sign or payload bits differ (:issue:`28363`)
 - Bug in :meth:`DataFrame.__setitem__` and :meth:`Series.__setitem__` emitting a spurious :class:`errors.ChainedAssignmentError` warning for a valid assignment made from compiled code, e.g. from a Cython extension module (:issue:`51315`)
+- Fixed bug in :meth:`Series.__finalize__` not unconditionally propagating the `name` attribute when subclassing, causing subclasses to lose their name during operations like fancy indexing (:issue:`61491`)
 - Bug in :meth:`DataFrame.eval` where a duplicate column name was resolved to a single column (yielding a :class:`Series`), inconsistent with :func:`pandas.eval` using ``resolvers=(df,)`` and with :meth:`DataFrame.__getitem__`, which include every column with that label (:issue:`65588`)
 - Bug in :meth:`DataFrame.from_dict` where passing a dict of only scalar values raised a :class:`ValueError` telling users to pass an ``index``, even though :meth:`DataFrame.from_dict` has no ``index`` parameter; the message now points to ``orient='index'`` or the :class:`DataFrame` constructor (:issue:`25515`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` raising ``UndefinedVariableError`` when accessing an attribute of a class with the ``@`` prefix, e.g. ``df.query("x == @A.a")`` (:issue:`48694`)
@@ -1366,6 +1367,7 @@ Other
 - Bug in ``register_option`` where registering an option whose name was a prefix of an existing option (e.g. ``"a.b"`` when ``"a.b.c"`` was already registered) silently overwrote the existing option's namespace instead of raising (:issue:`29242`)
 - Bug in the ``display.max_colwidth`` option where values smaller than ``4`` were silently ignored, leaving the repr untruncated and its column headers misaligned (:issue:`16097`)
 - Bug in warning ``stacklevel`` resolution where warnings raised on behalf of user code living in a third-party package whose install directory merely starts with ``pandas`` (e.g. ``pandas_ta``) pointed past the real caller (:issue:`67992`)
+- Fixed bug in :meth:`Series.__finalize__` not unconditionally propagating the ``name`` attribute when subclassing, causing subclasses to lose their name during operations like fancy indexing (:issue:`61491`)
 
 .. ***DO NOT USE THIS SECTION***
 
