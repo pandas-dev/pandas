@@ -4270,3 +4270,49 @@ def test_loc_setitem_empty_boolean_column_mask_frame_value(dtype, box):
     df.loc[:, box([False])] = df * 2
 
     tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+@pytest.mark.parametrize(
+    "key, value",
+    [
+        ("A", pd.Categorical(["x", "y"])),
+        ("A", pd.to_datetime(["2012-01-01", "2012-01-02"])),
+        ("A", np.array([1, 2])),
+        (["A", "B"], np.ones((2, 2), dtype="int64")),
+        (["A", "B"], lambda df: df[["A", "B"]].astype("int64")),
+    ],
+)
+def test_loc_setitem_full_object_column_typed_value_warns(single_block, key, value):
+    # GH#52593
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    if not single_block:
+        df["C"] = [5, 6]
+    if callable(value):
+        value = value(df)
+    msg = "Setting non-object values into entire object-dtype column"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        df.loc[:, key] = value
+    assert df["A"].dtype == object
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+@pytest.mark.parametrize(
+    "rows, key, value",
+    [
+        (slice(None), "A", ["x", "y"]),
+        (slice(None), "A", np.array(["x", 1], dtype=object)),
+        (slice(None), "A", 5),
+        (slice(None), ["A", "B"], lambda df: df[["B", "A"]]),
+        (0, ["A", "B"], np.array([7, 8])),
+    ],
+)
+def test_loc_setitem_full_object_column_no_warning(single_block, rows, key, value):
+    # GH#52593 only typed values set into whole object-dtype columns warn
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    if not single_block:
+        df["C"] = [5, 6]
+    if callable(value):
+        value = value(df)
+    with tm.assert_produces_warning(None):
+        df.loc[rows, key] = value

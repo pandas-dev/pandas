@@ -516,7 +516,9 @@ class TestFancy:
 
         # with the enforcement of GH#45333 in 2.0, this setting is attempted inplace,
         #  so object dtype is retained
-        df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.iloc[:, 0:2] = df.iloc[:, 0:2].astype(np.int64)
         expected = pd.DataFrame(
             [[1, 2, "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
@@ -527,7 +529,8 @@ class TestFancy:
 
         # GH5702 (loc)
         df = df_orig.copy()
-        df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
         expected = pd.DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
@@ -536,7 +539,8 @@ class TestFancy:
 
         df = df_orig.copy()
 
-        df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, ["B", "C"]] = df.loc[:, ["B", "C"]].astype(np.int64)
         expected = pd.DataFrame(
             [["1", 2, 3, ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )

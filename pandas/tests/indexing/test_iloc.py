@@ -92,7 +92,15 @@ class TestiLocBaseIndependent:
         df = frame.copy()
         orig_vals = df.values
 
-        indexer_li(df)[key, 0] = cat
+        # GH#52593 warns only for slice keys spanning all rows; iloc's slice(3)
+        #  is not recognized as full
+        is_full = isinstance(key, slice) and (
+            key == slice(None) or indexer_li is tm.loc
+        )
+        warn = UserWarning if is_full else None
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer_li(df)[key, 0] = cat
 
         expected = pd.DataFrame({0: cat}).astype(object)
         assert np.shares_memory(df[0].values, orig_vals)
@@ -108,7 +116,8 @@ class TestiLocBaseIndependent:
         #  we retain the object dtype.
         frame = pd.DataFrame({0: np.array([0, 1, 2], dtype=object), 1: range(3)})
         df = frame.copy()
-        indexer_li(df)[key, 0] = cat
+        with tm.assert_produces_warning(warn, match=msg):
+            indexer_li(df)[key, 0] = cat
         expected = pd.DataFrame(
             {0: pd.Series(cat.astype(object), dtype=object), 1: range(3)}
         )
@@ -1825,7 +1834,9 @@ class TestILocSetItemDuplicateColumns:
 
         # with the enforcement of GH#45333 in 2.0, this sets values inplace,
         #  so we retain object dtype
-        df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.iloc[:, 0] = df.iloc[:, 0].astype(dtypes)
 
         expected_df = pd.DataFrame(
             [[expected_value, "str", "str2"]],

@@ -2880,6 +2880,9 @@ class _iLocIndexer(_LocationIndexer):
                         f"Invalid value '{value}' for dtype '{dtype}'"
                     ) from exc
                 self.obj.isetitem(loc, value)
+            else:
+                if self.obj.dtypes.iloc[loc] == object:
+                    _maybe_warn_object_full_column_setitem(value)
         else:
             # set value into the column (first attempting to operate inplace, then
             #  falling back to casting if necessary)
@@ -2975,6 +2978,17 @@ class _iLocIndexer(_LocationIndexer):
                             #  as the split path does.
                             self._setitem_single_column(int(loc), value, indexer[0])
                             return
+
+            if (
+                self.ndim == 2
+                and len(indexer) == 2
+                and self.obj._mgr.blocks[0].dtype == object
+                and (
+                    com.is_null_slice(indexer[0])
+                    or com.is_full_slice(indexer[0], len(self.obj))
+                )
+            ):
+                _maybe_warn_object_full_column_setitem(value)
 
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
@@ -3557,6 +3571,27 @@ def _positional_row(row):
     if isinstance(row, (tuple, np.ndarray, ABCExtensionArray, ABCIndex)):
         return row
     return np.asarray(row, dtype=object)
+
+
+def _maybe_warn_object_full_column_setitem(value) -> None:
+    """
+    Warn that setting typed values into whole object-dtype columns discards
+    their dtype, since the values are set in place. GH#52593
+    """
+    if isinstance(value, ABCDataFrame):
+        dtypes = list(value.dtypes)
+    elif is_list_like(value) and hasattr(value, "dtype"):
+        dtypes = [value.dtype]
+    else:
+        return
+    if any(dtype != object for dtype in dtypes):
+        warnings.warn(
+            "Setting non-object values into entire object-dtype column(s) with "
+            "`.loc`/`.iloc` sets them in place and keeps object dtype. To replace "
+            "the column(s) with the values' dtype, use `df[cols] = values` instead.",
+            UserWarning,
+            stacklevel=find_stack_level(),
+        )
 
 
 def _is_2d_value_for_columns(value, ncols: int) -> bool:
