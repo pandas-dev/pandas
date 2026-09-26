@@ -2340,4 +2340,3 @@ def test_constructor_from_dataframe_raises(ncols, index):
     df = pd.DataFrame(np.arange(3 * ncols).reshape(3, ncols))
     with pytest.raises(ValueError, match="Cannot construct a Series from a DataFrame"):
         pd.Series(df, index=index)
-
