@@ -7493,7 +7493,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
 
         with np.errstate(all="ignore"):
-            result = func(this_vals, other_vals)
+            if func in {operator.eq, operator.ne, operator.lt, operator.le, operator.gt, operator.ge}:
+                result = ops.comparison_op(this_vals, other_vals, func)
+            else:
+                result = func(this_vals, other_vals)
 
         name = ops.get_op_result_name(self, other)
 

@@ -534,6 +534,26 @@ class TestSeriesFlexComparison:
         expected = pd.Series([False, False])
         tm.assert_series_equal(result, expected)
 
+    def test_eq_none(self) -> None:
+        # GH 20442
+        s = pd.Series([1, None, 3], dtype=object)
+        
+        # == and .eq() should behave consistently for None (returning False)
+        result_eq = s == s
+        expected = pd.Series([True, False, True])
+        tm.assert_series_equal(result_eq, expected)
+        
+        result_method_eq = s.eq(s)
+        tm.assert_series_equal(result_method_eq, expected)
+
+        # != and .ne() should behave consistently for None (returning True)
+        result_ne = s != s
+        expected_ne = pd.Series([False, True, False])
+        tm.assert_series_equal(result_ne, expected_ne)
+        
+        result_method_ne = s.ne(s)
+        tm.assert_series_equal(result_method_ne, expected_ne)
+
     def test_eq_with_index(self) -> None:
         # GH#62191 Test eq with non-trivial indices
         left = pd.Series([1, 2], index=[1, 0])
