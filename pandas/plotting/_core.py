@@ -898,6 +898,9 @@ class PlotAccessor(PandasObject):
     colormap : str or matplotlib colormap object, default None
         Colormap to select colors from. If string, load colormap with that
         name from matplotlib.
+    color : str, array-like, or dict, optional
+        Color for the plot elements. A dict can map DataFrame column names
+        to colors.
     colorbar : bool, optional
         If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
         plots).
