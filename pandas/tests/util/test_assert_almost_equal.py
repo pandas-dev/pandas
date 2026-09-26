@@ -518,7 +518,11 @@ def test_assert_almost_equal_value_mismatch():
 
 @pytest.mark.parametrize(
     "a,b,klass1,klass2",
-    [(np.array([1]), 1, "ndarray", "int"), (1, np.array([1]), "int", "ndarray")],
+    [
+        (np.array([1]), 1, "ndarray", "int"),
+        (1, np.array([1]), "int", "ndarray"),
+        (np.array(1), 1, "ndarray", "int"),
+    ],
 )
 def test_assert_almost_equal_class_mismatch(a, b, klass1, klass2):
     msg = f"""numpy array are different
@@ -766,7 +770,7 @@ def test_assert_almost_equal_array_nested(a, b):
 def test_assert_almost_equal_zero_dim_duck_array():
     # GH#45240 a scalar that defines __iter__/__len__ delegating to a scalar
     #  payload (as pint's Quantity does) is compared as a scalar
-    class Quantity:
+    class PintQuantity:
         # mimics pint's Quantity: __iter__/__len__ delegate to the magnitude,
         #  and ndim reports 0 when that magnitude is a scalar
         ndim = 0
@@ -783,8 +787,82 @@ def test_assert_almost_equal_zero_dim_duck_array():
         def __eq__(self, other):
             return self.magnitude == other.magnitude
 
-    left = np.array([Quantity(1), Quantity(2)], dtype=object)
-    right = np.array([Quantity(1), Quantity(3)], dtype=object)
+    left = np.array([PintQuantity(1), PintQuantity(2)], dtype=object)
+    right = np.array([PintQuantity(1), PintQuantity(3)], dtype=object)
 
     _assert_almost_equal_both(left, left.copy())
     _assert_not_almost_equal_both(left, right)
+
+
+def test_assert_almost_equal_zero_dim_numpy_subclass():
+    # Similar to GH#45240, but with a subclass of ndarray that returns a 0-dim array
+    #  of itself as common in astropy's Quantity; see GH#68927
+    class AstropyQuantity(np.ndarray):
+        # mimics astropy's Quantity: Uses a subclass of ndarray, with custom
+        # __getitem__ so that it returns a zerodim array of itself instead of scalar
+        def __new__(cls, input_array):
+            return np.asarray(input_array).view(cls)
+
+        def __getitem__(self, index):
+            out = super().__getitem__(index)
+            if not isinstance(out, np.ndarray):
+                # Wrap scalars in a 0-dim array of the same subclass
+                out = type(self)(out)
+            return out
+
+    left = AstropyQuantity([1, 2])
+    right = AstropyQuantity([1, 3])
+
+    _assert_almost_equal_both(left, left.copy())
+    _assert_not_almost_equal_both(left, right)
+
+
+def test_assert_almost_equal_zero_dim_numpy_dtype():
+    # GH#68927 By default dtype should be checked
+    a = np.array(5)
+    b = np.array(5.0)
+    msg = 'numpy array are different\n\nAttribute "dtype" are different'
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(b, a)
+
+    # Without check_dtype, they are considered equal
+    _assert_almost_equal_both(a, b, check_dtype=False)
+
+
+def test_assert_almost_equal_zero_dim_numpy_ndim():
+    # GH#68927 Arrays of same size but different ndim should be different
+    a = np.array(5)
+    b = np.array([5])
+    msg = "numpy array are different\n\nnumpy array shapes are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(b, a)
+
+
+def test_assert_almost_equal_zero_dim_numpy_size():
+    # GH#68927 Arrays of different size should be different
+    a = np.array(5)
+    b = np.array([5, 5])
+    msg = "numpy array are different\n\nnumpy array shapes are different"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(b, a)
+
+
+def test_assert_almost_equal_zero_dim_numpy_tolerance():
+    # GH#68927 Zero dim arrays should follow the scalar path
+    a = np.array(5.0)
+    b = np.array(5.1)
+    tm.assert_almost_equal(a, b, atol=0.1)
+    msg = "expected 5.10000 but got 5.00000, with rtol=1e-05, atol=1e-05"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b, atol=0.00001)
+
+    tm.assert_almost_equal(a, b, rtol=0.1)
+    msg = "expected 5.10000 but got 5.00000, with rtol=0.01, atol=1e-08"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b, rtol=0.01)
