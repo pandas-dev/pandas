@@ -173,6 +173,19 @@ def test_binary_input_aligns_index(request, dtype):
     tm.assert_frame_equal(result, expected)
 
 
+def test_binary_input_aligns_duplicate_labels():
+    # GH#54416
+    df1 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=["A", "B"], index=[0, 0])
+    df2 = pd.DataFrame([[5.0, 6.0], [7.0, 8.0]], columns=["C", "C"], index=[0, 1])
+    result = np.heaviside(df1, df2)
+    expected = pd.DataFrame(
+        [[1.0, 1.0, np.nan, np.nan]] * 2 + [[np.nan] * 4],
+        index=[0, 0, 1],
+        columns=["A", "B", "C", "C"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_binary_frame_series_raises():
     # We don't currently implement
     df = pd.DataFrame({"A": [1, 2]})

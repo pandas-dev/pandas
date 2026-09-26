@@ -881,6 +881,7 @@ Numeric
 - Fixed bug in arithmetic between :class:`DataFrame` and an object-dtype :class:`arrays.NumpyExtensionArray` returning an unexpected dtype because ``NumpyEADtype`` was not recognized as object dtype (:issue:`64969`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the ``fill_value`` parameter (:issue:`61581`)
+- Fixed bug where calling a binary NumPy ufunc without an operator equivalent (e.g. ``np.logical_or``, ``np.logaddexp``) on two :class:`Series` or two :class:`DataFrame` objects with duplicate labels raised ``ValueError`` instead of aligning like the corresponding binary operations (:issue:`54416`)
 
 Conversion
 ^^^^^^^^^^
