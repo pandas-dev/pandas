@@ -963,8 +963,9 @@ def test_cmp_object_subtype_keeps_fill_value():
     values = np.array([1, pd.NA, 0, 1], dtype=object)
     arr = SparseArray(values, fill_value=0)
 
-    assert (arr == 0).dtype == pd.SparseDtype(bool, True)
-    assert (arr == 1).dtype == pd.SparseDtype(bool, False)
+    # GH#63328 comparison result preserves pd.NA, with object dtype
+    assert (arr == 0).dtype == pd.SparseDtype(object, True)
+    assert (arr == 1).dtype == pd.SparseDtype(object, False)
 
 
 @pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.gt])
