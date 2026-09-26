@@ -1046,23 +1046,50 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
-        "box",
-        [np.array, pd.Series, pd.Index, pd.array],
-        ids=["ndarray", "Series", "Index", "pd.array"],
+        "value",
+        [
+            [[1, 2], [3, 4]],
+            [np.array([1, 2]), np.array([3, 4])],
+            [pd.Series([1, 2]), pd.Series([3, 4])],
+            [pd.Index([1, 2]), pd.Index([3, 4])],
+            [pd.array([1, 2]), pd.array([3, 4])],
+            np.array([[1, 2], [3, 4]]),
+            [[1], [2]],
+            np.array([[1], [2]]),
+            np.array([[1]]),
+        ],
+        ids=[
+            "lists",
+            "ndarrays",
+            "Series",
+            "Index",
+            "pd.array",
+            "2d-ndarray",
+            "width-1-lists",
+            "width-1-2d-ndarray",
+            "1x1-ndarray",
+        ],
     )
+    # the second column's dtype decides whether the frame is single-block, and
+    #  so whether the setitem takes the split path
+    @pytest.mark.parametrize("other_dtype", ["int64", object], ids=["mixed", "object"])
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
-    def test_setitem_split_path_list_of_arrays_object_cell(self, indexer, box):
-        # GH#64230 being a 2D value takes precedence over the nested-data-into-
-        # a-single-object-cell branch, so this is a shape mismatch rather than
-        # a list stored in df.iloc[0, 0]
-        df = pd.DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
-        value = [box([1, 2]), box([3, 4])]
-        msg = "Must have equal len keys and value when setting with an ndarray"
-        with pytest.raises(ValueError, match=msg):
-            if indexer == "loc":
-                df.loc[0, "a"] = value
-            else:
-                df.iloc[0, 0] = value
+    def test_setitem_2d_value_into_object_cell(self, indexer, other_dtype, value):
+        # GH#69152 a single object cell stores a 2D value as-is, whatever the
+        #  frame's block layout; the split path used to raise or flatten it
+        df = pd.DataFrame(
+            {"a": np.zeros(2, dtype=object), "b": np.zeros(2, dtype=other_dtype)}
+        )
+        if indexer == "loc":
+            df.loc[0, "a"] = value
+        else:
+            df.iloc[0, 0] = value
+
+        assert df.iloc[0, 0] is value
+        assert df.iloc[1, 0] == 0
+        tm.assert_series_equal(
+            df["b"], pd.Series(np.zeros(2, dtype=other_dtype), name="b")
+        )
 
     @pytest.mark.parametrize(
         "box",
