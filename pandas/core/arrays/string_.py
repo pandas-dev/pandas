@@ -482,7 +482,9 @@ class BaseStringArray(ExtensionArray):
             return result
 
         return lib.maybe_convert_objects(
-            result, convert_non_numeric=True, convert_to_nullable_dtype=True
+            result,
+            convert_non_numeric=True,
+            convert_to_nullable_dtype=self.dtype.na_value is not np.nan,
         )
 
     def _str_map(
