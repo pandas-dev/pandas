@@ -186,6 +186,14 @@ class TestIndexConstructorInference:
         tm.assert_index_equal(pd.Index([0, 256, 2**40], dtype=">i8"), expected)
         tm.assert_index_equal(pd.Index(arr.astype("f8")).astype(">i8"), expected)
 
+    def test_constructor_non_native_float16_raises(self):
+        # GH#53234 the float16 check must see the native dtype
+        msg = "float16 indexes are not supported"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.Index(np.array([1, 2], dtype=">f2"))
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.Index([1.0, 2.0]).astype(">f2")
+
 
 class TestDtypeEnforced:
     # check we don't silently ignore the dtype keyword
