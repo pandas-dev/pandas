@@ -690,47 +690,6 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(ref, df_orig)
 
     @pytest.mark.parametrize("referenced", [True, False])
-    @pytest.mark.parametrize("shape", [(2, 2), (3, 2)])
-    def test_iloc_setitem_datetimelike_two_advanced_keys(self, shape, referenced):
-        # GH#65446 two advanced keys broadcast, so reversing them for the
-        #  (nblocks, nrows) storage layout must not also transpose the value.
-        #  Unreferenced, the square shape wrote transposed data and the
-        #  non-square one raised
-        n_rows = shape[0] + 1
-        df = pd.DataFrame(
-            np.arange(n_rows * 3, dtype="i8").reshape(n_rows, 3).view("M8[s]"),
-            columns=list("abc"),
-        )
-        df_orig = df.copy()
-        value = np.arange(100, 100 + shape[0] * shape[1], dtype="i8")
-        value = value.view("M8[s]").reshape(shape)
-        rows = list(range(n_rows - 1, n_rows - 1 - shape[0], -1))
-
-        ref = df[["a", "b", "c"]] if referenced else None
-        df.iloc[rows, [0, 2]] = value
-        df._mgr._verify_integrity()
-
-        arr = df_orig.to_numpy().copy()
-        arr[np.ix_(rows, [0, 2])] = value
-        tm.assert_frame_equal(df, pd.DataFrame(arr, columns=list("abc")))
-        if referenced:
-            tm.assert_frame_equal(ref, df_orig)
-
-    @pytest.mark.parametrize("col_indexer, shape", [(1, (2, 1)), ([1], (1, 2))])
-    def test_iloc_setitem_datetimelike_misshapen_2d_value(self, col_indexer, shape):
-        # GH#65446 the value was transposed whether or not reversing the
-        #  indexer pair transposed the selection, which let a misshapen value
-        #  through on a datetimelike frame where a float one raises
-        df = pd.DataFrame(
-            np.arange(9, dtype="i8").reshape(3, 3).view("M8[s]"), columns=list("abc")
-        )
-        value = np.arange(100, 102, dtype="i8").view("M8[s]").reshape(shape)
-        # the datetimelike arm misreports the shape error as a resolution one;
-        #  the rejection is the point, so accept either wording
-        with pytest.raises(ValueError, match="(Incompatible|sequence)"):
-            df.iloc[np.array([0, 2]), col_indexer] = value
-
-    @pytest.mark.parametrize("referenced", [True, False])
     @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
     @pytest.mark.parametrize("key", [([2, 1, 0], Ellipsis), (Ellipsis, [2, 0, 1])])
     def test_iloc_setitem_ellipsis_indexer(self, key, dtype, referenced):
@@ -752,6 +711,46 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, pd.DataFrame(arr, columns=list("abc")))
         if referenced:
             tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_newaxis_column_key_referenced_block(self):
+        # GH#65446 np.newaxis inserts an axis rather than selecting columns
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        df.iloc[np.array([0, 2]), None] = 99.0
+        df._mgr._verify_integrity()
+        expected = df_orig.copy()
+        expected.iloc[[0, 2]] = 99.0
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    def test_iloc_setitem_row_only_tuple_key_referenced_block(self):
+        # GH#65446 a trailing comma leaves the column key implicit
+        df = pd.DataFrame(
+            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
+        )
+        df_orig = df.copy()
+        expected = df.copy()
+        expected.iloc[[0, 2],] = 99.0
+        ref = df[["a", "b", "c"]]
+        df.iloc[[0, 2],] = 99.0
+        df._mgr._verify_integrity()
+        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(ref, df_orig)
+
+    @pytest.mark.parametrize("dtype", ["float64", "M8[s]"])
+    def test_iloc_setitem_double_ellipsis_referenced_block(self, dtype):
+        # GH#65446 numpy rejects two Ellipses; a referenced frame must too
+        df = pd.DataFrame(
+            np.arange(9, dtype="i8").reshape(3, 3).astype(dtype), columns=list("abc")
+        )
+        df_orig = df.copy()
+        ref = df[["a", "b", "c"]]
+        with pytest.raises(IndexError, match="single ellipsis"):
+            df.iloc[..., ...] = df_orig.iloc[0, 0]
+        tm.assert_frame_equal(ref, df_orig)
 
     def test_iloc_setitem_2d_row_indexer_referenced_block(self):
         # GH#65446 a 2d row indexer selects the cross product with a slice

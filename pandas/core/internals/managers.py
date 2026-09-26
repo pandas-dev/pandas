@@ -571,12 +571,15 @@ class BaseBlockManager(PandasObject):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
+                # a key short of the column axis, e.g. from a trailing comma,
+                # selects all columns (GH#65446)
+                indexer = indexer + (slice(None),) * (2 - len(indexer))
                 blk_loc = self.blklocs[indexer[1]]
                 if is_list_like(blk_loc) and blk_loc.ndim == 2:
                     blk_loc = np.squeeze(blk_loc, axis=0)
                 elif not is_list_like(blk_loc):
                     # Keep dimension and copy data later
-                    blk_loc = [blk_loc]  # type: ignore[assignment]
+                    blk_loc = [blk_loc]
                 if len(blk_loc) == 0:
                     return self.copy(deep=False)
 
@@ -593,22 +596,22 @@ class BaseBlockManager(PandasObject):
                     )
 
                     indexer = list(indexer)
-                    if indexer[1] is Ellipsis:
-                        # Ellipsis selects the whole axis, like slice(None)
-                        indexer[1] = slice(None)
                     # The column indexer has to keep the kind the caller used:
                     # a slice takes the cross product with the row indexer,
                     # while an array broadcasts against it (GH#65446)
-                    if lib.is_integer(indexer[1]):
-                        col_indexer = 0
+                    if indexer[1] is Ellipsis or indexer[1] is None:
+                        # the new block holds every column in order, so the
+                        # key applies unchanged
+                        pass
+                    elif lib.is_integer(indexer[1]):
+                        indexer[1] = 0
                     elif isinstance(indexer[1], slice):
                         # the new block holds the columns sorted, so a slice
                         # over them differs from the caller's only in direction
                         step = None if inverse[0] <= inverse[-1] else -1
-                        col_indexer = slice(None, None, step)  # type: ignore[assignment]
+                        indexer[1] = slice(None, None, step)
                     else:
-                        col_indexer = inverse  # type: ignore[assignment]
-                    indexer[1] = col_indexer
+                        indexer[1] = inverse
 
                     if isinstance(indexer[0], np.ndarray) and len(indexer[0]) == 0:
                         # numpy does not like empty indexer combined with slice
