@@ -551,6 +551,46 @@ def test_pickle_preserves_block_ndim(temp_file):
     tm.assert_series_equal(res[[True]], ser)
 
 
+@pytest.mark.parametrize("indexer", [slice(None, 5), slice(None, None, 2)])
+def test_pickle_strided_block_out_of_band(indexer):
+    # GH#55781 numpy serializes only contiguous arrays out of band, so a
+    #  strided view such as df.iloc[:5] was copied into the pickle stream
+    df = pd.DataFrame(1.1 * np.arange(40).reshape((10, 4)))
+    subset = df.iloc[indexer]
+    assert not subset._mgr.blocks[0].values.flags.forc
+
+    buffers = []
+    data = pickle.dumps(subset, protocol=5, buffer_callback=buffers.append)
+
+    assert len(buffers) == 1
+    tm.assert_frame_equal(pickle.loads(data, buffers=buffers), subset)
+
+    # the same reduce tuple has to round-trip in band, which is what to_pickle does
+    tm.assert_frame_equal(pickle.loads(pickle.dumps(subset, protocol=5)), subset)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "object"])
+@pytest.mark.parametrize("protocol", [4, 5])
+def test_pickle_strided_block_no_copy_when_unused(dtype, protocol):
+    # GH#55781 making the block contiguous costs a copy, so it is worth it
+    #  only where numpy would serialize it out of band
+    df = pd.DataFrame(np.arange(40).reshape((10, 4)).astype(dtype))
+    block = df.iloc[:5]._mgr.blocks[0]
+    assert not block.values.flags.forc
+
+    copied = block.__reduce_ex__(protocol)[1][0] is not block.values
+    assert copied == (protocol == 5 and dtype == "float64")
+
+
+def test_pickle_f_contiguous_block_not_copied():
+    # GH#55781 numpy already serializes an F-contiguous block out of band, so
+    #  making it C-contiguous would flip its layout for nothing
+    block = pd.DataFrame(np.zeros((10, 4))).T._mgr.blocks[0]
+    assert block.values.flags.f_contiguous
+
+    assert block.__reduce_ex__(5)[1][0] is block.values
+
+
 @pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
 def test_pickle_big_dataframe_compression(protocol, compression, temp_file):
     # GH#39002
