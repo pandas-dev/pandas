@@ -412,6 +412,8 @@ def test_join_list_series(float_frame):
     right = [float_frame.B, float_frame[["C", "D"]]]
     result = left.join(right)
     tm.assert_frame_equal(result, float_frame)
+
+
 def test_join_list_multiindex_fallback():
     # GH 57676
     join_df = pd.DataFrame(
