@@ -621,6 +621,162 @@ class TestRangeIndex:
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "index, values, expected",
+        [
+            (pd.RangeIndex(0, 10, 2), [1, 4], "00100"),
+            (pd.RangeIndex(0, 10, 2), [1, 2], "01000"),
+            (pd.RangeIndex(0, 10, 2), [-1, 0, 10], "10000"),
+            (pd.RangeIndex(5), [3, 4], "00011"),
+            (pd.RangeIndex(5), [-1, 0, 10], "10000"),
+            (pd.RangeIndex(10, 0, -1), [10, 5, 0], "1000010000"),
+            (pd.RangeIndex(10, 0, -1), [9, 5, 1], "0100010001"),
+            (pd.RangeIndex(-5, 5, 1), [-3, 0, 3], "0010010010"),
+            (pd.RangeIndex(1, 10, 3), [1, 4], "110"),
+            (pd.RangeIndex(1, 10, 3), [2, 3], "000"),
+            (pd.RangeIndex(0, 5), [], "00000"),
+        ],
+    )
+    def test_isin_small_query(self, index, values, expected):
+        # GH#66263
+        result = index.isin(values)
+        expected = np.array([c == "1" for c in expected], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "index, values",
+        [
+            (
+                pd.RangeIndex(-10_000, 100_000, 3),
+                [5, 89, 99_999, 3_000, -10_001],
+            ),
+            # negative step
+            (
+                pd.RangeIndex(100_000, -100, -5),
+                [100_000, 0, -95, 7, 50_000, -500],
+            ),
+            # floats, bools, nan
+            (
+                pd.RangeIndex(0, 100_000, 1),
+                [7.0, 7.5, True, np.nan, 30_000.0, -1.0, 100_000.0],
+            ),
+            # numpy integer scalars
+            (
+                pd.RangeIndex(0, 100_000, 2),
+                [np.int64(6), np.int64(99_998), np.int64(7), np.uint64(4)],
+            ),
+        ],
+    )
+    def test_isin_small_query_matches_base(self, index, values):
+        # GH#66263: the optimized path (query shorter than the index) must
+        # agree with the generic implementation on a materialized Index
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_large_query_result_matches_base(self):
+        # GH#66263: the optimized small-query path must agree with the
+        # generic implementation on a materialized Index
+        index = pd.RangeIndex(-10, 30, 2)
+        values = [1, 2, 4, 20, 29, 30]
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_large_query_falls_back(self):
+        # GH#66263: when the query is at least as large as the index, delegate
+        # to the generic implementation
+        index = pd.RangeIndex(5)
+        values = list(range(5))
+        result = index.isin(values)
+        expected = np.array([True, True, True, True, True], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_medium_query_falls_back(self):
+        # GH#66263: the speed-up is bounded by ``len(self) // 64``, so larger
+        # queries delegate to the generic implementation
+        index = pd.RangeIndex(1_000_000)
+        values = list(range(200_000))
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [4, 250_000],
+            np.array([4, 250_000]),
+            {4, 250_000},
+        ],
+    )
+    def test_isin_does_not_materialize_values(self, monkeypatch, values):
+        # GH#66263: the optimized path must not materialize the full integer
+        # array (``self._values``) that the generic implementation allocates
+
+        def raise_on_values(*args, **kwargs):
+            raise AssertionError("RangeIndex._values must not be materialized")
+
+        monkeypatch.setattr(
+            range_module.RangeIndex, "_values", property(raise_on_values)
+        )
+        index = pd.RangeIndex(0, 10_000_000)
+        result = index.isin(values)
+        expected = np.zeros(len(index), dtype=bool)
+        expected[4] = True
+        expected[250_000] = True
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_complex_values_matches_base(self):
+        # GH#66263: complex values (e.g. 1+0j) cannot be compared with the
+        # integer range bounds, so the fast path must fall back to the generic
+        # implementation rather than dropping the matches
+        index = pd.RangeIndex(5)
+        values = [1 + 0j, 2 + 1j]
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+        assert result[1]
+
+        # same via the fast path, on a large RangeIndex
+        index = pd.RangeIndex(500_000)
+        values = [250_000 + 0j, 2 + 1j]
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+        assert result[250_000]
+
+    @pytest.mark.parametrize(
+        "index, values, expected_vals",
+        [
+            (pd.RangeIndex(0, 10, 2), {2, 3, 8}, [2, 3, 8]),
+            (pd.RangeIndex(0, 5), ("a", None, np.nan), ["a", None, np.nan]),
+        ],
+    )
+    def test_isin_set_and_non_numeric_values(self, index, values, expected_vals):
+        # GH#66263: set and non-numeric values are handled like the generic
+        # implementation
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(expected_vals)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_generator(self):
+        # GH#66263: generators have no length and are delegated to the generic
+        # implementation, matching Index.isin behavior
+        index = pd.RangeIndex(0, 5)
+        result = index.isin(x for x in [1, 3])
+        expected = pd.Index(index._values).isin([1, 3])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_level_kwarg(self):
+        index = pd.RangeIndex(3)
+        result = index.isin([1], level=None)
+        expected = np.array([False, True, False], dtype=bool)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_non_list_like_raises(self):
+        with pytest.raises(TypeError, match="only list-like"):
+            pd.RangeIndex(3).isin(1)
+
     def test_sort_values_key(self):
         # GH#43666, GH#52764
         sort_order = {8: 2, 6: 0, 4: 8, 2: 10, 0: 12}
