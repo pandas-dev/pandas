@@ -1890,3 +1890,33 @@ def test_pyxlsb_engine_deprecated(datapath):
         Pandas4Warning, match="pyxlsb engine is deprecated"
     ):
         pd.read_excel(path, engine="pyxlsb")
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The (xlrd|pyxlsb) engine is deprecated:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize(
+    "engine, module_name, read_ext, load",
+    [
+        ("xlrd", "xlrd", ".xls", lambda mod, path: mod.open_workbook(path)),
+        ("openpyxl", "openpyxl", ".xlsx", lambda mod, path: mod.load_workbook(path)),
+        ("odf", "odf.opendocument", ".ods", lambda mod, path: mod.load(path)),
+        ("pyxlsb", "pyxlsb", ".xlsb", lambda mod, path: mod.open_workbook(path)),
+        (
+            "calamine",
+            "python_calamine",
+            ".xlsx",
+            lambda mod, path: mod.CalamineWorkbook.from_path(path),
+        ),
+    ],
+)
+def test_read_workbook_infers_engine(datapath, engine, module_name, read_ext, load):
+    # GH#46352
+    module = pytest.importorskip(module_name)
+    path = datapath("io", "data", "excel", f"test1{read_ext}")
+    expected = pd.read_excel(path, engine=engine, index_col=0)
+
+    with pd.ExcelFile(load(module, path)) as xl:
+        assert xl.engine == engine
+    result = pd.read_excel(load(module, path), index_col=0)
+    tm.assert_frame_equal(result, expected)
