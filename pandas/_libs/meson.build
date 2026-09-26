@@ -161,7 +161,7 @@ libs_sources = {
             'src/vendored/ujson/lib/ultrajsonenc.c',
             'src/vendored/ujson/lib/ultrajsondec.c',
         ],
-        'deps': [m_dep],
+        'deps': [m_dep, tokenizer_dep],
         'c_args': strict_c_args,
     },
     'ops': {'sources': ['ops.pyx']},

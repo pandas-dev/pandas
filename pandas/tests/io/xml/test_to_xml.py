@@ -1248,7 +1248,7 @@ def test_style_to_json(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    out_json = geom_df.to_json()
+    out_json = geom_df.to_json(double_precision=None)
     out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
 
     assert out_json == out_xml

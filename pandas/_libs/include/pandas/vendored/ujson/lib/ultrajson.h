@@ -64,6 +64,10 @@ tree doesn't have cyclic references.
 #  define JSON_DOUBLE_MAX_DECIMALS 15
 #endif
 
+// Value of doublePrecision that encodes doubles with the shortest
+// representation that round-trips exactly
+#define JSON_DOUBLE_SHORTEST (-1)
+
 // Max recursion depth, default for encoder
 #ifndef JSON_MAX_RECURSION_DEPTH
 #  define JSON_MAX_RECURSION_DEPTH 1024
@@ -240,8 +244,19 @@ typedef struct __JSONObjectEncoder {
 
   /*
   Configuration for max decimals of double floating point numbers to encode
-  (0-9) */
+  (0-15), or JSON_DOUBLE_SHORTEST */
   int doublePrecision;
+
+  /*
+  Set to true when a double is encoded */
+  int floatWritten;
+
+  /*
+  Write the shortest representation of a finite double that round-trips
+  exactly to out, which has room for at least 32 characters. Returns the number
+  of characters written, or -1 on error. Used when doublePrecision is
+  JSON_DOUBLE_SHORTEST. */
+  int (*formatShortestDouble)(double value, char *out);
 
   /*
   If true output will be ASCII with all characters above 127 encoded as \uXXXX.
@@ -318,6 +333,9 @@ typedef struct __JSONObjectDecoder {
   char *errorStr;
   char *errorOffset;
   int preciseFloat;
+  /*
+  Set to true when a double is decoded */
+  int floatParsed;
   void *prv;
 } JSONObjectDecoder;
 

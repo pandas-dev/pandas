@@ -155,6 +155,7 @@ Other enhancements
 - :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype now aligns fractional seconds in string representation for easier reading (:issue:`57188`)
 - :meth:`.DataFrameGroupBy.agg` now allows for the provided ``func`` to return a NumPy array (:issue:`63957`)
 - :meth:`DataFrameGroupBy.transform` now accepts list-like and dict arguments similar to :meth:`GroupBy.agg`, and supports :class:`NamedFunc` (:issue:`58318`)
+- :meth:`DataFrame.to_json` and :meth:`Series.to_json` now accept ``double_precision=None`` to write floating point values with the shortest representation that round-trips exactly (:issue:`62072`, :issue:`59313`, :issue:`23328`)
 - :meth:`Series.to_json` now supports serializing custom ExtensionArrays (by correctly using the ``_values_for_json`` method of an ExtensionArray) (:issue:`65047`)
 - :meth:`Timestamp.round`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now officially accept :class:`Timedelta` arguments (:issue:`63687`)
 - Added :class:`NamedFunc`, an alias to :class:`NamedAgg` for a more semantically accurate name when used with non-aggregation functions; either can accept arbitrary functions (:issue:`65164`)
@@ -511,6 +512,33 @@ default of ``False``, and since pandas 3.0 those also return the updated object)
 
 For more background about the change, see the motivation section in `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__.
 
+.. _whatsnew_310.deprecations.json_floats:
+
+Deprecated imprecise floating point handling in JSON I/O
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, :meth:`DataFrame.to_json` and :meth:`Series.to_json` round floating
+point values to 10 decimal places, and :func:`read_json` parses floating point
+values with a method that is not always correctly rounded. As a result, floating
+point values can change when written to JSON and read back (:issue:`62464`).
+
+In a future version, floating point values will be written with the shortest
+representation that round-trips exactly, and parsed with full precision. You can
+opt in to this behavior now by passing ``double_precision=None`` to ``to_json``
+and ``precise_float=True`` to ``read_json``:
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1 / 3]})
+
+    In [2]: df.to_json(double_precision=None)
+    Out[2]: '{"a":{"0":0.3333333333333333}}'
+
+Passing an integer for ``double_precision`` and passing ``precise_float=False``
+are deprecated. To control the number of digits written, round the data before
+writing. When neither keyword is passed, a ``Pandas4Warning`` is emitted if the
+data being written or read contains floating point values.
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -618,6 +646,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with ``engine="c"`` when reading from binary file-like objects (e.g. PyArrow S3 file handles) by avoiding unnecessary ``TextIOWrapper`` wrapping (:issue:`46823`)
 - Performance improvement in :func:`read_hdf` for the fixed (default) format, especially on large frames (:issue:`47726`)
 - Performance improvement in :func:`read_html` and the Python CSV parser when ``thousands`` is set, fixing catastrophic regex backtracking on cells with many comma-separated digit groups followed by non-numeric text (:issue:`52619`)
+- Performance improvement in :func:`read_json` with ``precise_float=True`` (:issue:`62464`)
 - Performance improvement in :func:`read_sas` by reading page header fields directly in Cython instead of falling back to Python (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for RLE- and RDC-compressed SAS7BDAT files (:issue:`47339`)
 - Performance improvement in :func:`read_sas` for SAS7BDAT files by pre-computing date/datetime column classification once during metadata parsing instead of per chunk (:issue:`47339`)
@@ -1023,7 +1052,7 @@ I/O
 - :func:`read_csv`, :func:`read_fwf`, and :func:`read_excel` with a numeric :class:`ArrowDtype` (e.g. ``dtype="double[pyarrow]"``) now raise ``ValueError`` for an empty field that is not treated as missing (e.g. with ``keep_default_na=False``), matching the behavior of numpy dtypes such as ``float64``; previously the value was silently stored as ``NaN`` but was not considered missing by :meth:`Series.isna` and :meth:`Series.fillna` (:issue:`66834`)
 - :func:`read_csv`, :func:`read_fwf`, and :func:`read_table` now raise ``ValueError`` for a non-bool ``cache_dates``, ``dayfirst``, ``doublequote``, ``iterator``, ``keep_default_na``, ``low_memory``, ``memory_map``, ``na_filter``, ``skip_blank_lines`` or ``skipinitialspace``; previously the value was taken for its truthiness, so e.g. ``keep_default_na="False"`` silently did the opposite of what was asked. :func:`read_excel` (for ``keep_default_na`` and ``na_filter``) and :func:`read_html` (for ``keep_default_na``) now raise for the same reason (:issue:`68341`)
 - :func:`read_html` and :func:`read_json` now raise the underlying error when a file cannot be read -- ``IsADirectoryError``, ``PermissionError``, an over-long-path ``OSError``, or for :func:`read_json` a ``URLError`` from a failed fetch -- instead of raising ``FileNotFoundError`` for every such failure (:issue:`29125`)
-- :func:`read_json` with ``engine="pyarrow"`` now raises ``ValueError`` when passed an option the engine cannot apply -- such as ``typ="series"``, ``convert_dates``, ``keep_default_dates``, ``date_unit``, ``precise_float``, ``convert_axes``, ``encoding``, ``encoding_errors``, ``storage_options``, an explicit ``compression``, or a non-``ArrowDtype`` ``dtype`` -- instead of silently ignoring it and returning an incorrect result (:issue:`66144`)
+- :func:`read_json` with ``engine="pyarrow"`` now raises ``ValueError`` when passed an option the engine cannot apply -- such as ``typ="series"``, ``convert_dates``, ``keep_default_dates``, ``date_unit``, ``convert_axes``, ``encoding``, ``encoding_errors``, ``storage_options``, an explicit ``compression``, or a non-``ArrowDtype`` ``dtype`` -- instead of silently ignoring it and returning an incorrect result (:issue:`66144`)
 - :func:`read_pickle` now preserves the ``name`` of a :class:`Series` pickled by pandas before 2.1; previously :meth:`Series.copy`, :meth:`Series.reindex`, :meth:`Series.astype` and other methods silently dropped it, and re-pickling the object carried the problem into the new file (:issue:`61819`)
 - :func:`read_sas` now raises ``OutOfBoundsDatetime`` for a SAS7BDAT date or datetime too far out of range to represent, instead of silently reading it as ``NaT``, and the error names the offending value rather than a date the file does not hold (:issue:`47339`)
 - :func:`read_sas` now raises an informative ``ValueError`` for a SAS7BDAT file that changes the column layout it declared partway through, instead of parsing the rest of the file with metadata that no longer describes it -- reading past the end of a row and returning unrelated memory as data, reading every column from the wrong bytes, silently emptying a column to all-NaN, or padding the result with rows the file does not hold (:issue:`47339`)

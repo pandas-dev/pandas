@@ -279,7 +279,7 @@ class TestTableOrient:
     def test_to_json(self, df_table, using_infer_string):
         df = df_table
         df.index.name = "idx"
-        result = df.to_json(orient="table", date_format="iso")
+        result = df.to_json(orient="table", date_format="iso", double_precision=None)
         result = json.loads(result, object_pairs_hook=OrderedDict)
 
         assert "pandas_version" in result["schema"]
@@ -371,7 +371,7 @@ class TestTableOrient:
 
     def test_to_json_float_index(self):
         data = pd.Series(1, index=[1.0, 2.0])
-        result = data.to_json(orient="table", date_format="iso")
+        result = data.to_json(orient="table", date_format="iso", double_precision=None)
         result = json.loads(result, object_pairs_hook=OrderedDict)
         result["schema"].pop("pandas_version")
 
@@ -466,11 +466,13 @@ class TestTableOrient:
         )
         with pytest.raises(ValueError, match=error_msg):
             with tm.assert_produces_warning(Pandas4Warning, match=warning_msg):
-                df_table.to_json(orient="table", date_format="epoch")
+                df_table.to_json(
+                    orient="table", date_format="epoch", double_precision=None
+                )
 
         # others work
-        df_table.to_json(orient="table", date_format="iso")
-        df_table.to_json(orient="table")
+        df_table.to_json(orient="table", date_format="iso", double_precision=None)
+        df_table.to_json(orient="table", double_precision=None)
 
     def test_convert_pandas_type_to_json_field_int(self, index_or_series):
         kind = index_or_series
@@ -741,8 +743,8 @@ class TestTableOrientReader:
     )
     def test_read_json_table_orient(self, index_nm, vals):
         df = pd.DataFrame(vals, index=pd.Index(range(4), name=index_nm))
-        out = StringIO(df.to_json(orient="table"))
-        result = pd.read_json(out, orient="table")
+        out = StringIO(df.to_json(orient="table", double_precision=None))
+        result = pd.read_json(out, orient="table", precise_float=True)
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize(
@@ -801,8 +803,8 @@ class TestTableOrientReader:
                 (pd.Period(f"2022Q{q}") for q in range(1, 5)), name=index_nm
             ),
         )
-        out = StringIO(df.to_json(orient="table"))
-        result = pd.read_json(out, orient="table")
+        out = StringIO(df.to_json(orient="table", double_precision=None))
+        result = pd.read_json(out, orient="table", precise_float=True)
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize(
@@ -843,8 +845,8 @@ class TestTableOrientReader:
     def test_read_json_table_timezones_orient(self, idx, vals):
         # GH 35973
         df = pd.DataFrame(vals, index=idx)
-        out = StringIO(df.to_json(orient="table"))
-        result = pd.read_json(out, orient="table")
+        out = StringIO(df.to_json(orient="table", double_precision=None))
+        result = pd.read_json(out, orient="table", precise_float=True)
         tm.assert_frame_equal(df, result)
 
     def test_comprehensive(self):
@@ -865,8 +867,8 @@ class TestTableOrientReader:
             index=pd.Index(range(4), name="idx"),
         )
 
-        out = StringIO(df.to_json(orient="table"))
-        result = pd.read_json(out, orient="table")
+        out = StringIO(df.to_json(orient="table", double_precision=None))
+        result = pd.read_json(out, orient="table", precise_float=True)
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize(
@@ -912,7 +914,7 @@ class TestTableOrientReader:
         }
         """
         expected = pd.DataFrame({"a": [1, 2.0, "s"]})
-        result = pd.read_json(StringIO(df_json), orient="table")
+        result = pd.read_json(StringIO(df_json), orient="table", precise_float=True)
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q", "Y", "2Y"])

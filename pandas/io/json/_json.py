@@ -5,6 +5,7 @@ from abc import (
     abstractmethod,
 )
 from collections import abc
+from functools import partial
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -122,7 +123,7 @@ def to_json(
     obj: NDFrame,
     orient: str | None = ...,
     date_format: str = ...,
-    double_precision: int = ...,
+    double_precision: int | lib.NoDefault | None = ...,
     force_ascii: bool = ...,
     date_unit: str = ...,
     default_handler: Callable[[Any], JSONSerializable] | None = ...,
@@ -141,7 +142,7 @@ def to_json(
     obj: NDFrame,
     orient: str | None = ...,
     date_format: str = ...,
-    double_precision: int = ...,
+    double_precision: int | lib.NoDefault | None = ...,
     force_ascii: bool = ...,
     date_unit: str = ...,
     default_handler: Callable[[Any], JSONSerializable] | None = ...,
@@ -159,7 +160,7 @@ def to_json(
     obj: NDFrame,
     orient: str | None = None,
     date_format: str = "epoch",
-    double_precision: int = 10,
+    double_precision: int | lib.NoDefault | None = lib.no_default,
     force_ascii: bool = True,
     date_unit: str = "ms",
     default_handler: Callable[[Any], JSONSerializable] | None = None,
@@ -201,6 +202,7 @@ def to_json(
         )
         raise ValueError(msg)
 
+    obj_type_name = type(obj).__name__
     if orient == "table" and isinstance(obj, Series):
         obj = obj.to_frame(name=obj.name or "values")
 
@@ -246,7 +248,7 @@ def to_json(
     else:
         raise NotImplementedError("'obj' should be a Series or a DataFrame")
 
-    s = writer(
+    json_writer = writer(
         obj,
         orient=orient,
         date_format=date_format,
@@ -256,7 +258,19 @@ def to_json(
         default_handler=default_handler,
         index=index,
         indent=indent,
-    ).write()
+    )
+    s = json_writer.write()
+    if json_writer.float_written:
+        # GH#62464
+        warnings.warn(
+            f"In a future version, {obj_type_name}.to_json will write floating "
+            "point values with the shortest representation that round-trips "
+            "exactly instead of rounding them to 10 decimal places. Specify "
+            "`double_precision=None` to opt-in to the future behaviour and "
+            "silence this warning.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     if lines:
         s = convert_to_line_delimits(s)
@@ -280,7 +294,7 @@ class Writer(ABC):
         obj: NDFrame,
         orient: str | None,
         date_format: str,
-        double_precision: int,
+        double_precision: int | lib.NoDefault | None,
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
@@ -295,6 +309,7 @@ class Writer(ABC):
         self.orient = orient
         self.date_format = date_format
         self.double_precision = double_precision
+        self.float_written = False
         self.ensure_ascii = ensure_ascii
         self.date_unit = date_unit
         self.default_handler = default_handler
@@ -306,18 +321,25 @@ class Writer(ABC):
         raise AbstractMethodError(self)
 
     def write(self) -> str:
-        iso_dates = self.date_format == "iso"
+        dumps = partial(
+            ujson_dumps,
+            self.obj_to_write,
+            orient=self.orient,
+            ensure_ascii=self.ensure_ascii,
+            date_unit=self.date_unit,
+            iso_dates=self.date_format == "iso",
+            default_handler=self.default_handler,
+            indent=self.indent,
+        )
         try:
-            return ujson_dumps(
-                self.obj_to_write,
-                orient=self.orient,
-                double_precision=self.double_precision,
-                ensure_ascii=self.ensure_ascii,
-                date_unit=self.date_unit,
-                iso_dates=iso_dates,
-                default_handler=self.default_handler,
-                indent=self.indent,
-            )
+            if self.double_precision is lib.no_default:
+                # Write 10 decimal places and record whether any floating point
+                #  values were written, which the future default of None changes
+                result, self.float_written = dumps(
+                    double_precision=10, report_float_written=True
+                )
+                return result
+            return dumps(double_precision=self.double_precision)
         except OverflowError as err:
             # GH#36211 the C encoder recurses without bound on object types it
             #  does not understand.
@@ -388,7 +410,7 @@ class JSONTableWriter(FrameWriter):
         obj,
         orient: str | None,
         date_format: str,
-        double_precision: int,
+        double_precision: int | lib.NoDefault | None,
         ensure_ascii: bool,
         date_unit: str,
         index: bool,
@@ -471,7 +493,6 @@ def _validate_pyarrow_engine_options(
     convert_axes,
     convert_dates,
     keep_default_dates,
-    precise_float,
     date_unit,
     encoding,
     encoding_errors,
@@ -504,8 +525,6 @@ def _validate_pyarrow_engine_options(
         raise_unsupported("convert_dates")
     if keep_default_dates is not True and keep_default_dates is not lib.no_default:
         raise_unsupported("keep_default_dates")
-    if precise_float is not False:
-        raise_unsupported("precise_float")
     if date_unit is not None:
         raise_unsupported("date_unit")
     if storage_options is not None:
@@ -546,7 +565,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -570,7 +589,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -594,7 +613,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -618,7 +637,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -642,7 +661,7 @@ def read_json(
     convert_axes: bool | None = None,
     convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
     keep_default_dates: bool | lib.NoDefault = lib.no_default,
-    precise_float: bool = False,
+    precise_float: bool | lib.NoDefault = lib.no_default,
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
@@ -770,9 +789,14 @@ def read_json(
             columns with :func:`~pandas.to_datetime` after reading.
 
     precise_float : bool, default False
-        Set to enable usage of higher precision (strtod) function when
-        decoding string to double values. Default (False) is to use fast but
-        less precise builtin functionality.
+        Set to parse floating point values with full precision, i.e. to the
+        closest representable value. Default (False) is to use a less precise
+        method.
+
+        .. deprecated:: 3.1.0
+            Passing ``precise_float=False`` is deprecated. In a future version,
+            the default will change to True and False will no longer be
+            accepted.
 
     date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
@@ -847,7 +871,7 @@ def read_json(
         Parser engine to use. The ``"pyarrow"`` engine is only available when
         ``lines=True``, and only supports ``typ="frame"`` with default parsing
         options; passing an option it cannot apply (for example ``convert_dates``,
-        ``date_unit``, ``precise_float``, ``encoding``, or a non-``ArrowDtype``
+        ``date_unit``, ``encoding``, or a non-``ArrowDtype``
         ``dtype``) raises ``ValueError``.
 
         .. versionadded:: 2.0
@@ -950,7 +974,6 @@ def read_json(
             convert_axes=convert_axes,
             convert_dates=convert_dates,
             keep_default_dates=keep_default_dates,
-            precise_float=precise_float,
             date_unit=date_unit,
             encoding=encoding,
             encoding_errors=encoding_errors,
@@ -979,6 +1002,21 @@ def read_json(
         )
     else:
         keep_default_dates = True
+
+    if precise_float is False:
+        # GH#62464
+        warnings.warn(
+            "Passing precise_float=False to read_json is deprecated. In a future "
+            "version, floating point values will always be parsed with full "
+            "precision. Specify `precise_float=True` to opt-in to the future "
+            "behaviour.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+    elif precise_float is lib.no_default:
+        # Parse with the current default and warn if any floating point values
+        #  are parsed
+        precise_float = None
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
@@ -1126,7 +1164,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         convert_axes: bool | None,
         convert_dates,
         keep_default_dates: bool,
-        precise_float: bool,
+        precise_float: bool | None,
         date_unit,
         encoding,
         lines: bool,
@@ -1145,6 +1183,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.convert_dates = convert_dates
         self.keep_default_dates = keep_default_dates
         self.precise_float = precise_float
+        self._warned_float_parsed = False
         self.date_unit = date_unit
         self.encoding = encoding
         self.engine = engine
@@ -1340,14 +1379,27 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             "date_unit": self.date_unit,
             "dtype_backend": self.dtype_backend,
         }
+        parser: Parser
         if typ == "frame":
-            return FrameParser(json, **kwargs).parse()
+            parser = FrameParser(json, **kwargs)
         elif typ == "series":
             if not isinstance(dtype, bool):
                 kwargs["dtype"] = dtype
-            return SeriesParser(json, **kwargs).parse()
+            parser = SeriesParser(json, **kwargs)
         else:
             raise ValueError(f"{typ=} must be 'frame' or 'series'.")
+        obj = parser.parse()
+        if parser.float_parsed and not self._warned_float_parsed:
+            # GH#62464
+            self._warned_float_parsed = True
+            warnings.warn(
+                "In a future version, read_json will parse floating point values "
+                "with full precision. Specify `precise_float=True` to opt-in to "
+                "the future behaviour and silence this warning.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return obj
 
     def close(self) -> None:
         """
@@ -1458,7 +1510,7 @@ class Parser:
         convert_axes: bool = True,
         convert_dates: bool | list[str] = True,
         keep_default_dates: bool = False,
-        precise_float: bool = False,
+        precise_float: bool | None = False,
         date_unit=None,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> None:
@@ -1480,6 +1532,7 @@ class Parser:
             self.min_stamp = self._MIN_STAMPS["s"]
 
         self.precise_float = precise_float
+        self.float_parsed = False
         self.convert_axes = convert_axes
         self.convert_dates = convert_dates
         self.date_unit = date_unit
@@ -1497,6 +1550,18 @@ class Parser:
             raise ValueError(f"JSON data had unexpected key(s): {bad_keys_joined}")
 
     @final
+    def _loads(self, json: str) -> Any:
+        """
+        Decode ``json``. When ``precise_float`` is None, parse with the current
+        default and record whether any floating point values were parsed.
+        """
+        if self.precise_float is not None:
+            return ujson_loads(json, precise_float=self.precise_float)
+        data, self.float_parsed = ujson_loads(
+            json, precise_float=False, report_float_parsed=True
+        )
+        return data
+
     def parse(self) -> DataFrame | Series:
         obj = self._parse()
 
@@ -1786,7 +1851,7 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse(self) -> Series:
-        data = ujson_loads(self.json, precise_float=self.precise_float)
+        data = self._loads(self.json)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
@@ -1809,10 +1874,7 @@ class FrameParser(Parser):
         orient = self.orient
 
         if orient == "split":
-            decoded = {
-                str(k): v
-                for k, v in ujson_loads(json, precise_float=self.precise_float).items()
-            }
+            decoded = {str(k): v for k, v in self._loads(json).items()}
             self.check_keys_split(decoded)
             orig_names = [
                 (tuple(col) if isinstance(col, list) else col)
@@ -1825,17 +1887,15 @@ class FrameParser(Parser):
             return DataFrame(dtype=None, **decoded)
         elif orient == "index":
             return DataFrame.from_dict(
-                ujson_loads(json, precise_float=self.precise_float),
+                self._loads(json),
                 dtype=None,
                 orient="index",
             )
         elif orient == "table":
-            return parse_table_schema(json, precise_float=self.precise_float)
+            return parse_table_schema(self._loads(json))
         else:
             # includes orient == "columns"
-            return DataFrame(
-                ujson_loads(json, precise_float=self.precise_float), dtype=None
-            )
+            return DataFrame(self._loads(json), dtype=None)
 
     def _try_convert_types(self, obj: DataFrame) -> DataFrame:
         arrays = []

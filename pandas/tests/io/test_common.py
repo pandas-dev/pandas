@@ -315,6 +315,9 @@ Look,a snake,🐍"""
     @pytest.mark.filterwarnings(
         "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
     )
+    @pytest.mark.filterwarnings(
+        "ignore:In a future version, read_json will parse:pandas.errors.Pandas4Warning"
+    )
     def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
         path = datapath(*path)
@@ -523,12 +526,15 @@ def test_codecs_encoding(format, temp_file):
         index=pd.Index([f"i-{i}" for i in range(30)]),
     )
     with open(temp_file, mode="w", encoding="utf-8") as handle:
-        getattr(expected, f"to_{format}")(handle)
+        if format == "csv":
+            expected.to_csv(handle)
+        else:
+            expected.to_json(handle, double_precision=None)
     with open(temp_file, encoding="utf-8") as handle:
         if format == "csv":
             df = pd.read_csv(handle, index_col=0)
         else:
-            df = pd.read_json(handle)
+            df = pd.read_json(handle, precise_float=True)
     tm.assert_frame_equal(expected, df)
 
 

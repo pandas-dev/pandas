@@ -17,22 +17,24 @@ def test_compression_roundtrip(compression, temp_file):
         columns=["X", "Y", "Z"],
     )
 
-    df.to_json(temp_file, compression=compression)
-    tm.assert_frame_equal(df, pd.read_json(temp_file, compression=compression))
+    df.to_json(temp_file, compression=compression, double_precision=None)
+    tm.assert_frame_equal(
+        df, pd.read_json(temp_file, compression=compression, precise_float=True)
+    )
 
     # explicitly ensure file was compressed.
     with tm.decompress_file(temp_file, compression) as fh:
         result = fh.read().decode("utf8")
         data = StringIO(result)
-    tm.assert_frame_equal(df, pd.read_json(data))
+    tm.assert_frame_equal(df, pd.read_json(data, precise_float=True))
 
 
 def test_read_zipped_json(datapath):
     uncompressed_path = datapath("io", "json", "data", "tsframe_v012.json")
-    uncompressed_df = pd.read_json(uncompressed_path)
+    uncompressed_df = pd.read_json(uncompressed_path, precise_float=True)
 
     compressed_path = datapath("io", "json", "data", "tsframe_v012.json.zip")
-    compressed_df = pd.read_json(compressed_path, compression="zip")
+    compressed_df = pd.read_json(compressed_path, compression="zip", precise_float=True)
 
     tm.assert_frame_equal(uncompressed_df, compressed_df)
 
