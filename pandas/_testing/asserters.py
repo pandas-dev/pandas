@@ -1243,6 +1243,13 @@ def assert_series_equal(
                 lv = left_values.to_numpy()
             if isinstance(right_values, ExtensionArray):
                 rv = right_values.to_numpy()
+            # GH#56132 check_exact controls only how the values are compared,
+            # not whether the underlying array class is checked. Coerce to a
+            # base ndarray so that e.g. a numpy.ma.MaskedArray vs. ndarray
+            # pairing is not reported as "classes are different" here, which
+            # the default (approximate) comparison path does not do either.
+            lv = np.asarray(lv)
+            rv = np.asarray(rv)
             assert_numpy_array_equal(
                 lv,
                 rv,

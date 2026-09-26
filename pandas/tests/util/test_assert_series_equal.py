@@ -748,3 +748,22 @@ def test_assert_series_equal_category_order_with_na():
     right = pd.Series(pd.Categorical(values, categories=["D", "B"]))
 
     tm.assert_series_equal(left, right, check_category_order=False)
+
+
+def test_assert_series_equal_check_exact_masked_array_class():
+    # GH#56132 check_exact controls how the values are compared, not whether
+    #  the underlying array class is checked. A MaskedArray-backed Series
+    #  compared with an ndarray-backed Series must not raise "classes are
+    #  different" merely because check_exact=True, since the default
+    #  check_exact=False path does not perform that check.
+    left = pd.Series(np.ma.masked_array([0.0, 1.0, 2.0], mask=[False, False, False]))
+    right = pd.Series([0.0, 1.0, 2.0])
+
+    tm.assert_series_equal(left, right)
+    tm.assert_series_equal(left, right, check_exact=True)
+    tm.assert_series_equal(left, right, check_dtype=True, check_exact=True)
+
+    # a genuine value difference is still reported with check_exact=True
+    other = pd.Series([0.0, 1.0, 999.0])
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(left, other, check_exact=True)
