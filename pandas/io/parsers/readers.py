@@ -170,8 +170,15 @@ if TYPE_CHECKING:
         storage_options: StorageOptions | None
         dtype_backend: DtypeBackend | lib.NoDefault
 
+    class _read_csv_shared(_read_shared[HashableT], Generic[HashableT], total=False):
+        # annotations shared between read_csv/table's overloads only; read_fwf
+        # always uses the "python-fwf" engine and so cannot accept these
+        # NOTE: Keep in sync with the annotations of the implementation
+        to_pandas_kwargs: dict | None
+
 else:
     _read_shared = dict
+    _read_csv_shared = dict
 
 
 class _C_Parser_Defaults(TypedDict):
@@ -1248,7 +1255,7 @@ def read_csv(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> TextFileReader: ...
 
 
@@ -1258,7 +1265,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> TextFileReader: ...
 
 
@@ -1268,7 +1275,7 @@ def read_csv(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> DataFrame: ...
 
 
@@ -1278,7 +1285,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> DataFrame | TextFileReader: ...
 
 
@@ -1339,6 +1346,7 @@ def read_csv(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    to_pandas_kwargs: dict | None = None,
 ) -> DataFrame | TextFileReader:
     """
     Read a comma-separated values (csv) file into DataFrame.
@@ -1725,6 +1733,13 @@ def read_csv(
 
         .. versionadded:: 2.0
 
+    to_pandas_kwargs : dict | None, default None
+        Keyword arguments to pass through to :func:`pyarrow.Table.to_pandas`
+        when ``engine="pyarrow"``. ``types_mapper`` is reserved: it is derived
+        from ``dtype_backend`` and passing it here raises ``ValueError``.
+
+        .. versionadded:: 3.1.0
+
     Returns
     -------
     DataFrame or TextFileReader
@@ -1853,7 +1868,7 @@ def read_table(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> TextFileReader: ...
 
 
@@ -1863,7 +1878,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> TextFileReader: ...
 
 
@@ -1873,7 +1888,7 @@ def read_table(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> DataFrame: ...
 
 
@@ -1883,7 +1898,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_csv_shared[HashableT]],
 ) -> DataFrame | TextFileReader: ...
 
 
@@ -1944,6 +1959,7 @@ def read_table(
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    to_pandas_kwargs: dict | None = None,
 ) -> DataFrame | TextFileReader:
     """
     Read general delimited file into DataFrame.
@@ -2325,6 +2341,13 @@ def read_table(
           :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
+
+    to_pandas_kwargs : dict | None, default None
+        Keyword arguments to pass through to :func:`pyarrow.Table.to_pandas`
+        when ``engine="pyarrow"``. ``types_mapper`` is reserved: it is derived
+        from ``dtype_backend`` and passing it here raises ``ValueError``.
+
+        .. versionadded:: 3.1.0
 
     Returns
     -------
@@ -2741,6 +2764,20 @@ class TextFileReader(abc.Iterator):
                 raise ValueError(
                     f"The {argname!r} option is not supported with the 'pyarrow' engine"
                 )
+            # GH#34823: to_pandas_kwargs is only valid for pyarrow engine
+            if argname == "to_pandas_kwargs" and value is not None:
+                if engine != "pyarrow":
+                    raise ValueError(
+                        "The 'to_pandas_kwargs' option is only supported with the "
+                        "'pyarrow' engine"
+                    )
+                if not isinstance(value, dict):
+                    raise TypeError(
+                        "to_pandas_kwargs must be a dict or None, got "
+                        f"{type(value).__name__}"
+                    )
+                # NB: the reserved 'types_mapper' key is rejected by
+                # arrow_table_to_pandas, which owns that argument
             options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
