@@ -126,6 +126,26 @@ def test_parse_dates_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_parse_dates_decimal_comma(all_parsers):
+    # GH#17265 "2013,11,04" used to parse as 2013-04-01; it is now rejected, which
+    #  for read_csv means the column is left alone rather than raising
+    parser = all_parsers
+    data = """date,A
+"2013,11,04",1
+"2013,11,05",2
+"""
+    with tm.assert_produces_warning(
+        UserWarning, match="Could not infer format", check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), parse_dates=["date"])
+    tm.assert_frame_equal(result, parser.read_csv(StringIO(data)))
+
+    result = parser.read_csv(
+        StringIO(data), parse_dates=["date"], date_format="%Y,%m,%d"
+    )
+    assert result["date"].tolist() == [datetime(2013, 11, 4), datetime(2013, 11, 5)]
+
+
 @pytest.mark.parametrize("parse_dates", [[0, 2], ["a", "c"]])
 def test_parse_dates_column_list(all_parsers, parse_dates):
     data = "a,b,c\n01/01/2010,1,15/02/2010"
