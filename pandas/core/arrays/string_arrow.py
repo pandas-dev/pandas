@@ -328,6 +328,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
+        if isinstance(value, np.ndarray) and value.ndim == 0:
+            # GH#69443 a 0-d ndarray (e.g. unwrapped from a length-1 1-d array
+            #  in SingleBlockManager.setitem_inplace) is scalar-like; unbox it
+            #  so the scalar branch below handles it.
+            value = value[()]
         if is_scalar(value):
             if isna(value):
                 value = None
