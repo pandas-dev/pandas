@@ -1784,26 +1784,90 @@ class EABackedBlock(Block):
             #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
             #  whose __setitem__ does not check the flag.
             raise ValueError("Cannot modify read-only array")
+        transposed = newaxis = deep = False
         if values.ndim == 2:
             # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
             #  instead of transposing values, since EA.T may not be a view.
             if not isinstance(indexer, tuple):
-                indexer = (indexer, slice(None))
+                indexer = (indexer,)
+            # GH#68521 np.newaxis adds an axis instead of consuming one, so
+            #  Ellipsis no longer stands for a single axis, and the
+            #  normalization and reorientation below do not apply
+            newaxis = any(x is None for x in indexer)
+            # np.ndim(Ellipsis) is 0, so it would read as a scalar below; it
+            #  stands in for the full slice and does transpose. A second one is
+            #  invalid, so leave numpy to reject it (GH#68521)
+            if not newaxis and sum(x is Ellipsis for x in indexer) == 1:
+                indexer = tuple(slice(None) if x is Ellipsis else x for x in indexer)
+            if not newaxis:
+                # GH#68521 a tuple short of the column axis, e.g. from a
+                #  trailing comma, leaves it implicit; the swap needs it spelled
+                indexer = indexer + (slice(None),) * (2 - len(indexer))
             if len(indexer) == 2:
+                if not newaxis:
+                    ndims = tuple(_indexer_entry_ndim(x) for x in indexer)
+                    # GH#68521 the swap transposes the selection only when the
+                    #  entries index separate axes: a scalar entry drops one,
+                    #  and two advanced indexers broadcast against each other
+                    transposed = None in ndims and all(nd in (None, 1) for nd in ndims)
+                    # a >1-D key alongside a slice makes the selection 3-D,
+                    #  which neither .T nor reshape(-1, 1) reorients in general;
+                    #  .T at least lands a (1, n) key correctly
+                    deep = None in ndims and any(
+                        nd is not None and nd > 1 for nd in ndims
+                    )
                 indexer = indexer[::-1]
-            if isinstance(value, np.ndarray) and value.ndim == 2:
+            if transposed:
+                if is_list_like(value) and not isinstance(value, np.ndarray):
+                    # GH#68521 the reshape below needs an array. Not
+                    #  _validate_setitem_value: it unboxes, so the assignment
+                    #  would re-validate i8 ordinals against PeriodDtype.
+                    try:
+                        # error: "ExtensionArray" has no attribute
+                        # "_validate_listlike"
+                        value = values._validate_listlike(value)  # type: ignore[attr-defined]
+                    except (AttributeError, TypeError, ValueError):
+                        pass  # let the assignment below raise or coerce, as before
+                # assignment drops leading length-1 axes, so strip them before
+                #  dispatching on ndim (GH#68521)
+                while getattr(value, "ndim", 0) > 2 and value.shape[0] == 1:
+                    value = value[0]
+                if getattr(value, "ndim", 0) == 2:
+                    value = value.T
+                elif getattr(value, "ndim", 0) == 1:
+                    # a 1D value is per-column, repeated across the selected rows
+                    value = value.reshape(-1, 1)
+            elif (
+                (newaxis or deep) and isinstance(value, np.ndarray) and value.ndim == 2
+            ):
                 value = value.T
         check_setitem_lengths(indexer, value, values)
 
         try:
             values[indexer] = value
-        except (ValueError, TypeError):
-            if isinstance(self.dtype, IntervalDtype):
-                # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
-                return nb.setitem(orig_indexer, orig_value)
+        except (ValueError, TypeError) as err:
+            # IntervalDtype: see TestSetitemFloatIntervalWithIntIntervalValues
+            if isinstance(self.dtype, IntervalDtype) or isinstance(
+                self, NDArrayBackedExtensionBlock
+            ):
+                if values.ndim == 2 and not newaxis:
+                    # GH#68521 a 1D block reports a shape failure the same
+                    #  way, but giving it this message would change the
+                    #  exception type of Series setitem; see
+                    #  test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message.
+                    #  An np.newaxis key leaves target_shape in block layout,
+                    #  which would name axes the caller cannot see.
+                    target_shape = _unbroadcastable_shape(values, indexer, value)
+                    # a deeper selection, e.g. from a 2-D key, has no shape the
+                    #  caller could map back onto their frame
+                    if target_shape is not None and len(target_shape) <= 2:
+                        if transposed:
+                            target_shape = target_shape[::-1]
+                        raise ValueError(
+                            f"could not broadcast input array from shape "
+                            f"{np.shape(orig_value)} into shape {target_shape}"
+                        ) from err
 
-            elif isinstance(self, NDArrayBackedExtensionBlock):
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
@@ -1909,9 +1973,9 @@ class EABackedBlock(Block):
             #  transpose self.values: EA.T is only zero-copy when
             #  dtype._can_fast_transpose, so a transpose could yield a copy and
             #  _putmask would silently mutate that throwaway instead of self.
-            #  mask/new are read-only, so transposing them is always correct
-            #  (mirrors value = value.T in EABackedBlock.setitem); failing to
-            #  transpose new fills masked cells from the wrong column.
+            #  mask/new are read-only, so transposing them is always
+            #  correct; failing to transpose new fills masked cells from the
+            #  wrong column.
             mask = mask.T
             if isinstance(new, (np.ndarray, ExtensionArray)) and new.ndim == 2:
                 new = new.T
@@ -2325,6 +2389,51 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+
+def _indexer_entry_ndim(key) -> int | None:
+    """
+    How many axes ``key`` indexes, or None for a slice.
+
+    ``np.ndim(key)``, except that it never materializes a list key and does not
+    distinguish nesting deeper than 2.
+    """
+    if isinstance(key, slice):
+        return None
+    ndim = getattr(key, "ndim", None)
+    if ndim is not None:
+        return ndim
+    if isinstance(key, (list, tuple, range)):
+        # np.ndim would build the whole array just to count its axes (GH#68521)
+        if len(key) and is_list_like(key[0]):
+            return 2
+        return 1
+    return np.ndim(key)
+
+
+def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> Shape | None:
+    """
+    The shape of ``values[indexer]`` when ``value`` cannot be broadcast into it.
+
+    Returns None both when the value does fit and when that cannot be
+    determined, so a caller can only use a non-None result to rule a failed
+    setitem a shape problem rather than a dtype one.
+    """
+    try:
+        target_shape = np.shape(values[indexer])
+        value_shape = np.shape(value)
+    except (IndexError, TypeError, ValueError):
+        return None
+    # assignment also drops leading length-1 axes of the value, which
+    #  broadcasting on its own does not, e.g. ``arr[0] = np.array([x])``
+    while len(value_shape) > len(target_shape) and value_shape[0] == 1:
+        value_shape = value_shape[1:]
+    try:
+        if np.broadcast_shapes(target_shape, value_shape) == target_shape:
+            return None
+    except ValueError:
+        pass
+    return target_shape
 
 
 # -----------------------------------------------------------------

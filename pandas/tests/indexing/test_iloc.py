@@ -8,7 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    OutOfBoundsDatetime,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2234,6 +2237,34 @@ def test_iloc_setitem_series_boolean_index_row_key():
     tm.assert_series_equal(ser, pd.Series(["a", "b", 3, 4], dtype=object))
 
 
+@pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+def test_iloc_setitem_2d_ea_block_1d_value_broadcasts(dtype):
+    # GH#68521 the 2D datetimelike block stores columns first, so a 1-D value
+    #  was broadcast down rows instead of across the selected columns
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+
+    df.iloc[[2, 0], ::-1] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+    arr[[2, 0], ::-1] = [100, 101, 102]
+    expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+def test_iloc_setitem_2d_ea_block_1d_value_strided_columns(dtype):
+    # GH#68521 when the value's length matched the selected row count the
+    #  wrong broadcast wrote silently, putting each value in the wrong cells
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+
+    df.iloc[[2, 0], ::2] = np.array([100, 101], dtype="i8").view(dtype)
+
+    arr[[2, 0], ::2] = [100, 101]
+    expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -2293,3 +2324,290 @@ def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
         {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
     )
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "box",
+    [
+        list,
+        tuple,
+        pd.Index,
+        pd.Series,
+        pd.array,
+        pd.Categorical,
+        lambda x: [str(pd.Timestamp(v)) for v in x],
+    ],
+)
+def test_iloc_setitem_2d_ea_block_1d_value_not_ndarray(box):
+    # GH#68521 the reorientation has to reach a value that is not an ndarray;
+    #  these spellings wrote the wrong cells silently
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    df.iloc[[2, 0], ::2] = box(np.array([100, 101], dtype="i8").view("M8[s]"))
+
+    arr[[2, 0], ::2] = [100, 101]
+    expected = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+def test_iloc_setitem_2d_ea_block_0d_row_key(dtype):
+    # GH#68521 a 0-d ndarray row key drops the row axis just like an int does,
+    #  so the swap does not transpose and the value must not be reshaped
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+
+    df.iloc[np.array(1)] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+    arr[1] = [100, 101, 102]
+    expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+
+def test_iloc_setitem_2d_ea_block_2d_value_two_list_keys():
+    # GH#68521 two list keys go through np.ix_, and swapping them to the block's
+    #  layout leaves the selection alone -- the value must not be transposed
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    value = np.arange(100, 106).reshape(2, 3)
+    df.iloc[[2, 0], [2, 1, 0]] = value.astype("i8").view("M8[s]")
+
+    arr[np.ix_([2, 0], [2, 1, 0])] = value
+    expected = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("col_key", [slice(None, None, -1), [2, 1, 0]])
+def test_iloc_setitem_2d_ea_block_shape_mismatch_message(col_key):
+    # GH#68521 a value that cannot be broadcast is a shape problem; the upcast
+    #  fallback reported it as a datetime resolution one. The two column keys
+    #  reach the message through the transposing and non-transposing swaps.
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    msg = r"could not broadcast input array from shape \(2,\) into shape \(2, 3\)"
+    with pytest.raises(ValueError, match=msg):
+        df.iloc[[2, 0], col_key] = np.array([100, 101], dtype="i8").view("M8[s]")
+
+
+def test_iloc_setitem_2d_ea_block_row_vector_into_one_row():
+    # GH#68521 a scalar row key drops an axis, so the swap is not a transpose;
+    #  transposing anyway turned a row vector numpy accepts into a raise
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    value = np.array([[100, 101, 102]])
+    df.iloc[1] = value.astype("i8").view("M8[s]")
+
+    arr[1] = value
+    tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_2d_ea_block_column_vector_into_one_column_raises():
+    # GH#68521 the mirror: a column vector has no leading length-1 axis to
+    #  drop, so it does not fit the 1-D selection, as on a NumPy-backed frame
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    numeric = pd.DataFrame(arr.copy())
+    value = np.arange(100, 104).reshape(4, 1)
+
+    with pytest.raises(ValueError, match="setting an array element"):
+        numeric.iloc[np.array([True] * 4), 0] = value
+    msg = r"could not broadcast input array from shape \(4, 1\) into shape \(4,\)"
+    with pytest.raises(ValueError, match=msg):
+        df.iloc[np.array([True] * 4), 0] = value.astype("i8").view("M8[s]")
+
+
+def test_iloc_setitem_2d_ea_block_newaxis_key():
+    # GH#68521 np.newaxis adds an axis instead of consuming one, so the column
+    #  axis is not missing; padding the key would make the selection 3-D
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    value = np.arange(100, 112).reshape(4, 3)
+    df.iloc[None,] = value.astype("i8").view("M8[s]")
+
+    arr[None,] = value
+    tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_2d_ea_block_newaxis_with_ellipsis_does_not_write():
+    # GH#68521 alongside an np.newaxis, Ellipsis no longer stands for a single
+    #  axis, so normalizing it would turn a 3-D selection into a 2-D one and
+    #  broadcast a 1-D value in silently
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    original = df.copy()
+
+    with pytest.raises(ValueError, match="could not broadcast"):
+        arr[None, ...] = np.arange(100, 104)
+    with pytest.raises(OutOfBoundsDatetime, match="Incompatible"):
+        df.iloc[None, ...] = np.arange(100, 104, dtype="i8").view("M8[s]")
+    tm.assert_frame_equal(df, original)
+
+
+def test_iloc_setitem_2d_ea_block_two_range_keys():
+    # GH#68521 maybe_convert_ix declines a range, so two of them arrive as
+    #  plain 1-D keys that broadcast against each other; the swap is not a
+    #  transpose and the value must not be reshaped
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    df.iloc[range(2), range(2)] = np.array([100, 101], dtype="i8").view("M8[s]")
+
+    arr[range(2), range(2)] = [100, 101]
+    tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_2d_ea_block_3d_value_leading_length_one_axis():
+    # GH#68521 assignment drops a leading length-1 axis, so the value is not
+    #  the 3-D one the reorientation refuses to handle
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    value = np.arange(100, 106).reshape(1, 2, 3)
+    df.iloc[[2, 0], ::-1] = value.astype("i8").view("M8[s]")
+
+    arr[[2, 0], ::-1] = value
+    tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_2d_ea_block_two_ellipses_still_rejected():
+    # GH#68521 only a lone Ellipsis stands in for the full slice; normalizing a
+    #  second one would hide it from numpy, which is what rejects the key
+    df = pd.DataFrame(
+        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
+    )
+
+    with pytest.raises(IndexError, match="single ellipsis"):
+        df.iloc[..., ...] = np.array([100, 101, 102], dtype="i8").view("M8[s]")
+
+
+@pytest.mark.parametrize(
+    "row_key", [[], slice(0, 0), np.zeros(4, dtype=bool), np.array([], dtype=np.intp)]
+)
+def test_iloc_setitem_2d_ea_block_empty_row_selection(row_key):
+    # GH#68521 an empty value does not broadcast into an empty selection, the
+    #  same as on a NumPy-backed frame; the reorientation must not hide that
+    df = pd.DataFrame(
+        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
+    )
+    numeric = pd.DataFrame(np.arange(12).reshape(4, 3))
+
+    with pytest.raises(ValueError, match="setting an array element"):
+        numeric.iloc[row_key] = np.array([])
+    msg = r"could not broadcast input array from shape \(0,\) into shape \(0, 3\)"
+    with pytest.raises(ValueError, match=msg):
+        df.iloc[row_key] = np.array([], dtype="M8[s]")
+
+
+def test_iloc_setitem_2d_ea_block_empty_column_selection_is_a_noop():
+    # GH#68521 the mirror of the above: nothing is selected, so nothing is set
+    df = pd.DataFrame(
+        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
+    )
+    expected = df.copy()
+
+    df.iloc[:, []] = np.array([], dtype="M8[s]")
+
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("indexer", ["iloc", "loc"])
+def test_iloc_setitem_2d_ea_block_trailing_comma_row_key(indexer):
+    # GH#68521 a trailing comma leaves the column axis implicit; spelling it
+    #  out is what lets the swap below it reorient the selection
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+    getattr(df, indexer)[[2, 0],] = np.array([100, 101, 102], dtype="i8").view("M8[s]")
+
+    arr[[2, 0],] = [100, 101, 102]
+    expected = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    tm.assert_frame_equal(df, expected)
+
+    msg = r"could not broadcast input array from shape \(2,\) into shape \(2, 3\)"
+    with pytest.raises(ValueError, match=msg):
+        getattr(df, indexer)[[2, 0],] = np.array([100, 101], dtype="i8").view("M8[s]")
+
+
+@pytest.mark.parametrize("key", [..., (..., [0, 1])])
+@pytest.mark.parametrize("ndim", [1, 2])
+def test_iloc_setitem_2d_ea_block_ellipsis_row_key(key, ndim):
+    # GH#68521 np.ndim(Ellipsis) is 0, so it read as an axis-dropping scalar;
+    #  it stands in for the full slice and does transpose. Only a 1-D value
+    #  tells the two apart -- a 2-D one takes the same path either way.
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+    ncols = 3 if key is ... else 2
+
+    shape = (ncols,) if ndim == 1 else (4, ncols)
+    value = np.arange(100, 100 + np.prod(shape)).reshape(shape).astype("i8")
+    df.iloc[key] = value.view("M8[s]")
+
+    arr[key] = value
+    tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_2d_ea_block_2d_row_key_1d_value_does_not_write():
+    # GH#68521 a 2-D row key makes the selection 3-D, which neither .T nor
+    #  reshape(-1, 1) reorients; reshaping anyway broadcast a 1-D value in
+    #  silently, where every other frame dtype raises. A 2-D value against a
+    #  2-D key is a separate pre-existing divergence, left alone here
+    df = pd.DataFrame(
+        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
+    )
+    numeric = pd.DataFrame(np.arange(12).reshape(4, 3))
+
+    original = df.copy()
+
+    with pytest.raises(ValueError, match="setting an array element"):
+        numeric.iloc[np.array([[1], [2]])] = np.array([100, 101])
+    # the datetimelike block reports it as main does, rather than writing
+    with pytest.raises(OutOfBoundsDatetime, match="Incompatible"):
+        df.iloc[np.array([[1], [2]])] = np.array([100, 101], dtype="i8").view("M8[s]")
+    tm.assert_frame_equal(df, original)
+
+
+def test_iloc_setitem_2d_ea_block_1xn_key_2d_value_matches_numeric():
+    # GH#68521 a 2-D value against a (1, n) key keeps its transpose, so it
+    #  lands the same as on a numeric frame
+    arr = np.arange(12).reshape(4, 3).astype("i8")
+    value = np.arange(100, 102).reshape(2, 1)
+    df = pd.DataFrame(arr.copy().view("M8[s]"))
+    numeric = pd.DataFrame(arr.copy())
+
+    numeric.iloc[np.array([[1, 2]])] = value
+    df.iloc[np.array([[1, 2]])] = value.view("M8[s]")
+    tm.assert_frame_equal(df, numeric.astype("M8[s]"))
+
+    df = pd.DataFrame(arr.copy().view("M8[s]"))
+    original = df.copy()
+    with pytest.raises(ValueError, match="setting an array element"):
+        numeric.iloc[:, np.array([[0, 2]])] = value
+    with pytest.raises(OutOfBoundsDatetime, match="Incompatible"):
+        df.iloc[:, np.array([[0, 2]])] = value.view("M8[s]")
+    tm.assert_frame_equal(df, original)
+
+
+def test_iloc_setitem_2d_ea_block_length_one_value_is_not_a_shape_error():
+    # GH#68521 assignment drops a leading length-1 axis that broadcasting alone
+    #  does not, so a length-1 value into one cell is not a shape failure. The
+    #  raise it does get is a separate bug.
+    df = pd.DataFrame(
+        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
+    )
+
+    with pytest.raises(OutOfBoundsDatetime, match="Incompatible"):
+        df.iloc[1, 1] = np.array([100], dtype="i8").view("M8[s]")
+
+
+def test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message():
+    # GH#68521 only a 2D block adapts the indexer to its layout, so the new
+    #  broadcast message must not displace the dtype one on a Series
+    ser = pd.Series(np.arange(4).astype("i8").view("M8[s]"))
+
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.iloc[0] = [1, 2]
