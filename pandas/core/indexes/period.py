@@ -415,25 +415,25 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Construct a PeriodIndex from fields (year, month, day, etc.).
 
         Each field (year, quarter, month, day, hour, minute, second) can be
-        specified as a scalar or array-like. At least one field must be
-        array-like; scalar fields are broadcast to its length. The frequency
+        specified as a scalar or list-like. At least one field must be
+        list-like; scalar fields are broadcast to its length. The frequency
         is inferred from the fields provided or can be given explicitly.
 
         Parameters
         ----------
-        year : int, array, or Series, default None
+        year : int or list-like, default None
             Year for the PeriodIndex.
-        quarter : int, array, or Series, default None
+        quarter : int or list-like, default None
             Quarter for the PeriodIndex.
-        month : int, array, or Series, default None
+        month : int or list-like, default None
             Month for the PeriodIndex.
-        day : int, array, or Series, default None
+        day : int or list-like, default None
             Day for the PeriodIndex.
-        hour : int, array, or Series, default None
+        hour : int or list-like, default None
             Hour for the PeriodIndex.
-        minute : int, array, or Series, default None
+        minute : int or list-like, default None
             Minute for the PeriodIndex.
-        second : int, array, or Series, default None
+        second : int or list-like, default None
             Second for the PeriodIndex.
         freq : str or period object, optional
             One of pandas period strings or corresponding objects.
@@ -446,6 +446,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         --------
         PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
         PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
+
+        Notes
+        -----
+        A list-like field must be a ``list``, ``tuple``, ``np.ndarray``, or
+        ``Series``. Other array-like inputs, such as a ``range`` or an
+        ``Index``, are not accepted.
 
         Examples
         --------
