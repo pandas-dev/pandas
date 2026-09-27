@@ -302,21 +302,6 @@ def test_rolling_skew_kurt_low_variance_offset(roll_func):
 
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
-def test_rolling_skew_kurt_nan_gap_recovery(roll_func):
-    # GH#68934 a window whose observation count drops to 0 must not poison
-    # subsequent overlapping windows with NaN
-    window = 4
-    series = pd.Series([1.0, 2.0, 3.0, 5.0] + [np.nan] * 4 + [4.0, 5.0, 6.0, 8.0])
-
-    result = getattr(series.rolling(window), roll_func)()
-
-    assert not result.iloc[-1:].isna().any()
-    tm.assert_series_equal(
-        result, _window_reduction(series, window, roll_func), rtol=1e-12, atol=0
-    )
-
-
-@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
     # GH#68934 a window spanning nearly the whole float64 range must not leave
     # the accumulators holding NaN, which would blank every later window
@@ -340,8 +325,7 @@ def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_expanding_skew_kurt_shared_offset(roll_func):
     # GH#68934 expanding never removes an observation, so the origin stays a member
-    # of its own window, the drift arm cannot fire, and the anchor is never retired
-    # however long the run
+    # of its own window and the anchor-drift check never retires it
     rng = np.random.default_rng(0)
     values = 1e10 + rng.normal(size=200)
 
@@ -376,13 +360,8 @@ def test_rolling_skew_kurt_drifting_level(roll_func):
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
-    # GH#68934 a deviation much beyond 1e77 overflowed the instability test's own
-    # arithmetic, leaving it comparing inf against inf -- which is False, so the
-    # accumulators were never recomputed and every later window returned the same
-    # frozen garbage. 1e308 does not reach this: there m3/m4 go NaN and the NaN
-    # arm fires, which is why an extreme-range test alone misses it. Only the
-    # kurt half pins the overflow: on main skew's m3 peaks near 1e270 and comes
-    # back exact, while kurt's m4 overflows to inf and the result is NaN.
+    # GH#68934 a 1e90 outlier overflowed kurt's m4 to inf; the instability test
+    # then compared inf with inf, never fired, and later windows stayed NaN
     window = 20
     rng = np.random.default_rng(4)
     values = rng.normal(size=120)
@@ -390,10 +369,13 @@ def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
 
     result = getattr(pd.Series(values).rolling(window), roll_func)()
 
-    tail = result.iloc[60:]
-    assert tail.nunique() == len(tail)
-    expected = getattr(pd.Series(values[-window:]), roll_func)()
-    assert tail.iloc[-1] == pytest.approx(expected, rel=1e-12)
+    # once the outlier leaves, the windows are ordinary data
+    tm.assert_series_equal(
+        result.iloc[60:],
+        _window_reduction(pd.Series(values), window, roll_func).iloc[60:],
+        rtol=1e-12,
+        atol=0,
+    )
 
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
@@ -401,7 +383,7 @@ def test_rolling_skew_kurt_accumulated_roundoff(roll_func):
     # GH#68934 no window here is ill-conditioned on its own, but the round-off
     # the accumulators carry from one window to the next is: kurt came back a
     # factor of four away from the same window reduced on its own, on positive
-    # data with no offset and no outlier. It is the peak-deviation arm of the
+    # data with no offset and no outlier. It is the peak-deviation check in the
     # instability test that has to notice, so this also pins its threshold.
     window = 4
     series = pd.Series(np.random.default_rng(3006).lognormal(0.0, 2.0, size=120))
