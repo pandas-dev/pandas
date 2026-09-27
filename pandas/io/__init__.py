@@ -1,15 +1,5 @@
-# ruff: noqa: TC004
+from importlib import import_module
 from typing import TYPE_CHECKING
-
-__lazy_modules__ = (
-    "pandas.io.json",
-    "pandas.io.stata",
-)
-
-from pandas.io import (
-    json,
-    stata,
-)
 
 if TYPE_CHECKING:
     # import modules that have public classes/functions
@@ -21,3 +11,13 @@ if TYPE_CHECKING:
 
     # mark only those modules as public
     __all__ = ["formats", "json", "stata"]
+
+
+def __getattr__(name: str) -> object:
+    if name in {"json", "stata"}:
+        return import_module(f"pandas.io.{name}")
+    raise AttributeError(f"module 'pandas.io' has no attribute '{name}'")
+
+
+def __dir__() -> list[str]:
+    return [*list(globals().keys()), "json", "stata"]
