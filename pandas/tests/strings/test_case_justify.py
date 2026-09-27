@@ -49,7 +49,7 @@ def test_lower_upper_mixed_object():
     )
     tm.assert_series_equal(result, expected)
 
-    result = result.str.lower()
+    result = s.str.lower()
     expected = pd.Series(
         ["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan], dtype=object
     )
