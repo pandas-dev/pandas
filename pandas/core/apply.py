@@ -526,13 +526,19 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
+        from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
+
         obj = self.obj
 
-        if not results and isinstance(obj, ABCSeries):
+        if not results:
             # GH#39609
-            from pandas import Index
-
-            return obj._constructor(index=Index([]), name=obj.name)
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, BaseGroupBy) and obj.obj.ndim == 1:
+                return obj.obj._constructor_expanddim(
+                    index=obj._grouper.result_index, columns=Index([])
+                )
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
@@ -671,10 +677,12 @@ class Apply(metaclass=abc.ABCMeta):
             elif isinstance(obj, ABCDataFrame):
                 return obj._constructor(index=Index([]), columns=obj.columns[:0])
             elif isinstance(obj, BaseGroupBy):
-                # a dict aggregation of a Series selection has already raised
-                frame = cast("DataFrame", selected_obj)
-                return frame._constructor(
-                    index=obj._grouper.result_index, columns=frame.columns[:0]
+                index = obj._grouper.result_index
+                if selected_obj.ndim == 2:
+                    frame = cast("DataFrame", selected_obj)
+                    return frame._constructor(index=index, columns=frame.columns[:0])
+                return selected_obj._constructor_expanddim(
+                    index=index, columns=Index([])
                 )
 
         # Avoid making two isinstance calls in all and any below

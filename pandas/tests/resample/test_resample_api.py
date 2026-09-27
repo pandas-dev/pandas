@@ -328,8 +328,21 @@ def test_agg_empty_func(func):
     # GH#39609
     df = pd.DataFrame({"a": [1, 2, 3]}, index=date_range("2000", periods=3))
     result = df.resample("D").agg(func)
-    tm.assert_index_equal(result.index, df.index)
-    assert result.columns.empty
+    if func == []:
+        columns = pd.MultiIndex.from_product([df.columns, []])
+    else:
+        columns = df.columns[:0]
+    expected = pd.DataFrame(index=df.index, columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func_series(func):
+    # GH#39609
+    ser = pd.Series([1, 2, 3], index=date_range("2000", periods=3), name="a")
+    result = ser.resample("D").agg(func)
+    expected = pd.DataFrame(index=ser.index, columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_consistency():
