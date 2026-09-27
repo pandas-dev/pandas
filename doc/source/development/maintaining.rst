@@ -424,6 +424,7 @@ to create the new branch.
    by pushing an empty commit and a ``dev0`` tag, e.g. for 3.1.0
 
    .. code-block:: bash
+
       git checkout main
       git commit --allow-empty -m "Start 3.1.0"
       git tag -a v3.1.0.dev0 -m "DEV: Start 3.1.0"
