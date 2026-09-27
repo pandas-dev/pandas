@@ -600,3 +600,20 @@ def test_info_dtype_after_datetime_to_pydatetime():
         info_str = buf.getvalue()
     assert "object" in info_str
     assert "datetime64" not in info_str
+
+
+def test_info_east_asian_width():
+    # GH#46082
+    df = pd.DataFrame({"열이름": [1], "列名": [2], "column": [3]})
+    with pd.option_context("display.unicode.east_asian_width", True):
+        with StringIO() as buf:
+            df.info(buf=buf)
+            lines = buf.getvalue().splitlines()
+    expected = [
+        " #   Column  Non-Null Count  Dtype",
+        "---  ------  --------------  -----",
+        " 0   열이름  1 non-null      int64",
+        " 1   列名    1 non-null      int64",
+        " 2   column  1 non-null      int64",
+    ]
+    assert lines[3:8] == expected
