@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+import tracemalloc
 
 import numpy as np
 import pytest
@@ -779,3 +780,20 @@ def test_replace_datetime_out_of_bounds_for_ns():
     ser = pd.Series([np.nan], dtype="datetime64[ns]")
     with pytest.raises(OutOfBoundsDatetime, match="Explicitly cast"):
         ser.replace(np.nan, datetime(3000, 1, 1))
+
+
+def test_replace_dict_inplace_memory():
+    # GH#25816 inplace held one full-length mask per key, so memory grew as
+    #  n_keys * len(ser)
+    n = 2000
+    ser = pd.Series(np.arange(n))
+    tracemalloc.start()
+    try:
+        ser.replace({i: i + 1 for i in range(n)}, inplace=True)
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert peak < n * n // 4
+
+    # each key is also a destination, so this checks replacements do not chain
+    tm.assert_series_equal(ser, pd.Series(np.arange(1, n + 1)))
