@@ -75,6 +75,9 @@ def data_for_grouping():
     return IntervalArray.from_tuples([b, b, None, None, a, a, b, c])
 
 
+@pytest.mark.filterwarnings(
+    "ignore:IntervalArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 

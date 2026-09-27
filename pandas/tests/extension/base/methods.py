@@ -2,12 +2,14 @@ import inspect
 from io import StringIO
 import operator
 import re
+import warnings
 
 import numpy as np
 import pytest
 
 from pandas._libs._ujson import ujson_dumps
 from pandas._typing import Dtype
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -35,6 +37,32 @@ class BaseMethodsTests:
         )
         assert res.dtype == np.uint64
         assert res.shape == data.shape
+
+    def test_slow_defaults_overridden(self, data):
+        # GH#24433 warn EA authors about defaults that may cast to object; map is
+        # left out because it is elementwise regardless
+        base_cls = pd.api.extensions.ExtensionArray
+        overridable = {
+            "unique": ["unique"],
+            "factorize": ["factorize", "_values_for_factorize"],
+            "argsort": ["argsort", "_values_for_argsort"],
+            "searchsorted": ["searchsorted"],
+        }
+        inherited = [
+            name
+            for name, methods in overridable.items()
+            if all(
+                getattr(type(data), meth) is getattr(base_cls, meth) for meth in methods
+            )
+        ]
+        if inherited:
+            warnings.warn(
+                f"{type(data).__name__} uses the default ExtensionArray "
+                f"implementation of {', '.join(inherited)}, which may be slow. "
+                "See the ExtensionArray docstring for methods to override.",
+                PerformanceWarning,
+                stacklevel=2,
+            )
 
     def test_value_counts_default_dropna(self, data):
         # make sure we have consistent default dropna kwarg
