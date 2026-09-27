@@ -88,7 +88,7 @@ class ArrowStringArrayMixin:
                     )
                     or (
                         op_code == _parser.BRANCH
-                        and any(has_unsupported_code(tokens) for tokens in argument[1])
+                        and any(has_unsupported_code(tokens) for tokens in argument)
                     )
                     or (
                         op_code
@@ -100,9 +100,9 @@ class ArrowStringArrayMixin:
 
         str_pat = pat.pattern if isinstance(pat, re.Pattern) else pat
         try:
-            tokens = regex_parser(str_pat)
+            tokens = regex_parser.parse(str_pat)
         except re.error:
-            # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p)
+            # Pattern not valid for Python's re (e.g. RE2 syntax like \x{...} or \p{...})
             # Let the pyarrow backend handle it.
             return False
         return has_unsupported_code(tokens)
@@ -121,7 +121,7 @@ class ArrowStringArrayMixin:
         pat: str | re.Pattern, case: bool, flags: int
     ) -> tuple[str, bool, int]:
         """
-        Reduce `pat` to the (pattern, case, flags) triple the pyarrow kernels take.
+        Reduce the re pattern to the (pattern, case, flags) triple the pyarrow kernels take.
 
         IGNORECASE is the only flag they support and they spell it as `case`, so
         it is folded into `case`; whatever `flags` remain afterwards cannot be
@@ -209,6 +209,10 @@ class ArrowStringArrayMixin:
             return self._from_pyarrow_array(
                 pa.chunked_array(result, type=self._pa_array.type)
             )
+        # GH#69486 pc.utf8_zfill raises on a negative width, while str.zfill
+        # returns the string unchanged for any width not larger than the
+        # string itself; clamping to zero gives that behavior
+        width = max(width, 0)
         return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
@@ -379,7 +383,7 @@ class ArrowStringArrayMixin:
             #  for valid values.
             result = pc.if_else(pc.is_null(self._pa_array), None, False)
         else:
-            result = pc.ends_with(self._pa_array, pattern=pat[0])
+            result = pc.ends_with(self._pa_array, pattern=pat)
 
             for p in pat[1:]:
                 result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
@@ -456,7 +460,7 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -473,7 +477,7 @@ class ArrowStringArrayMixin:
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,

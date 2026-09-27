@@ -49,7 +49,7 @@ def test_lower_upper_mixed_object():
     )
     tm.assert_series_equal(result, expected)
 
-    result = s.str.lower()
+    result = result.str.lower()
     expected = pd.Series(
         ["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan], dtype=object
     )
@@ -385,6 +385,19 @@ def test_zfill_signed(any_string_dtype):
     s = pd.Series(["-3", "+7", "-", "0"], dtype=any_string_dtype)
     result = s.str.zfill(5)
     expected = pd.Series(["-0003", "+0007", "-0000", "00000"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("width", [-5, -2, 0])
+def test_zfill_nonpositive_width(any_string_dtype, width):
+    # GH#69486
+    # str.zfill returns the string unchanged for any width not larger than
+    # the string itself, so nonpositive widths are a no-op; the pyarrow
+    # kernel raises on negative widths unless clamped
+    values = ["1", "22", "aaa", "-3", "+7", "-", "", "ää", np.nan]
+    s = pd.Series(values, dtype=any_string_dtype)
+    result = s.str.zfill(width)
+    expected = pd.Series(values, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
