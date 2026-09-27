@@ -249,7 +249,9 @@ def test_bad_date_parse(all_parsers, cache, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * (start_caching_at + 1))
 
-    parser.read_csv(
+    parser.read_csv_check_warnings(
+        Pandas4Warning,
+        "The 'cache_dates' argument is deprecated",
         s,
         header=None,
         names=["foo", "bar"],
@@ -264,21 +266,23 @@ def test_bad_date_parse_with_warning(all_parsers, cache):
     parser = all_parsers
     s = StringIO(("0,\n") * (start_caching_at + 1))
 
+    depr_msg = "The 'cache_dates' argument is deprecated"
     if parser.engine == "pyarrow":
         # pyarrow reads "0" as 0 (of type int64), and so
         # pandas doesn't try to guess the datetime format
         # TODO: parse dates directly in pyarrow, see
         # https://github.com/pandas-dev/pandas/issues/48017
-        warn = None
+        warn, match = Pandas4Warning, depr_msg
     elif cache:
         # Note: warning is not raised if 'cache_dates', because here there is only a
         # single unique date and hence no risk of inconsistent parsing.
-        warn = None
+        warn, match = Pandas4Warning, depr_msg
     else:
-        warn = UserWarning
+        warn = (Pandas4Warning, UserWarning)
+        match = (depr_msg, "Could not infer format")
     parser.read_csv_check_warnings(
         warn,
-        "Could not infer format",
+        match,
         s,
         header=None,
         names=["foo", "bar"],
@@ -286,6 +290,18 @@ def test_bad_date_parse_with_warning(all_parsers, cache):
         cache_dates=cache,
         raise_on_extra_warnings=False,
     )
+
+
+@pytest.mark.parametrize("reader", [read_csv, pd.read_table, pd.read_fwf])
+def test_cache_dates_deprecated(reader, cache):
+    # GH#68705
+    msg = "The 'cache_dates' argument is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = reader(
+            StringIO("a\n2020-01-01\n"), parse_dates=["a"], cache_dates=cache
+        )
+    expected = pd.DataFrame({"a": pd.to_datetime(["2020-01-01"])})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_parse_dates_empty_string(all_parsers):

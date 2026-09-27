@@ -348,6 +348,8 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
+    if kwds.get("cache_dates") is lib.no_default:
+        del kwds["cache_dates"]
     # before the `iterator` peek below, which reads it for truthiness
     _validate_bool_kwargs(kwds)
 
@@ -392,6 +394,16 @@ def _read(
         warnings.warn(
             "The 'float_precision' argument is deprecated. "
             "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+    if "cache_dates" in kwds:
+        # GH#68705
+        warnings.warn(
+            "The 'cache_dates' argument is deprecated and will be removed in a "
+            "future version. To control caching, parse the dates with "
+            "pd.to_datetime(..., cache=...) instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -1314,7 +1326,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = None,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
-    cache_dates: bool = True,
+    cache_dates: bool | lib.NoDefault = lib.no_default,
     # Iteration
     iterator: bool = False,
     chunksize: int | None = None,
@@ -1566,6 +1578,10 @@ def read_csv(
         If ``True``, use a cache of unique, converted dates to apply the ``datetime``
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
+
+        .. deprecated:: 3.1.0
+            The ``cache_dates`` argument will be removed in a future version.
+            To control caching, use :func:`to_datetime` with ``cache``.
 
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
@@ -1919,7 +1935,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] | None = None,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
-    cache_dates: bool = True,
+    cache_dates: bool | lib.NoDefault = lib.no_default,
     # Iteration
     iterator: bool = False,
     chunksize: int | None = None,
@@ -2167,6 +2183,10 @@ def read_table(
         If ``True``, use a cache of unique, converted dates to apply the ``datetime``
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
+
+        .. deprecated:: 3.1.0
+            The ``cache_dates`` argument will be removed in a future version.
+            To control caching, use :func:`to_datetime` with ``cache``.
 
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
