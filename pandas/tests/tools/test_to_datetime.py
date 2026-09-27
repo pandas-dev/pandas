@@ -4363,6 +4363,49 @@ def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
     tm.assert_series_equal(result3, expected1)
 
 
+@pytest.mark.parametrize(
+    "categories, dtype",
+    [
+        (["2019-09-24 17:00:00", "2020-01-02 03:04:05"], "M8[us]"),
+        (
+            pd.DatetimeIndex(
+                ["2019-09-24 17:00:00", "2020-01-02 03:04:05"], dtype="M8[us, UTC]"
+            ),
+            "M8[us, UTC]",
+        ),
+    ],
+)
+@pytest.mark.parametrize("length", [start_caching_at, start_caching_at + 1])
+def test_to_datetime_categorical_container(categories, dtype, length):
+    # GH#28629 the result dtype must not depend on whether the cache kicked in
+    values = list(categories) * length
+    cat = pd.Categorical(values[:length])
+    expected = pd.DatetimeIndex(values[:length], dtype=dtype)
+
+    tm.assert_index_equal(pd.to_datetime(cat), expected)
+    tm.assert_index_equal(
+        pd.to_datetime(pd.CategoricalIndex(cat, name="foo")), expected.rename("foo")
+    )
+    ser = pd.Series(cat, index=pd.RangeIndex(10, 10 + length), name="foo")
+    tm.assert_series_equal(
+        pd.to_datetime(ser), pd.Series(expected, index=ser.index, name="foo")
+    )
+
+
+@pytest.mark.parametrize("length", [start_caching_at, start_caching_at + 1])
+def test_to_datetime_categorical_all_coerced(length):
+    # GH#28629 categories that all coerce to NaT leave the lookup object dtype
+    cat = pd.Categorical(["foo", "bar"] * length)[:length]
+    expected = pd.DatetimeIndex([pd.NaT] * length, dtype="M8[s]")
+    # a non-ISO format keeps the cache in play, unlike an ISO one
+    kwargs = {"format": "%d/%m/%Y", "errors": "coerce"}
+
+    tm.assert_index_equal(pd.to_datetime(cat, **kwargs), expected)
+    tm.assert_series_equal(
+        pd.to_datetime(pd.Series(cat), **kwargs), pd.Series(expected)
+    )
+
+
 def test_to_datetime_format_f_parse_nanos():
     # GH 48767
     timestamp = "15/02/2020 02:03:04.123456789"

@@ -1,62 +1,47 @@
-# pandas Agent Instructions
+# AGENTS.md
 
-## Project Overview
-`pandas` is an open source, BSD-licensed library providing high-performance, easy-to-use data structures and data analysis tools for the Python programming language.
+pandas is a BSD-licensed Python library for data analysis, built from Python, Cython, and C/C++
+sources with Meson.
 
-## Purpose
-- Assist contributors by suggesting code changes, tests, and documentation edits for the pandas repository while preserving stability and compatibility.
+## Interactions on GitHub
 
-## Persona & Tone
-- Concise, neutral, code-focused. Prioritize correctness, readability, and tests.
+- Never perform issue- or pull-request-related actions on the pandas-dev/pandas GitHub repository on behalf of the user.
+  This includes, but is not limited to, interactions such as pushing code, opening issues or pull requests, and replying to issues, pull requests, or reviews.
+- The user is required to disclose your agent information (harness, model, reasoning level), and to mark
+  any verbatim text produced by you (an agent) that they quote with `>` or a triple-backtick code fence.
 
-## Project Guidelines
-- Be sure to follow all guidelines for contributing to the codebase specified at https://pandas.pydata.org/docs/development/contributing_codebase.html
-- These guidelines are also available in the following local files, which should be loaded into context and adhered to
-    - doc/source/development/contributing_codebase.rst
-    - doc/source/development/contributing_docstring.rst
-    - doc/source/development/contributing_documentation.rst
-    - doc/source/development/contributing.rst
+The automated contributions policy in [contributing.rst](doc/source/development/contributing.rst)
+defines how the user may use agent-generated work.
 
-## Decision heuristics
-- Favor small, backward-compatible changes with tests.
-- If a change would be breaking, propose it behind a deprecation path and document the rationale.
-- Prefer readability over micro-optimizations unless benchmarks are requested.
-- Add tests for behavioral changes; update docs only after code change is final.
+## Required tooling
 
-## Type hints guidance (summary)
-- Prefer PEP 484 style and types in pandas._typing when appropriate.
-- Avoid unnecessary use of typing.cast; prefer refactors that convey types to type-checkers.
-- Use builtin generics (list, dict) when possible.
+This project supports creating a development environment using [conda](https://docs.conda.io/en/latest/) with [environment.yml](environment.yml) or
+[Pixi](https://pixi.prefix.dev/latest/) with [pixi.toml](pixi.toml). pandas CI uses Pixi and tasks defined in [pixi.toml](pixi.toml) for all workflows
+(building pandas, testing, type checking, building documentation, running benchmarks).
 
-## Docstring guidance (summary)
-- Follow NumPy / numpydoc conventions used across the repo: short summary, extended summary, Parameters, Returns/Yields, See Also, Notes, Examples.
-- Ensure examples are deterministic, import numpy/pandas as documented, and pass doctest rules used by docs validation.
-- Preserve formatting rules: triple double-quotes, no blank line before/after docstring, parameter formatting ("name : type, default ..."), types and examples conventions.
+Linting checks require [pre-commit](https://pre-commit.com/), installed in a conda or pixi environment, to run checks defined in [.pre-commit-config.yaml](.pre-commit-config.yaml).
 
-## Pull Requests (summary)
-- Pull request titles should be descriptive and include one of the following prefixes:
-    - ENH: Enhancement, new functionality
-    - BUG: Bug fix
-    - DOC: Additions/updates to documentation
-    - TST: Additions/updates to tests
-    - BLD: Updates to the build process/scripts
-    - PERF: Performance improvement
-    - TYP: Type annotations
-    - CLN: Code cleanup
-- Pull request descriptions should follow the template, and **succinctly** describe the change being made. Usually a few sentences is sufficient.
-- Pull requests that resolve an existing GitHub issue should include a link to the issue in the PR description.
-- Do not add summaries or additional comments to individual commit messages. The single PR description is sufficient.
-- Check the "I used AI to develop this pull request" box in the pull request template, and disclose your model
-  metadata in the description: the tool, the model and version, and the reasoning-effort setting, e.g.
-  `claude opus 4.8 (xhigh)` rather than `claude`. Report what you are actually running as; if you are not certain of
-  your model version or effort setting, ask rather than guessing.
+## Repository map
 
-## Comments on issues and pull requests
-- Helping write the code, tests, and documentation in a pull request is fine. Comments are different: see the
-  automated contributions policy in `doc/source/development/contributing.rst`.
-- Do not post comments on GitHub issues or pull requests, and do not reply to reviewers, on behalf of the user.
-- Do not write the user's side of a discussion for them to paste. Summarize your analysis in chat and let the user
-  respond in their own words.
-- When you quote tool output as evidence, such as a traceback or a suggested diff, mark it with `>` or triple
-  backticks so readers can tell which parts are the user's own words.
-- Translation and grammar editing are an exception to the rule above, but must still be disclosed.
+- `pandas/` — library implementation
+- `pandas/_libs/` — Cython/C/C++
+- `pandas/tests/` — test suite
+- `doc/` — documentation source
+- `doc/source/whatsnew/` — release notes
+- `asv_bench/benchmarks/` — benchmarks
+- `scripts/` — repository checks invoked by pre-commit
+- `web/` — pandas website
+- `.github/` — GitHub Actions for CI
+- `.github/workflows/unit-tests.yml` — CI definition for unit tests
+- `.github/workflows/code-checks.yml` — CI definition for doctests, typing validation, benchmark correctness
+- `.github/workflows/docbuild-and-upload.yml` — CI definition for building documentation
+- `ci/` — CI helpers
+- `pyproject.toml` — project and tooling configurations
+
+## References
+
+- [contributing.rst](doc/source/development/contributing.rst) — contribution workflow, automated contributions policy
+- [contributing_environment.rst](doc/source/development/contributing_environment.rst) — development environment instructions
+- [contributing_codebase.rst](doc/source/development/contributing_codebase.rst) — all code standards: pre-commit, backward compatibility, typing, tests, benchmarks
+- [contributing_documentation.rst](doc/source/development/contributing_documentation.rst) — docs structure and building
+- [policies.rst](doc/source/development/policies.rst) — versioning and deprecation policy
