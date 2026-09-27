@@ -198,9 +198,11 @@ class HTMLFormatter:
         # replace spaces between strings with non-breaking spaces
         rs = rs.replace("  ", "&nbsp;&nbsp;")
 
-        if self.render_links and is_url(rs):
-            rs_unescaped = pprint_thing(s, escape_chars={}).strip()
-            start_tag += f'<a href="{rs_unescaped}" target="_blank">'
+        if self.render_links and is_url(pprint_thing(s, escape_chars={}).strip()):
+            # GH#66080: escape the URL for the href attribute to prevent
+            # breaking the HTML attribute when the URL contains quotes or ampersands
+            rs_href = pprint_thing(s, escape_chars=esc).strip()
+            start_tag += f'<a href="{rs_href}" target="_blank">'
             end_a = "</a>"
         else:
             end_a = ""
