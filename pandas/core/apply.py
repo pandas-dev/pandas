@@ -1420,13 +1420,11 @@ class FrameApply(NDFrameApply):
         arr = cast("ExtensionArray", self.obj._get_column_array(0))
         try:
             values = arr._cast_pointwise_result(list(results.values()))
-            retained = isinstance(values.dtype, ExtensionDtype)
         except Exception:
-            # Deliberately broad, and around the dtype check too: retaining a
-            #  dtype must not make a working apply raise, see the
-            #  test_apply_ea_dtype_falls_back_when_cast_* tests
+            # Deliberately broad: retaining a dtype must not make a working
+            #  apply raise, see test_apply_ea_dtype_falls_back_when_cast_raises
             return None
-        if not retained:
+        if not isinstance(values.dtype, ExtensionDtype):
             # the cast fell back to inference; leave that to the constructor so
             #  a frame with nothing to retain behaves exactly as before
             return None

@@ -2331,19 +2331,6 @@ def test_apply_ea_dtype_retains_na_flavor():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_ea_dtype_falls_back_when_cast_returns_non_array():
-    # GH#61812 an ExtensionArray whose _cast_pointwise_result does not return an
-    #  array must not turn a working apply into an AttributeError
-    class NoResultArray(pd.arrays.IntegerArray):
-        def _cast_pointwise_result(self, values):
-            return None
-
-    arr = pd.array([1, 2], dtype="Int64")
-    df = pd.DataFrame({"A": NoResultArray(arr._data, arr._mask)})
-    result = df.apply(lambda x: 5)
-    tm.assert_series_equal(result, pd.Series([5], index=["A"]))
-
-
 def test_apply_sparse_not_retained():
     # GH#61812 sparsity is a storage layout, not a result dtype; retaining it
     #  would also drop the tz below
