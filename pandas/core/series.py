@@ -480,7 +480,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if isinstance(data, ABCDataFrame):
                 raise ValueError(
                     "Cannot construct a Series from a DataFrame. To select a "
-                    "single column, use df.iloc[:, 0] or df.squeeze(axis=1)."
+                    "single column, use df.iloc[:, 0]."
                 )
             data = com.maybe_iterable_to_list(data)
             if is_list_like(data) and not len(data) and dtype is None:
