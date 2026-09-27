@@ -569,6 +569,33 @@ then convert to a NumPy array using ``to_numpy()``:
 :attr:`DataFrame.values` and ``np.asarray(ser)`` are not affected (those already
 return an object-dtype NumPy array of objects for all three cases).
 
+.. _whatsnew_310.deprecations.infer_freq:
+
+Inferred frequencies will be returned as offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`,
+:attr:`TimedeltaIndex.inferred_freq`, and :attr:`Series.dt.freq` return a string
+such as ``"D"``. In a future version they will return a
+:class:`~pandas.tseries.offsets.BaseOffset`, like :attr:`DatetimeIndex.freq`
+(:issue:`55504`).
+
+.. code-block:: ipython
+
+    In [1]: dti = pd.date_range("2024-01-01", periods=4, freq="D")
+
+    In [2]: pd.infer_freq(dti)
+    Pandas4Warning: A future version of pandas will return a BaseOffset object instead of a string from infer_freq. ...
+    Out[2]: 'D'
+
+    In [3]: pd.set_option("future.infer_freq_returns_offset", True)
+
+    In [4]: pd.infer_freq(dti)
+    Out[4]: <Day>
+
+Set the option to ``False`` instead to keep strings and silence the warning.
+After opting in, use ``.freqstr`` on the result to get the string.
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -576,7 +603,6 @@ Other deprecations
 - Deprecated :attr:`PeriodIndex.is_full`; use ``index.empty or len(index.unique()) == len(period_range(index.min(), index.max(), freq=index.freq))`` instead. Unlike ``is_full``, this is also correct for frequencies with a multiple (e.g. ``"2D"``) and does not raise on a non-monotonic index (:issue:`64938`)
 - Deprecated :attr:`Timestamp.dayofweek`, :attr:`Timestamp.dayofyear`, :attr:`Timestamp.daysinmonth` in favor of :attr:`Timestamp.day_of_week`, :attr:`Timestamp.day_of_year`, :attr:`Timestamp.days_in_month`, respectively. The same deprecation applies to the corresponding attributes on :class:`Period`, :class:`DatetimeIndex`, :class:`PeriodIndex`, and :attr:`Series.dt` (:issue:`46768`)
 - Deprecated :class:`PeriodIndex` and :class:`PeriodArray` inferring the frequency from a :class:`Series` of datetime64 data when ``freq`` is not provided. Pass ``freq`` explicitly instead (:issue:`64241`)
-- Deprecated :func:`infer_freq`, :attr:`DatetimeIndex.inferred_freq`, :attr:`TimedeltaIndex.inferred_freq`, and :attr:`Series.dt.freq` returning a string; in a future version these will return a :class:`BaseOffset` instead. Use ``pd.set_option('future.infer_freq_returns_offset', True)`` to opt in to the future behavior (:issue:`55504`)
 - Deprecated :func:`set_eng_float_format`. Use ``pd.set_option("display.precision", N)`` to control decimal precision, or pass a custom callable to ``pd.set_option("display.float_format", func)`` (:issue:`64460`)
 - Deprecated :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` unpacking a scalar when the provided ``func`` returns a Series or array of length 1; in the future this will result in the Series or array being in the result. Users should unpack the scalar in ``func`` itself (:issue:`64014`)
 - Deprecated :meth:`DataFrame.select_dtypes` matching the default ``str`` dtype when ``object`` is passed to ``exclude``, mirroring the existing deprecation for ``include``. Pass ``"str"`` to ``exclude`` to drop those columns as well, or to ``include`` to keep them (:issue:`68454`)
