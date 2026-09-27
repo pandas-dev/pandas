@@ -6610,6 +6610,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
 
+            This does not apply to keys in a ``dtype`` mapping that are not
+            column labels (or, for a Series, not its name); those always raise
+            ``KeyError``.
+
         Returns
         -------
         same type as caller
