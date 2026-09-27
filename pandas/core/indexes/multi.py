@@ -3326,8 +3326,13 @@ class MultiIndex(Index):
             codes.extend(
                 [self.codes[lev] for lev in range(len(self.levels)) if lev not in level]
             )
-        else:
+        elif level:
             sortorder = level[0]
+
+        if not codes:
+            if na_position not in ["first", "last"]:
+                raise ValueError(f"invalid na_position: {na_position}")
+            return self.copy(), np.arange(len(self), dtype=np.intp)
 
         indexer = lexsort_indexer(
             codes, orders=ascending, na_position=na_position, codes_given=True

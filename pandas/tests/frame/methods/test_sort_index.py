@@ -813,6 +813,28 @@ class TestDataFrameSortIndex:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("sort_remaining", [True, False])
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_sort_index_empty_level(self, sort_remaining, ascending, axis):
+        # GH#25831
+        df = pd.DataFrame(
+            {"c": [0, 0, 1]},
+            index=pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"]),
+        )
+        if sort_remaining:
+            positions = [0, 2, 1] if ascending else [1, 2, 0]
+            expected = df.iloc[positions]
+        else:
+            expected = df.copy()
+        if axis == 1:
+            df = df.T
+            expected = expected.T
+
+        result = df.sort_index(
+            level=[], axis=axis, ascending=ascending, sort_remaining=sort_remaining
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_sort_index_level_on_range_index(self):
         # GH#64383: sort_index with level= on a RangeIndex raised AssertionError
         df = pd.DataFrame({"a": [1, 2, 3]})
