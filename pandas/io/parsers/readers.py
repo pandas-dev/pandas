@@ -945,7 +945,7 @@ def _read_csv_chunks(
         if not all(is_integer(pos) for pos in index_engine.index_col):
             # an index_col name matching no column; the serial read raises
             return None
-        index_positions = [pos % len(col_names) for pos in index_engine.index_col]
+        index_positions = [int(pos) % len(col_names) for pos in index_engine.index_col]
         if len(set(index_positions)) != len(index_positions):
             return None
 

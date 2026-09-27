@@ -1336,6 +1336,7 @@ def test_parallel_implicit_index_matches_serial(tmp_path, monkeypatch):
     assert list(result.index[:2]) == ["idx0", "idx1"]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 @pytest.mark.parametrize("index_col", [0, "b", -1, [0, 2], ["c", 0]])
 def test_parallel_index_col_matches_serial(tmp_path, monkeypatch, index_col):
     raw = b"a,b,c\n" + b"".join(
@@ -1351,6 +1352,7 @@ def test_parallel_index_col_matches_serial(tmp_path, monkeypatch, index_col):
     assert outcomes == ["used"]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 @pytest.mark.parametrize(
     "kwargs",
     [
