@@ -5399,6 +5399,128 @@ class TestGroupbyAggPyArrowNative:
         with pytest.raises(TypeError, match=f"does not support operation '{how}'"):
             getattr(ser.groupby([1, 1, 2, 2]), how)()
 
+    # ordered like "badc" for every type
+    _dates = [date(2020, 1, 2), date(2020, 1, 1), date(2021, 1, 4), date(2021, 1, 3)]
+    _times = [time(1), time(0), time(3), time(2)]
+    _bytes = [b"b", b"a", b"d", b"c"]
+    _temporal_binary_cases = [
+        pytest.param(pa_type, values, id=str(pa_type))
+        for pa_type, values in [
+            (pa.date32(), _dates),
+            (pa.date64(), _dates),
+            (pa.time32("s"), _times),
+            (pa.time32("ms"), _times),
+            (pa.time64("us"), _times),
+            (pa.time64("ns"), _times),
+            (pa.binary(), _bytes),
+            (pa.large_binary(), _bytes),
+            (pa.binary(1), _bytes),
+        ]
+    ]
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize("pa_type, values", _temporal_binary_cases)
+    def test_groupby_temporal_binary_min_max(self, pa_type, values, how):
+        # GH#66626
+        ser = pd.Series([*values, None], dtype=ArrowDtype(pa_type))
+        keys = pd.Categorical([0, 0, 2, 2, 2], categories=[0, 1, 2])
+        result = getattr(ser.groupby(keys, observed=False), how)()
+        expected = pd.Series(
+            [values[0], None, values[2]]
+            if how == "max"
+            else [values[1], None, values[3]],
+            index=pd.CategoricalIndex([0, 1, 2]),
+            dtype=ArrowDtype(pa_type),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize("pa_type, values", _temporal_binary_cases)
+    def test_groupby_temporal_binary_all_na_keeps_dtype(self, pa_type, values, how):
+        # GH#66626 an all-NA result keeps the column's dtype
+        ser = pd.Series([values[0], None, values[1], None], dtype=ArrowDtype(pa_type))
+        result = getattr(ser.groupby([0, 0, 1, 1]), how)(skipna=False)
+        expected = pd.Series([None, None], index=[0, 1], dtype=ArrowDtype(pa_type))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    @pytest.mark.parametrize("pa_type, values", _temporal_binary_cases)
+    def test_groupby_temporal_binary_min_max_min_count(self, pa_type, values, how):
+        # GH#66626 min_count is respected
+        ser = pd.Series(
+            [values[0], None, values[2], values[3]], dtype=ArrowDtype(pa_type)
+        )
+        result = getattr(ser.groupby([0, 0, 1, 1]), how)(min_count=2)
+        expected = pd.Series(
+            [None, values[2] if how == "max" else values[3]],
+            index=[0, 1],
+            dtype=ArrowDtype(pa_type),
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("pa_type, values", _temporal_binary_cases)
+    def test_groupby_temporal_binary_min_chunked_unsorted(self, pa_type, values):
+        # GH#66626
+        arr = pa.chunked_array(
+            [pa.array(values[:2], pa_type), pa.array(values[2:], pa_type)]
+        )
+        ser = pd.Series(ArrowExtensionArray(arr))
+        result = ser.groupby([2, None, 1, 2], sort=False).min()
+        expected = pd.Series(
+            [values[0], values[2]], index=[2, 1], dtype=ArrowDtype(pa_type)
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            ArrowDtype(pa.string()),
+            pd.StringDtype("pyarrow"),
+            ArrowDtype(pa.binary()),
+            ArrowDtype(pa.large_binary()),
+        ],
+        ids=["string", "str[pyarrow]", "binary", "large_binary"],
+    )
+    def test_groupby_min_count_many_groups(self, dtype):
+        # GH#66626 a chunked aggregate with PyArrow < 24 (GH#64320)
+        ngroups = 40_000
+        values = [f"v{i}" for i in range(2 * ngroups)]
+        if dtype == ArrowDtype(pa.binary()) or dtype == ArrowDtype(pa.large_binary()):
+            values = [value.encode() for value in values]
+        ser = pd.Series(values, dtype=dtype)
+        keys = np.arange(2 * ngroups) % ngroups
+        result = ser.groupby(keys).min(min_count=1)
+        result.array._pa_array.validate(full=True)
+        tm.assert_series_equal(result, ser.groupby(keys).min())
+
+    @pytest.mark.parametrize("min_count", [0, 1, 3])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("how", ["min", "max"])
+    def test_groupby_null_min_max(self, how, skipna, min_count):
+        # GH#66626
+        ser = pd.Series(ArrowExtensionArray(pa.nulls(4)))
+        keys = pd.Categorical([0, 0, 2, 2], categories=[0, 1, 2])
+        result = getattr(ser.groupby(keys, observed=False), how)(
+            skipna=skipna, min_count=min_count
+        )
+        expected = pd.Series(
+            ArrowExtensionArray(pa.nulls(3)), index=pd.CategoricalIndex([0, 1, 2])
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("how", ["min", "max"])
+    def test_groupby_time64_ns_min_count_keeps_nanoseconds(self, how):
+        # GH#66626 nanoseconds survive min_count
+        arr = pa.array([1, 2, 3], pa.int64()).cast(pa.time64("ns"))
+        ser = pd.Series(ArrowExtensionArray(arr))
+        result = getattr(ser.groupby([0, 0, 1]), how)(min_count=2)
+        expected = pd.Series(
+            ArrowExtensionArray(
+                pa.array([1 if how == "min" else 2, None]).cast(pa.time64("ns"))
+            )
+        )
+        tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
