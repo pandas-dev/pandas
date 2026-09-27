@@ -323,6 +323,15 @@ def test_apply_without_aggregation2(_test_series):
     tm.assert_series_equal(result, _test_series.rename("foo"))
 
 
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func(func):
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=date_range("2000", periods=3))
+    result = df.resample("D").agg(func)
+    tm.assert_index_equal(result.index, df.index)
+    assert result.columns.empty
+
+
 def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list

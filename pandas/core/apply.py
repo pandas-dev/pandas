@@ -528,6 +528,12 @@ class Apply(metaclass=abc.ABCMeta):
     ):
         obj = self.obj
 
+        if not results and isinstance(obj, ABCSeries):
+            # GH#39609
+            from pandas import Index
+
+            return obj._constructor(index=Index([]), name=obj.name)
+
         try:
             return concat(results, keys=keys, axis=1, sort=False)
         except TypeError as err:
@@ -654,8 +660,22 @@ class Apply(metaclass=abc.ABCMeta):
         result_data: list,
     ):
         from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
 
         obj = self.obj
+
+        if not result_data:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, ABCDataFrame):
+                return obj._constructor(index=Index([]), columns=obj.columns[:0])
+            elif isinstance(obj, BaseGroupBy):
+                # a dict aggregation of a Series selection has already raised
+                frame = cast("DataFrame", selected_obj)
+                return frame._constructor(
+                    index=obj._grouper.result_index, columns=frame.columns[:0]
+                )
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
@@ -1119,7 +1139,7 @@ class FrameApply(NDFrameApply):
         elif self.kwargs.get("bool_only"):
             obj = obj._get_bool_data()
 
-        if obj.columns.empty:
+        if obj.columns.empty or not func_names:
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
