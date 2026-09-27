@@ -811,8 +811,7 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
   enc->offset += (wstr - (enc->offset));
 }
 
-int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
-                                 double value) {
+static void Buffer_AppendDoubleDecimals(JSONObjectEncoder *enc, double value) {
   /* if input is beyond the thresholds, revert to exponential */
   const double thres_max = (double)1e16 - 1;
   const double thres_min = (double)1e-15;
@@ -826,16 +825,6 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
   unsigned long long frac;
   int neg;
   double pow10;
-
-  if (value == HUGE_VAL || value == -HUGE_VAL) {
-    SetError(obj, enc, "Invalid Inf value when encoding double");
-    return FALSE;
-  }
-
-  if (!(value == value)) {
-    SetError(obj, enc, "Invalid Nan value when encoding double");
-    return FALSE;
-  }
 
   /* we'll work in positive values and deal with the
   negative sign issue later */
@@ -862,7 +851,7 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
     enc->offset += snprintf(str, enc->end - enc->offset, precision_str,
                             neg ? -value : value);
 #endif
-    return TRUE;
+    return;
   }
 
   pow10 = g_pow10[enc->doublePrecision];
@@ -938,7 +927,33 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
   }
   strreverse(str, wstr - 1);
   enc->offset += (wstr - (enc->offset));
+}
 
+int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
+                                 double value) {
+  if (value == HUGE_VAL || value == -HUGE_VAL) {
+    SetError(obj, enc, "Invalid Inf value when encoding double");
+    return FALSE;
+  }
+
+  if (!(value == value)) {
+    SetError(obj, enc, "Invalid Nan value when encoding double");
+    return FALSE;
+  }
+
+  enc->floatWritten = 1;
+
+  if (enc->doublePrecision == JSON_DOUBLE_SHORTEST) {
+    const int len = enc->formatShortestDouble(value, enc->offset);
+    if (len < 0) {
+      SetError(obj, enc, "Could not format double");
+      return FALSE;
+    }
+    enc->offset += len;
+    return TRUE;
+  }
+
+  Buffer_AppendDoubleDecimals(enc, value);
   return TRUE;
 }
 
@@ -1186,7 +1201,8 @@ char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *_buffer,
     enc->recursionMax = JSON_MAX_RECURSION_DEPTH;
   }
 
-  if (enc->doublePrecision < 0 ||
+  if ((enc->doublePrecision < 0 &&
+       enc->doublePrecision != JSON_DOUBLE_SHORTEST) ||
       enc->doublePrecision > JSON_DOUBLE_MAX_DECIMALS) {
     enc->doublePrecision = JSON_DOUBLE_MAX_DECIMALS;
   }

@@ -49,6 +49,12 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <string.h>
 #include <wchar.h>
 
+// Defined in pandas/_libs/src/parser/fast_float_wrappers.cpp. Parses a double
+// with correct rounding; returns 0 on success, 1 if the value is out of range,
+// and -1 if no number could be parsed.
+int fast_float_json_strtod(const char *start, const char *end, double *value,
+                           const char **endptr);
+
 #ifndef TRUE
 #  define TRUE 1
 #  define FALSE 0
@@ -100,18 +106,22 @@ double createDouble(double intNeg, double intValue, double frcValue,
   return (intValue + (frcValue * g_pow10[frcDecimalCount])) * intNeg;
 }
 
-JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
-  char *end;
+JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds,
+                                       char *numStart) {
+  const char *end;
   double value;
-  errno = 0;
 
-  value = strtod(ds->start, &end);
-
-  if (errno == ERANGE) {
+  const int status = fast_float_json_strtod(numStart, ds->end, &value, &end);
+  if (status == 1) {
     return SetError(ds, -1, "Range error when decoding numeric as double");
   }
+  if (status != 0) {
+    return SetError(ds, -1, "Unexpected character found when decoding double");
+  }
 
-  ds->start = end;
+  ds->lastType = JT_DOUBLE;
+  ds->start = (char *)end;
+  ds->dec->floatParsed = 1;
   return ds->dec->newDouble(ds->prv, value);
 }
 
@@ -125,6 +135,7 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
   double expNeg;
   double expValue;
   char *offset = ds->start;
+  char *numStart = ds->start;
 
   JSUINT64 overflowLimit = LLONG_MAX;
 
@@ -207,7 +218,7 @@ BREAK_INT_LOOP:
 DECODE_FRACTION:
 
   if (ds->dec->preciseFloat) {
-    return decodePreciseFloat(ds);
+    return decodePreciseFloat(ds, numStart);
   }
 
   // Scan fraction part
@@ -248,13 +259,14 @@ DECODE_FRACTION:
 BREAK_FRC_LOOP:
   ds->lastType = JT_DOUBLE;
   ds->start = offset;
+  ds->dec->floatParsed = 1;
   return ds->dec->newDouble(
       ds->prv,
       createDouble((double)intNeg, (double)intValue, frcValue, decimalCount));
 
 DECODE_EXPONENT:
   if (ds->dec->preciseFloat) {
-    return decodePreciseFloat(ds);
+    return decodePreciseFloat(ds, numStart);
   }
 
   expNeg = 1.0;
@@ -346,6 +358,7 @@ SET_INF_ERROR:
 BREAK_EXP_LOOP:
   ds->lastType = JT_DOUBLE;
   ds->start = offset;
+  ds->dec->floatParsed = 1;
   return ds->dec->newDouble(
       ds->prv,
       createDouble((double)intNeg, (double)intValue, frcValue, decimalCount) *

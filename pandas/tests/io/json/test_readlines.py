@@ -627,10 +627,13 @@ def test_pyarrow_engine_date_unit(pyarrow_jsonl):
         pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", date_unit="ms")
 
 
-def test_pyarrow_engine_precise_float(pyarrow_jsonl):
-    msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
-    with pytest.raises(ValueError, match=msg):
-        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=True)
+def test_pyarrow_engine_precise_float(temp_file):
+    # GH#62464 the pyarrow engine always parses floats with full precision
+    pytest.importorskip("pyarrow.json")
+    Path(temp_file).write_text('{"a": 4.56}\n{"a": 0.1}\n', encoding="utf-8")
+    result = pd.read_json(temp_file, lines=True, engine="pyarrow", precise_float=True)
+    expected = pd.DataFrame({"a": [4.56, 0.1]})
+    tm.assert_frame_equal(result, expected, check_exact=True)
 
 
 @pytest.mark.parametrize("convert_axes", [True, False])

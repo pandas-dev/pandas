@@ -174,12 +174,41 @@ class TestUltraJSONTests:
             assert rounded_input == ujson.ujson_loads(output)
 
     @pytest.mark.parametrize(
+        "double_input, expected",
+        [
+            (1 / 3, "0.3333333333333333"),
+            (0.1 + 0.2, "0.30000000000000004"),
+            (1.0, "1.0"),
+            (100.0, "100.0"),
+            (0.0, "0.0"),
+            (-0.0, "-0.0"),
+            (-123.456, "-123.456"),
+            (1e-5, "0.00001"),
+            (2.5e-5, "0.000025"),
+            (1e-6, "1e-6"),
+            (-1.5e-7, "-1.5e-7"),
+            (1e15, "1000000000000000.0"),
+            (9999999999999998.0, "9999999999999998.0"),
+            (1e16, "1e+16"),
+            (1.2345678901234568e16, "1.2345678901234568e+16"),
+            (1e100, "1e+100"),
+            (5e-324, "5e-324"),
+            (1.7976931348623157e308, "1.7976931348623157e+308"),
+        ],
+    )
+    def test_double_precision_none(self, double_input, expected):
+        # GH#62464
+        output = ujson.ujson_dumps(double_input, double_precision=None)
+        assert output == expected
+        assert json.loads(output) == double_input
+        assert ujson.ujson_loads(output, precise_float=True) == double_input
+
+    @pytest.mark.parametrize(
         "invalid_val",
         [
             20,
             -1,
             "9",
-            None,
         ],
     )
     def test_invalid_double_precision(self, invalid_val):

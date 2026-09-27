@@ -2284,7 +2284,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Literal["split", "records", "index", "table", "columns", "values"] | None
         ) = None,
         date_format: str | None = None,
-        double_precision: int = 10,
+        double_precision: int | lib.NoDefault | None = lib.no_default,
         force_ascii: bool = True,
         date_unit: TimeUnit = "ms",
         default_handler: Callable[[Any], JSONSerializable] | None = None,
@@ -2350,10 +2350,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 'epoch' date format is deprecated and will be removed in a future
                 version, please use 'iso' instead.
 
-        double_precision : int, default 10
+        double_precision : int or None, default 10
             The number of decimal places to use when encoding
             floating point values. The possible maximal value is 15.
             Passing double_precision greater than 15 will raise a ValueError.
+            If None, floating point values are written with the shortest
+            representation that round-trips exactly.
+
+            .. versionchanged:: 3.1.0
+                Added support for None.
+
+            .. deprecated:: 3.1.0
+                Passing an integer is deprecated. In a future version, the
+                default will change to None and integers will no longer be
+                accepted. Round the data before writing to control the number
+                of digits.
         force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
@@ -2616,6 +2627,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "'epoch' date format is deprecated and will be removed in a future "
                 "version, please use 'iso' date format instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
+        if double_precision is not lib.no_default and double_precision is not None:
+            # GH#62464
+            warnings.warn(
+                "Passing an integer for 'double_precision' in "
+                f"{type(self).__name__}.to_json is deprecated. In a future version, "
+                "floating point values will always be written with the shortest "
+                "representation that round-trips exactly. Specify "
+                "`double_precision=None` to opt-in to the future behaviour, and "
+                "round the data before writing to control the number of digits.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
