@@ -331,18 +331,21 @@ def test_array_copy():
 )
 def test_array_string_nd(data):
     # GH 64138
-    result = pd.array(data, dtype="str")
-
     if using_string_dtype():
+        # multidimensional data is converted element-wise to a 1D StringArray
+        result = pd.array(data, dtype="str")
         expected = (
             pd.StringDtype(na_value=np.nan)
             .construct_array_type()
             ._from_sequence(data, dtype=pd.StringDtype(na_value=np.nan))
         )
+        tm.assert_equal(result, expected)
     else:
-        expected = NumpyExtensionArray(np.array(data, dtype=str))
-
-    tm.assert_equal(result, expected)
+        # GH#64280: with a NumPy str dtype the data would previously be wrapped
+        # in a multidimensional NumpyExtensionArray; pandas.array now raises
+        msg = "'pandas.array' does not support multidimensional data"
+        with pytest.raises(ValueError, match=msg):
+            pd.array(data, dtype="str")
 
 
 @pytest.mark.parametrize(
