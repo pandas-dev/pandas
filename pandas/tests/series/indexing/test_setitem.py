@@ -2013,6 +2013,18 @@ def test_setitem_enlarge_within_int64_range():
     tm.assert_series_equal(ser, expected)
 
 
+def test_setitem_enlarge_float16_no_overflow_warning():
+    # GH#68315 floats_fit_integer_dtype's float16 overflow warning (see
+    #  test_downcast.py) fires here too, on setitem-with-expansion
+    ser = pd.Series([1, 2], dtype="int64")
+
+    with tm.assert_produces_warning(None):
+        ser.loc[2] = np.float16(3.0)
+
+    expected = pd.Series([1, 2, 3], dtype="int64")
+    tm.assert_series_equal(ser, expected)
+
+
 @pytest.mark.parametrize(
     "dtype, expected_dtype",
     [

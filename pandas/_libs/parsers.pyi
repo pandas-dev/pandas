@@ -41,6 +41,7 @@ class TextReader:
     leading_cols: int  # int64_t
     header: list[list[int]]  # non-negative integers
     defer_pa_wrap: bool
+    block_workers: int
     trim_after_read: bool
     warning_sink: list[tuple[str, type[Warning]]] | None
     def __init__(

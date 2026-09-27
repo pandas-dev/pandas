@@ -262,15 +262,33 @@ class TestClipboard:
         assert df.to_string() == result.to_string()
         assert df.shape == result.shape
 
-    # Two character separator is not supported in to_clipboard
-    # Test that multi-character separators are not silently passed
-    def test_excel_sep_warning(self, df):
+    # Not a single-character separator: warn and fall back to to_string.
+    # b"," has len 1, so only the isinstance check rejects it.
+    @pytest.mark.parametrize("sep", [r"\t", 1, b","])
+    def test_excel_sep_warning(self, df, clipboard, sep):
         with tm.assert_produces_warning(
             UserWarning,
             match="to_clipboard in excel mode requires a single character separator.",
             check_stacklevel=False,
         ):
-            df.to_clipboard(excel=True, sep=r"\t")
+            df.to_clipboard(excel=True, sep=sep)
+        assert clipboard.text() == df.to_string()
+
+    @pytest.mark.parametrize(
+        "kwargs, msg",
+        [
+            ({"index_names": False}, "unexpected keyword argument"),
+            ({"quoting": "x"}, '"quoting" must be an integer'),
+        ],
+    )
+    def test_excel_bad_to_csv_kwarg_raises(self, df, clipboard, kwargs, msg):
+        # GH#44120 a keyword or value to_csv rejects used to be misreported
+        # as a separator problem
+        clipboard.setText("unchanged")
+        with tm.assert_produces_warning(None):
+            with pytest.raises(TypeError, match=msg):
+                df.to_clipboard(**kwargs)
+        assert clipboard.text() == "unchanged"
 
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):

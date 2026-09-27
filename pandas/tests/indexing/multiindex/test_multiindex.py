@@ -129,7 +129,7 @@ class TestMultiIndexBasic:
                 "z": non_complex_data,
             }
         )
-        result.set_index(["x", "y"], inplace=True)
+        result = result.set_index(["x", "y"])
         expected = pd.DataFrame(
             {"z": non_complex_data},
             index=pd.MultiIndex.from_arrays(

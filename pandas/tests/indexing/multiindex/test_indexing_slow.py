@@ -98,13 +98,11 @@ def test_multiindex_get_loc(request, lexsort_depth, keys, frame_fixture, cols):
 
             if i + 1 != len(key):  # partial key
                 right = right.drop(cols[: i + 1], axis=1)
-                return_value = right.set_index(cols[i + 1 : -1], inplace=True)
-                assert return_value is None
+                right = right.set_index(cols[i + 1 : -1])
                 tm.assert_frame_equal(mi.loc[key[: i + 1]], right)
 
             else:  # full key
-                return_value = right.set_index(cols[:-1], inplace=True)
-                assert return_value is None
+                right = right.set_index(cols[:-1])
                 if len(right) == 1:  # single hit
                     right = pd.Series(
                         right["jolia"].values, name=right.index[0], index=["jolia"]

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Literal,
     cast,
 )
+import warnings
 import zoneinfo
 
 import numpy as np
@@ -17,8 +19,10 @@ from pandas._libs.tslibs import timezones
 from pandas.compat import (
     pa_version_under18p0,
     pa_version_under19p0,
+    pa_version_under25p0,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
 
@@ -27,6 +31,7 @@ import pandas as pd
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
+        Generator,
         Hashable,
         Sequence,
     )
@@ -40,6 +45,25 @@ if TYPE_CHECKING:
 
 
 pytz = import_optional_dependency("pytz", errors="ignore")
+
+
+@contextlib.contextmanager
+def suppress_pyarrow_values_warning() -> Generator[None]:
+    """
+    Suppress the deprecation warning pyarrow triggers by calling ``.values``
+    on timezone-aware data when converting pandas objects.
+
+    Remove once the minimum pyarrow (26.0) no longer does this, see GH#68426 and
+    apache/arrow#51302.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            r"(Series|DatetimeIndex)\.values returning an ndarray that drops "
+            "timezone information",
+            Pandas4Warning,
+        )
+        yield
 
 
 def _arrow_dtype_mapping() -> dict:
@@ -332,13 +356,13 @@ def _normalize_timezone_index(index: pd.Index) -> pd.Index:
 
 def _normalize_timezone_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     """
-    PyArrow uses pytz by default for timezones, but pandas uses
+    PyArrow below version 25 uses pytz by default for timezones, but pandas uses
     zoneinfo / datetime.timezone since pandas 3.0.
 
-    TODO: Starting with pyarrow 25, it will use zoneinfo by default, and then
-    this normalization can be skipped (https://github.com/apache/arrow/pull/49694).
+    Can be dropped once the minimum supported pyarrow is 25, which uses zoneinfo
+    itself (https://github.com/apache/arrow/pull/49694).
     """
-    if pytz is not None:
+    if pytz is not None and pa_version_under25p0:
         # Convert any pytz timezones to zoneinfo / fixed offset timezones
         if any(
             isinstance(dtype, pd.DatetimeTZDtype)

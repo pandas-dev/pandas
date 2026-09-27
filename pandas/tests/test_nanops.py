@@ -956,6 +956,34 @@ def test_nanmedian_complex_without_bottleneck(disable_bottleneck):
     assert nanops.nanmedian(values) == 0.5 + 3.5j
 
 
+@pytest.mark.parametrize("dtype", ["float32", "float64", "complex64", "complex128"])
+def test_nanmedian_skipna_false_keeps_dtype(disable_bottleneck, dtype):
+    # GH#68487 the propagated NaN was a bare float, so the 2-D result took its
+    #  dtype from whichever slice was reduced first
+    values = np.array([1, np.nan, 3], dtype=dtype)
+
+    result = nanops.nanmedian(values, skipna=False)
+    assert result.dtype == values.dtype
+
+    result = nanops.nanmedian(values.reshape(1, 3), axis=1, skipna=False)
+    assert result.dtype == values.dtype
+
+
+@pytest.mark.parametrize("dtype", ["float16", "float32"])
+@pytest.mark.parametrize("ddof", [1, 3, 5])
+@pytest.mark.parametrize("func", ["nanvar", "nanstd", "nansem"])
+def test_nanvar_family_keeps_dtype(disable_bottleneck, func, ddof, dtype):
+    # GH#68487 count and its degrees of freedom went to a bare float once
+    #  ddof >= count, which widened the 1-D result but not the 2-D one
+    values = np.array([1, 2, 3], dtype=dtype)
+
+    result = getattr(nanops, func)(values, ddof=ddof)
+    assert result.dtype == values.dtype
+
+    result = getattr(nanops, func)(values.reshape(1, 3), axis=1, ddof=ddof)
+    assert result.dtype == values.dtype
+
+
 @pytest.mark.parametrize("shape", [(1, 1), (1, 3), (3, 1), (3, 3)])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("skipna", [True, False])
@@ -1472,17 +1500,55 @@ def test_nanops_reductions_dont_skip_nan_with_mask(nanops_operation, skipna, axi
     tm.assert_equal(result, expected)
 
 
-def test_nansem_partial_mask_no_skipna_is_per_slice():
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("nanops_operation", ["nanvar", "nanstd", "nansem"])
+def test_partial_mask_no_skipna_is_per_slice(nanops_operation, axis):
     # GH#65373 masked entries propagate NaN only into the slices containing them
     values = np.arange(25, dtype=np.float64).reshape(5, 5)
     mask = np.zeros((5, 5), dtype=bool)
     mask[0, 0] = True
 
-    result = nanops.nansem(values, mask=mask, skipna=False, axis=0)
-    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=0)
+    result = getattr(nanops, nanops_operation)(
+        values, mask=mask, skipna=False, axis=axis
+    )
+    expected = nanops.nanskew(values, mask=mask, skipna=False, axis=axis)
     tm.assert_numpy_array_equal(np.isnan(result), np.isnan(expected))
     assert np.isnan(result[0])
     assert not np.isnan(result[1:]).any()
+
+
+@pytest.mark.parametrize("axis", [None, 0])
+@pytest.mark.parametrize("dtype", ["f8", "f4", "i8", "u8", "bool", "c16", "O"])
+@pytest.mark.parametrize("nanops_operation", ["nanvar", "nanstd", "nansem"])
+def test_masked_non_nan_value_no_skipna_propagates(nanops_operation, dtype, axis):
+    # GH#65373 the entry under an explicit mask is a fill value; skipna=False
+    #  propagates NaN, and only into the slice holding it
+    values = np.array([[1, 1], [5, 2], [3, 0]], dtype=dtype)
+    mask = np.array([[False, False], [True, False], [False, False]])
+
+    operation = getattr(nanops, nanops_operation)
+    result = operation(values, mask=mask, skipna=False, axis=axis)
+    if axis is None:
+        assert np.isnan(result)
+    else:
+        assert np.isnan(result[0])
+        assert not np.isnan(result[1])
+
+
+@pytest.mark.parametrize("axis", [None, 0])
+@pytest.mark.parametrize("dtype", ["f8", "f4", "i8", "u8", "bool", "c16", "O"])
+@pytest.mark.parametrize("nanops_operation", ["nanvar", "nanstd", "nansem"])
+def test_masked_non_nan_value_skipna_is_excluded(nanops_operation, dtype, axis):
+    # GH#65373 with skipna=True the masked entry drops out of both the numerator
+    #  and the denominator
+    values = np.array([[1, 1], [5, 2], [3, 0]], dtype=dtype)
+    mask = np.array([[False, False], [True, True], [False, False]])
+
+    result = getattr(nanops, nanops_operation)(
+        values, mask=mask, skipna=True, axis=axis
+    )
+    expected = getattr(nanops, nanops_operation)(values[[0, 2]], skipna=True, axis=axis)
+    tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize("min_count", [-1, 0])

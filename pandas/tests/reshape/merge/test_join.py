@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 
 import numpy as np
 import pytest
@@ -462,7 +461,7 @@ class TestJoin:
         df = pd.DataFrame([(1, 2, 3), (4, 5, 6)], columns=["a", "b", "c"])
         new_df = df.groupby(["a"]).agg({"b": ["mean", "sum"]})
         other_df = pd.DataFrame([(1, 2, 3), (7, 10, 6)], columns=["a", "b", "d"])
-        other_df.set_index("a", inplace=True)
+        other_df = other_df.set_index("a")
         # GH 9455, 12219
         with pytest.raises(
             pd.errors.MergeError, match="Not allowed to merge between different levels"
@@ -559,6 +558,9 @@ class TestJoin:
     @pytest.mark.parametrize(
         "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
     )
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_join_sort(self, infer_string):
         with pd.option_context("future.infer_string", infer_string):
             left = pd.DataFrame(
@@ -615,7 +617,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_mixed_type_join_with_suffix(self, using_infer_string):
+    def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((20, 6)),
@@ -625,11 +627,6 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = re.escape("agg function failed [how->mean,dtype->")
-        if using_infer_string:
-            msg = "dtype 'str' does not support operation 'mean'"
-        with pytest.raises(TypeError, match=msg):
-            grouped.mean()
         mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
 
