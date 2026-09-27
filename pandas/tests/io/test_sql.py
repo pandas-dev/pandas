@@ -1609,10 +1609,10 @@ def test_read_sql_percent_operator_and_selectable(conn, request):
     expected = pd.DataFrame({"r": [1]})
 
     result = pd.read_sql(sa.text("SELECT 5 % 2 AS r"), conn)
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
     result = pd.read_sql(sa.select((sa.literal(5) % sa.literal(2)).label("r")), conn)
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
