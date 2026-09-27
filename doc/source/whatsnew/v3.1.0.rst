@@ -690,6 +690,7 @@ Performance improvements
 - Performance improvement in indexing a :class:`DataFrame` with a :class:`CategoricalIndex` of :class:`Interval` categories (:issue:`61928`)
 - Performance improvement in indexing a :class:`MultiIndex` with a list-like indexer (:issue:`55786`)
 - Performance improvement in partial-string indexing on a monotonic decreasing :class:`DatetimeIndex` or :class:`PeriodIndex` (:issue:`64811`)
+- Performance improvement in pickling a sliced :class:`DataFrame` with ``protocol=5`` and a ``buffer_callback``, which now sends the data as an out-of-band buffer instead of copying it into the pickle stream (:issue:`55781`)
 - Performance improvement in plotting :class:`DatetimeIndex` with multiplied frequencies (e.g. ``"1000ms"``, ``"100s"``) (:issue:`50355`)
 - Performance improvement in plotting :class:`Series` and :class:`DataFrame` with a :class:`PeriodIndex` or with a :class:`DatetimeIndex` whose frequency upsamples to one (:issue:`10578`)
 - Performance improvement in reading zip-compressed files (e.g. :func:`read_pickle`, :func:`read_csv`) on Python < 3.12 (:issue:`59279`)
@@ -883,6 +884,7 @@ Numeric
 - Fixed bug in arithmetic between :class:`DataFrame` and an object-dtype :class:`arrays.NumpyExtensionArray` returning an unexpected dtype because ``NumpyEADtype`` was not recognized as object dtype (:issue:`64969`)
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the ``fill_value`` parameter (:issue:`61581`)
+- Fixed bug where :meth:`DataFrame.eval`, :func:`eval`, and arithmetic on large ``int64`` data returned a column that :meth:`DataFrame.select_dtypes` did not recognize as ``int64`` (:issue:`17945`)
 
 Conversion
 ^^^^^^^^^^
@@ -906,6 +908,7 @@ Conversion
 - Fixed bug in :func:`to_numeric`, and the readers built on it such as :func:`read_html`, :func:`read_xml`, :func:`read_excel`, :func:`read_fwf` and :func:`read_csv` with ``engine="python"`` or ``dtype="category"``, where a value written with a leading ``+`` and leading zeros after the decimal point lost significant digits, so e.g. ``"+0.0001234567890123456789"`` kept only 14 of them and ``"+0.0000000000000000000000005"`` became ``0.0`` (:issue:`68311`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
+- Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was an arbitrary Python object, e.g. an instance of a custom class, that is neither scalar nor list-like (:issue:`36522`)
 - Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
 - Fixed bug in :meth:`DataFrame.to_numpy` raising ``ValueError`` when ``na_value`` was passed and there were no missing values, e.g. ``na_value=np.nan`` with an integer ``dtype`` (:issue:`56233`)
 
@@ -1036,6 +1039,7 @@ I/O
 - :func:`read_sas` now recognizes more of the encodings a SAS7BDAT file can record, including the "no encoding" and "US-ASCII" markers written by most SAS sessions (:issue:`66470`)
 - :func:`read_sql_table` now raises an informative ``NotImplementedError`` (instead of one with no message) when passed a DBAPI connection such as ``sqlite3``, and reading from a URI string without a usable ``sqlalchemy`` install now raises a clearer ``ImportError`` (:issue:`41237`)
 - :func:`read_sql` now raises an informative ``DatabaseError`` explaining that reading a table by name requires a SQLAlchemy connection when a bare table name is passed with a DBAPI connection (e.g. ``sqlite3``), instead of a cryptic SQL syntax error (:issue:`54233`)
+- :func:`read_sql` and :func:`read_sql_query` with a DBAPI connection whose cursor returns rows as dictionaries (e.g. pymysql's ``DictCursor`` or pymssql with ``as_dict=True``) now return the row values; previously every cell held its column name (:issue:`52437`, :issue:`53028`)
 - :func:`read_stata` now raises ``OutOfBoundsDatetime`` for a date too far from the epoch to represent in any of the Stata date formats, instead of silently decoding it to an unrelated date -- a far-future value could come back as a far-past one, or as ``NaT`` -- and no longer leaks a bare numpy ``RuntimeWarning``; previously only far-future ``%td`` values raised (:issue:`36096`)
 - :meth:`DataFrame.to_clipboard` and :meth:`Series.to_clipboard` with ``excel=True`` now raise the underlying ``TypeError`` for an invalid keyword argument or value, such as ``index_names=False``; previously every ``TypeError`` was misreported as a warning about the ``sep`` argument and excel mode was abandoned for the ``to_string`` path (:issue:`44120`)
 - :meth:`DataFrame.to_json` and :meth:`Series.to_json` now raise an informative ``ValueError`` instead of a cryptic ``OverflowError: Maximum recursion level reached`` when a column contains an unsupported object type such as :class:`pathlib.Path` (:issue:`36211`)

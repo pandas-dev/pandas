@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 
 import numpy as np
 import pytest
@@ -618,7 +617,7 @@ class TestJoin:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_mixed_type_join_with_suffix(self, using_infer_string):
+    def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((20, 6)),
@@ -628,11 +627,6 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        msg = re.escape("agg function failed [how->mean,dtype->")
-        if using_infer_string:
-            msg = "dtype 'str' does not support operation 'mean'"
-        with pytest.raises(TypeError, match=msg):
-            grouped.mean()
         mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
 

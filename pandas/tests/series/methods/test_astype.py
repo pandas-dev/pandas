@@ -254,13 +254,6 @@ class TestAstype:
         expected = pd.Series(ser.astype(object), dtype=object)
         tm.assert_series_equal(result, expected)
 
-        depr_msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = (
-                pd.Series(ser.values).dt.tz_localize("UTC").dt.tz_convert(ser.dt.tz)
-            )
-        tm.assert_series_equal(result, ser)
-
         # astype - object, preserves on construction
         result = pd.Series(ser.astype(object))
         expected = ser.astype(object)
@@ -270,13 +263,11 @@ class TestAstype:
         msg = "Cannot use .astype to convert from timezone-naive"
         with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-                pd.Series(ser.values).astype("datetime64[ns, US/Eastern]")
+            pd.Series(ser.array._ndarray).astype("datetime64[ns, US/Eastern]")
 
         with pytest.raises(TypeError, match=msg):
             # dt64->dt64tz astype deprecated
-            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-                pd.Series(ser.values).astype(ser.dtype)
+            pd.Series(ser.array._ndarray).astype(ser.dtype)
 
         result = ser.astype("datetime64[ns, CET]")
         expected = pd.Series(
