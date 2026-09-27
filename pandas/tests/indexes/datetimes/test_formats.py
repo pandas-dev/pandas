@@ -7,7 +7,10 @@ import dateutil.tz
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    PY314,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -76,7 +79,13 @@ def test_get_values_for_csv():
 @pytest.mark.parametrize(
     "fmt, msg",
     [
-        ("%y", "format %y requires year >= 1900 on Windows"),
+        pytest.param(
+            "%y",
+            "format %y requires year >= 1900 on Windows",
+            marks=pytest.mark.skipif(
+                PY314, reason="Python 3.14 supports %y before 1900 on Windows"
+            ),
+        ),
         ("%-d", "Invalid format string"),
     ],
 )
