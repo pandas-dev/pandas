@@ -126,9 +126,7 @@ def _lost_values(stacked: DataFrame, rows: list[Series]) -> npt.NDArray[np.bool_
     Per column rather than per row, so that one column whose result the stacked
     dtype cannot hold does not demote the rest of its dtype group.
 
-    Compared as object arrays: a numpy scalar would widen the original back to the
-    stacked dtype and so compare a rounded value against itself. ``Series.tolist``
-    is not enough, since a ``Sparse`` column's elements stay numpy scalars.
+    Compared as object arrays, see test_agg_list_like_unsigned_not_cast_to_float.
     """
     lost = np.zeros(stacked.shape[1], dtype=bool)
     for pos, row in enumerate(rows):

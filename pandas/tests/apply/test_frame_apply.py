@@ -2037,8 +2037,8 @@ def test_agg_empty_dict():
     tm.assert_frame_equal(result, expected)
 
 
-# "Sparse[uint64]" is in the roster because its elements stay numpy scalars, which
-# compare equal to the rounded float64 they would be widened back to
+# Sparse: elements stay numpy scalars, which compare equal to the rounded float64
+# they widen back to
 @pytest.mark.parametrize(
     "dtype", ["uint64", "UInt64", "uint64[pyarrow]", "Sparse[uint64]"]
 )
