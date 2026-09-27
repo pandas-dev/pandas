@@ -7816,9 +7816,9 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         Columns and Series do not store a ``freq``, so a :class:`DatetimeIndex`
-        or :class:`TimedeltaIndex` created from a column has ``freq=None``.
-        Use :meth:`DataFrame.asfreq` or set ``result.index.freq`` to restore it.
-        Passing a :class:`DatetimeIndex` directly as ``keys`` keeps its ``freq``.
+        or :class:`TimedeltaIndex` created from a column has ``freq=None``; set
+        ``.index.freq`` on the result to restore it. Passing the index directly
+        as ``keys`` keeps its ``freq``.
 
         Examples
         --------
