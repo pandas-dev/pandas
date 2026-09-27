@@ -2100,27 +2100,31 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
 
     a = a - a.mean()
     b = b - b.mean()
-    a_scale = np.max(np.abs(a))
-    b_scale = np.max(np.abs(b))
+    a_scale = max(a.max(), -a.min())
+    b_scale = max(b.max(), -b.min())
 
     if a_scale == 0 or b_scale == 0:
         return np.nan
 
-    a = a / a_scale
-    b = b / b_scale
-    fact = len(a) - 1
-    divisor = np.sqrt(np.dot(a, a) / fact)
+    # rescale only when the dot products could overflow or underflow
+    if not 1e-100 < a_scale < 1e100:
+        a = a / a_scale
+    if not 1e-100 < b_scale < 1e100:
+        b = b / b_scale
 
-    if divisor == 0:
+    # corrected two-pass: remove the rounding error left in the first mean,
+    # which can dominate nearly-constant data, see GH#59652
+    nobs = len(a)
+    a_sum = float(a.sum())
+    b_sum = float(b.sum())
+    ssq_a = float(np.dot(a, a)) - a_sum * a_sum / nobs
+    ssq_b = float(np.dot(b, b)) - b_sum * b_sum / nobs
+
+    if ssq_a <= 0 or ssq_b <= 0:
         return np.nan
 
-    result = np.dot(a, b) / fact / divisor
-    divisor = np.sqrt(np.dot(b, b) / fact)
-
-    if divisor == 0:
-        return np.nan
-
-    return np.clip(result / divisor, -1.0, 1.0)
+    result = (float(np.dot(a, b)) - a_sum * b_sum / nobs) / np.sqrt(ssq_a * ssq_b)
+    return np.float64(min(max(result, -1.0), 1.0))
 
 
 @disallow("M8", "m8")
