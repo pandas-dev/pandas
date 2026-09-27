@@ -326,6 +326,25 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(date_format="%Y-%m-%d___%H:%M:%S") == expected
 
+    def test_to_csv_date_format_object_dtype(self):
+        # GH#27306 date_format applies to datetimes in object-dtype column
+        # labels, index, and values
+        ts = pd.Timestamp("2019-07-09")
+        per = pd.Period("2019-07", freq="M")
+        index = pd.Index([ts, "a", pd.NaT], dtype=object)
+        df = pd.DataFrame(
+            {ts: [1, 2, 3], "b": pd.array([per, ts, pd.NaT], dtype=object)},
+            index=index,
+        )
+        expected_rows = [
+            ",2019-07-09,b",
+            "2019-07-09,1,2019-07-31",
+            "a,2,2019-07-09",
+            "NA,3,NA",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d", na_rep="NA") == expected
+
     def test_to_csv_interval_columns(self):
         # GH#55426 - exercise the column path for IntervalArray
         df = pd.DataFrame(
