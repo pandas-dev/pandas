@@ -144,7 +144,9 @@ class TestJoin:
         tm.assert_index_equal(inner, expected)
 
         left = index.join(other, how="left")
-        tm.assert_index_equal(left, index.astype(object))
+        tm.assert_index_equal(
+            left, pd.Index(index.to_numpy(), dtype=index.dtype), exact=True
+        )
 
         left2 = other.join(index, how="left")
         tm.assert_index_equal(left2, other)

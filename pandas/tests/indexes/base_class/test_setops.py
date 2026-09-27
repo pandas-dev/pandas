@@ -65,6 +65,35 @@ class TestIndexSetOps:
         expected = pd.Index([0, 1, 2, "a", "b", "c"])
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "left",
+        [
+            pd.Index(["a", "b"], dtype="string"),
+            pd.Index([True, False], dtype=bool),
+            pd.Index([True, False], dtype="boolean"),
+            pd.Index([1, 2], dtype="int64"),
+            pd.Index([1, 2], dtype="uint64"),
+            pd.Index([1, 2], dtype="Int64"),
+            pd.Index([1, 2], dtype="UInt64"),
+            pd.Index([1.0, 2.0], dtype="float64"),
+            pd.Index([1.0, 2.0], dtype="Float64"),
+            pd.date_range("2020-01-01", periods=2),
+            pd.DatetimeIndex(["2020-01-01", "2020-01-02"], tz="UTC"),
+            pd.TimedeltaIndex(["1D", "2D"]),
+            pd.period_range("2020-01-01", periods=2, freq="D"),
+            pd.CategoricalIndex(["a", "b"]),
+            pd.IntervalIndex.from_tuples([(0, 1), (1, 2)]),
+            pd.RangeIndex(0, 4, 2),
+        ],
+    )
+    def test_join_left_preserves_dtype(self, left):
+        right = pd.Index(["not", "in-left"], dtype=object)
+
+        result = left.join(right, how="left")
+
+        assert result.dtype == left.dtype
+        tm.assert_index_equal(result, left, exact=False, check_freq=False)
+
     @pytest.mark.parametrize("klass", [np.array, pd.Series, list])
     def test_union_different_type_base(self, klass):
         # GH 10149

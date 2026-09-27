@@ -4663,8 +4663,24 @@ class Index(IndexOpsMixin, PandasObject):
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
+            other_is_period = isinstance(other, ABCPeriodIndex)
+            other_is_datetime = isinstance(other, ABCDatetimeIndex)
             other = other.astype(dtype, copy=False)
-            return this.join(other, how=how, return_indexers=True)
+            join_index, lidx, ridx = this.join(other, how=how, return_indexers=True)
+            # Both indexes are cast to a common dtype to perform the join.
+            # Preserve the left dtype for left joins, except when a
+            # PeriodIndex is joined with an incompatible PeriodIndex or a
+            # DatetimeIndex.
+            if (
+                how == "left"
+                and join_index.dtype != self.dtype
+                and not (
+                    isinstance(self.dtype, PeriodDtype)
+                    and (other_is_period or other_is_datetime)
+                )
+            ):
+                join_index = join_index.astype(self.dtype, copy=False)
+            return join_index, lidx, ridx
         elif (
             isinstance(self, ABCCategoricalIndex)
             and isinstance(other, ABCCategoricalIndex)
