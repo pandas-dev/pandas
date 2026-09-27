@@ -5781,15 +5781,21 @@ def test_null_astype_categorical():
     tm.assert_series_equal(result_astype, expected_ser)
 
 
-def _reencodable_value_type(values) -> bool:
-    # GH#69024 re-encoding a stored dictionary needs dictionary_encode and take
-    #  kernels for the value type; which types lack them varies across pyarrow versions
+def _reencodable(dict_arr) -> bool:
+    # GH#69024 factorize re-encodes a stored dictionary in index space or by
+    #  decoding it; which value types support either varies across pyarrow versions
+    values = dict_arr.dictionary
     try:
         values.dictionary_encode()
         pa.compute.take(values, pa.array([0], type=pa.int32()))
+        return True
+    except pa.ArrowNotImplementedError:
+        pass
+    try:
+        dict_arr.cast(values.type).dictionary_encode()
+        return True
     except pa.ArrowNotImplementedError:
         return False
-    return True
 
 
 @pytest.mark.parametrize("use_na_sentinel", [True, False])
@@ -5805,11 +5811,11 @@ def _reencodable_value_type(values) -> bool:
 def test_factorize_dictionary_unsupported_value_type(values, use_na_sentinel):
     # GH#69024 factorize keeps the stored dictionary for a value type it cannot
     #  re-encode, rather than raising
-    if _reencodable_value_type(values):
-        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
     dict_arr = pa.DictionaryArray.from_arrays(
         pa.array([0, 1, 0], type=pa.int32()), values
     )
+    if _reencodable(dict_arr):
+        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
     arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
 
     indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
@@ -5831,11 +5837,11 @@ def test_factorize_dictionary_unsupported_value_type_with_na(values):
     # GH#69024 keeping the stored dictionary leaves the null in index space, which
     #  the sentinel can express and use_na_sentinel=False cannot, so that leg raises
     #  rather than handing back a -1 it promised not to use
-    if _reencodable_value_type(values):
-        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
     dict_arr = pa.DictionaryArray.from_arrays(
         pa.array([0, None, 1], type=pa.int32()), values
     )
+    if _reencodable(dict_arr):
+        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
     arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
 
     indices, uniques = arr.factorize()
@@ -5846,11 +5852,53 @@ def test_factorize_dictionary_unsupported_value_type_with_na(values):
         arr.factorize(use_na_sentinel=False)
 
 
+@pytest.mark.parametrize(
+    "use_na_sentinel",
+    [
+        pytest.param(
+            True,
+            marks=pytest.mark.xfail(
+                reason="the null stays in the kept dictionary and in uniques",
+                strict=True,
+            ),
+        ),
+        False,
+    ],
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        pa.array(["a", None], type=pa.string_view()),
+        pa.array([b"a", None], type=pa.binary_view()),
+        pa.array([[1], None], type=pa.list_(pa.int64())),
+        pa.array([1.0, None], type=pa.float16()),
+    ],
+)
+def test_factorize_dictionary_unsupported_value_type_null_in_dictionary(
+    values, use_na_sentinel
+):
+    # GH#69024 a null stored only in a kept dictionary is already the separate
+    #  code use_na_sentinel=False asks for
+    dict_arr = pa.DictionaryArray.from_arrays(
+        pa.array([0, 1, 0], type=pa.int32()), values
+    )
+    if _reencodable(dict_arr):
+        pytest.skip(f"pyarrow can re-encode a {values.type} dictionary")
+    arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
+
+    indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    if use_na_sentinel:
+        tm.assert_numpy_array_equal(indices, np.array([0, -1, 0], dtype=np.intp))
+        assert uniques._pa_array.combine_chunks().equals(values[:1])
+    else:
+        tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+        assert uniques._pa_array.combine_chunks().equals(values)
+
+
 @pytest.mark.parametrize("use_na_sentinel", [True, False])
 @pytest.mark.parametrize("empty", [False, True])
 def test_factorize_dictionary_chunked_null_in_dictionary(empty, use_na_sentinel):
-    # GH#69024 pyarrow refuses to unify chunk dictionaries when one holds a null,
-    #  so re-factorizing in index space has to fall back rather than raise
+    # GH#69024 pyarrow refuses to unify chunk dictionaries when one holds a null
     enc = pa.array(["a", None, "a"]).dictionary_encode(null_encoding="encode")
     dtype = ArrowDtype(enc.type)
     pieces = [
@@ -5914,21 +5962,26 @@ def test_factorize_dictionary_null_in_dictionary_and_indices():
     )
 
 
-def test_factorize_dictionary_of_dictionary():
-    # GH#69024 a dictionary-typed value type cannot be re-encoded in index space,
-    #  because the inner dictionary_encode takes no null_encoding. The cast strips
-    #  the outer level only, so the INNER dictionary is still taken on trust and
-    #  "b", which no index points at, is still reported as a unique
+@pytest.mark.parametrize("use_na_sentinel", [True, False])
+def test_factorize_dictionary_of_dictionary(use_na_sentinel):
+    # GH#69024 the inner dictionary is re-encoded too: "b", which no index points
+    #  at, is not a unique, and a null index gets its own code when asked
     inner = pa.array(["a", "b"]).dictionary_encode()
     dict_arr = pa.DictionaryArray.from_arrays(
-        pa.array([0, 0, 0], type=pa.int32()), inner
+        pa.array([0, None, 0], type=pa.int32()), inner
     )
     arr = pd.array(dict_arr, dtype=ArrowDtype(dict_arr.type))
 
-    indices, uniques = arr.factorize()
-    tm.assert_numpy_array_equal(indices, np.array([0, 0, 0], dtype=np.intp))
+    indices, uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    if use_na_sentinel:
+        expected_indices = np.array([0, -1, 0], dtype=np.intp)
+        expected_uniques = ["a"]
+    else:
+        expected_indices = np.array([0, 1, 0], dtype=np.intp)
+        expected_uniques = ["a", None]
+    tm.assert_numpy_array_equal(indices, expected_indices)
     tm.assert_extension_array_equal(
-        uniques, pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+        uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
     )
 
 
@@ -5966,6 +6019,25 @@ def test_factorize_dictionary_duplicate_entries():
     tm.assert_numpy_array_equal(indices, np.array([0, 0, 0], dtype=np.intp))
     tm.assert_extension_array_equal(
         uniques, pd.array(["a"], dtype=ArrowDtype(pa.string()))
+    )
+
+
+def test_factorize_dictionary_chunks_overflow_index_type():
+    # GH#69024 the chunks' dictionaries unify to more entries than int8 indices hold
+    dtype = pa.dictionary(pa.int8(), pa.string())
+    chunks = [
+        pa.array([str(i) for i in range(start, start + 100)])
+        .dictionary_encode()
+        .cast(dtype)
+        for start in [0, 100]
+    ]
+    arr = ArrowExtensionArray(pa.chunked_array(chunks))
+
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.arange(200, dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques,
+        pd.array([str(i) for i in range(200)], dtype=ArrowDtype(pa.string())),
     )
 
 
