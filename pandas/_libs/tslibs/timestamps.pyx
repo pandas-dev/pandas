@@ -1690,7 +1690,7 @@ cdef class _Timestamp(ABCTimestamp):
     def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900 and is slower
-        return f"{self._year}-{self.month:02d}-{self.day:02d}"
+        return f"{self._year:04d}-{self.month:02d}-{self.day:02d}"
 
     @property
     def _time_repr(self) -> str:
