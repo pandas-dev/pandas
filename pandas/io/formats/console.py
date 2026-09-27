@@ -30,11 +30,11 @@ def get_console_size() -> tuple[int | None, int | None]:
 
     if in_interactive_session():
         if in_ipython_frontend():
-            # sane defaults for interactive non-shell terminal
-            # match default for width,height in config_init
+            # sane defaults for interactive non-shell terminal, which cannot
+            # auto-detect a width (GH#21337)
             from pandas._config.config import get_default_val
 
-            terminal_width = get_default_val("display.width")
+            terminal_width = 80
             terminal_height = get_default_val("display.max_rows")
         else:
             # pure terminal

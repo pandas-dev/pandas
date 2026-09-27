@@ -91,6 +91,7 @@ from pandas.io.common import (
     stringify_path,
 )
 from pandas.io.formats import printing
+from pandas.io.formats.console import get_console_size
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -588,8 +589,9 @@ class DataFrameFormatter:
         if not self._is_in_terminal():
             return self.max_cols
 
-        width, _ = get_terminal_size()
-        if self._is_screen_narrow(width):
+        # honor display.width, GH#21337
+        width, _ = get_console_size()
+        if width is not None and self._is_screen_narrow(width):
             return width
         else:
             return self.max_cols
