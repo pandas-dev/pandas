@@ -3074,6 +3074,38 @@ class TestLocBooleanLabelsAndSlices:
         )
         obj.loc[bool_value]
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([False, 42, "x"], dtype=object),
+            pd.MultiIndex.from_tuples([(False, "a"), (42, "b"), ("x", "c")]),
+        ],
+    )
+    def test_loc_bool_label_in_object_index(self, index):
+        # GH#50165
+        df = pd.DataFrame({"A": range(3)}, index=index)
+        result = df.loc[False]
+        expected = df.xs(False)
+        tm.assert_equal(result, expected)
+        tm.assert_equal(df["A"].loc[False], expected["A"])
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([0, 1, "x"], dtype=object),
+            pd.MultiIndex.from_tuples([(0, "a"), (1, "b"), ("x", "c")]),
+        ],
+    )
+    @pytest.mark.parametrize("bool_value", [True, False])
+    def test_loc_bool_label_does_not_match_int(
+        self, index, frame_or_series, bool_value
+    ):
+        # GH#50165 object-dtype lookups would otherwise match False to 0
+        obj = frame_or_series(range(3), index=index)
+        msg = f"{bool_value}: boolean label can not be used without a boolean index"
+        with pytest.raises(KeyError, match=msg):
+            obj.loc[bool_value]
+
     def test_loc_bool_slice_raises(self, index, frame_or_series):
         # GH20432
         message = (
