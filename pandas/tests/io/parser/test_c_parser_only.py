@@ -12,6 +12,7 @@ from io import (
     TextIOWrapper,
 )
 import mmap
+import re
 import tarfile
 
 import numpy as np
@@ -1405,3 +1406,30 @@ def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
     for _ in range(2):
         with pytest.raises(StopIteration):
             next(reader)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, dtype, offender",
+    [
+        (
+            "a;b\na;1,20\nb;22,3\nc;1.234,56\n",
+            {"decimal": ","},
+            "float64",
+            "1.234,56",
+        ),
+        (
+            "a;b\na;1,000\nb;x\n",
+            {"thousands": ","},
+            "int64",
+            "x",
+        ),
+    ],
+)
+def test_unparseable_dtype_names_offending_value(
+    c_parser_only, data, kwargs, dtype, offender
+):
+    # GH#59299 name the value the parser rejected, not an earlier valid one
+    parser = c_parser_only
+
+    with pytest.raises(ValueError, match=re.escape(repr(offender))):
+        parser.read_csv(StringIO(data), sep=";", dtype={"b": dtype}, **kwargs)
