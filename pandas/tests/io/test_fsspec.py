@@ -223,6 +223,20 @@ def test_arrowparquet_falls_back_to_fsspec(cleared_fs, df1, monkeypatch):
     tm.assert_frame_equal(result, df1)
 
 
+def test_arrowparquet_oserror_not_hdfs_raises(monkeypatch):
+    # GH#58078 only hdfs falls back to fsspec on OSError
+    pa_fs = pytest.importorskip("pyarrow.fs")
+
+    class FailingFileSystem:
+        @staticmethod
+        def from_uri(uri):
+            raise OSError("Bucket 'missing' not found")
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    with pytest.raises(OSError, match="Bucket 'missing' not found"):
+        pd.read_parquet("s3://missing/test.parquet", engine="pyarrow")
+
+
 @pytest.mark.filterwarnings(
     "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
 )

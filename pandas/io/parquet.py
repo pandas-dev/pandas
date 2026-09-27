@@ -127,9 +127,13 @@ def _get_path_or_handle(
 
             try:
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
-            except (TypeError, OSError, pa.ArrowException):
-                # fall back to fsspec, e.g. for "hdfs:///path" (GH#58078)
+            except (TypeError, pa.ArrowException):
                 pass
+            except OSError:
+                # fsspec can handle e.g. "hdfs:///path" (GH#58078); for other
+                # schemes this is a real error, e.g. a missing S3 bucket
+                if not str(path_or_handle).startswith("hdfs://"):
+                    raise
         if fs is None:
             fsspec = import_optional_dependency("fsspec")
             fs, path_or_handle = fsspec.core.url_to_fs(
