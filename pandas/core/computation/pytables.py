@@ -303,10 +303,12 @@ class BinOp(ops.BinOp):
                 )
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
-            if conv_val not in metadata:
+            if isna(conv_val):
+                result = -1
+            elif conv_val not in metadata:
                 # GH#22977 value is not a category; use -2 as a code that
                 # matches no row, unlike -1 which is the code for NaN values.
-                result = -1 if isna(conv_val) else -2
+                result = -2
             else:
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
