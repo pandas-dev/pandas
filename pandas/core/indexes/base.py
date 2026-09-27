@@ -8666,8 +8666,8 @@ def get_values_for_csv(
                 values = values.astype(f"<U{itemsize}")
         elif date_format is not None and values.dtype == _dtype_obj:
             # GH#27306 match the formatting of datetime64 and Period arrays
-            def _format(val):
-                if isinstance(val, (datetime, Period)) and val is not NaT:
+            def _format(val: object) -> object:
+                if val is not NaT and isinstance(val, (datetime, Period)):
                     return val.strftime(date_format)
                 return val
 
