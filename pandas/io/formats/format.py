@@ -797,6 +797,10 @@ class DataFrameFormatter:
             str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
+            if is_numeric_dtype(columns.dtype):
+                # _format_flat pads labels to a common width, but each column
+                #  is justified separately (GH#8300)
+                fmt_columns = [x.strip() for x in fmt_columns]
             str_columns = [
                 [
                     " " + x
