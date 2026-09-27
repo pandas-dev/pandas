@@ -611,3 +611,23 @@ def test_lazy_imports_read_csv():
         [sys.executable, "-c", code], capture_output=True, text=True, check=False
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports_io_namespace():
+    code = (
+        "import pandas as pd, sys\n"
+        "assert 'pandas.io.json' not in sys.modules\n"
+        "assert 'pandas.io.stata' not in sys.modules\n"
+        "_ = pd.io.json\n"
+        "assert 'pandas.io.json' in sys.modules\n"
+        "assert 'pandas.io.stata' not in sys.modules\n"
+        "_ = pd.io.stata\n"
+        "assert 'pandas.io.stata' in sys.modules\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
