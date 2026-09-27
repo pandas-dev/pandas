@@ -1434,16 +1434,39 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
             return values
 
+        def fixed_width_format(kind: str) -> Callable:
+            # np.longdouble.__format__ casts to float64, which turns values outside
+            # its range into 0 or inf, so format those with numpy (GH#17809)
+            if (
+                self.values.dtype == np.longdouble
+                and np.finfo(np.longdouble).precision > np.finfo(np.float64).precision
+            ):
+                np_format = (
+                    np.format_float_scientific
+                    if kind == "e"
+                    else np.format_float_positional
+                )
+
+                def longdouble_format(value) -> str:
+                    result = np_format(value, precision=self.digits, unique=False)
+                    if self.leading_space is True and not result.startswith("-"):
+                        result = " " + result
+                    return result
+
+                return longdouble_format
+
+            if self.leading_space is True:
+                fmt_str = "{value: .{digits:d}{kind}}"
+            else:
+                fmt_str = "{value:.{digits:d}{kind}}"
+            return partial(fmt_str.format, digits=self.digits, kind=kind)
+
         # There is a special default string when we are fixed-width
         # The default is otherwise to use str instead of a formatting string
         float_format: FloatFormatType | None
         if self.float_format is None:
             if self.fixed_width:
-                if self.leading_space is True:
-                    fmt_str = "{value: .{digits:d}f}"
-                else:
-                    fmt_str = "{value:.{digits:d}f}"
-                float_format = partial(fmt_str.format, digits=self.digits)
+                float_format = fixed_width_format("f")
             else:
                 float_format = self.float_format
         else:
@@ -1472,11 +1495,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
-            if self.leading_space is True:
-                fmt_str = "{value: .{digits:d}e}"
-            else:
-                fmt_str = "{value:.{digits:d}e}"
-            float_format = partial(fmt_str.format, digits=self.digits)
+            float_format = fixed_width_format("e")
             formatted_values = format_values_with(float_format)
 
         return formatted_values

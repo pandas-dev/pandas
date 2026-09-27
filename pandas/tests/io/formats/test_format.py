@@ -2118,6 +2118,26 @@ class TestFloatArrayFormatter:
             df = pd.DataFrame({"x": [12345.6789, 2e6]})
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).precision <= np.finfo(np.float64).precision,
+        reason="longdouble is no wider than float64 on this platform",
+    )
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            (
+                ["1e-300", "1e-400", "-1e-500"],
+                "0    1.000000e-300\n1    1.000000e-400\n2   -1.000000e-500",
+            ),
+            (["1.5", "1e400"], "0     1.500000e+00\n1    1.000000e+400"),
+            (["1.5", "-2.25"], "0    1.50\n1   -2.25"),
+        ],
+    )
+    def test_longdouble_outside_float64_range(self, values, expected):
+        # GH#17809
+        ser = pd.Series(np.array(values, dtype=np.longdouble))
+        assert str(ser) == f"{expected}\ndtype: {ser.dtype}"
+
 
 class TestTimedelta64Formatter:
     def test_days(self):
