@@ -8,29 +8,23 @@ from pandas._libs import index as libindex
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
-from pandas import (
-    Index,
-    IntervalIndex,
-    MultiIndex,
-    RangeIndex,
-)
 import pandas._testing as tm
 
 
 def test_labels_dtypes():
     # GH 8456
-    i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
+    i = pd.MultiIndex.from_tuples([("A", 1), ("A", 2)])
     assert i.codes[0].dtype == "int8"
     assert i.codes[1].dtype == "int8"
 
-    i = MultiIndex.from_product([["a"], range(40)])
+    i = pd.MultiIndex.from_product([["a"], range(40)])
     assert i.codes[1].dtype == "int8"
-    i = MultiIndex.from_product([["a"], range(400)])
+    i = pd.MultiIndex.from_product([["a"], range(400)])
     assert i.codes[1].dtype == "int16"
-    i = MultiIndex.from_product([["a"], range(40000)])
+    i = pd.MultiIndex.from_product([["a"], range(40000)])
     assert i.codes[1].dtype == "int32"
 
-    i = MultiIndex.from_product([["a"], range(1000)])
+    i = pd.MultiIndex.from_product([["a"], range(1000)])
     assert (i.codes[0] >= 0).all()
     assert (i.codes[1] >= 0).all()
 
@@ -44,7 +38,7 @@ def test_values_boxed():
         (2, pd.Timestamp("2000-01-02")),
         (3, pd.Timestamp("2000-01-03")),
     ]
-    result = MultiIndex.from_tuples(tuples)
+    result = pd.MultiIndex.from_tuples(tuples)
     expected = construct_1d_object_array_from_listlike(tuples)
     tm.assert_numpy_array_equal(result.values, expected)
     # Check that code branches for boxed values produce identical results
@@ -58,7 +52,7 @@ def test_values_multiindex_datetimeindex():
 
     aware = pd.DatetimeIndex(ints, tz="US/Central")
 
-    idx = MultiIndex.from_arrays([naive, aware])
+    idx = pd.MultiIndex.from_arrays([naive, aware])
     result = idx.values
 
     outer = pd.DatetimeIndex([x[0] for x in result])
@@ -83,11 +77,11 @@ def test_values_multiindex_periodindex():
     strs = [str(x) for x in ints]
     pidx = pd.PeriodIndex(strs, freq="D")
 
-    idx = MultiIndex.from_arrays([ints, pidx])
+    idx = pd.MultiIndex.from_arrays([ints, pidx])
     result = idx.values
 
-    outer = Index([x[0] for x in result])
-    tm.assert_index_equal(outer, Index(ints, dtype=np.int64))
+    outer = pd.Index([x[0] for x in result])
+    tm.assert_index_equal(outer, pd.Index(ints, dtype=np.int64))
 
     inner = pd.PeriodIndex([x[1] for x in result])
     tm.assert_index_equal(inner, pidx)
@@ -95,8 +89,8 @@ def test_values_multiindex_periodindex():
     # n_lev > n_lab
     result = idx[:2].values
 
-    outer = Index([x[0] for x in result])
-    tm.assert_index_equal(outer, Index(ints[:2], dtype=np.int64))
+    outer = pd.Index([x[0] for x in result])
+    tm.assert_index_equal(outer, pd.Index(ints[:2], dtype=np.int64))
 
     inner = pd.PeriodIndex([x[1] for x in result])
     tm.assert_index_equal(inner, pidx[:2])
@@ -111,14 +105,14 @@ def test_consistency():
     minor_codes = np.repeat(range(10), 7000)
 
     # the fact that is works means it's consistent
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
     )
 
     # inconsistent
     major_codes = np.array([0, 0, 1, 1, 1, 2, 2, 3, 3])
     minor_codes = np.array([0, 1, 0, 1, 1, 0, 1, 0, 1])
-    index = MultiIndex(
+    index = pd.MultiIndex(
         levels=[major_axis, minor_axis], codes=[major_codes, minor_codes]
     )
 
@@ -131,7 +125,7 @@ def test_hash_collisions(monkeypatch):
     size_cutoff = 50
     with monkeypatch.context() as m:
         m.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-        index = MultiIndex.from_product(
+        index = pd.MultiIndex.from_product(
             [np.arange(8), np.arange(8)], names=["one", "two"]
         )
         result = index.get_indexer(index.values)
@@ -148,7 +142,7 @@ def test_dims():
 
 def test_take_invalid_kwargs():
     vals = [["A", "B"], [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]]
-    idx = MultiIndex.from_product(vals, names=["str", "dt"])
+    idx = pd.MultiIndex.from_product(vals, names=["str", "dt"])
     indices = [1, 2]
 
     msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -180,7 +174,7 @@ def test_large_multiindex_error(monkeypatch):
         m.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
         df_below_cutoff = pd.DataFrame(
             1,
-            index=MultiIndex.from_product([[1, 2], range(size_cutoff - 1)]),
+            index=pd.MultiIndex.from_product([[1, 2], range(size_cutoff - 1)]),
             columns=["dest"],
         )
         with pytest.raises(KeyError, match=r"^\(-1, 0\)$"):
@@ -189,7 +183,7 @@ def test_large_multiindex_error(monkeypatch):
             df_below_cutoff.loc[(3, 0), "dest"]
         df_above_cutoff = pd.DataFrame(
             1,
-            index=MultiIndex.from_product([[1, 2], range(size_cutoff + 1)]),
+            index=pd.MultiIndex.from_product([[1, 2], range(size_cutoff + 1)]),
             columns=["dest"],
         )
         with pytest.raises(KeyError, match=r"^\(-1, 0\)$"):
@@ -202,7 +196,7 @@ def test_mi_hashtable_populated_attribute_error(monkeypatch):
     # GH 18165
     monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 50)
     r = range(50)
-    df = pd.DataFrame({"a": r, "b": r}, index=MultiIndex.from_arrays([r, r]))
+    df = pd.DataFrame({"a": r, "b": r}, index=pd.MultiIndex.from_arrays([r, r]))
 
     msg = "'Series' object has no attribute 'foo'"
     with pytest.raises(AttributeError, match=msg):
@@ -234,7 +228,7 @@ def test_metadata_immutable(idx):
 
 
 def test_level_setting_resets_attributes():
-    ind = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
+    ind = pd.MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert ind.is_monotonic_increasing
     ind = ind.set_levels([["A", "B"], [1, 3, 2]])
     # if this fails, probably didn't reset the cache correctly.
@@ -253,16 +247,18 @@ def test_rangeindex_fallback_coercion_bug():
 
     expected = pd.DataFrame(
         {"df2": np.arange(100), "df1": np.arange(100)},
-        index=MultiIndex.from_product([range(10), range(10)], names=["fizz", "buzz"]),
+        index=pd.MultiIndex.from_product(
+            [range(10), range(10)], names=["fizz", "buzz"]
+        ),
     )
     tm.assert_frame_equal(df, expected, check_like=True)
 
     result = df.index.get_level_values("fizz")
-    expected = Index(np.arange(10, dtype=np.int64), name="fizz").repeat(10)
+    expected = pd.Index(np.arange(10, dtype=np.int64), name="fizz").repeat(10)
     tm.assert_index_equal(result, expected)
 
     result = df.index.get_level_values("buzz")
-    expected = Index(np.tile(np.arange(10, dtype=np.int64), 10), name="buzz")
+    expected = pd.Index(np.tile(np.arange(10, dtype=np.int64), 10), name="buzz")
     tm.assert_index_equal(result, expected)
 
 
@@ -275,7 +271,7 @@ def test_memory_usage(idx):
 
         # RangeIndex, IntervalIndex
         # don't have engines
-        if not isinstance(idx, (RangeIndex, IntervalIndex)):
+        if not isinstance(idx, (pd.RangeIndex, pd.IntervalIndex)):
             assert result2 > result
 
         if idx.inferred_type == "object":

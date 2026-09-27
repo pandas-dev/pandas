@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import Index
 
 
 @pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
@@ -30,11 +29,11 @@ def one(request):
 
 zeros = [
     box_cls([0] * 5, dtype=dtype)  # type: ignore[operator]
-    for box_cls in [Index, np.array, pd.array]
+    for box_cls in [pd.Index, np.array, pd.array]
     for dtype in [np.int64, np.uint64, np.float64]
 ]
 zeros.extend(
-    [box_cls([-0.0] * 5, dtype=np.float64) for box_cls in [Index, np.array]]  # type: ignore[operator]
+    [box_cls([-0.0] * 5, dtype=np.float64) for box_cls in [pd.Index, np.array]]  # type: ignore[operator]
 )
 zeros.extend([np.array(0, dtype=dtype) for dtype in [np.int64, np.uint64, np.float64]])
 zeros.extend([np.array(-0.0, dtype=np.float64)])

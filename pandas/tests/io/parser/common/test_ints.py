@@ -8,10 +8,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-)
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -27,7 +24,7 @@ def test_int_conversion(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data))
 
-    expected = DataFrame([[1.0, 1], [2.0, 2], [3.0, 3]], columns=["A", "B"])
+    expected = pd.DataFrame([[1.0, 1], [2.0, 2], [3.0, 3]], columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -59,7 +56,7 @@ def test_int_conversion(all_parsers):
 def test_parse_bool(all_parsers, data, kwargs, expected):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), **kwargs)
-    expected = DataFrame(expected, columns=["A", "B"])
+    expected = pd.DataFrame(expected, columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -77,7 +74,7 @@ def test_parse_integers_above_fp_precision(all_parsers):
 17007000002000194"""
     parser = all_parsers
     result = parser.read_csv(StringIO(data))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {
             "Numbers": [
                 17007000002000191,
@@ -108,7 +105,7 @@ def test_integer_overflow_bug(all_parsers, sep):
         return
 
     result = parser.read_csv(StringIO(data), header=None, sep=sep)
-    expected = DataFrame([[6.5248e14, 11], [5.5555e59, 22]])
+    expected = pd.DataFrame([[6.5248e14, 11], [5.5555e59, 22]])
     tm.assert_frame_equal(result, expected)
 
 
@@ -118,7 +115,7 @@ def test_int64_min_issues(all_parsers):
     data = "A,B\n0,0\n0,"
     result = parser.read_csv(StringIO(data))
 
-    expected = DataFrame({"A": [0, 0], "B": [0, np.nan]})
+    expected = pd.DataFrame({"A": [0, 0], "B": [0, np.nan]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -142,7 +139,7 @@ def test_int64_overflow(all_parsers, conv, request):
             request.applymarker(mark)
 
         result = parser.read_csv(StringIO(data))
-        expected = DataFrame(
+        expected = pd.DataFrame(
             [
                 13007854817840016671868,
                 13007854817840016749251,
@@ -185,7 +182,7 @@ def test_int64_uint64_range(all_parsers, val):
     parser = all_parsers
     result = parser.read_csv(StringIO(str(val)), header=None)
 
-    expected = DataFrame([val])
+    expected = pd.DataFrame([val])
     tm.assert_frame_equal(result, expected)
 
 
@@ -212,7 +209,7 @@ def test_outside_int64_uint64_range(all_parsers, val, request):
 
     result = parser.read_csv(StringIO(str(val)), header=None)
 
-    expected = DataFrame([val])
+    expected = pd.DataFrame([val])
     tm.assert_frame_equal(result, expected)
 
 
@@ -225,7 +222,7 @@ def test_outside_int64_uint64_range_follow_str(all_parsers, val):
 
     result = parser.read_csv(StringIO(f"{val}\nabc"), header=None)
 
-    expected = DataFrame([str(val), "abc"])
+    expected = pd.DataFrame([str(val), "abc"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -236,7 +233,7 @@ def test_numeric_range_too_wide(all_parsers, exp_data):
     # values, so they should be cast as string.
     parser = all_parsers
     data = "\n".join(exp_data)
-    expected = DataFrame(exp_data)
+    expected = pd.DataFrame(exp_data)
 
     result = parser.read_csv(StringIO(data), header=None)
     tm.assert_frame_equal(result, expected)
@@ -248,7 +245,7 @@ def test_integer_precision(all_parsers):
 5,1;0;0;0;1;1;843;843;843;1;1;1;1;1;1;0;0;1;1;0;0,64.0,;,4321113141090630389"""
     parser = all_parsers
     result = parser.read_csv(StringIO(s), header=None)[4]
-    expected = Series([4321583677327450765, 4321113141090630389], name=4)
+    expected = pd.Series([4321583677327450765, 4321113141090630389], name=4)
     tm.assert_series_equal(result, expected)
 
 
@@ -264,5 +261,5 @@ def test_thousands_digit_char(all_parsers):
             parser.read_csv(StringIO(data), thousands="0")
         return
     result = parser.read_csv(StringIO(data), thousands="0")
-    expected = DataFrame({"a": [1]})
+    expected = pd.DataFrame({"a": [1]})
     tm.assert_frame_equal(result, expected)

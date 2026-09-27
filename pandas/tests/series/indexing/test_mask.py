@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 
 
 def test_mask():
     # compare with tested results in test_where
-    s = Series(np.random.default_rng(2).standard_normal(5))
+    s = pd.Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.where(~cond, np.nan)
@@ -21,7 +21,7 @@ def test_mask():
     rs2 = s.mask(cond, -s)
     tm.assert_series_equal(rs, rs2)
 
-    cond = Series([True, False, False, True, False], index=s.index)
+    cond = pd.Series([True, False, False, True, False], index=s.index)
     s2 = -(s.abs())
     rs = s2.where(~cond[:3])
     rs2 = s2.mask(cond[:3])
@@ -40,23 +40,23 @@ def test_mask():
 
 def test_mask_casts():
     # dtype changes
-    ser = Series([1, 2, 3, 4])
+    ser = pd.Series([1, 2, 3, 4])
     result = ser.mask(ser > 2, np.nan)
-    expected = Series([1, 2, np.nan, np.nan])
+    expected = pd.Series([1, 2, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
 def test_mask_casts2():
     # see gh-21891
-    ser = Series([1, 2])
+    ser = pd.Series([1, 2])
     res = ser.mask([True, False])
 
-    exp = Series([np.nan, 2])
+    exp = pd.Series([np.nan, 2])
     tm.assert_series_equal(res, exp)
 
 
 def test_mask_inplace():
-    s = Series(np.random.default_rng(2).standard_normal(5))
+    s = pd.Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.copy()

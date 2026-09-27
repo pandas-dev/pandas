@@ -3,10 +3,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    concat,
-    merge,
-)
 import pandas._testing as tm
 
 
@@ -83,12 +79,12 @@ def test_copy_deprecation_merge_concat():
     with tm.assert_produces_warning(
         Pandas4Warning, match="copy", check_stacklevel=False
     ):
-        merge(df, df, copy=False)
+        pd.merge(df, df, copy=False)
 
     with tm.assert_produces_warning(
         Pandas4Warning, match="copy", check_stacklevel=False
     ):
-        concat([df, df], copy=False)
+        pd.concat([df, df], copy=False)
 
 
 @pytest.mark.parametrize("value", [False, True, "warn"])

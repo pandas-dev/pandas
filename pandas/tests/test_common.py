@@ -1,5 +1,6 @@
 import collections
 from functools import partial
+import operator
 import string
 import subprocess
 import sys
@@ -10,7 +11,6 @@ import pytest
 from pandas.compat import WASM
 
 import pandas as pd
-from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
@@ -107,29 +107,29 @@ def test_all_not_none(args, expected):
 @pytest.mark.parametrize(
     "left, right, expected",
     [
-        (Series([1], name="x"), Series([2], name="x"), "x"),
-        (Series([1], name="x"), Series([2], name="y"), None),
-        (Series([1]), Series([2], name="x"), None),
-        (Series([1], name="x"), Series([2]), None),
-        (Series([1], name="x"), [2], "x"),
-        ([1], Series([2], name="y"), "y"),
+        (pd.Series([1], name="x"), pd.Series([2], name="x"), "x"),
+        (pd.Series([1], name="x"), pd.Series([2], name="y"), None),
+        (pd.Series([1]), pd.Series([2], name="x"), None),
+        (pd.Series([1], name="x"), pd.Series([2]), None),
+        (pd.Series([1], name="x"), [2], "x"),
+        ([1], pd.Series([2], name="y"), "y"),
         # matching NAs
-        (Series([1], name=np.nan), pd.Index([], name=np.nan), np.nan),
-        (Series([1], name=np.nan), pd.Index([], name=pd.NaT), None),
-        (Series([1], name=pd.NA), pd.Index([], name=pd.NA), pd.NA),
+        (pd.Series([1], name=np.nan), pd.Index([], name=np.nan), np.nan),
+        (pd.Series([1], name=np.nan), pd.Index([], name=pd.NaT), None),
+        (pd.Series([1], name=pd.NA), pd.Index([], name=pd.NA), pd.NA),
         # tuple name GH#39757
         (
-            Series([1], name=np.int64(1)),
+            pd.Series([1], name=np.int64(1)),
             pd.Index([], name=(np.int64(1), np.int64(2))),
             None,
         ),
         (
-            Series([1], name=(np.int64(1), np.int64(2))),
+            pd.Series([1], name=(np.int64(1), np.int64(2))),
             pd.Index([], name=(np.int64(1), np.int64(2))),
             (np.int64(1), np.int64(2)),
         ),
         pytest.param(
-            Series([1], name=(np.float64("nan"), np.int64(2))),
+            pd.Series([1], name=(np.float64("nan"), np.int64(2))),
             pd.Index([], name=(np.float64("nan"), np.int64(2))),
             (np.float64("nan"), np.int64(2)),
             marks=pytest.mark.xfail(
@@ -246,14 +246,14 @@ class TestIsBoolIndexer:
         tup = ("A", ("B", 2))
         assert not com.is_bool_indexer([tup])
 
-        ser = Series([42], index=[tup])
+        ser = pd.Series([42], index=[tup])
         tm.assert_series_equal(ser[[tup]], ser)
 
 
 @pytest.mark.parametrize("with_exception", [True, False])
 def test_temp_setattr(with_exception):
     # GH#45954
-    ser = Series(dtype=object)
+    ser = pd.Series(dtype=object)
     ser.name = "first"
     # Raise a ValueError in either case to satisfy pytest.raises
     match = "Inside exception raised" if with_exception else "Outside exception raised"
@@ -280,3 +280,22 @@ def test_str_size():
     ]
     result = subprocess.check_output(call).decode()[-4:-1].strip("\n")
     assert int(result) == int(expected)
+
+
+def test_is_setitem_syntax_in_caller_frame():
+    # GH#51315 only a subscript assignment in the calling frame can be
+    # chained assignment; a plain call (e.g. from Cython compiled code, which
+    # leaves no Python frame) cannot be
+    results = []
+
+    class Recorder:
+        def __setitem__(self, key, value):
+            results.append(com.is_setitem_syntax_in_caller_frame())
+
+    obj = Recorder()
+    obj[0] = 1
+    obj[0:1] = 1
+    obj.__setitem__(0, 1)
+    operator.setitem(obj, 0, 1)
+
+    assert results == [True, True, False, False]

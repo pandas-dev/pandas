@@ -516,7 +516,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "to get a NumPy array, or 'PeriodIndex.array' to get the "
             "ExtensionArray.",
             Pandas4Warning,
-            stacklevel=find_stack_level(),
+            stacklevel=2,
         )
         return np.asarray(self, dtype=object)
 

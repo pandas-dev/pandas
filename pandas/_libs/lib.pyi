@@ -3,7 +3,6 @@
 from collections.abc import (
     Callable,
     Generator,
-    Hashable,
 )
 from decimal import Decimal
 from typing import (
@@ -64,6 +63,7 @@ def is_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_integer_array(values: np.ndarray, skipna: bool = ...): ...
 def is_integer_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
+def first_non_numeric(values: np.ndarray) -> tuple[object, bool]: ...
 def fast_multiget(
     mapping: dict,
     keys: np.ndarray,  # object[:]
@@ -192,12 +192,6 @@ def map_infer_mask(
     na_value: Any = ...,
     dtype: np.dtype = ...,
 ) -> ArrayLike: ...
-def indices_fast(
-    index: npt.NDArray[np.intp],
-    labels: np.ndarray,  # const int64_t[:]
-    keys: list,
-    sorted_labels: list[npt.NDArray[np.int64]],
-) -> dict[Hashable, npt.NDArray[np.intp]]: ...
 def generate_slices(
     labels: np.ndarray,
     ngroups: int,  # const intp_t[:]

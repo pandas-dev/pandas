@@ -4,12 +4,6 @@ import pytest
 from pandas.errors import InvalidIndexError
 
 import pandas as pd
-from pandas import (
-    CategoricalIndex,
-    Index,
-    IntervalIndex,
-    Timestamp,
-)
 import pandas._testing as tm
 
 
@@ -18,30 +12,30 @@ class TestTake:
         # GH 12631
 
         # numeric category
-        idx = CategoricalIndex([1, 2, 3], name="xxx")
+        idx = pd.CategoricalIndex([1, 2, 3], name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = CategoricalIndex([2, 1, 3], name="xxx")
+        expected = pd.CategoricalIndex([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)
         tm.assert_categorical_equal(result.values, expected.values)
 
         # fill_value
         result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
-        expected = CategoricalIndex([2, 1, np.nan], categories=[1, 2, 3], name="xxx")
+        expected = pd.CategoricalIndex([2, 1, np.nan], categories=[1, 2, 3], name="xxx")
         tm.assert_index_equal(result, expected)
         tm.assert_categorical_equal(result.values, expected.values)
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = CategoricalIndex([2, 1, 3], name="xxx")
+        expected = pd.CategoricalIndex([2, 1, 3], name="xxx")
         tm.assert_index_equal(result, expected)
         tm.assert_categorical_equal(result.values, expected.values)
 
         # object category
-        idx = CategoricalIndex(
+        idx = pd.CategoricalIndex(
             list("CBA"), categories=list("ABC"), ordered=True, name="xxx"
         )
         result = idx.take(np.array([1, 0, -1]))
-        expected = CategoricalIndex(
+        expected = pd.CategoricalIndex(
             list("BCA"), categories=list("ABC"), ordered=True, name="xxx"
         )
         tm.assert_index_equal(result, expected)
@@ -49,7 +43,7 @@ class TestTake:
 
         # fill_value
         result = idx.take(np.array([1, 0, -1]), fill_value=np.nan)
-        expected = CategoricalIndex(
+        expected = pd.CategoricalIndex(
             ["B", "C", np.nan], categories=list("ABC"), ordered=True, name="xxx"
         )
         tm.assert_index_equal(result, expected)
@@ -57,7 +51,7 @@ class TestTake:
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = CategoricalIndex(
+        expected = pd.CategoricalIndex(
             list("BCA"), categories=list("ABC"), ordered=True, name="xxx"
         )
         tm.assert_index_equal(result, expected)
@@ -76,19 +70,19 @@ class TestTake:
     def test_take_fill_value_datetime(self):
         # datetime category
         idx = pd.DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"], name="xxx")
-        idx = CategoricalIndex(idx)
+        idx = pd.CategoricalIndex(idx)
         result = idx.take(np.array([1, 0, -1]))
         expected = pd.DatetimeIndex(
             ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx"
         )
-        expected = CategoricalIndex(expected)
+        expected = pd.CategoricalIndex(expected)
         tm.assert_index_equal(result, expected)
 
         # fill_value
         result = idx.take(np.array([1, 0, -1]), fill_value=pd.NaT)
         expected = pd.DatetimeIndex(["2011-02-01", "2011-01-01", "NaT"], name="xxx")
         exp_cats = pd.DatetimeIndex(["2011-01-01", "2011-02-01", "2011-03-01"])
-        expected = CategoricalIndex(expected, categories=exp_cats)
+        expected = pd.CategoricalIndex(expected, categories=exp_cats)
         tm.assert_index_equal(result, expected)
 
         # allow_fill=False
@@ -96,7 +90,7 @@ class TestTake:
         expected = pd.DatetimeIndex(
             ["2011-02-01", "2011-01-01", "2011-03-01"], name="xxx"
         )
-        expected = CategoricalIndex(expected)
+        expected = pd.CategoricalIndex(expected)
         tm.assert_index_equal(result, expected)
 
         msg = "When allow_fill=True, all indices must be >= -1"
@@ -110,7 +104,7 @@ class TestTake:
             idx.take(np.array([1, -5]))
 
     def test_take_invalid_kwargs(self):
-        idx = CategoricalIndex([1, 2, 3], name="foo")
+        idx = pd.CategoricalIndex([1, 2, 3], name="foo")
         indices = [1, 0, -1]
 
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -129,8 +123,8 @@ class TestTake:
 class TestGetLoc:
     def test_get_loc(self):
         # GH 12531
-        cidx1 = CategoricalIndex(list("abcde"), categories=list("edabc"))
-        idx1 = Index(list("abcde"))
+        cidx1 = pd.CategoricalIndex(list("abcde"), categories=list("edabc"))
+        idx1 = pd.Index(list("abcde"))
         assert cidx1.get_loc("a") == idx1.get_loc("a")
         assert cidx1.get_loc("e") == idx1.get_loc("e")
 
@@ -139,8 +133,8 @@ class TestGetLoc:
                 i.get_loc("NOT-EXIST")
 
         # non-unique
-        cidx2 = CategoricalIndex(list("aacded"), categories=list("edabc"))
-        idx2 = Index(list("aacded"))
+        cidx2 = pd.CategoricalIndex(list("aacded"), categories=list("edabc"))
+        idx2 = pd.Index(list("aacded"))
 
         # results in bool array
         res = cidx2.get_loc("d")
@@ -158,8 +152,8 @@ class TestGetLoc:
                 i.get_loc("NOT-EXIST")
 
         # non-unique, sliceable
-        cidx3 = CategoricalIndex(list("aabbb"), categories=list("abc"))
-        idx3 = Index(list("aabbb"))
+        cidx3 = pd.CategoricalIndex(list("aabbb"), categories=list("abc"))
+        idx3 = pd.Index(list("aabbb"))
 
         # results in slice
         res = cidx3.get_loc("a")
@@ -175,25 +169,25 @@ class TestGetLoc:
                 i.get_loc("c")
 
     def test_get_loc_unique(self):
-        cidx = CategoricalIndex(list("abc"))
+        cidx = pd.CategoricalIndex(list("abc"))
         result = cidx.get_loc("b")
         assert result == 1
 
     def test_get_loc_monotonic_nonunique(self):
-        cidx = CategoricalIndex(list("abbc"))
+        cidx = pd.CategoricalIndex(list("abbc"))
         result = cidx.get_loc("b")
         expected = slice(1, 3, None)
         assert result == expected
 
     def test_get_loc_nonmonotonic_nonunique(self):
-        cidx = CategoricalIndex(list("abcb"))
+        cidx = pd.CategoricalIndex(list("abcb"))
         result = cidx.get_loc("b")
         expected = np.array([False, True, False, True], dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_loc_nan(self):
         # GH#41933
-        ci = CategoricalIndex(["A", "B", np.nan])
+        ci = pd.CategoricalIndex(["A", "B", np.nan])
         res = ci.get_loc(np.nan)
 
         assert res == 2
@@ -202,7 +196,7 @@ class TestGetLoc:
 class TestGetIndexer:
     def test_get_indexer_base(self):
         # Determined by cat ordering.
-        idx = CategoricalIndex(list("cab"), categories=list("cab"))
+        idx = pd.CategoricalIndex(list("cab"), categories=list("cab"))
         expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
@@ -212,8 +206,8 @@ class TestGetIndexer:
             idx.get_indexer(idx, method="invalid")
 
     def test_get_indexer_requires_unique(self):
-        ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
-        oidx = Index(np.array(ci))
+        ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
+        oidx = pd.Index(np.array(ci))
 
         msg = "Reindexing only valid with uniquely valued Index objects"
 
@@ -234,10 +228,10 @@ class TestGetIndexer:
                 ci.get_indexer(finder)
 
     def test_get_indexer_non_unique(self):
-        idx1 = CategoricalIndex(list("aabcde"), categories=list("edabc"))
-        idx2 = CategoricalIndex(list("abf"))
+        idx1 = pd.CategoricalIndex(list("aabcde"), categories=list("edabc"))
+        idx2 = pd.CategoricalIndex(list("abf"))
 
-        for indexer in [idx2, list("abf"), Index(list("abf"))]:
+        for indexer in [idx2, list("abf"), pd.Index(list("abf"))]:
             msg = "Reindexing only valid with uniquely valued Index objects"
             with pytest.raises(InvalidIndexError, match=msg):
                 idx1.get_indexer(indexer)
@@ -247,8 +241,8 @@ class TestGetIndexer:
             tm.assert_almost_equal(r1, expected)
 
     def test_get_indexer_method(self):
-        idx1 = CategoricalIndex(list("aabcde"), categories=list("edabc"))
-        idx2 = CategoricalIndex(list("abf"))
+        idx1 = pd.CategoricalIndex(list("aabcde"), categories=list("edabc"))
+        idx2 = pd.CategoricalIndex(list("abf"))
 
         msg = "method pad not yet implemented for CategoricalIndex"
         with pytest.raises(NotImplementedError, match=msg):
@@ -263,33 +257,36 @@ class TestGetIndexer:
 
     def test_get_indexer_array(self):
         arr = np.array(
-            [Timestamp("1999-12-31 00:00:00"), Timestamp("2000-12-31 00:00:00")],
+            [pd.Timestamp("1999-12-31 00:00:00"), pd.Timestamp("2000-12-31 00:00:00")],
             dtype=object,
         )
-        cats = [Timestamp("1999-12-31 00:00:00"), Timestamp("2000-12-31 00:00:00")]
-        ci = CategoricalIndex(cats, categories=cats, ordered=False, dtype="category")
+        cats = [
+            pd.Timestamp("1999-12-31 00:00:00"),
+            pd.Timestamp("2000-12-31 00:00:00"),
+        ]
+        ci = pd.CategoricalIndex(cats, categories=cats, ordered=False, dtype="category")
         result = ci.get_indexer(arr)
         expected = np.array([0, 1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_same_categories_same_order(self):
-        ci = CategoricalIndex(["a", "b"], categories=["a", "b"])
+        ci = pd.CategoricalIndex(["a", "b"], categories=["a", "b"])
 
-        result = ci.get_indexer(CategoricalIndex(["b", "b"], categories=["a", "b"]))
+        result = ci.get_indexer(pd.CategoricalIndex(["b", "b"], categories=["a", "b"]))
         expected = np.array([1, 1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_same_categories_different_order(self):
         # https://github.com/pandas-dev/pandas/issues/19551
-        ci = CategoricalIndex(["a", "b"], categories=["a", "b"])
+        ci = pd.CategoricalIndex(["a", "b"], categories=["a", "b"])
 
-        result = ci.get_indexer(CategoricalIndex(["b", "b"], categories=["b", "a"]))
+        result = ci.get_indexer(pd.CategoricalIndex(["b", "b"], categories=["b", "a"]))
         expected = np.array([1, 1], dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_nans_in_index_and_target(self):
         # GH 45361
-        ci = CategoricalIndex([1, 2, np.nan, 3])
+        ci = pd.CategoricalIndex([1, 2, np.nan, 3])
         other1 = [2, 3, 4, np.nan]
         res1 = ci.get_indexer(other1)
         expected1 = np.array([1, 3, -1, 2], dtype=np.intp)
@@ -304,23 +301,25 @@ class TestWhere:
     def test_where(self, listlike_box):
         klass = listlike_box
 
-        i = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
+        i = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         cond = [True] * len(i)
         expected = i
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
         cond = [False] + [True] * (len(i) - 1)
-        expected = CategoricalIndex([np.nan, *i[1:].tolist()], categories=i.categories)
+        expected = pd.CategoricalIndex(
+            [np.nan, *i[1:].tolist()], categories=i.categories
+        )
         result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
     def test_where_non_categories(self):
-        ci = CategoricalIndex(["a", "b", "c", "d"])
+        ci = pd.CategoricalIndex(["a", "b", "c", "d"])
         mask = np.array([True, False, True, False])
 
         result = ci.where(mask, 2)
-        expected = Index(["a", 2, "c", 2], dtype=object)
+        expected = pd.Index(["a", 2, "c", 2], dtype=object)
         tm.assert_index_equal(result, expected)
 
         msg = "Cannot setitem on a Categorical with a new category"
@@ -331,7 +330,9 @@ class TestWhere:
 
 class TestContains:
     def test_contains(self):
-        ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"), ordered=False)
+        ci = pd.CategoricalIndex(
+            list("aabbca"), categories=list("cabdef"), ordered=False
+        )
 
         assert "a" in ci
         assert "z" not in ci
@@ -343,7 +344,7 @@ class TestContains:
         assert 1 not in ci
 
     def test_contains_nan(self):
-        ci = CategoricalIndex([*list("aabbca"), np.nan], categories=list("cabdef"))
+        ci = pd.CategoricalIndex([*list("aabbca"), np.nan], categories=list("cabdef"))
         assert np.nan in ci
 
     @pytest.mark.parametrize("unwrap", [True, False])
@@ -351,7 +352,7 @@ class TestContains:
         dti = pd.date_range("2016-01-01", periods=100).insert(0, pd.NaT)
         pi = dti.to_period("D")
         tdi = dti - dti[-1]
-        ci = CategoricalIndex(dti)
+        ci = pd.CategoricalIndex(dti)
 
         obj = ci
         if unwrap:
@@ -363,7 +364,7 @@ class TestContains:
         assert np.datetime64("NaT", "ns") in obj
         assert np.timedelta64("NaT", "ns") not in obj
 
-        obj2 = CategoricalIndex(tdi)
+        obj2 = pd.CategoricalIndex(tdi)
         if unwrap:
             obj2 = obj2._data
 
@@ -373,7 +374,7 @@ class TestContains:
         assert np.datetime64("NaT", "ns") not in obj2
         assert np.timedelta64("NaT", "ns") in obj2
 
-        obj3 = CategoricalIndex(pi)
+        obj3 = pd.CategoricalIndex(pi)
         if unwrap:
             obj3 = obj3._data
 
@@ -390,20 +391,20 @@ class TestContains:
             (1.5, True),
             (pd.Interval(0.5, 1.5), False),
             ("a", False),
-            (Timestamp(1), False),
+            (pd.Timestamp(1), False),
             (pd.Timedelta(1), False),
         ],
         ids=str,
     )
     def test_contains_interval(self, item, expected):
         # GH 23705
-        ci = CategoricalIndex(IntervalIndex.from_breaks(range(3)))
+        ci = pd.CategoricalIndex(pd.IntervalIndex.from_breaks(range(3)))
         result = item in ci
         assert result is expected
 
     def test_contains_list(self):
         # GH#21729
-        idx = CategoricalIndex([1, 2, 3])
+        idx = pd.CategoricalIndex([1, 2, 3])
 
         assert "a" not in idx
 

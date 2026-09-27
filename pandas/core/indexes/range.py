@@ -25,6 +25,7 @@ from pandas._libs import (
     index as libindex,
     lib,
 )
+from pandas._libs.internals import BlockValuesRefs
 from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
@@ -35,6 +36,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -257,7 +259,13 @@ class RangeIndex(Index):
         result._name = name
         result._cache = {}
         result._reset_identity()
-        result._references = None
+        # result._references populated lazily
+        return result
+
+    @cache_readonly
+    def _references(self) -> BlockValuesRefs:  # type: ignore[override]
+        result = BlockValuesRefs()
+        result.add_index_reference(self)
         return result
 
     @classmethod
@@ -654,6 +662,7 @@ class RangeIndex(Index):
     def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
+        self._references.add_index_reference(result)
         return result
 
     def _wrap_reindex_result(
@@ -1691,5 +1700,5 @@ class RangeIndex(Index):
             result = len(self) - result
         result = np.maximum(np.minimum(result, len(self)), 0)
         if was_scalar:
-            return np.intp(result.item())
+            return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)

@@ -8,22 +8,15 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
 )
 
-from pandas import (
-    NA,
-    Period,
-    Series,
-    Timedelta,
-    Timestamp,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestSeriesDescribe:
     def test_describe_ints(self):
-        ser = Series([0, 1, 2, 3, 4], name="int_data")
+        ser = pd.Series([0, 1, 2, 3, 4], name="int_data")
         result = ser.describe()
-        expected = Series(
+        expected = pd.Series(
             [5, 2, ser.std(), 0, 1, 2, 3, 4],
             name="int_data",
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
@@ -31,34 +24,34 @@ class TestSeriesDescribe:
         tm.assert_series_equal(result, expected)
 
     def test_describe_bools(self):
-        ser = Series([True, True, False, False, False], name="bool_data")
+        ser = pd.Series([True, True, False, False, False], name="bool_data")
         result = ser.describe()
-        expected = Series(
+        expected = pd.Series(
             [5, 2, False, 3], name="bool_data", index=["count", "unique", "top", "freq"]
         )
         tm.assert_series_equal(result, expected)
 
     def test_describe_strs(self):
-        ser = Series(["a", "a", "b", "c", "d"], name="str_data")
+        ser = pd.Series(["a", "a", "b", "c", "d"], name="str_data")
         result = ser.describe()
-        expected = Series(
+        expected = pd.Series(
             [5, 4, "a", 2], name="str_data", index=["count", "unique", "top", "freq"]
         )
         tm.assert_series_equal(result, expected)
 
     def test_describe_timedelta64(self):
-        ser = Series(
+        ser = pd.Series(
             [
-                Timedelta("1 days"),
-                Timedelta("2 days"),
-                Timedelta("3 days"),
-                Timedelta("4 days"),
-                Timedelta("5 days"),
+                pd.Timedelta("1 days"),
+                pd.Timedelta("2 days"),
+                pd.Timedelta("3 days"),
+                pd.Timedelta("4 days"),
+                pd.Timedelta("5 days"),
             ],
             name="timedelta_data",
         )
         result = ser.describe()
-        expected = Series(
+        expected = pd.Series(
             [5, ser[2], ser.std(), ser[0], ser[1], ser[2], ser[3], ser[4]],
             name="timedelta_data",
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
@@ -66,12 +59,16 @@ class TestSeriesDescribe:
         tm.assert_series_equal(result, expected)
 
     def test_describe_period(self):
-        ser = Series(
-            [Period("2020-01", "M"), Period("2020-01", "M"), Period("2019-12", "M")],
+        ser = pd.Series(
+            [
+                pd.Period("2020-01", "M"),
+                pd.Period("2020-01", "M"),
+                pd.Period("2019-12", "M"),
+            ],
             name="period_data",
         )
         result = ser.describe()
-        expected = Series(
+        expected = pd.Series(
             [3, 2, ser[0], 2],
             name="period_data",
             index=["count", "unique", "top", "freq"],
@@ -80,9 +77,9 @@ class TestSeriesDescribe:
 
     def test_describe_empty_object(self):
         # https://github.com/pandas-dev/pandas/issues/27183
-        s = Series([None, None], dtype=object)
+        s = pd.Series([None, None], dtype=object)
         result = s.describe()
-        expected = Series(
+        expected = pd.Series(
             [0, 0, np.nan, np.nan],
             dtype=object,
             index=["count", "unique", "top", "freq"],
@@ -99,14 +96,14 @@ class TestSeriesDescribe:
         # GH 21332
         tz = tz_naive_fixture
         name = str(tz_naive_fixture)
-        start = Timestamp(2018, 1, 1)
-        end = Timestamp(2018, 1, 5)
-        s = Series(date_range(start, end, tz=tz), name=name)
+        start = pd.Timestamp(2018, 1, 1)
+        end = pd.Timestamp(2018, 1, 5)
+        s = pd.Series(pd.date_range(start, end, tz=tz), name=name)
         result = s.describe()
-        expected = Series(
+        expected = pd.Series(
             [
                 5,
-                Timestamp(2018, 1, 3).tz_localize(tz),
+                pd.Timestamp(2018, 1, 3).tz_localize(tz),
                 start.tz_localize(tz),
                 s[1],
                 s[2],
@@ -120,21 +117,21 @@ class TestSeriesDescribe:
 
     def test_describe_with_tz_numeric(self):
         name = tz = "CET"
-        start = Timestamp(2018, 1, 1)
-        end = Timestamp(2018, 1, 5)
-        s = Series(date_range(start, end, tz=tz), name=name)
+        start = pd.Timestamp(2018, 1, 1)
+        end = pd.Timestamp(2018, 1, 5)
+        s = pd.Series(pd.date_range(start, end, tz=tz), name=name)
 
         result = s.describe()
 
-        expected = Series(
+        expected = pd.Series(
             [
                 5,
-                Timestamp("2018-01-03 00:00:00", tz=tz),
-                Timestamp("2018-01-01 00:00:00", tz=tz),
-                Timestamp("2018-01-02 00:00:00", tz=tz),
-                Timestamp("2018-01-03 00:00:00", tz=tz),
-                Timestamp("2018-01-04 00:00:00", tz=tz),
-                Timestamp("2018-01-05 00:00:00", tz=tz),
+                pd.Timestamp("2018-01-03 00:00:00", tz=tz),
+                pd.Timestamp("2018-01-01 00:00:00", tz=tz),
+                pd.Timestamp("2018-01-02 00:00:00", tz=tz),
+                pd.Timestamp("2018-01-03 00:00:00", tz=tz),
+                pd.Timestamp("2018-01-04 00:00:00", tz=tz),
+                pd.Timestamp("2018-01-05 00:00:00", tz=tz),
             ],
             name=name,
             index=["count", "mean", "min", "25%", "50%", "75%", "max"],
@@ -142,17 +139,17 @@ class TestSeriesDescribe:
         tm.assert_series_equal(result, expected)
 
     def test_datetime_is_numeric_includes_datetime(self):
-        s = Series(date_range("2012", periods=3))
+        s = pd.Series(pd.date_range("2012", periods=3))
         result = s.describe()
-        expected = Series(
+        expected = pd.Series(
             [
                 3,
-                Timestamp("2012-01-02"),
-                Timestamp("2012-01-01"),
-                Timestamp("2012-01-01T12:00:00"),
-                Timestamp("2012-01-02"),
-                Timestamp("2012-01-02T12:00:00"),
-                Timestamp("2012-01-03"),
+                pd.Timestamp("2012-01-02"),
+                pd.Timestamp("2012-01-01"),
+                pd.Timestamp("2012-01-01T12:00:00"),
+                pd.Timestamp("2012-01-02"),
+                pd.Timestamp("2012-01-02T12:00:00"),
+                pd.Timestamp("2012-01-03"),
             ],
             index=["count", "mean", "min", "25%", "50%", "75%", "max"],
         )
@@ -165,7 +162,7 @@ class TestSeriesDescribe:
         else:
             dtype = "complex128" if is_complex_dtype(any_numeric_dtype) else None
 
-        ser = Series([0, 1], dtype=any_numeric_dtype)
+        ser = pd.Series([0, 1], dtype=any_numeric_dtype)
         if dtype == "complex128":
             with pytest.raises(
                 TypeError, match=r"^a must be an array of real numbers$"
@@ -173,7 +170,7 @@ class TestSeriesDescribe:
                 ser.describe()
             return
         result = ser.describe()
-        expected = Series(
+        expected = pd.Series(
             [
                 2.0,
                 0.5,
@@ -191,11 +188,11 @@ class TestSeriesDescribe:
 
     def test_describe_one_element_ea(self):
         # GH#52515
-        ser = Series([0.0], dtype="Float64")
+        ser = pd.Series([0.0], dtype="Float64")
         with tm.assert_produces_warning(None):
             result = ser.describe()
-        expected = Series(
-            [1, 0, NA, 0, 0, 0, 0, 0],
+        expected = pd.Series(
+            [1, 0, pd.NA, 0, 0, 0, 0, 0],
             dtype="Float64",
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
@@ -212,7 +209,7 @@ class TestSeriesDescribe:
     )
     def test_describe_include_exclude_deprecated(self, kwargs):
         # GH#54193 - include/exclude have no effect on Series; deprecate them.
-        ser = Series([1, 2, 3], name="int_data")
+        ser = pd.Series([1, 2, 3], name="int_data")
         msg = "'include' and 'exclude' arguments are deprecated for Series.describe"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.describe(**kwargs)

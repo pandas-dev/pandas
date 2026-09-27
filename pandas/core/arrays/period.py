@@ -40,7 +40,6 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
 )
-from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
     Tick,
     delta_to_tick,
@@ -919,7 +918,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         >>> idx.is_leap_year
         array([False,  True, False])
         """
-        return isleapyear_arr(np.asarray(self.year))
+        # NaT gives year == -1, which the modulo below reports as not-leap
+        year = np.asarray(self.year)
+        return (year % 400 == 0) | ((year % 4 == 0) & (year % 100 > 0))
 
     def to_timestamp(self, freq=None, how: str = "start") -> DatetimeArray:
         """

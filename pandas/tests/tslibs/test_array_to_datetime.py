@@ -17,7 +17,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
-from pandas import Timestamp
+import pandas as pd
 import pandas._testing as tm
 
 creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
@@ -62,7 +62,7 @@ class TestArrayToDatetimeResolutionInference:
 
     def test_infer_homogeoneous_timestamps(self):
         dt = datetime(2023, 10, 27, 18, 3, 5, 678000)
-        ts = Timestamp(dt).as_unit("ns")
+        ts = pd.Timestamp(dt).as_unit("ns")
         arr = np.array([None, ts, ts, ts], dtype=object)
         result, tz = tslib.array_to_datetime(arr, creso=creso_infer)
         assert tz is None
@@ -230,7 +230,7 @@ def test_coerce_outside_ns_bounds(invalid_date, exp_unit, errors):
     result, _ = tslib.array_to_datetime(arr, errors=errors)
     out_reso = np.datetime_data(result.dtype)[0]
     assert out_reso == exp_unit
-    ts = Timestamp(invalid_date)
+    ts = pd.Timestamp(invalid_date)
     assert ts.unit == exp_unit
 
     expected = np.array([ts._value], dtype=f"M8[{exp_unit}]")
@@ -294,7 +294,7 @@ class SubDatetime(datetime):
     pass
 
 
-@pytest.mark.parametrize("klass", [SubDatetime, datetime, Timestamp])
+@pytest.mark.parametrize("klass", [SubDatetime, datetime, pd.Timestamp])
 def test_datetime_subclass(klass):
     # GH 25851
     # ensure that subclassed datetime works with

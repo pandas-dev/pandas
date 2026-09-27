@@ -64,6 +64,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     arraylike,
     missing,
+    ops,
     roperator,
 )
 from pandas.core.algorithms import (
@@ -2953,6 +2954,10 @@ class ExtensionArray:
         return type(self)._from_sequence(rounded, dtype=self.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # the fallback at the end of this method np.asarray()s the values: M8/m8
+        #  survive to be truth-tested, the rest flatten to object
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         if any(
             isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
         ):
@@ -3054,8 +3059,7 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         initial: Any = 0
         # GH#43682

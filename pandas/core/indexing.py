@@ -305,7 +305,7 @@ class IndexingMixin:
         With scalar integers.
 
         >>> df.iloc[0, 1]
-        np.int64(2)
+        2
 
         With lists of integers.
 
@@ -433,7 +433,7 @@ class IndexingMixin:
         Single label for row and column
 
         >>> df.loc["cobra", "shield"]
-        np.int64(2)
+        2
 
         Slice with labels for row and single label for column. As mentioned
         above, note that both the start and stop of the slice are included.
@@ -651,7 +651,7 @@ class IndexingMixin:
         Single tuple for the index with a single label for the column
 
         >>> df.loc[("cobra", "mark i"), "shield"]
-        np.int64(2)
+        2
 
         Slice from index tuple to single label
 
@@ -748,18 +748,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.at[4, "B"]
-        np.int64(2)
+        2
 
         Set value at specified row/column pair
 
         >>> df.at[4, "B"] = 10
         >>> df.at[4, "B"]
-        np.int64(10)
+        10
 
         Get value within a Series
 
         >>> df.loc[5].at["B"]
-        np.int64(4)
+        4
         """
         return _AtIndexer("at", self)
 
@@ -797,18 +797,18 @@ class IndexingMixin:
         Get value at specified row/column pair
 
         >>> df.iat[1, 2]
-        np.int64(1)
+        1
 
         Set value at specified row/column pair
 
         >>> df.iat[1, 2] = 10
         >>> df.iat[1, 2]
-        np.int64(10)
+        10
 
         Get value within a series
 
         >>> df.loc[0].iat[1]
-        np.int64(2)
+        2
         """
         return _iAtIndexer("iat", self)
 
@@ -1453,7 +1453,7 @@ class _LocIndexer(_LocationIndexer):
     Single label for row and column
 
     >>> df.loc["cobra", "shield"]
-    np.int64(2)
+    2
 
     Slice with labels for row and single label for column. As mentioned
     above, note that both the start and stop of the slice are included.
@@ -1653,7 +1653,7 @@ class _LocIndexer(_LocationIndexer):
     Single tuple for the index with a single label for the column
 
     >>> df.loc[("cobra", "mark i"), "shield"]
-    np.int64(2)
+    2
 
     Slice from index tuple to single label
 
@@ -2206,7 +2206,7 @@ class _iLocIndexer(_LocationIndexer):
     With scalar integers.
 
     >>> df.iloc[0, 1]
-    np.int64(2)
+    2
 
     With lists of integers.
 
@@ -2685,11 +2685,7 @@ class _iLocIndexer(_LocationIndexer):
             if isinstance(value, ABCDataFrame):
                 self._setitem_with_indexer_frame_value(indexer, value, name)
 
-            elif _is_2d_value(value) and not (
-                isinstance(value, list)
-                and isinstance(value[0], tuple)
-                and len(value[0]) != len(ilocs)
-            ):
+            elif _is_2d_value_for_columns(value, len(ilocs)):
                 self._setitem_with_indexer_2d_value(indexer, value)
 
             elif len(ilocs) == 1 and lplane_indexer == len(value) and not is_scalar(pi):
@@ -2945,6 +2941,41 @@ class _iLocIndexer(_LocationIndexer):
                 self._setitem_with_indexer_split_path(indexer, value, name)
                 return
 
+            if (
+                self.ndim == 2
+                and len(indexer) == 2
+                # an integer column key drops the column axis, so the selection
+                #  stays 1-D and numpy broadcasts the value into it just fine
+                and not is_integer(indexer[1])
+                and not is_scalar(indexer[0])
+                and not isinstance(value, ABCDataFrame)
+                and is_list_like_indexer(value)
+                and getattr(value, "ndim", 1) == 1
+                # length_of_indexer below measures only these, and only in
+                #  one dimension; every other row key (masked/Categorical/tuple,
+                #  0-d or 2-D ndarray) has to keep taking the whole-block path,
+                #  which reports its own, clearer errors.  GH#68021
+                and isinstance(
+                    indexer[0], (slice, range, list, np.ndarray, ABCSeries, ABCIndex)
+                )
+                and getattr(indexer[0], "ndim", 1) == 1
+            ):
+                ilocs = self._ensure_iterable_column_indexer(indexer[1])
+                if len(ilocs) == 1 and not _is_2d_value_for_columns(value, 1):
+                    # _ensure_iterable_column_indexer leaves a non-ndarray
+                    #  boolean key alone, so ilocs[0] can be True rather than a
+                    #  position; that is not ours to set column-wise
+                    loc = ilocs[0]
+                    if is_integer(loc):
+                        nrows = length_of_indexer(indexer[0], self.obj.index)
+                        if nrows == len(value):
+                            # GH#68021 the cross-product selection is (N, 1) but
+                            #  the value is 1-D of length N, which numpy cannot
+                            #  broadcast into it.  Set the single column row-wise,
+                            #  as the split path does.
+                            self._setitem_single_column(int(loc), value, indexer[0])
+                            return
+
             indexer = maybe_convert_ix(*indexer)  # e.g. test_setitem_frame_align
 
         if isinstance(value, ABCDataFrame) and name != "iloc":
@@ -3075,10 +3106,10 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = [column_indexer]
         elif isinstance(column_indexer, slice):
             ilocs = range(len(self.obj.columns))[column_indexer]
-        elif (
-            isinstance(column_indexer, np.ndarray) and column_indexer.dtype.kind == "b"
-        ):
-            ilocs = np.arange(len(column_indexer))[column_indexer]
+        elif com.is_bool_indexer(column_indexer):
+            ilocs = np.arange(len(column_indexer))[
+                np.asarray(column_indexer, dtype=bool)
+            ]
         else:
             ilocs = column_indexer
         return ilocs
@@ -3339,18 +3370,18 @@ class _AtIndexer(_ScalarAccessIndexer):
     Get value at specified row/column pair
 
     >>> df.at[4, "B"]
-    np.int64(2)
+    2
 
     Set value at specified row/column pair
 
     >>> df.at[4, "B"] = 10
     >>> df.at[4, "B"]
-    np.int64(10)
+    10
 
     Get value within a Series
 
     >>> df.loc[5].at["B"]
-    np.int64(4)
+    4
     """
 
     _takeable = False
@@ -3473,18 +3504,18 @@ class _iAtIndexer(_ScalarAccessIndexer):
     Get value at specified row/column pair
 
     >>> df.iat[1, 2]
-    np.int64(1)
+    1
 
     Set value at specified row/column pair
 
     >>> df.iat[1, 2] = 10
     >>> df.iat[1, 2]
-    np.int64(10)
+    10
 
     Get value within a series
 
     >>> df.loc[0].iat[1]
-    np.int64(2)
+    2
     """
 
     _takeable = True
@@ -3526,6 +3557,24 @@ def _positional_row(row):
     if isinstance(row, (tuple, np.ndarray, ABCExtensionArray, ABCIndex)):
         return row
     return np.asarray(row, dtype=object)
+
+
+def _is_2d_value_for_columns(value, ncols: int) -> bool:
+    """
+    Whether ``value`` should be treated as a 2-D value for ``ncols`` columns.
+
+    A list of tuples aimed at a single column is per-cell values unless the
+    tuples are length-1 (GH#37629). With more columns it takes the 2-D path
+    whatever the tuple width, which rejects a mismatched one. GH#65264
+    """
+    if not _is_2d_value(value):
+        return False
+    return not (
+        isinstance(value, list)
+        and ncols == 1
+        and isinstance(value[0], tuple)
+        and len(value[0]) != 1
+    )
 
 
 def _is_2d_value(value) -> bool:

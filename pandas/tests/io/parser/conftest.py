@@ -7,10 +7,7 @@ import pytest
 from pandas.compat import HAS_PYARROW
 from pandas.compat._optional import VERSIONS
 
-from pandas import (
-    read_csv,
-    read_table,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -27,7 +24,7 @@ class BaseParser:
 
     def read_csv(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
-        return read_csv(*args, **kwargs)
+        return pd.read_csv(*args, **kwargs)
 
     def read_csv_check_warnings(
         self,
@@ -48,11 +45,11 @@ class BaseParser:
             raise_on_extra_warnings=raise_on_extra_warnings,
             check_stacklevel=check_stacklevel,
         ):
-            return read_csv(*args, **kwargs)
+            return pd.read_csv(*args, **kwargs)
 
     def read_table(self, *args, **kwargs):
         kwargs = self.update_kwargs(kwargs)
-        return read_table(*args, **kwargs)
+        return pd.read_table(*args, **kwargs)
 
     def read_table_check_warnings(
         self,
@@ -69,7 +66,7 @@ class BaseParser:
         with tm.assert_produces_warning(
             warn_type, match=warn_msg, raise_on_extra_warnings=raise_on_extra_warnings
         ):
-            return read_table(*args, **kwargs)
+            return pd.read_table(*args, **kwargs)
 
 
 class CParser(BaseParser):

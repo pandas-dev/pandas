@@ -1,12 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    DatetimeIndex,
-    MultiIndex,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -16,14 +11,14 @@ class TestMultiIndexPartial:
         # with single item
         l1 = [10, 20]
         l2 = ["a", "b"]
-        df = DataFrame(index=range(2), columns=MultiIndex.from_product([l1, l2]))
-        expected = DataFrame(index=range(2), columns=l2)
+        df = pd.DataFrame(index=range(2), columns=pd.MultiIndex.from_product([l1, l2]))
+        expected = pd.DataFrame(index=range(2), columns=l2)
         result = df[20]
         tm.assert_frame_equal(result, expected)
 
         # with list
-        expected = DataFrame(
-            index=range(2), columns=MultiIndex.from_product([l1[1:], l2])
+        expected = pd.DataFrame(
+            index=range(2), columns=pd.MultiIndex.from_product([l1[1:], l2])
         )
         result = df[[20]]
         tm.assert_frame_equal(result, expected)
@@ -55,7 +50,7 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(result, expected)
 
         # ex from #1796
-        index = MultiIndex(
+        index = pd.MultiIndex(
             levels=[["foo", "bar"], ["one", "two"], [-1, 1]],
             codes=[
                 [0, 0, 0, 0, 1, 1, 1, 1],
@@ -63,7 +58,7 @@ class TestMultiIndexPartial:
                 [0, 1, 0, 1, 0, 1, 0, 1],
             ],
         )
-        df = DataFrame(
+        df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((8, 4)),
             index=index,
             columns=list("abcd"),
@@ -99,11 +94,11 @@ class TestMultiIndexPartial:
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_partial_column_select(self):
-        idx = MultiIndex(
+        idx = pd.MultiIndex(
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
             levels=[["a", "b"], ["x", "y"], ["p", "q"]],
         )
-        df = DataFrame(np.random.default_rng(2).random((3, 2)), index=idx)
+        df = pd.DataFrame(np.random.default_rng(2).random((3, 2)), index=idx)
 
         result = df.loc[("a", "y"), :]
         expected = df.loc[("a", "y")]
@@ -153,7 +148,7 @@ class TestMultiIndexPartial:
         ymd.index = ymd.index.set_levels([levels[0].astype(dtype), *levels[1:]])
         ser = ymd["A"]
         mi = ser.index
-        assert isinstance(mi, MultiIndex)
+        assert isinstance(mi, pd.MultiIndex)
         if dtype is int:
             assert mi.levels[0].dtype == np.dtype(int)
         else:
@@ -203,26 +198,26 @@ class TestMultiIndexPartial:
         [
             (
                 slice("2019-2", None),
-                DatetimeIndex(["2019-02-01"], dtype="M8[ns]"),
+                pd.DatetimeIndex(["2019-02-01"], dtype="M8[ns]"),
                 [2, 3],
             ),
             (
                 slice(None, "2019-2"),
-                date_range("2019", periods=2, freq="MS", unit="ns"),
+                pd.date_range("2019", periods=2, freq="MS", unit="ns"),
                 [0, 1, 2, 3],
             ),
         ],
     )
     def test_partial_getitem_loc_datetime(self, indexer, exp_idx, exp_values):
         # GH: 25165
-        date_idx = date_range("2019", periods=2, freq="MS", unit="ns")
-        df = DataFrame(
+        date_idx = pd.date_range("2019", periods=2, freq="MS", unit="ns")
+        df = pd.DataFrame(
             list(range(4)),
-            index=MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
+            index=pd.MultiIndex.from_product([date_idx, [0, 1]], names=["x", "y"]),
         )
-        expected = DataFrame(
+        expected = pd.DataFrame(
             exp_values,
-            index=MultiIndex.from_product([exp_idx, [0, 1]], names=["x", "y"]),
+            index=pd.MultiIndex.from_product([exp_idx, [0, 1]], names=["x", "y"]),
         )
         result = df[indexer]
         tm.assert_frame_equal(result, expected)
@@ -245,9 +240,9 @@ class TestMultiIndexPartial:
 def test_loc_getitem_partial_both_axis():
     # gh-12660
     iterables = [["a", "b"], [2, 1]]
-    columns = MultiIndex.from_product(iterables, names=["col1", "col2"])
-    rows = MultiIndex.from_product(iterables, names=["row1", "row2"])
-    df = DataFrame(
+    columns = pd.MultiIndex.from_product(iterables, names=["col1", "col2"])
+    rows = pd.MultiIndex.from_product(iterables, names=["row1", "row2"])
+    df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((4, 4)), index=rows, columns=columns
     )
     expected = df.iloc[:2, 2:].droplevel("row1").droplevel("col1", axis=1)

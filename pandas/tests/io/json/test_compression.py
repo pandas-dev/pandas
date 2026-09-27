@@ -6,8 +6,6 @@ import uuid
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -39,7 +37,6 @@ def test_read_zipped_json(datapath):
     tm.assert_frame_equal(uncompressed_df, compressed_df)
 
 
-@td.skip_if_not_us_locale
 @pytest.mark.single_cpu
 @pytest.mark.network
 def test_with_s3_url(compression, s3_bucket_public, s3so, temp_file):

@@ -11,7 +11,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas import Timestamp
+import pandas as pd
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
     assert_offset_equal,
@@ -324,9 +324,9 @@ class TestYearEndDiffMonth:
 
 def test_add_out_of_pydatetime_range():
     # GH#50348 don't raise in Timestamp.replace
-    ts = Timestamp(np.datetime64("-20000-12-31"))
+    ts = pd.Timestamp(np.datetime64("-20000-12-31"))
     off = YearEnd()
 
     result = ts + off
-    expected = Timestamp(np.datetime64("-19999-12-31"))
+    expected = pd.Timestamp(np.datetime64("-19999-12-31"))
     assert result == expected

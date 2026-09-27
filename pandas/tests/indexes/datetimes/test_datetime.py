@@ -7,19 +7,12 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Timestamp,
-    date_range,
-    offsets,
-)
 import pandas._testing as tm
 
 
 class TestDatetimeIndex:
     def test_is_(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
+        dti = pd.date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         assert dti.is_(dti)
         assert dti.is_(dti.view())
         assert not dti.is_(dti.copy())
@@ -33,40 +26,40 @@ class TestDatetimeIndex:
         # overflow.
         periods = np.long(1000)
 
-        idx1 = date_range(start="2000", periods=periods, freq="s")
+        idx1 = pd.date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
 
-        idx2 = date_range(end="2000", periods=periods, freq="s")
+        idx2 = pd.date_range(end="2000", periods=periods, freq="s")
         assert len(idx2) == periods
 
     def test_nat(self):
-        assert DatetimeIndex([np.nan])[0] is pd.NaT
+        assert pd.DatetimeIndex([np.nan])[0] is pd.NaT
 
     def test_week_of_month_frequency(self):
         # GH 5348: "ValueError: Could not evaluate WOM-1SUN" shouldn't raise
         d1 = date(2002, 9, 1)
         d2 = date(2013, 10, 27)
         d3 = date(2012, 9, 30)
-        idx1 = DatetimeIndex([d1, d2])
-        idx2 = DatetimeIndex([d3])
+        idx1 = pd.DatetimeIndex([d1, d2])
+        idx2 = pd.DatetimeIndex([d3])
         result_append = idx1.append(idx2)
-        expected = DatetimeIndex([d1, d2, d3])
+        expected = pd.DatetimeIndex([d1, d2, d3])
         tm.assert_index_equal(result_append, expected)
         result_union = idx1.union(idx2)
-        expected = DatetimeIndex([d1, d3, d2])
+        expected = pd.DatetimeIndex([d1, d3, d2])
         tm.assert_index_equal(result_union, expected)
 
     def test_append_nondatetimeindex(self):
-        rng = date_range("1/1/2000", periods=10)
-        idx = Index(["a", "b", "c", "d"])
+        rng = pd.date_range("1/1/2000", periods=10)
+        idx = pd.Index(["a", "b", "c", "d"])
 
         result = rng.append(idx)
-        assert isinstance(result[0], Timestamp)
+        assert isinstance(result[0], pd.Timestamp)
 
     def test_misc_coverage(self):
-        rng = date_range("1/1/2000", periods=5)
+        rng = pd.date_range("1/1/2000", periods=5)
         result = rng.groupby(rng.day)
-        assert isinstance(next(iter(result.values()))[0], Timestamp)
+        assert isinstance(next(iter(result.values()))[0], pd.Timestamp)
 
     def assert_index_parameters(self, index):
         assert index.freq == "40960ns"
@@ -80,16 +73,16 @@ class TestDatetimeIndex:
         dtstart = np.datetime64("2012-09-20T00:00:00")
 
         dt = dtstart + np.arange(nsamples) * np.timedelta64(ns, "ns")
-        freq = ns * offsets.Nano()
-        index = DatetimeIndex(dt, freq=freq, name="time")
+        freq = ns * pd.offsets.Nano()
+        index = pd.DatetimeIndex(dt, freq=freq, name="time")
         self.assert_index_parameters(index)
 
-        new_index = date_range(start=index[0], end=index[-1], freq=index.freq)
+        new_index = pd.date_range(start=index[0], end=index[-1], freq=index.freq)
         self.assert_index_parameters(new_index)
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        idx = date_range("2000", periods=2, unit="ns")
+        idx = pd.date_range("2000", periods=2, unit="ns")
         # M8[ns] by default
         result = np.asarray(idx)
 
@@ -99,12 +92,12 @@ class TestDatetimeIndex:
         # optionally, object
         result = np.asarray(idx, dtype=object)
 
-        expected = np.array([Timestamp("2000-01-01"), Timestamp("2000-01-02")])
+        expected = np.array([pd.Timestamp("2000-01-01"), pd.Timestamp("2000-01-02")])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        idx = date_range("2000", periods=2, tz=tz, unit="ns")
+        idx = pd.date_range("2000", periods=2, tz=tz, unit="ns")
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(idx, dtype="datetime64[ns]")
 
@@ -117,7 +110,7 @@ class TestDatetimeIndex:
 
         # Future behavior with no warning
         expected = np.array(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
+            [pd.Timestamp("2000-01-01", tz=tz), pd.Timestamp("2000-01-02", tz=tz)]
         )
         result = np.asarray(idx, dtype=object)
 
@@ -128,30 +121,31 @@ class TestDatetimeIndex:
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):
-            date_range(dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq=freq)
+            pd.date_range(
+                dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq=freq
+            )
 
     @pytest.mark.parametrize("freq", ["2BM", "1bm", "2BQ", "1BQ-MAR", "2BY-JUN", "1by"])
     def test_BM_BQ_BY_raises(self, freq):
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):
-            date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+            pd.date_range(start="2016-02-21", end="2016-08-21", freq=freq)
 
     @pytest.mark.parametrize("freq", ["2BA-MAR", "1BAS-MAY", "2AS-AUG"])
     def test_BA_BAS_raises(self, freq):
         msg = f"Invalid frequency: {freq}"
 
         with pytest.raises(ValueError, match=msg):
-            date_range(start="2016-02-21", end="2016-08-21", freq=freq)
+            pd.date_range(start="2016-02-21", end="2016-08-21", freq=freq)
 
     @pytest.mark.parametrize("pa_type", ["date32", "date64"])
     def test_get_indexer_arrow_date_types(self, pa_type):
         # GH#62051 - should not raise AttributeError
         pa = pytest.importorskip("pyarrow")
-        from pandas import ArrowDtype
 
-        dti = DatetimeIndex(["2017-01-01", "2018-01-01"])
-        other = Index(dti, dtype=ArrowDtype(getattr(pa, pa_type)()))
+        dti = pd.DatetimeIndex(["2017-01-01", "2018-01-01"])
+        other = pd.Index(dti, dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
         result = dti.get_indexer(other)
         expected = np.array([-1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)

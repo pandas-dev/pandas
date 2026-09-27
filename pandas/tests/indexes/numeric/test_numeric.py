@@ -4,10 +4,6 @@ import pytest
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
-from pandas import (
-    Index,
-    Series,
-)
 import pandas._testing as tm
 
 
@@ -18,11 +14,11 @@ class TestFloatNumericIndex:
 
     @pytest.fixture
     def mixed_index(self, dtype):
-        return Index([1.5, 2, 3, 4, 5], dtype=dtype)
+        return pd.Index([1.5, 2, 3, 4, 5], dtype=dtype)
 
     @pytest.fixture
     def float_index(self, dtype):
-        return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
+        return pd.Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     @pytest.mark.parametrize(
         "index_data",
@@ -35,23 +31,23 @@ class TestFloatNumericIndex:
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
     def test_repr_roundtrip(self, index_data, dtype):
-        index = Index(index_data, dtype=dtype)
-        tm.assert_index_equal(eval(repr(index)), index, exact=True)
+        index = pd.Index(index_data, dtype=dtype)
+        tm.assert_index_equal(eval(repr(index), dict(vars(pd))), index, exact=True)
 
     def check_coerce(self, a, b, is_float_index=True):
         assert a.equals(b)
         tm.assert_index_equal(a, b, exact=False)
         if is_float_index:
-            assert isinstance(b, Index)
+            assert isinstance(b, pd.Index)
         else:
-            assert type(b) is Index
+            assert type(b) is pd.Index
 
     def test_constructor_from_list_no_dtype(self):
-        index = Index([1.5, 2.5, 3.5])
+        index = pd.Index([1.5, 2.5, 3.5])
         assert index.dtype == np.float64
 
     def test_constructor(self, dtype):
-        index_cls = Index
+        index_cls = pd.Index
 
         # explicit construction
         index = index_cls([1, 2, 3, 4, 5], dtype=dtype)
@@ -90,7 +86,7 @@ class TestFloatNumericIndex:
         assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
-        index_cls = Index
+        index_cls = pd.Index
         cls_name = index_cls.__name__
         # invalid
         msg = (
@@ -101,30 +97,32 @@ class TestFloatNumericIndex:
             index_cls(0.0)
 
     def test_constructor_coerce(self, mixed_index, float_index):
-        self.check_coerce(mixed_index, Index([1.5, 2, 3, 4, 5]))
-        self.check_coerce(float_index, Index(np.arange(5) * 2.5))
+        self.check_coerce(mixed_index, pd.Index([1.5, 2, 3, 4, 5]))
+        self.check_coerce(float_index, pd.Index(np.arange(5) * 2.5))
 
-        result = Index(np.array(np.arange(5) * 2.5, dtype=object))
+        result = pd.Index(np.array(np.arange(5) * 2.5, dtype=object))
         assert result.dtype == object  # as of 2.0 to match Series
         self.check_coerce(float_index, result.astype("float64"))
 
     def test_constructor_explicit(self, mixed_index, float_index):
         # these don't auto convert
         self.check_coerce(
-            float_index, Index((np.arange(5) * 2.5), dtype=object), is_float_index=False
+            float_index,
+            pd.Index((np.arange(5) * 2.5), dtype=object),
+            is_float_index=False,
         )
         self.check_coerce(
-            mixed_index, Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
+            mixed_index, pd.Index([1.5, 2, 3, 4, 5], dtype=object), is_float_index=False
         )
 
     def test_type_coercion_fail(self, any_int_numpy_dtype):
         # see gh-15832
         msg = "Trying to coerce float values to integers"
         with pytest.raises(ValueError, match=msg):
-            Index([1, 2, 3.5], dtype=any_int_numpy_dtype)
+            pd.Index([1, 2, 3.5], dtype=any_int_numpy_dtype)
 
     def test_equals_numeric(self):
-        index_cls = Index
+        index_cls = pd.Index
 
         idx = index_cls([1.0, 2.0])
         assert idx.equals(idx)
@@ -143,13 +141,13 @@ class TestFloatNumericIndex:
     @pytest.mark.parametrize(
         "other",
         (
-            Index([1, 2], dtype=np.int64),
-            Index([1.0, 2.0], dtype=object),
-            Index([1, 2], dtype=object),
+            pd.Index([1, 2], dtype=np.int64),
+            pd.Index([1.0, 2.0], dtype=object),
+            pd.Index([1, 2], dtype=object),
         ),
     )
     def test_equals_numeric_other_index_type(self, other):
-        idx = Index([1.0, 2.0])
+        idx = pd.Index([1.0, 2.0])
         assert idx.equals(other)
         assert other.equals(idx)
 
@@ -163,7 +161,7 @@ class TestFloatNumericIndex:
     def test_lookups_datetimelike_values(self, vals, dtype):
         # If we have datetime64 or timedelta64 values, make sure they are
         #  wrapped correctly  GH#31163
-        ser = Series(vals, index=range(3, 6))
+        ser = pd.Series(vals, index=range(3, 6))
         ser.index = ser.index.astype(dtype)
 
         expected = vals[1]
@@ -191,13 +189,13 @@ class TestFloatNumericIndex:
         assert isinstance(result, type(expected)) and result == expected
 
     def test_doesnt_contain_all_the_things(self):
-        idx = Index([np.nan])
+        idx = pd.Index([np.nan])
         assert not idx.isin([0]).item()
         assert not idx.isin([1]).item()
         assert idx.isin([np.nan]).item()
 
     def test_nan_multiple_containment(self):
-        index_cls = Index
+        index_cls = pd.Index
 
         idx = index_cls([1.0, np.nan])
         tm.assert_numpy_array_equal(idx.isin([1.0]), np.array([True, False]))
@@ -208,11 +206,11 @@ class TestFloatNumericIndex:
         tm.assert_numpy_array_equal(idx.isin([np.nan]), np.array([False, False]))
 
     def test_fillna_float64(self):
-        index_cls = Index
+        index_cls = pd.Index
         # GH 11343
-        idx = Index([1.0, np.nan, 3.0], dtype=float, name="x")
+        idx = pd.Index([1.0, np.nan, 3.0], dtype=float, name="x")
         # can't downcast
-        exp = Index([1.0, 0.1, 3.0], name="x")
+        exp = pd.Index([1.0, 0.1, 3.0], name="x")
         tm.assert_index_equal(idx.fillna(0.1), exp, exact=True)
 
         # downcast
@@ -220,13 +218,13 @@ class TestFloatNumericIndex:
         tm.assert_index_equal(idx.fillna(2), exp)
 
         # object
-        exp = Index([1.0, "obj", 3.0], name="x")
+        exp = pd.Index([1.0, "obj", 3.0], name="x")
         # GH#45153 filling with incompatible value is deprecated
         with tm.assert_produces_warning(Pandas4Warning, match="fill value"):
             tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
     def test_logical_compat(self, dtype):
-        idx = Index(np.arange(5, dtype=dtype))
+        idx = pd.Index(np.arange(5, dtype=dtype))
         assert idx.all() == idx.values.all()
         assert idx.any() == idx.values.any()
 
@@ -241,10 +239,10 @@ class TestNumericInt:
 
     @pytest.fixture
     def simple_index(self, dtype):
-        return Index(range(0, 20, 2), dtype=dtype)
+        return pd.Index(range(0, 20, 2), dtype=dtype)
 
     def test_is_monotonic(self):
-        index_cls = Index
+        index_cls = pd.Index
 
         index = index_cls([1, 2, 3, 4])
         assert index.is_monotonic_increasing is True
@@ -266,7 +264,7 @@ class TestNumericInt:
         assert index._is_strictly_monotonic_decreasing is True
 
     def test_is_strictly_monotonic(self):
-        index_cls = Index
+        index_cls = pd.Index
 
         index = index_cls([1, 1, 2, 3])
         assert index.is_monotonic_increasing is True
@@ -290,19 +288,19 @@ class TestNumericInt:
     def test_identical(self, simple_index, dtype):
         index = simple_index
 
-        idx = Index(index.copy())
+        idx = pd.Index(index.copy())
         assert idx.identical(index)
 
-        same_values_different_type = Index(idx, dtype=object)
+        same_values_different_type = pd.Index(idx, dtype=object)
         assert not idx.identical(same_values_different_type)
 
         idx = index.astype(dtype=object)
         idx = idx.rename("foo")
-        same_values = Index(idx, dtype=object)
+        same_values = pd.Index(idx, dtype=object)
         assert same_values.identical(idx)
 
         assert not idx.identical(index)
-        assert Index(same_values, name="foo", dtype=object).identical(idx)
+        assert pd.Index(same_values, name="foo", dtype=object).identical(idx)
 
         assert not index.astype(dtype=object).identical(index.astype(dtype=dtype))
 
@@ -312,13 +310,13 @@ class TestNumericInt:
         # can't
         data = ["foo", "bar", "baz"]
         with pytest.raises(ValueError, match=msg):
-            Index(data, dtype=dtype)
+            pd.Index(data, dtype=dtype)
 
     def test_view_index(self, simple_index):
         index = simple_index
         msg = "Cannot change data-type"
         with pytest.raises(TypeError, match=msg):
-            index.view(Index)
+            index.view(pd.Index)
 
     def test_prevent_casting(self, simple_index):
         index = simple_index
@@ -332,11 +330,11 @@ class TestIntNumericIndex:
         return request.param
 
     def test_constructor_from_list_no_dtype(self):
-        index = Index([1, 2, 3])
+        index = pd.Index([1, 2, 3])
         assert index.dtype == np.int64
 
     def test_constructor(self, dtype):
-        index_cls = Index
+        index_cls = pd.Index
 
         # scalar raise Exception
         msg = (
@@ -363,7 +361,7 @@ class TestIntNumericIndex:
         if dtype == np.int64:
             # pass list, coerce fine
             index = index_cls([-5, 0, 1, 2], dtype=dtype)
-            expected = Index([-5, 0, 1, 2], dtype=dtype)
+            expected = pd.Index([-5, 0, 1, 2], dtype=dtype)
             tm.assert_index_equal(index, expected)
 
             # from iterable
@@ -373,23 +371,23 @@ class TestIntNumericIndex:
 
             # interpret list-like
             expected = index_cls([5, 0], dtype=dtype)
-            for cls in [Index, index_cls]:
+            for cls in [pd.Index, index_cls]:
                 for idx in [
                     cls([5, 0], dtype=dtype),
                     cls(np.array([5, 0]), dtype=dtype),
-                    cls(Series([5, 0]), dtype=dtype),
+                    cls(pd.Series([5, 0]), dtype=dtype),
                 ]:
                     tm.assert_index_equal(idx, expected)
 
     def test_constructor_corner(self, dtype):
-        index_cls = Index
+        index_cls = pd.Index
 
         arr = np.array([1, 2, 3, 4], dtype=object)
 
         index = index_cls(arr, dtype=dtype)
         assert index.values.dtype == index.dtype
         if dtype == np.int64:
-            without_dtype = Index(arr)
+            without_dtype = pd.Index(arr)
             # as of 2.0 we do not infer a dtype when we get an object-dtype
             #  ndarray of numbers, matching Series behavior
             assert without_dtype.dtype == object
@@ -414,37 +412,37 @@ class TestIntNumericIndex:
             ]
         )
         with pytest.raises(OverflowError, match=msg):
-            Index([-1], dtype=any_unsigned_int_numpy_dtype)
+            pd.Index([-1], dtype=any_unsigned_int_numpy_dtype)
 
     def test_constructor_np_signed(self, any_signed_int_numpy_dtype):
         # GH#47475
         scalar = np.dtype(any_signed_int_numpy_dtype).type(1)
-        result = Index([scalar])
-        expected = Index([1], dtype=any_signed_int_numpy_dtype)
+        result = pd.Index([scalar])
+        expected = pd.Index([1], dtype=any_signed_int_numpy_dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_constructor_np_unsigned(self, any_unsigned_int_numpy_dtype):
         # GH#47475
         scalar = np.dtype(any_unsigned_int_numpy_dtype).type(1)
-        result = Index([scalar])
-        expected = Index([1], dtype=any_unsigned_int_numpy_dtype)
+        result = pd.Index([scalar])
+        expected = pd.Index([1], dtype=any_unsigned_int_numpy_dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_coerce_list(self):
         # coerce things
-        arr = Index([1, 2, 3, 4])
-        assert isinstance(arr, Index)
+        arr = pd.Index([1, 2, 3, 4])
+        assert isinstance(arr, pd.Index)
 
         # but not if explicit dtype passed
-        arr = Index([1, 2, 3, 4], dtype=object)
-        assert type(arr) is Index
+        arr = pd.Index([1, 2, 3, 4], dtype=object)
+        assert type(arr) is pd.Index
 
 
 class TestFloat16Index:
     # float 16 indexes not supported
     # GH 49535
     def test_constructor(self):
-        index_cls = Index
+        index_cls = pd.Index
         dtype = np.float16
 
         msg = "float16 indexes are not supported"
@@ -478,12 +476,12 @@ class TestFloat16Index:
 
 @pytest.mark.parametrize(
     "box",
-    [list, lambda x: np.array(x, dtype=object), lambda x: Index(x, dtype=object)],
+    [list, lambda x: np.array(x, dtype=object), lambda x: pd.Index(x, dtype=object)],
 )
 def test_uint_index_does_not_convert_to_float64(box):
     # https://github.com/pandas-dev/pandas/issues/28279
     # https://github.com/pandas-dev/pandas/issues/28023
-    series = Series(
+    series = pd.Series(
         [0, 1, 2, 3, 4, 5],
         index=[
             7606741985629028552,
@@ -497,7 +495,7 @@ def test_uint_index_does_not_convert_to_float64(box):
 
     result = series.loc[box([7606741985629028552, 17876870360202815256])]
 
-    expected = Index(
+    expected = pd.Index(
         [7606741985629028552, 17876870360202815256, 17876870360202815256],
         dtype="uint64",
     )
@@ -508,8 +506,8 @@ def test_uint_index_does_not_convert_to_float64(box):
 
 def test_float64_index_equals():
     # https://github.com/pandas-dev/pandas/issues/35217
-    float_index = Index([1.0, 2, 3])
-    string_index = Index(["1", "2", "3"])
+    float_index = pd.Index([1.0, 2, 3])
+    string_index = pd.Index(["1", "2", "3"])
 
     result = float_index.equals(string_index)
     assert result is False
@@ -520,24 +518,24 @@ def test_float64_index_equals():
 
 def test_map_dtype_inference_unsigned_to_signed():
     # GH#44609 cases where we don't retain dtype
-    idx = Index([1, 2, 3], dtype=np.uint64)
+    idx = pd.Index([1, 2, 3], dtype=np.uint64)
     result = idx.map(lambda x: -x)
-    expected = Index([-1, -2, -3], dtype=np.int64)
+    expected = pd.Index([-1, -2, -3], dtype=np.int64)
     tm.assert_index_equal(result, expected)
 
 
 def test_map_dtype_inference_overflows():
     # GH#44609 case where we have to upcast
-    idx = Index(np.array([1, 2, 3], dtype=np.int8))
+    idx = pd.Index(np.array([1, 2, 3], dtype=np.int8))
     result = idx.map(lambda x: x * 1000)
     # TODO: we could plausibly try to infer down to int16 here
-    expected = Index([1000, 2000, 3000], dtype=np.int64)
+    expected = pd.Index([1000, 2000, 3000], dtype=np.int64)
     tm.assert_index_equal(result, expected)
 
 
 def test_view_to_datetimelike():
     # GH#55710
-    idx = Index([1, 2, 3])
+    idx = pd.Index([1, 2, 3])
     res = idx.view("m8[s]")
     expected = pd.TimedeltaIndex(idx.values.view("m8[s]"))
     tm.assert_index_equal(res, expected)

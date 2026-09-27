@@ -4,20 +4,15 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    MultiIndex,
-    Series,
-    date_range,
-)
 import pandas._testing as tm
 
 
 class TestSeries:
     @pytest.mark.parametrize("func", ["rename_axis", "_set_axis_name"])
     def test_set_axis_name_mi(self, func):
-        ser = Series(
+        ser = pd.Series(
             [11, 21, 31],
-            index=MultiIndex.from_tuples(
+            index=pd.MultiIndex.from_tuples(
                 [("A", x) for x in ["a", "B", "c"]], names=["l1", "l2"]
             ),
         )
@@ -29,20 +24,20 @@ class TestSeries:
         assert result.index.names, ["L1", "L2"]
 
     def test_set_axis_name_raises(self):
-        ser = Series([1])
+        ser = pd.Series([1])
         msg = "No axis named 1 for object type Series"
         with pytest.raises(ValueError, match=msg):
             ser._set_axis_name(name="a", axis=1)
 
     def test_get_bool_data_preserve_dtype(self):
-        ser = Series([True, False, True])
+        ser = pd.Series([True, False, True])
         result = ser._get_bool_data()
         tm.assert_series_equal(result, ser)
 
     @pytest.mark.parametrize("data", [np.nan, pd.NaT, True, False])
     def test_nonzero_single_element_raise_1(self, data):
         # single item nan to raise
-        series = Series([data])
+        series = pd.Series([data])
 
         msg = "The truth value of a Series is ambiguous"
         with pytest.raises(ValueError, match=msg):
@@ -52,7 +47,7 @@ class TestSeries:
     def test_nonzero_multiple_element_raise(self, data):
         # multiple bool are still an error
         msg_err = "The truth value of a Series is ambiguous"
-        series = Series([data])
+        series = pd.Series([data])
         with pytest.raises(ValueError, match=msg_err):
             bool(series)
 
@@ -60,15 +55,15 @@ class TestSeries:
     def test_nonbool_single_element_raise(self, data):
         # single non-bool are an error
         msg_err1 = "The truth value of a Series is ambiguous"
-        series = Series([data])
+        series = pd.Series([data])
         with pytest.raises(ValueError, match=msg_err1):
             bool(series)
 
     def test_metadata_propagation_indiv_resample(self):
         # resample
-        ts = Series(
+        ts = pd.Series(
             np.random.default_rng(2).random(1000),
-            index=date_range("20130101", periods=1000, freq="s"),
+            index=pd.date_range("20130101", periods=1000, freq="s"),
             name="foo",
         )
         result = ts.resample("1min").mean()
@@ -83,9 +78,9 @@ class TestSeries:
     def test_metadata_propagation_indiv(self, monkeypatch):
         # check that the metadata matches up on the resulting ops
 
-        ser = Series(range(3), range(3))
+        ser = pd.Series(range(3), range(3))
         ser.name = "foo"
-        ser2 = Series(range(3), range(3))
+        ser2 = pd.Series(range(3), range(3))
         ser2.name = "bar"
 
         result = ser.T
@@ -108,8 +103,8 @@ class TestSeries:
             return self
 
         with monkeypatch.context() as m:
-            m.setattr(Series, "_metadata", ["name", "filename"])
-            m.setattr(Series, "__finalize__", finalize)
+            m.setattr(pd.Series, "_metadata", ["name", "filename"])
+            m.setattr(pd.Series, "__finalize__", finalize)
 
             ser.filename = "foo"
             ser2.filename = "bar"

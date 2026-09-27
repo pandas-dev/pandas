@@ -11,7 +11,6 @@
 # serve to show the default.
 from datetime import datetime
 import doctest
-import importlib
 import inspect
 import logging
 import os
@@ -216,15 +215,6 @@ numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 numpydoc_validation_checks = {"all"}
 numpydoc_validation_exclude = {
-    # Jinja2 Styler template attributes (docstrings not owned by pandas)
-    r"pandas\.io\.formats\.style\.Styler\.env$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_style$",
-    r"pandas\.io\.formats\.style\.Styler\.template_html_table$",
-    r"pandas\.io\.formats\.style\.Styler\.template_latex$",
-    r"pandas\.io\.formats\.style\.Styler\.template_typst$",
-    r"pandas\.io\.formats\.style\.Styler\.template_string$",
-    r"pandas\.io\.formats\.style\.Styler\.loader$",
     # Error/warning classes with no numpydoc-style docstrings
     r"pandas\.errors\.InvalidComparison$",
     r"pandas\.errors\.LossySetitemError$",
@@ -232,6 +222,9 @@ numpydoc_validation_exclude = {
     r"pandas\.errors\.IncompatibilityWarning$",
     r"pandas\.errors\.PyperclipException$",
     r"pandas\.errors\.PyperclipWindowsException$",
+    # Offset class docstrings - parameters (PR02) and order (GL07)
+    # Note: the order is ignored intentionally (to put Attributes/Methods at the end)
+    r"pandas\.tseries\.offsets\.[a-zA-Z0-9]+$",
     # Offset .base properties
     r"pandas\.tseries\.offsets\.BaseOffset\.base$",
     r"pandas\.tseries\.offsets\.DateOffset\.base$",
@@ -432,6 +425,9 @@ numpydoc_validation_exclude = {
     r"pandas\.Period\.weekday$",
     r"pandas\.PeriodIndex\.weekday$",
     r"pandas\.Series\.dt\.weekday$",
+    # Relaxed-rules class page (GH#63084): not instantiated by users, so
+    # the constructor parameters are not documented (PR01)
+    r"pandas\.api\.typing\.Expression$",
 }
 
 # matplotlib plot directive
@@ -466,7 +462,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year},"
+copyright = f"{datetime.now().year},"  # noqa: TID251
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -621,62 +617,7 @@ html_copy_source = False
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
-
-# Add redirect for previously existing API pages
-# each item is like `(from_old, to_new)`
-# To redirect a class and all its methods, see below
-# https://github.com/pandas-dev/pandas/issues/16186
-
-moved_api_pages = [
-    ("pandas.core.common.isnull", "pandas.isna"),
-    ("pandas.core.common.notnull", "pandas.notna"),
-    ("pandas.core.reshape.get_dummies", "pandas.get_dummies"),
-    ("pandas.tools.merge.concat", "pandas.concat"),
-    ("pandas.tools.merge.merge", "pandas.merge"),
-    ("pandas.tools.pivot.pivot_table", "pandas.pivot_table"),
-    ("pandas.tseries.tools.to_datetime", "pandas.to_datetime"),
-    ("pandas.io.clipboard.read_clipboard", "pandas.read_clipboard"),
-    ("pandas.io.excel.ExcelFile.parse", "pandas.ExcelFile.parse"),
-    ("pandas.io.excel.read_excel", "pandas.read_excel"),
-    ("pandas.io.html.read_html", "pandas.read_html"),
-    ("pandas.io.json.read_json", "pandas.read_json"),
-    ("pandas.io.parsers.read_csv", "pandas.read_csv"),
-    ("pandas.io.parsers.read_fwf", "pandas.read_fwf"),
-    ("pandas.io.parsers.read_table", "pandas.read_table"),
-    ("pandas.io.pickle.read_pickle", "pandas.read_pickle"),
-    ("pandas.io.pytables.HDFStore.append", "pandas.HDFStore.append"),
-    ("pandas.io.pytables.HDFStore.get", "pandas.HDFStore.get"),
-    ("pandas.io.pytables.HDFStore.put", "pandas.HDFStore.put"),
-    ("pandas.io.pytables.HDFStore.select", "pandas.HDFStore.select"),
-    ("pandas.io.pytables.read_hdf", "pandas.read_hdf"),
-    ("pandas.io.sql.read_sql", "pandas.read_sql"),
-    ("pandas.io.sql.read_frame", "pandas.read_frame"),
-    ("pandas.io.sql.write_frame", "pandas.write_frame"),
-    ("pandas.io.stata.read_stata", "pandas.read_stata"),
-]
-
-# Again, tuples of (from_old, to_new)
-moved_classes = [
-    ("pandas.tseries.resample.Resampler", "pandas.core.resample.Resampler"),
-    ("pandas.formats.style.Styler", "pandas.io.formats.style.Styler"),
-]
-
-for old, new in moved_classes:
-    # the class itself...
-    moved_api_pages.append((old, new))
-
-    mod, classname = new.rsplit(".", 1)
-    klass = getattr(importlib.import_module(mod), classname)
-    methods = [
-        x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
-    ]
-    # ... and each of its public methods
-    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
-
-if include_api:
-    html_additional_pages = {
-        "generated/" + page[0]: "api_redirect.html" for page in moved_api_pages
-    }
+# html_additional_pages = {}
 
 
 header = f"""\
@@ -698,7 +639,6 @@ header = f"""\
 
 
 html_context = {
-    "redirects": dict(moved_api_pages),
     "header": header,
     "full_version": full_version,
 }
@@ -1157,7 +1097,6 @@ linkcheck_ignore = [
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
             "https://nbviewer.ipython.org/gist/metakermit/5720498",
             "https://numpy.org/doc/stable/user/basics.byteswapping.html",
-            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
             "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
             "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
             "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",

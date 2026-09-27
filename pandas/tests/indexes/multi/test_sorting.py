@@ -3,15 +3,7 @@ import pytest
 
 from pandas.errors import UnsortedIndexError
 
-from pandas import (
-    CategoricalIndex,
-    DataFrame,
-    Index,
-    MultiIndex,
-    RangeIndex,
-    Series,
-    Timestamp,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.core.indexes.frozen import FrozenList
 
@@ -20,10 +12,10 @@ def test_sortlevel(idx):
     tuples = list(idx)
     np.random.default_rng(2).shuffle(tuples)
 
-    index = MultiIndex.from_tuples(tuples)
+    index = pd.MultiIndex.from_tuples(tuples)
 
     sorted_idx, _ = index.sortlevel(0)
-    expected = MultiIndex.from_tuples(sorted(tuples))
+    expected = pd.MultiIndex.from_tuples(sorted(tuples))
     assert sorted_idx.equals(expected)
 
     sorted_idx, _ = index.sortlevel(0, ascending=False)
@@ -31,7 +23,7 @@ def test_sortlevel(idx):
 
     sorted_idx, _ = index.sortlevel(1)
     by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
-    expected = MultiIndex.from_tuples(by1)
+    expected = pd.MultiIndex.from_tuples(by1)
     assert sorted_idx.equals(expected)
 
     sorted_idx, _ = index.sortlevel(1, ascending=False)
@@ -39,7 +31,7 @@ def test_sortlevel(idx):
 
 
 def test_sortlevel_not_sort_remaining():
-    mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
+    mi = pd.MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
     sorted_idx, _ = mi.sortlevel("A", sort_remaining=False)
     assert sorted_idx.equals(mi)
 
@@ -54,10 +46,10 @@ def test_sortlevel_deterministic():
         ("qux", "one"),
     ]
 
-    index = MultiIndex.from_tuples(tuples)
+    index = pd.MultiIndex.from_tuples(tuples)
 
     sorted_idx, _ = index.sortlevel(0)
-    expected = MultiIndex.from_tuples(sorted(tuples))
+    expected = pd.MultiIndex.from_tuples(sorted(tuples))
     assert sorted_idx.equals(expected)
 
     sorted_idx, _ = index.sortlevel(0, ascending=False)
@@ -65,7 +57,7 @@ def test_sortlevel_deterministic():
 
     sorted_idx, _ = index.sortlevel(1)
     by1 = sorted(tuples, key=lambda x: (x[1], x[0]))
-    expected = MultiIndex.from_tuples(by1)
+    expected = pd.MultiIndex.from_tuples(by1)
     assert sorted_idx.equals(expected)
 
     sorted_idx, _ = index.sortlevel(1, ascending=False)
@@ -74,9 +66,9 @@ def test_sortlevel_deterministic():
 
 def test_sortlevel_na_position():
     # GH#51612
-    midx = MultiIndex.from_tuples([(1, np.nan), (1, 1)])
+    midx = pd.MultiIndex.from_tuples([(1, np.nan), (1, 1)])
     result = midx.sortlevel(level=[0, 1], na_position="last")[0]
-    expected = MultiIndex.from_tuples([(1, 1), (1, np.nan)])
+    expected = pd.MultiIndex.from_tuples([(1, 1), (1, np.nan)])
     tm.assert_index_equal(result, expected)
 
 
@@ -92,7 +84,7 @@ def test_numpy_argsort(idx):
     # defined in pandas.core.indexes/base.py - they
     # cannot be changed at the moment due to
     # backwards compatibility concerns
-    if isinstance(type(idx), (CategoricalIndex, RangeIndex)):
+    if isinstance(type(idx), (pd.CategoricalIndex, pd.RangeIndex)):
         msg = "the 'axis' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
             np.argsort(idx, axis=1)
@@ -108,11 +100,11 @@ def test_numpy_argsort(idx):
 
 def test_unsortedindex():
     # GH 11897
-    mi = MultiIndex.from_tuples(
+    mi = pd.MultiIndex.from_tuples(
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
-    df = DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
+    df = pd.DataFrame([[i, 10 * i] for i in range(6)], index=mi, columns=["one", "two"])
 
     # GH 16734: not sorted, but no real slicing
     result = df.loc(axis=0)["z", "a"]
@@ -134,7 +126,7 @@ def test_unsortedindex():
 
 def test_unsortedindex_doc_examples():
     # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
-    dfm = DataFrame(
+    dfm = pd.DataFrame(
         {
             "jim": [0, 0, 1, 1],
             "joe": ["x", "x", "z", "y"],
@@ -164,17 +156,17 @@ def test_unsortedindex_doc_examples():
 
 def test_reconstruct_sort():
     # starts off lexsorted & monotonic
-    mi = MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
+    mi = pd.MultiIndex.from_arrays([["A", "A", "B", "B", "B"], [1, 2, 1, 2, 3]])
     assert mi.is_monotonic_increasing
     recons = mi._sort_levels_monotonic()
     assert recons.is_monotonic_increasing
     assert mi is recons
 
     assert mi.equals(recons)
-    assert Index(mi.values).equals(Index(recons.values))
+    assert pd.Index(mi.values).equals(pd.Index(recons.values))
 
     # cannot convert to lexsorted
-    mi = MultiIndex.from_tuples(
+    mi = pd.MultiIndex.from_tuples(
         [("z", "a"), ("x", "a"), ("y", "b"), ("x", "b"), ("y", "a"), ("z", "b")],
         names=["one", "two"],
     )
@@ -182,10 +174,10 @@ def test_reconstruct_sort():
     recons = mi._sort_levels_monotonic()
     assert not recons.is_monotonic_increasing
     assert mi.equals(recons)
-    assert Index(mi.values).equals(Index(recons.values))
+    assert pd.Index(mi.values).equals(pd.Index(recons.values))
 
     # cannot convert to lexsorted
-    mi = MultiIndex(
+    mi = pd.MultiIndex(
         levels=[["b", "d", "a"], [1, 2, 3]],
         codes=[[0, 1, 0, 2], [2, 0, 0, 1]],
         names=["col1", "col2"],
@@ -194,12 +186,12 @@ def test_reconstruct_sort():
     recons = mi._sort_levels_monotonic()
     assert not recons.is_monotonic_increasing
     assert mi.equals(recons)
-    assert Index(mi.values).equals(Index(recons.values))
+    assert pd.Index(mi.values).equals(pd.Index(recons.values))
 
 
 def test_reconstruct_remove_unused():
     # xref to GH 2770
-    df = DataFrame(
+    df = pd.DataFrame(
         [["deleteMe", 1, 9], ["keepMe", 2, 9], ["keepMeToo", 3, 9]],
         columns=["first", "second", "third"],
     )
@@ -207,7 +199,7 @@ def test_reconstruct_remove_unused():
     df2 = df2[df2["first"] != "deleteMe"]
 
     # removed levels are there
-    expected = MultiIndex(
+    expected = pd.MultiIndex(
         levels=[["deleteMe", "keepMe", "keepMeToo"], [1, 2, 3]],
         codes=[[1, 2], [1, 2]],
         names=["first", "second"],
@@ -215,7 +207,7 @@ def test_reconstruct_remove_unused():
     result = df2.index
     tm.assert_index_equal(result, expected)
 
-    expected = MultiIndex(
+    expected = pd.MultiIndex(
         levels=[["keepMe", "keepMeToo"], [2, 3]],
         codes=[[0, 1], [0, 1]],
         names=["first", "second"],
@@ -241,7 +233,7 @@ def test_remove_unused_levels_large(first_type, second_type):
     rng = np.random.default_rng(10)  # seed is arbitrary value that works
 
     size = 1 << 16
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "first": rng.integers(0, 1 << 13, size).astype(first_type),
             "second": rng.integers(0, 1 << 10, size).astype(second_type),
@@ -266,7 +258,9 @@ def test_remove_unused_levels_large(first_type, second_type):
 )
 def test_remove_unused_nan(level0, level1):
     # GH 18417
-    mi = MultiIndex(levels=[level0, level1], codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
+    mi = pd.MultiIndex(
+        levels=[level0, level1], codes=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]]
+    )
 
     result = mi.remove_unused_levels()
     tm.assert_index_equal(result, mi)
@@ -282,7 +276,7 @@ def test_argsort(idx):
 
 def test_remove_unused_levels_with_nan():
     # GH 37510
-    idx = Index([(1, np.nan), (3, 4)]).rename(["id1", "id2"])
+    idx = pd.Index([(1, np.nan), (3, 4)]).rename(["id1", "id2"])
     idx = idx.set_levels(["a", np.nan], level="id1")
     idx = idx.remove_unused_levels()
     result = idx.levels
@@ -292,9 +286,11 @@ def test_remove_unused_levels_with_nan():
 
 def test_sort_values_nan():
     # GH48495, GH48626
-    midx = MultiIndex(levels=[["A", "B", "C"], ["D"]], codes=[[1, 0, 2], [-1, -1, 0]])
+    midx = pd.MultiIndex(
+        levels=[["A", "B", "C"], ["D"]], codes=[[1, 0, 2], [-1, -1, 0]]
+    )
     result = midx.sort_values()
-    expected = MultiIndex(
+    expected = pd.MultiIndex(
         levels=[["A", "B", "C"], ["D"]], codes=[[0, 1, 2], [-1, -1, 0]]
     )
     tm.assert_index_equal(result, expected)
@@ -302,9 +298,9 @@ def test_sort_values_nan():
 
 def test_sort_values_incomparable():
     # GH48495
-    mi = MultiIndex.from_arrays(
+    mi = pd.MultiIndex.from_arrays(
         [
-            [1, Timestamp("2000-01-01")],
+            [1, pd.Timestamp("2000-01-01")],
             [3, 4],
         ]
     )
@@ -315,10 +311,10 @@ def test_sort_values_incomparable():
 
 def test_sortlevel_incomparable():
     # GH#21136
-    mi = MultiIndex.from_arrays(
+    mi = pd.MultiIndex.from_arrays(
         [
-            Series(
-                [Timestamp("2011-04-09"), Timestamp("2010-04-09"), "2009/4/9"],
+            pd.Series(
+                [pd.Timestamp("2011-04-09"), pd.Timestamp("2010-04-09"), "2009/4/9"],
                 dtype=object,
             ),
             [2, 1, 3],
@@ -334,29 +330,29 @@ def test_sortlevel_incomparable():
 def test_sort_values_with_na_na_position(dtype, na_position):
     # 51612
     arrays = [
-        Series([1, 1, 2], dtype=dtype),
-        Series([1, None, 3], dtype=dtype),
+        pd.Series([1, 1, 2], dtype=dtype),
+        pd.Series([1, None, 3], dtype=dtype),
     ]
-    index = MultiIndex.from_arrays(arrays)
+    index = pd.MultiIndex.from_arrays(arrays)
     result = index.sort_values(na_position=na_position)
     if na_position == "first":
         arrays = [
-            Series([1, 1, 2], dtype=dtype),
-            Series([None, 1, 3], dtype=dtype),
+            pd.Series([1, 1, 2], dtype=dtype),
+            pd.Series([None, 1, 3], dtype=dtype),
         ]
     else:
         arrays = [
-            Series([1, 1, 2], dtype=dtype),
-            Series([1, None, 3], dtype=dtype),
+            pd.Series([1, 1, 2], dtype=dtype),
+            pd.Series([1, None, 3], dtype=dtype),
         ]
-    expected = MultiIndex.from_arrays(arrays)
+    expected = pd.MultiIndex.from_arrays(arrays)
     tm.assert_index_equal(result, expected)
 
 
 def test_sort_unnecessary_warning():
     # GH#55386
-    midx = MultiIndex.from_tuples([(1.5, 2), (3.5, 3), (0, 1)])
+    midx = pd.MultiIndex.from_tuples([(1.5, 2), (3.5, 3), (0, 1)])
     midx = midx.set_levels([2.5, np.nan, 1], level=0)
     result = midx.sort_values()
-    expected = MultiIndex.from_tuples([(1, 3), (2.5, 1), (np.nan, 2)])
+    expected = pd.MultiIndex.from_tuples([(1, 3), (2.5, 1), (np.nan, 2)])
     tm.assert_index_equal(result, expected)

@@ -1066,6 +1066,22 @@ business offsets operate on the weekdays.
    # Date is brought to the closest offset date first and then the hour is added
    ts + offset
 
+Both methods roll *conditionally*: a date that is already a valid offset date is
+returned unchanged, so :meth:`rollforward` and :meth:`rollback` give the same
+answer there. Use :meth:`is_on_offset` to check whether a date is already valid,
+and add or subtract the offset to move unconditionally.
+
+.. ipython:: python
+
+   # The last business day of July 2021, so already a valid BMonthEnd date
+   ts = pd.Timestamp("2021-07-30")
+   offset = pd.offsets.BMonthEnd()
+   offset.is_on_offset(ts)
+   offset.rollback(ts)
+   offset.rollforward(ts)
+   # Subtract the offset to always move to the previous business month end
+   ts - offset
+
 These operations preserve time (hour, minute, etc) information by default.
 To reset time to midnight, use :meth:`normalize` before or after applying
 the operation (depending on whether you want the time information included

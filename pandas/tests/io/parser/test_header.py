@@ -11,11 +11,7 @@ import pytest
 
 from pandas.errors import ParserError
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -90,7 +86,7 @@ baz,7,8,9
     names = ["A", "B", "C"]
     result = parser.read_csv(StringIO(data), names=names)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         index=["foo", "bar", "baz"],
         columns=["A", "B", "C"],
@@ -143,11 +139,11 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
     data_gen_f = lambda r, c: f"R{r}C{c}"
 
     data = [[data_gen_f(r, c) for c in range(3)] for r in range(5)]
-    index = MultiIndex.from_arrays(
+    index = pd.MultiIndex.from_arrays(
         [[f"R_l0_g{i}" for i in range(5)], [f"R_l1_g{i}" for i in range(5)]],
         names=["R0", "R1"],
     )
-    columns = MultiIndex.from_arrays(
+    columns = pd.MultiIndex.from_arrays(
         [
             [f"C_l0_g{i}" for i in range(3)],
             [f"C_l1_g{i}" for i in range(3)],
@@ -156,7 +152,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
         ],
         names=["C0", "C1", "C2", "C3"],
     )
-    expected = DataFrame(data, columns=columns, index=index)
+    expected = pd.DataFrame(data, columns=columns, index=index)
     tm.assert_frame_equal(result, expected)
 
 
@@ -234,10 +230,10 @@ _TestTuple = namedtuple("_TestTuple", ["first", "second"])
 )
 def test_header_multi_index_common_format1(all_parsers, kwargs):
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]],
         index=["one", "two"],
-        columns=MultiIndex.from_tuples(
+        columns=pd.MultiIndex.from_tuples(
             [("a", "q"), ("a", "r"), ("a", "s"), ("b", "t"), ("c", "u"), ("c", "v")]
         ),
     )
@@ -286,10 +282,10 @@ two,7,8,9,10,11,12"""
 )
 def test_header_multi_index_common_format2(all_parsers, kwargs):
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]],
         index=["one", "two"],
-        columns=MultiIndex.from_tuples(
+        columns=pd.MultiIndex.from_tuples(
             [("a", "q"), ("a", "r"), ("a", "s"), ("b", "t"), ("c", "u"), ("c", "v")]
         ),
     )
@@ -337,10 +333,10 @@ two,7,8,9,10,11,12"""
 )
 def test_header_multi_index_common_format3(all_parsers, kwargs):
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]],
         index=["one", "two"],
-        columns=MultiIndex.from_tuples(
+        columns=pd.MultiIndex.from_tuples(
             [("a", "q"), ("a", "r"), ("a", "s"), ("b", "t"), ("c", "u"), ("c", "v")]
         ),
     )
@@ -361,10 +357,10 @@ q,r,s,t,u,v
 
 def test_header_multi_index_common_format_malformed1(all_parsers):
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.array([[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
-        index=Index([1, 7]),
-        columns=MultiIndex(
+        index=pd.Index([1, 7]),
+        columns=pd.MultiIndex(
             levels=[["a", "b", "c"], ["r", "s", "t", "u", "v"]],
             codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
             names=["a", "q"],
@@ -386,10 +382,10 @@ q,r,s,t,u,v
 
 def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.array([[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
         index=range(1, 13, 6),
-        columns=MultiIndex(
+        columns=pd.MultiIndex(
             levels=[["a", "b", "c"], ["r", "s", "t", "u", "v"]],
             codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
             names=[None, "q"],
@@ -412,10 +408,10 @@ q,r,s,t,u,v
 
 def test_header_multi_index_common_format_malformed3(all_parsers):
     parser = all_parsers
-    expected = DataFrame(
+    expected = pd.DataFrame(
         np.array([[3, 4, 5, 6], [9, 10, 11, 12]], dtype="int64"),
-        index=MultiIndex(levels=[[1, 7], [2, 8]], codes=[[0, 1], [0, 1]]),
-        columns=MultiIndex(
+        index=pd.MultiIndex(levels=[[1, 7], [2, 8]], codes=[[0, 1], [0, 1]]),
+        columns=pd.MultiIndex(
             levels=[["a", "b", "c"], ["s", "t", "u", "v"]],
             codes=[[0, 1, 2, 2], [0, 1, 2, 3]],
             names=[None, "q"],
@@ -439,8 +435,8 @@ def test_header_multi_index_blank_line(all_parsers):
     # GH 40442
     parser = all_parsers
     data = [[None, None], [1, 2], [3, 4]]
-    columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
-    expected = DataFrame(data, columns=columns)
+    columns = pd.MultiIndex.from_tuples([("a", "A"), ("b", "B")])
+    expected = pd.DataFrame(data, columns=columns)
     data = "a,b\nA,B\n,\n1,2\n3,4"
 
     if parser.engine == "pyarrow":
@@ -473,7 +469,7 @@ def test_header_int_names_no_trailing_newline(all_parsers):
 
     result = parser.read_csv(StringIO(data), header=1, names=["a", "b", "c"])
 
-    expected = DataFrame([[4, 5, 6]], columns=["a", "b", "c"])
+    expected = pd.DataFrame([[4, 5, 6]], columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -482,7 +478,7 @@ def test_header_int_names_no_trailing_newline(all_parsers):
 def test_read_only_header_no_rows(all_parsers, kwargs):
     # See gh-7773
     parser = all_parsers
-    expected = DataFrame(columns=["a", "b", "c"])
+    expected = pd.DataFrame(columns=["a", "b", "c"])
 
     result = parser.read_csv(StringIO("a,b,c"), **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -504,7 +500,7 @@ def test_no_header(all_parsers, kwargs, names):
 6,7,8,9,10
 11,12,13,14,15
 """
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]], columns=names
     )
     result = parser.read_csv(StringIO(data), header=None, **kwargs)
@@ -529,7 +525,7 @@ def test_singleton_header(all_parsers):
     data = """a,b,c\n0,1,2\n1,2,3"""
     parser = all_parsers
 
-    expected = DataFrame({"a": [0, 1], "b": [1, 2], "c": [2, 3]})
+    expected = pd.DataFrame({"a": [0, 1], "b": [1, 2], "c": [2, 3]})
     result = parser.read_csv(StringIO(data), header=[0])
     tm.assert_frame_equal(result, expected)
 
@@ -539,27 +535,27 @@ def test_singleton_header(all_parsers):
     [
         (
             "A,A,A,B\none,one,one,two\n0,40,34,0.1",
-            DataFrame(
+            pd.DataFrame(
                 [[0, 40, 34, 0.1]],
-                columns=MultiIndex.from_tuples(
+                columns=pd.MultiIndex.from_tuples(
                     [("A", "one"), ("A", "one.1"), ("A", "one.2"), ("B", "two")]
                 ),
             ),
         ),
         (
             "A,A,A,B\none,one,one.1,two\n0,40,34,0.1",
-            DataFrame(
+            pd.DataFrame(
                 [[0, 40, 34, 0.1]],
-                columns=MultiIndex.from_tuples(
+                columns=pd.MultiIndex.from_tuples(
                     [("A", "one"), ("A", "one.1"), ("A", "one.1.1"), ("B", "two")]
                 ),
             ),
         ),
         (
             "A,A,A,B,B\none,one,one.1,two,two\n0,40,34,0.1,0.1",
-            DataFrame(
+            pd.DataFrame(
                 [[0, 40, 34, 0.1, 0.1]],
-                columns=MultiIndex.from_tuples(
+                columns=pd.MultiIndex.from_tuples(
                     [
                         ("A", "one"),
                         ("A", "one.1"),
@@ -623,8 +619,8 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
 
         exp_columns.append(col)
 
-    columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"], strict=False))
-    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    columns = pd.MultiIndex.from_tuples(zip(exp_columns, ["0", "1"], strict=False))
+    expected = pd.DataFrame([[2, 3], [4, 5]], columns=columns)
     tm.assert_frame_equal(result, expected)
 
 
@@ -637,7 +633,7 @@ def test_names_longer_than_header_but_equal_with_data_rows(all_parsers):
 5,6,4
 """
     result = parser.read_csv(StringIO(data), header=0, names=["A", "B", "C"])
-    expected = DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 4]})
+    expected = pd.DataFrame({"A": [1, 5], "B": [2, 6], "C": [3, 4]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -653,7 +649,7 @@ def test_read_csv_multiindex_columns(all_parsers):
         ".86, .67, .88, .78, .82"
     )
 
-    mi = MultiIndex.from_tuples(
+    mi = pd.MultiIndex.from_tuples(
         [
             ("Male", "R"),
             (" Male", " R"),
@@ -662,7 +658,7 @@ def test_read_csv_multiindex_columns(all_parsers):
             (" Female", " R.1"),
         ]
     )
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[0.86, 0.67, 0.88, 0.78, 0.81], [0.86, 0.67, 0.88, 0.78, 0.82]], columns=mi
     )
 
@@ -703,7 +699,7 @@ def test_header_none_and_implicit_index(all_parsers):
     parser = all_parsers
     data = "x,1,5\ny,2\nz,3\n"
     result = parser.read_csv(StringIO(data), names=["a", "b"], header=None)
-    expected = DataFrame(
+    expected = pd.DataFrame(
         {"a": [1, 2, 3], "b": [5, np.nan, np.nan]}, index=["x", "y", "z"]
     )
     tm.assert_frame_equal(result, expected)
@@ -725,7 +721,7 @@ def test_header_none_and_on_bad_lines_skip(all_parsers):
     result = parser.read_csv(
         StringIO(data), names=["a", "b"], header=None, on_bad_lines="skip"
     )
-    expected = DataFrame({"a": ["x", "z"], "b": [1, 3]})
+    expected = pd.DataFrame({"a": ["x", "z"], "b": [1, 3]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -756,7 +752,7 @@ def test_header_multiple_whitespaces(all_parsers):
         return
 
     result = parser.read_csv(StringIO(data), sep=r"\s+")
-    expected = DataFrame({"aa": [0], "bb(1,1)": 2, "cc(1,1)": 3.5})
+    expected = pd.DataFrame({"aa": [0], "bb(1,1)": 2, "cc(1,1)": 3.5})
     tm.assert_frame_equal(result, expected)
 
 
@@ -774,7 +770,7 @@ def test_header_delim_whitespace(all_parsers):
         return
 
     result = parser.read_csv(StringIO(data), sep=r"\s+")
-    expected = DataFrame({"a,b": ["1,2", "3,4"]})
+    expected = pd.DataFrame({"a,b": ["1,2", "3,4"]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -792,5 +788,5 @@ b,j,y
         dtype_backend="pyarrow",
         engine="pyarrow",
     )
-    expected = DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
+    expected = pd.DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
     tm.assert_frame_equal(result, expected)

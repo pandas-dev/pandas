@@ -5,16 +5,7 @@ import pytest
 
 from pandas.core.dtypes.common import is_integer
 
-from pandas import (
-    DateOffset,
-    Interval,
-    IntervalIndex,
-    Timedelta,
-    Timestamp,
-    date_range,
-    interval_range,
-    timedelta_range,
-)
+import pandas as pd
 import pandas._testing as tm
 
 from pandas.tseries.offsets import Day
@@ -34,28 +25,28 @@ class TestIntervalRange:
             breaks = breaks.astype(np.float64)
         else:
             breaks = breaks.astype(np.int64)
-        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+        expected = pd.IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
-        result = interval_range(
+        result = pd.interval_range(
             start=start, end=end, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
-        result = interval_range(
+        result = pd.interval_range(
             start=start, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
-        result = interval_range(
+        result = pd.interval_range(
             end=end, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
-        result = interval_range(
+        result = pd.interval_range(
             start=start, end=end, periods=periods, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
@@ -65,31 +56,31 @@ class TestIntervalRange:
         "freq, periods", [("D", 364), ("2D", 182), ("22D18h", 16), ("ME", 11)]
     )
     def test_constructor_timestamp(self, closed, name, freq, periods, tz):
-        start, end = Timestamp("20180101", tz=tz), Timestamp("20181231", tz=tz)
-        breaks = date_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+        start, end = pd.Timestamp("20180101", tz=tz), pd.Timestamp("20181231", tz=tz)
+        breaks = pd.date_range(start=start, end=end, freq=freq)
+        expected = pd.IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
-        result = interval_range(
+        result = pd.interval_range(
             start=start, end=end, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
-        result = interval_range(
+        result = pd.interval_range(
             start=start, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
-        result = interval_range(
+        result = pd.interval_range(
             end=end, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
         if not breaks.freq.n == 1 and tz is None:
-            result = interval_range(
+            result = pd.interval_range(
                 start=start, end=end, periods=periods, name=name, closed=closed
             )
             tm.assert_index_equal(result, expected)
@@ -98,30 +89,30 @@ class TestIntervalRange:
         "freq, periods", [("D", 100), ("2D12h", 40), ("5D", 20), ("25D", 4)]
     )
     def test_constructor_timedelta(self, closed, name, freq, periods):
-        start, end = Timedelta("0 days"), Timedelta("100 days")
-        breaks = timedelta_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+        start, end = pd.Timedelta("0 days"), pd.Timedelta("100 days")
+        breaks = pd.timedelta_range(start=start, end=end, freq=freq)
+        expected = pd.IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
         # defined from start/end/freq
-        result = interval_range(
+        result = pd.interval_range(
             start=start, end=end, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from start/periods/freq
-        result = interval_range(
+        result = pd.interval_range(
             start=start, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # defined from end/periods/freq
-        result = interval_range(
+        result = pd.interval_range(
             end=end, periods=periods, freq=freq, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
-        result = interval_range(
+        result = pd.interval_range(
             start=start, end=end, periods=periods, name=name, closed=closed
         )
         tm.assert_index_equal(result, expected)
@@ -132,24 +123,24 @@ class TestIntervalRange:
             (0, 10, 3, 9),
             (0, 10, 1.5, 9),
             (0.5, 10, 3, 9.5),
-            (Timedelta("0D"), Timedelta("10D"), "2D4h", Timedelta("8D16h")),
+            (pd.Timedelta("0D"), pd.Timedelta("10D"), "2D4h", pd.Timedelta("8D16h")),
             (
-                Timestamp("2018-01-01"),
-                Timestamp("2018-02-09"),
+                pd.Timestamp("2018-01-01"),
+                pd.Timestamp("2018-02-09"),
                 "MS",
-                Timestamp("2018-02-01"),
+                pd.Timestamp("2018-02-01"),
             ),
             (
-                Timestamp("2018-01-01", tz="US/Eastern"),
-                Timestamp("2018-01-20", tz="US/Eastern"),
+                pd.Timestamp("2018-01-01", tz="US/Eastern"),
+                pd.Timestamp("2018-01-20", tz="US/Eastern"),
                 "5D12h",
-                Timestamp("2018-01-17 12:00:00", tz="US/Eastern"),
+                pd.Timestamp("2018-01-17 12:00:00", tz="US/Eastern"),
             ),
         ],
     )
     def test_early_truncation(self, start, end, freq, expected_endpoint):
         # index truncates early if freq causes end to be skipped
-        result = interval_range(start=start, end=end, freq=freq)
+        result = pd.interval_range(start=start, end=end, freq=freq)
         result_endpoint = result.right[-1]
         assert result_endpoint == expected_endpoint
 
@@ -163,23 +154,23 @@ class TestIntervalRange:
             breaks = [0.5, 1.5, 2.5, 3.5, 4.5]
         else:
             breaks = [0.5, 2.0, 3.5, 5.0, 6.5]
-        expected = IntervalIndex.from_breaks(breaks)
+        expected = pd.IntervalIndex.from_breaks(breaks)
 
-        result = interval_range(start=start, end=end, periods=4, freq=freq)
+        result = pd.interval_range(start=start, end=end, periods=4, freq=freq)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "start, mid, end",
         [
             (
-                Timestamp("2018-03-10", tz="US/Eastern"),
-                Timestamp("2018-03-10 23:30:00", tz="US/Eastern"),
-                Timestamp("2018-03-12", tz="US/Eastern"),
+                pd.Timestamp("2018-03-10", tz="US/Eastern"),
+                pd.Timestamp("2018-03-10 23:30:00", tz="US/Eastern"),
+                pd.Timestamp("2018-03-12", tz="US/Eastern"),
             ),
             (
-                Timestamp("2018-11-03", tz="US/Eastern"),
-                Timestamp("2018-11-04 00:30:00", tz="US/Eastern"),
-                Timestamp("2018-11-05", tz="US/Eastern"),
+                pd.Timestamp("2018-11-03", tz="US/Eastern"),
+                pd.Timestamp("2018-11-04 00:30:00", tz="US/Eastern"),
+                pd.Timestamp("2018-11-05", tz="US/Eastern"),
             ),
         ],
     )
@@ -189,8 +180,8 @@ class TestIntervalRange:
         start = start.as_unit("ns")
         mid = mid.as_unit("ns")
         end = end.as_unit("ns")
-        result = interval_range(start=start, end=end, periods=2)
-        expected = IntervalIndex.from_breaks([start, mid, end])
+        result = pd.interval_range(start=start, end=end, periods=2)
+        expected = pd.IntervalIndex.from_breaks([start, mid, end])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("freq", [2, 2.0])
@@ -201,25 +192,25 @@ class TestIntervalRange:
         # resulting endpoints can safely be upcast to integers
 
         # defined from start/end/freq
-        index = interval_range(start=start, end=end, freq=freq)
+        index = pd.interval_range(start=start, end=end, freq=freq)
         result = index.dtype.subtype
         expected = "int64" if is_integer(start + end + freq) else "float64"
         assert result == expected
 
         # defined from start/periods/freq
-        index = interval_range(start=start, periods=5, freq=freq)
+        index = pd.interval_range(start=start, periods=5, freq=freq)
         result = index.dtype.subtype
         expected = "int64" if is_integer(start + freq) else "float64"
         assert result == expected
 
         # defined from end/periods/freq
-        index = interval_range(end=end, periods=5, freq=freq)
+        index = pd.interval_range(end=end, periods=5, freq=freq)
         result = index.dtype.subtype
         expected = "int64" if is_integer(end + freq) else "float64"
         assert result == expected
 
         # GH 20976: linspace behavior defined from start/end/periods
-        index = interval_range(start=start, end=end, periods=5)
+        index = pd.interval_range(start=start, end=end, periods=5)
         result = index.dtype.subtype
         expected = "int64" if is_integer(start + end) else "float64"
         assert result == expected
@@ -235,53 +226,58 @@ class TestIntervalRange:
         ],
     )
     def test_interval_dtype(self, start, end, expected):
-        result = interval_range(start=start, end=end).dtype.subtype
+        result = pd.interval_range(start=start, end=end).dtype.subtype
         assert result == expected
 
     def test_interval_range_fractional_period(self):
         # float value for periods
         msg = "periods must be an integer, got 10.5"
-        ts = Timestamp("2024-03-25")
+        ts = pd.Timestamp("2024-03-25")
         with pytest.raises(TypeError, match=msg):
-            interval_range(ts, periods=10.5)
+            pd.interval_range(ts, periods=10.5)
 
     def test_constructor_coverage(self):
         # equivalent timestamp-like start/end
-        start, end = Timestamp("2017-01-01"), Timestamp("2017-01-15")
-        expected = interval_range(start=start, end=end)
+        start, end = pd.Timestamp("2017-01-01"), pd.Timestamp("2017-01-15")
+        expected = pd.interval_range(start=start, end=end)
 
-        result = interval_range(start=start.to_pydatetime(), end=end.to_pydatetime())
+        result = pd.interval_range(start=start.to_pydatetime(), end=end.to_pydatetime())
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start.asm8, end=end.asm8)
+        result = pd.interval_range(start=start.asm8, end=end.asm8)
         tm.assert_index_equal(result, expected)
 
         # equivalent freq with timestamp
         equiv_freq = [
             "D",
             Day(),
-            Timedelta(days=1),
+            pd.Timedelta(days=1),
             timedelta(days=1),
-            DateOffset(days=1),
+            pd.DateOffset(days=1),
         ]
         for freq in equiv_freq:
-            result = interval_range(start=start, end=end, freq=freq)
+            result = pd.interval_range(start=start, end=end, freq=freq)
             tm.assert_index_equal(result, expected)
 
         # equivalent timedelta-like start/end
-        start, end = Timedelta(days=1).as_unit("us"), Timedelta(days=10).as_unit("us")
-        expected = interval_range(start=start, end=end)
+        start, end = (
+            pd.Timedelta(days=1).as_unit("us"),
+            pd.Timedelta(days=10).as_unit("us"),
+        )
+        expected = pd.interval_range(start=start, end=end)
 
-        result = interval_range(start=start.to_pytimedelta(), end=end.to_pytimedelta())
+        result = pd.interval_range(
+            start=start.to_pytimedelta(), end=end.to_pytimedelta()
+        )
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start.asm8, end=end.asm8)
+        result = pd.interval_range(start=start.asm8, end=end.asm8)
         tm.assert_index_equal(result, expected)
 
         # equivalent freq with timedelta
-        equiv_freq = ["D", Day(), Timedelta(days=1), timedelta(days=1)]
+        equiv_freq = ["D", Day(), pd.Timedelta(days=1), timedelta(days=1)]
         for freq in equiv_freq:
-            result = interval_range(start=start, end=end, freq=freq)
+            result = pd.interval_range(start=start, end=end, freq=freq)
             tm.assert_index_equal(result, expected)
 
     def test_errors(self):
@@ -292,103 +288,105 @@ class TestIntervalRange:
         )
 
         with pytest.raises(ValueError, match=msg):
-            interval_range(start=0)
+            pd.interval_range(start=0)
 
         with pytest.raises(ValueError, match=msg):
-            interval_range(end=5)
+            pd.interval_range(end=5)
 
         with pytest.raises(ValueError, match=msg):
-            interval_range(periods=2)
+            pd.interval_range(periods=2)
 
         with pytest.raises(ValueError, match=msg):
-            interval_range()
+            pd.interval_range()
 
         # too many params
         with pytest.raises(ValueError, match=msg):
-            interval_range(start=0, end=5, periods=6, freq=1.5)
+            pd.interval_range(start=0, end=5, periods=6, freq=1.5)
 
         # mixed units
         msg = "start, end, freq need to be type compatible"
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=0, end=Timestamp("20130101"), freq=2)
+            pd.interval_range(start=0, end=pd.Timestamp("20130101"), freq=2)
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=0, end=Timedelta("1 day"), freq=2)
+            pd.interval_range(start=0, end=pd.Timedelta("1 day"), freq=2)
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=0, end=10, freq="D")
+            pd.interval_range(start=0, end=10, freq="D")
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=Timestamp("20130101"), end=10, freq="D")
+            pd.interval_range(start=pd.Timestamp("20130101"), end=10, freq="D")
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(
-                start=Timestamp("20130101"), end=Timedelta("1 day"), freq="D"
+            pd.interval_range(
+                start=pd.Timestamp("20130101"), end=pd.Timedelta("1 day"), freq="D"
             )
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(
-                start=Timestamp("20130101"), end=Timestamp("20130110"), freq=2
+            pd.interval_range(
+                start=pd.Timestamp("20130101"), end=pd.Timestamp("20130110"), freq=2
             )
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=Timedelta("1 day"), end=10, freq="D")
+            pd.interval_range(start=pd.Timedelta("1 day"), end=10, freq="D")
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(
-                start=Timedelta("1 day"), end=Timestamp("20130110"), freq="D"
+            pd.interval_range(
+                start=pd.Timedelta("1 day"), end=pd.Timestamp("20130110"), freq="D"
             )
 
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=Timedelta("1 day"), end=Timedelta("10 days"), freq=2)
+            pd.interval_range(
+                start=pd.Timedelta("1 day"), end=pd.Timedelta("10 days"), freq=2
+            )
 
         # invalid periods
         msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=0, periods="foo")
+            pd.interval_range(start=0, periods="foo")
 
         # invalid start
         msg = "start must be numeric or datetime-like, got foo"
         with pytest.raises(ValueError, match=msg):
-            interval_range(start="foo", periods=10)
+            pd.interval_range(start="foo", periods=10)
 
         # invalid end
         msg = r"end must be numeric or datetime-like, got \(0, 1\]"
         with pytest.raises(ValueError, match=msg):
-            interval_range(end=Interval(0, 1), periods=10)
+            pd.interval_range(end=pd.Interval(0, 1), periods=10)
 
         # invalid freq for datetime-like
         msg = "freq must be numeric or convertible to DateOffset, got foo"
         with pytest.raises(ValueError, match=msg):
-            interval_range(start=0, end=10, freq="foo")
+            pd.interval_range(start=0, end=10, freq="foo")
 
         with pytest.raises(ValueError, match=msg):
-            interval_range(start=Timestamp("20130101"), periods=10, freq="foo")
+            pd.interval_range(start=pd.Timestamp("20130101"), periods=10, freq="foo")
 
         with pytest.raises(ValueError, match=msg):
-            interval_range(end=Timedelta("1 day"), periods=10, freq="foo")
+            pd.interval_range(end=pd.Timedelta("1 day"), periods=10, freq="foo")
 
         # mixed tz
-        start = Timestamp("2017-01-01", tz="US/Eastern")
-        end = Timestamp("2017-01-07", tz="US/Pacific")
+        start = pd.Timestamp("2017-01-01", tz="US/Eastern")
+        end = pd.Timestamp("2017-01-07", tz="US/Pacific")
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(TypeError, match=msg):
-            interval_range(start=start, end=end)
+            pd.interval_range(start=start, end=end)
 
     def test_float_freq(self):
         # GH 54477
-        result = interval_range(0, 1, freq=0.1)
-        expected = IntervalIndex.from_breaks([0 + 0.1 * n for n in range(11)])
+        result = pd.interval_range(0, 1, freq=0.1)
+        expected = pd.IntervalIndex.from_breaks([0 + 0.1 * n for n in range(11)])
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(0, 1, freq=0.6)
-        expected = IntervalIndex.from_breaks([0, 0.6])
+        result = pd.interval_range(0, 1, freq=0.6)
+        expected = pd.IntervalIndex.from_breaks([0, 0.6])
         tm.assert_index_equal(result, expected)
 
     def test_interval_range_float32_start_int_freq(self):
         # GH 58964
-        result = interval_range(start=np.float32(0), end=2, freq=1)
-        expected = IntervalIndex.from_tuples(
+        result = pd.interval_range(start=np.float32(0), end=2, freq=1)
+        expected = pd.IntervalIndex.from_tuples(
             [(0.0, 1.0), (1.0, 2.0)], dtype="interval[float64, right]"
         )
         tm.assert_index_equal(result, expected)

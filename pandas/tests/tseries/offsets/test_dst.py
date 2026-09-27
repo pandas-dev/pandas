@@ -30,7 +30,7 @@ from pandas._libs.tslibs.offsets import (
     YearEnd,
 )
 
-from pandas import DatetimeIndex
+import pandas as pd
 import pandas._testing as tm
 
 pytz = pytest.importorskip("pytz")
@@ -112,7 +112,7 @@ class TestDST:
                 tstart + offset
             # While we're here, let's check that we get the same behavior in a
             #  vectorized path
-            dti = DatetimeIndex([tstart])
+            dti = pd.DatetimeIndex([tstart])
             warn_msg = "Non-vectorized DateOffset"
             with pytest.raises(ValueError, match=err_msg):
                 with tm.assert_produces_warning(performance_warning, match=warn_msg):

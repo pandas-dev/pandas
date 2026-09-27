@@ -4,10 +4,6 @@ import pytest
 from pandas.core.dtypes.cast import can_hold_element
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    Series,
-)
 
 
 def test_can_hold_element_range(any_int_numpy_dtype):
@@ -108,7 +104,7 @@ def test_can_hold_element_bool():
 def test_can_hold_element_categorical():
     # GH#56376
     arr = np.array([], dtype=np.float64)
-    cat = Categorical([1, 2, None])
+    cat = pd.Categorical([1, 2, None])
 
     assert can_hold_element(arr, cat)
 
@@ -127,9 +123,9 @@ def test_can_hold_element_ea_series_no_na(dtype, ea_dtype):
     # GH#47776
     arr = np.array([], dtype=dtype)
     if dtype.kind == "b":
-        ser = Series([True, False], dtype=ea_dtype)
+        ser = pd.Series([True, False], dtype=ea_dtype)
     else:
-        ser = Series([1, 2], dtype=ea_dtype)
+        ser = pd.Series([1, 2], dtype=ea_dtype)
 
     assert can_hold_element(arr, ser)
 
@@ -147,14 +143,14 @@ def test_can_hold_element_ea_series_with_na(dtype, ea_dtype):
     # GH#47776 - Series with NA cannot be held losslessly
     arr = np.array([], dtype=dtype)
     if dtype.kind == "b":
-        ser = Series([True, pd.NA], dtype=ea_dtype)
+        ser = pd.Series([True, pd.NA], dtype=ea_dtype)
     else:
-        ser = Series([1, pd.NA], dtype=ea_dtype)
+        ser = pd.Series([1, pd.NA], dtype=ea_dtype)
 
     assert not can_hold_element(arr, ser)
 
 
-@pytest.mark.parametrize("wrapper", [lambda values: values, Series, pd.Index])
+@pytest.mark.parametrize("wrapper", [lambda values: values, pd.Series, pd.Index])
 @pytest.mark.parametrize("backend", ["numpy_nullable", "pyarrow"])
 def test_can_hold_element_ea_no_na_lossy_values(wrapper, backend):
     # GH#47776 - even without NAs, the values themselves must fit losslessly;

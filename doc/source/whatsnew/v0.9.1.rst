@@ -38,17 +38,38 @@ New features
     ``na_option`` parameter so missing values can be assigned either the largest
     or the smallest rank (:issue:`1508`, :issue:`2159`)
 
-    .. ipython:: python
+    .. code-block:: pycon
 
-        df = pd.DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
+       >>> df = pd.DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
 
-        df.loc[2:4] = np.nan
+       >>> df.loc[2:4] = np.nan
 
-        df.rank()
+       >>> df.rank()
+            A    B    C
+       0  3.0  2.0  1.0
+       1  1.0  3.0  2.0
+       2  NaN  NaN  NaN
+       3  NaN  NaN  NaN
+       4  NaN  NaN  NaN
+       5  2.0  1.0  3.0
 
-        df.rank(na_option='top')
+       >>> df.rank(na_option='top')
+            A    B    C
+       0  6.0  5.0  4.0
+       1  4.0  6.0  5.0
+       2  2.0  2.0  2.0
+       3  2.0  2.0  2.0
+       4  2.0  2.0  2.0
+       5  5.0  4.0  6.0
 
-        df.rank(na_option='bottom')
+       >>> df.rank(na_option='bottom')
+            A    B    C
+       0  3.0  2.0  1.0
+       1  1.0  3.0  2.0
+       2  5.0  5.0  5.0
+       3  5.0  5.0  5.0
+       4  5.0  5.0  5.0
+       5  2.0  1.0  3.0
 
 
   - DataFrame has new ``where`` and ``mask`` methods to select values according to a
@@ -57,41 +78,81 @@ New features
         DataFrame currently supports slicing via a boolean vector the same length as the DataFrame (inside the ``[]``).
         The returned DataFrame has the same number of columns as the original, but is sliced on its index.
 
-        .. ipython:: python
+        .. code-block:: pycon
 
-            df = pd.DataFrame(np.random.randn(5, 3), columns=['A', 'B', 'C'])
+           >>> df = pd.DataFrame(np.random.randn(5, 3), columns=['A', 'B', 'C'])
 
-            df
+           >>> df
+                     A         B         C
+           0  0.276232 -1.087401 -0.673690
+           1  0.113648 -1.478427  0.524988
+           2  0.404705  0.577046 -1.715002
+           3 -1.039268 -0.370647 -1.157892
+           4 -1.344312  0.844885  1.075770
 
-            df[df['A'] > 0]
+           >>> df[df['A'] > 0]
+                     A         B         C
+           0  0.276232 -1.087401 -0.673690
+           1  0.113648 -1.478427  0.524988
+           2  0.404705  0.577046 -1.715002
 
         If a DataFrame is sliced with a DataFrame based boolean condition (with the same size as the original DataFrame),
         then a DataFrame the same size (index and columns) as the original is returned, with
         elements that do not meet the boolean condition as ``NaN``. This is accomplished via
         the new method ``DataFrame.where``. In addition, ``where`` takes an optional ``other`` argument for replacement.
 
-        .. ipython:: python
+        .. code-block:: pycon
 
-           df[df > 0]
+           >>> df[df > 0]
+                     A         B         C
+           0  0.276232       NaN       NaN
+           1  0.113648       NaN  0.524988
+           2  0.404705  0.577046       NaN
+           3       NaN       NaN       NaN
+           4       NaN  0.844885  1.075770
 
-           df.where(df > 0)
+           >>> df.where(df > 0)
+                     A         B         C
+           0  0.276232       NaN       NaN
+           1  0.113648       NaN  0.524988
+           2  0.404705  0.577046       NaN
+           3       NaN       NaN       NaN
+           4       NaN  0.844885  1.075770
 
-           df.where(df > 0, -df)
+           >>> df.where(df > 0, -df)
+                     A         B         C
+           0  0.276232  1.087401  0.673690
+           1  0.113648  1.478427  0.524988
+           2  0.404705  0.577046  1.715002
+           3  1.039268  0.370647  1.157892
+           4  1.344312  0.844885  1.075770
 
         Furthermore, ``where`` now aligns the input boolean condition (ndarray or DataFrame), such that partial selection
         with setting is possible. This is analogous to partial setting via ``.ix`` (but on the contents rather than the axis labels)
 
-        .. ipython:: python
+        .. code-block:: pycon
 
-           df2 = df.copy()
-           df2[df2[1:4] > 0] = 3
-           df2
+           >>> df2 = df.copy()
+           >>> df2[df2[1:4] > 0] = 3
+           >>> df2
+                     A         B         C
+           0  0.276232 -1.087401 -0.673690
+           1  3.000000 -1.478427  3.000000
+           2  3.000000  3.000000 -1.715002
+           3 -1.039268 -0.370647 -1.157892
+           4 -1.344312  0.844885  1.075770
 
         ``DataFrame.mask`` is the inverse boolean operation of ``where``.
 
-        .. ipython:: python
+        .. code-block:: pycon
 
-           df.mask(df <= 0)
+           >>> df.mask(df <= 0)
+                     A         B         C
+           0  0.276232       NaN       NaN
+           1  0.113648       NaN  0.524988
+           2  0.404705  0.577046       NaN
+           3       NaN       NaN       NaN
+           4       NaN  0.844885  1.075770
 
   - Enable referencing of Excel columns by their column names (:issue:`1936`)
 
@@ -138,24 +199,28 @@ API changes
   - Period.end_time now returns the last nanosecond in the time interval
     (:issue:`2124`, :issue:`2125`, :issue:`1764`)
 
-    .. ipython:: python
+    .. code-block:: pycon
 
-        p = pd.Period('2012')
+       >>> p = pd.Period('2012')
 
-        p.end_time
+       >>> p.end_time
+       Timestamp('2012-12-31 23:59:59.999999')
 
 
   - File parsers no longer coerce to float or bool for columns that have custom
     converters specified (:issue:`2184`)
 
-    .. ipython:: python
+    .. code-block:: pycon
 
-        import io
+       >>> import io
 
-        data = ('A,B,C\n'
-                '00001,001,5\n'
-                '00002,002,6')
-        pd.read_csv(io.StringIO(data), converters={'A': lambda x: x.strip()})
+       >>> data = ('A,B,C\n'
+       ...         '00001,001,5\n'
+       ...         '00002,002,6')
+       >>> pd.read_csv(io.StringIO(data), converters={'A': lambda x: x.strip()})
+              A  B  C
+       0  00001  1  5
+       1  00002  2  6
 
 
 See the :ref:`full release notes

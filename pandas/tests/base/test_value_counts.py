@@ -5,18 +5,6 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    DatetimeIndex,
-    Index,
-    Interval,
-    IntervalIndex,
-    MultiIndex,
-    Series,
-    Timedelta,
-    TimedeltaIndex,
-    Timestamp,
-    array,
-)
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
@@ -27,7 +15,7 @@ def test_value_counts(index_or_series_obj):
     result = obj.value_counts()
 
     counter = collections.Counter(obj)
-    expected = Series(dict(counter.most_common()), dtype=np.int64, name="count")
+    expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name="count")
 
     if obj.dtype != np.float16:
         expected.index = expected.index.astype(obj.dtype)
@@ -35,7 +23,7 @@ def test_value_counts(index_or_series_obj):
         with pytest.raises(NotImplementedError, match="float16 indexes are not "):
             expected.index.astype(obj.dtype)
         return
-    if isinstance(expected.index, MultiIndex):
+    if isinstance(expected.index, pd.MultiIndex):
         expected.index.names = obj.names
     else:
         expected.index.name = obj.name
@@ -58,7 +46,7 @@ def test_value_counts_null(null_obj, index_or_series_obj_orderable):
         pytest.skip("type doesn't allow for NA operations")
     elif len(orig) < 1:
         pytest.skip("Test doesn't make sense on empty data")
-    elif isinstance(orig, MultiIndex):
+    elif isinstance(orig, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
     obj = orig.copy(deep=True)
@@ -72,7 +60,7 @@ def test_value_counts_null(null_obj, index_or_series_obj_orderable):
     # because np.nan == np.nan is False, but None == None is True
     # np.nan would be duplicated, whereas None wouldn't
     counter = collections.Counter(obj.dropna())
-    expected = Series(dict(counter.most_common()), dtype=np.int64, name="count")
+    expected = pd.Series(dict(counter.most_common()), dtype=np.int64, name="count")
 
     if obj.dtype != np.float16:
         expected.index = expected.index.astype(obj.dtype)
@@ -104,33 +92,33 @@ def test_value_counts_inferred(index_or_series, using_infer_string):
     klass = index_or_series
     s_values = ["a", "b", "b", "b", "b", "c", "d", "d", "a", "a"]
     s = klass(s_values)
-    expected = Series([4, 3, 2, 1], index=["b", "a", "d", "c"], name="count")
+    expected = pd.Series([4, 3, 2, 1], index=["b", "a", "d", "c"], name="count")
     tm.assert_series_equal(s.value_counts(), expected)
 
-    if isinstance(s, Index):
-        exp = Index(np.unique(np.array(s_values, dtype=np.object_)))
+    if isinstance(s, pd.Index):
+        exp = pd.Index(np.unique(np.array(s_values, dtype=np.object_)))
         tm.assert_index_equal(s.unique(), exp)
     else:
         exp = np.unique(np.array(s_values, dtype=np.object_))
         if using_infer_string:
-            exp = array(exp, dtype="str")
+            exp = pd.array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
 
     assert s.nunique() == 4
     # don't sort, have to sort after the fact as not sorting is
     # platform-dep
     hist = s.value_counts(sort=False).sort_values()
-    expected = Series([3, 1, 4, 2], index=list("acbd"), name="count").sort_values()
+    expected = pd.Series([3, 1, 4, 2], index=list("acbd"), name="count").sort_values()
     tm.assert_series_equal(hist, expected)
 
     # sort ascending
     hist = s.value_counts(ascending=True)
-    expected = Series([1, 2, 3, 4], index=list("cdab"), name="count")
+    expected = pd.Series([1, 2, 3, 4], index=list("cdab"), name="count")
     tm.assert_series_equal(hist, expected)
 
     # relative histogram.
     hist = s.value_counts(normalize=True)
-    expected = Series(
+    expected = pd.Series(
         [0.4, 0.3, 0.2, 0.1], index=["b", "a", "d", "c"], name="proportion"
     )
     tm.assert_series_equal(hist, expected)
@@ -146,16 +134,16 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     with pytest.raises(TypeError, match=msg):
         s.value_counts(bins=1)
 
-    s1 = Series([1, 1, 2, 3])
+    s1 = pd.Series([1, 1, 2, 3])
     res1 = s1.value_counts(bins=1)
-    exp1 = Series({Interval(0.997, 3.0): 4}, name="count")
+    exp1 = pd.Series({pd.Interval(0.997, 3.0): 4}, name="count")
     tm.assert_series_equal(res1, exp1)
     res1n = s1.value_counts(bins=1, normalize=True)
-    exp1n = Series({Interval(0.997, 3.0): 1.0}, name="proportion")
+    exp1n = pd.Series({pd.Interval(0.997, 3.0): 1.0}, name="proportion")
     tm.assert_series_equal(res1n, exp1n)
 
-    if isinstance(s1, Index):
-        tm.assert_index_equal(s1.unique(), Index([1, 2, 3]))
+    if isinstance(s1, pd.Index):
+        tm.assert_index_equal(s1.unique(), pd.Index([1, 2, 3]))
     else:
         exp = np.array([1, 2, 3], dtype=np.int64)
         tm.assert_numpy_array_equal(s1.unique(), exp)
@@ -164,17 +152,17 @@ def test_value_counts_bins(index_or_series, using_infer_string):
 
     # these return the same
     res4 = s1.value_counts(bins=4, dropna=True)
-    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]), name="count")
+    intervals = pd.IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+    exp4 = pd.Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]), name="count")
     tm.assert_series_equal(res4, exp4)
 
     res4 = s1.value_counts(bins=4, dropna=False)
-    intervals = IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
-    exp4 = Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]), name="count")
+    intervals = pd.IntervalIndex.from_breaks([0.997, 1.5, 2.0, 2.5, 3.0])
+    exp4 = pd.Series([2, 1, 1, 0], index=intervals.take([0, 1, 3, 2]), name="count")
     tm.assert_series_equal(res4, exp4)
 
     res4n = s1.value_counts(bins=4, normalize=True)
-    exp4n = Series(
+    exp4n = pd.Series(
         [0.5, 0.25, 0.25, 0], index=intervals.take([0, 1, 3, 2]), name="proportion"
     )
     tm.assert_series_equal(res4n, exp4n)
@@ -182,25 +170,25 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     # handle NA's properly
     s_values = ["a", "b", "b", "b", np.nan, np.nan, "d", "d", "a", "a", "b"]
     s = klass(s_values)
-    expected = Series([4, 3, 2], index=["b", "a", "d"], name="count")
+    expected = pd.Series([4, 3, 2], index=["b", "a", "d"], name="count")
     tm.assert_series_equal(s.value_counts(), expected)
 
-    if isinstance(s, Index):
-        exp = Index(["a", "b", np.nan, "d"])
+    if isinstance(s, pd.Index):
+        exp = pd.Index(["a", "b", np.nan, "d"])
         tm.assert_index_equal(s.unique(), exp)
     else:
         exp = np.array(["a", "b", np.nan, "d"], dtype=object)
         if using_infer_string:
-            exp = array(exp, dtype="str")
+            exp = pd.array(exp, dtype="str")
         tm.assert_equal(s.unique(), exp)
     assert s.nunique() == 3
 
     s = klass({}) if klass is dict else klass({}, dtype=object)
-    expected = Series([], dtype=np.int64, name="count")
+    expected = pd.Series([], dtype=np.int64, name="count")
     tm.assert_series_equal(s.value_counts(), expected, check_index_type=False)
     # returned dtype differs depending on original
-    if isinstance(s, Index):
-        tm.assert_index_equal(s.unique(), Index([]), exact=False)
+    if isinstance(s, pd.Index):
+        tm.assert_index_equal(s.unique(), pd.Index([]), exact=False)
     else:
         tm.assert_numpy_array_equal(s.unique(), np.array([]), check_dtype=False)
 
@@ -234,18 +222,18 @@ def test_value_counts_datetime64(index_or_series, unit):
     idx = pd.to_datetime(
         ["2010-01-01 00:00:00", "2008-09-09 00:00:00", "2009-01-01 00:00:00"]
     ).as_unit(unit)
-    expected_s = Series([3, 2, 1], index=idx, name="count")
+    expected_s = pd.Series([3, 2, 1], index=idx, name="count")
     tm.assert_series_equal(s.value_counts(), expected_s)
 
-    expected = array(
+    expected = pd.array(
         np.array(
             ["2010-01-01 00:00:00", "2009-01-01 00:00:00", "2008-09-09 00:00:00"],
             dtype=f"datetime64[{unit}]",
         )
     )
     result = s.unique()
-    if isinstance(s, Index):
-        tm.assert_index_equal(result, DatetimeIndex(expected))
+    if isinstance(s, pd.Index):
+        tm.assert_index_equal(result, pd.DatetimeIndex(expected))
     else:
         tm.assert_extension_array_equal(result, expected)
 
@@ -254,7 +242,7 @@ def test_value_counts_datetime64(index_or_series, unit):
     # with NaT
     s = df["dt"].copy()
     s = klass(list(s.values) + [pd.NaT] * 4)
-    if klass is Series:
+    if klass is pd.Series:
         s = s.dt.as_unit(unit)
     else:
         s = s.as_unit(unit)
@@ -266,7 +254,9 @@ def test_value_counts_datetime64(index_or_series, unit):
     result = s.value_counts(dropna=False)
     expected_s = pd.concat(
         [
-            Series([4], index=DatetimeIndex([pd.NaT]).as_unit(unit), name="count"),
+            pd.Series(
+                [4], index=pd.DatetimeIndex([pd.NaT]).as_unit(unit), name="count"
+            ),
             expected_s,
         ]
     )
@@ -277,8 +267,8 @@ def test_value_counts_datetime64(index_or_series, unit):
     assert unique.dtype == f"datetime64[{unit}]"
 
     # numpy_array_equal cannot compare pd.NaT
-    if isinstance(s, Index):
-        exp_idx = DatetimeIndex([*expected.tolist(), pd.NaT]).as_unit(unit)
+    if isinstance(s, pd.Index):
+        exp_idx = pd.DatetimeIndex([*expected.tolist(), pd.NaT]).as_unit(unit)
         tm.assert_index_equal(unique, exp_idx)
     else:
         tm.assert_extension_array_equal(unique[:3], expected)
@@ -292,19 +282,19 @@ def test_value_counts_timedelta64(index_or_series, unit):
     # timedelta64[ns]
     klass = index_or_series
 
-    day = Timedelta(timedelta(1)).as_unit(unit)
-    tdi = TimedeltaIndex([day], name="dt").as_unit(unit)
+    day = pd.Timedelta(timedelta(1)).as_unit(unit)
+    tdi = pd.TimedeltaIndex([day], name="dt").as_unit(unit)
 
     tdvals = np.zeros(6, dtype=f"m8[{unit}]") + day
     td = klass(tdvals, name="dt")
 
     result = td.value_counts()
-    expected_s = Series([6], index=tdi, name="count")
+    expected_s = pd.Series([6], index=tdi, name="count")
     tm.assert_series_equal(result, expected_s)
 
     expected = tdi
     result = td.unique()
-    if isinstance(td, Index):
+    if isinstance(td, pd.Index):
         tm.assert_index_equal(result, expected)
     else:
         tm.assert_extension_array_equal(result, expected._values)
@@ -322,9 +312,9 @@ def test_value_counts_with_nan(dropna, index_or_series):
     obj = klass(values)
     res = obj.value_counts(dropna=dropna)
     if dropna is True:
-        expected = Series([1], index=Index([True], dtype=obj.dtype), name="count")
+        expected = pd.Series([1], index=pd.Index([True], dtype=obj.dtype), name="count")
     else:
-        expected = Series([1, 1, 1], index=[True, pd.NA, np.nan], name="count")
+        expected = pd.Series([1, 1, 1], index=[True, pd.NA, np.nan], name="count")
     tm.assert_series_equal(res, expected)
 
 
@@ -348,67 +338,86 @@ def test_value_counts_object_inference_deprecated():
             pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
         ],
         [
-            pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
-            pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
+            pd.timedelta_range(pd.Timedelta(0), periods=5, freq="h"),
+            pd.timedelta_range(pd.Timedelta(0), periods=5, freq="h"),
         ],
         [
-            DatetimeIndex(
-                [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1)]
-                + [Timestamp("2016-01-02")]
-                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)]
+            pd.DatetimeIndex(
+                [pd.Timestamp("2016-01-01") + pd.Timedelta(days=i) for i in range(1)]
+                + [pd.Timestamp("2016-01-02")]
+                + [
+                    pd.Timestamp("2016-01-01") + pd.Timedelta(days=i)
+                    for i in range(1, 5)
+                ]
             ),
-            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D", unit="us")),
-        ],
-        [
-            TimedeltaIndex(
-                [Timedelta(hours=i) for i in range(1)]
-                + [Timedelta(hours=1)]
-                + [Timedelta(hours=i) for i in range(1, 5)],
-            ),
-            TimedeltaIndex(pd.timedelta_range(Timedelta(hours=0), periods=5, freq="h")),
-        ],
-        [
-            DatetimeIndex(
-                [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(2)]
-                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(3, 5)],
-            ),
-            DatetimeIndex(
-                [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(2)]
-                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(3, 5)],
+            pd.DatetimeIndex(
+                pd.date_range("2016-01-01", periods=5, freq="D", unit="us")
             ),
         ],
         [
-            TimedeltaIndex(
-                [Timedelta(hours=i) for i in range(2)]
-                + [Timedelta(hours=i) for i in range(3, 5)],
+            pd.TimedeltaIndex(
+                [pd.Timedelta(hours=i) for i in range(1)]
+                + [pd.Timedelta(hours=1)]
+                + [pd.Timedelta(hours=i) for i in range(1, 5)],
             ),
-            TimedeltaIndex(
-                [Timedelta(hours=i) for i in range(2)]
-                + [Timedelta(hours=i) for i in range(3, 5)],
+            pd.TimedeltaIndex(
+                pd.timedelta_range(pd.Timedelta(hours=0), periods=5, freq="h")
             ),
         ],
         [
-            DatetimeIndex(
-                [Timestamp("2016-01-01")]
+            pd.DatetimeIndex(
+                [pd.Timestamp("2016-01-01") + pd.Timedelta(days=i) for i in range(2)]
+                + [
+                    pd.Timestamp("2016-01-01") + pd.Timedelta(days=i)
+                    for i in range(3, 5)
+                ],
+            ),
+            pd.DatetimeIndex(
+                [pd.Timestamp("2016-01-01") + pd.Timedelta(days=i) for i in range(2)]
+                + [
+                    pd.Timestamp("2016-01-01") + pd.Timedelta(days=i)
+                    for i in range(3, 5)
+                ],
+            ),
+        ],
+        [
+            pd.TimedeltaIndex(
+                [pd.Timedelta(hours=i) for i in range(2)]
+                + [pd.Timedelta(hours=i) for i in range(3, 5)],
+            ),
+            pd.TimedeltaIndex(
+                [pd.Timedelta(hours=i) for i in range(2)]
+                + [pd.Timedelta(hours=i) for i in range(3, 5)],
+            ),
+        ],
+        [
+            pd.DatetimeIndex(
+                [pd.Timestamp("2016-01-01")]
                 + [pd.NaT]
-                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)],
+                + [
+                    pd.Timestamp("2016-01-01") + pd.Timedelta(days=i)
+                    for i in range(1, 5)
+                ],
             ),
-            DatetimeIndex(
-                [Timestamp("2016-01-01")]
+            pd.DatetimeIndex(
+                [pd.Timestamp("2016-01-01")]
                 + [pd.NaT]
-                + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)],
+                + [
+                    pd.Timestamp("2016-01-01") + pd.Timedelta(days=i)
+                    for i in range(1, 5)
+                ],
             ),
         ],
         [
-            TimedeltaIndex(
-                [Timedelta(hours=0)]
+            pd.TimedeltaIndex(
+                [pd.Timedelta(hours=0)]
                 + [pd.NaT]
-                + [Timedelta(hours=i) for i in range(1, 5)],
+                + [pd.Timedelta(hours=i) for i in range(1, 5)],
             ),
-            TimedeltaIndex(
-                [Timedelta(hours=0)]
+            pd.TimedeltaIndex(
+                [pd.Timedelta(hours=0)]
                 + [pd.NaT]
-                + [Timedelta(hours=i) for i in range(1, 5)],
+                + [pd.Timedelta(hours=i) for i in range(1, 5)],
             ),
         ],
     ],

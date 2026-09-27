@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.errors import Pandas4Warning
 
-from pandas import Series
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -19,22 +19,22 @@ def test_reindex_like(datetime_series):
     day2 = datetime(2013, 5, 5)
     day3 = datetime(2014, 3, 5)
 
-    series1 = Series([5, None, None], [day1, day2, day3])
-    series2 = Series([None, None], [day1, day3])
+    series1 = pd.Series([5, None, None], [day1, day2, day3])
+    series2 = pd.Series([None, None], [day1, day3])
 
     msg = "the 'method' keyword is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = series1.reindex_like(series2, method="pad")
-    expected = Series([5, np.nan], index=[day1, day3])
+    expected = pd.Series([5, np.nan], index=[day1, day3])
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_like_nearest():
-    ser = Series(np.arange(10, dtype="int64"))
+    ser = pd.Series(np.arange(10, dtype="int64"))
 
     target = [0.1, 0.9, 1.5, 2.0]
     other = ser.reindex(target, method="nearest")
-    expected = Series(np.around(target).astype("int64"), target)
+    expected = pd.Series(np.around(target).astype("int64"), target)
 
     msg = "the 'method' keyword is deprecated"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):

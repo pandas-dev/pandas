@@ -17,57 +17,49 @@ from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
-from pandas import (
-    DatetimeIndex,
-    Index,
-    NaT,
-    Period,
-    Timestamp,
-    date_range,
-    offsets,
-)
+import pandas as pd
 import pandas._testing as tm
 
 
 class TestTZConvert:
     def test_tz_convert_nat(self):
         # GH#5546
-        dates = [NaT]
-        idx = DatetimeIndex(dates)
+        dates = [pd.NaT]
+        idx = pd.DatetimeIndex(dates)
         idx = idx.tz_localize("US/Pacific")
-        tm.assert_index_equal(idx, DatetimeIndex(dates, tz="US/Pacific"))
+        tm.assert_index_equal(idx, pd.DatetimeIndex(dates, tz="US/Pacific"))
         idx = idx.tz_convert("US/Eastern")
-        tm.assert_index_equal(idx, DatetimeIndex(dates, tz="US/Eastern"))
+        tm.assert_index_equal(idx, pd.DatetimeIndex(dates, tz="US/Eastern"))
         idx = idx.tz_convert("UTC")
-        tm.assert_index_equal(idx, DatetimeIndex(dates, tz="UTC"))
+        tm.assert_index_equal(idx, pd.DatetimeIndex(dates, tz="UTC"))
 
-        dates = ["2010-12-01 00:00", "2010-12-02 00:00", NaT]
-        idx = DatetimeIndex(dates)
+        dates = ["2010-12-01 00:00", "2010-12-02 00:00", pd.NaT]
+        idx = pd.DatetimeIndex(dates)
         idx = idx.tz_localize("US/Pacific")
-        tm.assert_index_equal(idx, DatetimeIndex(dates, tz="US/Pacific"))
+        tm.assert_index_equal(idx, pd.DatetimeIndex(dates, tz="US/Pacific"))
         idx = idx.tz_convert("US/Eastern")
-        expected = ["2010-12-01 03:00", "2010-12-02 03:00", NaT]
-        tm.assert_index_equal(idx, DatetimeIndex(expected, tz="US/Eastern"))
+        expected = ["2010-12-01 03:00", "2010-12-02 03:00", pd.NaT]
+        tm.assert_index_equal(idx, pd.DatetimeIndex(expected, tz="US/Eastern"))
 
-        idx = idx + offsets.Hour(5)
-        expected = ["2010-12-01 08:00", "2010-12-02 08:00", NaT]
-        tm.assert_index_equal(idx, DatetimeIndex(expected, tz="US/Eastern"))
+        idx = idx + pd.offsets.Hour(5)
+        expected = ["2010-12-01 08:00", "2010-12-02 08:00", pd.NaT]
+        tm.assert_index_equal(idx, pd.DatetimeIndex(expected, tz="US/Eastern"))
         idx = idx.tz_convert("US/Pacific")
-        expected = ["2010-12-01 05:00", "2010-12-02 05:00", NaT]
-        tm.assert_index_equal(idx, DatetimeIndex(expected, tz="US/Pacific"))
+        expected = ["2010-12-01 05:00", "2010-12-02 05:00", pd.NaT]
+        tm.assert_index_equal(idx, pd.DatetimeIndex(expected, tz="US/Pacific"))
 
         idx = idx + np.timedelta64(3, "h")
-        expected = ["2010-12-01 08:00", "2010-12-02 08:00", NaT]
-        tm.assert_index_equal(idx, DatetimeIndex(expected, tz="US/Pacific"))
+        expected = ["2010-12-01 08:00", "2010-12-02 08:00", pd.NaT]
+        tm.assert_index_equal(idx, pd.DatetimeIndex(expected, tz="US/Pacific"))
 
         idx = idx.tz_convert("US/Eastern")
-        expected = ["2010-12-01 11:00", "2010-12-02 11:00", NaT]
-        tm.assert_index_equal(idx, DatetimeIndex(expected, tz="US/Eastern"))
+        expected = ["2010-12-01 11:00", "2010-12-02 11:00", pd.NaT]
+        tm.assert_index_equal(idx, pd.DatetimeIndex(expected, tz="US/Eastern"))
 
     @pytest.mark.parametrize("prefix", ["", "dateutil/"])
     def test_dti_tz_convert_compat_timestamp(self, prefix):
         strdates = ["1/1/2012", "3/1/2012", "4/1/2012"]
-        idx = DatetimeIndex(strdates, tz=prefix + "US/Eastern")
+        idx = pd.DatetimeIndex(strdates, tz=prefix + "US/Eastern")
 
         conv = idx[0].tz_convert(prefix + "US/Pacific")
         expected = idx.tz_convert(prefix + "US/Pacific")[0]
@@ -79,30 +71,30 @@ class TestTZConvert:
 
         # sorted case US/Eastern -> UTC
         ts = ["2008-05-12 09:50:00", "2008-12-12 09:50:35", "2009-05-12 09:50:32"]
-        tt = DatetimeIndex(ts).tz_localize("US/Eastern")
+        tt = pd.DatetimeIndex(ts).tz_localize("US/Eastern")
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13], dtype=np.int32)
+        expected = pd.Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # sorted case UTC -> US/Eastern
         ts = ["2008-05-12 13:50:00", "2008-12-12 14:50:35", "2009-05-12 13:50:32"]
-        tt = DatetimeIndex(ts).tz_localize("UTC")
+        tt = pd.DatetimeIndex(ts).tz_localize("UTC")
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9], dtype=np.int32)
+        expected = pd.Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case US/Eastern -> UTC
         ts = ["2008-05-12 09:50:00", "2008-12-12 09:50:35", "2008-05-12 09:50:32"]
-        tt = DatetimeIndex(ts).tz_localize("US/Eastern")
+        tt = pd.DatetimeIndex(ts).tz_localize("US/Eastern")
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13], dtype=np.int32)
+        expected = pd.Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case UTC -> US/Eastern
         ts = ["2008-05-12 13:50:00", "2008-12-12 14:50:35", "2008-05-12 13:50:32"]
-        tt = DatetimeIndex(ts).tz_localize("UTC")
+        tt = pd.DatetimeIndex(ts).tz_localize("UTC")
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9], dtype=np.int32)
+        expected = pd.Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -111,63 +103,65 @@ class TestTZConvert:
 
         # sorted case US/Eastern -> UTC
         ts = [
-            Timestamp("2008-05-12 09:50:00", tz=tz),
-            Timestamp("2008-12-12 09:50:35", tz=tz),
-            Timestamp("2009-05-12 09:50:32", tz=tz),
+            pd.Timestamp("2008-05-12 09:50:00", tz=tz),
+            pd.Timestamp("2008-12-12 09:50:35", tz=tz),
+            pd.Timestamp("2009-05-12 09:50:32", tz=tz),
         ]
-        tt = DatetimeIndex(ts)
+        tt = pd.DatetimeIndex(ts)
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13], dtype=np.int32)
+        expected = pd.Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # sorted case UTC -> US/Eastern
         ts = [
-            Timestamp("2008-05-12 13:50:00", tz="UTC"),
-            Timestamp("2008-12-12 14:50:35", tz="UTC"),
-            Timestamp("2009-05-12 13:50:32", tz="UTC"),
+            pd.Timestamp("2008-05-12 13:50:00", tz="UTC"),
+            pd.Timestamp("2008-12-12 14:50:35", tz="UTC"),
+            pd.Timestamp("2009-05-12 13:50:32", tz="UTC"),
         ]
-        tt = DatetimeIndex(ts)
+        tt = pd.DatetimeIndex(ts)
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9], dtype=np.int32)
+        expected = pd.Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case US/Eastern -> UTC
         ts = [
-            Timestamp("2008-05-12 09:50:00", tz=tz),
-            Timestamp("2008-12-12 09:50:35", tz=tz),
-            Timestamp("2008-05-12 09:50:32", tz=tz),
+            pd.Timestamp("2008-05-12 09:50:00", tz=tz),
+            pd.Timestamp("2008-12-12 09:50:35", tz=tz),
+            pd.Timestamp("2008-05-12 09:50:32", tz=tz),
         ]
-        tt = DatetimeIndex(ts)
+        tt = pd.DatetimeIndex(ts)
         ut = tt.tz_convert("UTC")
-        expected = Index([13, 14, 13], dtype=np.int32)
+        expected = pd.Index([13, 14, 13], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
         # unsorted case UTC -> US/Eastern
         ts = [
-            Timestamp("2008-05-12 13:50:00", tz="UTC"),
-            Timestamp("2008-12-12 14:50:35", tz="UTC"),
-            Timestamp("2008-05-12 13:50:32", tz="UTC"),
+            pd.Timestamp("2008-05-12 13:50:00", tz="UTC"),
+            pd.Timestamp("2008-12-12 14:50:35", tz="UTC"),
+            pd.Timestamp("2008-05-12 13:50:32", tz="UTC"),
         ]
-        tt = DatetimeIndex(ts)
+        tt = pd.DatetimeIndex(ts)
         ut = tt.tz_convert("US/Eastern")
-        expected = Index([9, 9, 9], dtype=np.int32)
+        expected = pd.Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
     @pytest.mark.parametrize("freq, n", [("h", 1), ("min", 60), ("s", 3600)])
     def test_dti_tz_convert_trans_pos_plus_1__bug(self, freq, n):
         # Regression test for tslib.tz_convert(vals, tz1, tz2).
         # See GH#4496 for details.
-        idx = date_range(datetime(2011, 3, 26, 23), datetime(2011, 3, 27, 1), freq=freq)
+        idx = pd.date_range(
+            datetime(2011, 3, 26, 23), datetime(2011, 3, 27, 1), freq=freq
+        )
         idx = idx.tz_localize("UTC")
         idx = idx.tz_convert("Europe/Moscow")
 
         expected = np.repeat(np.array([3, 4, 5]), np.array([n, n, 1]))
-        tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
+        tm.assert_index_equal(idx.hour, pd.Index(expected, dtype=np.int32))
 
     def test_dti_tz_convert_dst(self):
         for freq, n in [("h", 1), ("min", 60), ("s", 3600)]:
             # Start DST
-            idx = date_range(
+            idx = pd.date_range(
                 "2014-03-08 23:00", "2014-03-09 09:00", freq=freq, tz="UTC"
             )
             idx = idx.tz_convert("US/Eastern")
@@ -175,9 +169,9 @@ class TestTZConvert:
                 np.array([18, 19, 20, 21, 22, 23, 0, 1, 3, 4, 5]),
                 np.array([n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
+            tm.assert_index_equal(idx.hour, pd.Index(expected, dtype=np.int32))
 
-            idx = date_range(
+            idx = pd.date_range(
                 "2014-03-08 18:00", "2014-03-09 05:00", freq=freq, tz="US/Eastern"
             )
             idx = idx.tz_convert("UTC")
@@ -185,10 +179,10 @@ class TestTZConvert:
                 np.array([23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
                 np.array([n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
+            tm.assert_index_equal(idx.hour, pd.Index(expected, dtype=np.int32))
 
             # End DST
-            idx = date_range(
+            idx = pd.date_range(
                 "2014-11-01 23:00", "2014-11-02 09:00", freq=freq, tz="UTC"
             )
             idx = idx.tz_convert("US/Eastern")
@@ -196,9 +190,9 @@ class TestTZConvert:
                 np.array([19, 20, 21, 22, 23, 0, 1, 1, 2, 3, 4]),
                 np.array([n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
+            tm.assert_index_equal(idx.hour, pd.Index(expected, dtype=np.int32))
 
-            idx = date_range(
+            idx = pd.date_range(
                 "2014-11-01 18:00", "2014-11-02 05:00", freq=freq, tz="US/Eastern"
             )
             idx = idx.tz_convert("UTC")
@@ -206,44 +200,44 @@ class TestTZConvert:
                 np.array([22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
                 np.array([n, n, n, n, n, n, n, n, n, n, n, n, 1]),
             )
-            tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
+            tm.assert_index_equal(idx.hour, pd.Index(expected, dtype=np.int32))
 
         # daily
         # Start DST
-        idx = date_range("2014-03-08 00:00", "2014-03-09 00:00", freq="D", tz="UTC")
+        idx = pd.date_range("2014-03-08 00:00", "2014-03-09 00:00", freq="D", tz="UTC")
         idx = idx.tz_convert("US/Eastern")
-        tm.assert_index_equal(idx.hour, Index([19, 19], dtype=np.int32))
+        tm.assert_index_equal(idx.hour, pd.Index([19, 19], dtype=np.int32))
 
-        idx = date_range(
+        idx = pd.date_range(
             "2014-03-08 00:00", "2014-03-09 00:00", freq="D", tz="US/Eastern"
         )
         idx = idx.tz_convert("UTC")
-        tm.assert_index_equal(idx.hour, Index([5, 5], dtype=np.int32))
+        tm.assert_index_equal(idx.hour, pd.Index([5, 5], dtype=np.int32))
 
         # End DST
-        idx = date_range("2014-11-01 00:00", "2014-11-02 00:00", freq="D", tz="UTC")
+        idx = pd.date_range("2014-11-01 00:00", "2014-11-02 00:00", freq="D", tz="UTC")
         idx = idx.tz_convert("US/Eastern")
-        tm.assert_index_equal(idx.hour, Index([20, 20], dtype=np.int32))
+        tm.assert_index_equal(idx.hour, pd.Index([20, 20], dtype=np.int32))
 
-        idx = date_range(
+        idx = pd.date_range(
             "2014-11-01 00:00", "2014-11-02 000:00", freq="D", tz="US/Eastern"
         )
         idx = idx.tz_convert("UTC")
-        tm.assert_index_equal(idx.hour, Index([4, 4], dtype=np.int32))
+        tm.assert_index_equal(idx.hour, pd.Index([4, 4], dtype=np.int32))
 
     def test_tz_convert_roundtrip(self, tz_aware_fixture):
         tz = tz_aware_fixture
-        idx1 = date_range(start="2014-01-01", end="2014-12-31", freq="ME", tz="UTC")
-        exp1 = date_range(start="2014-01-01", end="2014-12-31", freq="ME")
+        idx1 = pd.date_range(start="2014-01-01", end="2014-12-31", freq="ME", tz="UTC")
+        exp1 = pd.date_range(start="2014-01-01", end="2014-12-31", freq="ME")
 
-        idx2 = date_range(start="2014-01-01", end="2014-12-31", freq="D", tz="UTC")
-        exp2 = date_range(start="2014-01-01", end="2014-12-31", freq="D")
+        idx2 = pd.date_range(start="2014-01-01", end="2014-12-31", freq="D", tz="UTC")
+        exp2 = pd.date_range(start="2014-01-01", end="2014-12-31", freq="D")
 
-        idx3 = date_range(start="2014-01-01", end="2014-03-01", freq="h", tz="UTC")
-        exp3 = date_range(start="2014-01-01", end="2014-03-01", freq="h")
+        idx3 = pd.date_range(start="2014-01-01", end="2014-03-01", freq="h", tz="UTC")
+        exp3 = pd.date_range(start="2014-01-01", end="2014-03-01", freq="h")
 
-        idx4 = date_range(start="2014-08-01", end="2014-10-31", freq="min", tz="UTC")
-        exp4 = date_range(start="2014-08-01", end="2014-10-31", freq="min")
+        idx4 = pd.date_range(start="2014-08-01", end="2014-10-31", freq="min", tz="UTC")
+        exp4 = pd.date_range(start="2014-08-01", end="2014-10-31", freq="min")
 
         for idx, expected in [(idx1, exp1), (idx2, exp2), (idx3, exp3), (idx4, exp4)]:
             converted = idx.tz_convert(tz)
@@ -257,11 +251,13 @@ class TestTZConvert:
     def test_dti_tz_convert_tzlocal(self):
         # GH#13583
         # tz_convert doesn't affect to internal
-        dti = date_range(start="2001-01-01", end="2001-03-01", tz="UTC")
+        dti = pd.date_range(start="2001-01-01", end="2001-03-01", tz="UTC")
         dti2 = dti.tz_convert(dateutil.tz.tzlocal())
         tm.assert_numpy_array_equal(dti2.asi8, dti.asi8)
 
-        dti = date_range(start="2001-01-01", end="2001-03-01", tz=dateutil.tz.tzlocal())
+        dti = pd.date_range(
+            start="2001-01-01", end="2001-03-01", tz=dateutil.tz.tzlocal()
+        )
         dti2 = dti.tz_convert(None)
         tm.assert_numpy_array_equal(dti2.asi8, dti.asi8)
 
@@ -278,7 +274,7 @@ class TestTZConvert:
         if isinstance(tz, str) and tz.startswith("pytz/"):
             pytz = pytest.importorskip("pytz")
             tz = pytz.timezone(tz.removeprefix("pytz/"))
-        rng = date_range("3/11/2012", "3/12/2012", freq="h", tz="utc")
+        rng = pd.date_range("3/11/2012", "3/12/2012", freq="h", tz="utc")
         rng_eastern = rng.tz_convert(tz)
 
         # Values are unmodified
@@ -288,7 +284,7 @@ class TestTZConvert:
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_tz_convert_unsorted(self, tzstr):
-        dr = date_range("2012-03-09", freq="h", periods=100, tz="utc")
+        dr = pd.date_range("2012-03-09", freq="h", periods=100, tz="utc")
         dr = dr.tz_convert(tzstr)
 
         result = dr[::-1].hour
@@ -297,7 +293,7 @@ class TestTZConvert:
 
     def test_dti_tz_convert_day_freq_not_preserved(self):
         # GH#51716
-        dti = date_range("2020-3-28", periods=5, freq="D", tz="Europe/London")
+        dti = pd.date_range("2020-3-28", periods=5, freq="D", tz="Europe/London")
         result = dti.tz_convert("UTC")
         assert (result == dti).all()
         assert result.freq is None
@@ -306,7 +302,7 @@ class TestTZConvert:
 def _utc_dti(value):
     # Build a UTC-labelled index without going through the eager scalar
     #  constructor, so that the UTC->local shift is what raises.
-    return DatetimeIndex(np.array([value], dtype="i8").view("M8[ns]")).tz_localize(
+    return pd.DatetimeIndex(np.array([value], dtype="i8").view("M8[ns]")).tz_localize(
         "UTC"
     )
 
@@ -323,7 +319,7 @@ def test_dti_utc_to_local_overflow(tz):
     # GH#66550 the UTC->local shift was a bare add, so a UTC instant whose wall
     #  time in tz is past Timestamp.max wrapped by 585 years instead of raising.
     #  The scalar path already refuses the same conversion.
-    dti = _utc_dti(Timestamp.max._value).tz_convert(tz)
+    dti = _utc_dti(pd.Timestamp.max._value).tz_convert(tz)
 
     with pytest.raises(OutOfBoundsDatetime, match="overflows past"):
         dti.tz_localize(None)
@@ -332,7 +328,7 @@ def test_dti_utc_to_local_overflow(tz):
 def test_dti_utc_to_local_underflow():
     # GH#66550 the same wrap at the bottom of the range.  US/Pacific is west of
     #  UTC, so Timestamp.min's wall time there is below Timestamp.min.
-    dti = _utc_dti(Timestamp.min._value).tz_convert("US/Pacific")
+    dti = _utc_dti(pd.Timestamp.min._value).tz_convert("US/Pacific")
 
     with pytest.raises(OutOfBoundsDatetime, match="underflows past"):
         dti.tz_localize(None)
@@ -341,7 +337,7 @@ def test_dti_utc_to_local_underflow():
 def test_dti_utc_to_local_overflow_message_names_the_target_tz():
     # GH#66550 the only value left to render is the in-bounds UTC instant, so
     #  without the target tz the message complains about a value that looks fine.
-    dti = _utc_dti(Timestamp.max._value).tz_convert("Etc/GMT-9")
+    dti = _utc_dti(pd.Timestamp.max._value).tz_convert("Etc/GMT-9")
 
     msg = "Converting 2262-04-11 23:47:16 to Etc/GMT-9 overflows past"
     with pytest.raises(OutOfBoundsDatetime, match=msg):
@@ -354,7 +350,7 @@ def test_dti_utc_to_local_overflow_message_names_the_target_tz():
 def test_dti_utc_to_local_overflow_tzlocal():
     # GH#66550 the tzlocal branch of the shift needs the same guard.  Pin the
     #  ambient zone: the wall time only overflows east of UTC.
-    dti = _utc_dti(Timestamp.max._value)
+    dti = _utc_dti(pd.Timestamp.max._value)
 
     with tm.set_timezone("Asia/Tokyo"):
         dti = dti.tz_convert(dateutil.tz.tzlocal())
@@ -364,10 +360,12 @@ def test_dti_utc_to_local_overflow_tzlocal():
 
 def test_dti_utc_to_local_at_the_boundary_still_converts():
     # GH#66550 one step in from the wrap, and eastward, must keep working
-    dti = _utc_dti(Timestamp.max._value - 2 * 3600 * 10**9).tz_convert("Europe/Berlin")
+    dti = _utc_dti(pd.Timestamp.max._value - 2 * 3600 * 10**9).tz_convert(
+        "Europe/Berlin"
+    )
 
     result = dti.tz_localize(None)
-    expected = DatetimeIndex([Timestamp("2262-04-11 23:47:16.854775807")])
+    expected = pd.DatetimeIndex([pd.Timestamp("2262-04-11 23:47:16.854775807")])
     tm.assert_index_equal(result, expected)
 
 
@@ -376,7 +374,7 @@ def dti_local_on_sentinel():
     # A UTC instant that is representable, but whose wall time one hour west of
     #  UTC is exactly the NaT sentinel.
     return (
-        DatetimeIndex(np.array([iNaT + 3600 * 10**9], dtype="i8").view("M8[ns]"))
+        pd.DatetimeIndex(np.array([iNaT + 3600 * 10**9], dtype="i8").view("M8[ns]"))
         .tz_localize("UTC")
         .tz_convert(timezone(timedelta(hours=-1)))
     )
@@ -412,7 +410,7 @@ def test_dti_local_on_sentinel_still_renders(dti_local_on_sentinel):
     assert str(dti.to_pydatetime()[0]).startswith("1677-09-21 00:12:43.145224")
     assert str(dti.astype(object)[0]).startswith("1677-09-21 00:12:43.145224192")
     assert dti.strftime("%Y-%m-%d")[0] == "1677-09-21"
-    assert dti.to_period("D")[0] == Period("1677-09-21", "D")
+    assert dti.to_period("D")[0] == pd.Period("1677-09-21", "D")
     assert dti.resolution == "nanosecond"
     assert not dti.is_normalized
 
@@ -424,7 +422,7 @@ def test_dti_all_nat_is_normalized(tz):
     # GH#66550 is_date_array_normalized is the one Localizer loop that does not
     #  skip NaT before shifting, so the guarded shift needs an explicit exit that
     #  keeps reporting False rather than flipping an all-NaT array to True.
-    dti = DatetimeIndex([NaT, NaT])
+    dti = pd.DatetimeIndex([pd.NaT, pd.NaT])
     if tz is not None:
         dti = dti.tz_localize(tz)
 

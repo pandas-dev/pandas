@@ -1,13 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import (
-    DataFrame,
-    Series,
-    Timedelta,
-    concat,
-    date_range,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
 
@@ -73,7 +67,7 @@ def test_constructor_with_win_type(frame_or_series, win_types):
 @pytest.mark.parametrize("arg", ["median", "kurt", "skew"])
 def test_agg_function_support(arg):
     pytest.importorskip("scipy")
-    df = DataFrame({"A": np.arange(5)})
+    df = pd.DataFrame({"A": np.arange(5)})
     roll = df.rolling(2, win_type="triang")
 
     msg = f"'{arg}' is not a valid function for 'Window' object"
@@ -92,7 +86,7 @@ def test_invalid_scipy_arg():
     pytest.importorskip("scipy")
     msg = r"boxcar\(\) got an unexpected"
     with pytest.raises(TypeError, match=msg):
-        Series(range(3)).rolling(1, win_type="boxcar").mean(foo="bar")
+        pd.Series(range(3)).rolling(1, win_type="boxcar").mean(foo="bar")
 
 
 def test_constructor_with_win_type_invalid(frame_or_series):
@@ -109,10 +103,10 @@ def test_constructor_with_win_type_invalid(frame_or_series):
 def test_window_with_args(step):
     # make sure that we are aggregating window functions correctly with arg
     pytest.importorskip("scipy")
-    r = Series(np.random.default_rng(2).standard_normal(100)).rolling(
+    r = pd.Series(np.random.default_rng(2).standard_normal(100)).rolling(
         window=10, min_periods=1, win_type="gaussian", step=step
     )
-    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
+    expected = pd.concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
     expected.columns = ["<lambda>", "<lambda>"]
     result = r.aggregate([lambda x: x.mean(std=10), lambda x: x.mean(std=0.01)])
     tm.assert_frame_equal(result, expected)
@@ -123,7 +117,7 @@ def test_window_with_args(step):
     def b(x):
         return x.mean(std=0.01)
 
-    expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
+    expected = pd.concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
     expected.columns = ["a", "b"]
     result = r.aggregate([a, b])
     tm.assert_frame_equal(result, expected)
@@ -134,21 +128,23 @@ def test_win_type_with_method_invalid():
     with pytest.raises(
         NotImplementedError, match="'single' is the only supported method type."
     ):
-        Series(range(1)).rolling(1, win_type="triang", method="table")
+        pd.Series(range(1)).rolling(1, win_type="triang", method="table")
 
 
-@pytest.mark.parametrize("arg", [2000000000, "2s", Timedelta("2s")])
+@pytest.mark.parametrize("arg", [2000000000, "2s", pd.Timedelta("2s")])
 def test_consistent_win_type_freq(arg):
     # GH 15969
     pytest.importorskip("scipy")
-    s = Series(range(1))
+    s = pd.Series(range(1))
     with pytest.raises(ValueError, match="Invalid win_type freq"):
         s.rolling(arg, win_type="freq")
 
 
 def test_win_type_freq_return_none():
     # GH 48838
-    freq_roll = Series(range(2), index=date_range("2020", periods=2)).rolling("2s")
+    freq_roll = pd.Series(range(2), index=pd.date_range("2020", periods=2)).rolling(
+        "2s"
+    )
     assert freq_roll.win_type is None
 
 
@@ -159,7 +155,7 @@ def test_win_type_not_implemented():
         def get_window_bounds(self, num_values, min_periods, center, closed, step):
             return np.array([0, 1]), np.array([1, 2])
 
-    df = DataFrame({"values": range(2)})
+    df = pd.DataFrame({"values": range(2)})
     indexer = CustomIndexer()
     with pytest.raises(NotImplementedError, match="BaseIndexer subclasses not"):
         df.rolling(indexer, win_type="boxcar")
@@ -169,7 +165,7 @@ def test_cmov_mean(step):
     # GH 8238
     pytest.importorskip("scipy")
     vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48, 10.63, 14.48])
-    result = Series(vals).rolling(5, center=True, step=step).mean()
+    result = pd.Series(vals).rolling(5, center=True, step=step).mean()
     expected_values = [
         np.nan,
         np.nan,
@@ -182,7 +178,7 @@ def test_cmov_mean(step):
         np.nan,
         np.nan,
     ]
-    expected = Series(expected_values)[::step]
+    expected = pd.Series(expected_values)[::step]
     tm.assert_series_equal(expected, result)
 
 
@@ -190,7 +186,9 @@ def test_cmov_window(step):
     # GH 8238
     pytest.importorskip("scipy")
     vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48, 10.63, 14.48])
-    result = Series(vals).rolling(5, win_type="boxcar", center=True, step=step).mean()
+    result = (
+        pd.Series(vals).rolling(5, win_type="boxcar", center=True, step=step).mean()
+    )
     expected_values = [
         np.nan,
         np.nan,
@@ -203,7 +201,7 @@ def test_cmov_window(step):
         np.nan,
         np.nan,
     ]
-    expected = Series(expected_values)[::step]
+    expected = pd.Series(expected_values)[::step]
     tm.assert_series_equal(expected, result)
 
 
@@ -211,17 +209,17 @@ def test_cmov_window_corner(step):
     # GH 8238
     # all nan
     pytest.importorskip("scipy")
-    vals = Series([np.nan] * 10)
+    vals = pd.Series([np.nan] * 10)
     result = vals.rolling(5, center=True, win_type="boxcar", step=step).mean()
     assert np.isnan(result).all()
 
     # empty
-    vals = Series([], dtype=object)
+    vals = pd.Series([], dtype=object)
     result = vals.rolling(5, center=True, win_type="boxcar", step=step).mean()
     assert len(result) == 0
 
     # shorter than window
-    vals = Series(np.random.default_rng(2).standard_normal(5))
+    vals = pd.Series(np.random.default_rng(2).standard_normal(5))
     result = vals.rolling(10, win_type="boxcar", step=step).mean()
     assert np.isnan(result).all()
     assert len(result) == len(range(0, 5, step or 1))
@@ -295,7 +293,7 @@ def test_cmov_window_corner(step):
 def test_cmov_window_frame(f, xp, step):
     # Gh 8238
     pytest.importorskip("scipy")
-    df = DataFrame(
+    df = pd.DataFrame(
         np.array(
             [
                 [12.18, 3.64],
@@ -311,7 +309,7 @@ def test_cmov_window_frame(f, xp, step):
             ]
         )
     )
-    xp = DataFrame(np.array(xp))[::step]
+    xp = pd.DataFrame(np.array(xp))[::step]
 
     roll = df.rolling(5, win_type="boxcar", center=True, step=step)
     rs = getattr(roll, f)()
@@ -322,7 +320,7 @@ def test_cmov_window_frame(f, xp, step):
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4, 5])
 def test_cmov_window_na_min_periods(step, min_periods):
     pytest.importorskip("scipy")
-    vals = Series(np.random.default_rng(2).standard_normal(10))
+    vals = pd.Series(np.random.default_rng(2).standard_normal(10))
     vals[4] = np.nan
     vals[8] = np.nan
 
@@ -436,8 +434,8 @@ def test_cmov_window_regular(win_types, step):
         ],
     }
 
-    xp = Series(xps[win_types])[::step]
-    rs = Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
+    xp = pd.Series(xps[win_types])[::step]
+    rs = pd.Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
     tm.assert_series_equal(xp, rs)
 
 
@@ -445,11 +443,11 @@ def test_cmov_window_regular_linear_range(win_types, step):
     # GH 8238
     pytest.importorskip("scipy")
     vals = np.array(range(10), dtype=float)
-    rs = Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
+    rs = pd.Series(vals).rolling(5, win_type=win_types, center=True, step=step).mean()
     xp = vals
     xp[:2] = np.nan
     xp[-2:] = np.nan
-    xp = Series(xp)[::step]
+    xp = pd.Series(xp)[::step]
 
     tm.assert_series_equal(xp, rs)
 
@@ -559,8 +557,8 @@ def test_cmov_window_regular_missing_data(win_types, step):
         ],
     }
 
-    xp = Series(xps[win_types])[::step]
-    rs = Series(vals).rolling(5, win_type=win_types, min_periods=3, step=step).mean()
+    xp = pd.Series(xps[win_types])[::step]
+    rs = pd.Series(vals).rolling(5, win_type=win_types, min_periods=3, step=step).mean()
     tm.assert_series_equal(xp, rs)
 
 
@@ -627,9 +625,9 @@ def test_cmov_window_special(win_types_special, step):
         ],
     }
 
-    xp = Series(xps[win_types_special])[::step]
+    xp = pd.Series(xps[win_types_special])[::step]
     rs = (
-        Series(vals)
+        pd.Series(vals)
         .rolling(5, win_type=win_types_special, center=True, step=step)
         .mean(**kwds[win_types_special])
     )
@@ -649,22 +647,22 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 
     vals = np.array(range(10), dtype=float)
     rs = (
-        Series(vals)
+        pd.Series(vals)
         .rolling(5, win_type=win_types_special, center=True, step=step)
         .mean(**kwds[win_types_special])
     )
     xp = vals
     xp[:2] = np.nan
     xp[-2:] = np.nan
-    xp = Series(xp)[::step]
+    xp = pd.Series(xp)[::step]
     tm.assert_series_equal(xp, rs)
 
 
 def test_weighted_var_big_window_no_segfault(win_types, center):
     # GitHub Issue #46772
     pytest.importorskip("scipy")
-    x = Series(0)
+    x = pd.Series(0)
     result = x.rolling(window=16, center=center, win_type=win_types).var()
-    expected = Series(np.nan)
+    expected = pd.Series(np.nan)
 
     tm.assert_series_equal(result, expected)

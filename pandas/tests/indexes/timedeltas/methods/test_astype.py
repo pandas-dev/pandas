@@ -4,78 +4,74 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Index,
-    NaT,
-    Timedelta,
-    TimedeltaIndex,
-    timedelta_range,
-)
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltaIndex:
     def test_astype_object(self):
-        idx = timedelta_range(start="1 days", periods=4, freq="D", name="idx")
+        idx = pd.timedelta_range(start="1 days", periods=4, freq="D", name="idx")
         expected_list = [
-            Timedelta("1 days"),
-            Timedelta("2 days"),
-            Timedelta("3 days"),
-            Timedelta("4 days"),
+            pd.Timedelta("1 days"),
+            pd.Timedelta("2 days"),
+            pd.Timedelta("3 days"),
+            pd.Timedelta("4 days"),
         ]
         result = idx.astype(object)
-        expected = Index(expected_list, dtype=object, name="idx")
+        expected = pd.Index(expected_list, dtype=object, name="idx")
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
 
     def test_astype_object_with_nat(self):
-        idx = TimedeltaIndex(
-            [timedelta(days=1), timedelta(days=2), NaT, timedelta(days=4)], name="idx"
+        idx = pd.TimedeltaIndex(
+            [timedelta(days=1), timedelta(days=2), pd.NaT, timedelta(days=4)],
+            name="idx",
         )
         expected_list = [
-            Timedelta("1 days"),
-            Timedelta("2 days"),
-            NaT,
-            Timedelta("4 days"),
+            pd.Timedelta("1 days"),
+            pd.Timedelta("2 days"),
+            pd.NaT,
+            pd.Timedelta("4 days"),
         ]
         result = idx.astype(object)
-        expected = Index(expected_list, dtype=object, name="idx")
+        expected = pd.Index(expected_list, dtype=object, name="idx")
         tm.assert_index_equal(result, expected)
         assert idx.tolist() == expected_list
 
     def test_astype(self, using_infer_string):
         # GH 13149, GH 13209
-        idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan], name="idx")
+        idx = pd.TimedeltaIndex([1e14, "NaT", pd.NaT, np.nan], name="idx")
 
         result = idx.astype(object)
-        expected = Index(
-            [Timedelta("1 days 03:46:40")] + [NaT] * 3, dtype=object, name="idx"
+        expected = pd.Index(
+            [pd.Timedelta("1 days 03:46:40")] + [pd.NaT] * 3, dtype=object, name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(np.int64)
-        expected = Index(
+        expected = pd.Index(
             [100000000000000] + [-9223372036854775808] * 3, dtype=np.int64, name="idx"
         )
         tm.assert_index_equal(result, expected)
 
         result = idx.astype(str)
         if using_infer_string:
-            expected = Index(
-                [str(x) if x is not NaT else None for x in idx], name="idx", dtype="str"
+            expected = pd.Index(
+                [str(x) if x is not pd.NaT else None for x in idx],
+                name="idx",
+                dtype="str",
             )
         else:
-            expected = Index([str(x) for x in idx], name="idx", dtype=object)
+            expected = pd.Index([str(x) for x in idx], name="idx", dtype=object)
         tm.assert_index_equal(result, expected)
 
-        rng = timedelta_range("1 days", periods=10)
+        rng = pd.timedelta_range("1 days", periods=10)
         result = rng.astype("i8")
-        tm.assert_index_equal(result, Index(rng.asi8))
+        tm.assert_index_equal(result, pd.Index(rng.asi8))
         tm.assert_numpy_array_equal(rng.asi8, result.values)
 
     def test_astype_uint(self):
-        arr = timedelta_range("1h", periods=2)
+        arr = pd.timedelta_range("1h", periods=2)
 
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
             arr.astype("uint64")
@@ -84,7 +80,7 @@ class TestTimedeltaIndex:
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209
-        idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan])
+        idx = pd.TimedeltaIndex([1e14, "NaT", pd.NaT, np.nan])
 
         msg = (
             r"Cannot convert from timedelta64\[ns\] to timedelta64. "
@@ -103,9 +99,9 @@ class TestTimedeltaIndex:
 
     def test_astype_to_td64d_raises(self, index_or_series):
         # We don't support "D" reso
-        scalar = Timedelta(days=31)
+        scalar = pd.Timedelta(days=31)
         td = index_or_series(
-            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), NaT],
+            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), pd.NaT],
             dtype="m8[ns]",
         )
         msg = (
@@ -116,9 +112,9 @@ class TestTimedeltaIndex:
             td.astype("timedelta64[D]")
 
     def test_astype_ms_to_s(self, index_or_series):
-        scalar = Timedelta(days=31)
+        scalar = pd.Timedelta(days=31)
         td = index_or_series(
-            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), NaT],
+            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), pd.NaT],
             dtype="m8[ns]",
         )
 
@@ -133,12 +129,12 @@ class TestTimedeltaIndex:
         # pre-2.0 td64 astype converted to float64. now for supported units
         #  (s, ms, us, ns) this converts to the requested dtype.
         # This matches TDA and Series
-        tdi = timedelta_range("1 Day", periods=30)
+        tdi = pd.timedelta_range("1 Day", periods=30)
 
         res = tdi.astype("m8[s]")
         exp_values = np.asarray(tdi).astype("m8[s]")
         exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
-        expected = Index(exp_tda)
+        expected = pd.Index(exp_tda)
         expected._freq = tdi.freq
         assert expected.dtype == "m8[s]"
         tm.assert_index_equal(res, expected)
@@ -155,16 +151,16 @@ class TestTimedeltaIndex:
     @pytest.mark.parametrize("dtype", [float, "datetime64", "datetime64[ns]"])
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
-        idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan])
+        idx = pd.TimedeltaIndex([1e14, "NaT", pd.NaT, np.nan])
         msg = "Cannot cast TimedeltaIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
     def test_astype_category(self):
-        obj = timedelta_range("1h", periods=2, freq="h")
+        obj = pd.timedelta_range("1h", periods=2, freq="h")
 
         result = obj.astype("category")
-        expected = pd.CategoricalIndex(timedelta_range("1h", periods=2, freq="h"))
+        expected = pd.CategoricalIndex(pd.timedelta_range("1h", periods=2, freq="h"))
         tm.assert_index_equal(result, expected, check_freq=False)
 
         result = obj._data.astype("category")
@@ -172,9 +168,9 @@ class TestTimedeltaIndex:
         tm.assert_categorical_equal(result, expected, check_freq=False)
 
     def test_astype_array_fallback(self):
-        obj = timedelta_range("1h", periods=2)
+        obj = pd.timedelta_range("1h", periods=2)
         result = obj.astype(bool)
-        expected = Index(np.array([True, True]))
+        expected = pd.Index(np.array([True, True]))
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype(bool)

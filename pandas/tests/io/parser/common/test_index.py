@@ -8,11 +8,7 @@ from io import StringIO
 
 import pytest
 
-from pandas import (
-    DataFrame,
-    Index,
-    MultiIndex,
-)
+import pandas as pd
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
@@ -31,7 +27,7 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """,
             {"index_col": 0, "names": ["index", "A", "B", "C", "D"]},
-            DataFrame(
+            pd.DataFrame(
                 [
                     [2, 3, 4, 5],
                     [7, 8, 9, 10],
@@ -40,7 +36,9 @@ bar2,12,13,14,15
                     [12, 13, 14, 15],
                     [12, 13, 14, 15],
                 ],
-                index=Index(["foo", "bar", "baz", "qux", "foo2", "bar2"], name="index"),
+                index=pd.Index(
+                    ["foo", "bar", "baz", "qux", "foo2", "bar2"], name="index"
+                ),
                 columns=["A", "B", "C", "D"],
             ),
         ),
@@ -52,7 +50,7 @@ bar,one,12,13,14,15
 bar,two,12,13,14,15
 """,
             {"index_col": [0, 1], "names": ["index1", "index2", "A", "B", "C", "D"]},
-            DataFrame(
+            pd.DataFrame(
                 [
                     [2, 3, 4, 5],
                     [7, 8, 9, 10],
@@ -60,7 +58,7 @@ bar,two,12,13,14,15
                     [12, 13, 14, 15],
                     [12, 13, 14, 15],
                 ],
-                index=MultiIndex.from_tuples(
+                index=pd.MultiIndex.from_tuples(
                     [
                         ("foo", "one"),
                         ("foo", "two"),
@@ -119,7 +117,7 @@ bar,two,12,13,14,15
 """
 
     result = parser.read_csv(StringIO(data))
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [2, 3, 4, 5],
             [7, 8, 9, 10],
@@ -128,7 +126,7 @@ bar,two,12,13,14,15
             [12, 13, 14, 15],
         ],
         columns=["A", "B", "C", "D"],
-        index=MultiIndex.from_tuples(
+        index=pd.MultiIndex.from_tuples(
             [
                 ("foo", "one"),
                 ("foo", "two"),
@@ -147,7 +145,7 @@ bar,two,12,13,14,15
         ("a,b", ["a", "b"], [0]),
         (
             "a,b\nc,d",
-            MultiIndex.from_tuples([("a", "c"), ("b", "d")]),
+            pd.MultiIndex.from_tuples([("a", "c"), ("b", "d")]),
             [0, 1],
         ),
     ],
@@ -156,7 +154,7 @@ bar,two,12,13,14,15
 def test_multi_index_blank_df(all_parsers, data, columns, header, round_trip, request):
     # see gh-14545
     parser = all_parsers
-    expected = DataFrame(columns=columns)
+    expected = pd.DataFrame(columns=columns)
     data = expected.to_csv(index=False) if round_trip else data
 
     if parser.engine == "pyarrow":
@@ -183,7 +181,7 @@ def test_no_unnamed_index(all_parsers):
 2 2 2 e f
 """
     result = parser.read_csv(StringIO(data), sep=" ")
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [[0, 1, 0, "a", "b"], [1, 2, 0, "c", "d"], [2, 2, 2, "e", "f"]],
         columns=["Unnamed: 0", "id", "c0", "c1", "c2"],
     )
@@ -202,7 +200,7 @@ bar,12,13,14,15
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=0)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [2, 3, 4, 5],
             [7, 8, 9, 10],
@@ -212,7 +210,7 @@ bar,12,13,14,15
             [12, 13, 14, 15],
         ],
         columns=["A", "B", "C", "D"],
-        index=Index(["foo", "bar", "baz", "qux", "foo", "bar"], name="index"),
+        index=pd.Index(["foo", "bar", "baz", "qux", "foo", "bar"], name="index"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -230,7 +228,7 @@ bar,12,13,14,15
     parser = all_parsers
     result = parser.read_csv(StringIO(data))
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [2, 3, 4, 5],
             [7, 8, 9, 10],
@@ -240,7 +238,7 @@ bar,12,13,14,15
             [12, 13, 14, 15],
         ],
         columns=["A", "B", "C", "D"],
-        index=Index(["foo", "bar", "baz", "qux", "foo", "bar"]),
+        index=pd.Index(["foo", "bar", "baz", "qux", "foo", "bar"]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -251,7 +249,7 @@ def test_read_csv_no_index_name(all_parsers, datapath):
     csv2 = datapath("io", "parser", "data", "test2.csv")
     result = parser.read_csv(csv2, index_col=0, parse_dates=True)
 
-    expected = DataFrame(
+    expected = pd.DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738, "foo"],
             [1.047916, -0.041232, -0.16181208307, 0.212549, "bar"],
@@ -260,7 +258,7 @@ def test_read_csv_no_index_name(all_parsers, datapath):
             [-0.487094, 0.571455, -1.6116394093, 0.103469, "foo2"],
         ],
         columns=["A", "B", "C", "D", "E"],
-        index=Index(
+        index=pd.Index(
             [
                 datetime(2000, 1, 3),
                 datetime(2000, 1, 4),
@@ -281,7 +279,7 @@ def test_empty_with_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=0)
 
-    expected = DataFrame(columns=["y"], index=Index([], name="x"))
+    expected = pd.DataFrame(columns=["y"], index=pd.Index([], name="x"))
     tm.assert_frame_equal(result, expected)
 
 
@@ -293,8 +291,8 @@ def test_empty_with_multi_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=["x", "y"])
 
-    expected = DataFrame(
-        columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
+    expected = pd.DataFrame(
+        columns=["z"], index=pd.MultiIndex.from_arrays([[]] * 2, names=["x", "y"])
     )
     tm.assert_frame_equal(result, expected)
 
@@ -306,7 +304,7 @@ def test_empty_with_reversed_multi_index(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col=[1, 0])
 
-    expected = DataFrame(
-        columns=["z"], index=MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
+    expected = pd.DataFrame(
+        columns=["z"], index=pd.MultiIndex.from_arrays([[]] * 2, names=["y", "x"])
     )
     tm.assert_frame_equal(result, expected)

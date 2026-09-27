@@ -4,13 +4,7 @@ import pytest
 from pandas.compat import is_platform_arm
 from pandas.errors import NumbaUtilError
 
-from pandas import (
-    DataFrame,
-    Index,
-    NamedAgg,
-    Series,
-    option_context,
-)
+import pandas as pd
 import pandas._testing as tm
 from pandas.util.version import Version
 
@@ -31,7 +25,7 @@ def test_correct_function_signature():
     def incorrect_function(x):
         return sum(x) * 2.7
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
@@ -51,7 +45,7 @@ def test_check_nopython_kwargs():
     def correct_function(values, index, a):
         return sum(values) * 2.7 + a
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {"key": ["a", "a", "b", "b", "a"], "data": [1.0, 2.0, 3.0, 4.0, 5.0]},
         columns=["key", "data"],
     )
@@ -99,7 +93,7 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, as_index):
 
         func_numba = numba.jit(func_numba)
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {
@@ -107,7 +101,7 @@ def test_numba_vs_cython(jit, frame_or_series, nogil, parallel, as_index):
         "parallel": parallel,
     }
     grouped = data.groupby(0, as_index=as_index)
-    if frame_or_series is Series:
+    if frame_or_series is pd.Series:
         grouped = grouped[1]
 
     result = grouped.agg(func_numba, engine="numba", engine_kwargs=engine_kwargs)
@@ -135,7 +129,7 @@ def test_cache(jit, frame_or_series, nogil, parallel):
         func_1 = numba.jit(func_1)
         func_2 = numba.jit(func_2)
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {
@@ -143,7 +137,7 @@ def test_cache(jit, frame_or_series, nogil, parallel):
         "parallel": parallel,
     }
     grouped = data.groupby(0)
-    if frame_or_series is Series:
+    if frame_or_series is pd.Series:
         grouped = grouped[1]
 
     result = grouped.agg(func_1, engine="numba", engine_kwargs=engine_kwargs)
@@ -167,12 +161,12 @@ def test_use_global_config():
     def func_1(values, index):
         return np.mean(values) - 3.4
 
-    data = DataFrame(
+    data = pd.DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
     expected = grouped.agg(func_1, engine="numba")
-    with option_context("compute.use_numba", True):
+    with pd.option_context("compute.use_numba", True):
         result = grouped.agg(func_1, engine=None)
     tm.assert_frame_equal(expected, result)
 
@@ -183,12 +177,12 @@ def test_use_global_config():
         {"func": ["min", "max"]},
         {"func": "min"},
         {"func": {1: ["min", "max"], 2: "sum"}},
-        {"bmin": NamedAgg(column=1, aggfunc="min")},
+        {"bmin": pd.NamedAgg(column=1, aggfunc="min")},
     ],
 )
 def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     pytest.importorskip("numba")
-    data = DataFrame(
+    data = pd.DataFrame(
         {
             0: ["a", "a", "b", "b", "a"],
             1: [1.0, 2.0, 3.0, 4.0, 5.0],
@@ -205,7 +199,7 @@ def test_multifunc_numba_vs_cython_frame(agg_kwargs):
 @pytest.mark.parametrize("func", ["sum", "mean", "var", "std", "min", "max"])
 def test_multifunc_numba_vs_cython_frame_noskipna(func):
     pytest.importorskip("numba")
-    data = DataFrame(
+    data = pd.DataFrame(
         {
             0: ["a", "a", "b", "b", "a"],
             1: [1.0, np.nan, 3.0, 4.0, 5.0],
@@ -239,7 +233,7 @@ def test_multifunc_numba_vs_cython_frame_noskipna(func):
 )
 def test_multifunc_numba_udf_frame(agg_kwargs, expected_func):
     pytest.importorskip("numba")
-    data = DataFrame(
+    data = pd.DataFrame(
         {
             0: ["a", "a", "b", "b", "a"],
             1: [1.0, 2.0, 3.0, 4.0, 5.0],
@@ -262,13 +256,13 @@ def test_multifunc_numba_udf_frame(agg_kwargs, expected_func):
 def test_multifunc_numba_vs_cython_series(agg_kwargs):
     pytest.importorskip("numba")
     labels = ["a", "a", "b", "b", "a"]
-    data = Series([1.0, 2.0, 3.0, 4.0, 5.0])
+    data = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
     grouped = data.groupby(labels)
     agg_kwargs["engine"] = "numba"
     result = grouped.agg(**agg_kwargs)
     agg_kwargs["engine"] = "cython"
     expected = grouped.agg(**agg_kwargs)
-    if isinstance(expected, DataFrame):
+    if isinstance(expected, pd.DataFrame):
         tm.assert_frame_equal(result, expected)
     else:
         tm.assert_series_equal(result, expected)
@@ -280,31 +274,31 @@ def test_multifunc_numba_vs_cython_series(agg_kwargs):
 @pytest.mark.parametrize(
     "data,agg_kwargs",
     [
-        (Series([1.0, 2.0, 3.0, 4.0, 5.0]), {"func": ["min", "max"]}),
-        (Series([1.0, 2.0, 3.0, 4.0, 5.0]), {"func": "min"}),
+        (pd.Series([1.0, 2.0, 3.0, 4.0, 5.0]), {"func": ["min", "max"]}),
+        (pd.Series([1.0, 2.0, 3.0, 4.0, 5.0]), {"func": "min"}),
         (
-            DataFrame(
+            pd.DataFrame(
                 {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
             ),
             {"func": ["min", "max"]},
         ),
         (
-            DataFrame(
+            pd.DataFrame(
                 {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
             ),
             {"func": "min"},
         ),
         (
-            DataFrame(
+            pd.DataFrame(
                 {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
             ),
             {"func": {1: ["min", "max"], 2: "sum"}},
         ),
         (
-            DataFrame(
+            pd.DataFrame(
                 {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
             ),
-            {"min_col": NamedAgg(column=1, aggfunc="min")},
+            {"min_col": pd.NamedAgg(column=1, aggfunc="min")},
         ),
     ],
 )
@@ -314,7 +308,7 @@ def test_multifunc_numba_kwarg_propagation(data, agg_kwargs):
     grouped = data.groupby(labels)
     result = grouped.agg(**agg_kwargs, engine="numba", engine_kwargs={"parallel": True})
     expected = grouped.agg(**agg_kwargs, engine="numba")
-    if isinstance(expected, DataFrame):
+    if isinstance(expected, pd.DataFrame):
         tm.assert_frame_equal(result, expected)
     else:
         tm.assert_series_equal(result, expected)
@@ -327,14 +321,14 @@ def test_args_not_cached():
     def sum_last(values, index, n):
         return values[-n:].sum()
 
-    df = DataFrame({"id": [0, 0, 1, 1], "x": [1, 1, 1, 1]})
+    df = pd.DataFrame({"id": [0, 0, 1, 1], "x": [1, 1, 1, 1]})
     grouped_x = df.groupby("id")["x"]
     result = grouped_x.agg(sum_last, 1, engine="numba")
-    expected = Series([1.0] * 2, name="x", index=Index([0, 1], name="id"))
+    expected = pd.Series([1.0] * 2, name="x", index=pd.Index([0, 1], name="id"))
     tm.assert_series_equal(result, expected)
 
     result = grouped_x.agg(sum_last, 2, engine="numba")
-    expected = Series([2.0] * 2, name="x", index=Index([0, 1], name="id"))
+    expected = pd.Series([2.0] * 2, name="x", index=pd.Index([0, 1], name="id"))
     tm.assert_series_equal(result, expected)
 
 
@@ -345,10 +339,10 @@ def test_index_data_correctly_passed():
     def f(values, index):
         return np.mean(index)
 
-    df = DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
+    df = pd.DataFrame({"group": ["A", "A", "B"], "v": [4, 5, 6]}, index=[-1, -2, -3])
     result = df.groupby("group").aggregate(f, engine="numba")
-    expected = DataFrame(
-        [-1.5, -3.0], columns=["v"], index=Index(["A", "B"], name="group")
+    expected = pd.DataFrame(
+        [-1.5, -3.0], columns=["v"], index=pd.Index(["A", "B"], name="group")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -364,11 +358,11 @@ def test_engine_kwargs_not_cached():
         return nogil + parallel
 
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
-    df = DataFrame({"value": [0, 0, 0]})
+    df = pd.DataFrame({"value": [0, 0, 0]})
     result = df.groupby(level=0).aggregate(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [1.0, 1.0, 1.0]})
+    expected = pd.DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
 
     nogil = False
@@ -376,7 +370,7 @@ def test_engine_kwargs_not_cached():
     result = df.groupby(level=0).aggregate(
         func_kwargs, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame({"value": [0.0, 0.0, 0.0]})
+    expected = pd.DataFrame({"value": [0.0, 0.0, 0.0]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -387,12 +381,12 @@ def test_multiindex_one_key(nogil, parallel):
     def numba_func(values, index):
         return 1
 
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    df = pd.DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
     result = df.groupby("A").agg(
         numba_func, engine="numba", engine_kwargs=engine_kwargs
     )
-    expected = DataFrame([1.0], index=Index([1], name="A"), columns=["C"])
+    expected = pd.DataFrame([1.0], index=pd.Index([1], name="A"), columns=["C"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -402,7 +396,7 @@ def test_multiindex_multi_key_not_supported(nogil, parallel):
     def numba_func(values, index):
         return 1
 
-    df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
+    df = pd.DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nogil": nogil, "parallel": parallel}
     with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).agg(
@@ -413,7 +407,7 @@ def test_multiindex_multi_key_not_supported(nogil, parallel):
 def test_multilabel_numba_vs_cython(numba_supported_reductions):
     pytest.importorskip("numba")
     reduction, kwargs = numba_supported_reductions
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
@@ -433,7 +427,7 @@ def test_multilabel_numba_vs_cython(numba_supported_reductions):
 
 def test_multilabel_udf_numba_vs_cython():
     pytest.importorskip("numba")
-    df = DataFrame(
+    df = pd.DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],

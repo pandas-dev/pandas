@@ -619,7 +619,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
         if not (left[left_mask] <= right[left_mask]).all():
-            msg = "left side of interval must be <= right side"
+            # GH#66807 point at the offending intervals
+            invalid = left_mask.copy()
+            invalid[left_mask] = left[left_mask] > right[left_mask]
+            positions = np.flatnonzero(invalid)
+            examples = ", ".join(
+                f"{pos}: ({left[pos]}, {right[pos]})" for pos in positions[:5]
+            )
+            if len(positions) > 5:
+                examples += f", ... ({len(positions) - 5} more)"
+            msg = (
+                "left side of interval must be <= right side; offending "
+                f"intervals (position: interval): {examples}"
+            )
             raise ValueError(msg)
 
     def _shallow_copy(self, left, right) -> Self:
@@ -1352,6 +1364,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Two intervals overlap if they share a common point, including closed
         endpoints. Intervals that only have an open endpoint in common do not
+        overlap, and empty intervals contain no points at all, so they never
         overlap.
 
         Parameters
@@ -1389,12 +1402,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         >>> intervals.overlaps(pd.Interval(1, 2, closed="right"))
         array([False,  True, False])
+
+        Empty intervals do not overlap with anything:
+
+        >>> intervals.overlaps(pd.Interval(1, 1, closed="left"))
+        array([False, False, False])
         """
         if isinstance(other, (IntervalArray, ABCIntervalIndex)):
             raise NotImplementedError
         if not isinstance(other, Interval):
             msg = f"`other` must be Interval-like, got {type(other).__name__}"
             raise TypeError(msg)
+
+        # an empty interval contains no points, so it cannot share one
+        if other.is_empty:
+            return np.zeros(len(self), dtype=bool)
 
         # equality is okay if both endpoints are closed (overlap at a point)
         op1 = le if (self.closed_left and other.closed_right) else lt
@@ -1403,7 +1425,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # overlaps is equivalent negation of two interval being disjoint:
         # disjoint = (A.left > B.right) or (B.left > A.right)
         # (simplifying the negation allows this to be done in less operations)
-        return op1(self.left, other.right) & op2(other.left, self.right)
+        overlaps = op1(self.left, other.right) & op2(other.left, self.right)
+        return overlaps & ~self.is_empty
 
     # ---------------------------------------------------------------------
 
@@ -1588,21 +1611,31 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
         try:
-            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
-        except TypeError as err:
+            subtype = to_pyarrow_type(self.dtype.subtype)
+        except (TypeError, pyarrow.ArrowNotImplementedError) as err:
             raise TypeError(
                 f"Conversion to arrow with subtype '{self.dtype.subtype}' "
                 "is not supported"
             ) from err
+        if subtype is None:
+            raise TypeError(
+                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                "is not supported"
+            )
         interval_type = ArrowIntervalType(subtype, self.closed)
+
+        def _to_arrow(values) -> pyarrow.Array:
+            if isinstance(self.dtype.subtype, np.dtype):
+                return pyarrow.array(values, type=subtype, from_pandas=True)
+            # pyarrow would fall back on `.values`, dropping the tz; _ndarray is UTC
+            return pyarrow.array(values._ndarray, from_pandas=True).cast(subtype)
+
         storage_array = pyarrow.StructArray.from_arrays(
-            [
-                pyarrow.array(self._left, type=subtype, from_pandas=True),
-                pyarrow.array(self._right, type=subtype, from_pandas=True),
-            ],
+            [_to_arrow(self._left), _to_arrow(self._right)],
             names=["left", "right"],
         )
         mask = self.isna()

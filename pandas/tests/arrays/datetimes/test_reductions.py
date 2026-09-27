@@ -4,7 +4,6 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
-from pandas import NaT
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 
@@ -44,31 +43,31 @@ class TestReductions:
         assert result.unit == expected.unit
 
         result = arr.min(skipna=False)
-        assert result is NaT
+        assert result is pd.NaT
 
         result = arr.max(skipna=False)
-        assert result is NaT
+        assert result is pd.NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_min_max_empty(self, skipna, tz):
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence([], dtype=dtype)
         result = arr.min(skipna=skipna)
-        assert result is NaT
+        assert result is pd.NaT
 
         result = arr.max(skipna=skipna)
-        assert result is NaT
+        assert result is pd.NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_median_empty(self, skipna, tz):
         dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence([], dtype=dtype)
         result = arr.median(skipna=skipna)
-        assert result is NaT
+        assert result is pd.NaT
 
         arr = arr.reshape(0, 3)
         result = arr.median(axis=0, skipna=skipna)
-        expected = type(arr)._from_sequence([NaT, NaT, NaT], dtype=arr.dtype)
+        expected = type(arr)._from_sequence([pd.NaT, pd.NaT, pd.NaT], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
         result = arr.median(axis=1, skipna=skipna)
@@ -81,7 +80,7 @@ class TestReductions:
         result = arr.median()
         assert result == arr[0]
         result = arr.median(skipna=False)
-        assert result is NaT
+        assert result is pd.NaT
 
         result = arr.dropna().median(skipna=False)
         assert result == arr[0]
@@ -92,7 +91,7 @@ class TestReductions:
     def test_median_axis(self, arr1d):
         arr = arr1d
         assert arr.median(axis=0) == arr.median()
-        assert arr.median(axis=0, skipna=False) is NaT
+        assert arr.median(axis=0, skipna=False) is pd.NaT
 
         msg = r"abs\(axis\) must be less than ndim"
         with pytest.raises(ValueError, match=msg):
@@ -103,7 +102,7 @@ class TestReductions:
 
         # axis = None
         assert arr.median() == arr1d.median()
-        assert arr.median(skipna=False) is NaT
+        assert arr.median(skipna=False) is pd.NaT
 
         # axis = 0
         result = arr.median(axis=0)
@@ -121,7 +120,7 @@ class TestReductions:
         tm.assert_equal(result, expected)
 
         result = arr.median(axis=1, skipna=False)
-        expected = type(arr)._from_sequence([NaT], dtype=arr.dtype)
+        expected = type(arr)._from_sequence([pd.NaT], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
     def test_mean(self, arr1d):
@@ -133,7 +132,7 @@ class TestReductions:
         result = arr.mean()
         assert result == expected
         result = arr.mean(skipna=False)
-        assert result is NaT
+        assert result is pd.NaT
 
         result = arr.dropna().mean(skipna=False)
         assert result == expected
@@ -160,11 +159,13 @@ class TestReductions:
     def test_mean_empty(self, arr1d, skipna):
         arr = arr1d[:0]
 
-        assert arr.mean(skipna=skipna) is NaT
+        assert arr.mean(skipna=skipna) is pd.NaT
 
         arr2d = arr.reshape(0, 3)
         result = arr2d.mean(axis=0, skipna=skipna)
-        expected = DatetimeArray._from_sequence([NaT, NaT, NaT], dtype=arr.dtype)
+        expected = DatetimeArray._from_sequence(
+            [pd.NaT, pd.NaT, pd.NaT], dtype=arr.dtype
+        )
         tm.assert_datetime_array_equal(result, expected)
 
         result = arr2d.mean(axis=1, skipna=skipna)
@@ -172,4 +173,4 @@ class TestReductions:
         tm.assert_datetime_array_equal(result, expected)
 
         result = arr2d.mean(axis=None, skipna=skipna)
-        assert result is NaT
+        assert result is pd.NaT
