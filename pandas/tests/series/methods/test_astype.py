@@ -80,6 +80,9 @@ class TestAstypeAPI:
         )
         with pytest.raises(KeyError, match=msg):
             ser.astype(dt3)
+        # GH#30324 errors="ignore" only covers failed casts, not missing keys
+        with pytest.raises(KeyError, match=msg):
+            ser.astype(dt3, errors="ignore")
 
         dt4 = dtype_class({0: str})
         with pytest.raises(KeyError, match=msg):
