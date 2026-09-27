@@ -13,6 +13,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -789,6 +790,26 @@ class TestDataFrameToString:
         result = df.to_string(na_rep="MISSING")
         assert "NaT" not in result
         assert result.count("MISSING") == 3
+
+    @pytest.mark.parametrize(
+        "values, dtype",
+        [
+            ([1, None], "Int64"),
+            ([1.5, None], "Float64"),
+            ([True, None], "boolean"),
+            (["a", None], "string"),
+            pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+            ([1, None], object),
+            ([1, pd.NA], object),
+        ],
+    )
+    def test_to_string_na_rep_none_and_na(self, values, dtype, frame_or_series):
+        # GH#54872
+        obj = frame_or_series(pd.array(values, dtype=dtype))
+        result = obj.to_string(na_rep="foo")
+        assert "<NA>" not in result
+        assert "None" not in result
+        assert result.count("foo") == 1
 
     def test_to_string_string_dtype(self):
         # GH#50099

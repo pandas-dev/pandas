@@ -1247,7 +1247,10 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
+                if self.na_rep != "NaN":
+                    # a non-default na_rep applies to all missing values, GH#54872
+                    return self.na_rep
+                elif x is None:
                     return "None"
                 elif x is NA:
                     return str(NA)
