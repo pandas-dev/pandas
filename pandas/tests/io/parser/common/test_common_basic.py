@@ -890,8 +890,20 @@ def test_read_csv_delimiter_and_sep_no_default(all_parsers, delimiter):
 
 
 @pytest.mark.parametrize("key", ["sep", "delimiter"])
-@pytest.mark.parametrize("sep", ["\n", "\r"])
-def test_read_csv_line_break_as_separator(key, sep, all_parsers):
+@pytest.mark.parametrize(
+    "sep, lineterminator",
+    [
+        ("\n", None),
+        ("\r", None),
+        ("\n", "\n"),
+        ("\r", "\r"),
+        # the C engine accepts these spellings too
+        ("\n", b"\n"),
+        ("\r", b"\r"),
+        ("\n", bytearray(b"\n")),
+    ],
+)
+def test_read_csv_line_break_as_separator(key, sep, lineterminator, all_parsers):
     # GH#43528, GH#51801
     parser = all_parsers
     data = """a,b,c
@@ -899,10 +911,12 @@ def test_read_csv_line_break_as_separator(key, sep, all_parsers):
     """
     msg = (
         f"Specified {sep!r} as separator or delimiter, but a line "
-        "terminator cannot be used as a separator."
+        f"terminator cannot be used as a separator. To parse {sep!r} "
+        f"as a separator, pass a lineterminator other than {sep!r} "
+        "(engine='c' only)."
     )
     with pytest.raises(ValueError, match=re.escape(msg)):
-        parser.read_csv(StringIO(data), **{key: sep})
+        parser.read_csv(StringIO(data), lineterminator=lineterminator, **{key: sep})
 
 
 @skip_pyarrow

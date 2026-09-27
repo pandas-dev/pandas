@@ -740,18 +740,28 @@ def df_bar_df(df_bar_data) -> pd.DataFrame:
     return df_bar_df
 
 
-def _df_bar_xyheight_from_ax_helper(df_bar_data, ax, subplot_division):
+def _df_bar_xyheight_from_ax_helper(df_bar_data, ax, subplot_division, kind="bar"):
     subplot_data_df_list = []
 
     # get xy and height of squares representing data, separated by subplots
     for i in range(len(subplot_division)):
-        subplot_data = np.array(
-            [
-                (x.get_x(), x.get_y(), x.get_height())
-                for x in ax[i].findobj(plt.Rectangle)
-                if x.get_height() in df_bar_data
-            ]
-        )
+        if kind == "barh":
+            # horizontal bars stack along x, so swap the axes to reuse the checker
+            subplot_data = np.array(
+                [
+                    (x.get_y(), x.get_x(), x.get_width())
+                    for x in ax[i].findobj(plt.Rectangle)
+                    if x.get_width() in df_bar_data
+                ]
+            )
+        else:
+            subplot_data = np.array(
+                [
+                    (x.get_x(), x.get_y(), x.get_height())
+                    for x in ax[i].findobj(plt.Rectangle)
+                    if x.get_height() in df_bar_data
+                ]
+            )
         subplot_data_df_list.append(
             pd.DataFrame(data=subplot_data, columns=["x_coord", "y_coord", "height"])
         )
@@ -818,6 +828,26 @@ def test_bar_2_subplot_1_double_stacked(df_bar_data, df_bar_df, columns_used):
     ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind="bar", stacked=True)
     subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
         df_bar_data, ax, subplot_division
+    )
+    for i in range(len(subplot_data_df_list)):
+        _df_bar_subplot_checker(
+            df_bar_data, df_bar_df_trimmed, subplot_data_df_list[i], subplot_division[i]
+        )
+
+
+@pytest.mark.parametrize("kind", ["bar", "barh"])
+@pytest.mark.parametrize(
+    "columns_used", [["A", "B", "C"], ["A", "C", "B"], ["D", "A", "C"]]
+)
+def test_bar_2_subplot_single_column_first_stacked(
+    df_bar_data, df_bar_df, columns_used, kind
+):
+    # GH#67726
+    df_bar_df_trimmed = df_bar_df[columns_used]
+    subplot_division = [(columns_used[0],), (columns_used[1], columns_used[2])]
+    ax = df_bar_df_trimmed.plot(subplots=subplot_division, kind=kind, stacked=True)
+    subplot_data_df_list = _df_bar_xyheight_from_ax_helper(
+        df_bar_data, ax, subplot_division, kind=kind
     )
     for i in range(len(subplot_data_df_list)):
         _df_bar_subplot_checker(

@@ -273,6 +273,19 @@ def test_orc_roundtrip_bytesio():
     tm.assert_equal(expected, got)
 
 
+def test_orc_roundtrip_tz_aware():
+    # GH#68426 pyarrow reading .values should not surface a deprecation warning
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.date_range("2025-01-01", periods=3, tz="US/Eastern")})
+
+    with tm.assert_produces_warning(None):
+        result = pd.read_orc(BytesIO(df.to_orc()))
+    # ORC stores timestamps as UTC
+    expected = df.copy()
+    expected["a"] = expected["a"].dt.tz_convert("UTC").dt.as_unit("ns")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "orc_writer_dtypes_not_supported",
     [

@@ -10,6 +10,7 @@ from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.dtypes import SparseDtype
+from pandas.core.dtypes.missing import isna
 
 from pandas.core.accessor import (
     PandasDelegate,
@@ -340,12 +341,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Examples
         --------
         >>> import scipy.sparse
-        >>> mat = scipy.sparse.eye(3, dtype=int)
+        >>> mat = scipy.sparse.eye(3, dtype=float)
         >>> pd.DataFrame.sparse.from_spmatrix(mat)
              0    1    2
-        0    1    0    0
-        1    0    1    0
-        2    0    0    1
+        0  1.0  0.0  0.0
+        1  0.0  1.0  0.0
+        2  0.0  0.0  1.0
         """
         from pandas._libs.sparse import IntIndex
 
@@ -362,7 +363,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         indices = data.indices
         indptr = data.indptr
         array_data = data.data
-        dtype = SparseDtype(array_data.dtype)
+        # scipy's unstored entries are zeros, not missing values, see GH#59212
+        zero = np.array(0, dtype=array_data.dtype).item()
+        dtype = SparseDtype(array_data.dtype, zero)
         arrays = []
         for i in range(n_columns):
             sl = slice(indptr[i], indptr[i + 1])
@@ -417,6 +420,11 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             If the caller is heterogeneous and contains booleans or objects,
             the result will be of dtype=object. See Notes.
 
+        Raises
+        ------
+        ValueError
+            If any column's ``fill_value`` is not zero.
+
         See Also
         --------
         DataFrame.sparse.to_dense : Convert a DataFrame with sparse values to dense.
@@ -448,6 +456,9 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         cols, rows, data = [], [], []
         for col, (_, ser) in enumerate(self._parent.items()):
             sp_arr = ser.array
+            # isna first: `pd.NA != 0` is NA, which is not usable as a condition
+            if isna(sp_arr.fill_value) or sp_arr.fill_value != 0:
+                raise ValueError("fill value must be 0 when converting to COO matrix")
 
             row = sp_arr.sp_index.indices
             cols.append(np.repeat(col, len(row)))
