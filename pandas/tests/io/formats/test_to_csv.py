@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -416,6 +417,29 @@ $1$,$2$
         )
         expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float16",
+            "float32",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "quoting, expected_rows",
+        [
+            (csv.QUOTE_NONNUMERIC, ['"a","b"', "8.57,0.5", '"",1.5']),
+            (csv.QUOTE_ALL, ['"a","b"', '"8.57","0.5"', '"","1.5"']),
+        ],
+    )
+    def test_to_csv_quoting_low_precision_float(self, dtype, quoting, expected_rows):
+        # GH#60699 quoting should not write the float64 repr of the values
+        df = pd.DataFrame({"a": [8.57, None], "b": [0.5, 1.5]}, dtype=dtype)
+        result = df.to_csv(index=False, quoting=quoting)
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
 
     def test_to_csv_multi_index(self):
         # see gh-6618
