@@ -3202,7 +3202,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep : str, default ``'\t'``
             Field delimiter.
         **kwargs
-            These parameters will be passed to DataFrame.to_csv.
+            These parameters will be passed to DataFrame.to_csv. If csv output
+            is not produced (``excel=False`` or an invalid ``sep``), they are
+            passed to DataFrame.to_string instead, or ignored for a Series.
 
         See Also
         --------
