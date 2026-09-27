@@ -10584,7 +10584,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is True, keep the original value. Where
             False, replace with corresponding value from `other`.
-            Missing values in a nullable boolean `cond` are treated as False.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10757,7 +10758,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is False, keep the original value. Where
             True, replace with corresponding value from `other`.
-            Missing values in a nullable boolean `cond` are treated as False.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
