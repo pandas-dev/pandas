@@ -154,6 +154,26 @@ def test_groupby_resample_on_with_non_default_index(index):
     tm.assert_series_equal(result_series, expected_series)
 
 
+def test_groupby_resample_on_with_unsorted_dates_and_non_default_index():
+    # GH 59350
+    dates = date_range("2024-01-01", periods=4, freq="min")
+    df = pd.DataFrame(
+        {
+            "group": ["a", "a", "b", "b"],
+            "date": dates.take([1, 0, 3, 2]),
+            "value": [200, 100, 2000, 1000],
+        },
+        index=[10, 20, 30, 40],
+    )
+    expected_index = pd.MultiIndex.from_arrays(
+        [["a", "a", "b", "b"], dates], names=["group", "date"]
+    )
+    expected = pd.Series([100, 200, 1000, 2000], index=expected_index, name="value")
+
+    result = df.groupby("group").resample("1min", on="date")["value"].sum()
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_with_origin():
     # GH 31809
 
