@@ -210,6 +210,19 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+def test_arrowparquet_falls_back_to_fsspec(cleared_fs, df1, monkeypatch):
+    # GH#58078 pyarrow cannot build a filesystem for "hdfs:///" but fsspec can
+    pytest.importorskip("pyarrow")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    monkeypatch.setitem(registry, "hdfs", MemoryFileSystem)
+    path = "hdfs:///test/test.parquet"
+    df1.to_parquet(path, engine="pyarrow")
+    result = pd.read_parquet(path, engine="pyarrow")
+    tm.assert_frame_equal(result, df1)
+
+
 @pytest.mark.filterwarnings(
     "ignore:The 'fastparquet' engine is deprecated:DeprecationWarning"
 )

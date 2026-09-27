@@ -127,7 +127,8 @@ def _get_path_or_handle(
 
             try:
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
-            except (TypeError, pa.ArrowInvalid):
+            except (TypeError, OSError, pa.ArrowException):
+                # fall back to fsspec, e.g. for "hdfs:///path" (GH#58078)
                 pass
         if fs is None:
             fsspec = import_optional_dependency("fsspec")
