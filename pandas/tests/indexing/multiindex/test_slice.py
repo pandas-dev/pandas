@@ -803,3 +803,22 @@ class TestMultiIndexSlicers:
         tm.assert_frame_equal(result_get_loc, expected)
         tm.assert_frame_equal(result_get_locs_level_0, expected)
         tm.assert_frame_equal(result_get_locs_level_1, expected)
+
+
+@pytest.mark.parametrize(
+    "key, iloc",
+    [
+        (slice("2001-01-31", "2001-02-01"), slice(2, 6)),
+        ("2001-01-31", slice(2, 4)),
+        ("2001-02", slice(4, 8)),
+    ],
+)
+def test_loc_level0_key_plus_null_slice_returns_view(key, iloc):
+    # GH#52714 a trailing null slice should not force a copy
+    dates = pd.date_range("2001-01-30", periods=4)
+    mi = pd.MultiIndex.from_product([dates, ["a", "b"]], names=["date", "id"])
+    df = pd.DataFrame({"A": np.arange(8.0), "B": np.arange(8.0)}, index=mi)
+
+    result = df.loc[(key, slice(None)), :]
+    tm.assert_frame_equal(result, df.iloc[iloc])
+    assert tm.shares_memory(result, df)
