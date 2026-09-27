@@ -488,9 +488,16 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array(0)])
-def test_nd_raises(data):
-    with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
+@pytest.mark.parametrize(
+    "data, msg",
+    [
+        (np.array(0), "NumpyExtensionArray must be 1-dimensional"),
+        # GH#64280 an explicit NumPy dtype used to silently return a 2-D result
+        ([[1, 2], [3, 4]], "'pandas.array' does not support multidimensional data"),
+    ],
+)
+def test_nd_raises(data, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.array(data, dtype="int64")
 
 
