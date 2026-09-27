@@ -2071,7 +2071,12 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        data = self.data.fillna(0)
+        # GH#39320 timedelta columns need a timedelta zero to keep their dtype
+        data = self.data.apply(
+            lambda col: col.fillna(
+                np.timedelta64(0, "ns") if lib.is_np_dtype(col.dtype, "m") else 0
+            )
+        )
 
         _stacked_subplots_ind: dict[int, int] = {}
         _stacked_subplots_offsets: dict[int, tuple[np.ndarray, np.ndarray]] = {}
