@@ -327,7 +327,7 @@ class TestSeriesPlots:
         _, ax = mpl.pyplot.subplots()
         ax = ser.plot.bar(ax=ax)
         result = [patch.get_height() for patch in ax.patches]
-        expected = list(ser.fillna(pd.Timedelta(0)).to_numpy())
+        expected = ser.fillna(pd.Timedelta(0)).astype(np.int64).tolist()
         assert result == expected
 
     def test_bar_user_colors(self):
