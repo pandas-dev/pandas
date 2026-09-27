@@ -4,7 +4,6 @@ Module for formatting output data in console (to string).
 
 from __future__ import annotations
 
-from shutil import get_terminal_size
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -156,7 +155,9 @@ class StringFormatter:
         # total width = sum of column widths + adjoin spacing (1 per gap)
         total_width = sum(col_lens) + n_cols - 1
 
-        width, _ = get_terminal_size()
+        # honor display.width, GH#21337
+        width = self.line_width
+        assert width is not None
         dif = total_width - width
         # '+ 1' to avoid too wide repr (GH PR #17023)
         adj_dif = dif + 1
