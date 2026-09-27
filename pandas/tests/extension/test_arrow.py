@@ -2550,7 +2550,15 @@ def test_sort_values_dictionary():
     tm.assert_frame_equal(result, expected)
 
 
-def test_sort_values_null():
+@pytest.mark.parametrize(
+    "ascending, expected_b, expected_index",
+    [
+        (True, [1, 2], [1, 0]),
+        ([False, True], [1, 2], [1, 0]),
+        ([True, False], [2, 1], [0, 1]),
+    ],
+)
+def test_sort_values_null(ascending, expected_b, expected_index):
     # GH#54908
     df = pd.DataFrame(
         {
@@ -2558,36 +2566,29 @@ def test_sort_values_null():
             "b": [2, 1],
         }
     )
-    result = df.sort_values(list(df.columns))
+    result = df.sort_values(["a", "b"], ascending=ascending)
     expected = pd.DataFrame(
         {
             "a": pd.Series([None, None], dtype="null[pyarrow]"),
-            "b": [1, 2],
+            "b": expected_b,
         },
-        index=[1, 0],
+        index=expected_index,
     )
     tm.assert_frame_equal(result, expected)
 
-    result_asc = df.sort_values(["a", "b"], ascending=[False, True])
-    tm.assert_frame_equal(result_asc, expected)
 
-    result_desc = df.sort_values(["a", "b"], ascending=[True, False])
-    expected_desc = pd.DataFrame(
-        {
-            "a": pd.Series([None, None], dtype="null[pyarrow]"),
-            "b": [2, 1],
-        },
-        index=[0, 1],
-    )
-    tm.assert_frame_equal(result_desc, expected_desc)
+def test_sort_values_null_empty():
+    # GH#54908
+    df = pd.DataFrame({"a": pd.Series([], dtype="null[pyarrow]")})
+    result = df.sort_values(by="a")
+    tm.assert_frame_equal(result, df)
 
-    df_empty = pd.DataFrame({"a": pd.Series([], dtype="null[pyarrow]")})
-    result_empty = df_empty.sort_values(by="a")
-    tm.assert_frame_equal(result_empty, df_empty)
 
+def test_sort_values_null_series():
+    # GH#54908
     ser = pd.Series([None, None], dtype="null[pyarrow]")
-    result_ser = ser.sort_values()
-    tm.assert_series_equal(result_ser, ser)
+    result = ser.sort_values()
+    tm.assert_series_equal(result, ser)
 
 
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
@@ -5590,12 +5591,13 @@ def test_null_astype_categorical():
     # GH#54908
     ser = pd.Series([None, None], dtype="null[pyarrow]")
     result = pd.Categorical(ser)
-    assert len(result.categories) == 0
-    assert result.isna().all()
+    dtype = pd.CategoricalDtype(categories=pd.Index([], dtype="null[pyarrow]"))
+    expected = pd.Categorical([None, None], dtype=dtype)
+    tm.assert_categorical_equal(result, expected)
 
     result_astype = ser.astype("category")
-    assert len(result_astype.cat.categories) == 0
-    assert result_astype.isna().all()
+    expected_ser = pd.Series(expected)
+    tm.assert_series_equal(result_astype, expected_ser)
 
 
 def test_dictionary_astype_categorical():
