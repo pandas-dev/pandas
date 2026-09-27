@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -469,3 +471,24 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+@pytest.mark.parametrize(
+    "cond_dtype",
+    ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_nullable_bool_cond_na_series(method, inplace, cond_dtype):
+    # GH#35429 NA in cond is treated as False, as in boolean indexing
+    ser = pd.Series([1, 2, 3])
+    cond = pd.array([True, False, pd.NA], dtype=cond_dtype)
+    if method == "where":
+        expected = pd.Series([1, -9, -9])
+    else:
+        expected = pd.Series([-9, 2, 3])
+
+    result = getattr(ser, method)(cond, -9, inplace=inplace)
+    if inplace:
+        result = ser
+    tm.assert_series_equal(result, expected)

@@ -1147,31 +1147,10 @@ def test_where_mask_inplace_2d_ea_other(method, dtype):
     tm.assert_frame_equal(result, expected)
 
 
-nullable_bool_dtypes = pytest.mark.parametrize(
+@pytest.mark.parametrize(
     "cond_dtype",
     ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
 )
-
-
-@nullable_bool_dtypes
-@pytest.mark.parametrize("inplace", [True, False])
-@pytest.mark.parametrize("method", ["where", "mask"])
-def test_where_mask_nullable_bool_cond_na_series(method, inplace, cond_dtype):
-    # GH#35429 NA in cond is treated as False, as in boolean indexing
-    ser = pd.Series([1, 2, 3])
-    cond = pd.array([True, False, pd.NA], dtype=cond_dtype)
-    if method == "where":
-        expected = pd.Series([1, -9, -9])
-    else:
-        expected = pd.Series([-9, 2, 3])
-
-    result = getattr(ser, method)(cond, -9, inplace=inplace)
-    if inplace:
-        result = ser
-    tm.assert_series_equal(result, expected)
-
-
-@nullable_bool_dtypes
 @pytest.mark.parametrize("inplace", [True, False])
 @pytest.mark.parametrize("method", ["where", "mask"])
 def test_where_mask_nullable_bool_cond_na_frame(method, inplace, cond_dtype):
