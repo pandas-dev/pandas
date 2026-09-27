@@ -177,7 +177,6 @@ from pandas.io.formats.printing import (
     default_pprint,
     format_object_summary,
     get_adjustment,
-    pprint_thing,
 )
 
 if TYPE_CHECKING:
@@ -1591,13 +1590,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Render a string representation of the Index.
         """
+        from pandas.io.formats.format import format_name
+
         header = []
         if include_name:
-            header.append(
-                pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
+            header.append(format_name(self.name))
 
         if formatter is not None:
             return header + list(self.map(formatter))

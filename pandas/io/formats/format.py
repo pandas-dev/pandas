@@ -213,8 +213,7 @@ class SeriesFormatter:
             if footer:
                 footer += ", "
 
-            series_name = printing.pprint_thing(name, escape_chars=("\t", "\r", "\n"))
-            footer += f"Name: {series_name}"
+            footer += f"Name: {format_name(name)}"
 
         if self.length is True or (
             self.length == "truncate" and self.is_truncated_vertically
@@ -833,7 +832,7 @@ class DataFrameFormatter:
 
         # empty space for columns
         if self.show_col_idx_names:
-            col_header = [str(x) for x in self._get_column_name_list()]
+            col_header = [format_name(x) for x in self._get_column_name_list()]
         else:
             col_header = [""] * columns.nlevels
 
@@ -846,9 +845,9 @@ class DataFrameFormatter:
         names: list[Hashable] = []
         columns = self.frame.columns
         if isinstance(columns, MultiIndex):
-            names.extend("" if name is None else name for name in columns.names)
+            names.extend(columns.names)
         else:
-            names.append("" if columns.name is None else columns.name)
+            names.append(columns.name)
         return names
 
     def _validate_float_format(
@@ -1088,6 +1087,19 @@ def _get_buffer(
 
 # ----------------------------------------------------------------------
 # Array formatters
+
+
+def format_name(name: Hashable) -> str:
+    """
+    Render an Index or Series name for display.
+
+    Float names follow ``display.precision`` like float values do (GH#25917).
+    """
+    if name is None:
+        return ""
+    if lib.is_float(name) and not isna(name):
+        return format_array(np.array([name]), None, leading_space=False)[0]
+    return printing.pprint_thing(name, escape_chars=("\t", "\r", "\n"))
 
 
 def format_array(
