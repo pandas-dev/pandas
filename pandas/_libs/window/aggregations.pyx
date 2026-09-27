@@ -70,7 +70,7 @@ cdef:
     # GH#68934 limits on the two magnitudes a skew/kurt window's deviations get
     # taken against, each applied as ``magnitude ** 2 * limit > m2``. Past a
     # deviation of ~1e154 both sides are inf, ``inf > inf`` is False, and the
-    # NaN arm takes over.
+    # NaN check in moment_cancellation_suspected takes over.
     #
     # PeakDevLimit fires once m2's own round-off, of order
     # ``EpsF64 * peak_dev ** 2``, has grown past InvCondTol relative to m2.
@@ -674,7 +674,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
 
             if requires_recompute or numerically_unstable:
 
-                mean = m2 = m3 = peak_dev = 0.0
+                mean = origin = m2 = m3 = peak_dev = 0.0
                 nobs = 0
 
                 for j in range(s, e):
@@ -689,6 +689,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
             if not is_monotonic_increasing_bounds:
                 nobs = 0
                 mean = 0.0
+                origin = 0.0
                 m2 = 0.0
                 m3 = 0.0
                 peak_dev = 0.0
@@ -816,7 +817,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
 
             if requires_recompute or numerically_unstable:
 
-                mean = m2 = m3 = m4 = peak_dev = 0.0
+                mean = origin = m2 = m3 = m4 = peak_dev = 0.0
                 nobs = 0
                 for j in range(s, e):
                     add_kurt(values[j], &nobs, &mean, &origin, &m2, &m3, &m4,
@@ -829,6 +830,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
             if not is_monotonic_increasing_bounds:
                 nobs = 0
                 mean = 0.0
+                origin = 0.0
                 m2 = 0.0
                 m3 = 0.0
                 m4 = 0.0
