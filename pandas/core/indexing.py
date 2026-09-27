@@ -18,6 +18,8 @@ import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import (
+    is_bool,
+    is_bool_array,
     is_np_dtype,
     item_from_zerodim,
 )
@@ -1731,14 +1733,7 @@ class _LocIndexer(_LocationIndexer):
         # slice of integers (only if in the labels)
         # boolean not in slice and with boolean index
         ax = self.obj._get_axis(axis)
-        if isinstance(key, bool) and not (
-            is_bool_dtype(ax.dtype)
-            or ax.dtype.name == "boolean"
-            or (
-                isinstance(ax, MultiIndex)
-                and is_bool_dtype(ax.get_level_values(0).dtype)
-            )
-        ):
+        if isinstance(key, bool) and not _holds_bool_label(ax, key):
             raise KeyError(
                 f"{key}: boolean label can not be used without a boolean index"
             )
@@ -3679,6 +3674,30 @@ def check_bool_indexer(index: Index, key) -> np.ndarray:
         # key may contain nan elements, check_array_indexer needs bool array
         result = pd_array(result, dtype=bool)
     return check_array_indexer(index, result)
+
+
+def _holds_bool_label(index: Index, key: bool) -> bool:
+    """
+    Check whether a bool ``key`` can be looked up as a label in ``index``.
+
+    For a MultiIndex, the key is matched against the first level.
+    """
+    if isinstance(index, MultiIndex):
+        index = index.levels[0]
+    if is_bool_dtype(index.dtype):
+        return True
+    if index.dtype != object:
+        return False
+    # object-dtype lookups match False to 0 and True to 1, so require that the
+    # matched labels are actually bools, see GH#20432, GH#50165
+    try:
+        loc = index.get_loc(key)
+    except KeyError:
+        return False
+    values = index._values[loc]
+    if isinstance(values, np.ndarray):
+        return is_bool_array(values)
+    return is_bool(values)
 
 
 def convert_missing_indexer(indexer):
