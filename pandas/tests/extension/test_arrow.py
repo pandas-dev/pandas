@@ -5400,6 +5400,29 @@ class TestGroupbyAggPyArrowNative:
             getattr(ser.groupby([1, 1, 2, 2]), how)()
 
 
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize("how", ["any", "all", "std", "sem", "idxmin", "idxmax"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
+        pa.array([time(2), time(1), None, time(3)]),
+        pa.array([b"b", b"a", None, b"c"]),
+        pa.array(["b", "a", None, "c"]),
+        pa.array(["b", "a", None, "c"]).dictionary_encode(),
+        pa.array([[2], [1], None, [3]]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
+    # GH#66626 used to raise NotImplementedError, mostly with no message
+    ser = pd.Series(ArrowExtensionArray(arr))
+    obj = ser.to_frame() if frame else ser
+    msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
+    with pytest.raises(TypeError, match=msg):
+        getattr(obj.groupby([0, 0, 1, 1]), how)()
+
+
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):

@@ -1582,13 +1582,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     min_count=min_count,
                     **kwargs,
                 )
-            except NotImplementedError:
+            except NotImplementedError as err:
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
                 if alt is None or how in ["any", "all", "std", "sem"]:
-                    raise  # TODO: re-raise as TypeError?  should not be reached
+                    raise TypeError(
+                        f"{how} is not supported for {values.dtype} dtype"
+                    ) from err
             else:
                 if use_bool_fastpath and result.dtype.kind == "f":
                     fill = 0.0 if how == "any" else 1.0
