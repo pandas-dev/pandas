@@ -324,9 +324,13 @@ class NumericArray(BaseMaskedArray):
                 strings = strings.copy()
                 strings[nan_mask] = np.nan
 
-        scalars = to_numeric(strings, errors="raise", dtype_backend="numpy_nullable")
+        scalars = cls._from_sequence(
+            to_numeric(strings, errors="raise", dtype_backend="numpy_nullable"),
+            dtype=dtype,
+            copy=copy,
+        )
         if nan_mask is not None and nan_mask.any():
             scalars[nan_mask] = np.nan
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
+        return scalars
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
