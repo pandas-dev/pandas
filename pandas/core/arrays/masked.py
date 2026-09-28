@@ -136,8 +136,8 @@ from pandas.compat.numpy import function as nv
 @cache
 def _integer_bounds(dtype: np.dtype) -> tuple[int, int]:
     """
-    The inclusive bounds of an integer dtype, memoized because rebuilding the
-    np.iinfo per call costs about a third of an unsigned scalar setitem.
+    The inclusive bounds of an integer dtype, memoized: np.iinfo is slow to
+    construct.
     """
     info = np.iinfo(dtype)
     return info.min, info.max
@@ -152,8 +152,7 @@ def _warn_if_out_of_bounds(value, dtype: BaseMaskedDtype) -> None:
     unsigned dtype or a fancy or boolean key.  Rather than model that, rely on
     having got here at all: numpy did not reject the value.
     """
-    # kind: np.iinfo below rejects a non-integer dtype.  np.generic: a python
-    #  scalar is range-checked whatever the key, so it never gets here out of bounds.
+    # python scalars are always range-checked by numpy
     if dtype.kind not in "iu" or not isinstance(value, np.generic):
         return
 
@@ -461,9 +460,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
 
         elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-            # numpy range-checks some key/dtype combinations on assignment and
-            #  casts the rest unchecked; __setitem__ deprecates the latter, and
-            #  once that is enforced the check belongs here (GH#48867).
+            # range check belongs here once GH#48867 is enforced
             return value
 
         # Note: without the "str" here, the f-string rendering raises in
