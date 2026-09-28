@@ -248,6 +248,8 @@ def test_rolling_skew_kurt_recovers_after_empty_window(
     # GH-69037
     result = getattr(pd.Series(values).rolling(window), roll_func)()
     tm.assert_series_equal(result, pd.Series(expected))
+
+
 def _window_reduction(series, window, roll_func):
     # oracle: the matching whole-array reduction over each window on its own. It
     # accumulates independently of the sliding kernels under test and centres the
