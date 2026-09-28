@@ -101,6 +101,15 @@ class TestSeriesCorr:
         assert np.isnan(a.corr(b))
         assert np.isnan(b.corr(a))
 
+    @pytest.mark.parametrize("scale", [1e-200, 1e-99, 1e-80, 1e80, 1e99, 1e200])
+    def test_corr_scale_invariant(self, scale):
+        # GH#59652 large or small magnitudes must not overflow or underflow
+        a = pd.Series([1.0, 2.0, 3.0, 4.0])
+        b = pd.Series([1.0, 3.0, 2.0, 5.0])
+        expected = a.corr(b)
+        tm.assert_almost_equal((a * scale).corr(b * scale), expected)
+        tm.assert_almost_equal((a * scale).corr(b), expected)
+
     def test_corr_rank(self):
         stats = pytest.importorskip("scipy.stats")
 

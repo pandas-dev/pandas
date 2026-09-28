@@ -2093,7 +2093,9 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     if ssq_a <= 0 or ssq_b <= 0:
         return np.nan
 
-    result = (float(np.dot(a, b)) - a_sum * b_sum / nobs) / np.sqrt(ssq_a * ssq_b)
+    # separate roots: the product ssq_a * ssq_b can overflow or underflow
+    denom = np.sqrt(ssq_a) * np.sqrt(ssq_b)
+    result = (float(np.dot(a, b)) - a_sum * b_sum / nobs) / denom
     return np.float64(min(max(result, -1.0), 1.0))
 
 
