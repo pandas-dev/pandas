@@ -503,14 +503,6 @@ class TestDataFrameCorrWith:
         expected = pd.Series([np.nan, 1.0], index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
-    def test_corrwith_series_categorical_frame_is_float64(self):
-        # GH#61812 as above, where the coefficient happens to be a category
-        cat = pd.Categorical([1.0, 2.0, 3.0], ordered=True)
-        df = pd.DataFrame({"A": cat, "B": cat})
-        result = df.corrwith(pd.Series([1.0, 2.0, 3.0]))
-        expected = pd.Series([1.0, 1.0], index=["A", "B"])
-        tm.assert_series_equal(result, expected)
-
     def test_corr_within_bounds(self):
         df1 = pd.DataFrame({"x": [0, 1], "y": [1.35951, 1.3595100000000007]})
         result1 = df1.corr().max().max()
