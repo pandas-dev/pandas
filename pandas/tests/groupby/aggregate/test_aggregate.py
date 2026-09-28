@@ -11,6 +11,7 @@ import pytest
 
 from pandas.errors import (
     Pandas4Warning,
+    PerformanceWarning,
     SpecificationError,
 )
 import pandas.util._test_decorators as td
@@ -1805,6 +1806,92 @@ def test_agg_with_as_index_false_with_list():
     expected = pd.DataFrame(
         data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
         columns=pd.MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data,expected,expected_dtype",
+    [
+        (
+            {("col0", "l0"): [0, 0, 1], ("col1", "l1"): [10, 20, 30]},
+            [[0, 10, 20], [1, 30, 30]],
+            "int64",
+        ),
+        (
+            {("col1", "l1"): [10, 20, 30], ("col0", "l0"): [0, 0, 1]},
+            [[0, 10, 20], [1, 30, 30]],
+            "int64",
+        ),
+        (
+            {("col0", "l0"): [], ("col1", "l1"): []},
+            [],
+            "float64",
+        ),
+    ],
+)
+def test_groupby_agg_as_index_false_multiindex_column(data, expected, expected_dtype):
+    # GH39103
+    df = pd.DataFrame(data)
+    result = df.groupby(("col0", "l0"), as_index=False).agg(
+        {("col1", "l1"): ["min", "max"]}
+    )
+    expected = pd.DataFrame(
+        expected,
+        columns=pd.MultiIndex.from_tuples(
+            [
+                ("col0", "l0", ""),
+                ("col1", "l1", "min"),
+                ("col1", "l1", "max"),
+            ]
+        ),
+        dtype=expected_dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_as_index_false_multiindex_column_matches_reset_index():
+    # GH39103
+    df = pd.DataFrame(
+        {
+            ("col0", "l0"): [0, 0, 1],
+            ("col1", "l1"): [10, 20, 30],
+            ("col2", "l0"): [1, 2, 3],
+        }
+    )
+    result = df.groupby(("col0", "l0"), as_index=False).agg(
+        {("col1", "l1"): ["min", "max"]}
+    )
+    with tm.assert_produces_warning(PerformanceWarning):
+        expected = (
+            df.groupby(("col0", "l0"))
+            .agg({("col1", "l1"): ["min", "max"]})
+            .reset_index()
+        )
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby([("col0", "l0"), ("col2", "l0")], as_index=False).agg(
+        {("col1", "l1"): ["min", "max"]}
+    )
+    with tm.assert_produces_warning(PerformanceWarning):
+        expected = (
+            df.groupby([("col0", "l0"), ("col2", "l0")])
+            .agg({("col1", "l1"): ["min", "max"]})
+            .reset_index()
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_as_index_false_multiindex_column_external_grouper():
+    # GH39103
+    df = pd.DataFrame({("a", "x"): [0, 0, 1], ("b", "x"): [1, 2, 3]})
+    grouper = pd.Series([0, 0, 1], name="a")
+
+    result = df.groupby(grouper, as_index=False).agg(lambda s: s.iloc[0])
+
+    expected = pd.DataFrame(
+        [[0, 0, 1], [1, 1, 3]],
+        columns=pd.MultiIndex.from_tuples([("a", ""), ("a", "x"), ("b", "x")]),
     )
     tm.assert_frame_equal(result, expected)
 

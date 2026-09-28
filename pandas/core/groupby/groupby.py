@@ -1007,14 +1007,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def full_key(name: Hashable) -> Hashable:
             # GH#17024 expanding MultiIndex columns with a partial key is
             #  deprecated; pad the key to full length ourselves
-            if isinstance(result.columns, MultiIndex) and not isinstance(name, tuple):
-                return (name,) + ("",) * (result.columns.nlevels - 1)
-            if (
-                isinstance(result.columns, MultiIndex)
-                and isinstance(name, tuple)
-                and len(name) < result.columns.nlevels
-            ):
-                return name + ("",) * (result.columns.nlevels - len(name))
+            if isinstance(result.columns, MultiIndex):
+                key = name if isinstance(name, tuple) else (name,)
+                return key + ("",) * (result.columns.nlevels - len(key))
             return name
 
         if qs is not None:
