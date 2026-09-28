@@ -3437,6 +3437,17 @@ def test_str_extract_flags(expand):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()], ids=str)
+def test_date_std_sem(pa_type):
+    # GH#XXXXX the result was read as seconds without converting it from days
+    # (date32) or milliseconds (date64)
+    dates = [date(2020, 1, 1), date(2020, 1, 3), date(2020, 1, 2), date(2020, 1, 6)]
+    ser = pd.Series(dates, dtype=ArrowDtype(pa_type))
+    assert ser.std() == pd.Timedelta(days=2, hours=3, minutes=50, seconds=45)
+    assert ser.sem() == pd.Timedelta(days=1, hours=1, minutes=55, seconds=22)
+    assert ser.std() == pd.Series(pd.to_datetime(dates), dtype="M8[s]").std()
+
+
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
 def test_duration_from_strings_with_nat(unit):
     # GH51175

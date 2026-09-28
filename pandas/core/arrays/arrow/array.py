@@ -2834,6 +2834,11 @@ class ArrowExtensionArray(
                 result = result.cast(pa.int64(), safe=False)
             result = result.cast(pa_type)
         if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
+            if pa.types.is_date(pa_type):
+                # the result is in days (date32) or milliseconds (date64);
+                # convert to seconds, the unit of the result
+                factor = 86_400 if pa.types.is_date32(pa_type) else 0.001
+                result = pc.multiply(result, factor)
             result = result.cast(pa.int64(), safe=False)
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
