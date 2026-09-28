@@ -230,6 +230,7 @@ def _post_convert_dtypes(
         #  is categorical
         # runtime import to avoid circular import; core.dtypes.cast imports
         #  this module at module scope
+        from pandas.core.arrays.floating import FloatingDtype
         from pandas.core.arrays.integer import IntegerDtype
 
         col_dtypes = df.dtypes
@@ -238,7 +239,7 @@ def _post_convert_dtypes(
             if not isinstance(col_dtype, pd.CategoricalDtype):
                 continue
             cat_arr_dtype = col_dtype.categories.dtype
-            if not isinstance(cat_arr_dtype, IntegerDtype):
+            if not isinstance(cat_arr_dtype, (IntegerDtype, FloatingDtype)):
                 continue
             if isinstance(dtype, dict):
                 requested = dtype.get(df.columns[i])

@@ -298,6 +298,18 @@ def test_categorical_dtype_explicit_integer_ea_categories(all_parsers):
     tm.assert_frame_equal(actual, expected)
 
 
+def test_categorical_dtype_pyarrow_with_nullable_float(pyarrow_parser_only):
+    # GH#65237 temporary Float64 conversion for another column must not
+    # change inferred categorical float categories.
+    parser = pyarrow_parser_only
+    data = "x,y\n1.5,2.5\n,3.5"
+
+    result = parser.read_csv(StringIO(data), dtype={"x": "Float64", "y": "category"})
+
+    expected = pd.Index([2.5, 3.5], dtype="float64")
+    tm.assert_index_equal(result["y"].cat.categories, expected)
+
+
 def test_categorical_dtype_non_default_dtype_backend(all_parsers, dtype_backend):
     # GH#56044 categories are inferred, but the c and python engines do not yet
     #  honor dtype_backend and give numpy categories where a non-categorical

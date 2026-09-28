@@ -306,31 +306,43 @@ class NumericArray(BaseMaskedArray):
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 
-        nan_mask = None
-        if dtype.kind == "f":
-            strings = np.asarray(strings, dtype=object)
-            # to_numeric rejects NaN strings; convert them to float NaN so
-            # nullable-float semantics decide whether they are masked.
-            nan_mask = np.fromiter(
-                (
-                    isinstance(value, str)
-                    and value.strip().lower() in ("nan", "+nan", "-nan")
-                    for value in strings
-                ),
-                dtype=np.bool_,
-                count=len(strings),
+        if dtype.kind != "f":
+            converted = to_numeric(
+                strings, errors="raise", dtype_backend="numpy_nullable"
             )
-            if nan_mask.any():
-                strings = strings.copy()
-                strings[nan_mask] = np.nan
+            return cls._from_sequence(converted, dtype=dtype, copy=copy)
 
-        scalars = cls._from_sequence(
-            to_numeric(strings, errors="raise", dtype_backend="numpy_nullable"),
-            dtype=dtype,
-            copy=copy,
+        converted = to_numeric(strings, errors="coerce", dtype_backend="numpy_nullable")
+        scalars = cls._from_sequence(converted, dtype=dtype, copy=copy)
+
+        failed = np.flatnonzero(scalars._mask)
+        if len(failed) == 0:
+            return scalars
+
+        strings = np.asarray(strings, dtype=object)
+        failed_values = strings[failed].copy()
+        nan_mask = np.fromiter(
+            (
+                isinstance(value, str)
+                and value.strip().lower() in ("nan", "+nan", "-nan")
+                for value in failed_values
+            ),
+            dtype=np.bool_,
+            count=len(failed_values),
         )
-        if nan_mask is not None and nan_mask.any():
-            scalars[nan_mask] = np.nan
+        failed_values[nan_mask] = np.nan
+
+        try:
+            to_numeric(failed_values, errors="raise", dtype_backend="numpy_nullable")
+        except (TypeError, ValueError):
+            # Preserve the original error position after accepting NaN strings.
+            repaired = strings.copy()
+            repaired[failed[nan_mask]] = np.nan
+            to_numeric(repaired, errors="raise", dtype_backend="numpy_nullable")
+            raise
+
+        if nan_mask.any():
+            scalars[failed[nan_mask]] = np.nan
         return scalars
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)

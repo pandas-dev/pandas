@@ -147,6 +147,14 @@ def test_construct_from_float_strings(values):
     tm.assert_extension_array_equal(res, expected)
 
 
+def test_from_sequence_of_strings_nan_and_invalid():
+    values = np.array(["1.0", "nan", "invalid"], dtype=object)
+    msg = "Unable to parse string 'invalid' at position 2"
+
+    with pytest.raises(ValueError, match=msg):
+        FloatingArray._from_sequence_of_strings(values, dtype=Float64Dtype())
+
+
 def test_to_array_inferred_dtype():
     # if values has dtype -> respect it
     result = pd.array(np.array([1, 2], dtype="float32"))
