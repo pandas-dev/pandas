@@ -480,10 +480,11 @@ def test_where_sparse_other():
     tm.assert_series_equal(result, pd.Series([10, 2, 30]))
 
 
-def test_setitem_sparse_value():
+@pytest.mark.parametrize("dtype", ["int64", "int8"])
+def test_setitem_sparse_value(indexer_sli, dtype):
     # GH#68929 same itemsize lookup, reached through the setitem path
-    ser = pd.Series([10, 20, 30])
+    ser = pd.Series(np.array([10, 20, 30], dtype=dtype))
 
-    ser[[0, 1]] = pd.arrays.SparseArray([1, 2])
+    indexer_sli(ser)[[0, 1]] = pd.arrays.SparseArray(np.array([1, 0], dtype=dtype))
 
-    tm.assert_series_equal(ser, pd.Series([1, 2, 30]))
+    tm.assert_series_equal(ser, pd.Series(np.array([1, 0, 30], dtype=dtype)))

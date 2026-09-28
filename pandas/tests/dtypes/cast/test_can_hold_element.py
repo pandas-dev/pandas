@@ -185,3 +185,8 @@ def test_can_hold_element_sparse():
     assert can_hold_element(np.array([], dtype=np.int64), element)
     assert not can_hold_element(np.array([], dtype=np.int8), element)
     assert not can_hold_element(np.array([], dtype=np.int8), nullable)
+
+    # densified with its subtype, not the fill_value's wider dtype
+    narrow = pd.arrays.SparseArray(np.array([4, 0, 6], dtype=np.int8))
+    assert can_hold_element(np.array([], dtype=np.int8), narrow)
+    assert can_hold_element(np.array([], dtype=np.int8), pd.array(narrow, dtype="Int8"))
