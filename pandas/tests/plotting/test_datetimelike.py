@@ -86,35 +86,6 @@ class TestTSPlot:
         ydata = ax.get_lines()[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.asarray(values))
 
-    def test_ts_plot_tz_aware_starts_at_dst_fall_back(self):
-        # GH#62936 the first timestamp is the repeated 02:00 of the fall-back
-        #  day; localizing its tz-naive period back to the timezone raised
-        index = date_range(
-            "2025-10-26T01:00", periods=13, freq="5min", tz="UTC"
-        ).tz_convert("MET")
-        assert index[0] == pd.Timestamp("2025-10-26 02:00+01:00", tz="MET")
-        ser = pd.Series(np.arange(len(index)), index=index)
-
-        ax = ser.plot()
-
-        xdata = ax.get_lines()[0].get_xdata()
-        assert len(set(xdata)) == len(index)
-
-    @pytest.mark.parametrize("x_compat", [False, True])
-    def test_ts_plot_tz_aware_across_dst_fall_back(self, x_compat):
-        # GH#62936 wall times repeat across the fall-back transition, so the
-        #  wall-clock period axis would draw the repeated hour on top of the
-        #  first one; every point has to keep its own x position
-        index = date_range(
-            "2025-10-26T00:00", "2025-10-26T03:00", freq="5min", tz="UTC"
-        ).tz_convert("MET")
-        ser = pd.Series(np.arange(len(index)), index=index)
-
-        ax = ser.plot(x_compat=x_compat)
-
-        xdata = ax.get_lines()[0].get_xdata()
-        assert len(set(xdata)) == len(index)
-
     def test_fontsize_set_correctly(self):
         # For issue #8765
         df = pd.DataFrame(
@@ -2318,3 +2289,34 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     kwargs["ax"] = ax
     ret = f(*args, **kwargs)
     assert ret is not None  # TODO: do something more intelligent
+
+
+def test_ts_plot_tz_aware_starts_at_dst_fall_back():
+    # GH#62936 the first timestamp is the repeated 02:00 of the fall-back
+    #  day; localizing its tz-naive period back to the timezone raised
+    index = date_range(
+        "2025-10-26T01:00", periods=13, freq="5min", tz="UTC"
+    ).tz_convert("MET")
+    assert index[0] == pd.Timestamp("2025-10-26 02:00+01:00", tz="MET")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
+
+    xdata = ax.get_lines()[0].get_xdata()
+    assert len(set(xdata)) == len(index)
+
+
+@pytest.mark.parametrize("x_compat", [False, True])
+def test_ts_plot_tz_aware_across_dst_fall_back(x_compat):
+    # GH#62936 wall times repeat across the fall-back transition, so the
+    #  wall-clock period axis would draw the repeated hour on top of the
+    #  first one; every point has to keep its own x position
+    index = date_range(
+        "2025-10-26T00:00", "2025-10-26T03:00", freq="5min", tz="UTC"
+    ).tz_convert("MET")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot(x_compat=x_compat)
+
+    xdata = ax.get_lines()[0].get_xdata()
+    assert len(set(xdata)) == len(index)
