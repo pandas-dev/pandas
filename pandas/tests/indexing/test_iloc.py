@@ -92,12 +92,8 @@ class TestiLocBaseIndependent:
         df = frame.copy()
         orig_vals = df.values
 
-        # GH#52593 warns only for slice keys spanning all rows; iloc's slice(3)
-        #  is not recognized as full
-        is_full = isinstance(key, slice) and (
-            key == slice(None) or indexer_li is tm.loc
-        )
-        warn = UserWarning if is_full else None
+        # GH#52593 warns only for slice keys, which span all rows here
+        warn = UserWarning if isinstance(key, slice) else None
         msg = "Setting non-object values into entire object-dtype column"
         with tm.assert_produces_warning(warn, match=msg):
             indexer_li(df)[key, 0] = cat
