@@ -168,3 +168,14 @@ class TestIndexRendering:
         result = repr(pd.Index(arr))
         expected = f"Index([(1+2j), (NaN-1j), (1+NaNj)], dtype='{dtype}')"
         assert result == expected
+
+    def test_repr_attrs_width_matches_data_width(self, monkeypatch):
+        # GH#21337 - attrs (dtype=, name=) should wrap at the same width
+        # as the data section instead of always falling back to 80
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (200, 24)
+        )
+        idx = pd.Index([f"item_{i:03d}" for i in range(9)], name="a_fairly_long_name")
+        with cf.option_context("mode.sim_interactive", True, "display.width", None):
+            result = repr(idx)
+        assert "\n" not in result
