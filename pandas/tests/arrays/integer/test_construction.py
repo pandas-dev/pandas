@@ -217,6 +217,17 @@ def test_to_integer_array_str():
         IntegerArray._from_sequence(["1.5", "2.0"], dtype="Int64")
 
 
+def test_to_integer_array_mixed_int_str():
+    # GH#34460
+    result = pd.Series([1, "2", None]).astype("Int64")
+    expected = pd.Series([1, 2, None], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    # a lossy non-str element must still raise
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        IntegerArray._from_sequence(np.array([1.5, "2"], dtype=object), dtype="Int64")
+
+
 @pytest.mark.parametrize(
     "bool_values, int_values, target_dtype, expected_dtype",
     [
