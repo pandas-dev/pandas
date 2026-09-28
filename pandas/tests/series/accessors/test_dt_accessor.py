@@ -648,6 +648,19 @@ class TestSeriesDatetimeValues:
         expected = pd.Series(["0005/06/15", "0099/01/01", "0999/12/31", "2024/03/02"])
         tm.assert_series_equal(result, expected)
 
+    def test_strftime_dt64_default_formats_year_lt_1000(self):
+        # GH#58179 the default-format fast paths zero-pad the year
+        ser = pd.Series(np.array(["-0020-01-01", "0020-01-01", "2024-03-02"], "M8[s]"))
+        result = ser.dt.strftime(None)
+        expected = pd.Series(["-020-01-01", "0020-01-01", "2024-03-02"])
+        tm.assert_series_equal(result, expected)
+
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
+        expected = pd.Series(
+            ["-020-01-01 00:00:00", "0020-01-01 00:00:00", "2024-03-02 00:00:00"]
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_strftime_dt64_microsecond_resolution(self):
         ser = pd.Series(
             [datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)]

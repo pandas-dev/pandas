@@ -3202,7 +3202,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep : str, default ``'\t'``
             Field delimiter.
         **kwargs
-            These parameters will be passed to DataFrame.to_csv.
+            These parameters will be passed to DataFrame.to_csv. If csv output
+            is not produced (``excel=False`` or an invalid ``sep``), they are
+            passed to DataFrame.to_string instead, or ignored for a Series.
 
         See Also
         --------
@@ -6607,6 +6609,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
+
+            This does not apply to keys in a ``dtype`` mapping that are not
+            column labels (or, for a Series, not its name); those always raise
+            ``KeyError``.
 
         Returns
         -------

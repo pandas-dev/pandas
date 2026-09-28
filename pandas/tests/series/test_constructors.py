@@ -2323,6 +2323,15 @@ def test_constructor_from_series_with_incompatible_dtype_raises():
         pd.Series(ser, dtype=int)
 
 
+@pytest.mark.parametrize("ncols", [1, 2])
+@pytest.mark.parametrize("index", [None, [0, 1, 2], [0, 1]])
+def test_constructor_from_dataframe_raises(ncols, index):
+    # GH#20658
+    df = pd.DataFrame(np.arange(3 * ncols).reshape(3, ncols))
+    with pytest.raises(ValueError, match="Cannot construct a Series from a DataFrame"):
+        pd.Series(df, index=index)
+
+
 def test_constructor_preserves_byteorder():
     # GH#43042 non-native byteorder (and the values) must be preserved
     arr = np.array([0, 256, 2**40], dtype=">i8")

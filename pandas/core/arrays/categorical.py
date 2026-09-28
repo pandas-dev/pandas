@@ -1399,6 +1399,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+        Series.replace : Replace values, e.g. to merge several categories into one.
 
         Examples
         --------
