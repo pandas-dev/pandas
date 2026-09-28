@@ -191,7 +191,7 @@ jobs:
             const repo = { owner: context.repo.owner, repo: context.repo.repo };
             const runUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
             const openIssues = await github.paginate(github.rest.issues.listForRepo, {
-              ...repo, state: 'open', labels: 'CI', per_page: 100,
+              ...repo, state: 'open', creator: 'github-actions[bot]', per_page: 100,
             });
             const issue = openIssues.find(item => !item.pull_request && item.title === TITLE);
 
@@ -222,9 +222,9 @@ jobs:
             const failedJobs = jobs
               .filter(job => job.conclusion === 'failure')
               .map(job => ({ id: job.id, name: job.name.replace(/^Build wheel for /, '') }));
-            // pytest's short summary lines, e.g.
+            // pytest's short summary lines (ERROR covers collection and fixture errors), e.g.
             // "<timestamp> FAILED ..\venv\Lib\site-packages\pandas\tests\x.py::test_y[z] - Error"
-            const failedTest = /^\S+ FAILED (.+?)(?: - .*)?\r?$/gm;
+            const failedTest = /^\S+ (?:FAILED|ERROR) (.+?)(?: - .*)?\r?$/gm;
             const failingJobsByTest = new Map();
             for (const job of failedJobs) {
               let log;
@@ -275,6 +275,7 @@ jobs:
                   'The scheduled wheel build has failed on consecutive nights, so no nightly',
                   'wheels were uploaded. This issue is managed by the `report_failure` job in',
                   '`.github/workflows/wheels.yml` and closes on the next passing night.',
+                  'Closing it by hand while builds still fail opens a new one on the next failing night.',
                   '',
                   `Previous failing run: ${previous.html_url}`,
                   report,
