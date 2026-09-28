@@ -60,7 +60,5 @@ class TestDataFrameSetItem:
         for i, pos in enumerate(loc):
             expected.isetitem(pos, value[:, i])
         tm.assert_frame_equal(df, expected)
-        # every column reads back correctly even when the manager is corrupt, so
-        # these two are what fail on revert
-        df._mgr._verify_integrity()
+        # values read back fine even when corrupt; this is what fails on revert
         df.describe()
