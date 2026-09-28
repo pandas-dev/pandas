@@ -2738,8 +2738,8 @@ class ArrowExtensionArray(
             nbits = pa_type.bit_width
             if name in ["std", "sem"] and pa.types.is_date32(pa_type):
                 # compute in seconds, the unit of the result
-                days = self._pa_array.cast(pa.int32()).cast(pa.int64())
-                data_to_reduce = pc.multiply(days, _DURATION_DIVISORS["day"]["s"])
+                seconds = self._pa_array.cast(pa.timestamp("s"))
+                data_to_reduce = seconds.cast(pa.int64())
             elif nbits == 32:
                 data_to_reduce = self._pa_array.cast(pa.int32())
             else:
