@@ -931,7 +931,7 @@ def test_replace_dict_inplace_memory():
 
 def test_replace_small_dict_inplace_memory():
     # GH#25816 with few keys, holding the masks is cheaper than copying the values
-    ser = pd.Series(np.arange(10**5))
+    ser = pd.Series(np.arange(10**5, dtype=np.int64))
     tracemalloc.start()
     try:
         ser.replace({1: 2, 3: 4}, inplace=True)
