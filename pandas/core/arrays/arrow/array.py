@@ -2092,6 +2092,15 @@ class ArrowExtensionArray(
 
         data = self._pa_array
 
+        if pa.types.is_null(data.type):
+            if use_na_sentinel or len(self) == 0:
+                indices = np.full(len(self), -1, dtype=np.intp)
+                uniques = self._from_pyarrow_array(pa.chunked_array([], type=pa.null()))
+            else:
+                indices = np.zeros(len(self), dtype=np.intp)
+                uniques = self._from_pyarrow_array(pa.array([None], type=pa.null()))
+            return indices, uniques
+
         if pa.types.is_dictionary(data.type):
             if null_encoding == "encode":
                 # dictionary encode does nothing if an already encoded array is given
