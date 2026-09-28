@@ -599,13 +599,11 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
     if val == val:
         nobs[0] -= 1
         if nobs[0] == 0:
-            # GH#68934 zero out rather than divide by nobs: keeps an emptied
-            # window out of inf arithmetic the detector would have to recognise
-            mean[0] = 0
-            origin[0] = 0
-            m2[0] = 0
-            m3[0] = 0
-            peak_dev[0] = 0
+            mean[0] = 0.0
+            origin[0] = 0.0
+            m2[0] = 0.0
+            m3[0] = 0.0
+            peak_dev[0] = 0.0
             numerically_unstable[0] = False
             return
 
@@ -737,13 +735,12 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
     if val == val:
         nobs[0] -= 1
         if nobs[0] == 0:
-            # see remove_skew
-            mean[0] = 0
-            origin[0] = 0
-            m2[0] = 0
-            m3[0] = 0
-            m4[0] = 0
-            peak_dev[0] = 0
+            mean[0] = 0.0
+            origin[0] = 0.0
+            m2[0] = 0.0
+            m3[0] = 0.0
+            m4[0] = 0.0
+            peak_dev[0] = 0.0
             numerically_unstable[0] = False
             return
 
