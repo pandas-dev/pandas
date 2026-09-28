@@ -1590,7 +1590,7 @@ def test_cmp_array_valued_pointwise_result():
         arr == object_array_of(pd.Categorical([1, 2]))
 
 
-def test_cmp_list_of_array_likes_matches_masked():
+def test_cmp_list_of_array_likes():
     # GH#62682 isna on a LIST of array-likes returns a 2-D mask, which the
     #  object_array_of spelling above never produces
     other = [pd.Categorical(["a"]), pd.Categorical(["b"])]
@@ -1598,18 +1598,65 @@ def test_cmp_list_of_array_likes_matches_masked():
 
     result = arr == other
 
-    expected = pd.array(
-        list(pd.array([1, 2], dtype="Int64") == other), dtype=ArrowDtype(pa.bool_())
-    )
+    # Int64 gives the same answer
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_cmp_unconvertible_length_mismatch_message():
-    # GH#62682 the mask must not broadcast-fail first: zip reports the mismatch
-    arr = pd.array([1, 2, 3], dtype=ArrowDtype(pa.int64()))
+@pytest.mark.parametrize(
+    "values, pa_type",
+    [
+        ([[1], [2]], pa.list_(pa.int64())),
+        ([{"a": 1}, {"a": 2}], pa.struct([("a", pa.int64())])),
+    ],
+)
+def test_cmp_nested_dtype_unconvertible_raises(values, pa_type):
+    # GH#62682 a list- or struct-valued element is broadcast by numpy, so the
+    #  pointwise fallback answers True for [1] == 1, and False for {"a": 1} == 1
+    arr = pd.array(values, dtype=ArrowDtype(pa_type))
 
-    with pytest.raises(ValueError, match="zip"):
-        arr == [1, "b"]
+    with pytest.raises(pa.ArrowTypeError):
+        arr == pd.arrays.SparseArray([1, 2])
+
+
+def test_cmp_ne_offset_array_with_na():
+    # GH#62682 an NA pair must not evaluate `ne`: numpy defers to the offset,
+    #  whose __ne__ is `not self == other`, and NA has no truth value
+    arr = pd.array([pd.Timedelta("1h"), None], dtype="duration[ns][pyarrow]")
+    other = object_array_of(pd.offsets.Hour(1))
+
+    result = arr != other
+    expected = pd.array([False, None], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_all_na_unordered_still_raises(unconvertible_object):
+    # GH#62682 an all-NA operand must not turn an unsupported ordered
+    #  comparison into an all-NA answer, as it would if op were skipped
+    arr = pd.array([None, None], dtype=ArrowDtype(pa.int64()))
+    other = object_array_of(unconvertible_object)
+
+    msg = "|".join(
+        ["not supported between", "Unordered Categoricals can only compare equality"]
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr < other
+
+
+def test_str_arith_object_fallback_not_wrapped():
+    # GH#62682 the string path must keep falling back to object dtype rather
+    #  than reporting the operand as unsupported
+    class Radd:
+        def __radd__(self, other):
+            return other + "!"
+
+    other = np.empty(2, dtype=object)
+    other[:] = [Radd(), Radd()]
+    arr = pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+
+    result = arr + other
+    expected = pd.array(["a!", "b!"], dtype=ArrowDtype(pa.string()))
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_cmp_unconvertible_object_keeps_na():
@@ -1642,8 +1689,8 @@ def test_cmp_mixed_object_keeps_na():
 )
 def test_arith_dataframe_of_unconvertible_objects(unconvertible_object, dtype, values):
     # GH#62682 the operand reaches ArrowExtensionArray as a DataFrame column, as
-    #  in the issue; dtype=object is required or the Interval param builds
-    #  interval columns and never reaches the code under test.
+    #  in the issue; dtype=object is required, since inferred interval columns
+    #  box as pyarrow structs and already raised TypeError on main.
     arr = pd.array(values, dtype=dtype)
     df = pd.DataFrame([[unconvertible_object, unconvertible_object]], dtype=object)
     msg = "|".join(
