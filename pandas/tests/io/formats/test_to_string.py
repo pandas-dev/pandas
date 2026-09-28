@@ -1037,6 +1037,19 @@ class TestDataFrameToString:
         expected = "                   level3\n0  {'level2': ['level1']}"
         assert result == expected
 
+    def test_to_string_multiindex_sparsify_by_value(self):
+        # GH#10796 distinct values that format identically are not sparsified
+        mi = pd.MultiIndex.from_arrays([[1, "1"], ["a", "a"]])
+        df = pd.DataFrame({"C": [3, 4]}, index=mi)
+
+        result = df.to_string()
+        expected = "     C\n1 a  3\n1 a  4"
+        assert result == expected
+
+        result = df.T.to_string()
+        expected = "   1  1\n   a  a\nC  3  4"
+        assert result == expected
+
 
 class TestSeriesToString:
     def test_to_string_without_index(self):
