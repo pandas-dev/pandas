@@ -838,6 +838,28 @@ False
     tm.assert_frame_equal(result, expected)
 
 
+def test_float_dtype_distinguish_nan_and_na(all_parsers, using_nan_is_na):
+    # GH#65237
+    parser = all_parsers
+    data = """,x
+a,1.0
+b,
+c,nan"""
+
+    result = parser.read_csv(
+        StringIO(data),
+        index_col=0,
+        dtype={"x": "Float64"},
+        keep_default_na=False,
+        na_values=[""],
+    )
+    expected = pd.DataFrame(
+        {"x": pd.array([1.0, pd.NA, np.nan], dtype="Float64")},
+        index=["a", "b", "c"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "na_values",
     [[-99.0, -99], [-99, -99.0]],

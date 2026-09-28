@@ -306,7 +306,27 @@ class NumericArray(BaseMaskedArray):
     ) -> Self:
         from pandas.core.tools.numeric import to_numeric
 
+        nan_mask = None
+        if dtype.kind == "f":
+            strings = np.asarray(strings, dtype=object)
+            # to_numeric rejects NaN strings; convert them to float NaN so
+            # nullable-float semantics decide whether they are masked.
+            nan_mask = np.fromiter(
+                (
+                    isinstance(value, str)
+                    and value.strip().lower() in ("nan", "+nan", "-nan")
+                    for value in strings
+                ),
+                dtype=np.bool_,
+                count=len(strings),
+            )
+            if nan_mask.any():
+                strings = strings.copy()
+                strings[nan_mask] = np.nan
+
         scalars = to_numeric(strings, errors="raise", dtype_backend="numpy_nullable")
+        if nan_mask is not None and nan_mask.any():
+            scalars[nan_mask] = np.nan
         return cls._from_sequence(scalars, dtype=dtype, copy=copy)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)

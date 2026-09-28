@@ -99,6 +99,28 @@ def _arrow_string_types_mapper() -> Callable:
     return mapping.get
 
 
+def _arrow_dtype_mapping_for_dtype(dtype: DtypeArg) -> dict:
+    pa = import_optional_dependency("pyarrow")
+    mapping = {
+        pa.int8(): pd.Int8Dtype(),
+        pa.int16(): pd.Int16Dtype(),
+        pa.int32(): pd.Int32Dtype(),
+        pa.int64(): pd.Int64Dtype(),
+    }
+    dtypes = dtype.values() if isinstance(dtype, dict) else [dtype]
+    if any(
+        isinstance(pandas_dtype(value), (pd.Float32Dtype, pd.Float64Dtype))
+        for value in dtypes
+    ):
+        mapping.update(
+            {
+                pa.float32(): pd.Float32Dtype(),
+                pa.float64(): pd.Float64Dtype(),
+            }
+        )
+    return mapping
+
+
 def arrow_table_to_pandas(
     table: pyarrow.Table,
     dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
@@ -125,26 +147,14 @@ def arrow_table_to_pandas(
         if pa_version_under19p0:
             types_mapper = _arrow_string_types_mapper()
         elif dtype is not None:
-            # GH#56136 Avoid lossy conversion to float64
-            # We'll convert to numpy below if
-            types_mapper = {
-                pa.int8(): pd.Int8Dtype(),
-                pa.int16(): pd.Int16Dtype(),
-                pa.int32(): pd.Int32Dtype(),
-                pa.int64(): pd.Int64Dtype(),
-            }.get
+            # GH#56136, GH#65237 avoid lossy conversion before applying dtype
+            types_mapper = _arrow_dtype_mapping_for_dtype(dtype).get
         else:
             types_mapper = None
     elif dtype_backend is lib.no_default or dtype_backend == "numpy":
         if dtype is not None:
-            # GH#56136 Avoid lossy conversion to float64
-            # We'll convert to numpy below if
-            types_mapper = {
-                pa.int8(): pd.Int8Dtype(),
-                pa.int16(): pd.Int16Dtype(),
-                pa.int32(): pd.Int32Dtype(),
-                pa.int64(): pd.Int64Dtype(),
-            }.get
+            # GH#56136, GH#65237 avoid lossy conversion before applying dtype
+            types_mapper = _arrow_dtype_mapping_for_dtype(dtype).get
         else:
             types_mapper = None
     else:
@@ -165,8 +175,8 @@ def _post_convert_dtypes(
     if dtype is not None and (
         dtype_backend is lib.no_default or dtype_backend == "numpy"
     ):
-        # GH#56136 apply any user-provided dtype, and convert any IntegerDtype
-        #  columns the user didn't explicitly ask for.
+        # GH#56136, GH#65237 apply user-provided dtypes and convert temporary
+        # nullable numeric dtypes back for columns the user didn't specify.
         if isinstance(dtype, dict):
             if names is not None:
                 df.columns = names
@@ -176,6 +186,8 @@ def _post_convert_dtypes(
                 pd.Int16Dtype(),
                 pd.Int32Dtype(),
                 pd.Int64Dtype(),
+                pd.Float32Dtype(),
+                pd.Float64Dtype(),
             }
             for col in df.columns:
                 if col not in dtype and df[col].dtype in cmp_dtypes:
