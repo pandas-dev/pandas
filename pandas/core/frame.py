@@ -4476,8 +4476,8 @@ class DataFrame(NDFrame, OpsMixin):
             Index position(s) for the column(s).
         value : scalar or arraylike
             Value(s) for the column(s). When ``loc`` selects several positions, a
-            scalar fills each of them and a NumPy-dtype arraylike must have one
-            column per position.
+            scalar fills each of them and an arraylike must have one column per
+            position.
 
         See Also
         --------
@@ -4901,7 +4901,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # GH#68445 reshape/repeat rather than np.tile, which would
                     #  degrade a 2-D-capable EA (tz-aware datetime64, period)
                     #  to object. repeat(axis=) is not in the _supports_2d
-                    #  contract, only NDArrayBacked honours it; see GH-69153
+                    #  contract, only NDArrayBacked honours it; see GH#69153
                     ncols = len(existing_piece.columns)
                     value = value.reshape(1, -1).repeat(ncols, axis=0).T
                     refs = None
