@@ -1671,12 +1671,12 @@ def test_parallel_converter_thread_affinity_error(tmp_path, monkeypatch):
 
     try:
         with pytest.raises(
-            RuntimeError, match="thread-affinity error.*mode.max_threads=1"
+            sqlite3.ProgrammingError, match="thread-affinity error.*mode.max_threads=1"
         ) as exc_info:
             _read_forced_parallel(path, monkeypatch, converters={"col1": converter})
 
         assert outcomes == ["raised"]
-        assert isinstance(exc_info.value.__cause__, sqlite3.ProgrammingError)
+        assert "thread-affinity error" in exc_info.value.__notes__[0]
     finally:
         connection.close()
 
