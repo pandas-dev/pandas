@@ -531,8 +531,8 @@ cdef inline bint moment_cancellation_suspected(
     holds m3 == 0 legitimately and would recompute every time.
     """
     if m2 != m2 or m3 != m3 or m4 != m4:
-        # NaN, e.g. from a window that emptied; the comparisons below would be
-        # False and the accumulators could never recover on their own
+        # NaN, e.g. from values spanning nearly the whole float64 range; the
+        # comparisons below would be False and the accumulators never recover
         return True
 
     if mean * mean * AnchorDriftLimit > m2:
