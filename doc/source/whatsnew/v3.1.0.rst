@@ -540,7 +540,9 @@ Current behavior for a timezone-aware Series:
           dtype='datetime64[us]')
 
 Use :attr:`Series.array` to get the ExtensionArray, or :meth:`Series.to_numpy`
-to get a NumPy array. For timezone-aware data, ``to_numpy()`` returns an
+to get a NumPy array. For period and interval data, ``to_numpy()`` is a
+drop-in replacement, returning the same object-dtype array ``.values``
+returns today. For timezone-aware data, ``to_numpy()`` instead returns an
 object-dtype array of :class:`Timestamp` objects. To keep the current result,
 use ``tz_convert(None)``, which converts to UTC and drops the timezone:
 
