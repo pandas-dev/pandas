@@ -154,12 +154,6 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        # object dtypes for transformations are not implemented in Cython and
-        # have no Python fallback
-        exception = (
-            (NotImplementedError, TypeError) if method.startswith("cum") else TypeError
-        )
-
         if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
@@ -168,11 +162,11 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     # cumsum/cummin/cummax/cumprod
-                    "function is not implemented for this dtype",
+                    f"{method} is not supported for (str|object) dtype",
                     f"dtype 'str' does not support operation '{method}'",
                 ]
             )
-            with pytest.raises(exception, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)()
         elif method in ("sum", "mean", "median", "prod"):
             msg = "|".join(
@@ -183,7 +177,7 @@ class TestNumericOnly:
                     f"dtype 'str' does not support operation '{method}'",
                 ]
             )
-            with pytest.raises(exception, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)()
         else:
             result = getattr(gb, method)()
@@ -194,14 +188,14 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     "category type does not support",
-                    "function is not implemented for this dtype",
+                    f"{method} is not supported for (str|object) dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
                     f"dtype 'str' does not support operation '{method}'",
                 ]
             )
-            with pytest.raises(exception, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
             result = getattr(gb, method)(numeric_only=False)
@@ -283,17 +277,13 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
 
-        # object dtypes for transformations are not implemented in Cython and
-        # have no Python fallback
-        exception = NotImplementedError if kernel.startswith("cum") else TypeError
-
         msg = "|".join(
             [
                 "not allowed for this dtype",
                 "cannot be performed against 'object' dtypes",
                 "must be a string or a real number",
                 "unsupported operand type",
-                "function is not implemented for this dtype",
+                f"{kernel} is not supported for object dtype",
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
@@ -303,7 +293,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
-        with pytest.raises(exception, match=msg):
+        with pytest.raises(TypeError, match=msg):
             if kernel == "corrwith":
                 warn = Pandas4Warning
                 msg = "DataFrameGroupBy.corrwith is deprecated"

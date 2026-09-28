@@ -130,19 +130,19 @@ def test_groupby_raises_string(
         "count": (None, ""),
         "cumcount": (None, ""),
         "cummax": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(function|cummax) is not (implemented|supported) for (this|object) dtype",
         ),
         "cummin": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(function|cummin) is not (implemented|supported) for (this|object) dtype",
         ),
         "cumprod": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(function|cumprod) is not (implemented|supported) for (this|object) dtype",
         ),
         "cumsum": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(function|cumsum) is not (implemented|supported) for (this|object) dtype",
         ),
         "diff": (TypeError, "unsupported operand type"),
@@ -446,25 +446,25 @@ def test_groupby_raises_category(
         "count": (None, ""),
         "cumcount": (None, ""),
         "cummax": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(category type does not support cummax operations|"
             "category dtype not supported|"
             "cummax is not supported for category dtype)",
         ),
         "cummin": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(category type does not support cummin operations|"
             "category dtype not supported|"
             "cummin is not supported for category dtype)",
         ),
         "cumprod": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(category type does not support cumprod operations|"
             "category dtype not supported|"
             "cumprod is not supported for category dtype)",
         ),
         "cumsum": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(category type does not support cumsum operations|"
             "category dtype not supported|"
             "cumsum is not supported for category dtype)",
@@ -612,25 +612,25 @@ def test_groupby_raises_category_on_category(
         "count": (None, ""),
         "cumcount": (None, ""),
         "cummax": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(cummax is not supported for category dtype|"
             "category dtype not supported|"
             "category type does not support cummax operations)",
         ),
         "cummin": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(cummin is not supported for category dtype|"
             "category dtype not supported|"
             "category type does not support cummin operations)",
         ),
         "cumprod": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(cumprod is not supported for category dtype|"
             "category dtype not supported|"
             "category type does not support cumprod operations)",
         ),
         "cumsum": (
-            (NotImplementedError, TypeError),
+            TypeError,
             "(cumsum is not supported for category dtype|"
             "category dtype not supported|"
             "category type does not support cumsum operations)",
