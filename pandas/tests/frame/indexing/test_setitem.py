@@ -1617,6 +1617,38 @@ def test_setitem_key_matching_several_columns_2d_capable_ea(value, columns):
 
 
 @pytest.mark.parametrize(
+    "value",
+    [
+        pd.Timestamp("2030", tz="UTC"),
+        pd.Period("2030", freq="D"),
+    ],
+)
+@pytest.mark.parametrize(
+    "columns",
+    [
+        ["a", "a", "b"],
+        ["a", "b", "a"],  # get_loc gives a boolean mask rather than a slice
+        pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)]),
+    ],
+)
+def test_setitem_key_matching_several_columns_2d_capable_ea_scalar(value, columns):
+    # GH#68445 a scalar hits the same broadcast path as a Series of the same
+    #  dtype, via _sanitize_column turning it into a 1-D array first
+    df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=columns)
+    before = df.copy()
+    expected_col = pd.Series([value] * len(df))
+
+    df["a"] = value
+
+    positions = np.arange(len(df.columns))[df.columns.get_loc("a")]
+    for pos in range(len(df.columns)):
+        if pos in positions:
+            tm.assert_series_equal(df.iloc[:, pos], expected_col, check_names=False)
+        else:
+            tm.assert_series_equal(df.iloc[:, pos], before.iloc[:, pos])
+
+
+@pytest.mark.parametrize(
     "columns",
     [["a", "a", "b"], ["a", "b", "a"]],
 )
@@ -1624,11 +1656,12 @@ def test_setitem_key_matching_several_columns_matching_width(columns):
     # GH#68445 positive control for the check above; the boolean-mask loc is the
     #  one where the value's columns could be placed out of order
     df = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+    value = np.arange(6).reshape(3, 2)
 
-    df["a"] = np.arange(6).reshape(3, 2)
+    df["a"] = value
 
-    expected = pd.DataFrame(np.zeros((3, 3), dtype=int), columns=columns)
+    expected_arr = np.zeros((3, 3), dtype=int)
     positions = [i for i, col in enumerate(columns) if col == "a"]
-    for offset, pos in enumerate(positions):
-        expected.isetitem(pos, np.arange(6).reshape(3, 2)[:, offset])
+    expected_arr[:, positions] = value
+    expected = pd.DataFrame(expected_arr, columns=columns)
     tm.assert_frame_equal(df, expected)
