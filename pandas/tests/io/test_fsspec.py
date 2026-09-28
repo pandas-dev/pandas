@@ -223,6 +223,37 @@ def test_arrowparquet_falls_back_to_fsspec(cleared_fs, df1, monkeypatch):
     tm.assert_frame_equal(result, df1)
 
 
+def test_arrowparquet_falls_back_to_fsspec_on_arrow_exception(
+    cleared_fs, df1, monkeypatch
+):
+    # GH#58078 the fallback also covers non-ArrowInvalid subclasses of ArrowException,
+    # e.g. a pyarrow build without HDFS support raises ArrowNotImplementedError
+    pa = pytest.importorskip("pyarrow")
+    pa_fs = pytest.importorskip("pyarrow.fs")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    real_file_system = pa_fs.FileSystem
+
+    class FailingFileSystem:
+        @staticmethod
+        def from_uri(uri):
+            # restore the real FileSystem before pyarrow's own isinstance
+            # checks run on the fsspec-fallback filesystem later in this call
+            pa_fs.FileSystem = real_file_system
+            raise pa.ArrowNotImplementedError("HDFS support not built")
+
+    monkeypatch.setitem(registry, "hdfs", MemoryFileSystem)
+    path = "hdfs:///test/test.parquet"
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    df1.to_parquet(path, engine="pyarrow")
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    result = pd.read_parquet(path, engine="pyarrow")
+    tm.assert_frame_equal(result, df1)
+
+
 @pytest.mark.parametrize(
     "path", ["s3://missing/test.parquet", "hdfs://namenode:8020/test.parquet"]
 )
