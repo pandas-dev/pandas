@@ -1122,8 +1122,7 @@ cdef _mul_numeric_array(_Timedelta td, ndarray other):
         if has_nan:
             # a NaN-to-int64 cast is platform-dependent; substitute 0 and
             #  re-mask below, so NaN and inf multipliers stay distinguishable.
-            #  Assigning into a copy rather than np.where, which returns a
-            #  plain ndarray and so would drop the subclass (GH#66552).
+            #  copy + assign, not np.where, to keep the subclass (GH#66552)
             f_result = f_result.copy()
             f_result[nan_mask] = 0.0
         # Compare against 2**63, not int64.max: int64.max rounds up to 2**63
