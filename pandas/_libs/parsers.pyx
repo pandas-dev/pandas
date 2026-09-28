@@ -3870,8 +3870,7 @@ cdef _first_unparseable_token(parser_t *parser, int64_t col,
                 continue
         else:
             str_to_int64(word, word_len, &error, parser.thousands)
-            # An overflowing token is a valid integer spelling; leave it to
-            # the cast below, whose message names the dtype that is too narrow.
+            # A token that only overflows int64 is still a valid integer; keep scanning.
             if error == 0 or error == ERROR_OVERFLOW:
                 continue
         return PyUnicode_DecodeUTF8(word, word_len, encoding_errors)

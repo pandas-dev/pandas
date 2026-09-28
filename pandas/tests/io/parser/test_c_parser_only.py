@@ -1882,6 +1882,14 @@ def test_converter_unhashable_output_with_na_values(c_parser_only, converter, va
             "int64",
             "x",
         ),
+        (
+            # GH#59299 an overflowing-but-valid token must not be misreported
+            # as the offender; skip it and keep scanning for the real one
+            "a;b\na;18446744073709551615\nb;x\n",
+            {},
+            "int64",
+            "x",
+        ),
     ],
 )
 def test_unparseable_dtype_names_offending_value(
