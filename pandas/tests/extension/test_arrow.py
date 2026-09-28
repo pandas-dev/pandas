@@ -561,8 +561,10 @@ class TestArrowArray(base.ExtensionTests):
             if op_name in ["std", "sem"]:
                 if pa.types.is_duration(pa_type):
                     cmp_dtype = arr.dtype
-                elif pa.types.is_date(pa_type):
+                elif pa.types.is_date32(pa_type):
                     cmp_dtype = ArrowDtype(pa.duration("s"))
+                elif pa.types.is_date64(pa_type):
+                    cmp_dtype = ArrowDtype(pa.duration("ms"))
                 elif pa.types.is_time(pa_type):
                     cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
                 else:
@@ -3437,6 +3439,40 @@ def test_str_extract_flags(expand):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()], ids=str)
+def test_date_std_sem(pa_type):
+    # GH#69752 the result was read as seconds without converting it from days
+    # (date32) or milliseconds (date64)
+    dates = [date(2020, 1, 1), date(2020, 1, 3), date(2020, 1, 2), date(2020, 1, 6)]
+    ser = pd.Series(dates, dtype=ArrowDtype(pa_type))
+    unit = "s" if pa.types.is_date32(pa_type) else "ms"
+    expected = pd.Series(pd.to_datetime(dates).as_unit(unit))
+
+    result = ser.std()
+    assert result == expected.std()
+    assert result.unit == unit
+    assert ser.std(ddof=0) == expected.std(ddof=0)
+    expected_sem = pd.Timedelta(days=1, hours=1, minutes=55, seconds=22)
+    if unit == "ms":
+        expected_sem += pd.Timedelta(milliseconds=666)
+    assert ser.sem() == expected_sem
+
+    frame_result = pd.DataFrame({"a": ser}).std()
+    assert frame_result.dtype == ArrowDtype(pa.duration(unit))
+    assert frame_result["a"] == result
+
+    with_na = pd.Series([*dates, None], dtype=ArrowDtype(pa_type))
+    assert with_na.std() == result
+    assert with_na.std(skipna=False) is pd.NA
+
+
+def test_date64_std_keeps_milliseconds():
+    # GH#69752
+    ser = pd.Series(ArrowExtensionArray(pa.array([0, 1, 2, 3], pa.date64())))
+    expected = pd.Series(np.array([0, 1, 2, 3], dtype="M8[ms]")).std()
+    assert ser.std() == expected == pd.Timedelta(milliseconds=1)
+
+
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
 def test_duration_from_strings_with_nat(unit):
     # GH51175
@@ -5520,6 +5556,29 @@ class TestGroupbyAggPyArrowNative:
             )
         )
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize("how", ["any", "all", "std", "sem", "idxmin", "idxmax"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
+        pa.array([time(2), time(1), None, time(3)]),
+        pa.array([b"b", b"a", None, b"c"]),
+        pa.array(["b", "a", None, "c"]),
+        pa.array(["b", "a", None, "c"]).dictionary_encode(),
+        pa.array([[2], [1], None, [3]]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
+    # GH#69717 used to raise NotImplementedError, mostly with no message
+    ser = pd.Series(ArrowExtensionArray(arr))
+    obj = ser.to_frame() if frame else ser
+    msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
+    with pytest.raises(TypeError, match=msg):
+        getattr(obj.groupby([0, 0, 1, 1]), how)()
 
 
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
