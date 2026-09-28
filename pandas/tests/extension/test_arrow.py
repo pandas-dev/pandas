@@ -1549,8 +1549,7 @@ def test_op_unconvertible_scalar(other):
 
 @pytest.mark.parametrize("op", [operator.eq, operator.ne, operator.lt, operator.ge])
 def test_cmp_duration_offset_scalar(op):
-    # GH#62682 pyarrow raises ArrowTypeError on a Tick, so before this fix only
-    #  the reflected Tick.__eq__ direction worked
+    # GH#62682 pyarrow raises ArrowTypeError on a Tick; match the numpy-backed result
     # length 2 with differing values: `not` accepts a length-1 array, hiding the bug
     arr = pd.array([pd.Timedelta("1h"), pd.Timedelta("2h")])
 
@@ -1690,7 +1689,7 @@ def test_cmp_mixed_object_keeps_na():
 def test_arith_dataframe_of_unconvertible_objects(unconvertible_object, dtype, values):
     # GH#62682 the operand reaches ArrowExtensionArray as a DataFrame column, as
     #  in the issue; dtype=object is required, since inferred interval columns
-    #  box as pyarrow structs and already raised TypeError on main.
+    #  box as pyarrow structs and raise TypeError before reaching this path.
     arr = pd.array(values, dtype=dtype)
     df = pd.DataFrame([[unconvertible_object, unconvertible_object]], dtype=object)
     msg = "|".join(
