@@ -1454,8 +1454,11 @@ def test_arrowdtype_construct_from_string_field_name_with_colon():
 
 
 def test_arrowdtype_construct_from_string_ambiguous_field_name():
-    # GH#57411 a comma in a field name is not recoverable from pyarrow's repr,
-    #  so raise rather than construct the wrong type
+    # GH#57411 a comma in a field name is not recoverable from pyarrow's repr.
+    #  This case happens to raise, but that is not guaranteed in general: a
+    #  field name containing ", " followed by something that itself looks
+    #  like "name: type" can silently parse into the wrong (differently
+    #  shaped) struct instead.
     dtype = ArrowDtype(pa.struct([("a,b", pa.int64()), ("c", pa.string())]))
     with pytest.raises(TypeError, match="is not a valid pyarrow data type"):
         ArrowDtype.construct_from_string(str(dtype))
