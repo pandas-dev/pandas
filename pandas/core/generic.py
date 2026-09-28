@@ -6728,10 +6728,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH#63433: start from a shallow copy, which keeps the existing
             #  blocks, and replace only the columns being cast. Casting every
             #  column on its own and concatenating left one block per column.
-            result = self.copy(deep=False)
+            new = self.copy(deep=False)
             locs_by_dtype: dict[Any, list[int]] = {}
-            for i in np.flatnonzero(dtype_ser.notna()):
-                locs_by_dtype.setdefault(dtype_ser.iat[i], []).append(int(i))
+            for loc in np.flatnonzero(dtype_ser.notna()):
+                locs_by_dtype.setdefault(dtype_ser.iat[loc], []).append(int(loc))
 
             for cdt, locs in locs_by_dtype.items():
                 if errors == "raise" and len(locs) > 1:
@@ -6744,10 +6744,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     else:
                         if len(locs) == self.shape[1]:
                             # every column cast to one dtype: keep its blocks
-                            result = self._constructor(casted)
-                            result.columns = self.columns
+                            new = self._constructor(casted)
+                            new.columns = self.columns
                         else:
-                            result.isetitem(locs, casted)
+                            new.isetitem(locs, casted)
                         continue
                 for i in locs:
                     col = self._ixs(i, axis=1)
@@ -6759,8 +6759,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                             f"'{self.columns[i]}'",
                         )
                         raise
-                    result.isetitem(i, res_col)
-            return result.__finalize__(self, method="astype")
+                    new.isetitem(i, res_col)
+            return new.__finalize__(self, method="astype")
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
