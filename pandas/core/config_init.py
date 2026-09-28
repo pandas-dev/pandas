@@ -243,10 +243,9 @@ pc_max_dir_items = """\
 
 pc_width_doc = """
 : int or None
-    Width of the display in characters. The default of None means that when
-    python/IPython is running in a terminal the width is auto-detected, and
-    that wide output is not wrapped or truncated in non-interactive sessions.
-    Set to an int to force a specific width.
+    Width of the display in characters. The default of None auto-detects the
+    terminal width, falling back to 80 when it cannot be detected. Set to an
+    int to force a specific width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
 """
