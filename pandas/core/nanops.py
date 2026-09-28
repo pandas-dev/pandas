@@ -2076,10 +2076,10 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     if a_scale == 0 or b_scale == 0:
         return np.nan
 
-    # rescale only when the dot products could overflow or underflow
-    if not 1e-100 < a_scale < 1e100:
+    # rescale only when ssq_a * ssq_b could overflow or underflow
+    if not 1e-50 < a_scale < 1e50:
         a = a / a_scale
-    if not 1e-100 < b_scale < 1e100:
+    if not 1e-50 < b_scale < 1e50:
         b = b / b_scale
 
     # corrected two-pass: remove the rounding error left in the first mean,
@@ -2093,9 +2093,7 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     if ssq_a <= 0 or ssq_b <= 0:
         return np.nan
 
-    # separate roots: the product ssq_a * ssq_b can overflow or underflow
-    denom = np.sqrt(ssq_a) * np.sqrt(ssq_b)
-    result = (float(np.dot(a, b)) - a_sum * b_sum / nobs) / denom
+    result = (float(np.dot(a, b)) - a_sum * b_sum / nobs) / np.sqrt(ssq_a * ssq_b)
     return np.float64(min(max(result, -1.0), 1.0))
 
 
