@@ -582,9 +582,9 @@ class BaseBlockManager(PandasObject):
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
-                    # _iset_split_block needs sorted unique locs, or _blklocs is
-                    # left stale; inverse maps the requested column order onto
-                    # the new block (GH#65446)
+                    # np.unique dedupes locs so the placement built inside
+                    # _iset_split_block doesn't repeat a column; inverse maps
+                    # the requested column order onto the new block (GH#65446)
                     blk_loc, inverse = np.unique(blk_loc, return_inverse=True)
                     values = values[blk_loc]
                     # "T" has no attribute "_iset_split_block"
@@ -1490,12 +1490,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             *nbs_tup,
         )
         self.blocks = blocks_tup
+        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
         if not nbs_tup and value is not None:
-            # No need to update anything if split did not happen
+            # No need to update _blknos if split did not happen
             return
-
-        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
 
         for i, nb in enumerate(nbs_tup):
             self._blklocs[nb.mgr_locs.indexer] = np.arange(len(nb))
