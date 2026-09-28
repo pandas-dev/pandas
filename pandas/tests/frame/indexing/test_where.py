@@ -1148,7 +1148,8 @@ def test_where_listlike_other_2d_block_multi_column_column_like():
         {"a": [values[0], fill[1], fill[2]], "b": [fill[0], values[1], fill[2]]}
     )
     tm.assert_frame_equal(result, expected)
-    # datetime64[ns, UTC] gets a block per column and already reads it this way
+    # datetime64[ns, UTC] gets a block per column and already reads it this
+    #  way here; on a square frame the two disagree, see the xfail below
     tz_df = df.apply(lambda col: col.dt.tz_localize("UTC"))
     tz_result = tz_df.where(cond, list(fill.tz_localize("UTC")))
     tm.assert_frame_equal(
@@ -1168,6 +1169,29 @@ def test_where_listlike_other_2d_block_multi_column_column_like():
         {"a": [values[0], "y", "z"], "b": ["x", values[1], "z"]}, dtype=object
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.xfail(
+    reason="on a square frame, a block per column (e.g. tz-aware) reads a "
+    "row-length list one value per row, while one block for all columns "
+    "(e.g. naive) reads it one value per column",
+    strict=True,
+)
+def test_where_listlike_other_2d_block_square_frame_naive_tz_disagree():
+    # GH#63842 non-square frames don't hit this, see
+    #  test_where_listlike_other_2d_block_multi_column_column_like above
+    vals = pd.date_range("2016-01-01", periods=2)
+    fill = list(pd.to_datetime(["2000-01-01", "2000-01-02"]))
+    cond = pd.DataFrame({"a": [True, False], "b": [False, False]})
+
+    naive = pd.DataFrame({"a": vals, "b": vals})
+    naive_result = naive.where(cond, fill)["a"].tolist()
+
+    tz = naive.apply(lambda col: col.dt.tz_localize("UTC"))
+    tz_fill = [ts.tz_localize("UTC") for ts in fill]
+    tz_result = tz.where(cond, tz_fill)["a"].tolist()
+
+    assert naive_result == tz_result
 
 
 def test_where_listlike_other_not_coerced_to_dtype(any_string_dtype):
