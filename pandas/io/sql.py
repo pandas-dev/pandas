@@ -67,6 +67,7 @@ from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.common import maybe_make_list
+from pandas.core.indexes.api import infer_object_levels
 from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import (
     stringify_numeric_column,
@@ -1084,6 +1085,8 @@ class SQLTable(PandasObject):
         if self.index is not None:
             temp = self.frame.copy(deep=False)
             temp.index.names = self.index
+            # GH#30517 keep inferring dtypes for object index levels
+            temp.index = infer_object_levels(temp.index)
             try:
                 temp = temp.reset_index()
             except ValueError as err:

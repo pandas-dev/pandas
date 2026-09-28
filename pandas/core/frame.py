@@ -8332,7 +8332,8 @@ class DataFrame(NDFrame, OpsMixin):
                     f"index level(s) {inferred[::-1]}. In a future version, the "
                     "object dtype will be retained. To keep the current behavior "
                     "and silence this warning, call `infer_objects` on the index "
-                    "(for a MultiIndex, on each level) before reset_index.",
+                    "before reset_index; for a MultiIndex, use `index.set_levels("
+                    "[lev.infer_objects() for lev in index.levels])`.",
                     Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )

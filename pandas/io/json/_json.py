@@ -58,6 +58,7 @@ from pandas import (
     notna,
     to_datetime,
 )
+from pandas.core.indexes.api import infer_object_levels
 from pandas.core.reshape.concat import concat
 
 from pandas.io._util import arrow_table_to_pandas
@@ -454,6 +455,8 @@ class JSONTableWriter(FrameWriter):
                 if not copied:
                     obj = obj.copy(deep=False)
                 obj.index = obj.index.to_timestamp()
+            # GH#30517 keep inferring dtypes for object index levels
+            obj = obj.set_axis(infer_object_levels(obj.index))
             self.obj = obj.reset_index(drop=False)
         self.date_format = "iso"
         self.orient = "records"

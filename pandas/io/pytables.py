@@ -107,7 +107,10 @@ from pandas.core.construction import (
     array as pd_array,
     extract_array,
 )
-from pandas.core.indexes.api import ensure_index
+from pandas.core.indexes.api import (
+    ensure_index,
+    infer_object_levels,
+)
 
 from pandas.io.common import stringify_path
 from pandas.io.formats.printing import (
@@ -4354,6 +4357,8 @@ class Table(Fixed):
                 "cannot store a MultiIndex with a level named 'index' as a "
                 "table; 'index' is reserved for the implicit row index"
             )
+        # GH#30517 keep inferring dtypes for object index levels
+        obj = obj.set_axis(infer_object_levels(obj.index))
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:

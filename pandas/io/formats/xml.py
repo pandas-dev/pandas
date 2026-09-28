@@ -22,6 +22,8 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.indexes.api import infer_object_levels
+
 from pandas.io.common import get_handle
 from pandas.io.xml import get_data_from_filepath
 
@@ -219,7 +221,8 @@ class _BaseXMLFormatter:
         df = self.frame
 
         if self.index:
-            df = df.reset_index()
+            # GH#30517 keep inferring dtypes for object index levels
+            df = df.set_axis(infer_object_levels(df.index)).reset_index()
 
         if self.na_rep is not None:
             with warnings.catch_warnings():

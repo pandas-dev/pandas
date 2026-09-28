@@ -683,6 +683,11 @@ def test_reset_index_infers_dtype_from_object_levels():
     )
     tm.assert_frame_equal(result, expected)
 
+    # GH#30517 inferring each level first keeps this behavior without warning
+    mi = mi.set_levels([lev.infer_objects() for lev in mi.levels])
+    result = pd.DataFrame({"v": [1, 2]}, index=mi).reset_index()
+    tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "values",
