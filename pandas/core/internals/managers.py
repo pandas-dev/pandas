@@ -571,15 +571,12 @@ class BaseBlockManager(PandasObject):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
-                # a key short of the column axis, e.g. from a trailing comma,
-                # selects all columns (GH#65446)
-                indexer = indexer + (slice(None),) * (2 - len(indexer))
                 blk_loc = self.blklocs[indexer[1]]
                 if is_list_like(blk_loc) and blk_loc.ndim == 2:
                     blk_loc = np.squeeze(blk_loc, axis=0)
                 elif not is_list_like(blk_loc):
                     # Keep dimension and copy data later
-                    blk_loc = [blk_loc]
+                    blk_loc = [blk_loc]  # type: ignore[assignment]
                 if len(blk_loc) == 0:
                     return self.copy(deep=False)
 

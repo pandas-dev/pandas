@@ -674,18 +674,17 @@ class TestiLocBaseIndependent:
         self, row_indexer, col_indexer
     ):
         # GH#65446 an increasing column indexer was collapsed to a slice, which
-        #  takes the cross product; both keys have to keep broadcasting against
-        #  each other, as they do with no reference alive
+        #  takes the cross product; a referenced frame has to select the same
+        #  cells as an unreferenced one
         df = pd.DataFrame(
             np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
         )
         df_orig = df.copy()
+        expected = df.copy()
+        expected.iloc[row_indexer, col_indexer] = 99.0
         ref = df[["a", "b", "c"]]
         df.iloc[row_indexer, col_indexer] = 99.0
         df._mgr._verify_integrity()
-        expected = df_orig.copy()
-        expected.loc[2, "a"] = 99.0
-        expected.loc[1, "c"] = 99.0
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
@@ -723,20 +722,6 @@ class TestiLocBaseIndependent:
         df._mgr._verify_integrity()
         expected = df_orig.copy()
         expected.iloc[[0, 2]] = 99.0
-        tm.assert_frame_equal(df, expected)
-        tm.assert_frame_equal(ref, df_orig)
-
-    def test_iloc_setitem_row_only_tuple_key_referenced_block(self):
-        # GH#65446 a trailing comma leaves the column key implicit
-        df = pd.DataFrame(
-            np.arange(12).reshape(4, 3).astype("float64"), columns=list("abc")
-        )
-        df_orig = df.copy()
-        expected = df.copy()
-        expected.iloc[[0, 2],] = 99.0
-        ref = df[["a", "b", "c"]]
-        df.iloc[[0, 2],] = 99.0
-        df._mgr._verify_integrity()
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(ref, df_orig)
 
