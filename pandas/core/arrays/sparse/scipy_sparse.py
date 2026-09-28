@@ -6,7 +6,10 @@ Currently only includes to_coo helpers.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas._libs import lib
 
@@ -28,7 +31,7 @@ if TYPE_CHECKING:
     )
 
 
-def _check_is_partition(parts: Iterable, whole: Iterable) -> None:
+def _check_is_partition(parts: Iterable[Any], whole: Iterable[int]) -> None:
     whole = set(whole)
     parts = [set(x) for x in parts]
     if set.intersection(*parts) != set():
