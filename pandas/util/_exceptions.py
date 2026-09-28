@@ -61,25 +61,12 @@ def find_stack_level() -> int:
     Find the first place in the stack that is not inside pandas
     (tests notwithstanding).
     """
-    global _pkg_dir, _test_dir
-    if _pkg_dir is None or _test_dir is None:
-        import pandas as pd
-
-        _pkg_dir = os.path.dirname(pd.__file__) + os.sep
-        _test_dir = os.path.join(_pkg_dir, "tests") + os.sep
-
-    pkg_dir = _pkg_dir
-    test_dir = _test_dir
-    assert pkg_dir is not None
-    assert test_dir is not None
-
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
     frame: FrameType | None = inspect.currentframe()
     try:
         n = 0
         while frame:
-            filename = frame.f_code.co_filename
-            if filename.startswith(pkg_dir) and not filename.startswith(test_dir):
+            if frame_is_pandas_internal(frame):
                 frame = frame.f_back
                 n += 1
             else:

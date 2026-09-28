@@ -6232,19 +6232,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Pin the group key to the 'name' attribute and flag it so that user
         access of the pinned name issues a deprecation warning (GH#41090).
 
-        Two known holes, both of which mean a UDF that consumes the key
-        indirectly changes behavior at enforcement without warning first:
-
-        1. Only a direct read warns. A read from pandas code the UDF handed
-           the group to (``group.to_frame()``) does change the result at
-           enforcement, but is indistinguishable from an output-neutral one
-           (naming a ``group + 1`` result), which every transform would trip.
-        2. Series.__finalize__ propagates _name (via _metadata) but
-           deliberately not this flag, so objects derived from the group
-           inside the UDF (e.g. ``group.dropna()``) carry the key as their
-           name without warning. Propagating the flag would false-positive
-           whenever __finalize__ copies it but the result's name is not the
-           key (e.g. a binop with mismatched names).
+        Two known holes: an indirect read of the key (e.g. handing the group
+        to another pandas method) is indistinguishable from an
+        output-neutral read and won't warn; and propagating the flag through
+        __finalize__ would false-positive whenever the result's name is not
+        the key (e.g. a binop with mismatched names).
         """
         if self.ndim == 1:
             # Goes through the Series.name property setter; for DataFrame
