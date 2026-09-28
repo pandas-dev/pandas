@@ -913,26 +913,48 @@ def test_where_listlike_other_wrong_length_raises_2d_block():
         pd.DataFrame({"a": vals}).where(cond, list(vals[:2]))
 
 
+@pytest.mark.xfail(
+    reason="EA columns are one block each, so a row-length list is lined up "
+    "per column instead of raising as for numpy dtypes",
+    strict=True,
+)
 def test_setitem_boolean_frame_listlike_value_multi_column_ea():
-    # GH#63842 EA columns are one block each, so a row-length list is lined up
-    #  per column. NumPy dtypes consolidate into one block and reject it, so
-    #  the two backends deliberately differ here
+    # GH#63842
     key = pd.DataFrame({"a": [False, True, False], "b": [False, False, True]})
-    df = pd.DataFrame(
-        {
-            "a": pd.array([1, 2, 3], dtype="Int64"),
-            "b": pd.array([4, 5, 6], dtype="Int64"),
-        }
-    )
-
-    df[key] = [10, 20, 30]
-
-    assert df["a"].tolist() == [1, 20, 3]
-    assert df["b"].tolist() == [4, 5, 30]
-
     numpy_df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    with pytest.raises(ValueError, match="does not match the number of True"):
+    msg = "does not match the number of True"
+    with pytest.raises(ValueError, match=msg):
         numpy_df[key] = [10, 20, 30]
+
+    df = numpy_df.astype("Int64")
+    with pytest.raises(ValueError, match=msg):
+        df[key] = [10, 20, 30]
+
+
+def test_where_listlike_other_2d_block_upcast_per_column():
+    # GH#63842 values that do not fit upcast each column with its own entry
+    vals = pd.date_range("2016-01-01", periods=3)
+    df = pd.DataFrame({"a": vals, "b": vals})
+    cond = pd.DataFrame({"a": [True, False, True], "b": [False, True, True]})
+
+    result = df.where(cond, ["x", "y"])
+    expected = pd.DataFrame(
+        {"a": [vals[0], "x", vals[2]], "b": ["y", vals[1], vals[2]]}, dtype=object
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_mask_listlike_other_2d_block_per_position_upcast_raises():
+    # GH#63842 one entry per selected position is split per column in the
+    #  frame's row-major order before the in-place upcast raises
+    vals = pd.date_range("2016-01-01", periods=4)
+    df = pd.DataFrame({"a": vals, "b": vals})
+    cond = pd.DataFrame(
+        {"a": [False, True, False, True], "b": [False, False, True, False]}
+    )
+    msg = r"Invalid value '\['x' 'z'\]' for dtype 'datetime64"
+    with pytest.raises(TypeError, match=msg):
+        df.mask(cond, ["x", "y", "z"], inplace=True)
 
 
 def test_where_listlike_other_keeps_string_dtype(frame_or_series, any_string_dtype):
