@@ -1790,7 +1790,7 @@ class EABackedBlock(Block):
                 #  in frame order and let numpy do the broadcasting
                 target = values.T
                 if not isinstance(indexer, tuple):
-                    # a 0-d ndarray key breaks the length checks; a tuple skips them
+                    # a 0-d ndarray key breaks EA.__setitem__; a tuple avoids it
                     indexer = (indexer,)
             else:
                 # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
@@ -1801,27 +1801,27 @@ class EABackedBlock(Block):
                     indexer = indexer[::-1]
                 if isinstance(value, np.ndarray) and value.ndim == 2:
                     value = value.T
-        check_setitem_lengths(indexer, value, values)
+        else:
+            # GH#68521 check_setitem_lengths's checks are gated on
+            #  values.ndim == 1, so it is a no-op for a 2-D block
+            check_setitem_lengths(indexer, value, values)
 
         try:
             target[indexer] = value
-        except (ValueError, TypeError) as err:
+        except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
-                if values.ndim == 2:
+                if values.ndim == 2 and _unbroadcastable_shape(target, indexer, value):
                     # GH#68521 not for a 1D block: that would change the
                     #  exception type of Series setitem; see
                     #  test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message
-                    target_shape = _unbroadcastable_shape(target, indexer, value)
-                    if target_shape is not None:
-                        raise ValueError(
-                            f"could not broadcast input array from shape "
-                            f"{np.shape(orig_value)} into shape {target_shape}"
-                        ) from err
+                    # target is values.T, already in frame order, so err's own
+                    #  message reports the shape mismatch correctly
+                    raise
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
@@ -2344,29 +2344,27 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     values: DatetimeArray | TimedeltaArray
 
 
-def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> Shape | None:
+def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> bool:
     """
-    The shape of ``values[indexer]`` when ``value`` cannot be broadcast into it.
+    Whether ``value`` cannot be broadcast into ``values[indexer]``.
 
-    Returns None both when the value does fit and when that cannot be
-    determined, so a caller can only use a non-None result to rule a failed
-    setitem a shape problem rather than a dtype one.
+    Returns False both when the value does fit and when that cannot be
+    determined, so a caller can only use a True result to conclude a failed
+    setitem is a shape problem rather than a dtype one.
     """
     try:
         target_shape = np.shape(values[indexer])
         value_shape = np.shape(value)
     except (IndexError, TypeError, ValueError):
-        return None
+        return False
     # assignment also drops leading length-1 axes of the value, which
     #  broadcasting on its own does not, e.g. ``arr[0] = np.array([x])``
     while len(value_shape) > len(target_shape) and value_shape[0] == 1:
         value_shape = value_shape[1:]
     try:
-        if np.broadcast_shapes(target_shape, value_shape) == target_shape:
-            return None
+        return np.broadcast_shapes(target_shape, value_shape) != target_shape
     except ValueError:
-        pass
-    return target_shape
+        return True
 
 
 # -----------------------------------------------------------------

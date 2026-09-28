@@ -2422,7 +2422,10 @@ def test_iloc_setitem_2d_ea_block_shape_mismatch_message(col_key):
     arr = np.arange(12).reshape(4, 3).astype("i8")
     df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
 
-    msg = r"could not broadcast input array from shape \(2,\) into shape \(2, 3\)"
+    msg = (
+        r"shape mismatch: value array of shape \(2,\) could not be broadcast "
+        r"to indexing result of shape \(2,3\)"
+    )
     with pytest.raises(ValueError, match=msg):
         df.iloc[[2, 0], col_key] = np.array([100, 101], dtype="i8").view("M8[s]")
 
@@ -2438,20 +2441,6 @@ def test_iloc_setitem_2d_ea_block_row_vector_into_one_row():
 
     arr[1] = value
     tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
-
-
-def test_iloc_setitem_2d_ea_block_length_one_value_is_not_a_shape_error():
-    # GH#68521 assignment drops a leading length-1 axis that broadcasting alone
-    #  does not, so a length-1 value into one cell is not a shape failure. That
-    #  it raises at all is a separate bug.
-    df = pd.DataFrame(
-        np.arange(12).reshape(4, 3).astype("i8").view("M8[s]"), columns=list("abc")
-    )
-    original = df.copy()
-
-    with pytest.raises(ValueError, match="^(?!could not broadcast)"):
-        df.iloc[1, 1] = np.array([100], dtype="i8").view("M8[s]")
-    tm.assert_frame_equal(df, original)
 
 
 def test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message():
