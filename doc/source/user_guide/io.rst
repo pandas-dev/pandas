@@ -6127,7 +6127,7 @@ connecting to.
    # PostgreSQL using the psycopg 3 driver:
    engine = create_engine("postgresql+psycopg://scott:tiger@localhost:5432/mydatabase")
 
-   # or using the legacy psycopg2 driver:
+   # or using the psycopg2 driver:
    engine = create_engine("postgresql+psycopg2://scott:tiger@localhost:5432/mydatabase")
 
    engine = create_engine("mysql+mysqldb://scott:tiger@localhost/foo")
