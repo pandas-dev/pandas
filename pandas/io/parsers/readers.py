@@ -255,9 +255,7 @@ _PARALLEL_TAPER_RATIO = 0.2
 def _is_thread_affinity_error(exc: BaseException) -> bool:
     """Return whether an exception message indicates thread affinity."""
     message = str(exc).lower()
-    return (
-        "created in a thread" in message and "same thread" in message
-    ) or "thread affinity" in message
+    return "thread affinity" in message or "created in a thread" in message
 
 
 # Ceiling on the *default* parallel-read worker count: parallel CSV reading
@@ -1101,12 +1099,12 @@ def _read_csv_chunks(
                     fut.result()
                 except Exception as err:
                     if _is_thread_affinity_error(err):
-                        raise RuntimeError(
+                        err.add_note(
                             "A read_csv converter raised a thread-affinity error "
                             "while running in a parallel parser worker. Use a "
                             "thread-safe resource in the converter or disable "
                             "parallel CSV reading with mode.max_threads=1."
-                        ) from err
+                        )
                     raise
 
             # A column of only NA tokens and ints too large for int64 converts
