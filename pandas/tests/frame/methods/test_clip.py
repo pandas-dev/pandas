@@ -233,8 +233,7 @@ class TestDataFrameClip:
         ],
     )
     def test_clip_extension_dtype_bound_inplace(self, axis, expected):
-        # GH#68929 all three axes raised TypeError with inplace=True, not just
-        #  the axis=None the non-inplace spelling failed on
+        # GH#68929 inplace=True must match the non-inplace result
         df = pd.DataFrame([[10, 20], [30, 40]])
         df.clip(lower=pd.array([15, 25], dtype="Int64"), axis=axis, inplace=True)
         tm.assert_frame_equal(df, pd.DataFrame(expected))
@@ -246,10 +245,8 @@ class TestDataFrameClip:
             ("upper", [[10.0, 20.0], [15.0, 25.0]]),
         ],
     )
-    def test_clip_extension_dtype_bound_multi_column_block(self, bound, expected):
-        # GH#68929 unlike the int frame above, the object result interleaved int
-        #  cells into a float frame, so the values were wrong and not only the
-        #  dtype; `upper` takes the other sentinel in _clip_with_one_bound
+    def test_clip_extension_dtype_bound_float_frame(self, bound, expected):
+        # GH#68929; upper exercises the +inf fill for missing bounds
         df = pd.DataFrame([[10, 20], [30, 40]]).astype(float)
 
         result = df.clip(**{bound: pd.array([15, 25], dtype="Int64")})
