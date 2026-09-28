@@ -34,6 +34,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
     SparseDtype,
 )
@@ -1388,6 +1389,10 @@ class FrameApply(NDFrameApply):
         if isinstance(dtypes[0], SparseDtype):
             # sparsity is a storage layout rather than a result dtype, and
             #  SparseArray's cast drops a tz, see test_apply_sparse_not_retained
+            return None
+        if isinstance(dtypes[0], CategoricalDtype):
+            # the cast keeps category only if every result is a category, so the
+            #  dtype would depend on the values, see test_apply_categorical_not_retained
             return None
         if any(dtype != dtypes[0] for dtype in dtypes[1:]):
             return None
