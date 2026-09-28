@@ -270,6 +270,8 @@ class TestIndex:
             ({"to_replace": pd.Series({"a": "z"})}, ["z", "b", "c"]),
             ({"to_replace": "a", "value": "z", "regex": True}, ["z", "b", "c"]),
             ({"regex": {"a": "z"}}, ["z", "b", "c"]),
+            ({"regex": ["a"], "value": ["z"]}, ["z", "b", "c"]),
+            ({"to_replace": re.compile("a"), "value": "z"}, ["z", "b", "c"]),
         ],
     )
     def test_index_replace_widens_dtype_that_cannot_hold_value(self, kwargs, expected):
@@ -331,10 +333,9 @@ class TestIndex:
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_index_replace_widening_matches_like_block_replace(self, unit):
-        # GH#68563 mask_missing compares an ns Timestamp unequal against object,
-        #  so the widened dtype would replace nothing.  That ns no-op is a
-        #  pre-existing object-dtype bug; raising keeps it from reaching the
-        #  caller as data
+        # GH#68563 object-dtype replace misses an ns Timestamp, so the widened
+        #  dtype would replace nothing and the retry raises instead; retire the
+        #  ns case once object-dtype replace matches it
         idx = pd.CategoricalIndex(pd.date_range("2020", periods=3, unit=unit))
 
         if unit == "ns":
@@ -347,38 +348,26 @@ class TestIndex:
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "idx, na, expected",
+        "idx, kwargs, expected",
         [
             (
                 Index([1, 2, pd.NA], dtype="Int64"),
-                np.nan,
+                {"to_replace": np.nan, "value": 1.5},
                 Index([1.0, 2.0, 1.5], dtype="Float64"),
             ),
             (
                 Index([1, 2, pd.NA], dtype="Int64"),
-                pd.NA,
+                {"to_replace": pd.NA, "value": 1.5},
                 Index([1.0, 2.0, 1.5], dtype="Float64"),
             ),
             (
                 pd.CategoricalIndex(pd.to_datetime(["2020-01-01", "2020-01-02", None])),
-                pd.NaT,
+                {"to_replace": pd.NaT, "value": 1.5},
                 Index(
                     [pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02"), 1.5],
                     dtype=object,
                 ),
             ),
-        ],
-    )
-    def test_index_replace_na_to_replace_widens(self, idx, na, expected):
-        # GH#68563 an NA to_replace that the dtype cannot replace in place widens,
-        #  where before it raised
-        result = idx.replace(na, 1.5)
-
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "idx, kwargs, expected",
-        [
             (
                 Index([1, 2, pd.NA], dtype="Int64"),
                 {"to_replace": [np.nan, 1], "value": ["x", 5]},
@@ -401,12 +390,10 @@ class TestIndex:
             ),
         ],
     )
-    def test_index_replace_na_to_replace_mixed_with_literal(
-        self, idx, kwargs, expected
-    ):
+    def test_index_replace_na_to_replace_widens(self, idx, kwargs, expected):
         # GH#68563 an NA to_replace is matched through hasnans rather than
-        #  compared, which is what Block.replace does; the literal paired with it
-        #  is still filtered on whether it matches
+        #  compared, as Block.replace does; a literal paired with it is still
+        #  filtered on whether it matches
         result = idx.replace(**kwargs)
 
         tm.assert_index_equal(result, expected)

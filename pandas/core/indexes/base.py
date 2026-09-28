@@ -125,6 +125,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import (
     is_bool,
     is_dict_like,
+    is_re,
 )
 from pandas.core.dtypes.missing import (
     array_equivalent,
@@ -6922,10 +6923,12 @@ class Index(IndexOpsMixin, PandasObject):
         mask_missing the way Block.replace does.  Also returns those literals
         that did match, for the caller to re-check against the widened dtype.
         """
+        if to_replace is None and not is_bool(regex):
+            # regex given without to_replace; Series.replace moves it there too
+            to_replace, regex = regex, True
+
         if is_dict_like(to_replace):
             pairs = list(to_replace.items())
-        elif is_dict_like(regex):
-            pairs = list(regex.items())
         elif not is_list_like(to_replace):
             pairs = [(to_replace, value)]
         elif is_list_like(value):
@@ -6942,6 +6945,11 @@ class Index(IndexOpsMixin, PandasObject):
             #  test_index_replace_regex_does_not_filter_unmatched_pair
             matched = []
             for to_rep, val in pairs:
+                if is_re(to_rep):
+                    # a compiled to_replace can act as a regex even with
+                    #  regex=False, so it goes unfiltered too
+                    matched.append(val)
+                    continue
                 if checknull(to_rep):
                     # NA is matched against hasnans rather than compared, and
                     #  stays out of keys: widening cannot lose an NA match
@@ -7024,11 +7032,9 @@ class Index(IndexOpsMixin, PandasObject):
                 raise
             result = widened.replace(to_replace, value, regex=regex)
             if not keys and result.equals(widened):
-                # keys is empty on the regex paths, where a pattern is matched
-                #  rather than compared, so the check above cannot run. The
-                #  caught TypeError need not have been a can't-hold error at
-                #  all, and a retry that replaced nothing would return an Index
-                #  whose only change is its dtype
+                # regex paths have no keys to re-check, and the TypeError may
+                #  be unrelated; see
+                #  test_index_replace_regex_unrelated_type_error_propagates
                 raise
             return result
 
