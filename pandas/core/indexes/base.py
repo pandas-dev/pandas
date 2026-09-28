@@ -45,6 +45,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
+    Period,
     Timestamp,
     tz_compare,
 )
@@ -8669,6 +8670,15 @@ def get_values_for_csv(
             if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
                 # enlarge for the na_rep
                 values = values.astype(f"<U{itemsize}")
+        elif date_format is not None and values.dtype == _dtype_obj:
+            # GH#27306 match the formatting of datetime64 and Period arrays
+            def _format(val: object) -> object:
+                if val is not NaT and isinstance(val, (datetime, Period)):
+                    return val.strftime(date_format)
+                return val
+
+            values = lib.map_infer(values.ravel(), _format, convert=False)
+            values = values.reshape(mask.shape)
         else:
             values = np.array(values, dtype="object")
 
