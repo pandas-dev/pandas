@@ -10,6 +10,7 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
+import re
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -65,7 +66,7 @@ def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
-    lengths.append(max(map(len, lists[-1])))
+    lengths.append(max(map(strlen, lists[-1])))
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
@@ -563,23 +564,43 @@ class PrettyDict(dict[_KT, _VT]):
         return pprint_thing(self)
 
 
+# ANSI escape sequences (e.g. terminal colors) take up no space on screen
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
 class _TextAdjustment:
     def __init__(self) -> None:
         self.encoding = config["display"]["encoding"]
 
     def len(self, text: str) -> int:
+        """
+        Calculate display width, ignoring ANSI escape sequences
+        """
+        if "\x1b" in text:
+            return len(_ANSI_ESCAPE.sub("", text))
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
         """
         Perform ljust, center, rjust against string or list-like
         """
+        if "\x1b" in "".join(texts):
+            return self._justify_by_width(texts, max_len, mode)
+        return _adj_justify(texts, max_len, mode)
+
+    def _justify_by_width(
+        self, texts: Iterable[str], max_len: int, mode: str
+    ) -> list[str]:
+        # pad by display width rather than character count
+        def _get_pad(t: str) -> int:
+            return max_len - self.len(t) + len(t)
+
         if mode == "left":
-            return [x.ljust(max_len) for x in texts]
+            return [x.ljust(_get_pad(x)) for x in texts]
         elif mode == "center":
-            return [x.center(max_len) for x in texts]
+            return [x.center(_get_pad(x)) for x in texts]
         else:
-            return [x.rjust(max_len) for x in texts]
+            return [x.rjust(_get_pad(x)) for x in texts]
 
     def adjoin(self, space: int, *lists: Any, **kwargs: Any) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
@@ -605,6 +626,8 @@ class _EastAsianTextAdjustment(_TextAdjustment):
         if not isinstance(text, str):
             return len(text)
 
+        if "\x1b" in text:
+            text = _ANSI_ESCAPE.sub("", text)
         return sum(
             self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
         )
@@ -612,16 +635,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
     def justify(
         self, texts: Iterable[str], max_len: int, mode: str = "right"
     ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t: str) -> int:
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
+        return self._justify_by_width(texts, max_len, mode)
 
 
 def get_adjustment() -> _TextAdjustment:
