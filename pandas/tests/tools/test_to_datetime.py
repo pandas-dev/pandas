@@ -4976,9 +4976,7 @@ def test_to_datetime_float_out_of_bounds_raises():
 
 
 def test_to_datetime_float_out_of_bounds_coerce_with_format():
-    # GH#68926 coercing the bad entries must leave the others alone. `format`
-    #  is the spelling that catches a detour through object dtype, which
-    #  reaches strptime rather than the epoch path.
+    # GH#68926 the coerced entries must parse like NaN under a format too
     msg = "Parsing integer or float values with a format"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = pd.to_datetime(

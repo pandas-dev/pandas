@@ -474,8 +474,7 @@ def _convert_listlike_datetimes(
     except OutOfBoundsDatetime:
         if errors == "raise":
             raise
-        # GH#68926 one bad float failed the whole array. NaN maps to NaT here,
-        #  so blanking just those entries leaves every other element unchanged.
+        # GH#68926 coerce just the out-of-range entries; NaN maps to NaT
         oob = float_outside_int64(np.asarray(arg))
         if not oob.any():
             # defensive

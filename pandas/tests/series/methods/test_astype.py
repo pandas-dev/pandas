@@ -816,8 +816,7 @@ def test_astype_float_to_datetimelike_in_bounds_unchanged(dtype):
 @pytest.mark.parametrize("dtype", ["Float64", "Float32"])
 @pytest.mark.parametrize("spelling", ["astype", "constructor", "index"])
 def test_astype_masked_float_to_datetime64_out_of_bounds(dtype, spelling):
-    # GH#68926 the masked spellings narrow through the same int64 cast, so they
-    #  have to agree with the numpy ones rather than with each other
+    # GH#68926 masked input goes through the same unchecked int64 cast
     arr = pd.array([np.inf], dtype=dtype)
 
     with pytest.raises(OutOfBoundsDatetime, match="cannot convert input inf"):
@@ -830,8 +829,7 @@ def test_astype_masked_float_to_datetime64_out_of_bounds(dtype, spelling):
 
 
 def test_astype_masked_float_to_timedelta64_out_of_bounds():
-    # GH#68926 masked astype is the only spelling that reached the timedelta64
-    #  narrowing unguarded; the TimedeltaIndex peer already raised
+    # GH#68926 masked astype narrows through to_numpy, bypassing _astype_nansafe
     arr = pd.array([np.inf], dtype="Float64")
 
     with pytest.raises(OutOfBoundsTimedelta, match="cannot convert input inf"):
@@ -853,8 +851,7 @@ def test_astype_masked_float_to_datetime64_in_bounds_unchanged():
 
 @pytest.mark.parametrize("dtype", ["M8", "m8"])
 def test_astype_masked_float_to_datetimelike_no_unit(dtype):
-    # GH#68926 an out-of-range value must not preempt the unitless-dtype
-    #  complaint, which is what the narrowing would have to be checked against
+    # GH#68926 the out-of-range check must not preempt the no-unit error
     ser = pd.Series(pd.array([np.inf], dtype="Float64"))
 
     with pytest.raises(TypeError, match="values must have a unit specified"):

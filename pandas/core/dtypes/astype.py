@@ -142,13 +142,7 @@ def _astype_nansafe(
         )
         raise ValueError(msg)
 
-    if (
-        np.issubdtype(arr.dtype, np.floating)
-        and dtype.kind in "mM"
-        and np.datetime_data(dtype)[1] == 1
-    ):
-        # a multiplier dtype, e.g. "M8[10s]", is rejected downstream (GH#25611)
-        #  whatever the values, so the saturated value never surfaces
+    if np.issubdtype(arr.dtype, np.floating) and dtype.kind in "mM":
         raise_if_float_outside_int64(arr, dtype)
 
     if copy or object in (arr.dtype, dtype):
@@ -197,12 +191,17 @@ def raise_if_float_outside_int64(
 
     Entries where ``mask`` is True are ignored.
     """
+    unit, step = np.datetime_data(dtype)
+    if step != 1 or unit == "generic":
+        # a unitless or multiplier dtype, e.g. "M8[10s]", is rejected
+        #  downstream (GH#25611) whatever the values, so the saturated
+        #  value never surfaces
+        return
     oob = float_outside_int64(values)
     if mask is not None:
         oob &= ~mask
     if oob.any():
         bad = values[oob][0]
-        unit = np.datetime_data(dtype)[0]
         err = OutOfBoundsDatetime if dtype.kind == "M" else OutOfBoundsTimedelta
         raise err(f"cannot convert input {bad} with the unit '{unit}'")
 
