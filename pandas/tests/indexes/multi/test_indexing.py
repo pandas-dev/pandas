@@ -1211,6 +1211,18 @@ def test_get_locs_trailing_bool_indexer_narrows():
     tm.assert_numpy_array_equal(result, np.array([0, 4], dtype=np.intp))
 
 
+def test_get_locs_iterator_bool_indexer_not_counted_as_level():
+    # GH#45762 a bool indexer consumes no level, including when it arrives as an
+    #  iterator -- is_bool_indexer reads an unmaterialized one as a level key
+    idx = pd.MultiIndex.from_product([["a", "b"], [1, 2, 3]])
+    mask = [True, True, False, False, False, False]
+
+    expected = idx.get_locs([["a"], slice(1, 2), mask])
+    result = idx.get_locs([["a"], slice(1, 2), iter(mask)])
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("pos", [0, 2])
 def test_get_locs_too_many_levels_ellipsis(pos):
     # GH#45762 - an Ellipsis is never supported, so the length check must not

@@ -4195,12 +4195,10 @@ class MultiIndex(Index):
 
         # GH#64807 A level key is traversed more than once below (and again by
         #  _reorder_indexer), so an iterator has to be materialized up front:
-        #  the _get_level_indexer probe below drains it, and is_bool_indexer in
-        #  the depth check reads an iterator as a level key. Every other
-        #  list-like survives that probe, so it is left alone here -- a
-        #  re-iterable one that is also hashable (e.g. a range or frozenset) may
-        #  be a level label rather than a sequence of them, and only the probe
-        #  can tell.
+        #  the _get_level_indexer probe below drains it. Every other list-like
+        #  survives that probe, so it is left alone here -- a re-iterable one
+        #  that is also hashable (e.g. a range or frozenset) may be a level
+        #  label rather than a sequence of them, and only the probe can tell.
         materialized = list(seq)
         changed = False
         for pos, key in enumerate(materialized):
@@ -4213,6 +4211,8 @@ class MultiIndex(Index):
         # GH#45762 Checked before the lexsort depth below, which would otherwise
         #  take the blame. Trailing null slices and bool indexers consume no
         #  level; .loc routes the column selector here too, as df.loc[:, key, :]
+        #  does. Materialized above: is_bool_indexer reads an iterator as a
+        #  level key.
         depth = len(materialized)
         if depth > self.nlevels:
             for key in reversed(materialized[self.nlevels :]):
