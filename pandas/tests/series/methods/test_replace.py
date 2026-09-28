@@ -795,8 +795,8 @@ def test_replace_compiled_regex_arrow_dtype(pa_type):
     # the same guard is reached through replace_list
     tm.assert_series_equal(ser.replace(regex={re.compile("^a"): "z"}), expected)
     tm.assert_series_equal(ser.replace([re.compile("^a")], ["z"], regex=True), expected)
-    # both asserts above would pass even if ser were mutated: "^a" no longer
-    #  matches a substituted value
+    # the three asserts above would pass even if ser were mutated: "^a" no
+    #  longer matches a substituted value
     tm.assert_series_equal(ser, original)
 
     # inplace now reaches ArrowExtensionArray.__setitem__
