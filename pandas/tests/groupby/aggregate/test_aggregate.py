@@ -11,7 +11,6 @@ import pytest
 
 from pandas.errors import (
     Pandas4Warning,
-    PerformanceWarning,
     SpecificationError,
 )
 import pandas.util._test_decorators as td
@@ -1862,7 +1861,7 @@ def test_groupby_agg_as_index_false_multiindex_column_matches_reset_index():
     result = df.groupby(("col0", "l0"), as_index=False).agg(
         {("col1", "l1"): ["min", "max"]}
     )
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(False):
         expected = (
             df.groupby(("col0", "l0"))
             .agg({("col1", "l1"): ["min", "max"]})
@@ -1873,7 +1872,7 @@ def test_groupby_agg_as_index_false_multiindex_column_matches_reset_index():
     result = df.groupby([("col0", "l0"), ("col2", "l0")], as_index=False).agg(
         {("col1", "l1"): ["min", "max"]}
     )
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(False):
         expected = (
             df.groupby([("col0", "l0"), ("col2", "l0")])
             .agg({("col1", "l1"): ["min", "max"]})

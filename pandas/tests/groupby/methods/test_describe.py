@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.errors import Pandas4Warning, PerformanceWarning
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -196,7 +196,7 @@ def test_describe_as_index_false_multiindex_column_matches_reset_index():
         }
     )
     result = df.groupby(("col0", "l0"), as_index=False).describe()
-    with tm.assert_produces_warning(PerformanceWarning):
+    with tm.assert_produces_warning(False):
         expected = df.groupby(("col0", "l0")).describe().reset_index()
     tm.assert_frame_equal(result, expected)
 
