@@ -376,7 +376,6 @@ def test_str(data, exp, transform_assert_equal):
     assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
 def test_datetime_like(tz_naive_fixture, transform_assert_equal):
     transform, assert_equal = transform_assert_equal
     idx = pd.date_range("20130101", periods=3, tz=tz_naive_fixture)
@@ -395,7 +394,16 @@ def test_timedelta(transform_assert_equal):
     assert_equal(result, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Series.values:pandas.errors.Pandas4Warning")
+def test_timedelta_pyarrow():
+    # GH#69448
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series([pd.Timedelta(1), None], dtype=pd.ArrowDtype(pa.duration("ns")))
+
+    result = pd.to_numeric(ser)
+    expected = pd.Series([1, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "scalar",
     [
@@ -417,7 +425,7 @@ def test_period(request, transform_assert_equal):
     idx = pd.period_range("2011-01", periods=3, freq="M", name="")
     inp = transform(idx)
 
-    if not isinstance(inp, pd.Index):
+    if isinstance(inp, np.ndarray):
         request.applymarker(
             pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
         )

@@ -3202,7 +3202,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep : str, default ``'\t'``
             Field delimiter.
         **kwargs
-            These parameters will be passed to DataFrame.to_csv.
+            These parameters will be passed to DataFrame.to_csv. If csv output
+            is not produced (``excel=False`` or an invalid ``sep``), they are
+            passed to DataFrame.to_string instead, or ignored for a Series.
 
         See Also
         --------
@@ -6608,6 +6610,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
 
+            This does not apply to keys in a ``dtype`` mapping that are not
+            column labels (or, for a Series, not its name); those always raise
+            ``KeyError``.
+
         Returns
         -------
         same type as caller
@@ -7992,12 +7998,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
-        if not (
-            is_scalar(to_replace)
-            or to_replace is Ellipsis  # GH#50373
-            or is_re_compilable(to_replace)
-            or is_list_like(to_replace)
-        ):
+        if callable(to_replace):
             raise TypeError(
                 "Expecting 'to_replace' to be either a scalar, array-like, "
                 "dict or None, got invalid type "
