@@ -341,6 +341,21 @@ class TestDataFrameFormatting:
         ):
             assert "..." in repr(df)
 
+    def test_repr_default_width_non_interactive(self, monkeypatch):
+        # GH#21337 scripts still fit wide frames to the terminal width
+        monkeypatch.setattr(
+            "pandas.io.formats.console.in_interactive_session", lambda: False
+        )
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (80, 24)
+        )
+        df = pd.DataFrame(np.arange(600).reshape(2, 300))
+
+        with pd.option_context("display.width", None, "display.max_columns", 0):
+            result = repr(df)
+        assert "..." in result
+        assert max(len(line) for line in result.splitlines()) <= 80
+
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
         # determine size of truncation (...) column
