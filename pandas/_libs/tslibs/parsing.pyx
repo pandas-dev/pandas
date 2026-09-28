@@ -685,7 +685,9 @@ _HMS_WORDS = frozenset(word for group in DEFAULTPARSER.info.HMS for word in grou
 cdef bint _hms_label_at(str timestr, Py_ssize_t pos, int step):
     """
     Is the word next to timestr[pos], stepping outward by step, an _HMS_WORDS
-    one? dateutil allows a single space between the number and its label.
+    one? A single space is allowed unconditionally here; dateutil only allows
+    it before a number's label (step < 0) when the number is the final token
+    (GH#17265).
     """
     cdef:
         Py_ssize_t end, length = len(timestr)
