@@ -240,6 +240,19 @@ def test_center_ljust_rjust(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method_name", ["center", "ljust", "rjust", "pad"])
+def test_pad_nonpositive_width(any_string_dtype, method_name):
+    # GH#69749 non-positive widths are a no-op, matching Python str semantics
+    s = pd.Series(["ab", "+ab", "", "café", None], dtype=any_string_dtype)
+
+    for width in [-5, -1, 0]:
+        if method_name == "pad":
+            result = s.str.pad(width, fillchar="-")
+        else:
+            result = getattr(s.str, method_name)(width, "-")
+        tm.assert_series_equal(result, s)
+
+
 def test_center_ljust_rjust_mixed_object():
     s = pd.Series(
         ["a", np.nan, "b", True, datetime(2011, 1, 1), "c", "eee", None, 1, 2.0]
