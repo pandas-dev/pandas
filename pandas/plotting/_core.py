@@ -1477,8 +1477,8 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+            An ndarray of :class:`matplotlib.axes.Axes` is returned when
+            ``subplots=True``.
 
         See Also
         --------
@@ -1589,8 +1589,8 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+            An ndarray of :class:`matplotlib.axes.Axes` is returned when
+            ``subplots=True``.
 
         See Also
         --------
@@ -1734,8 +1734,8 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+            An ndarray of :class:`matplotlib.axes.Axes` is returned when
+            ``subplots=True``.
 
         See Also
         --------
@@ -1992,8 +1992,8 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+            An ndarray of :class:`matplotlib.axes.Axes` is returned when
+            ``subplots=True``.
 
         See Also
         --------
@@ -2105,8 +2105,8 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+            An ndarray of :class:`matplotlib.axes.Axes` is returned when
+            ``subplots=True``.
 
         See Also
         --------
@@ -2184,8 +2184,8 @@ class PlotAccessor(PandasObject):
         Returns
         -------
         matplotlib.axes.Axes or numpy.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
+            An ndarray of :class:`matplotlib.axes.Axes` is returned when
+            ``subplots=True``.
 
         See Also
         --------
