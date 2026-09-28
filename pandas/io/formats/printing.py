@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
     ABCNDFrame,
 )
 from pandas.core.dtypes.inference import (
+    is_complex,
     is_float,
     is_scalar,
 )
@@ -140,12 +141,9 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if is_float(item) and notna(item):
-            # GH#60503
-            from pandas.io.formats.format import _trim_zeros_single_float
-
-            precision = config["display"]["precision"]
-            item = _trim_zeros_single_float(f"{item:.{precision}f}")
+        if (is_float(item) or is_complex(item)) and notna(item):
+            # GH#60503, GH#25920
+            item = format_with_precision(item)
         r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
     body = ", ".join(r)
 
@@ -155,6 +153,29 @@ def _pprint_seq(
         body += ","
 
     return fmt.format(body=body)
+
+
+def format_with_precision(item: float | complex, sign: str = "") -> str:
+    """
+    Format a float or complex scalar using the ``display.precision`` option.
+
+    Trailing zeros after the decimal point are trimmed, leaving at least one.
+
+    Parameters
+    ----------
+    item : float or complex
+    sign : {"", " ", "+"}, default ""
+        Sign option of the format spec, applied to the real part.
+    """
+    precision = config["display"]["precision"]
+
+    def _fmt(val: float, sign: str) -> str:
+        str_float = f"{val:{sign}.{precision}f}".rstrip("0")
+        return str_float + "0" if str_float.endswith(".") else str_float
+
+    if is_complex(item):
+        return f"({_fmt(item.real, sign)}{_fmt(item.imag, '+')}j)"
+    return _fmt(item, sign)
 
 
 def _pprint_dict(

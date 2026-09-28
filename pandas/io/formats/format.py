@@ -52,6 +52,7 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_complex,
     is_complex_dtype,
     is_float,
     is_integer,
@@ -1226,10 +1227,7 @@ class _GenericArrayFormatter:
         if self.float_format is None:
             float_format = config["display"]["float_format"]
             if float_format is None:
-                precision = config["display"]["precision"]
-                float_format = lambda x: _trim_zeros_single_float(
-                    f"{x: .{precision:d}f}"
-                )
+                float_format = partial(printing.format_with_precision, sign=" ")
         else:
             float_format = self.float_format
 
@@ -1256,6 +1254,9 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
+            elif self.formatter is None and is_complex(x):
+                # GH#25920
+                return printing.format_with_precision(x)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1809,18 +1810,6 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:], strict=True)
     ]
     return padded
-
-
-def _trim_zeros_single_float(str_float: str) -> str:
-    """
-    Trims trailing zeros after a decimal point,
-    leaving just one if necessary.
-    """
-    str_float = str_float.rstrip("0")
-    if str_float.endswith("."):
-        str_float += "0"
-
-    return str_float
 
 
 _NUMBER_WITH_DECIMAL_RE = re.compile(r"^\s*[+-]?[0-9]+\.[0-9]*$")

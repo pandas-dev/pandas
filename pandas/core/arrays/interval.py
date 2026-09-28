@@ -101,6 +101,8 @@ from pandas.core.ops import (
     unpack_zerodim_and_defer,
 )
 
+from pandas.io.formats.printing import format_with_precision
+
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -1206,7 +1208,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
         # returning 'str' here causes us to render as e.g. "(0, 1]" instead of
         #  "Interval(0, 1, closed='right')"
-        return str
+        if not boxed or self.dtype.subtype is None or self.dtype.subtype.kind != "f":
+            return str
+
+        def _format_interval(x: Interval) -> str:
+            # GH#25920 respect display.precision for float endpoints
+            left = format_with_precision(x.left)
+            right = format_with_precision(x.right)
+            start = "[" if x.closed_left else "("
+            end = "]" if x.closed_right else ")"
+            return f"{start}{left}, {right}{end}"
+
+        return _format_interval
 
     # ---------------------------------------------------------------------
     # Vectorized Interval Properties/Attributes
