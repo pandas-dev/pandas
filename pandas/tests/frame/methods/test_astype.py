@@ -867,6 +867,44 @@ class Int16DtypeNoCopy(pd.Int16Dtype):
         return IntegerArrayNoCopy
 
 
+def test_astype_dict_keeps_other_columns_blocks():
+    # GH#63433 casting some columns split every column into its own block
+    df = pd.DataFrame(
+        {
+            f"c{i}": np.arange(5, dtype="float64" if i % 2 else "int64")
+            for i in range(10)
+        }
+    )
+    assert df._mgr.nblocks == 2
+
+    result = df.astype({"c3": "Int64"})
+
+    assert result._mgr.nblocks <= 4
+    expected = df.assign(c3=df["c3"].astype("Int64"))
+    tm.assert_frame_equal(result, expected)
+    assert df["c3"].dtype == np.float64
+
+
+def test_astype_dict_all_columns_one_dtype_stays_consolidated():
+    # GH#63433
+    df = pd.DataFrame({f"c{i}": np.arange(5, dtype="int64") for i in range(10)})
+
+    result = df.astype(dict.fromkeys(df.columns, "float32"))
+
+    assert result._mgr.nblocks == 1
+    tm.assert_frame_equal(result, df.astype("float32"))
+
+
+def test_astype_dict_error_names_column_when_cast_together():
+    # GH#63433 columns cast to the same dtype are cast together; a failure
+    #  still names the column that could not be cast
+    df = pd.DataFrame({"a": ["1", "2"], "b": ["3", "x"], "c": ["5", "6"]})
+
+    msg = "Error while type casting for column 'b'"
+    with pytest.raises(ValueError, match=msg):
+        df.astype({"a": "int64", "b": "int64", "c": "int64"})
+
+
 def test_frame_astype_no_copy():
     # GH 42501
     df = pd.DataFrame({"a": [1, 4, None, 5], "b": [6, 7, 8, 9]}, dtype=object)

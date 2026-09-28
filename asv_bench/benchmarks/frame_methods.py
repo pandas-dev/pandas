@@ -51,6 +51,20 @@ class AsType:
         self.df.astype(from_to_dtypes[1], copy=copy)
 
 
+class AstypeDict:
+    # GH#63433
+    params = [["one", "some", "all"]]
+    param_names = ["columns"]
+
+    def setup(self, columns):
+        self.df = DataFrame(np.random.randn(1000, 200))
+        cols = {"one": [42], "some": list(range(0, 40, 2)), "all": range(200)}
+        self.dtypes = dict.fromkeys(cols[columns], "float32")
+
+    def time_astype_dict(self, columns):
+        self.df.astype(self.dtypes)
+
+
 class Clip:
     params = [
         ["float64", "Float64", "float64[pyarrow]"],
