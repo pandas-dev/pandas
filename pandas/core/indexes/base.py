@@ -609,7 +609,6 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#53234 the cython routines only accept native byteorder
             data = data.astype(data.dtype.newbyteorder("="))
             dtype = data.dtype
-            copy = False
 
         if dtype == np.float16:
             # float16 not supported (no indexing engine)
