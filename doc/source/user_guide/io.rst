@@ -66,11 +66,10 @@ filepath_or_buffer : various
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
   Delimiter to use. ``sep=None`` detects the separator from the first valid row
-  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`; it
-  is supported only by the Python parsing engine, which will be used
-  automatically. In addition, separators longer than 1 character
-  and different from ``'\s+'`` will be interpreted as regular expressions and
-  will force the use of the Python parsing engine. Note that regex
+  of the file with Python's builtin sniffer tool, :class:`python:csv.Sniffer`;
+  the pyarrow engine does not support it. In addition, separators longer than
+  1 character and different from ``'\s+'`` will be interpreted as regular
+  expressions and will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
 delimiter : str, optional
   Alternative argument name for sep.
@@ -1430,15 +1429,13 @@ Automatically "sniffing" the delimiter
 
 ``read_csv`` is capable of inferring delimited (not necessarily
 comma-separated) files, as pandas uses the :class:`python:csv.Sniffer`
-class of the csv module. For this, you have to specify ``sep=None``. Passing
-``engine='python'`` as well avoids the ``ParserWarning`` raised by the
-fallback.
+class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
    df.to_csv("tmp2.csv", sep=":", index=False)
-   pd.read_csv("tmp2.csv", sep=None, engine="python")
+   pd.read_csv("tmp2.csv", sep=None)
 
 .. ipython:: python
    :suppress:
@@ -1512,7 +1509,7 @@ three engines:
    "Relative speed","fast","slowest","fastest on large workloads"
    "Multithreaded",":ref:`for large files <io.csv.parallel>`","no","yes"
    "Regex or multi-character ``sep``","no","yes","no"
-   "``sep=None`` (auto-detect the separator)","no","yes","no"
+   "``sep=None`` (auto-detect the separator)","yes","yes","no"
    "``skipfooter``","no","yes","no"
    "``low_memory``","yes","no","no"
    "``lineterminator``","yes","no","no"
