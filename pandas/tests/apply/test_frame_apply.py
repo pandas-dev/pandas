@@ -2286,13 +2286,14 @@ def test_apply_axis1_retains_ea_dtype():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_callable_retains_categorical_dtype():
-    # GH#61812 the retained dtype need not be numeric
-    dtype = CategoricalDtype(["a", "b", "c"], ordered=True)
-    df = pd.DataFrame({"A": ["a", "b"], "B": ["a", "c"]}, dtype=dtype)
-    result = df.agg(lambda x: x.max())
-    expected = pd.Series(["b", "c"], index=["A", "B"], dtype=dtype)
-    tm.assert_series_equal(result, expected)
+def test_apply_categorical_not_retained():
+    # GH#61812 retaining category would make the result dtype depend on whether
+    #  the results happen to be categories
+    df = pd.DataFrame(
+        {"A": [1, 2, 3], "B": [1, 1, 5]}, dtype=CategoricalDtype([1, 2, 3, 4, 5])
+    )
+    result = df.apply(lambda x: x.nunique())
+    tm.assert_series_equal(result, pd.Series([3, 2], index=["A", "B"]))
 
 
 def test_apply_ea_dtype_falls_back_when_cast_raises():
