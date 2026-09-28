@@ -624,7 +624,20 @@ def test_partial_slice_no_matches_raises(order):
     tm.assert_series_equal(ser["2024-02-24 10:10"], expected)
 
 
-def test_partial_slice_multiindex_level_bound_no_matches():
+@pytest.mark.parametrize(
+    "start, stop, expected_slice",
+    [
+        # start bound matches nothing
+        ("2024-02-24 10:08", None, slice(1, 3)),
+        # stop bound matches nothing
+        (None, "2024-02-24 10:08", slice(0, 1)),
+        # both bounds match nothing, and no entry falls between them
+        ("2024-02-24 10:05", "2024-02-24 10:08", slice(0, 0)),
+        # both bounds match nothing, but an entry falls between them
+        ("2024-02-24 10:08", "2024-02-24 10:12", slice(1, 2)),
+    ],
+)
+def test_partial_slice_multiindex_level_bound_no_matches(start, stop, expected_slice):
     # GH#57596 a slice bound matching no entry of the level used to select past
     #  it, unlike the same slice on the level itself
     lev = pd.to_datetime(
@@ -632,10 +645,12 @@ def test_partial_slice_multiindex_level_bound_no_matches():
     )
     ser = pd.Series(range(6), index=pd.MultiIndex.from_product([lev, ["a", "b"]]))
 
-    result = ser.loc["2024-02-24 10:08":"2024-02-24 10:12"]
+    result = ser.loc[start:stop]
 
     expected = pd.Series(
-        [2, 3], index=pd.MultiIndex.from_product([lev[1:2], ["a", "b"]])
+        range(2 * expected_slice.start, 2 * expected_slice.stop),
+        index=pd.MultiIndex.from_product([lev[expected_slice], ["a", "b"]]),
+        dtype=ser.dtype,
     )
     tm.assert_series_equal(result, expected)
 
