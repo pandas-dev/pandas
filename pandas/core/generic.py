@@ -488,6 +488,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _validate_dtype(cls, dtype) -> DtypeObj | None:
         """validate the passed dtype"""
         if dtype is not None:
+            if isinstance(dtype, dict):
+                # numpy would treat this as a structured dtype spec, GH#4464
+                raise TypeError(
+                    f"The {cls.__name__} constructor does not accept a dict "
+                    "for dtype; use .astype with a dict after construction."
+                )
             dtype = pandas_dtype(dtype)
 
             # a compound dtype

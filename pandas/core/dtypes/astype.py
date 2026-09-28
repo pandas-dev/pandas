@@ -241,6 +241,10 @@ def astype_array_safe(
         # Ensure we don't end up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
+    if isinstance(dtype, np.dtype) and dtype.kind == "V":
+        # match the Series/DataFrame constructors, GH#4464
+        raise NotImplementedError("compound dtypes are not implemented in astype")
+
     try:
         new_values = astype_array(values, dtype, copy=copy)
     except (ValueError, TypeError):
