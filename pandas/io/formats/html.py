@@ -129,7 +129,7 @@ class HTMLFormatter:
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self) -> Iterable:
+    def _get_columns_formatted_values(self) -> Iterable[Hashable]:
         return self.columns
 
     @property
@@ -209,7 +209,7 @@ class HTMLFormatter:
 
     def write_tr(
         self,
-        line: Iterable,
+        line: Iterable[Hashable],
         indent: int = 0,
         indent_delta: int = 0,
         header: bool = False,
