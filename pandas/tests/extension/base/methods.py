@@ -46,6 +46,8 @@ class BaseMethodsTests:
             "unique": ["unique"],
             "factorize": ["factorize", "_values_for_factorize"],
             "argsort": ["argsort", "_values_for_argsort"],
+            "argmin": ["argmin", "_values_for_argsort"],
+            "argmax": ["argmax", "_values_for_argsort"],
             "searchsorted": ["searchsorted"],
         }
         inherited = [
@@ -61,7 +63,7 @@ class BaseMethodsTests:
                 f"implementation of {', '.join(inherited)}, which may be slow. "
                 "See the ExtensionArray docstring for methods to override.",
                 PerformanceWarning,
-                stacklevel=2,
+                stacklevel=1,
             )
 
     def test_value_counts_default_dropna(self, data):

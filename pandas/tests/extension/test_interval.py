@@ -19,9 +19,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from pandas.errors import PerformanceWarning
+
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 
@@ -75,9 +78,6 @@ def data_for_grouping():
     return IntervalArray.from_tuples([b, b, None, None, a, a, b, c])
 
 
-@pytest.mark.filterwarnings(
-    "ignore:IntervalArray uses the default:pandas.errors.PerformanceWarning"
-)
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
@@ -86,6 +86,14 @@ class TestIntervalArray(base.ExtensionTests):
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max", "count"]
+
+    def test_slow_defaults_overridden(self, data):
+        # GH#24433 argmin/argmax use the default _values_for_argsort
+        msg = "implementation of factorize, argmin, argmax, searchsorted,"
+        with tm.assert_produces_warning(
+            PerformanceWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_slow_defaults_overridden(data)
 
     def test_fillna_limit_frame(self, data_missing):
         # GH#58001
