@@ -3441,7 +3441,7 @@ def test_str_extract_flags(expand):
 
 @pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()], ids=str)
 def test_date_std_sem(pa_type):
-    # GH#XXXXX the result was read as seconds without converting it from days
+    # GH#69752 the result was read as seconds without converting it from days
     # (date32) or milliseconds (date64)
     dates = [date(2020, 1, 1), date(2020, 1, 3), date(2020, 1, 2), date(2020, 1, 6)]
     ser = pd.Series(dates, dtype=ArrowDtype(pa_type))
@@ -3467,7 +3467,7 @@ def test_date_std_sem(pa_type):
 
 
 def test_date64_std_keeps_milliseconds():
-    # GH#XXXXX
+    # GH#69752
     ser = pd.Series(ArrowExtensionArray(pa.array([0, 1, 2, 3], pa.date64())))
     expected = pd.Series(np.array([0, 1, 2, 3], dtype="M8[ms]")).std()
     assert ser.std() == expected == pd.Timedelta(milliseconds=1)
