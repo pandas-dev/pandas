@@ -852,9 +852,10 @@ class Block(PandasObject, libinternals.Block):
 
         src_len = len(pairs) - 1
 
-        if inplace and src_len > 0:
-            # Compare against a copy, since values change as we replace. Keeps the
-            #  masks lazy rather than holding one per pair (GH#25816).
+        # With inplace, the masks must see the original values: either compare against
+        #  a copy or materialize the masks, whichever takes less memory (GH#25816).
+        copy_values = inplace and len(pairs) * values.size > values.nbytes
+        if copy_values:
             values = values.copy()
 
         if is_string_dtype(values.dtype) or (
@@ -872,6 +873,8 @@ class Block(PandasObject, libinternals.Block):
         else:
             # GH#38086 faster if we know we dont need to check for regex
             masks = (missing.mask_missing(values, s[0]) for s in pairs)
+        if inplace and not copy_values:
+            masks = list(masks)
 
         # Don't set up refs here, otherwise we will think that we have
         # references when we check again later
