@@ -1480,25 +1480,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  indexed like the group, so this is always not_indexed_same
         return self._wrap_applied_output(data, values, not_indexed_same=True)
 
-    @final
-    def _agg_general(
-        self,
-        numeric_only: bool = False,
-        min_count: int = -1,
-        *,
-        alias: str,
-        npfunc: Callable | None = None,
-        **kwargs,
-    ):
-        result = self._cython_agg_general(
-            how=alias,
-            alt=npfunc,
-            numeric_only=numeric_only,
-            min_count=min_count,
-            **kwargs,
-        )
-        return result.__finalize__(self.obj, method="groupby")
-
     def _agg_py_fallback(
         self, how: str, values: ArrayLike, ndim: int, alt: Callable
     ) -> ArrayLike:
@@ -1607,7 +1588,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # mypy expects how to be Literal["idxmin", "idxmax"].
             res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
         out = self._wrap_aggregated_output(res)
-        return out
+        return out.__finalize__(self.obj, method="groupby")
 
     def _cython_transform(self, how: str, numeric_only: bool = False, **kwargs):
         raise AbstractMethodError(self)
@@ -2092,7 +2073,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
-            result = self._cython_agg_general(
+            return self._cython_agg_general(
                 "mean",
                 alt=lambda x: Series(x, copy=False).mean(
                     numeric_only=numeric_only, skipna=skipna
@@ -2100,7 +2081,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only=numeric_only,
                 skipna=skipna,
             )
-            return result.__finalize__(self.obj, method="groupby")
 
     @final
     def median(self, numeric_only: bool = False, skipna: bool = True) -> NDFrameT:
@@ -2192,7 +2172,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2023-02-01    4.0
         Freq: MS, dtype: float64
         """
-        result = self._cython_agg_general(
+        return self._cython_agg_general(
             "median",
             alt=lambda x: Series(x, copy=False).median(
                 numeric_only=numeric_only, skipna=skipna
@@ -2200,7 +2180,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             numeric_only=numeric_only,
             skipna=skipna,
         )
-        return result.__finalize__(self.obj, method="groupby")
 
     @final
     def std(
@@ -2874,11 +2853,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat below
                 return obj.sum(skipna=skipna)
 
-            return self._agg_general(
+            return self._cython_agg_general(
+                "sum",
+                alt=sum_compat,
                 numeric_only=numeric_only,
                 min_count=min_count,
-                alias="sum",
-                npfunc=sum_compat,
                 skipna=skipna,
             )
 
@@ -2962,12 +2941,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#18588: see min_compat below
             return obj.prod(skipna=skipna)
 
-        return self._agg_general(
+        return self._cython_agg_general(
+            "prod",
+            alt=prod_compat,
             numeric_only=numeric_only,
             min_count=min_count,
             skipna=skipna,
-            alias="prod",
-            npfunc=prod_compat,
         )
 
     @final
@@ -3086,12 +3065,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # skipna itself; np.min would always skip.
                 return obj.min(skipna=skipna)
 
-            return self._agg_general(
+            return self._cython_agg_general(
+                "min",
+                alt=min_compat,
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
-                alias="min",
-                npfunc=min_compat,
             )
 
     @final
@@ -3208,12 +3187,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat above
                 return obj.max(skipna=skipna)
 
-            return self._agg_general(
+            return self._cython_agg_general(
+                "max",
+                alt=max_compat,
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
-                alias="max",
-                npfunc=max_compat,
             )
 
     @final
@@ -3295,11 +3274,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:  # pragma: no cover
                 raise TypeError(type(obj))
 
-        return self._agg_general(
+        return self._cython_agg_general(
+            "first",
+            alt=first_compat,
             numeric_only=numeric_only,
             min_count=min_count,
-            alias="first",
-            npfunc=first_compat,
             skipna=skipna,
         )
 
@@ -3365,11 +3344,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:  # pragma: no cover
                 raise TypeError(type(obj))
 
-        return self._agg_general(
+        return self._cython_agg_general(
+            "last",
+            alt=last_compat,
             numeric_only=numeric_only,
             min_count=min_count,
-            alias="last",
-            npfunc=last_compat,
             skipna=skipna,
         )
 
@@ -5781,10 +5760,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
             raise ValueError(f"{how} with skipna=False encountered an NA value.")
 
-        result = self._agg_general(
+        result = self._cython_agg_general(
+            how,
             numeric_only=numeric_only,
             min_count=1,
-            alias=how,
             skipna=skipna,
         )
         return result

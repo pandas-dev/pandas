@@ -1348,6 +1348,32 @@ def test_small_year_parsing():
     assert per1.day == 7
 
 
+@pytest.mark.parametrize(
+    "freq, expected",
+    [
+        ("Y", "0020"),
+        ("Q", "0020Q1"),
+        ("M", "0020-01"),
+        ("W", "0019-12-30/0020-01-05"),
+        ("D", "0020-01-01"),
+        ("h", "0020-01-01 00:00"),
+        ("s", "0020-01-01 00:00:00"),
+        ("us", "0020-01-01 00:00:00.000000"),
+    ],
+)
+def test_default_format_year_lt_1000(freq, expected):
+    # GH#58179
+    per = pd.Period("0020-01-01", freq=freq)
+    assert str(per) == expected
+    assert per.strftime(None) == expected
+
+
+def test_strftime_fiscal_year_lt_1000():
+    # GH#58179
+    per = pd.Period("0020Q1", freq="Q")
+    assert per.strftime("%F-Q%q") == "0020-Q1"
+
+
 def test_negone_ordinals():
     freqs = ["Y", "M", "Q", "D", "h", "min", "s"]
 
