@@ -6014,6 +6014,14 @@ def test_arrow_string_rejects_non_string_pyarrow_scalar(value):
         arr.fillna(value)
 
 
+def test_arrow_string_accepts_typed_null_scalar():
+    # GH#68638 a typed null pa.Scalar means "assign NA", matching
+    #  int64[pyarrow]'s test_setitem_typed_null_scalar_not_rejected
+    arr = pd.array(["a", "b"], dtype="string[pyarrow]")
+    arr[0] = pa.scalar(None, type=pa.int64())
+    assert arr[0] is pd.NA
+
+
 @pytest.mark.parametrize("value", [b"z", np.array([1, 2], dtype=object)])
 def test_arrow_string_fillna_rejects_non_string(value):
     # GH#68419 fillna rejects a non-string as setitem does

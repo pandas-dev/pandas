@@ -336,6 +336,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 or pa.types.is_large_string(value.type)
                 or pa.types.is_string_view(value.type)
                 or pa.types.is_null(value.type)
+                or not value.is_valid
             ):
                 raise TypeError(
                     f"Invalid value '{value}' for dtype 'str'. Value should be a "
