@@ -276,8 +276,9 @@ cmd = [
 
 [tasks.ci-c-coverage]
 # Reports coverage of the hand-written C/C++ after testing a -Db_coverage=true
-# build; Cython's generated C is excluded.
-cmd = "gcovr --root . --gcov-executable $CONDA_TOOLCHAIN_HOST-gcov --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary build/$PIXI_ENVIRONMENT_NAME"
+# build; Cython's generated C is excluded. gcov must match the compiler version,
+# so use the environment's rather than the system one.
+cmd = "gcovr --root . --gcov-executable $CONDA_PREFIX/bin/gcov --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary build/$PIXI_ENVIRONMENT_NAME"
 default-environment = "c-coverage"
 
 [tasks.ci-doctests]

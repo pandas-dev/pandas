@@ -425,6 +425,9 @@ jobs:
 
   Linux-C-Coverage:
     name: "C/C++ Coverage"
+    # codecov.yml shows no PR comments or statuses, so only push uploads are seen;
+    # CI-labeled PRs still run it to catch breakage
+    if: ${{ github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'CI') }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -466,9 +469,13 @@ jobs:
           pytest_target: "pandas"
 
       - name: Collect C/C++ coverage
+        id: collect
+        # a test failure still leaves usable .gcda files
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: pixi run --environment c-coverage ci-c-coverage
 
       - name: Upload C/C++ coverage to Codecov
+        if: ${{ !cancelled() && steps.collect.outcome == 'success' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: coverage-c.xml
