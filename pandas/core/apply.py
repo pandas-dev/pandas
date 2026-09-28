@@ -83,6 +83,7 @@ if TYPE_CHECKING:
         ExtensionArray,
     )
     from pandas.core.groupby import GroupBy
+    from pandas.core.groupby.groupby import BaseGroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -535,9 +536,9 @@ class Apply(metaclass=abc.ABCMeta):
             # GH#39609
             if isinstance(obj, ABCSeries):
                 return obj._constructor(index=Index([]), name=obj.name)
-            elif isinstance(obj, BaseGroupBy) and obj.obj.ndim == 1:
-                return obj.obj._constructor_expanddim(
-                    index=obj._grouper.result_index, columns=Index([])
+            elif isinstance(obj, BaseGroupBy) and obj._selected_obj.ndim == 1:
+                return obj._selected_obj._constructor_expanddim(
+                    index=_groupby_result_index(obj), columns=Index([])
                 )
 
         try:
@@ -677,7 +678,7 @@ class Apply(metaclass=abc.ABCMeta):
             elif isinstance(obj, ABCDataFrame):
                 return obj._constructor(index=Index([]), columns=obj.columns[:0])
             elif isinstance(obj, BaseGroupBy):
-                index = obj._grouper.result_index
+                index = _groupby_result_index(obj)
                 if selected_obj.ndim == 2:
                     frame = cast("DataFrame", selected_obj)
                     return frame._constructor(index=index, columns=frame.columns[:0])
@@ -1911,6 +1912,18 @@ class ResamplerWindowApply(GroupByApply):
 
     def transform(self):
         raise NotImplementedError
+
+
+def _groupby_result_index(obj: BaseGroupBy) -> Index:
+    """
+    Index of a groupby aggregation result, used when there is nothing to aggregate.
+    """
+    from pandas.core.resample import Resampler
+
+    if isinstance(obj, Resampler):
+        # a groupby-resample has no single grouper to take the index from
+        return obj.size().index
+    return obj._grouper.result_index
 
 
 def reconstruct_func(

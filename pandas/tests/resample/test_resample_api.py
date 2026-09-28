@@ -345,6 +345,29 @@ def test_agg_empty_func_series(func):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func_groupby(func):
+    # GH#39609
+    index = pd.DatetimeIndex(["2000-01-01", "2000-01-03", "2000-01-03"])
+    df = pd.DataFrame({"a": [1, 2, 3], "g": [1, 1, 2]}, index=index)
+    expected_index = pd.MultiIndex.from_arrays(
+        [[1, 1, 1, 2], date_range("2000-01-01", periods=3).append(index[-1:])],
+        names=["g", None],
+    )
+
+    result = df.groupby("g").resample("D").agg(func)
+    if func == []:
+        columns = pd.MultiIndex.from_product([df.columns, []])
+    else:
+        columns = df.columns[:0]
+    expected = pd.DataFrame(index=expected_index, columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("g")["a"].resample("D").agg(func)
+    expected = pd.DataFrame(index=expected_index, columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
