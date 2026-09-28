@@ -6919,17 +6919,19 @@ class Index(IndexOpsMixin, PandasObject):
         Common dtype to retry replace() on after self.dtype refused a value.
 
         A literal `to_replace` that matches nothing is left out: Block.replace
-        skips those rather than widening for them, so matching goes through
-        mask_missing the way Block.replace does.  Also returns those literals
+        skips those rather than widening for them.  Matching uses mask_missing
+        like the scalar Block.replace; replace_list compares object values with
+        ==, so a list or dict can re-raise needlessly.  Also returns those literals
         that did match, for the caller to re-check against the widened dtype.
         """
         if to_replace is None and not is_bool(regex):
             # regex given without to_replace; Series.replace moves it there too
             to_replace, regex = regex, True
 
+        pairs: list[tuple[Any, Any]]
         if is_dict_like(to_replace):
             pairs = list(to_replace.items())
-        elif not is_list_like(to_replace):
+        elif to_replace is None or not is_list_like(to_replace):
             pairs = [(to_replace, value)]
         elif is_list_like(value):
             # strict=False so a length mismatch cannot mask the original TypeError

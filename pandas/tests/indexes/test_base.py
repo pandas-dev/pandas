@@ -331,18 +331,20 @@ class TestIndex:
         with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
             idx.replace("2020-01-01", "z")
 
+    @pytest.mark.parametrize("as_list", [False, True])
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-    def test_index_replace_widening_matches_like_block_replace(self, unit):
-        # GH#68563 object-dtype replace misses an ns Timestamp, so the widened
-        #  dtype would replace nothing and the retry raises instead; retire the
-        #  ns case once object-dtype replace matches it
+    def test_index_replace_widening_matches_like_block_replace(self, unit, as_list):
+        # GH#68563 the retry re-checks matches with mask_missing, which misses an
+        #  ns Timestamp on object dtype, so it raises even for the list form that
+        #  replace_list would match with ==; retire once mask_missing matches it
         idx = pd.CategoricalIndex(pd.date_range("2020", periods=3, unit=unit))
+        args = ([idx[0]], ["z"]) if as_list else (idx[0], "z")
 
         if unit == "ns":
             with pytest.raises(TypeError, match="Cannot setitem on a Categorical"):
-                idx.replace(idx[0], "z")
+                idx.replace(*args)
         else:
-            result = idx.replace(idx[0], "z")
+            result = idx.replace(*args)
 
             expected = Index(["z", idx[1], idx[2]], dtype=object)
             tm.assert_index_equal(result, expected)
@@ -499,9 +501,9 @@ class TestIndex:
                 ValueError,
                 "must match in length",
             ),
-            ({"to_replace": object()}, TypeError, "Expecting 'to_replace' to be"),
+            ({"to_replace": len}, TypeError, "Expecting 'to_replace' to be"),
             (
-                {"to_replace": object(), "value": "z"},
+                {"to_replace": len, "value": "z"},
                 TypeError,
                 "Expecting 'to_replace' to be",
             ),
