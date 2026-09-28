@@ -155,20 +155,37 @@ def concat_compat(
     return result
 
 
-def _category_type(cat: Any) -> type:
-    # a NumPy scalar is the same category as its Python equivalent; excluding
-    #  timedelta64, whose .item() can be an int
-    if isinstance(cat, (np.bool_, np.number, np.str_)) and not isinstance(
-        cat, np.timedelta64
-    ):
-        return type(cat.item())
-    return type(cat)
+# plain real and complex numbers; excludes bool and np.timedelta64
+_NUMBER_TYPES = {int, float, complex} | {
+    np.dtype(code).type
+    for code in np.typecodes["AllInteger"] + np.typecodes["AllFloat"]
+}
+
+
+def _category_kind(cat: Any) -> Any:
+    """
+    Categories from different inputs that compare equal merge only if they
+    are of the same kind.
+
+    Plain numbers are one kind, so 1 and 1.0 merge as they do for int64 and
+    float64 categories. Any other type is its own kind (np.bool_ and np.str_
+    count as bool and str), so True and 1, an IntEnum and an int, or a
+    Decimal and an int are kept apart.
+    """
+    cat_type = type(cat)
+    if cat_type in _NUMBER_TYPES:
+        return "number"
+    if cat_type is np.bool_:
+        return bool
+    if cat_type is np.str_:
+        return str
+    return cat_type
 
 
 def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     """
     Whether any of these object-dtype categories appears under two different
-    types, e.g. True and 1, which compare and hash equal.
+    kinds (see _category_kind), e.g. True and 1, which compare and hash equal.
     """
     # a single categories Index cannot collide with itself: Categorical rejects
     #  categories that are not unique, and uniqueness is checked by hash
@@ -176,12 +193,12 @@ def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     if len(distinct) < 2:
         return False
 
-    seen: dict[Any, type] = {}
+    seen: dict[Any, Any] = {}
     for categories in distinct.values():
         for cat in categories:
-            cat_type = _category_type(cat)
+            kind = _category_kind(cat)
             try:
-                if seen.setdefault(cat, cat_type) is not cat_type:
+                if seen.setdefault(cat, kind) != kind:
                     return True
             except Exception:
                 # a comparison that raises, e.g. Decimal("1") == np.int64(1),
@@ -199,8 +216,8 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | No
     returns a Categorical.  Orderedness is preserved only if every input shares
     the same dtype after this cast.
 
-    Returns None when a category appears under two different types, e.g. True
-    and 1 under object dtype; the caller then casts to object.
+    Returns None when equal categories are of different kinds (see
+    _category_kind), e.g. True and 1; the caller then casts to object.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
