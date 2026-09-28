@@ -1474,7 +1474,8 @@ class PlotAccessor(PandasObject):
               column `a` in green and lines for column `b` in red.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`. In addition, passing ``x_compat=True``
             suppresses pandas' automatic tick resolution adjustment for
             regular frequency time-series data in favor of the default
@@ -1591,7 +1592,8 @@ class PlotAccessor(PandasObject):
               column `a` in green and bars for column `b` in red.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1736,7 +1738,8 @@ class PlotAccessor(PandasObject):
               column `a` in green and bars for column `b` in red.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1860,7 +1863,8 @@ class PlotAccessor(PandasObject):
             Column in the DataFrame to group by.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1918,7 +1922,8 @@ class PlotAccessor(PandasObject):
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -1997,7 +2002,8 @@ class PlotAccessor(PandasObject):
             Weights of datapoints. This must be the same shape as datapoints.
             If None (default), the samples are assumed to be equally weighted.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2110,7 +2116,8 @@ class PlotAccessor(PandasObject):
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2189,7 +2196,8 @@ class PlotAccessor(PandasObject):
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2285,7 +2293,8 @@ class PlotAccessor(PandasObject):
               marker points according to a colormap.
 
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2376,7 +2385,8 @@ class PlotAccessor(PandasObject):
             and the axis limits. To control the area covered by the
             hexagons, pass matplotlib's ``extent`` keyword via ``**kwargs``.
         **kwargs
-            Additional keyword arguments are documented in
+            Additional keyword arguments, such as ``ax``, ``figsize``,
+            ``title`` and ``legend``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
