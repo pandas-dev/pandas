@@ -836,6 +836,14 @@ class ArrowExtensionArray(
         elif isna(value) and not (lib.is_float(value) and not is_nan_na()):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
+            if isinstance(value, np.ndarray) and value.ndim == 0:
+                # GH#69443 a 0-d ndarray (e.g. unwrapped from a length-1 1-d
+                #  array in SingleBlockManager.setitem_inplace) is scalar-like,
+                #  but pa.scalar cannot consume the ndarray directly; unbox it
+                #  to the equivalent numpy scalar. arr[()] (rather than .item())
+                #  preserves the dtype, e.g. datetime64 stays a datetime64
+                #  scalar instead of becoming an int.
+                value = value[()]
             if (
                 pa_type is not None
                 and pa.types.is_timestamp(pa_type)
