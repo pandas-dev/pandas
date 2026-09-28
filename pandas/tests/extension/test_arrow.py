@@ -5944,13 +5944,24 @@ def test_lossy_float_raises(op):
         op(ser)
 
 
-@pytest.mark.parametrize("value", [1.5, Decimal("1.5"), np.array(1.5)])
+@pytest.mark.parametrize(
+    "value",
+    [
+        1.5,
+        Decimal("1.5"),
+        np.array(1.5),
+        Fraction(3, 2),
+        float("inf"),
+        Decimal("Infinity"),
+    ],
+)
 def test_setitem_lossy_float_raises(value):
-    # GH#68638 the value reaches pyarrow as a float, a Decimal or a 0-d ndarray
+    # GH#68638 pyarrow truncated a fractional value; a non-finite one raised
+    #  ArrowInvalid
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
-    with pytest.raises(TypeError, match="Invalid value '1.5'"):
+    with pytest.raises(TypeError, match="Invalid value"):
         arr[1] = value
-    assert arr[1] == 2
+    assert list(arr) == [1, 2, 3]
 
 
 @pytest.mark.parametrize(
@@ -5961,6 +5972,7 @@ def test_setitem_lossy_float_raises(value):
         np.array([9.5, 8.5]),
         np.array([np.inf, 1.0]),
         [Decimal("1.5"), Decimal("2")],
+        [Fraction(3, 2), 8],
     ],
 )
 def test_setitem_lossy_float_list_like_raises(value):
@@ -5972,23 +5984,6 @@ def test_setitem_lossy_float_list_like_raises(value):
     assert list(arr) == [1, 2, 3]
 
 
-def test_setitem_lossy_fraction_raises():
-    # GH#68638 numpy sees no fractional part on a Fraction, so the scalar check
-    #  has to recognize it
-    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
-    with pytest.raises(TypeError, match="Invalid value '3/2'"):
-        arr[1] = Fraction(3, 2)
-    assert list(arr) == [1, 2, 3]
-
-
-def test_setitem_lossy_fraction_in_list_raises():
-    # GH#68638 the same value inside a list reaches the object-array walk
-    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
-    with pytest.raises(TypeError, match="Invalid value '3/2'"):
-        arr[:2] = [Fraction(3, 2), 8]
-    assert list(arr) == [1, 2, 3]
-
-
 def test_setitem_integral_list_like_still_accepted():
     # GH#68638 the list path must not reject values the column can hold
     arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
@@ -5996,19 +5991,13 @@ def test_setitem_integral_list_like_still_accepted():
     assert list(arr) == [9, 8, 3]
 
 
-@pytest.mark.parametrize("value", [float("inf"), Decimal("Infinity")])
-def test_setitem_non_finite_raises_type_error(value):
-    # GH#68638 a non-finite value has no integral form, whichever type spells it
-    arr = pd.array([1, 2, 3], dtype="int64[pyarrow]")
-    with pytest.raises(TypeError, match="Invalid value"):
-        arr[0] = value
-
-
 def test_arrow_string_accepts_pyarrow_string_scalar():
-    # GH#68638 routing fillna through _validate_setitem_value must not lose the
-    #  pa.Scalar short-circuit _box_pa had; setitem takes one for the same reason
+    # GH#68638 Series.where stored a character code of the string
     arr = pd.array(["a", None], dtype="string[pyarrow]")
     assert list(arr.fillna(pa.scalar("x"))) == ["a", "x"]
+    ser = pd.Series(["a", "b"], dtype="string[pyarrow]")
+    result = ser.where([True, False], pa.scalar("xy"))
+    tm.assert_series_equal(result, pd.Series(["a", "xy"], dtype="string[pyarrow]"))
     arr[1] = pa.scalar("y")
     assert list(arr) == ["a", "y"]
 
@@ -6017,8 +6006,7 @@ def test_arrow_string_accepts_pyarrow_string_scalar():
     "value", [pa.scalar(1, type=pa.int64()), pa.scalar(1.5), pa.scalar(True)]
 )
 def test_arrow_string_rejects_non_string_pyarrow_scalar(value):
-    # GH#68638 pyarrow casts a number or a bool to its string form, so the
-    #  pa.Scalar short-circuit must not skip the string check
+    # GH#68638 pyarrow would cast a number or a bool to its string form
     arr = pd.array(["a", None], dtype="string[pyarrow]")
     with pytest.raises(TypeError, match="Value should be a string"):
         arr[0] = value
@@ -6028,7 +6016,7 @@ def test_arrow_string_rejects_non_string_pyarrow_scalar(value):
 
 @pytest.mark.parametrize("value", [b"z", np.array([1, 2], dtype=object)])
 def test_arrow_string_fillna_rejects_non_string(value):
-    # GH#68638 fillna validates the way setitem does instead of stringifying
+    # GH#68419 fillna rejects a non-string as setitem does
     arr = pd.array(["a", None], dtype="string[pyarrow]")
     with pytest.raises(TypeError, match="Value should be a string"):
         arr.fillna(value)
