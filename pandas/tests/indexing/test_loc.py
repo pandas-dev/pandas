@@ -3078,12 +3078,13 @@ class TestLocBooleanLabelsAndSlices:
         "index",
         [
             pd.Index([False, 42, "x"], dtype=object),
+            pd.Index([False, False, "x"], dtype=object),
             pd.MultiIndex.from_tuples([(False, "a"), (42, "b"), ("x", "c")]),
         ],
     )
     def test_loc_bool_label_in_object_index(self, index):
         # GH#50165
-        df = pd.DataFrame({"A": range(3)}, index=index)
+        df = pd.DataFrame({"A": range(len(index))}, index=index)
         result = df.loc[False]
         expected = df.xs(False)
         tm.assert_equal(result, expected)
@@ -3093,6 +3094,7 @@ class TestLocBooleanLabelsAndSlices:
         "index",
         [
             pd.Index([0, 1, "x"], dtype=object),
+            pd.Index([False, 0, "x"], dtype=object),
             pd.MultiIndex.from_tuples([(0, "a"), (1, "b"), ("x", "c")]),
         ],
     )
