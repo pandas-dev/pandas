@@ -5635,7 +5635,7 @@ def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
     ids=lambda arr: str(arr.type),
 )
 def test_groupby_quantile_unsupported_raises_typeerror(arr, frame):
-    # GH#XXXXX used to raise NotImplementedError with no message
+    # GH#69808 used to raise NotImplementedError with no message
     ser = pd.Series(ArrowExtensionArray(arr))
     obj = ser.to_frame() if frame else ser
     msg = f"dtype '{re.escape(str(ser.dtype))}' does not support operation 'quantile'"
