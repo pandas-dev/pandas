@@ -1732,7 +1732,7 @@ class TestTimedeltaArraylikeMulDivOps:
     def test_td64arr_mul_ndarray_subclass(self, index_or_series, dtype):
         # GH#43178: the float overflow guard reduces with
         #  np.max(..., initial=0.0), which an ndarray subclass' own max() need
-        #  not accept
+        #  not accept; the integer path should agree
         tdi = pd.TimedeltaIndex([pd.Timedelta(1, "ns"), pd.Timedelta(2, "ns")])
         tdi = tm.box_expected(tdi, index_or_series)
         raw = np.array([2, 3], dtype=dtype)

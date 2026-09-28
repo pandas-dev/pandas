@@ -257,9 +257,8 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
     raise_if_unit_multiplier(other.dtype)
 
     if not cnp.PyArray_CheckExact(other):
-        # an ndarray subclass: the i8 view below would drop its semantics
-        #  (e.g. a MaskedArray's mask), so take the overflow raise from a
-        #  plain view and let numpy build the result (GH#66552)
+        # an ndarray subclass, whose semantics the i8 view below would drop:
+        #  check overflow on a plain view, let numpy build the result (GH#66552)
         _addsub_timedelta64_array(ts, np.asarray(other), subtract)
         return (ts.asm8 - other) if subtract else (ts.asm8 + other)
 
