@@ -308,7 +308,7 @@ class TestMultiLevel:
                 [np.nan, 3, np.nan, 7],
                 [np.nan, 4, np.nan, 8],
             ],
-            index=pd.Series(["a", "b", "c", "d"], dtype=object, name="sub"),
+            index=pd.Series(["a", "b", "c", "d"], name="sub"),
             columns=pd.MultiIndex.from_product(
                 [
                     ["value1", "value2"],

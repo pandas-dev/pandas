@@ -32,8 +32,8 @@ class TestResetIndex:
     def test_reset_index(self):
         df = pd.DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
-            columns=pd.Index(list("ABCD"), dtype=object),
-            index=pd.Index([f"i-{i}" for i in range(30)], dtype=object),
+            columns=pd.Index(list("ABCD")),
+            index=pd.Index([f"i-{i}" for i in range(30)]),
         )[:5]
         ser = df.stack()
         ser.index.names = ["hash", "category"]

@@ -675,11 +675,53 @@ def test_reset_index_infers_dtype_from_object_levels():
         ],
         names=["i", "f", "b"],
     )
-    result = pd.DataFrame({"v": [1, 2]}, index=mi).reset_index()
+    msg = r"object-dtype index level\(s\) \['i', 'f', 'b'\]"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.DataFrame({"v": [1, 2]}, index=mi).reset_index()
     expected = pd.DataFrame(
         {"i": [1, 2], "f": [1.5, 2.5], "b": [True, False], "v": [1, 2]}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [1, 2],
+        [1.5, None],
+        [True, False],
+        ["a", "b"],
+        [pd.Timestamp("2020-01-01"), pd.Timestamp("2021-01-01")],
+    ],
+)
+def test_reset_index_object_level_inference_deprecated(
+    values, frame_or_series, using_infer_string
+):
+    # GH#30517
+    df = pd.DataFrame({"v": [1, 2]}, index=pd.Index(values, dtype=object, name="k"))
+    obj = tm.get_obj(df, frame_or_series)
+
+    # strings are only inferred when the str dtype is enabled
+    warn = Pandas4Warning if using_infer_string or values != ["a", "b"] else None
+    msg = "reset_index is inferring a new dtype"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = obj.reset_index()
+
+    # inferring on the index first keeps the current behavior without warning
+    obj.index = obj.index.infer_objects()
+    expected = obj.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_reset_index_object_level_no_warning():
+    # GH#30517 no warning when the level stays object or is dropped
+    df = pd.DataFrame({"v": [1, 2]}, index=pd.Index([1, "a"], dtype=object, name="k"))
+    result = df.reset_index()
+    assert result["k"].dtype == object
+
+    df.index = pd.Index([1, 2], dtype=object)
+    result = df.reset_index(drop=True)
+    tm.assert_frame_equal(result, pd.DataFrame({"v": [1, 2]}))
 
 
 def test_reset_index_empty_frame_with_datetime64_multiindex():
