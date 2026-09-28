@@ -263,13 +263,12 @@ one field early:
     In [2]: pd.Timestamp(2020, 12, 31, hour=5)
     Out[2]: Timestamp('2020-12-31 00:05:00')
 
-Both now raise ``ValueError``; pass all components by keyword instead, e.g.
-``pd.Timestamp(year=2020, month=12, day=31, hour=5)``.
+Both now raise ``ValueError``; put the component in the value, or pass all
+components by keyword, e.g. ``pd.Timestamp(year=2020, month=12, day=31, hour=5)``.
 
-In addition, a positional ``tzinfo`` (the eighth argument, as in
-:class:`datetime.datetime`) is now attached to the result instead of being
-dropped, so :func:`copy.replace` also keeps the timezone
-(:issue:`31930`, :issue:`45307`).
+A positional ``tzinfo`` (the eighth argument, as in :class:`datetime.datetime`)
+is now attached to the result instead of being dropped, so :func:`copy.replace`
+also keeps the timezone (:issue:`31930`, :issue:`45307`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
