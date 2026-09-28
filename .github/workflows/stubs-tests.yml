@@ -1,0 +1,61 @@
+# Runs the pandas-stubs tests (which error on warnings) against the pandas nightly wheel.
+# On failure, opens or updates a single issue here. See GH#54095.
+name: pandas-stubs tests
+
+on:
+  schedule:
+  # after the nightly wheel upload in wheels.yml (3:27 UTC) has finished
+  - cron: "17 5 * * *"
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -euxo pipefail {0}
+
+permissions: {}
+
+jobs:
+  stubs_tests:
+    name: pandas-stubs tests against pandas nightly
+    if: github.repository == 'pandas-dev/pandas'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write # open/update the failure issue
+    steps:
+      - name: Checkout pandas-stubs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: pandas-dev/pandas-stubs
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+
+      - name: Install pandas-stubs test dependencies
+        run: |
+          python -m pip install poetry
+          poetry install --no-root
+          poetry run python -m pip install pytest-reportlog
+
+      - name: Install pandas nightly
+        run: |
+          poetry run python -m pip install --pre --upgrade \
+            --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
+            pandas
+          poetry run python -c "import pandas; print(pandas.__version__)" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Run pandas-stubs tests
+        id: tests
+        run: poetry run pytest --report-log=pytest-log.jsonl
+
+      - name: Open or update issue on failure
+        if: failure() && steps.tests.outcome == 'failure'
+        uses: scientific-python/issue-from-pytest-log-action@35b4e0a9e06f8e7e261778289cf4b968b722662d # v1.6.2
+        with:
+          log-path: pytest-log.jsonl
+          issue-title: "CI: pandas-stubs tests fail against pandas nightly"
+          issue-label: "CI,Typing"
