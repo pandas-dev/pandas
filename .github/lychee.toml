@@ -1,0 +1,33 @@
+# Configuration for .github/workflows/linkcheck.yml
+scheme = ["http", "https"]
+include_fragments = "anchor-only"
+exclude_all_private = true
+max_retries = 3
+timeout = 30
+host_concurrency = 4
+# 403 is what bot-blocking hosts (e.g. stackoverflow.com) return; a removed
+# page still returns 404
+accept = ["200..=299", "403", "429"]
+
+exclude_path = [
+    "^doc/source/whatsnew/",
+    "^pandas/tests/",
+]
+
+# These anchors are created by JavaScript, so drop them and check only the page
+remap = [
+    '^(https://github\.com/[^#]*)#.*$ $1',
+    '^(https?://support\.sas\.com/[^#]*)#.*$ $1',
+]
+
+exclude = [
+    '^https?://(www\.)?example\.(com|org)',
+    # placeholders and XML namespaces
+    '^https://github\.com/your-user-name/',
+    '^http://exslt\.org/regular-expressions$',
+    # URLs split across lines, which lychee reads only up to the line break
+    '^https://raw\.githubusercontent\.com/pandas-dev/?$',
+    '^https://en\.wikipedia\.org/w/index\.php\?title=Estimation_of_covariance_$',
+    # a URL directly followed by "\n" in a Python string
+    '/n$',
+]

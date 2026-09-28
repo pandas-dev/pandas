@@ -1,0 +1,57 @@
+name: Link Check
+
+on:
+  schedule:
+    # Monthly, on the 1st
+    - cron: "0 3 1 * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/linkcheck.yml
+      - .github/lychee.toml
+
+permissions: {}
+
+jobs:
+  linkcheck:
+    if: github.repository_owner == 'pandas-dev'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Broken links are reported in the job summary and, outside of pull
+      # requests, in an issue; they never fail the job.
+      - name: Check links in docs and docstrings
+        id: lychee
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --config .github/lychee.toml --no-progress
+            'doc/source/**/*.rst' 'pandas/**/*.py' 'pandas/**/*.pyx'
+          fail: false
+
+      - name: Open or update the broken links issue
+        if: github.event_name != 'pull_request' && steps.lychee.outputs.exit_code != 0
+        run: |
+          title="DOC: Broken links in documentation"
+          {
+            echo "Found by the [Link Check workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID), which updates this issue monthly."
+            echo
+            # stay under GitHub's 65536-character limit on issue bodies
+            head -c 60000 lychee/out.md
+          } > body.md
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --author "app/github-actions" --search "in:title \"$title\"" \
+            --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [[ -n "$number" ]]; then
+            gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --body-file body.md
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label Docs --body-file body.md
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
