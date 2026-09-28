@@ -2334,10 +2334,9 @@ cdef class _Period(PeriodMixin):
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
 
-        how : {'E', 'S', 'end', 'start'}, default 'end'
-            Specifies whether to align the period to the start or end of the interval:
-            - 'E' or 'end': Align to the end of the interval.
-            - 'S' or 'start': Align to the start of the interval.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether to align the period to the end or start of the interval.
+            Case-insensitive.
 
         Returns
         -------
@@ -2403,7 +2402,7 @@ cdef class _Period(PeriodMixin):
         Return the Timestamp representation of the Period.
 
         Uses the target frequency specified at the part of the period specified
-        by `how`, which is either `Start` or `Finish`.
+        by `how`, which is either the start or the end.
 
         If possible, gives microsecond-unit Timestamp. Otherwise gives nanosecond
         unit.
@@ -2413,9 +2412,8 @@ cdef class _Period(PeriodMixin):
         freq : str or DateOffset
             Target frequency. Default is 'D' if self._freq is week or
             longer and 'S' otherwise.
-        how : str, default 'S' (start)
-            One of 'S', 'E'. Can be aliased as case insensitive
-            'Start', 'Finish', 'Begin', 'End'.
+        how : {'start', 'end', 's', 'e'}, default 'start'
+            Whether to use the start or end of the period. Case-insensitive.
 
         Returns
         -------
@@ -3581,10 +3579,12 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     how_dict = {"S": "S", "E": "E",
                 "START": "S", "FINISH": "E",
                 "BEGIN": "S", "END": "E"}
-    how = how_dict.get(str(how).upper())
-    if how not in {"S", "E"}:
-        raise ValueError("How must be one of S or E")
-    return how
+    result = how_dict.get(str(how).upper())
+    if result is None:
+        raise ValueError(
+            f"how must be one of 'start', 'end', 's', 'e', got {repr(how)}"
+        )
+    return result
 
 
 cdef _parse_weekly_str(value, BaseOffset freq):
