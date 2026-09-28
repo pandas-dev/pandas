@@ -145,7 +145,7 @@ def is_file_like(obj: object) -> bool:
 
 
 @set_module("pandas.api.types")
-def is_re(obj: object) -> TypeGuard[Pattern]:
+def is_re(obj: object) -> TypeGuard[Pattern[str]]:
     """
     Check if the object is a regex pattern instance.
 

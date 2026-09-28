@@ -19,6 +19,7 @@ from pandas.core.nanops import check_below_min_count
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
 
     from pandas._typing import (
         AxisInt,
@@ -45,7 +46,7 @@ def _get_max_value(dtype: np.dtype) -> int | float:
 
 
 def _reductions(
-    func: Callable,
+    func: Callable[..., Any],
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     *,
@@ -131,7 +132,7 @@ def prod(
 
 
 def _minmax(
-    func: Callable,
+    func: Callable[..., Any],
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     *,

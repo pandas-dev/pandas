@@ -1417,7 +1417,7 @@ class IntervalDtype(PandasExtensionDtype):
         raise TypeError(msg)
 
     @property
-    def type(self) -> type[Interval]:
+    def type(self) -> type[Interval[Any]]:
         return Interval
 
     def __str__(self) -> str_type:
