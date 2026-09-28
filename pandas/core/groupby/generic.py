@@ -545,7 +545,9 @@ class SeriesGroupBy(GroupBy[Series]):
             return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
-        output = self.obj._constructor_expanddim(indexed_output, index=None)
+        # GH#39609 with no funcs, index by the groups
+        index = None if results else self._grouper.result_index
+        output = self.obj._constructor_expanddim(indexed_output, index=index)
         output.columns = Index(key.label for key in results)
 
         return output

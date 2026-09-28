@@ -2552,6 +2552,47 @@ def test_sort_values_dictionary():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ascending, expected_b, expected_index",
+    [
+        (True, [1, 2], [1, 0]),
+        ([False, True], [1, 2], [1, 0]),
+        ([True, False], [2, 1], [0, 1]),
+    ],
+)
+def test_sort_values_null(ascending, expected_b, expected_index):
+    # GH#54908
+    df = pd.DataFrame(
+        {
+            "a": pd.Series([None, None], dtype="null[pyarrow]"),
+            "b": [2, 1],
+        }
+    )
+    result = df.sort_values(["a", "b"], ascending=ascending)
+    expected = pd.DataFrame(
+        {
+            "a": pd.Series([None, None], dtype="null[pyarrow]"),
+            "b": expected_b,
+        },
+        index=expected_index,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sort_values_null_empty():
+    # GH#54908
+    df = pd.DataFrame({"a": pd.Series([], dtype="null[pyarrow]")})
+    result = df.sort_values(by="a")
+    tm.assert_frame_equal(result, df)
+
+
+def test_sort_values_null_series():
+    # GH#54908
+    ser = pd.Series([None, None], dtype="null[pyarrow]")
+    result = ser.sort_values()
+    tm.assert_series_equal(result, ser)
+
+
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
 def test_str_count(pat):
     ser = pd.Series(["abc", None], dtype=ArrowDtype(pa.string()))
@@ -5708,6 +5749,51 @@ def test_factorize_dictionary_with_na():
     expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
     tm.assert_numpy_array_equal(indices, expected_indices)
     tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_factorize_null():
+    # GH#54908
+    arr = ArrowExtensionArray(pa.array([None, None], type=pa.null()))
+    indices, uniques = arr.factorize(use_na_sentinel=True)
+    expected_indices = np.array([-1, -1], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.chunked_array([], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 0], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.array([None], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_factorize_null_empty():
+    # GH#54908
+    arr = ArrowExtensionArray(pa.array([], type=pa.null()))
+    indices, uniques = arr.factorize(use_na_sentinel=True)
+    expected_indices = np.array([], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.chunked_array([], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.chunked_array([], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_null_astype_categorical():
+    # GH#54908
+    ser = pd.Series([None, None], dtype="null[pyarrow]")
+    result = pd.Categorical(ser)
+    dtype = pd.CategoricalDtype(categories=pd.Index([], dtype="null[pyarrow]"))
+    expected = pd.Categorical([None, None], dtype=dtype)
+    tm.assert_categorical_equal(result, expected)
+
+    result_astype = ser.astype("category")
+    expected_ser = pd.Series(expected)
+    tm.assert_series_equal(result_astype, expected_ser)
 
 
 def test_dictionary_astype_categorical():
