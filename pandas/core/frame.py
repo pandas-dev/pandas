@@ -17161,14 +17161,11 @@ class DataFrame(NDFrame, OpsMixin):
             # test_reduce_axis1_int_block_does_not_wrap). Not find_common_type,
             # which gives object for a bool mix.
             dtypes = [blk.dtype for blk in self._mgr.blocks]
-            # not redundant with the caller's non-object filter: a structured
-            # block reaches here and np.result_type raises on it. The caller
-            # admits only numpy-backed blocks, so these dtypes are np.dtype.
+            # skip structured blocks; np.result_type raises on dtype.kind "V"
             if all(dtype.kind in "biufc" for dtype in dtypes):
                 acc_dtype = np.result_type(*dtypes)  # type: ignore[arg-type]
                 if name == "mean" and acc_dtype.kind not in "fc":
-                    # nanmean accumulates bool in i8 and integer in f8, both
-                    # exact in f8
+                    # nanmean sums integers in f8 too; a bool sum is exact in f8
                     acc_dtype = np.dtype(np.float64)
 
         if name == "all":
