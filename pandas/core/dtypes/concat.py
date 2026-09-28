@@ -168,9 +168,8 @@ def _category_kind(cat: Any) -> Any:
     are of the same kind.
 
     Plain numbers are one kind, so 1 and 1.0 merge as they do for int64 and
-    float64 categories. Any other type is its own kind (np.bool_ and np.str_
-    count as bool and str), so True and 1, an IntEnum and an int, or a
-    Decimal and an int are kept apart.
+    float64 categories. Any other type is its own kind, so True and 1, an
+    IntEnum and an int, or a Decimal and an int are kept apart.
     """
     cat_type = type(cat)
     if cat_type in _NUMBER_TYPES:
@@ -191,6 +190,14 @@ def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     #  categories that are not unique, and uniqueness is checked by hash
     distinct = {id(obj.categories): obj.categories for obj in to_union}
     if len(distinct) < 2:
+        return False
+
+    if all(
+        set(map(type, categories)) <= {str, np.str_} for categories in distinct.values()
+    ):
+        # GH#68440 str/np.str_ can't collide, so skip the scan below; `<=`
+        #  excludes str subclasses like StrEnum, which are their own kind
+        #  (see _category_kind).
         return False
 
     seen: dict[Any, Any] = {}
@@ -217,7 +224,8 @@ def union_categories_compat(to_union: Sequence[Categorical]) -> Categorical | No
     the same dtype after this cast.
 
     Returns None when equal categories are of different kinds (see
-    _category_kind), e.g. True and 1; the caller then casts to object.
+    _category_kind), e.g. True and 1, or cannot be compared; the caller
+    then casts to object.
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories

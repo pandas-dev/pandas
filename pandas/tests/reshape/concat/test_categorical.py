@@ -755,3 +755,19 @@ def test_union_categories_numpy_and_python_scalars(np_scalar, py_scalar):
     result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
     expected = pd.Series(pd.Categorical(["a", np_scalar, np_scalar], dtype=s1.dtype))
     tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_object_dtype_strings_skip_collision_scan():
+    # GH#68440 all-string object-dtype categories cannot collide (str is
+    #  always its own kind), so the per-element scan is skipped
+    s1 = pd.Series(
+        pd.Categorical(
+            ["a", "b"], dtype=CategoricalDtype(pd.Index(["a", "b"], dtype=object))
+        )
+    )
+    s2 = pd.Series(
+        pd.Categorical(["c"], dtype=CategoricalDtype(pd.Index(["c"], dtype=object)))
+    )
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(pd.Categorical(["a", "b", "c"]))
+    tm.assert_series_equal(result, expected)
