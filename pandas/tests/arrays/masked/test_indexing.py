@@ -306,9 +306,8 @@ def test_setitem_in_bounds_not_deprecated(dtype, value):
     ],
 )
 def test_setitem_float_just_out_of_bounds_deprecated(dtype, value):
-    # GH#48867 the bounds are python ints, so comparing a float against them
-    #  demotes them and would let the first value above the maximum through.
-    #  What numpy stores is platform-dependent, so only the warning is checked.
+    # GH#48867 what numpy stores is platform-dependent, so only the warning
+    #  is checked
     arr = pd.array([1, 2, 3], dtype=dtype)
     with tm.assert_produces_warning(
         Pandas4Warning, match=_out_of_bounds_msg(value, dtype)
@@ -422,8 +421,7 @@ def test_setitem_empty_key_still_deprecated(key):
     ],
 )
 def test_setitem_non_integer_dtype_not_deprecated(dtype, data, value):
-    # GH#48867 np.iinfo rejects a non-integer dtype, so the kind guard in
-    #  _warn_if_out_of_bounds is load bearing
+    # GH#48867 non-integer masked dtypes are never checked
     arr = pd.array(data, dtype=dtype)
     with tm.assert_produces_warning(None):
         arr[0] = value
