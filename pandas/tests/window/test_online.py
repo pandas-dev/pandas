@@ -35,6 +35,7 @@ class TestEWM:
         "obj",
         [
             pd.DataFrame({"a": range(5), "b": range(5)}),
+            # GH#66522 online mean ignored the decay for single-column frames
             pd.DataFrame({"a": range(5)}),
             pd.Series(range(5), name="foo"),
         ],
