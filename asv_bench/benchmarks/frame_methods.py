@@ -53,13 +53,17 @@ class AsType:
 
 class AstypeDict:
     # GH#63433
-    params = [["one", "some", "all"]]
+    params = [["one", "some", "all", "wide_interleaved"]]
     param_names = ["columns"]
 
     def setup(self, columns):
-        self.df = DataFrame(np.random.randn(1000, 200))
-        cols = {"one": [42], "some": list(range(0, 40, 2)), "all": range(200)}
-        self.dtypes = dict.fromkeys(cols[columns], "float32")
+        if columns == "wide_interleaved":
+            self.df = DataFrame(np.random.randn(100, 8000))
+            cast = range(0, 8000, 2)
+        else:
+            self.df = DataFrame(np.random.randn(1000, 200))
+            cast = {"one": [42], "some": range(0, 40, 2), "all": range(200)}[columns]
+        self.dtypes = dict.fromkeys(cast, "float32")
 
     def time_astype_dict(self, columns):
         self.df.astype(self.dtypes)

@@ -895,6 +895,59 @@ def test_astype_dict_all_columns_one_dtype_stays_consolidated():
     tm.assert_frame_equal(result, df.astype("float32"))
 
 
+def test_astype_dict_wide_interleaved():
+    # GH#63433 casting every other column of a wide frame: each column cast in
+    #  turn was quadratic in the width
+    df = pd.DataFrame(np.arange(40.0).reshape(2, 20))
+    dtypes = dict.fromkeys(df.columns[::2], "float32")
+
+    result = df.astype(dtypes)
+
+    expected = pd.DataFrame(
+        {c: df[c].astype(dtypes.get(c, "float64")) for c in df.columns}
+    )
+    tm.assert_frame_equal(result, expected)
+    assert result._mgr.nblocks <= 11
+
+
+def test_astype_dict_mixed_block_types():
+    # GH#63433 kept columns of every block type are reused as views, cast
+    #  columns are placed where they were
+    df = pd.DataFrame(
+        {
+            "i": [1, 2, 3],
+            "f": [1.5, 2.5, 3.5],
+            "e": pd.array([1, None, 3], dtype="Int64"),
+            "c": pd.Categorical(["a", "b", "a"]),
+            "t": pd.date_range("2020", periods=3, tz="US/Pacific"),
+            "s": ["x", "y", "z"],
+            "i2": [4, 5, 6],
+            "f2": [4.5, 5.5, 6.5],
+        }
+    )
+    dtypes = {"f": "float32", "e": "Float64", "i2": "float64", "s": "category"}
+
+    result = df.astype(dtypes)
+
+    expected = df.copy()
+    for col, dtype in dtypes.items():
+        expected[col] = df[col].astype(dtype)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_astype_dict_copy_on_write():
+    # GH#63433 kept columns are views, so writes must not leak either way
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5.0, 6.0]})
+    original = df.copy()
+
+    result = df.astype({"b": "float32"})
+    result.iloc[0, 0] = 100
+    tm.assert_frame_equal(df, original)
+
+    df.iloc[1, 2] = -1.0
+    assert result.iloc[1, 2] == 6.0
+
+
 def test_astype_dict_error_names_column_when_cast_together():
     # GH#63433 columns cast to the same dtype are cast together; a failure
     #  still names the column that could not be cast
