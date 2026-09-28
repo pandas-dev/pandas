@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-def ensure_list_vars(arg_vars, variable: str, columns) -> list:
+def ensure_list_vars(arg_vars, variable: str, columns) -> list[Hashable]:
     if arg_vars is not None:
         if not is_list_like(arg_vars):
             return [arg_vars]
@@ -284,7 +284,9 @@ def melt(
 
 
 @set_module("pandas")
-def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
+def lreshape(
+    data: DataFrame, groups: dict[Hashable, list[Hashable]], dropna: bool = True
+) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 
