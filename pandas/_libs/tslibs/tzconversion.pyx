@@ -300,6 +300,7 @@ timedelta-like}
         int64_t[::1] result
         bint infer_dst = False, is_dst = False, fill = False
         bint shift_forward = False, shift_backward = False
+        bint overflowed = False
         bint fill_nonexist = False
         str stamp
         Localizer info = Localizer(tz, creso=creso)
@@ -434,7 +435,9 @@ timedelta-like}
                             "The provided timedelta will relocalize on a "
                             f"nonexistent time: {nonexistent}"
                         )
-                    if checked_add(val, shift_delta, &new_local):
+                    overflowed = checked_add(val, shift_delta, &new_local)
+                    if overflowed or new_local == NPY_NAT:
+                        # landing on the NaT sentinel is out of bounds too, GH#66697
                         raise_out_of_bounds(
                             val,
                             BS_OVERFLOW if shift_delta > 0 else BS_UNDERFLOW,
@@ -446,15 +449,6 @@ timedelta-like}
                     # Subtract 1 since the beginning hour is _inclusive_ of
                     # nonexistent times
                     new_local = val - remaining_mins - 1
-
-                if new_local == NPY_NAT:
-                    # GH#66697 the shift landed on the NaT sentinel, one below
-                    #  Timestamp.min, so the wall time it names is not
-                    #  representable.  checked_add does not flag it, since the
-                    #  sum fits in an int64, and the transition lookup below
-                    #  has no meaningful answer for it: the sentinel sorts to
-                    #  the left of every real transition.
-                    raise_out_of_bounds(val, BS_UNDERFLOW, creso)
 
                 if (
                     info.use_zoneinfo
