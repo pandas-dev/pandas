@@ -9893,8 +9893,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             data = self
 
         if data.ndim == 2 and axis_int == 0:
-            # GH#52829 ranking block by block retains extension dtypes; a block's
-            #  rows are its last axis
+            # GH#52829 ranking block by block retains extension dtypes; blocks
+            #  are transposed, so frame axis 0 is the block's last axis
             res_mgr = data._mgr.apply(
                 lambda values: rank_values(values, values.ndim - 1)
             )
