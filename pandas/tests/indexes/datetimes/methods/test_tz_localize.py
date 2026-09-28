@@ -623,8 +623,24 @@ def test_tz_localize_nonexistent_timedelta_shift_scalar_matches_index():
     [
         (pd.Timedelta(hours=1), "2011-12-31 06:30"),
         (pd.Timedelta(hours=-1), "2011-12-29 04:30"),
-        ("shift_forward", "2011-12-31 06:00"),
-        ("shift_backward", "2011-12-29 04:59:59.999999"),
+        pytest.param(
+            "shift_forward",
+            "2011-12-31 00:00",
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="GH#66820 shift_forward should land on the closest "
+                "existing time, not reuse the timedelta-shift fallback",
+            ),
+        ),
+        pytest.param(
+            "shift_backward",
+            "2011-12-29 23:59:59.999999",
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="GH#66820 shift_backward should land on the closest "
+                "existing time, not reuse the timedelta-shift fallback",
+            ),
+        ),
     ],
 )
 def test_dti_tz_localize_nonexistent_shift_stays_inside_the_gap(nonexistent, expected):
@@ -642,8 +658,8 @@ def test_dti_tz_localize_nonexistent_shift_stays_inside_the_gap(nonexistent, exp
 
 def test_dti_tz_localize_nonexistent_shift_onto_ambiguous_takes_first():
     # GH#66820 the shifted wall time exists twice, so either UTC instant
-    #  reproduces it; take the first.  The ``ambiguous`` argument does not
-    #  reach this path, so nothing else settles the choice.
+    #  reproduces it.  ``ambiguous`` does not reach this loop; transition
+    #  order decides, and the earlier transition wins.
     tz = "America/Recife"
     dti = pd.DatetimeIndex(["2000-10-08 00:30"] * 2)
 

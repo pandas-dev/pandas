@@ -526,13 +526,9 @@ cdef Py_ssize_t _delta_idx_for_local(
     """
     Index into info.deltas of the UTC offset in effect at wall time local_val.
 
-    info.tdata holds *UTC* instants, so bisecting a wall time against it lands
-    near the answer but not on it: a wall time sits one UTC offset away from
-    its own instant, so it can bisect to the wrong side of a nearby
-    transition.  Bracket the search by a day either side -- no zone offset
-    reaches that -- and take the index whose own offset places local_val
-    inside that index's own interval.  If local_val is itself nonexistent,
-    return the side of the gap the caller is shifting toward (forward).
+    Of the transitions within a day of local_val, take the first whose offset
+    maps local_val into its own interval.  If local_val is nonexistent, take
+    the side of the gap that ``forward`` points to.
     """
     cdef:
         Py_ssize_t idx, lo, hi, ntrans = info.ntrans
@@ -545,11 +541,7 @@ cdef Py_ssize_t _delta_idx_for_local(
         lo = 0
     else:
         lo = bisect_right_i8(tdata, bracket, ntrans) - 1
-        if lo < 0:
-            # only a local_val within a day of the NPY_NAT+1 sentinel at
-            #  tdata[0] bisects to its left; unreachable in practice, but
-            #  clamp so we do not end up using deltas[-1]
-            lo = 0
+        lo = max(lo, 0)
 
     if checked_add(local_val, ppd, &bracket):
         hi = ntrans - 1
@@ -565,10 +557,7 @@ cdef Py_ssize_t _delta_idx_for_local(
             continue
         if utc_val < tdata[idx]:
             continue
-        # idx == ntrans - 1 is reachable, so the next transition may not exist:
-        #  the caller diverts to the tzinfo API only for zoneinfo zones with a
-        #  POSIX rule, and a zone without one ends at its last tabulated
-        #  transition.  See test_dti_tz_localize_nonexistent_shift_into_last_interval
+        # see test_dti_tz_localize_nonexistent_shift_into_last_interval
         if idx + 1 < ntrans and utc_val >= tdata[idx + 1]:
             continue
         return idx
@@ -586,9 +575,9 @@ cdef Py_ssize_t _delta_idx_for_local(
         if checked_sub(local_val, deltas[idx], &utc_val):
             continue
         if before >= tdata[idx] and utc_val < tdata[idx]:
-            # only a wall time inside the gap reads as past transition idx with
-            #  the old offset and before it with the new one.  The old offset
-            #  is the side whose wall time is later than local_val.
+            # deltas[idx - 1] reads local_val as after the transition,
+            #  deltas[idx] as before it, so local_val is in this gap;
+            #  deltas[idx - 1] gives the later instant
             return idx - 1 if forward else idx
 
     return lo
