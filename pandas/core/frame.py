@@ -188,7 +188,10 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import get_handle
 from pandas.io.formats import (
     console,
@@ -771,7 +774,8 @@ class DataFrame(NDFrame, OpsMixin):
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if requested_schema is not None:
             requested_schema = pa.Schema._import_from_c_capsule(requested_schema)
-        table = pa.Table.from_pandas(self, schema=requested_schema)
+        with suppress_pyarrow_values_warning():
+            table = pa.Table.from_pandas(self, schema=requested_schema)
         return table.__arrow_c_stream__()
 
     # ----------------------------------------------------------------------
@@ -7809,6 +7813,13 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
 
+        Notes
+        -----
+        Columns and Series do not store a ``freq``, so a :class:`DatetimeIndex`
+        or :class:`TimedeltaIndex` created from a column has ``freq=None``; set
+        ``.index.freq`` on the result to restore it. Passing the index directly
+        as ``keys`` keeps its ``freq``.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -8114,6 +8125,13 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame.set_index : Opposite of reset_index.
         DataFrame.reindex : Change to new indices or expand indices.
         DataFrame.reindex_like : Change to same indices as other DataFrame.
+
+        Notes
+        -----
+        Columns do not store a ``freq``, so the ``freq`` of a
+        :class:`DatetimeIndex` or :class:`TimedeltaIndex` is lost when it is
+        inserted as a column, and is not restored by a subsequent
+        :meth:`DataFrame.set_index`.
 
         Examples
         --------
