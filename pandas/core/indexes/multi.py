@@ -1660,6 +1660,8 @@ class MultiIndex(Index):
         if len(self) == 0:
             return []
 
+        from pandas.io.formats.format import format_name
+
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes, strict=True):
             na = _get_na_rep(lev.dtype)
@@ -1688,11 +1690,7 @@ class MultiIndex(Index):
             level = []
 
             if include_names:
-                level.append(
-                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
-                    if lev_name is not None
-                    else ""
-                )
+                level.append(format_name(lev_name))
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
