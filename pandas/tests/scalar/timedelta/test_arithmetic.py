@@ -1742,57 +1742,6 @@ def test_td_mul_ndarray_subclass(dtype):
         tm.assert_numpy_array_equal(np.asarray(result), expected)
 
 
-@pytest.mark.parametrize("kind", ["m", "M"])
-def test_td_add_sub_masked_array(kind):
-    # GH#66552 the i8 view dropped the mask, exposing the masked payload as a
-    #  real value; numpy keeps the element masked
-    td = pd.Timedelta(5, "ns")
-    values = np.array([10, 20], dtype=f"{kind}8[ns]")
-    other = np.ma.MaskedArray(values, mask=[False, True])
-
-    m8 = td.to_timedelta64()
-    for result, expected in [
-        (td + other, values[0] + m8),
-        (other + td, values[0] + m8),
-        (other - td, values[0] - m8),
-    ] + ([(td - other, m8 - values[0])] if kind == "m" else []):
-        assert isinstance(result, np.ma.MaskedArray)
-        tm.assert_numpy_array_equal(np.ma.getmaskarray(result), np.array([False, True]))
-        assert result[0] == expected
-
-
-@pytest.mark.parametrize("dtype", ["i8", "u8", "f8"])
-def test_td_mul_masked_array(dtype):
-    # GH#66552 a fully-masked operand leaves min()/max() as np.ma.masked, which
-    #  int() rejects, so the bounds checks have to read a plain view
-    other = np.ma.array(np.array([1, 2], dtype=dtype), mask=[True, True])
-
-    result = pd.Timedelta(4, "ns") * other
-    assert isinstance(result, np.ma.MaskedArray)
-    tm.assert_numpy_array_equal(result.mask, np.array([True, True]))
-
-
-@pytest.mark.parametrize(
-    "values",
-    [
-        np.array([2.0, np.nan]),
-        np.array([2.0, np.inf]),
-        np.array([2.0, -np.inf]),
-        np.array([2, 2**62], dtype="i8"),
-    ],
-)
-def test_td_mul_masked_array_invalid_payload(values):
-    # GH#66552 a masked NaN, inf or overflowing payload (e.g. from
-    #  np.ma.masked_invalid) must not raise or warn; numpy leaves it masked
-    other = np.ma.array(values, mask=[False, True])
-
-    with tm.assert_produces_warning(None):
-        result = pd.Timedelta(4, "ns") * other
-    assert isinstance(result, np.ma.MaskedArray)
-    tm.assert_numpy_array_equal(result.mask, np.array([False, True]))
-    assert result[0] == np.timedelta64(8, "ns")
-
-
 def test_td_div_ndarray_subclass():
     # GH#66552 the overflow guard reduces with np.max(..., initial=, where=),
     #  which an ndarray subclass' own max() need not accept

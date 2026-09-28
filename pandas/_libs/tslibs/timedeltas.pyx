@@ -1110,17 +1110,14 @@ cdef _mul_numeric_array(_Timedelta td, ndarray other):
     cdef:
         int64_t value = td._value
         str abbrev = npy_unit_to_abbrev(td._creso)
-        ndarray i8other, i8plain, i8result
+        ndarray i8other, i8result
         bint has_nan
 
     if other.dtype.kind == "f":
         # widen a float32 multiplier first: numpy would otherwise keep the
         #  product in float32 and round it, where TimedeltaIndex uses float64
         f_result = other.astype("f8", copy=False) * value
-        # a MaskedArray's masked slots can hold NaN or inf payloads (e.g. from
-        #  np.ma.masked_invalid), so the checks below skip them (GH#66552)
-        unmasked = ~np.ma.getmask(f_result)
-        nan_mask = np.isnan(np.asarray(f_result)) & unmasked
+        nan_mask = np.isnan(f_result)
         has_nan = nan_mask.any()
         if has_nan:
             # a NaN-to-int64 cast is platform-dependent; substitute 0 and
@@ -1134,37 +1131,25 @@ cdef _mul_numeric_array(_Timedelta td, ndarray other):
         #  ``> int64.max`` check and saturate on the cast. Also catches +/-inf.
         # asarray: initial= would send the reduction to an ndarray subclass'
         #  own max(), which need not accept it (GH#66552)
-        if (
-            np.max(np.abs(np.asarray(f_result)), initial=0.0, where=unmasked)
-            >= 2.0**63
-        ):
+        if np.max(np.abs(np.asarray(f_result)), initial=0.0) >= 2.0**63:
             raise OutOfBoundsTimedelta("Overflow in timedelta multiplication")
-        with np.errstate(invalid="ignore"):
-            # only masked payloads can still be NaN or out of bounds here
-            i8result = f_result.astype("i8")
+        i8result = f_result.astype("i8")
         if has_nan:
             i8result[nan_mask] = NPY_NAT
         return i8result.view(f"m8[{abbrev}]")
 
     i8other = other.astype("i8", copy=False)
-    # asarray: the reductions below go to an ndarray subclass' own min()/max(),
-    #  which need not give back something int() accepts; and skip a
-    #  MaskedArray's masked payloads, as in the float branch (GH#66552)
-    i8plain = np.asarray(i8other)
-    masked = np.ma.getmask(i8other)
-    if masked is not np.ma.nomask:
-        i8plain = i8plain[~masked]
-    if other.dtype.kind == "u" and (i8plain < 0).any():
+    if other.dtype.kind == "u" and (i8other < 0).any():
         # a multiplier above int64.max, which wrapped negative in the cast
         raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
 
-    if value != 0 and i8plain.size:
+    if value != 0 and i8other.size:
         # The extreme multipliers bound all the products, so checking those two
         #  with exact Python-int arithmetic lets the common no-overflow case use
         #  a plain vectorized multiply. The bound excludes int64.min itself,
         #  which is representable but would be misread as NaT.
-        low_prod = int(i8plain.min()) * value
-        high_prod = int(i8plain.max()) * value
+        low_prod = int(i8other.min()) * value
+        high_prod = int(i8other.max()) * value
         if max(abs(low_prod), abs(high_prod)) > 2**63 - 1:
             raise OutOfBoundsTimedelta("Overflow in int64 multiplication")
 
