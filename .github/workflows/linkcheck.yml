@@ -35,23 +35,41 @@ jobs:
             'doc/source/**/*.rst' 'pandas/**/*.py' 'pandas/**/*.pyx'
           fail: false
 
-      - name: Open or update the broken links issue
-        if: github.event_name != 'pull_request' && steps.lychee.outputs.exit_code != 0
+      # lychee exits 2 for broken links; 1 and 3 mean the checker itself failed
+      - name: Fail on lychee errors
+        if: steps.lychee.outputs.exit_code != 0 && steps.lychee.outputs.exit_code != 2
+        run: |
+          echo "::error::lychee exited with code $EXIT_CODE"
+          exit 1
+        env:
+          EXIT_CODE: ${{ steps.lychee.outputs.exit_code }}
+
+      - name: Open, update or close the broken links issue
+        if: github.event_name != 'pull_request'
         run: |
           title="DOC: Broken links in documentation"
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --author "app/github-actions" --search "in:title \"$title\"" \
+            --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+          if [[ "$EXIT_CODE" == 0 ]]; then
+            if [[ -n "$number" ]]; then
+              gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+                --comment "No broken links found by the [Link Check workflow]($run_url)."
+            fi
+            exit 0
+          fi
           {
-            echo "Found by the [Link Check workflow]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID), which updates this issue monthly."
+            echo "Found by the [Link Check workflow]($run_url), which updates this issue monthly."
             echo
             # stay under GitHub's 65536-character limit on issue bodies
             head -c 60000 lychee/out.md
           } > body.md
-          number=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
-            --author "app/github-actions" --search "in:title \"$title\"" \
-            --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
           if [[ -n "$number" ]]; then
             gh issue edit "$number" --repo "$GITHUB_REPOSITORY" --body-file body.md
           else
             gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label Docs --body-file body.md
           fi
         env:
+          EXIT_CODE: ${{ steps.lychee.outputs.exit_code }}
           GH_TOKEN: ${{ github.token }}
