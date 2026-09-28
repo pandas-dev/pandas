@@ -253,6 +253,17 @@ def test_astype_nullable_int(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_astype_nullable_boolean(dtype):
+    # GH#40566 truthiness, matching astype(bool)
+    arr = pd.array(["True", "False", "", "0", pd.NA], dtype=dtype)
+    result = arr.astype("boolean")
+    expected = pd.array([True, True, False, True, pd.NA], dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    expected_bool = arr[:-1].astype(bool)
+    tm.assert_numpy_array_equal(result[:-1].to_numpy(bool), expected_bool)
+
+
 def test_astype_float(dtype, any_float_dtype):
     # Don't compare arrays (37974)
     ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=dtype)

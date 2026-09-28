@@ -380,6 +380,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif isinstance(dtype, NumericDtype):
             data = self._pa_array.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
+        elif isinstance(dtype, BooleanDtype):
+            # truthiness, matching astype(bool)
+            return dtype.__from_arrow__(pc.not_equal(self._pa_array, ""))
         elif isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.floating):
             return self.to_numpy(dtype=dtype, na_value=np.nan)
 
