@@ -83,7 +83,10 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -477,6 +480,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, ExtensionArray):
             pass
         else:
+            if isinstance(data, ABCDataFrame):
+                raise ValueError(
+                    "Cannot construct a Series from a DataFrame. To select a "
+                    "single column, use df.iloc[:, 0]."
+                )
             data = com.maybe_iterable_to_list(data)
             if is_list_like(data) and not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
@@ -825,6 +833,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ``.values`` will return the underlying ExtensionArray. Use
             :meth:`Series.to_numpy` or :attr:`Series.array` instead.
         """
+        if isinstance(self.dtype, (PeriodDtype, IntervalDtype)):
+            warnings.warn(
+                f"Series.values returning an object-dtype ndarray for "
+                f"{type(self.dtype).__name__} dtype is deprecated. "
+                f"In a future version, this will return the underlying "
+                f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
+                f"NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=2,
+            )
+        elif isinstance(self.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "Series.values returning an ndarray that drops timezone "
+                "information for DatetimeTZDtype is deprecated. "
+                "In a future version, this will return the underlying "
+                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
+                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                # TODO bump this to stacklevel=2 in a future version
+                stacklevel=1,
+            )
         return self._mgr.external_values()
 
     @property

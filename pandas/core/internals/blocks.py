@@ -1405,7 +1405,8 @@ class Block(PandasObject, libinternals.Block):
         fillna on the block with the value. If we fail, then convert to
         block to hold objects instead and try again
         """
-        # Caller is responsible for validating limit; if int it is strictly positive
+        # Caller is responsible for validating limit; if int it is strictly positive.
+        # Caller is also responsible for unboxing Series/Index values, GH#22954
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
@@ -2032,6 +2033,7 @@ class ExtensionBlock(EABackedBlock):
         limit: int | None = None,
         inplace: bool = False,
     ) -> list[Block]:
+        # Caller is responsible for unboxing Series/Index values, GH#22954
         if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
             if isinstance(self.dtype, IntervalDtype) and limit is not None:
@@ -2526,30 +2528,11 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
-        warnings.warn(
-            f"Series.values returning an object-dtype ndarray for "
-            f"{type(values.dtype).__name__} dtype is deprecated. "
-            f"In a future version, this will return the underlying "
-            f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
-            f"NumPy array, or 'Series.array' to get the ExtensionArray.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        if isinstance(values.dtype, DatetimeTZDtype):
-            warnings.warn(
-                "Series.values returning an ndarray that drops timezone "
-                "information for DatetimeTZDtype is deprecated. "
-                "In a future version, this will return the underlying "
-                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
-                "NumPy array, or 'Series.array' to get the ExtensionArray.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

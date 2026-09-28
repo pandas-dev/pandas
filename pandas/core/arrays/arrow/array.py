@@ -2736,7 +2736,11 @@ class ArrowExtensionArray(
 
         elif name in ["median", "mean", "std", "sem"] and pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
-            if nbits == 32:
+            if name in ["std", "sem"] and pa.types.is_date32(pa_type):
+                # compute in seconds, the unit of the result
+                seconds = self._pa_array.cast(pa.timestamp("s"))
+                data_to_reduce = seconds.cast(pa.int64())
+            elif nbits == 32:
                 data_to_reduce = self._pa_array.cast(pa.int32())
             else:
                 data_to_reduce = self._pa_array.cast(pa.int64())
@@ -2839,9 +2843,12 @@ class ArrowExtensionArray(
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
                 result = result.cast(pa.duration(pa_type.unit))
-            elif pa.types.is_date(pa_type):
-                # go with closest available unit, i.e. "s"
+            elif pa.types.is_date32(pa_type):
+                # computed in seconds, the closest available unit
                 result = result.cast(pa.duration("s"))
+            elif pa.types.is_date64(pa_type):
+                # the result is in milliseconds, the storage unit
+                result = result.cast(pa.duration("ms"))
             else:
                 # i.e. timestamp
                 result = result.cast(pa.duration(pa_type.unit))
@@ -3587,7 +3594,7 @@ class ArrowExtensionArray(
         if pa_agg_func is None:
             return None
 
-        # Only decimal and string types are routed here (see _groupby_op).
+        # See _groupby_op for the types routed here.
         # PyArrow doesn't support sum/prod/mean/std/var/sem on strings.
         pa_type = self._pa_array.type
         is_str = pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
@@ -3671,7 +3678,12 @@ class ArrowExtensionArray(
             below_min_count = pc.less(
                 result_table.column("value_count"), pa.scalar(min_count)
             )
-            result_values = pc.if_else(below_min_count, None, result_values)
+            # _if_else works around pc.if_else on chunked strings (GH#64320)
+            result_values = self._if_else(
+                below_min_count.to_numpy(),
+                pa.scalar(None, type=result_values.type),
+                result_values,
+            )
 
         # Place the results in group-id order: the inverse permutation takes
         # the row holding group i, and is null where group i had no rows.
@@ -3752,10 +3764,21 @@ class ArrowExtensionArray(
 
         # Try PyArrow-native path for decimal and string types where it's faster.
         # For integer/float/boolean, the fallback path via _to_masked() is faster.
+        # Date, time, binary and null types have no Cython path for min/max.
         if (
             pa.types.is_decimal(pa_type)
             or pa.types.is_string(pa_type)
             or pa.types.is_large_string(pa_type)
+            or (
+                how in ["min", "max"]
+                and (
+                    pa.types.is_date(pa_type)
+                    or pa.types.is_time(pa_type)
+                    or _is_varbinary_type(pa_type)
+                    or pa.types.is_fixed_size_binary(pa_type)
+                    or pa.types.is_null(pa_type)
+                )
+            )
         ):
             native_result = self._groupby_op_pyarrow(
                 how=how,
