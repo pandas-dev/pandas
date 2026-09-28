@@ -40,7 +40,8 @@ class BaseMethodsTests:
 
     def test_slow_defaults_overridden(self, data):
         # GH#24433 warn EA authors about defaults that may cast to object; map is
-        # left out because it is elementwise regardless
+        # left out since it is elementwise regardless, and isin/value_counts
+        # since they are only slow without a fast __array__
         base_cls = pd.api.extensions.ExtensionArray
         overridable = {
             "unique": ["unique"],
