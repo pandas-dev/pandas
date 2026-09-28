@@ -170,7 +170,8 @@ of a CI job.
 * `Install pixi <https://pixi.prefix.dev/latest/installation/>`_
 * Pick one of the environments defined in ``pixi.toml``, e.g. ``py313``. To reproduce a
   CI job, use the ``environment`` of that job in ``.github/workflows/``; most job names
-  include it.
+  include it. Some jobs also set environment variables such as ``PANDAS_FUTURE`` or ``LANG``;
+  see ``.github/workflows/unit-tests.yml`` and ``.github/actions/run-tests/action.yml``.
 * In place of Step 3 below, build pandas and run tests with the tasks CI uses:
 
 .. code-block:: bash

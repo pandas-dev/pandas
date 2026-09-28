@@ -118,7 +118,7 @@ copied and run by users. The script above does not run them, but GitHub Actions
 does, and a failing doctest will be a blocker for merging a PR. To run them locally,
 select them by name with ``-k``::
 
-    PANDAS_FUTURE_PYTHON_SCALARS=1 pytest --doctest-modules --ignore=pandas/tests pandas -k "Series.sum"
+    PANDAS_FUTURE_PYTHON_SCALARS=1 pytest --doctest-modules --doctest-cython --ignore=pandas/tests pandas -k "Series.sum"
 
 Check the :ref:`examples <docstring.examples>` section in the docstring guide
 for some tips and tricks to get the doctests passing.
