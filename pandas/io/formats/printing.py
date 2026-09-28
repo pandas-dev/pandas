@@ -426,10 +426,6 @@ def format_object_summary(
     elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
         summary = f"[{first}]{close}"
-    elif n == 2 and not line_break_each_value:
-        first = formatter(obj[0])
-        last = formatter(obj[-1])
-        summary = f"[{first}, {last}]{close}"
     else:
         if max_seq_items == 1:
             # If max_seq_items=1 show only last element
