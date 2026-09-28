@@ -2017,6 +2017,26 @@ def test_agg_list_like_empty_frame_reduction():
     tm.assert_frame_equal(result, expected)
 
 
+def test_agg_empty_list():
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = df.agg([])
+    expected = pd.DataFrame(index=pd.Index([]), columns=df.columns, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+    result = df.agg([], axis=1)
+    expected = pd.DataFrame(index=df.index, columns=pd.Index([]))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_empty_dict():
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = df.agg({})
+    expected = pd.DataFrame(index=pd.Index([]), columns=df.columns[:0])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = pd.DataFrame(
