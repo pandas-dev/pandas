@@ -591,11 +591,8 @@ def test_tz_cache_key_zoneinfo_without_key():
 
 
 def test_is_fixed_offset_zoneinfo_from_file():
-    # GH#64379 with no twin we cannot see that the zone is fixed-offset, so
-    #  is_fixed_offset reports False where the keyed zone reports True.  Both
-    #  consumers take that conservatively: tz_localize_to_utc_single uses the
-    #  array path, and DatetimeIndex._can_range_setop gives up the range
-    #  shortcut, which costs an empty setop result its freq.
+    # GH#64379 without a twin we cannot see the zone is fixed-offset, so report
+    #  False, which callers treat conservatively.
     assert timezones.is_fixed_offset(zoneinfo.ZoneInfo("Etc/GMT+5"))
     assert not timezones.is_fixed_offset(_zoneinfo_from_file("Etc/GMT+5"))
 
@@ -654,11 +651,8 @@ def test_zoneinfo_no_cache_keeps_fast_path(key):
     "kwargs", [{}, {"nonexistent": "NaT"}, {"nonexistent": "shift_forward"}]
 )
 def test_zoneinfo_from_file_shift_onto_nat_sentinel(kwargs):
-    # GH#64379 the no-twin fallback puts the last cached transition below
-    #  every value, so unlike the keyed zones it reaches the tzinfo-API bounds
-    #  with a wall time whose UTC instant is the NaT sentinel.  That is an
-    #  underflow, not a nonexistent time.  See GH#66550 for the keyed twin of
-    #  this test.
+    # GH#64379 a UTC instant landing on the NaT sentinel is an underflow, not
+    #  a nonexistent time; see GH#66550 for the keyed-zone version.
     lmt = (9 * 3600 + 18 * 60 + 59) * 10**9  # Asia/Tokyo's pre-1888 LMT offset
     dti = pd.DatetimeIndex([np.datetime64(-(2**63) + lmt, "ns")])
     with pytest.raises(OutOfBoundsDatetime, match="underflows past"):

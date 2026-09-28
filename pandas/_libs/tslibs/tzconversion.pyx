@@ -98,13 +98,9 @@ cdef class Localizer:
             self.use_tzinfo_api = True
 
         elif is_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
-            # GH#64379 for e.g. a ZoneInfo.from_file zone the pure-python
-            #  ZoneInfo backing the cached-transitions fast path cannot be
-            #  reconstructed.  Send every value down the tzinfo-API path that
-            #  other ZoneInfos already use for dates past their last cached
-            #  transition, by putting that last transition below every value.
-            #  Not use_tzinfo_api: that one skips the ambiguous/nonexistent
-            #  handling in tz_localize_to_utc, which a ZoneInfo must honor.
+            # GH#64379 no pure-python twin (e.g. ZoneInfo.from_file): put
+            #  last_trans below every value so all take the tzinfo-API arm.
+            #  Not use_tzinfo_api, which ignores ambiguous/nonexistent.
             self.use_dst = True
             self.use_zoneinfo = True
             self.has_tz_rule = True
@@ -174,16 +170,12 @@ cdef class Localizer:
         elif self.use_tzinfo_api or (
             self.use_zoneinfo
             and self.has_tz_rule
-            and utc_val > self.last_trans
+            and (self.tdata == NULL or utc_val > self.last_trans)
         ):
             delta = _tz_localize_using_tzinfo_api(
                 utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
             )
         else:
-            # NB: a no-twin zone (GH#64379) has last_trans == NPY_NAT and a NULL
-            #  tdata, so it reaches here only for utc_val == NPY_NAT.  Callers
-            #  screen the sentinel out, except tz_convert_from_utc_single, which
-            #  passes that requirement on to its own callers.
             pos[0] = bisect_right_i8(self.tdata, utc_val, self.ntrans) - 1
             if fold is not NULL:
                 fold[0] = _infer_dateutil_fold(
