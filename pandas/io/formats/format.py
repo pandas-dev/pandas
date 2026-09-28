@@ -23,6 +23,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 import warnings
@@ -1448,7 +1449,12 @@ class FloatArrayFormatter(_GenericArrayFormatter):
                 )
 
                 def longdouble_format(value) -> str:
-                    result = np_format(value, precision=self.digits, unique=False)
+                    # at precision 0, numpy keeps the trailing decimal point
+                    # (e.g. "2.") where str.format drops it; strip it to match
+                    trim: Literal["-", "k"] = "-" if self.digits == 0 else "k"
+                    result = np_format(
+                        value, precision=self.digits, unique=False, trim=trim
+                    )
                     if self.leading_space is True and not result.startswith("-"):
                         result = " " + result
                     return result

@@ -2138,6 +2138,20 @@ class TestFloatArrayFormatter:
         ser = pd.Series(np.array(values, dtype=np.longdouble))
         assert str(ser) == f"{expected}\ndtype: {ser.dtype}"
 
+    @pytest.mark.skipif(
+        np.finfo(np.longdouble).precision <= np.finfo(np.float64).precision,
+        reason="longdouble is no wider than float64 on this platform",
+    )
+    def test_longdouble_outside_float64_range_precision_zero(self):
+        # GH#17809: at display.precision=0, numpy keeps a trailing decimal
+        # point that str.format drops; match float64's output
+        with pd.option_context("display.precision", 0):
+            ser = pd.Series(np.array(["1.5", "2.25"], dtype=np.longdouble))
+            assert str(ser) == f"0    2\n1    2\ndtype: {ser.dtype}"
+
+            ser = pd.Series(np.array(["1.5", "1e-400"], dtype=np.longdouble))
+            assert str(ser) == f"0     2e+00\n1    1e-400\ndtype: {ser.dtype}"
+
 
 class TestTimedelta64Formatter:
     def test_days(self):
