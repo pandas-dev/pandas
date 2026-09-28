@@ -2673,8 +2673,12 @@ class _iLocIndexer(_LocationIndexer):
         if positions.dtype.kind not in "iu":
             return
         mgr = self.obj._mgr
-        is_object_block = np.array([blk.dtype == object for blk in mgr.blocks])
-        is_object = is_object_block[mgr.blknos[positions]]
+        # only look up the blocks being set, not every block in the frame
+        blknos = mgr.blknos[positions]
+        object_blknos = [
+            blkno for blkno in np.unique(blknos) if mgr.blocks[blkno].dtype == object
+        ]
+        is_object = np.isin(blknos, object_blknos)
         if not is_object.any():
             return
 

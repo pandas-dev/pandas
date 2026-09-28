@@ -4327,14 +4327,3 @@ def test_setitem_rows_only_object_columns_no_warning(single_block, indexer_sli):
     with tm.assert_produces_warning(None):
         indexer_sli(df)[:] = np.array([[1, 2], [3, 4]])
     assert df["A"].dtype == object
-
-
-@pytest.mark.parametrize("single_block", [True, False])
-def test_iloc_setitem_object_column_slice_to_len_warns(single_block):
-    # GH#52593 slice(None, nrows) spans all rows like slice(None)
-    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
-    if not single_block:
-        df["B"] = df["B"].astype("int64")
-    msg = "Setting non-object values into entire object-dtype column"
-    with tm.assert_produces_warning(UserWarning, match=msg):
-        df.iloc[:2, 0] = np.array([1, 2])

@@ -2300,3 +2300,14 @@ def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
         {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
     )
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+def test_iloc_setitem_object_column_slice_to_len_warns(single_block):
+    # GH#52593 slice(None, nrows) spans all rows like slice(None)
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    if not single_block:
+        df["B"] = df["B"].astype("int64")
+    msg = "Setting non-object values into entire object-dtype column"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        df.iloc[:2, 0] = np.array([1, 2])
