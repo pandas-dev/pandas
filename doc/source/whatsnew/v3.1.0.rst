@@ -1345,6 +1345,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
+- Bug in :meth:`.Styler.to_latex` and :meth:`DataFrame.to_latex` raising ``ValueError`` for tables larger than ``styler.render.max_elements``; LaTeX output is no longer trimmed by the ``styler.render.max_elements``, ``max_rows`` or ``max_columns`` options (:issue:`68310`)
 - Bug in :meth:`.Styler.to_typst` leaving empty cells for hidden index levels and columns (:issue:`64663`)
 - Fixed bug in :meth:`.Styler.to_excel` where quoted strings in CSS properties were incorrectly lowercased, causing the exported Excel styling to use the wrong values; now quoted strings are left as-is (:issue:`63101`)
 
