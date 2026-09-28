@@ -76,7 +76,7 @@ jobs:
             const LABEL = 'Needs Triage';
             const EXEMPT_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
             // Only apply going forward; not retroactively.
-            const ROLLOUT_CUTOFF = new Date('????-??-??T00:00:00Z');
+            const ROLLOUT_CUTOFF = new Date('2026-09-28T00:00:00Z');
             const issue = context.payload.issue;
             const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
             if (labels.includes(LABEL)) return;
