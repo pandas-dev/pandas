@@ -403,6 +403,7 @@ def test_na_empty_elem_option(parser, geom_df):
         pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
         ([1, None], object),
         ([1, pd.NA], object),
+        (["x", None], "category"),
     ],
 )
 def test_na_rep_none_and_na(parser, values, dtype):

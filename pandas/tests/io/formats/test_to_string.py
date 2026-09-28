@@ -801,6 +801,7 @@ class TestDataFrameToString:
             pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
             ([1, None], object),
             ([1, pd.NA], object),
+            ([1, pd.NaT], object),
         ],
     )
     def test_to_string_na_rep_none_and_na(self, values, dtype, frame_or_series):

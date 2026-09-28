@@ -1094,6 +1094,7 @@ def test_to_html_na_rep_non_scalar_data(datapath):
         pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
         ([1, None], object),
         ([1, pd.NA], object),
+        ([1, pd.NaT], object),
     ],
 )
 def test_to_html_na_rep_none_and_na(values, dtype):
