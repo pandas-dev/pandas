@@ -4085,6 +4085,11 @@ class MultiIndex(Index):
                 # it was a string sliced)
                 start = getattr(start, "start", start)
                 stop = getattr(stop, "stop", stop)
+                if level == 0 and self._lexsort_depth > 0 and step is None:
+                    # GH#52714 sorted, so can return slice object -> view
+                    i = algos.searchsorted(level_codes, start, side="left")
+                    j = algos.searchsorted(level_codes, stop, side="left")
+                    return slice(i, j, step)
                 return convert_indexer(start, stop, step)
 
             elif level > 0 or self._lexsort_depth == 0 or step is not None:
@@ -4185,7 +4190,7 @@ class MultiIndex(Index):
         """
         locs = self._get_locs(seq)
         if isinstance(locs, slice):
-            return np.arange(len(self), dtype=np.intp)[locs]
+            return np.arange(*locs.indices(len(self)), dtype=np.intp)
         return locs
 
     def _get_locs(self, seq) -> slice | npt.NDArray[np.intp]:

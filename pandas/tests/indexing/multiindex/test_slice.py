@@ -811,6 +811,7 @@ class TestMultiIndexSlicers:
         (slice("2001-01-31", "2001-02-01"), slice(2, 6)),
         ("2001-01-31", slice(2, 4)),
         ("2001-02", slice(4, 8)),
+        (slice("2001-01", "2001-01"), slice(0, 4)),
     ],
 )
 def test_loc_level0_key_plus_null_slice_returns_view(key, iloc):
