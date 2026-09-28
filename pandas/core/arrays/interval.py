@@ -1075,7 +1075,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         empty_len = min(abs(periods), len(self))
         if isna(fill_value):
-            # a take keeps the subtype GH#64297
+            # take keeps the subtype unless it must upcast to hold NA GH#64297
             empty = self.take([-1] * empty_len, allow_fill=True)
         else:
             empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
