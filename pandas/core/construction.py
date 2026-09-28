@@ -713,12 +713,23 @@ def sanitize_array(
             subarr = _try_cast(data, dtype, copy)
 
         else:
-            subarr = construct_1d_object_array_from_listlike(data)
-            subarr = lib.maybe_convert_objects(
-                subarr,
-                convert_non_numeric=True,
-                dtype_if_all_nat=np.dtype("M8[s]"),
-            )
+            from pandas.compat import HAS_PYARROW
+            if using_string_dtype() and HAS_PYARROW and lib.infer_dtype(data, skipna=True) == "string":
+                from pandas.core.arrays.string_ import StringDtype
+                import pyarrow as pa
+                dtype = StringDtype(na_value=np.nan)
+                if dtype.storage == "pyarrow":
+                    pa_arr = pa.array(data, type=pa.large_string(), from_pandas=True)
+                    return dtype.construct_array_type()(pa_arr, dtype=dtype)
+                else:
+                    return dtype.construct_array_type()._from_sequence(data, dtype=dtype)
+            else:
+                subarr = construct_1d_object_array_from_listlike(data)
+                subarr = lib.maybe_convert_objects(
+                    subarr,
+                    convert_non_numeric=True,
+                    dtype_if_all_nat=np.dtype("M8[s]"),
+                )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 
