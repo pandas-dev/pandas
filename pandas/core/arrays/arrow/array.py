@@ -3184,22 +3184,37 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        if axis != 0:
-            ranked = super()._rank(
-                axis=axis,
-                method=method,
-                na_option=na_option,
-                ascending=ascending,
-                pct=pct,
-            )
-            # keep dtypes consistent with the implementation below
-            if method == "average" or pct:
-                pa_type = pa.float64()
-            else:
-                pa_type = pa.uint64()
-            result = pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
-            return result
+        if axis == 0:
+            try:
+                return self._rank_pyarrow(
+                    method=method, na_option=na_option, ascending=ascending, pct=pct
+                )
+            except pa.ArrowNotImplementedError:
+                # pyarrow cannot rank some types, e.g. lists
+                pass
 
+        ranked = super()._rank(
+            axis=axis,
+            method=method,
+            na_option=na_option,
+            ascending=ascending,
+            pct=pct,
+        )
+        # keep dtypes consistent with _rank_pyarrow
+        if method == "average" or pct:
+            pa_type = pa.float64()
+        else:
+            pa_type = pa.uint64()
+        return pa.array(ranked, type=pa_type, from_pandas=is_nan_na())
+
+    def _rank_pyarrow(
+        self,
+        *,
+        method: RankMethod,
+        na_option: RankNaOption,
+        ascending: bool,
+        pct: bool,
+    ):
         data = self._pa_array.combine_chunks()
         order = "ascending" if ascending else "descending"
         null_placement = "at_start" if na_option == "top" else "at_end"
