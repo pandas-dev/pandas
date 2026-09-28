@@ -3,7 +3,7 @@ Validate that lists in rst files are not indented relative to their context.
 
 An indented list is parsed as a list inside a block quote, which renders with
 extra indentation. Top-level lists should not be indented, and nested lists
-should align with the text of their parent item (e.g. 2 spaces after ``* ``).
+should align with the text of their parent item.
 
 Usage::
 
@@ -78,7 +78,7 @@ def main(source_paths: list[str]) -> int:
     Returns
     -------
     int
-        Number of indented lists found.
+        1 if any indented lists were found, 0 otherwise.
     """
     number_of_errors = 0
     for filename in source_paths:
@@ -90,7 +90,7 @@ def main(source_paths: list[str]) -> int:
                 "(rendered as a block quote)"
             )
             number_of_errors += 1
-    return number_of_errors
+    return int(number_of_errors > 0)
 
 
 if __name__ == "__main__":
