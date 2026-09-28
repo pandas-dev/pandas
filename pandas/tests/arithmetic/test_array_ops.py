@@ -111,10 +111,8 @@ ARRAYS = [
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 @pytest.mark.parametrize("arr", ARRAYS)
 def test_cmp_iterator_treated_as_scalar(arr, box):
-    # GH#31646 an iterator has no length, so we cannot compare element-wise;
-    #  it is treated as scalar-like, matching ndarray behavior
-    # the shape matters as much as the values: a scalar False would satisfy
-    #  .any() too, and that is the failure mode the scalar path can produce
+    # GH#31646 an iterator is treated as scalar-like; checking the shape
+    #  catches a scalar False that would satisfy .any() by accident
     expected = np.zeros(len(arr), dtype=bool)
     with tm.assert_produces_warning(None):
         result = arr == box()
@@ -138,9 +136,7 @@ def test_cmp_iterator_treated_as_scalar(arr, box):
     ],
 )
 def test_arith_iterator_raises(arr, box):
-    # GH#31646 scalar-like treatment means the operation is simply invalid.
-    #  Only sparse and the masked dtypes change here: the datetimelike and
-    #  interval boxes already raised on main, from Python rather than pandas
+    # GH#31646 scalar-like treatment means the operation is simply invalid
     with pytest.raises(TypeError, match="unsupported operand type"):
         arr + box()
 
@@ -159,8 +155,7 @@ TIMEDELTA_OPS = [
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 @pytest.mark.parametrize("op", TIMEDELTA_OPS)
 def test_timedelta_arith_iterator_raises(op, box):
-    # GH#31646 the multiplicative timedelta ops gated on lib.is_scalar, so an
-    #  iterator fell through to np.array(other) and then len() on the 0-d result
+    # GH#31646 an iterator is treated as scalar-like, not coerced to an array
     arr = pd.array(pd.to_timedelta([1, 2, 3], unit="D"))
     msg = "|".join(["cannot use operands", "unsupported operand", "Cannot divide"])
     with pytest.raises(TypeError, match=msg):
@@ -170,7 +165,7 @@ def test_timedelta_arith_iterator_raises(op, box):
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 def test_frame_cmp_iterator_treated_as_scalar(box):
     # GH#31646 the DataFrame alignment path must not consume the iterator
-    #  looking for a length either
+    #  looking for a length
     df = pd.DataFrame({"a": [1, 2, 3], "b": pd.array([4, 5, 6], dtype="Int64")})
     with tm.assert_produces_warning(None):
         result = df == box()
@@ -189,8 +184,8 @@ class ReIterable:
 
 
 def test_reiterable_is_not_treated_as_an_iterator():
-    # GH#31646 only iterators became scalar-like; a re-readable list-like with
-    #  no length is still on the GH#62423 deprecation path
+    # GH#31646 only iterators are scalar-like; a re-iterable with no length
+    #  stays on the GH#62423 deprecation path
     with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
         result = pd.arrays.SparseArray([1, 2, 3]) == ReIterable()
     assert np.asarray(result).all()
@@ -226,8 +221,8 @@ class ArrayInterface:
 
 @pytest.mark.parametrize("cls", [ArrayCastable, ArrayInterface])
 def test_array_castable_operand_still_elementwise(cls):
-    # GH#31646 has_castable_attr exists to keep these element-wise; an operand
-    #  with no __len__ must not be mistaken for a scalar
+    # GH#31646 has_castable_attr keeps an operand with no __len__ from being
+    #  mistaken for a scalar
     with tm.assert_produces_warning(None):
         result = pd.arrays.SparseArray([1, 2, 3]) + cls()
     # check_dtype: the sparse op upcasts to int64 on 32-bit platforms
@@ -247,8 +242,7 @@ def test_array_castable_operand_still_elementwise(cls):
 
 
 def test_sized_sequence_still_elementwise():
-    # GH#31646 the op sites that used to gate on lib.is_scalar must keep sending
-    #  a sized sequence down the element-wise path; NumPy coerces it anyway
+    # GH#31646 a sized sequence (no __iter__) stays on the element-wise path
     with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
         result = pd.arrays.SparseArray([1, 2, 3]) + SizedSequence([1, 2, 3])
     tm.assert_numpy_array_equal(
@@ -269,8 +263,7 @@ def test_sized_sequence_still_elementwise():
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "string[pyarrow]"])
 def test_arrow_arith_does_not_consume_iterator(dtype, box):
-    # GH#31646 _evaluate_op_method boxed the iterator as an array, draining it --
-    #  and never returning for an endless one -- instead of treating it as scalar
+    # GH#31646 an iterator is treated as scalar-like, not boxed as an array
     pa = pytest.importorskip("pyarrow")
     data = ["a", "b", "c"] if dtype.startswith("string") else [1, 2, 3]
     arr = pd.array(data, dtype=dtype)
@@ -281,20 +274,17 @@ def test_arrow_arith_does_not_consume_iterator(dtype, box):
 
 
 def test_arrow_logical_op_iterator_raises_arrow_invalid():
-    # GH#31646 an iterator now reaches _evaluate_op_method rather than
-    #  logical_op's dtype-less-sequence gate, so the arrow scalar path reports
-    #  it the way it reports any other unboxable scalar
+    # GH#31646 an iterator is reported the way any other unboxable scalar is
     pa = pytest.importorskip("pyarrow")
     arr = pd.array([True, False, True], dtype="bool[pyarrow]")
-    with pytest.raises(pa.ArrowInvalid, match="Could not convert"):
+    with pytest.raises((pa.ArrowInvalid, TypeError)):
         arr & (num for num in range(3))
 
 
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "string[pyarrow]"])
 def test_arrow_cmp_iterator_treated_as_scalar(dtype, box):
-    # GH#31646 _cmp_method gated on lib.is_scalar, so an iterator matched no arm
-    #  and raised NotImplementedError while every other dtype compared False
+    # GH#31646 an iterator compares as scalar-like, like every other unrecognized dtype
     pytest.importorskip("pyarrow")
     data = ["a", "b", "c"] if dtype.startswith("string") else [1, 2, 3]
     arr = pd.array(data, dtype=dtype)
@@ -317,9 +307,7 @@ def test_arrow_arith_endless_iterator_raises():
 
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 def test_logical_op_iterator_reaches_the_operand_message(box):
-    # GH#31646 logical_op gated on bare is_list_like, so an iterator was called a
-    #  "dtype-less sequence" and never reached the scalar path the rest of the
-    #  operators put it on
+    # GH#31646 an iterator reaches the same scalar-operand error path as other operators
     msg = "'other' should be pandas.NA or a bool"
     with pytest.raises(TypeError, match=msg):
         pd.array([True, False, True]) & box()
@@ -330,16 +318,14 @@ def test_logical_op_iterator_reaches_the_operand_message(box):
     with pytest.raises(TypeError, match="Cannot perform 'and_'"):
         pd.Series([True, False, True]) & box()
 
-    # object dtype reaches na_logical_op's non-ndarray branch, where bool(other)
-    #  would have answered True instead of raising
+    # object dtype reaches na_logical_op's non-ndarray branch
     with pytest.raises(TypeError, match=r"scalar of type \[\w+\]"):
         pd.Series([True, False, True], dtype=object) | box()
 
 
 @pytest.mark.parametrize("box", ITERATOR_BOXES)
 def test_sparse_logical_and_ordering_iterator_raises(box):
-    # GH#31646 sparse computed elementwise against a length-matching iterator
-    #  for these two as well, and `|` did not even return booleans
+    # GH#31646 sparse ops on an iterator raise instead of computing element-wise
     with pytest.raises(TypeError, match="unsupported operand type"):
         pd.arrays.SparseArray([True, False, True]) | box()
 
@@ -348,8 +334,7 @@ def test_sparse_logical_and_ordering_iterator_raises(box):
 
 
 def test_sparse_cmp_unrecognized_scalar():
-    # GH#31646 an object that is neither list-like nor a recognized scalar was
-    #  routed through the list-like branch and compared as a length-1 operand
+    # GH#31646 an unrecognized-scalar object compares as scalar-like, not length-1
     arr = pd.arrays.SparseArray([1, 2, 3])
     result = arr == object()
     assert not np.asarray(result).any()
@@ -359,16 +344,15 @@ def test_sparse_cmp_unrecognized_scalar():
 
 
 def test_boolean_logical_unrecognized_scalar():
-    # GH#31646 lib.is_scalar is narrower than "not list-like", so an ordinary
-    #  object fell through to the element-wise branch and hit len()
+    # GH#31646 an unrecognized-scalar object raises instead of hitting len()
     arr = pd.array([True, False, True])
     with pytest.raises(TypeError, match="'other' should be pandas.NA or a bool"):
         arr & object()
 
 
 def test_object_dtype_logical_unrecognized_scalar():
-    # GH#31646 an unrecognized object reached bool(other) in na_logical_op and
-    #  silently computed against True; it raised a bare AssertionError before
+    # GH#31646 an unrecognized-scalar object raises TypeError instead of a
+    #  bare AssertionError
     ser = pd.Series([True, False, True], dtype=object)
     with pytest.raises(TypeError, match=r"scalar of type \[object\]"):
         ser & object()

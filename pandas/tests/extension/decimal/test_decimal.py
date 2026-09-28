@@ -494,8 +494,8 @@ def test_dataframe_arith_with_series_axis0(all_arithmetic_operators, ea_frame):
 
 
 def test_scalar_ops_mixin_iterator_is_scalar_like():
-    # GH#31646 ExtensionScalarOpsMixin zipped the operand, draining an iterator
-    #  and computing element-wise instead of treating it as a scalar
+    # GH#31646 an iterator is treated as scalar-like, not drained and
+    #  computed element-wise
     arr = DecimalArray([decimal.Decimal(num) for num in range(3)])
     other = (decimal.Decimal(num) for num in range(3))
     with pytest.raises(TypeError, match="unsupported operand type"):
