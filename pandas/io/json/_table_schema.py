@@ -355,10 +355,9 @@ def _unmatched_names(
     names: Sequence[Hashable], records: Sequence[Any]
 ) -> list[Hashable]:
     """
-    Non-string field names with no key holding their values in "data".
+    Non-string field names with no key holding their values in "data",
+    keyed by their string form (GH#19129).
     """
-    # JSON object keys are always strings, so a non-string field name is
-    #  keyed by its string form in "data" (GH#19129).
     unmatched = []
     for name in names:
         if isinstance(name, str):
@@ -462,8 +461,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         [name for name in names if isinstance(name, float)], rows
     )
     if unmatched_floats and keyed:
-        # the key spells the label, so parsing it back recovers the label --
-        #  including a sign the writer dropped, as it does for -0.0
+        # recover the label from its key, including -0.0's sign (GH#19129)
         recovered = _float_names_from_keys(unmatched_floats, rows)
         unmatched_floats = [name for name in unmatched_floats if name not in recovered]
     if unmatched_floats and not precise_float:
@@ -500,10 +498,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
                 "'data' keys its values, so they cannot be read back"
             )
         unmatched = _unmatched_names(names, rows)
-        # a label absent from every record is ambiguous: its values may all be
-        #  missing, or a key may spell it differently. A key that no field
-        #  claims is the evidence for the second, and without one the column
-        #  reads as all-missing, which is what a string label already does
+        # a leftover key suggests a spelling mismatch rather than an
+        #  all-missing column
         if unmatched:
             orphans = sorted(
                 {key for record in rows if isinstance(record, dict) for key in record}
