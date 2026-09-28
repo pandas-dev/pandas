@@ -537,6 +537,17 @@ class TestRank:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_rank_arrow_type_pyarrow_cannot_rank(self, frame_or_series):
+        # GH#52829 pyarrow cannot rank lists; fall back to ranking as object
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.list_(pa.int64()))
+        obj = frame_or_series(pd.array([[3], None, [1], [2]], dtype=dtype))
+        result = obj.rank()
+        expected = frame_or_series(
+            pd.array([3.0, None, 1.0, 2.0], dtype=pd.ArrowDtype(pa.float64()))
+        )
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", ["int64", "uint64"])
     def test_rank_int_above_2_to_the_53(self, dtype):
         # GH#69136 a float64 column must not drag the integer column through float64

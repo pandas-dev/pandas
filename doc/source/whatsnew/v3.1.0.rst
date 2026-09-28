@@ -240,11 +240,6 @@ values, and for integers above ``2**53`` in a frame whose common dtype was
     In [3]: df.rank()["a"].tolist()
     Out[3]: [2.0, 3.5, 1.0, 3.5]
 
-Ranking column-by-column also means a column with an :class:`ArrowDtype` that
-pyarrow cannot rank, such as ``list[pyarrow]``, now raises the same
-``ArrowNotImplementedError`` that :meth:`Series.rank` already raised, instead
-of falling back to ranking it as ``object``.
-
 .. _whatsnew_310.notable_bug_fixes.read_csv_categorical:
 
 :func:`read_csv` with ``dtype="category"`` infers numeric and boolean categories
@@ -1452,6 +1447,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - :func:`api.extensions.register_extension_dtype` now raises an informative ``TypeError`` at registration when the :class:`~pandas.api.extensions.ExtensionDtype` subclass does not define a string ``name`` attribute, instead of a bare ``AssertionError`` when the dtype is later used (:issue:`46093`)
 - Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` not propagating ``pd.NA`` on numpy-nullable columns (``boolean``, ``Int*``, ``UInt*``, ``Float*``); ``axis=0`` raised ``ValueError`` and ``axis=1`` returned a concrete ``True``/``False`` (:issue:`65710`)
+- Bug in :meth:`Series.rank` raising ``ArrowNotImplementedError`` for an :class:`ArrowDtype` that PyArrow cannot rank, such as ``list[pyarrow]``; it now falls back to ranking the values as ``object`` (:issue:`69136`)
 - Bug in arithmetic, comparison, and logical operations between PyArrow-backed or :class:`StringDtype` data and a two-dimensional operand raising an assortment of internal or misleading errors, or silently returning a wrong result; these now raise ``NotImplementedError`` (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and a differently-sized array or list raising ``pyarrow.ArrowInvalid`` instead of reporting the length mismatch (:issue:`62682`)
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
