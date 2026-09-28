@@ -10411,7 +10411,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 # if we are NOT aligned, raise as we cannot where index
                 if axis is None and not other._indexed_same(self):
-                    raise InvalidIndexError
+                    raise InvalidIndexError(
+                        "Cannot align 'other' with the calling object because "
+                        "'other' has duplicate labels"
+                    )
 
                 if other.ndim < self.ndim:
                     other = other._values
