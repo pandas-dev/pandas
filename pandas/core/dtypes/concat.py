@@ -155,6 +155,16 @@ def concat_compat(
     return result
 
 
+def _category_type(cat: Any) -> type:
+    # a NumPy scalar is the same category as its Python equivalent; excluding
+    #  timedelta64, whose .item() can be an int
+    if isinstance(cat, (np.bool_, np.number, np.str_)) and not isinstance(
+        cat, np.timedelta64
+    ):
+        return type(cat.item())
+    return type(cat)
+
+
 def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     """
     Whether any of these object-dtype categories appears under two different
@@ -169,8 +179,9 @@ def _categories_would_collide(to_union: Sequence[Categorical]) -> bool:
     seen: dict[Any, type] = {}
     for categories in distinct.values():
         for cat in categories:
+            cat_type = _category_type(cat)
             try:
-                if seen.setdefault(cat, type(cat)) is not type(cat):
+                if seen.setdefault(cat, cat_type) is not cat_type:
                     return True
             except Exception:
                 # a comparison that raises, e.g. Decimal("1") == np.int64(1),

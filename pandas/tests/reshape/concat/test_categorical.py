@@ -3,6 +3,7 @@ from decimal import Decimal
 from enum import IntEnum
 
 import numpy as np
+import pytest
 
 from pandas.errors import Pandas4Warning
 
@@ -724,4 +725,21 @@ def test_union_categories_uncomparable_categories():
     )
     result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
     expected = pd.Series(np.array([one, np.int64(1)], dtype=object))
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "np_scalar, py_scalar",
+    [(np.int64(1), 1), (np.float64(1.5), 1.5), (np.bool_(True), True)],
+)
+def test_union_categories_numpy_and_python_scalars(np_scalar, py_scalar):
+    # GH#68440 a NumPy scalar and its Python equivalent are the same category
+    s1 = pd.Series(pd.Categorical(["a", np_scalar]))
+    s2 = pd.Series(
+        pd.Categorical(
+            [py_scalar], dtype=CategoricalDtype(pd.Index([py_scalar], dtype=object))
+        )
+    )
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(pd.Categorical(["a", np_scalar, np_scalar], dtype=s1.dtype))
     tm.assert_series_equal(result, expected)
