@@ -947,6 +947,8 @@ def _read_csv_chunks(
             return None
         index_positions = [int(pos) % len(col_names) for pos in index_engine.index_col]
         if len(set(index_positions)) != len(index_positions):
+            # serial _make_index pops a different column for a repeat, e.g.
+            # index_col=[0, 0]
             return None
 
     # A dict ``dtype`` is applied per raw header name: when a name is repeated,

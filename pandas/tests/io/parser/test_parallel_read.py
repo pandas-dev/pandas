@@ -1378,14 +1378,17 @@ def test_parallel_index_col_options_match_serial(tmp_path, monkeypatch, kwargs):
     assert outcomes == ["used"]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_index_col_to_csv_round_trip(tmp_path, monkeypatch):
     # to_csv's unnamed index header reads back as an unnamed index
     df = pd.DataFrame({"x": range(2000), "y": [f"s{i}" for i in range(2000)]})
     path = tmp_path / "round_trip.csv"
     df.to_csv(path)
+    outcomes = _track_parallel(monkeypatch)
 
     result = _read_forced_parallel(path, monkeypatch, index_col=0)
     tm.assert_frame_equal(result, df)
+    assert outcomes == ["used"]
 
 
 @pytest.mark.parametrize("index_col", [5, "nope"])
