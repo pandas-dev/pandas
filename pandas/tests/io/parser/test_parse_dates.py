@@ -267,15 +267,11 @@ def test_bad_date_parse_with_warning(all_parsers, cache):
     s = StringIO(("0,\n") * (start_caching_at + 1))
 
     depr_msg = "The 'cache_dates' argument is deprecated"
-    if parser.engine == "pyarrow":
-        # pyarrow reads "0" as 0 (of type int64), and so
-        # pandas doesn't try to guess the datetime format
-        # TODO: parse dates directly in pyarrow, see
-        # https://github.com/pandas-dev/pandas/issues/48017
-        warn, match = Pandas4Warning, depr_msg
-    elif cache:
-        # Note: warning is not raised if 'cache_dates', because here there is only a
-        # single unique date and hence no risk of inconsistent parsing.
+    if parser.engine == "pyarrow" or cache:
+        # pyarrow: reads "0" as int64, so pandas doesn't try to guess the format
+        # (TODO: parse dates directly in pyarrow, see GH#48017).
+        # cache_dates=True: the UserWarning is not raised because there is only
+        # a single unique date, so there's no risk of inconsistent parsing.
         warn, match = Pandas4Warning, depr_msg
     else:
         warn = (Pandas4Warning, UserWarning)
