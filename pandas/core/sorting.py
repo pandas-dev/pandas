@@ -587,7 +587,9 @@ def _ensure_key_mapped_multiindex(
         for level in range(index.nlevels)
     ]
 
-    return type(index).from_arrays(mapped)
+    # key may return an array without a name, keep the level names so
+    # that levels can still be referred to by name
+    return type(index).from_arrays(mapped, names=index.names)
 
 
 def ensure_key_mapped(
