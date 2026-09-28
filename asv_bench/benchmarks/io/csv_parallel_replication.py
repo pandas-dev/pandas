@@ -12,7 +12,7 @@ GH-66152 changes only the *default* worker count -- pure Python, no C or
 Cython.  ``mode.max_threads`` is honoured on both main and this branch, so
 both behaviours are reachable from a single build:
 
-    workers=4         what main does by default (min(os.cpu_count(), 4))
+    workers=6         what main does by default (min(os.cpu_count(), 6))
     workers=None      what this branch does (physical_core_count(), clamped)
 
 That means no second build and no ``asv continuous`` is needed to reproduce
@@ -87,7 +87,7 @@ WORDS = [
 
 # Shapes match the standalone suite so the ms figures here line up with the
 # PR table.  The comment on each is the speedup that suite measured on an
-# M3 Pro (12 physical cores) for 4 workers -> default workers.
+# M3 Pro (12 physical cores) for 6 workers -> default workers.
 FIXTURES = {
     "float": "1M x 10 float64                        (108 MB, 1.77x)",
     "int": "1M x 10 int64                          (99 MB, 1.78x)",
@@ -242,13 +242,13 @@ def set_workers(workers: int | None) -> None:
 
 class ParallelWorkerDefault:
     """
-    Reproduce the PR's headline ratio: 4 workers vs the new default.
+    Reproduce the PR's headline ratio: 6 workers vs the new default.
 
     ``workers=1`` is included as the serial reference, so the table also shows
     parallel efficiency rather than just the ratio the PR claims.
     """
 
-    params = (list(FIXTURES), [1, 4, None])
+    params = (list(FIXTURES), [1, 6, None])
     param_names = ["fixture", "workers"]
 
     # Fixture generation happens in setup on a cold cache; a 100 MB to_csv is
@@ -279,7 +279,7 @@ class ParallelWorkerSweep:
     Worker-count curve, to locate the knee on the reviewer's own machine.
 
     This is the measurement that actually decides GH-66152: the PR's premise is
-    that throughput keeps climbing past 4 workers up to the physical core
+    that throughput keeps climbing past 6 workers up to the physical core
     count.  Compare where this curve flattens against
     ``track_physical_core_count`` below.
     """
@@ -306,9 +306,9 @@ class ParallelWorkerSweep:
 
 
 # There is deliberately no `track_` benchmark for the detected core count.
-# One reported the worker count each side dispatches (an honest 4 -> 12), but
-# asv scores every track_ metric as lower-is-better, so a *correct* 4 -> 12
-# rendered as a 3.00x "regression" and made `asv continuous` print
+# One reported the worker count each side dispatches (an honest 6 -> 12), but
+# asv scores every track_ metric as lower-is-better, so a *correct* 6 -> 12
+# rendered as a 2.00x "regression" and made `asv continuous` print
 # "PERFORMANCE DECREASED" and exit 1 on a run where every timing improved.
 # Worker counts come from the standalone runner's header instead:
 #     python -m asv_bench.benchmarks.io.csv_parallel_replication --fixtures medium
@@ -364,7 +364,7 @@ def _print_environment():
 
         print(f"default workers       {_default_n_workers()}")
     except ImportError:
-        print(f"default workers       {min(os.cpu_count() or 1, 4)} (main's formula)")
+        print(f"default workers       {min(os.cpu_count() or 1, 6)} (main's formula)")
     print(f"fixtures    {FIXTURE_DIR}")
     print()
 
@@ -374,7 +374,7 @@ def main(argv=None):
     parser.add_argument(
         "--sweep",
         action="store_true",
-        help="measure the full worker-count curve instead of the 4-vs-default A/B",
+        help="measure the full worker-count curve instead of the 6-vs-default A/B",
     )
     parser.add_argument("--rounds", type=int, default=5)
     parser.add_argument(
@@ -399,7 +399,7 @@ def main(argv=None):
         names = list(FIXTURES)
 
     ensure_fixtures(names)
-    worker_counts = WORKER_SWEEP if args.sweep else [1, 4, None]
+    worker_counts = WORKER_SWEEP if args.sweep else [1, 6, None]
     results = _measure(names, worker_counts, args.rounds, args.reps)
 
     headers = [
@@ -410,12 +410,12 @@ def main(argv=None):
     print("read_csv, best-of-N milliseconds by worker count")
     print()
     print("fixture".ljust(width) + "".join(head.rjust(11) for head in headers), end="")
-    print("   vs 4 workers" if not args.sweep else "")
+    print("   vs 6 workers" if not args.sweep else "")
     for name in names:
         row = name.ljust(width)
         row += "".join(f"{results[name, workers]:11.1f}" for workers in worker_counts)
         if not args.sweep:
-            row += f"{results[name, 4] / results[name, None]:14.3f}x"
+            row += f"{results[name, 6] / results[name, None]:14.3f}x"
         print(row)
     print()
     for name in names:

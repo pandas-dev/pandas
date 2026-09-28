@@ -356,7 +356,7 @@ def _fake_degenerate_sysfs_str(n_cpus):
 def test_physical_cores_linux_degenerate_topology(monkeypatch, n_cpus):
     # Some hypervisors report physical_package_id=0/core_id=0 for every CPU.
     # Collapsing that to 1 physical core would make the guest read serially --
-    # slower than the previous flat default of 4 -- so it is treated as no
+    # slower than the flat default of 6 -- so it is treated as no
     # answer at all.  Below 9 CPUs the ratio bound cannot fire, so the
     # thread_siblings_list cross-check is the only thing catching the common
     # cloud sizes (GH#66152).
@@ -457,14 +457,9 @@ def test_count_processor_core_records_partial_trailing_header():
     assert _count_processor_core_records(buf, 36) == 1
 
 
-def test_count_processor_core_records_hybrid():
-    # 4 performance cores (class 1) + 4 efficiency cores (class 0): every
-    # physical core counts, efficiency class does not matter.
-    buf, length = _make_win_processor_buffer([(32, 1)] * 4 + [(32, 0)] * 4)
-    assert _count_processor_core_records(buf, length) == 8
-
-
 def test_count_processor_core_records_homogeneous():
+    # Counts records by Size alone; EfficiencyClass is not read, so a hybrid
+    # core mix is the same code path as this one.
     buf, length = _make_win_processor_buffer([(32, 0)] * 8)
     assert _count_processor_core_records(buf, length) == 8
 

@@ -3,11 +3,14 @@ Detection of a CPU's physical core count, and of the CPU allocation actually
 available to this process.
 
 Used to pick the default worker count for parallel I/O.  The target is the
-number of *physical cores*, efficiency cores included: with the work-queued
-parallel read path, efficiency cores contribute real throughput (a slow chunk
-just means that worker pulls fewer chunks from the queue).  SMT siblings are
-excluded because a hyperthread does not add memory bandwidth to the
-bandwidth-bound parsing work its sibling is already doing.
+number of *physical cores*, efficiency cores included: the work-queued
+parallel read path lets a slow chunk just mean that worker pulls fewer
+chunks from the queue.  That holds up on Apple Silicon; on hybrid x86 laptops
+(few performance cores, many efficiency cores) counting every efficiency core
+has measured *slower* than a lower worker count on some file shapes -- see
+GH#66152.  SMT siblings are excluded because a hyperthread does not add
+memory bandwidth to the bandwidth-bound parsing work its sibling is already
+doing.
 
 That count is then bounded by the allocation this process actually has, so
 that a default :func:`~pandas.read_csv` does not oversubscribe a machine on
@@ -285,8 +288,8 @@ def physical_core_count() -> int:
     """
     Return the number of physical cores (SMT siblings excluded).
 
-    Efficiency cores count: they contribute real throughput to the
-    work-queued parallel read.  Whenever the platform probe is unavailable or
+    Efficiency cores count -- see the module docstring for where that holds up
+    and where it doesn't.  Whenever the platform probe is unavailable or
     fails, this falls back to :func:`os.cpu_count`.
 
     Not uniformly a machine property.  On Linux the count is scoped to the
