@@ -433,7 +433,9 @@ jobs:
     timeout-minutes: 90
     container:
       # https://github.com/nascheme/cpython_sanity
-      image: ghcr.io/nascheme/cpython-asan:3.14@sha256:5e7cfa58bbaff0a31efc199d7d39902b80f99ab526c9c74104cd909ff075fd0a
+      # not updated by Dependabot; bump with:
+      #   docker pull <image>:<tag> && docker inspect --format='{{index .RepoDigests 0}}' <image>:<tag>
+      image: ghcr.io/nascheme/cpython-asan:3.14.7@sha256:5e7cfa58bbaff0a31efc199d7d39902b80f99ab526c9c74104cd909ff075fd0a
       options: --shm-size=2g
     env:
       # ASan enables LSan by default on Linux; only check for leaks in the Test step
