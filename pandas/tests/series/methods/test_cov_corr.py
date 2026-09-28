@@ -101,7 +101,7 @@ class TestSeriesCorr:
         assert np.isnan(a.corr(b))
         assert np.isnan(b.corr(a))
 
-    @pytest.mark.parametrize("scale", [1e-200, 1e-99, 1e-80, 1e80, 1e99, 1e200])
+    @pytest.mark.parametrize("scale", [1e-200, 1e-80, 1e-49, 1e49, 1e80, 1e200])
     def test_corr_scale_invariant(self, scale):
         # GH#59652 large or small magnitudes must not overflow or underflow
         a = pd.Series([1.0, 2.0, 3.0, 4.0])
