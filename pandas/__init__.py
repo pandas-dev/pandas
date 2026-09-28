@@ -353,7 +353,7 @@ if not TYPE_CHECKING:
 
     def __getattr__(name: str) -> object:
         if name == "to_pickle":
-            # GH#48402 local for the same reason as the del above
+            # GH#48402 imported here so they don't land in the pandas namespace
             import warnings
 
             from pandas.errors import Pandas4Warning

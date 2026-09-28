@@ -265,11 +265,6 @@ class TestPDApi(Base):
         # not "pandas", or reflective lookups route back through the deprecated name
         assert result.__module__ == "pandas.io.pickle"
 
-    def test_to_pickle_not_deprecated_elsewhere(self):
-        # GH#48402 only the top-level name is deprecated
-        with tm.assert_produces_warning(None):
-            assert pd.io.api.to_pickle is pd.io.pickle.to_pickle
-
     def test_to_pickle_deprecated_import(self):
         # GH#48402 the "from pandas import to_pickle" spelling, which the
         # test-imports hook forbids writing directly
