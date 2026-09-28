@@ -391,7 +391,7 @@ def test_groupby_raises_datetime_np(
     "func", ["any", "all", "std", "sem", "skew", "idxmin", "idxmax"]
 )
 def test_groupby_raises_interval(func):
-    # GH#66626 used to raise NotImplementedError
+    # GH#69717 used to raise NotImplementedError
     ser = pd.Series(pd.interval_range(0, 4))
     with pytest.raises(TypeError, match=f"{func} is not supported for interval"):
         getattr(ser.groupby([0, 0, 1, 1]), func)()

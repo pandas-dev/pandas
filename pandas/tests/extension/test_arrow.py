@@ -5537,7 +5537,7 @@ class TestGroupbyAggPyArrowNative:
     ids=lambda arr: str(arr.type),
 )
 def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
-    # GH#66626 used to raise NotImplementedError, mostly with no message
+    # GH#69717 used to raise NotImplementedError, mostly with no message
     ser = pd.Series(ArrowExtensionArray(arr))
     obj = ser.to_frame() if frame else ser
     msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
