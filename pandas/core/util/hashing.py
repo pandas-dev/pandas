@@ -46,13 +46,15 @@ _default_hash_key = "0123456789123456"
 
 
 def combine_hash_arrays(
-    arrays: Iterator[np.ndarray], num_items: int
+    arrays: Iterator[np.ndarray], num_items: int, length: int = 0
 ) -> npt.NDArray[np.uint64]:
     """
     Parameters
     ----------
     arrays : Iterator[np.ndarray]
     num_items : int
+    length : int, default 0
+        Length of the result if ``arrays`` is empty.
 
     Returns
     -------
@@ -63,7 +65,8 @@ def combine_hash_arrays(
     try:
         first = next(arrays)
     except StopIteration:
-        return np.array([], dtype=np.uint64)
+        # GH#24318 each row hashes as an empty tuple: seed plus finalizer
+        return np.full(length, 0x345678 + 97531, dtype=np.uint64)
 
     arrays = itertools.chain([first], arrays)
 
@@ -215,12 +218,7 @@ def hash_pandas_object(
             # keep `hashes` specifically a generator to keep mypy happy
             _hashes = itertools.chain(hashes, index_hash_generator)
             hashes = (x for x in _hashes)
-        if num_items == 0:
-            # GH#24318 no columns and index=False: each row hashes as an empty
-            #  tuple, i.e. combine_hash_arrays's seed plus its finalizer
-            h = np.full(len(obj), 0x345678 + 97531, dtype=np.uint64)
-        else:
-            h = combine_hash_arrays(hashes, num_items)
+        h = combine_hash_arrays(hashes, num_items, len(obj))
 
         ser = Series(h, index=obj.index, dtype="uint64", copy=False)
     else:
