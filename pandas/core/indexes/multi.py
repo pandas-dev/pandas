@@ -4721,8 +4721,8 @@ class MultiIndex(Index):
             else:
                 msg = "other must be a MultiIndex or a list of tuples"
                 if any(
-                    isinstance(entry, (str, bytes, bytearray, memoryview))
-                    for entry in other
+                    issubclass(entry_type, (str, bytes, bytearray, memoryview))
+                    for entry_type in set(map(type, other))
                 ):
                     # from_tuples would split such an entry into its elements
                     #  and treat it as a tuple of level values, see GH#39699
