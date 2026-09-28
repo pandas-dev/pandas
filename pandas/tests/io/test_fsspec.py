@@ -223,18 +223,44 @@ def test_arrowparquet_falls_back_to_fsspec(cleared_fs, df1, monkeypatch):
     tm.assert_frame_equal(result, df1)
 
 
-def test_arrowparquet_oserror_not_hdfs_raises(monkeypatch):
-    # GH#58078 only hdfs falls back to fsspec on OSError
+@pytest.mark.parametrize(
+    "path", ["s3://missing/test.parquet", "hdfs://namenode:8020/test.parquet"]
+)
+def test_arrowparquet_oserror_raises(monkeypatch, path):
+    # GH#58078 only "hdfs:///" falls back to fsspec on OSError
     pa_fs = pytest.importorskip("pyarrow.fs")
 
     class FailingFileSystem:
         @staticmethod
         def from_uri(uri):
-            raise OSError("Bucket 'missing' not found")
+            raise OSError("pyarrow error")
 
     monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
-    with pytest.raises(OSError, match="Bucket 'missing' not found"):
-        pd.read_parquet("s3://missing/test.parquet", engine="pyarrow")
+    with pytest.raises(OSError, match="pyarrow error"):
+        pd.read_parquet(path, engine="pyarrow")
+
+
+def test_arrowparquet_fsspec_fallback_fails_keeps_pyarrow_error(monkeypatch):
+    # GH#58078 if the fsspec fallback also fails, chain pyarrow's error
+    pa_fs = pytest.importorskip("pyarrow.fs")
+    pytest.importorskip("fsspec")
+    from fsspec.implementations.memory import MemoryFileSystem
+    from fsspec.registry import _registry as registry
+
+    class FailingFileSystem:
+        @staticmethod
+        def from_uri(uri):
+            raise OSError("Unable to load libjvm")
+
+    class FailingHadoopFileSystem(MemoryFileSystem):
+        def __init__(self, *args, **kwargs) -> None:
+            raise OSError("Prior attempt to load libhdfs failed")
+
+    monkeypatch.setattr(pa_fs, "FileSystem", FailingFileSystem)
+    monkeypatch.setitem(registry, "hdfs", FailingHadoopFileSystem)
+    with pytest.raises(OSError, match="Prior attempt") as excinfo:
+        pd.read_parquet("hdfs:///test.parquet", engine="pyarrow")
+    assert "Unable to load libjvm" in str(excinfo.value.__cause__)
 
 
 @pytest.mark.filterwarnings(
