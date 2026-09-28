@@ -152,3 +152,14 @@ class TestIndexRendering:
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
+
+    def test_repr_attrs_width_matches_data_width(self, monkeypatch):
+        # GH#21337 - attrs (dtype=, name=) should wrap at the same width
+        # as the data section instead of always falling back to 80
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (200, 24)
+        )
+        idx = pd.Index([f"item_{i:03d}" for i in range(9)], name="a_fairly_long_name")
+        with cf.option_context("mode.sim_interactive", True, "display.width", None):
+            result = repr(idx)
+        assert "\n" not in result
