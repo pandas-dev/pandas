@@ -6895,13 +6895,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
+            result = MultiIndex.from_tuples(new_values)
             if isinstance(self, MultiIndex):
-                names = self.names
+                # only keep names if the number of levels is unchanged, GH#24800
+                if self.nlevels == result.nlevels:
+                    result.names = self.names
             elif self.name:
-                names = [self.name] * len(new_values[0])
-            else:
-                names = None
-            return MultiIndex.from_tuples(new_values, names=names)
+                result.names = [self.name] * result.nlevels
+            return result
 
         dtype = None
         if not new_values.size:
