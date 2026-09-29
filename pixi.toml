@@ -293,9 +293,10 @@ default-environment = "c-coverage"
 [tasks.ci-c-coverage]
 # Reports coverage of the hand-written C/C++ after testing a -Db_coverage=true
 # build; Cython's generated C is excluded. gcov must match the compiler version,
-# so use the environment's rather than the system one. The floor catches lost
-# gcov data, which otherwise uploads silently as a near-zero report.
-cmd = "gcovr --root . --gcov-executable $CONDA_PREFIX/bin/gcov --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary --fail-under-line 50 build/$PIXI_ENVIRONMENT_NAME"
+# so use the environment's rather than the system one. Threaded code can make
+# gcov report negative counts (GCC bug 68080), so those only warn. The floor
+# catches lost gcov data, which otherwise uploads silently as a near-zero report.
+cmd = "gcovr --root . --gcov-executable $CONDA_PREFIX/bin/gcov --gcov-ignore-parse-errors negative_hits.warn_once_per_file --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary --fail-under-line 50 build/$PIXI_ENVIRONMENT_NAME"
 default-environment = "c-coverage"
 
 [tasks.ci-doctests]
