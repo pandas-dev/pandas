@@ -108,7 +108,13 @@ def cut(
     precision : int, default 3
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
-        Whether the first interval should be left-inclusive or not.
+        Whether values equal to the first bin edge are placed in the first bin.
+        Because the returned intervals must all be closed on the same side,
+        the left edge of the first default label is lowered by
+        ``10**-precision`` (one unit for datetime-like bins), so integer bins
+        get float labels. Values between the lowered edge and the first bin
+        edge are still NA. No effect when ``right=False`` or when `bins` is an
+        IntervalIndex.
     duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
