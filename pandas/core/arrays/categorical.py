@@ -45,6 +45,8 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_integer_dtype,
     is_list_like,
+    is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     needs_i8_conversion,
     pandas_dtype,
@@ -3272,9 +3274,34 @@ def _get_codes_for_values(
     if null_mask.any():
         values = values[~null_mask]
 
+    def is_numeric_or_temporal(values) -> tuple[bool, bool]:
+        dtype = values.dtype
+        inferred = None
+        if is_object_dtype(dtype) or isinstance(dtype, ArrowDtype):
+            inferred = lib.infer_dtype(values, skipna=True)
+
+        numeric = is_numeric_dtype(dtype) or inferred in {
+            "boolean",
+            "complex",
+            "decimal",
+            "floating",
+            "integer",
+            "mixed-integer-float",
+        }
+        temporal = needs_i8_conversion(dtype) or inferred in {
+            "date",
+            "datetime",
+            "datetime64",
+            "timedelta",
+            "timedelta64",
+        }
+        return numeric, temporal
+
+    values_numeric, values_temporal = is_numeric_or_temporal(values)
+    categories_numeric, categories_temporal = is_numeric_or_temporal(categories)
     if len(values) and not (
-        is_any_real_numeric_dtype(values.dtype)
-        and is_any_real_numeric_dtype(categories.dtype)
+        (values_numeric and (categories_numeric or categories_temporal))
+        or (values_temporal and categories_numeric)
     ):
         values = astype_array(values, categories.dtype, copy=False)
 

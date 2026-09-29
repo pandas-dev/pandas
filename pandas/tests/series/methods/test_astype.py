@@ -629,13 +629,20 @@ class TestAstypeCategorical:
         [
             ([1.5, 2.0], pd.Index([1, 2, 3]), [-1, 1]),
             (
+                np.array([1.5, 2.0], dtype=object),
+                pd.Index([1, 2, 3]),
+                [-1, 1],
+            ),
+            (
                 np.array([200], dtype="int64"),
                 pd.Index([-56], dtype="int8"),
                 [-1],
             ),
+            (pd.to_datetime(["1970-01-01"]), pd.Index([0]), [-1]),
+            ([True, False], pd.Index([0, 1]), [-1, -1]),
         ],
     )
-    def test_astype_categoricaldtype_does_not_cast_numeric_values(
+    def test_astype_categoricaldtype_does_not_cast_lossy_values(
         self, values, categories, codes
     ):
         # GH#66688
