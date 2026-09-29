@@ -628,8 +628,8 @@ def test_tz_localize_nonexistent_timedelta_shift_scalar_matches_index():
             "2011-12-31 00:00",
             marks=pytest.mark.xfail(
                 strict=True,
-                reason="GH#66820 shift_forward should land on the closest "
-                "existing time, not reuse the timedelta-shift fallback",
+                reason="GH#66820 shift_forward moves by whole hours, so it does "
+                "not clear Apia's 24-hour gap",
             ),
         ),
         pytest.param(
@@ -637,8 +637,8 @@ def test_tz_localize_nonexistent_timedelta_shift_scalar_matches_index():
             "2011-12-29 23:59:59.999999",
             marks=pytest.mark.xfail(
                 strict=True,
-                reason="GH#66820 shift_backward should land on the closest "
-                "existing time, not reuse the timedelta-shift fallback",
+                reason="GH#66820 shift_backward moves by whole hours, so it does "
+                "not clear Apia's 24-hour gap",
             ),
         ),
     ],
