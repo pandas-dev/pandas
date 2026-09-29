@@ -1,7 +1,9 @@
+import contextlib
 from io import (
     BytesIO,
     StringIO,
 )
+import sqlite3
 import sys
 import types
 
@@ -104,6 +106,13 @@ def test_no_version_raises(monkeypatch):
 
     with pytest.raises(ImportError, match="Can't determine .* fakemodule"):
         import_optional_dependency(name)
+
+
+# friendlier messages than the bare import error, e.g. GH#19810
+CUSTOM_MESSAGES = {
+    "matplotlib": "matplotlib is required for plotting",
+    "sqlalchemy": "Using a URI string requires 'sqlalchemy'",
+}
 
 
 # These only run where the package is missing, e.g. the CI jobs without optional
@@ -239,7 +248,8 @@ def test_missing_optional_dependency_raises(package, func):
     if import_optional_dependency(package, errors="ignore") is not None:
         pytest.skip(f"{package} is installed")
     # messages use the install name, e.g. python-calamine
-    with pytest.raises(ImportError, match=package.replace("_", ".")):
+    match = CUSTOM_MESSAGES.get(package, package.replace("_", "."))
+    with pytest.raises(ImportError, match=match):
         func()
 
 
@@ -249,3 +259,22 @@ def test_style_without_jinja2():
     # AttributeError so that inspect works without jinja2
     with pytest.raises(AttributeError, match="requires jinja2"):
         pd.DataFrame({"a": [1]}).style
+
+
+def test_read_sql_unknown_dbapi2_without_sqlalchemy():
+    if import_optional_dependency("sqlalchemy", errors="ignore") is not None:
+        pytest.skip("sqlalchemy is installed")
+
+    class MockSqliteConnection:
+        def __init__(self, *args, **kwargs) -> None:
+            self.conn = sqlite3.Connection(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.conn, name)
+
+        def close(self):
+            self.conn.close()
+
+    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
+            pd.read_sql("SELECT 1", conn)
