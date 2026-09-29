@@ -126,7 +126,8 @@ def hash_pandas_object(
     The result hashes each row's values, not the object as a whole. Column
     labels, index and column names, ``attrs``, and some dtype differences
     (e.g. ``int32`` vs ``int64``) do not affect it. To fingerprint a whole
-    DataFrame, also hash the metadata your use case needs; see the last example.
+    DataFrame, also hash the metadata your use case needs; see the fingerprint
+    example below.
 
     Examples
     --------
