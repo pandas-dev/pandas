@@ -49,6 +49,7 @@ from pandas.core.roperator import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
 
     from pandas._libs import NaTType
     from pandas._typing import (
@@ -275,7 +276,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             idx._freq = self.freq
         return idx
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         result = super()._arith_method(other, op)
         if self.freq is None or not is_scalar(other):
             return result
@@ -295,7 +296,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             result._freq = new_freq
         return result
 
-    def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:
+    def _get_arith_result_freq(
+        self, other: object, op: Callable[..., Any]
+    ) -> Day | Tick | None:
         """
         Compute the result freq for arithmetic operations whose result
         is also a TimedeltaIndex.

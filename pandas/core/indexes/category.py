@@ -516,7 +516,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def map(
         self,
-        mapper: Callable | dict | Series,
+        mapper: Callable[..., Any] | dict[Hashable, Any] | Series,
         na_action: Literal["ignore"] | None = None,
     ) -> Index:
         """
