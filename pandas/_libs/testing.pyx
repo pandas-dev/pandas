@@ -7,6 +7,7 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing cimport (
     checknull,
     is_matching_na,
@@ -166,8 +167,12 @@ cpdef assert_almost_equal(a, b,
             a = a.ravel()
             b = b.ravel()
         else:
-            a = a.item()
-            b = b.item()
+            a = item_from_zerodim(a)
+            b = item_from_zerodim(b)
+            # Check if still a numpy array
+            a_is_ndarray = is_array(a)
+            b_is_ndarray = is_array(b)
+
 
     if isiterable(a):
 
@@ -289,6 +294,12 @@ cpdef assert_almost_equal(a, b,
 
     if is_complex_object(a) and is_complex_object(b):
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
+            assert False, (f"expected {b:.5f} but got {a:.5f}, "
+                           f"with rtol={rtol}, atol={atol}")
+        return True
+
+    if a_is_ndarray and b_is_ndarray:
+        if not np.isclose(a, b, rtol=rtol, atol=atol):
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")
         return True
