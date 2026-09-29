@@ -110,6 +110,12 @@ class TestSeriesCorr:
         tm.assert_almost_equal((a * scale).corr(b * scale), expected)
         tm.assert_almost_equal((a * scale).corr(b), expected)
 
+    def test_corr_self_exact(self):
+        # GH#59652
+        ser = pd.Series([0.0, 0.1, 0.2])
+        assert ser.corr(ser) == 1.0
+        assert ser.corr(-ser) == -1.0
+
     def test_corr_rank(self):
         stats = pytest.importorskip("scipy.stats")
 
