@@ -439,8 +439,10 @@ class IntervalIndex(ExtensionIndex):
 
     def set_closed(self, closed: IntervalClosedType) -> Self:
         """
-        Return an IntervalIndex identical to the current one, but closed on
-        the specified side.
+        Return an identical IntervalIndex closed on the specified side.
+
+        This method creates a new IntervalIndex with the same bounds but with
+        a different closure specification.
 
         Parameters
         ----------
@@ -451,6 +453,7 @@ class IntervalIndex(ExtensionIndex):
         Returns
         -------
         IntervalIndex
+            A new IntervalIndex with the specified side closures.
 
         See Also
         --------
@@ -472,6 +475,9 @@ class IntervalIndex(ExtensionIndex):
     def to_tuples(self, na_tuple: bool = True) -> Index:
         """
         Return an Index of tuples of the form (left, right).
+
+        This method extracts the bounds of each interval as a tuple,
+        useful for iteration or conversion to other data structures.
 
         Parameters
         ----------
