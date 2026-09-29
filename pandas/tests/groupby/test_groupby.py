@@ -15,6 +15,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
+from pandas.tests.groupby import get_groupby_method_args
 
 
 def test_repr():
@@ -651,6 +652,58 @@ def test_groupby_as_index_series_scalar(df):
 
     result = grouped["C"].agg(len)
     expected = grouped.agg(len).loc[:, ["A", "B", "C"]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_series_groupby_as_index_false(groupby_func):
+    # GH#36507
+    if groupby_func == "corrwith":
+        pytest.skip("corrwith is not implemented for SeriesGroupBy")
+    df = pd.DataFrame(
+        {"a": [1, 1, 2, 2, 3], "b": [3.0, 4.0, 5.0, np.nan, 7.0]},
+        index=list("vwxyz"),
+    )
+    args = get_groupby_method_args(groupby_func, df["b"])
+
+    gb = df["b"].groupby(df["a"], as_index=False)
+    expected_gb = df.groupby("a", as_index=False)["b"]
+    result = getattr(gb, groupby_func)(*args)
+    expected = getattr(expected_gb, groupby_func)(*args)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index, kwargs",
+    [
+        (None, {"by": [1, 1, 2, 2]}),
+        (None, {"by": pd.Series([1, 1, 2, 2], name="key")}),
+        (None, {"by": [[1, 1, 2, 2], list("abab")]}),
+        (None, {"by": [1, 1, np.nan, np.nan], "dropna": False}),
+        (
+            None,
+            {
+                "by": pd.Categorical([1, 1, 2, 2], categories=[1, 2, 3]),
+                "observed": False,
+            },
+        ),
+        (pd.Index(list("xxyy"), name="key"), {"level": 0}),
+        (list("xxyy"), {"level": 0}),
+        (
+            pd.MultiIndex.from_arrays([list("xxyy"), [1, 2, 1, 2]], names=["p", "q"]),
+            {"level": ["p", "q"]},
+        ),
+    ],
+)
+@pytest.mark.parametrize("name", ["val", None])
+def test_series_groupby_as_index_false_keys(index, kwargs, name):
+    # GH#36507
+    ser = pd.Series([3.0, 4.0, 5.0, 6.0], index=index, name=name)
+    result = ser.groupby(as_index=False, **kwargs).sum()
+    expected = ser.groupby(**kwargs).sum().reset_index()
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.groupby(as_index=False, **kwargs).agg(["min", "max"])
+    expected = ser.groupby(**kwargs).agg(["min", "max"]).reset_index()
     tm.assert_frame_equal(result, expected)
 
 
