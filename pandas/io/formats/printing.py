@@ -158,7 +158,10 @@ def _pprint_seq(
 
 
 def _pprint_dict(
-    seq: Mapping, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
+    seq: Mapping[Any, Any],
+    _nest_lvl: int = 0,
+    max_seq_items: int | None = None,
+    **kwds: Any,
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -344,7 +347,7 @@ def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
 
 def format_object_summary(
     obj: ListLike,
-    formatter: Callable,
+    formatter: Callable[..., Any],
     is_justify: bool = True,
     name: str | None = None,
     indent_for_name: bool = True,

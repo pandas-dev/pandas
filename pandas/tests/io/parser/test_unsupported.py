@@ -219,29 +219,31 @@ def test_invalid_file_inputs(request, all_parsers):
         parser.read_csv([])
 
 
-def test_sep_none_falls_back_to_python_engine():
-    # GH#66639 sniffing the separator is python-engine only, so the default
-    # engine falls back to it rather than handing sep=None to the C parser
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+def test_sep_none_falls_back_to_python_engine(key):
+    # GH#66639, GH#47024 sniffing the separator is python-engine only, so the
+    # default engine falls back to it rather than handing sep=None to the C parser
     data = "a;b\n1;2\n"
     expected = pd.DataFrame({"a": [1], "b": [2]})
 
     with tm.assert_produces_warning(parsers.ParserWarning, match="sep=None"):
-        result = read_csv(StringIO(data), sep=None)
+        result = read_csv(StringIO(data), **{key: None})
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
-        result = read_csv(StringIO(data), sep=None, engine="python")
+        result = read_csv(StringIO(data), engine="python", **{key: None})
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
 @pytest.mark.parametrize("engine", ["c", "pyarrow"])
-def test_sep_none_explicit_engine_raises(engine):
-    # GH#66639 an explicitly requested engine that cannot sniff the separator
-    # reports that rather than falling back
+def test_sep_none_explicit_engine_raises(engine, key):
+    # GH#66639, GH#47024 an explicitly requested engine that cannot sniff the
+    # separator reports that rather than falling back
     msg = f"the '{engine}' engine does not support sep=None"
 
     with pytest.raises(ValueError, match=msg):
-        read_csv(StringIO("a;b\n1;2\n"), sep=None, engine=engine)
+        read_csv(StringIO("a;b\n1;2\n"), engine=engine, **{key: None})
 
 
 def test_invalid_dtype_backend(all_parsers):

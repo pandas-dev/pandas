@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import locale
 import re
 
 import numpy as np
@@ -204,7 +205,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("freq", ["ms", "us", "ns"])
     def test_construction_from_min_timestamp(self, freq):
         # GH-63278
-        ts = pd.Timestamp(pd.Timestamp.min.value, unit=freq)
+        ts = pd.Timestamp(np.datetime64(pd.Timestamp.min.value, freq))
         per = pd.Period(ts, freq=freq)
 
         # pandas.errors.OutOfBoundsDatetime: Out of bounds nanosecond timestamp:
@@ -972,6 +973,30 @@ class TestPeriodMethods:
         with pytest.raises(ValueError, match="Invalid format string"):
             per.strftime(fmt)
 
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            # installed as ISO8859-1 and gb2312 by the locale CI jobs
+            "it_IT",
+            "zh_CN",
+            "sk_SK.ISO8859-2",
+        ],
+    )
+    def test_strftime_non_utf8_locale(self, locale_str):
+        # GH#46319, GH#46468, GH#47009 strftime output and format are
+        # encoded in the current locale, not utf-8
+        if not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Locale '{locale_str}' cannot be set on host.")
+
+        fmt = "%b %p é"
+        with tm.set_locale(locale_str, locale.LC_ALL):
+            expected = datetime(2022, 5, 11, 13).strftime(fmt)
+            per = pd.Period("2022-05-11 13:00", freq="h")
+            assert per.strftime(fmt) == expected
+
+            pi = pd.period_range("2022-05-11 13:00", periods=2, freq="h")
+            tm.assert_index_equal(pi.strftime(fmt), pd.Index([expected, expected]))
+
 
 class TestPeriodProperties:
     """Test properties such as year, month, weekday, etc...."""
@@ -1346,6 +1371,32 @@ def test_small_year_parsing():
     per1 = pd.Period("0001-01-07", "D")
     assert per1.year == 1
     assert per1.day == 7
+
+
+@pytest.mark.parametrize(
+    "freq, expected",
+    [
+        ("Y", "0020"),
+        ("Q", "0020Q1"),
+        ("M", "0020-01"),
+        ("W", "0019-12-30/0020-01-05"),
+        ("D", "0020-01-01"),
+        ("h", "0020-01-01 00:00"),
+        ("s", "0020-01-01 00:00:00"),
+        ("us", "0020-01-01 00:00:00.000000"),
+    ],
+)
+def test_default_format_year_lt_1000(freq, expected):
+    # GH#58179
+    per = pd.Period("0020-01-01", freq=freq)
+    assert str(per) == expected
+    assert per.strftime(None) == expected
+
+
+def test_strftime_fiscal_year_lt_1000():
+    # GH#58179
+    per = pd.Period("0020Q1", freq="Q")
+    assert per.strftime("%F-Q%q") == "0020-Q1"
 
 
 def test_negone_ordinals():

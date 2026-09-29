@@ -43,6 +43,7 @@ from libc.time cimport (
 
 from pandas._libs.tslibs.dtypes cimport (
     PeriodDtypeCode,
+    abbrev_to_npy_unit,
     c_OFFSET_TO_PERIOD_FREQSTR,
 )
 
@@ -1296,15 +1297,15 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
     # use the appropriate default format depending on frequency group
     is_fmt_none = fmt is None
     if freq_group == FR_ANN and (is_fmt_none or fmt == "%Y"):
-        return f"{dts.year}"
+        return f"{dts.year:04d}"
 
     elif freq_group == FR_QTR and (is_fmt_none or fmt == "%FQ%q"):
         # get quarter and modify dts.year to be the 'Fiscal' year
         quarter = get_yq(value, freq, &dts)
-        return f"{dts.year}Q{quarter}"
+        return f"{dts.year:04d}Q{quarter}"
 
     elif freq_group == FR_MTH and (is_fmt_none or fmt == "%Y-%m"):
-        return f"{dts.year}-{dts.month:02d}"
+        return f"{dts.year:04d}-{dts.month:02d}"
 
     elif freq_group == FR_WK and is_fmt_none:
         # special: start_date/end_date. Recurse
@@ -1316,26 +1317,26 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         (freq_group == FR_BUS or freq_group == FR_DAY)
         and (is_fmt_none or fmt == "%Y-%m-%d")
     ):
-        return f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
+        return f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d}"
 
     elif freq_group == FR_HR and (is_fmt_none or fmt == "%Y-%m-%d %H:00"):
-        return f"{dts.year}-{dts.month:02d}-{dts.day:02d} {dts.hour:02d}:00"
+        return f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} {dts.hour:02d}:00"
 
     elif freq_group == FR_MIN and (is_fmt_none or fmt == "%Y-%m-%d %H:%M"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}")
 
     elif freq_group == FR_SEC and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
     elif freq_group == FR_MS and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%l"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{(dts.us // 1_000):03d}")
 
     elif freq_group == FR_US and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%u"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{(dts.us):06d}")
 
@@ -1344,7 +1345,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         or fmt == "%Y-%m-%d %H:%M:%S.%N"
         or fmt == "%Y-%m-%d %H:%M:%S.%n"
     ):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
 
@@ -1454,7 +1455,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
             elif i == 1:  # %f, 2-digit 'Fiscal' year
                 repl = f"{(dts.year % 100):02d}"
             elif i == 2:  # %F, 'Fiscal' year with a century
-                repl = str(dts.year)
+                repl = f"{dts.year:04d}"
             elif i == 3:  # %l, milliseconds
                 repl = f"{(us // 1_000):03d}"
             elif i == 4:  # %u, microseconds
@@ -2473,7 +2474,7 @@ cdef class _Period(PeriodMixin):
         val = self.asfreq(freq, how)
 
         dt64 = period_ordinal_to_dt64(val.ordinal, base)
-        return Timestamp(dt64, unit=unit)
+        return Timestamp._from_value_and_reso(dt64, abbrev_to_npy_unit(unit), None)
 
     @property
     def year(self) -> int:

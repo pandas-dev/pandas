@@ -67,6 +67,7 @@ def ints_to_pytimedelta(
     m8values: npt.NDArray[np.timedelta64],
     box: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
+def contains_str(values: np.ndarray) -> bool: ...
 def array_to_timedelta64(
     values: npt.NDArray[np.object_],
     unit: str | None = ...,

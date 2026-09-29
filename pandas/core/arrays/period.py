@@ -383,7 +383,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         return subarr, freq
 
     @classmethod
-    def _from_fields(cls, *, fields: dict, freq) -> Self:
+    def _from_fields(cls, *, fields: dict[str, Any], freq) -> Self:
         subarr, freq = _range_from_fields(freq=freq, **fields)
         dtype = PeriodDtype(freq)
         return cls._simple_new(subarr, dtype=dtype)
