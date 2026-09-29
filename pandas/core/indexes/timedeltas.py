@@ -446,7 +446,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than
+        Timedelta.microseconds : Number of microseconds (>= 0 and less than
             1 second).
 
         Examples
