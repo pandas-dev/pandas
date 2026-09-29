@@ -23,6 +23,8 @@ from pandas._libs import (
 import pandas._libs.algos as libalgos
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -1016,6 +1018,25 @@ def nanmean(
     return the_mean
 
 
+def _warn_complex_median(func: F) -> F:
+    # GH#43770 complex has no ordering, so no median; replace with
+    #  @disallow("c8", "c16") when the deprecation is enforced
+    @functools.wraps(func)
+    def wrapper(values: np.ndarray, **kwargs):
+        if values.dtype.kind == "c":
+            warnings.warn(
+                "The median of complex data is deprecated and will raise a "
+                "TypeError in a future version. Take the median of the real "
+                "and imaginary parts separately instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return func(values, **kwargs)
+
+    return cast("F", wrapper)
+
+
+@_warn_complex_median
 @_ensure_numeric_input
 @bottleneck_switch()
 def nanmedian(
@@ -1642,7 +1663,7 @@ def nanargmin(
 
 
 @_ensure_numeric_input
-@disallow("M8", "m8")
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nanskew(
     values: np.ndarray,
@@ -1701,7 +1722,7 @@ def nanskew(
 
 
 @_ensure_numeric_input
-@disallow("M8", "m8")
+@disallow("M8", "m8", "c8", "c16")
 @maybe_operate_rowwise
 def nankurt(
     values: np.ndarray,

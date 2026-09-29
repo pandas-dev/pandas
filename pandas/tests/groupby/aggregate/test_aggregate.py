@@ -1723,13 +1723,45 @@ def test_groupby_complex(func, output):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max", "var"])
+@pytest.mark.parametrize(
+    "func",
+    [
+        "min",
+        "max",
+        "var",
+        "std",
+        "sem",
+        "median",
+        "skew",
+        "kurt",
+        "prod",
+        "first",
+        "last",
+        "idxmin",
+        "idxmax",
+        "quantile",
+        "cumsum",
+        "cumprod",
+        "cummin",
+        "cummax",
+        "rank",
+        "ohlc",
+    ],
+)
 def test_groupby_complex_raises(func):
-    # GH#43701
+    # GH#43701, GH#43770 the only complex-capable kernels are sum and mean;
+    #  everything else must raise rather than discard the imaginary part
     data = pd.Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
-    msg = "No matching signature found"
+    msg = f"dtype 'complex128' does not support operation '{func}'"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
+
+    with pytest.raises(TypeError, match=msg):
+        getattr(data.groupby(data.index % 2), func)()
+
+    frame = data.to_frame("a")
+    with pytest.raises(TypeError, match=msg):
+        getattr(frame.groupby(frame.index % 2), func)()
 
 
 @pytest.mark.parametrize(

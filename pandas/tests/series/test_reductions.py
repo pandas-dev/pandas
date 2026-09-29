@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -299,3 +300,32 @@ def test_median_with_convertible_string_raises(using_infer_string):
 
     with pytest.raises(TypeError, match=msg):
         ser.to_frame().median()
+
+
+@pytest.mark.parametrize("func", ["skew", "kurt"])
+def test_complex_reduction_raises(func, complex_dtype):
+    # GH#43770 these would discard the imaginary part
+    ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
+    msg = f"reduction operation '{func}' not allowed for this dtype"
+    with pytest.raises(TypeError, match=msg):
+        getattr(ser, func)()
+
+    df = ser.to_frame()
+    with pytest.raises(TypeError, match=msg):
+        getattr(df, func)()
+
+
+@pytest.mark.parametrize("use_bottleneck", [True, False])
+def test_complex_median_deprecated(complex_dtype, use_bottleneck):
+    # GH#43770
+    ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
+    msg = "The median of complex data is deprecated"
+    with pd.option_context("compute.use_bottleneck", use_bottleneck):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.median()
+        assert result == 2 + 3j
+
+        df = ser.to_frame()
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.median()
+        tm.assert_series_equal(result, pd.Series([2 + 3j], index=[0], dtype=complex_dtype))

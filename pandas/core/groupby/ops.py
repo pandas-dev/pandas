@@ -190,6 +190,11 @@ class WrappedCythonOp:
         dtype_str = dtype.name
         ftype = cls._CYTHON_FUNCTIONS[kind][how]
 
+        if dtype.kind == "c" and how not in ["sum", "mean"]:
+            # GH#43770 only sum and mean have complex kernels; the rest would
+            #  raise an opaque error or silently discard the imaginary part
+            raise TypeError(f"dtype '{dtype_str}' does not support operation '{how}'")
+
         # see if there is a fused-type version of function
         # only valid for numeric
         if callable(ftype):
@@ -243,8 +248,8 @@ class WrappedCythonOp:
 
         if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
-            # We should only get here with is_numeric, as non-numeric cases
-            #  should raise in _get_cython_function
+            # We should only get here with is_numeric and non-complex, as
+            #  those cases should raise in _get_cython_function
             values = ensure_float64(values)
 
         elif values.dtype.kind in "iu":

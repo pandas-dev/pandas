@@ -4491,7 +4491,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             # ndarray path
-            if is_object_dtype(values.dtype):
+            if is_object_dtype(values.dtype) or values.dtype.kind == "c":
+                # GH#43770 complex has no ordering, so no quantile
                 raise TypeError(
                     f"dtype '{values.dtype}' does not support operation 'quantile'"
                 )
