@@ -55,7 +55,6 @@ from pandas.util._exceptions import (
     rewrite_warning,
 )
 from pandas.util._validators import (
-    check_dtype_backend,
     validate_ascending,
     validate_bool_kwarg,
     validate_inclusive,
@@ -6962,7 +6961,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         convert_integer: bool | lib.NoDefault = lib.no_default,
         convert_boolean: bool | lib.NoDefault = lib.no_default,
         convert_floating: bool | lib.NoDefault = lib.no_default,
-        dtype_backend: DtypeBackend = "numpy_nullable",
+        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy_nullable",
     ) -> Self:
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
@@ -7010,7 +7009,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 The ``convert_floating`` keyword is deprecated and will be removed
                 in a future version.
 
-        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        dtype_backend : {'numpy_nullable', 'pyarrow', 'numpy'}, default 'numpy_nullable'
             Back-end data type applied to the resultant :class:`DataFrame` or
             :class:`Series` (still experimental). Behaviour is as follows:
 
@@ -7018,8 +7017,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               :class:`DataFrame` or :class:`Series`.
             * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
               :class:`DataFrame` or :class:`Series`.
+            * ``"numpy"``: converts nullable and pyarrow-backed columns back to
+              the default dtypes, e.g. ``Int64`` to ``int64``. Integer and
+              boolean columns containing missing values become ``float64`` and
+              ``object`` respectively. Cannot be combined with the deprecated
+              keywords above.
 
             .. versionadded:: 2.0
+            .. versionchanged:: 3.1.0
+                Added the ``"numpy"`` option.
 
         Returns
         -------
@@ -7120,8 +7126,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1       b
         2    <NA>
         dtype: string
+
+        Convert nullable dtypes back to the default dtypes.
+
+        >>> dfn.convert_dtypes(dtype_backend="numpy").dtypes
+        a      int32
+        b        str
+        c     object
+        d        str
+        e    float64
+        f    float64
+        dtype: object
         """
-        check_dtype_backend(dtype_backend)
         deprecated_args = {
             "infer_objects": infer_objects,
             "convert_string": convert_string,
@@ -7129,6 +7145,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "convert_boolean": convert_boolean,
             "convert_floating": convert_floating,
         }
+        if dtype_backend not in ("numpy_nullable", "pyarrow", "numpy"):
+            raise ValueError(
+                f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable', "
+                "'pyarrow' and 'numpy' are allowed."
+            )
+        if dtype_backend == "numpy":
+            for arg_name, arg_val in deprecated_args.items():
+                if arg_val is not lib.no_default:
+                    raise ValueError(
+                        f"Cannot pass {arg_name} with dtype_backend='numpy'."
+                    )
         for arg_name, arg_val in deprecated_args.items():
             if arg_val is not lib.no_default:
                 warnings.warn(
