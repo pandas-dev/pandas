@@ -658,7 +658,7 @@ def json_normalize(
 
         values = np.array(v, dtype=object)
 
-        if values.ndim > 1:
+        if values.ndim > 1 and not (values.ndim == 2 and values.shape[1] == 1):
             # GH 37782
             values = np.empty((len(v),), dtype=object)
             for i, val in enumerate(v):
