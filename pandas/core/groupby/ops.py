@@ -248,8 +248,7 @@ class WrappedCythonOp:
 
         if how in ["median", "std", "sem", "skew", "kurt"]:
             # median only has a float64 implementation
-            # We should only get here with is_numeric and non-complex, as
-            #  those cases should raise in _get_cython_function
+            # non-numeric and complex cases raise in _get_cython_function
             values = ensure_float64(values)
 
         elif values.dtype.kind in "iu":

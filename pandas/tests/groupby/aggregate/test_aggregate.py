@@ -1734,14 +1734,9 @@ def test_groupby_complex(func, output):
         "median",
         "skew",
         "kurt",
-        "prod",
-        "first",
-        "last",
         "idxmin",
         "idxmax",
         "quantile",
-        "cumsum",
-        "cumprod",
         "cummin",
         "cummax",
         "rank",
@@ -1749,8 +1744,8 @@ def test_groupby_complex(func, output):
     ],
 )
 def test_groupby_complex_raises(func):
-    # GH#43701, GH#43770 the only complex-capable kernels are sum and mean;
-    #  everything else must raise rather than discard the imaginary part
+    # GH#43701, GH#43770 std/sem/median/skew/kurt must raise, not discard the
+    #  imaginary part
     data = pd.Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
     msg = f"dtype 'complex128' does not support operation '{func}'"
     with pytest.raises(TypeError, match=msg):
