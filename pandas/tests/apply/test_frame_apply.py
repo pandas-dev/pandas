@@ -2040,13 +2040,23 @@ def test_agg_empty_dict():
 @pytest.mark.parametrize(
     "dtype", ["uint64", "UInt64", "uint64[pyarrow]", "Sparse[uint64]"]
 )
-@pytest.mark.parametrize("funcs", [["max", "count"], ["max", "count", "mean"]])
+@pytest.mark.parametrize(
+    "funcs", [["max", "count"], ["max", "count", "mean"], ["max", "any", "count"]]
+)
 @pytest.mark.parametrize("big", [True, False])
-def test_agg_list_like_unsigned_and_signed_is_object(dtype, funcs, big):
+def test_agg_list_like_unsigned_and_signed_is_object(request, dtype, funcs, big):
     # GH#65031 max returns unsigned and count signed, and their common float
     # dtype rounds values above 2**53, so the result is object whatever the values
     if dtype == "uint64[pyarrow]":
-        pytest.importorskip("pyarrow")
+        pa = pytest.importorskip("pyarrow")
+        if big and "any" in funcs:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="pyarrow any fails on uint64 above int64 max",
+                    raises=pa.lib.ArrowInvalid,
+                    strict=True,
+                )
+            )
     value = 2**64 - 3 if big else 5
     df = pd.DataFrame(
         {"a": pd.Series([value, 1], dtype=dtype), "b": pd.Series([5, 1], dtype=dtype)}

@@ -127,8 +127,11 @@ def _mixes_signedness_into_float(dtypes: list[DtypeObj]) -> bool:
     Whether stacking results of these dtypes would cast signed and unsigned
     integers to a float, which rounds values above 2**53.
     """
-    kinds = {dtype.kind for dtype in dtypes}
-    return {"i", "u"} <= kinds and find_common_type(dtypes).kind == "f"
+    # bool is excluded: find_common_type gives object for it, but DataFrame
+    # concat casts bool to a number
+    numeric = [dtype for dtype in dtypes if dtype.kind != "b"]
+    kinds = {dtype.kind for dtype in numeric}
+    return {"i", "u"} <= kinds and find_common_type(numeric).kind == "f"
 
 
 @set_module("pandas.api.executors")
