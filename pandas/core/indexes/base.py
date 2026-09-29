@@ -6894,7 +6894,11 @@ class Index(IndexOpsMixin, PandasObject):
         new_values = self._map_values(mapper, na_action=na_action)  # type: ignore[no-untyped-call]
 
         # we can return a MultiIndex
-        if new_values.size and isinstance(new_values[0], tuple):
+        if (
+            new_values.size
+            and isinstance(new_values[0], tuple)
+            and all(isinstance(val, tuple) for val in new_values[~isna(new_values)])
+        ):
             # list input pads shorter tuples with NaN instead of truncating
             result = MultiIndex.from_tuples(new_values.tolist())
             if isinstance(self, MultiIndex):
