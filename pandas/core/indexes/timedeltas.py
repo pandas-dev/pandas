@@ -448,8 +448,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         --------
         pd.Timedelta.microseconds : Number of microseconds (>= 0 and less than
             1 second).
-        pd.Timedelta.to_pytimedelta.microseconds : Number of microseconds (>= 0 and less
-            than 1 second) of a datetime.timedelta.
 
         Examples
         --------
@@ -529,11 +527,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         numpy.ndarray
-            A NumPy ``timedelta64`` object representing the same duration as the
-            original pandas ``Timedelta`` object. The precision of the resulting
-            object is in nanoseconds, which is the default
-            time resolution used by pandas for ``Timedelta`` objects, ensuring
-            high precision for time-based calculations.
+            Object-dtype array of :class:`datetime.timedelta`.
 
         See Also
         --------
@@ -571,7 +565,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        axis : int, optional, default 0
+        axis : int, optional
             Axis for the function to be applied on.
         dtype, out, keepdims, initial
             Not implemented; kept for compatibility with :func:`numpy.sum`,
@@ -626,7 +620,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         Parameters
         ----------
-        axis : int, optional, default 0
+        axis : int, optional
             Axis for the function to be applied on.
         dtype, out, keepdims
             Not implemented; kept for compatibility with :func:`numpy.std`,
