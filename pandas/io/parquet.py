@@ -121,19 +121,32 @@ def _get_path_or_handle(
                 f"not a {type(fs).__name__}"
             )
     if is_fsspec_url(path_or_handle) and fs is None:
+        pa_error = None
         if storage_options is None:
             pa = import_optional_dependency("pyarrow")
             pa_fs = import_optional_dependency("pyarrow.fs")
 
             try:
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
-            except (TypeError, pa.ArrowInvalid):
+            except (TypeError, pa.ArrowException):
                 pass
+            except OSError as err:
+                # Only "hdfs:///path" (no host) resolves differently in fsspec
+                # (GH#58078); otherwise this is a real error, e.g. no libhdfs
+                if not str(path_or_handle).startswith("hdfs:///"):
+                    raise
+                pa_error = err
         if fs is None:
-            fsspec = import_optional_dependency("fsspec")
-            fs, path_or_handle = fsspec.core.url_to_fs(
-                path_or_handle, **(storage_options or {})
-            )
+            try:
+                fsspec = import_optional_dependency("fsspec")
+                fs, path_or_handle = fsspec.core.url_to_fs(
+                    path_or_handle, **(storage_options or {})
+                )
+            except Exception as err:
+                if pa_error is None:
+                    raise
+                # keep pyarrow's error, e.g. a missing JVM
+                raise err from pa_error
     elif storage_options and (not is_url(path_or_handle) or mode != "rb"):
         # can't write to a remote url
         # without making use of fsspec at the moment
@@ -382,7 +395,7 @@ class FastParquetImpl(BaseImpl):
         filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
-        to_pandas_kwargs: dict | None = None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
@@ -565,8 +578,8 @@ def read_parquet(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
-    filters: list[tuple] | list[list[tuple]] | None = None,
-    to_pandas_kwargs: dict | None = None,
+    filters: list[tuple[Any, ...]] | list[list[tuple[Any, ...]]] | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
