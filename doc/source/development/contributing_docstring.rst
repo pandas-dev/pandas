@@ -558,7 +558,7 @@ When deciding what is related, you should mainly use your common sense and
 think about what can be useful for the users reading the documentation,
 especially the less experienced ones.
 
-Refer to pandas objects without the ``pandas.`` prefix (e.g.
+In See Also, refer to pandas objects without the ``pandas.`` prefix (e.g.
 ``DataFrame.tail``, ``to_datetime``). When relating to other libraries (mainly
 ``numpy``), use the name of the module first (not an alias like ``np``). If the
 function is in a module which is not the main one, like ``scipy.sparse``, list
