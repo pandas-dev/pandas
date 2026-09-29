@@ -2691,14 +2691,6 @@ def test_sql_open_close(temp_file, test_frame3):
 
 
 @td.skip_if_installed("sqlalchemy")
-def test_con_string_import_error():
-    conn = "mysql://root@localhost/pandas"
-    msg = "Using a URI string requires 'sqlalchemy'"
-    with pytest.raises(ImportError, match=msg):
-        sql.read_sql("SELECT * FROM iris", conn)
-
-
-@td.skip_if_installed("sqlalchemy")
 def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
     class MockSqliteConnection:
         def __init__(self, *args, **kwargs) -> None:

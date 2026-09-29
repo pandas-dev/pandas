@@ -3,8 +3,6 @@ import types
 
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 
 pytestmark = pytest.mark.single_cpu
@@ -78,25 +76,6 @@ def test_setting_backend_without_plot_raises(monkeypatch):
         pd.set_option("plotting.backend", "pandas_plot_backend")
 
     assert pd.options.plotting.backend == "matplotlib"
-
-
-@td.skip_if_installed("matplotlib")
-def test_import_error_message():
-    # GH-19810
-    df = pd.DataFrame({"A": [1, 2]})
-
-    with pytest.raises(ImportError, match="matplotlib is required for plotting"):
-        df.plot()
-
-
-@td.skip_if_installed("matplotlib")
-def test_no_matplotlib_ok():
-    msg = (
-        'matplotlib is required for plotting when the default backend "matplotlib" is '
-        "selected."
-    )
-    with pytest.raises(ImportError, match=msg):
-        pd.plotting._core._get_plot_backend("matplotlib")
 
 
 def test_extra_kinds_ok(monkeypatch, restore_backend, dummy_backend):

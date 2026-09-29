@@ -1,6 +1,11 @@
+from io import (
+    BytesIO,
+    StringIO,
+)
 import sys
 import types
 
+import numpy as np
 import pytest
 
 from pandas.compat._optional import (
@@ -8,6 +13,7 @@ from pandas.compat._optional import (
     import_optional_dependency,
 )
 
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -98,3 +104,148 @@ def test_no_version_raises(monkeypatch):
 
     with pytest.raises(ImportError, match="Can't determine .* fakemodule"):
         import_optional_dependency(name)
+
+
+# These only run where the package is missing, e.g. the CI jobs without optional
+# dependencies, which deselect single_cpu tests: don't add module-level skips or marks.
+@pytest.mark.parametrize(
+    "package, func",
+    [
+        pytest.param(
+            "scipy",
+            lambda: pd.Series([1.0, np.nan, 3.0]).interpolate(method="krogh"),
+            id="interpolate",
+        ),
+        pytest.param(
+            "scipy",
+            lambda: pd.DataFrame({"A": pd.arrays.SparseArray([0, 1])}).sparse.to_coo(),
+            id="sparse.to_coo",
+        ),
+        pytest.param(
+            "scipy",
+            lambda: pd.Series([1.0, 2.0]).rolling(2, win_type="gaussian").mean(std=1),
+            id="rolling-win_type",
+        ),
+        pytest.param(
+            "scipy",
+            lambda: pd.Series([1, 2, 3]).corr(pd.Series([1, 3, 2]), method="kendall"),
+            id="Series.corr-kendall",
+        ),
+        pytest.param(
+            "scipy",
+            lambda: pd.Series([1, 2, 3]).corr(pd.Series([1, 3, 2]), method="spearman"),
+            id="Series.corr-spearman",
+        ),
+        pytest.param(
+            "jinja2", lambda: pd.DataFrame({"a": [1]}).to_latex(), id="to_latex"
+        ),
+        pytest.param(
+            "matplotlib", lambda: pd.DataFrame({"A": [1, 2]}).plot(), id="plot"
+        ),
+        pytest.param(
+            "tabulate", lambda: pd.DataFrame({"a": [1]}).to_markdown(), id="to_markdown"
+        ),
+        pytest.param(
+            "xarray", lambda: pd.DataFrame({"a": [1]}).to_xarray(), id="to_xarray"
+        ),
+        pytest.param("pyreadstat", lambda: pd.read_spss("data.sav"), id="read_spss"),
+        pytest.param(
+            "html5lib",
+            lambda: pd.read_html(StringIO("<table></table>"), flavor="bs4"),
+            id="read_html-bs4",
+        ),
+        pytest.param(
+            "lxml",
+            lambda: pd.read_html(StringIO("<table></table>"), flavor="lxml"),
+            id="read_html-lxml",
+        ),
+        pytest.param(
+            "openpyxl",
+            lambda: pd.read_excel("data.xlsx", engine="openpyxl"),
+            id="read_excel-openpyxl",
+        ),
+        pytest.param(
+            "python_calamine",
+            lambda: pd.read_excel("data.xlsx", engine="calamine"),
+            id="read_excel-calamine",
+        ),
+        pytest.param(
+            "odf",
+            lambda: pd.read_excel("data.ods", engine="odf"),
+            id="read_excel-odf",
+        ),
+        pytest.param(
+            "xlrd",
+            lambda: pd.read_excel("data.xls", engine="xlrd"),
+            id="read_excel-xlrd",
+        ),
+        pytest.param(
+            "pyxlsb",
+            lambda: pd.read_excel("data.xlsb", engine="pyxlsb"),
+            id="read_excel-pyxlsb",
+        ),
+        pytest.param(
+            "openpyxl",
+            lambda: pd.DataFrame({"a": [1]}).to_excel(BytesIO(), engine="openpyxl"),
+            id="to_excel-openpyxl",
+        ),
+        pytest.param(
+            "xlsxwriter",
+            lambda: pd.DataFrame({"a": [1]}).to_excel(BytesIO(), engine="xlsxwriter"),
+            id="to_excel-xlsxwriter",
+        ),
+        pytest.param(
+            "odf",
+            lambda: pd.DataFrame({"a": [1]}).to_excel(BytesIO(), engine="odf"),
+            id="to_excel-odf",
+        ),
+        pytest.param(
+            "zstandard",
+            lambda: pd.DataFrame({"a": [1]}).to_csv(BytesIO(), compression="zstd"),
+            id="to_csv-zstd",
+        ),
+        pytest.param("pyiceberg", lambda: pd.read_iceberg("t"), id="read_iceberg"),
+        pytest.param(
+            "pyarrow",
+            lambda: pd.read_parquet("data.parquet", engine="pyarrow"),
+            id="read_parquet-pyarrow",
+        ),
+        pytest.param(
+            "pyarrow", lambda: pd.read_feather("data.feather"), id="read_feather"
+        ),
+        pytest.param(
+            "pyarrow",
+            lambda: pd.DataFrame({"a": [1]}).to_feather(BytesIO()),
+            id="to_feather",
+        ),
+        pytest.param("pyarrow", lambda: pd.read_orc("data.orc"), id="read_orc"),
+        pytest.param(
+            "numba",
+            lambda: (
+                pd.Series([1.0, 2.0])
+                .rolling(2)
+                .apply(lambda x: x.sum(), raw=True, engine="numba")
+            ),
+            id="rolling.apply-numba",
+        ),
+        pytest.param(
+            "sqlalchemy",
+            lambda: pd.read_sql("SELECT 1", "sqlite:///:memory:"),
+            id="read_sql-uri",
+        ),
+    ],
+)
+def test_missing_optional_dependency_raises(package, func):
+    if import_optional_dependency(package, errors="ignore") is not None:
+        pytest.skip(f"{package} is installed")
+    # messages use the install name, e.g. python-calamine
+    with pytest.raises(ImportError, match=package.replace("_", ".")):
+        func()
+
+
+def test_style_without_jinja2():
+    if import_optional_dependency("jinja2", errors="ignore") is not None:
+        pytest.skip("jinja2 is installed")
+    # AttributeError so that inspect works without jinja2
+    with pytest.raises(AttributeError, match="requires jinja2"):
+        pd.DataFrame({"a": [1]}).style
