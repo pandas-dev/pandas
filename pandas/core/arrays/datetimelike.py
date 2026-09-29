@@ -2497,6 +2497,9 @@ def ensure_arraylike_for_datetimelike(
         data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
 
+    if data.ndim == 0:
+        raise ValueError(f"Cannot construct {cls_name} from 0-dim input")
+
     return data, copy
 
 
