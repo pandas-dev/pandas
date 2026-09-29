@@ -3214,16 +3214,27 @@ class ArrowExtensionArray(
                     method=method, na_option=na_option, ascending=ascending, pct=pct
                 )
             except pa.ArrowNotImplementedError:
-                # pyarrow cannot rank some types, e.g. lists
-                pass
-
-        ranked = super()._rank(
-            axis=axis,
-            method=method,
-            na_option=na_option,
-            ascending=ascending,
-            pct=pct,
-        )
+                # pyarrow cannot rank some types, e.g. lists; rank the Python
+                #  objects instead, which for lists compare lexicographically
+                values = construct_1d_object_array_from_listlike(
+                    self._pa_array.to_pylist()
+                )
+                ranked = algos.rank(
+                    values,
+                    method=method,
+                    na_option=na_option,
+                    ascending=ascending,
+                    pct=pct,
+                    mask=self.isna() if self._hasna else None,
+                )
+        else:
+            ranked = super()._rank(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
         # keep dtypes consistent with _rank_pyarrow
         if method == "average" or pct:
             pa_type = pa.float64()
