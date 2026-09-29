@@ -209,6 +209,9 @@ class ArrowStringArrayMixin:
             return self._from_pyarrow_array(
                 pa.chunked_array(result, type=self._pa_array.type)
             )
+        # pc.utf8_zfill raises on a negative width, while str.zfill returns the
+        # string unchanged -> clamping to zero to get that behaviour (GH#69486)
+        width = max(width, 0)
         return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
