@@ -520,7 +520,7 @@ def test_explicit_arrow_decimal_dtype(all_parsers):
     pa = pytest.importorskip("pyarrow")
     parser = all_parsers
     dtype = pd.ArrowDtype(pa.decimal128(30, 20))
-    data = "a\n1.23456789012345678901\n\n-2.5\n"
+    data = "a\n1.23456789012345678901\n\n -2.5 \n"
     result = parser.read_csv(StringIO(data), dtype={"a": dtype}, skip_blank_lines=False)
     expected = pd.DataFrame(
         {

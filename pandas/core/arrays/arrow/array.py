@@ -638,10 +638,11 @@ class ArrowExtensionArray(
             # cast the strings directly: to_numeric would go through float64,
             #  which loses precision and which pyarrow cannot cast to decimal
             if not is_pa_array:
-                # pa.array refuses a mask with a Series, Index or pandas array
+                # pa.array refuses a mask with objects implementing __arrow_array__
                 strings = np.asarray(strings, dtype=object)
                 strings = pa.array(strings, type=pa.string(), mask=isna(strings))
-            scalars = strings.cast(pa_type)
+            # to_numeric strips whitespace but pyarrow's cast does not
+            scalars = pc.utf8_trim_whitespace(strings).cast(pa_type)
         elif pa.types.is_integer(pa_type) or pa.types.is_floating(pa_type):
             from pandas.core.tools.numeric import to_numeric
 
