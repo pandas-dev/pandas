@@ -186,5 +186,5 @@ def test_groupby_apply_subclass_name_override_no_warning():
     msg = "Pinning the group key"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.groupby([1, 1, 2]).apply(lambda x: x.name)
-    expected = MySeries([1, 2], index=pd.Index([1, 2]), name="b")
+    expected = MySeries([1, 2], index=pd.Index([1, 2], dtype=np.intp), name="b")
     tm.assert_series_equal(result, expected)
