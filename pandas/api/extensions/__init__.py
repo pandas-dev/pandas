@@ -10,6 +10,7 @@ from pandas.core.dtypes.base import (
 )
 
 from pandas.core.accessor import (
+    Accessor,
     register_dataframe_accessor,
     register_index_accessor,
     register_series_accessor,
@@ -21,6 +22,7 @@ from pandas.core.arrays import (
 )
 
 __all__ = [
+    "Accessor",
     "ExtensionArray",
     "ExtensionDtype",
     "ExtensionScalarOpsMixin",
