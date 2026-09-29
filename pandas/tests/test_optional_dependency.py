@@ -132,7 +132,7 @@ CUSTOM_MESSAGES = {
         ),
         pytest.param(
             "scipy",
-            lambda: pd.Series([1.0, 2.0]).rolling(2, win_type="gaussian").mean(std=1),
+            lambda: pd.Series([1.0, 2.0]).rolling(2, win_type="gaussian").mean(std=1),  # type: ignore[call-arg]
             id="rolling-win_type",
         ),
         pytest.param(
@@ -205,7 +205,10 @@ CUSTOM_MESSAGES = {
         ),
         pytest.param(
             "odf",
-            lambda: pd.DataFrame({"a": [1]}).to_excel(BytesIO(), engine="odf"),
+            lambda: pd.DataFrame({"a": [1]}).to_excel(
+                BytesIO(),
+                engine="odf",  # type: ignore[arg-type]
+            ),
             id="to_excel-odf",
         ),
         pytest.param(
