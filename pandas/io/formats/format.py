@@ -244,7 +244,9 @@ class SeriesFormatter:
 
     def _get_formatted_values(self) -> list[str]:
         return format_array(
-            self.tr_series._values,
+            _maybe_format_float_intervals(
+                self.tr_series._values, None, self.float_format, "."
+            ),
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -757,7 +759,9 @@ class DataFrameFormatter:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
-            frame._get_column_array(i),
+            _maybe_format_float_intervals(
+                frame._get_column_array(i), formatter, self.float_format, self.decimal
+            ),
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -1554,19 +1558,6 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
-        elif (
-            formatter is None
-            and isinstance(values.dtype, IntervalDtype)
-            and lib.is_np_dtype(values.dtype.subtype, "f")
-        ):
-            array = _format_float_intervals(
-                cast("IntervalArray", values),
-                float_format=self.float_format,
-                digits=self.digits,
-                decimal=self.decimal,
-            )
-            # entries are already strings
-            fallback_formatter = str
         else:
             array = np.asarray(values, dtype=object)
 
@@ -1602,10 +1593,32 @@ def _format_complex(value: complex, float_format: Callable | None) -> str:
     return f"({real}{imag}j)"
 
 
+def _maybe_format_float_intervals(
+    values: ArrayLike,
+    formatter: Callable | None,
+    float_format: FloatFormatType | None,
+    decimal: str,
+) -> ArrayLike:
+    """
+    Pre-format float-endpoint Interval column values (GH#25920).
+
+    Only column values go through here; index labels and Categorical
+    categories keep ``str(Interval)``.
+    """
+    if (
+        formatter is None
+        and isinstance(values.dtype, IntervalDtype)
+        and lib.is_np_dtype(values.dtype.subtype, "f")
+    ):
+        return _format_float_intervals(
+            cast("IntervalArray", values), float_format=float_format, decimal=decimal
+        )
+    return values
+
+
 def _format_float_intervals(
     values: IntervalArray,
     float_format: FloatFormatType | None,
-    digits: int,
     decimal: str,
 ) -> np.ndarray:
     """
@@ -1621,7 +1634,6 @@ def _format_float_intervals(
         np.concatenate([left, right]),
         None,
         float_format=float_format,
-        digits=digits,
         decimal=decimal,
         leading_space=False,
     )

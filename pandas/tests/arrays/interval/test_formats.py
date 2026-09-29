@@ -45,3 +45,22 @@ def test_series_repr_float_format():
     with pd.option_context("display.float_format", "{:.2e}".format):
         result = repr(ser)
     assert result == "0    (5.00e-01, 1.50e+00]\ndtype: interval"
+
+
+@pytest.mark.parametrize(
+    "ser, expected",
+    [
+        (
+            pd.Series([1, 2], index=pd.IntervalIndex.from_breaks([0.5, 1.25, 2.0])),
+            "(0.5, 1.25]    1\n(1.25, 2.0]    2\ndtype: int64",
+        ),
+        (
+            pd.Series(pd.Categorical(pd.IntervalIndex.from_breaks([0.5, 1.25, 2.0]))),
+            "0    (0.5, 1.25]\n1    (1.25, 2.0]\ndtype: category\n"
+            "Categories (2, interval[float64, right]): [(0.5, 1.25], (1.25, 2.0]]",
+        ),
+    ],
+)
+def test_series_repr_float_interval_labels_and_categories_unchanged(ser, expected):
+    # GH#25920 only interval-dtype values are formatted like float64
+    assert repr(ser) == expected

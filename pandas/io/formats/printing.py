@@ -173,9 +173,9 @@ def format_with_precision(item: float | complex, sign: str = "") -> str:
         str_float = f"{val:{sign}.{precision}f}".rstrip("0")
         return str_float + "0" if str_float.endswith(".") else str_float
 
-    if is_complex(item):
-        return f"({_fmt(item.real, sign)}{_fmt(item.imag, '+')}j)"
-    return _fmt(item, sign)
+    if is_float(item):
+        return _fmt(item, sign)
+    return f"({_fmt(item.real, sign)}{_fmt(item.imag, '+')}j)"
 
 
 def _pprint_dict(
