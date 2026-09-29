@@ -4,6 +4,7 @@ for all of the parsers defined in parsers.py
 """
 
 from collections import defaultdict
+from decimal import Decimal
 from io import StringIO
 
 import numpy as np
@@ -507,6 +508,24 @@ def test_explicit_arrow_int_dtype_precision_with_na(all_parsers):
             "a": pd.array(
                 [1582218195625938945, pd.NA, -1582218195625938945],
                 dtype="int64[pyarrow]",
+            )
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # pyarrow engine reads the column as float64 first, losing digits
+def test_explicit_arrow_decimal_dtype(all_parsers):
+    # GH#69811
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    dtype = pd.ArrowDtype(pa.decimal128(30, 20))
+    data = "a\n1.23456789012345678901\n\n-2.5\n"
+    result = parser.read_csv(StringIO(data), dtype={"a": dtype}, skip_blank_lines=False)
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                [Decimal("1.23456789012345678901"), None, Decimal("-2.5")], dtype=dtype
             )
         }
     )
