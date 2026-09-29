@@ -838,3 +838,23 @@ def test_assert_almost_equal_zero_dim_numpy_tolerance():
     msg = "expected 5.10000 but got 5.00000, with rtol=0.01, atol=1e-08"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(a, b, rtol=0.01)
+
+
+def test_assert_almost_equal_datetime_array():
+    # GH#68927 Datetime arrays should always raise if not equal
+    a = np.array(np.datetime64("2023-01-01T00:00:00"))
+    b = np.array(np.datetime64("2023-01-01T00:00:01"))
+    tm.assert_almost_equal(a, a.copy())
+    msg = "2023-01-01T00:00:00 != 2023-01-01T00:00:01"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
+
+
+def test_assert_almost_equal_str_array():
+    # GH#68927 String arrays should always raise if not equal
+    a = np.array("abc")
+    b = np.array("abd")
+    tm.assert_almost_equal(a, a.copy())
+    msg = "abc != abd"
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_almost_equal(a, b)
