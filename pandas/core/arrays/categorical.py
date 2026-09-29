@@ -2534,7 +2534,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             vals,
             None,
             float_format=None,
-            na_rep="NaN",
             quoting=QUOTE_NONNUMERIC,
         )
         return [val.strip() for val in fmt_values]

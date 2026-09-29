@@ -142,7 +142,7 @@ class SeriesFormatter:
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         name: bool = False,
         float_format: str | None = None,
         dtype: bool = True,
@@ -376,8 +376,9 @@ class DataFrameFormatter:
         it is assumed to be aliases for the column names.
     index : bool, optional, default True
         Whether to print index (row) labels.
-    na_rep : str, optional, default 'NaN'
-        String representation of ``NaN`` to use.
+    na_rep : str, optional
+        String representation of missing values. By default ``NaN``,
+        ``NaT``, ``None`` and ``NA`` are each shown as themselves.
     formatters : list, tuple or dict of one-param. functions, optional
         Formatter functions to apply to columns' elements by position or
         name.
@@ -432,7 +433,7 @@ class DataFrameFormatter:
         col_space: ColspaceArgType | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
@@ -1106,7 +1107,7 @@ def format_array(
     values: ArrayLike,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
-    na_rep: str = "NaN",
+    na_rep: str | lib.NoDefault = lib.no_default,
     digits: int | None = None,
     space: str | int | None = None,
     justify: str = "right",
@@ -1146,12 +1147,12 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-        if na_rep == "NaN":
+        if na_rep is lib.no_default:
             na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
-        if na_rep == "NaN":
+        if na_rep is lib.no_default:
             na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
@@ -1194,7 +1195,7 @@ class _GenericArrayFormatter:
         values: ArrayLike,
         digits: int = 7,
         formatter: Callable | None = None,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
         justify: str = "right",
@@ -1206,7 +1207,9 @@ class _GenericArrayFormatter:
     ) -> None:
         self.values = values
         self.digits = digits
-        self.na_rep = na_rep
+        # the default shows each kind of missing value as itself, GH#54872
+        self._na_rep_is_default = na_rep is lib.no_default
+        self.na_rep = "NaN" if na_rep is lib.no_default else na_rep
         self.space = space
         self.formatter = formatter
         self.float_format = float_format
@@ -1247,8 +1250,7 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if self.na_rep != "NaN":
-                    # a non-default na_rep applies to all missing values, GH#54872
+                if not self._na_rep_is_default:
                     return self.na_rep
                 elif x is None:
                     return "None"
@@ -1560,7 +1562,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             array,
             formatter,
             float_format=self.float_format,
-            na_rep=self.na_rep,
+            na_rep=lib.no_default if self._na_rep_is_default else self.na_rep,
             digits=self.digits,
             space=self.space,
             justify=self.justify,
