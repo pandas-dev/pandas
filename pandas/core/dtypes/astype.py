@@ -193,9 +193,8 @@ def raise_if_float_outside_int64(
     """
     unit, step = np.datetime_data(dtype)
     if step != 1 or unit == "generic":
-        # a unitless or multiplier dtype, e.g. "M8[10s]", is rejected
-        #  downstream (GH#25611) whatever the values, so the saturated
-        #  value never surfaces
+        # unitless and multiplier dtypes are rejected regardless of the values
+        #  (multiplier: GH#25611), so the saturated value never surfaces
         return
     oob = float_outside_int64(values)
     if mask is not None:
