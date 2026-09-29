@@ -15,6 +15,8 @@ from typing import (
 )
 import warnings
 
+import numpy as np
+
 from pandas._config import option_context
 
 from pandas._libs import lib
@@ -567,6 +569,10 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         #  are only the index names when there are no columns
         df.columns = Index(names)[:0]
     else:
-        df.columns = [names[pos] for pos in df.columns]
+        # a null label was written from NaN; None would stay None under
+        #  the legacy (object) inference
+        df.columns = [
+            np.nan if names[pos] is None else names[pos] for pos in df.columns
+        ]
 
     return df
