@@ -2507,6 +2507,27 @@ def test_from_arrow_respecting_given_dtype_unsafe():
         array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
 
 
+def test_from_arrow_list_of_extension_struct():
+    # GH#69869 element access used to segfault after a same-type pyarrow cast
+    intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+    storage = pa.ListArray.from_arrays(
+        pa.array([0, 2], pa.int32()), intervals.__arrow_array__()
+    )
+    table = pa.table({"x": storage})
+    result = table.to_pandas(types_mapper=ArrowDtype)
+    assert result["x"].dtype == ArrowDtype(storage.type)
+    assert result["x"].iloc[0] == [{"left": 0, "right": 1}, {"left": 2, "right": 3}]
+
+
+def test_from_arrow_renames_list_field():
+    # GH#69869 an equal type with a different list field name is still cast
+    arr = pa.array([[1]], type=pa.list_(pa.field("element", pa.int64())))
+    dtype = ArrowDtype(pa.list_(pa.int64()))
+    result = pa.table({"x": arr}).to_pandas(types_mapper=lambda _: dtype)["x"]
+    assert str(result.dtype) == str(dtype)
+    assert hash(result.dtype) == hash(dtype)
+
+
 def test_round():
     dtype = "float64[pyarrow]"
 
