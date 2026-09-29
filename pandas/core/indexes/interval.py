@@ -243,7 +243,7 @@ class IntervalIndex(ExtensionIndex):
     @cache_readonly
     def closed(self) -> IntervalClosedType:
         """
-        String describing the inclusive side the intervals.
+        String describing the inclusive side of the intervals.
 
         Either ``left``, ``right``, ``both`` or ``neither``.
 
@@ -266,10 +266,9 @@ class IntervalIndex(ExtensionIndex):
     @cache_readonly
     def is_non_overlapping_monotonic(self) -> bool:
         """
-        Return a boolean of whether the IntervalIndex is non-overlapping and
-        monotonic.
+        Return True if the IntervalIndex is non-overlapping and monotonic.
 
-        Non-overlapping means (no Intervals share points), and monotonic means
+        Non-overlapping means no Intervals share points, and monotonic means
         either monotonic increasing or monotonic decreasing.
 
         See Also
@@ -487,7 +486,7 @@ class IntervalIndex(ExtensionIndex):
 
         See Also
         --------
-        IntervalArray.to_tuples : Analogous method for IntervalArray.
+        arrays.IntervalArray.to_tuples : Analogous method for IntervalArray.
 
         Examples
         --------
@@ -499,30 +498,6 @@ class IntervalIndex(ExtensionIndex):
         """
         result = self._data.to_tuples(na_tuple=na_tuple)
         return Index(result, name=self.name, dtype=result.dtype, copy=False)
-
-    def __array__(
-        self, dtype: npt.DTypeLike | None = None, copy: bool | None = None
-    ) -> np.ndarray:
-        """
-        Return the IntervalIndex's data as a numpy array of Interval objects
-        (with dtype='object').
-
-        Returns
-        -------
-        numpy.ndarray
-            An object-dtype ndarray of :class:`~pandas.Interval` objects.
-
-        Examples
-        --------
-        >>> idx = pd.interval_range(start=0, end=2)
-        >>> np.asarray(idx)
-        array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right')],
-              dtype=object)
-        """
-        # error: Argument "dtype" to "__array__" of "IntervalArray" has
-        # incompatible type "DTypeLike | None"; expected "NpDtype | None" --
-        # IntervalArray.__array__ ignores dtype entirely, so this is safe
-        return self._data.__array__(dtype=dtype, copy=copy)  # type: ignore[arg-type]
 
     def overlaps(self, other: Interval) -> npt.NDArray[np.bool_]:
         """
