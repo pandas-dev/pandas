@@ -533,9 +533,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         See Also
         --------
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
-        DatetimeIndex.time : Returns numpy array of datetime.time objects.
-            The time part of the Timestamps.
+        DatetimeIndex.month : The month as January=1, December=12.
+        DatetimeIndex.is_quarter_start : Indicator for whether the date is the
+            first day of a quarter.
+        DatetimeIndex.is_quarter_end : Indicator for whether the date is the
+            last day of a quarter.
 
         Examples
         --------
@@ -642,6 +644,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         This boolean attribute evaluates to True if the date falls on the
         first day of a calendar month, and False otherwise.
+        If the index has a business ``freq`` (e.g. ``"BMS"``), the result
+        follows that frequency's month boundaries instead of the calendar's.
 
         See Also
         --------
@@ -663,6 +667,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         This boolean attribute evaluates to True if the date falls on the
         last day of a calendar month, and False otherwise.
+        If the index has a business ``freq`` (e.g. ``"BME"``), the result
+        follows that frequency's month boundaries instead of the calendar's.
 
         See Also
         --------
@@ -685,6 +691,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         This boolean attribute evaluates to True if the date falls on the
         first day of a calendar quarter (January 1, April 1, July 1, or
         October 1), and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BQS"`` or
+        ``"QS-FEB"``), the result follows that frequency's quarter boundaries
+        instead of the calendar's.
 
         See Also
         --------
@@ -708,6 +717,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         This boolean attribute evaluates to True if the date falls on the
         last day of a calendar quarter (March 31, June 30, September 30, or
         December 31), and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BQE"`` or
+        ``"QE-NOV"``), the result follows that frequency's quarter boundaries
+        instead of the calendar's.
 
         See Also
         --------
@@ -730,6 +742,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         This boolean attribute evaluates to True if the date is January 1st,
         and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BYS"`` or
+        ``"YS-APR"``), the result follows that frequency's year boundaries
+        instead of the calendar's.
 
         See Also
         --------
@@ -741,6 +756,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx = pd.date_range("2017-12-30", periods=3)
         >>> idx.is_year_start
         array([False, False,  True])
+
+        With a business ``freq``, the first business day of the year counts
+        as the year start even when it is not January 1st:
+
+        >>> idx = pd.date_range("2020-10-30", periods=4, freq="BYS")
+        >>> idx
+        DatetimeIndex(['2021-01-01', '2022-01-03', '2023-01-02', '2024-01-01'],
+                      dtype='datetime64[us]', freq='BYS-JAN')
+        >>> idx.is_year_start
+        array([ True,  True,  True,  True])
         """
         return self._data._get_start_end_field("is_year_start", self.freq)
 
@@ -751,6 +776,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         This boolean attribute evaluates to True if the date is December
         31st, and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BYE"`` or
+        ``"YE-MAR"``), the result follows that frequency's year boundaries
+        instead of the calendar's.
 
         See Also
         --------
