@@ -966,7 +966,7 @@ class ArrowExtensionArray(
                         value, copy=copy, dtype=pass_dtype
                     )
                 dta_mask = dta.isna()
-                value_i8 = cast("npt.NDArray", dta.view("i8"))
+                value_i8 = cast("npt.NDArray[np.int64]", dta.view("i8"))
                 if not value_i8.flags["WRITEABLE"]:
                     # e.g. test_setitem_frame_2d_values
                     value_i8 = value_i8.copy()
@@ -3828,7 +3828,7 @@ class ArrowExtensionArray(
         )
         return self._groupby_result_to_arrow(result)
 
-    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
+    def _apply_elementwise(self, func: Callable[..., Any]) -> list[list[Any]]:
         """Apply a callable to each element while maintaining the chunking structure."""
         return [
             [
@@ -3851,8 +3851,8 @@ class ArrowExtensionArray(
 
     @staticmethod
     def _compile_re_fallback(
-        pat: str | re.Pattern, case: bool = True, flags: int = 0
-    ) -> re.Pattern:
+        pat: str | re.Pattern[str], case: bool = True, flags: int = 0
+    ) -> re.Pattern[str]:
         # GH#66348 pyarrow's regex kernels honor no flags beyond the IGNORECASE
         #  that `case` stands in for, so anything left over is evaluated with `re`
         if not case:
@@ -3861,12 +3861,12 @@ class ArrowExtensionArray(
         #  `flags` raises out of re.compile
         return re.compile(pat, flags=flags)
 
-    def _apply_re_fallback(self, func: Callable, pa_type: pa.DataType):
+    def _apply_re_fallback(self, func: Callable[..., Any], pa_type: pa.DataType):
         return pa.chunked_array(self._apply_elementwise(func), type=pa_type)
 
     def _str_contains(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -3891,7 +3891,7 @@ class ArrowExtensionArray(
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -3908,7 +3908,7 @@ class ArrowExtensionArray(
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -3925,7 +3925,7 @@ class ArrowExtensionArray(
 
         return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
 
-    def _str_count(self, pat: str | re.Pattern, flags: int = 0) -> Self:
+    def _str_count(self, pat: str | re.Pattern[str], flags: int = 0) -> Self:
         pat, case, flags = self._unwrap_re_pattern(pat, True, flags)
 
         if flags:
@@ -3945,8 +3945,8 @@ class ArrowExtensionArray(
 
     def _str_replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern[str],
+        repl: str | Callable[..., Any],
         n: int = -1,
         case: bool = True,
         flags: int = 0,
@@ -4028,7 +4028,9 @@ class ArrowExtensionArray(
             pa_type = pa.binary()
         return self._from_pyarrow_array(pa.chunked_array(result, type=pa_type))
 
-    def _str_extract(self, pat: str | re.Pattern, flags: int = 0, expand: bool = True):
+    def _str_extract(
+        self, pat: str | re.Pattern[str], flags: int = 0, expand: bool = True
+    ):
         compiled = self._compile_re_fallback(pat, flags=flags)
         groups = compiled.groupindex.keys()
         if len(groups) == 0:
