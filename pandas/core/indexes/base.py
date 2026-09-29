@@ -6895,7 +6895,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         # we can return a MultiIndex
         if new_values.size and isinstance(new_values[0], tuple):
-            result = MultiIndex.from_tuples(new_values)
+            # list input pads shorter tuples with NaN instead of truncating
+            result = MultiIndex.from_tuples(new_values.tolist())
             if isinstance(self, MultiIndex):
                 # only keep names if the number of levels is unchanged, GH#24800
                 if self.nlevels == result.nlevels:
