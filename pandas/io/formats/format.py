@@ -316,10 +316,8 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     >>> repr(df) == df.to_string(**repr_params)
     True
     """
-    from pandas.io.formats import console
-
     if config["display"]["expand_frame_repr"]:
-        line_width, _ = console.get_console_size()
+        line_width, _ = get_console_size()
     else:
         line_width = None
     return {
