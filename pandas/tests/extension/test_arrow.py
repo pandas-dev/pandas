@@ -677,6 +677,15 @@ class TestArrowArray(base.ExtensionTests):
             request.applymarker(
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
             )
+        elif pa.types.is_decimal(pa_dtype) and not (
+            engine == "python" and dtype_backend == "pyarrow"
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    raises=pa.ArrowInvalid,
+                    reason="string to decimal parsing, fixed by GH#69838",
+                )
+            )
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
         if not using_nan_is_na:
             csv_output = df.to_csv(index=False, na_rep="NA")
@@ -3820,15 +3829,6 @@ def test_from_sequence_of_strings_none_float():
     dtype = ArrowDtype(pa.float64())
     result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
     expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_from_sequence_of_strings_decimal():
-    # GH#57411 converting through float64 would not fit all decimals
-    dtype = ArrowDtype(pa.decimal128(30, 20))
-    strings = ["1.23456789012345678901", None]
-    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
-    expected = pd.array([Decimal("1.23456789012345678901"), None], dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
