@@ -720,9 +720,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return result
 
         if "out" in kwargs:
-            return arraylike.dispatch_ufunc_with_out(
+            out = kwargs["out"]
+            result = arraylike.dispatch_ufunc_with_out(
                 self, ufunc, method, *inputs, **kwargs
             )
+            if isinstance(out, tuple) and len(out) == 1:
+                return out[0]
+            return result
 
         if method == "reduce":
             result = arraylike.dispatch_reduction_ufunc(

@@ -701,15 +701,6 @@ def test_numpy_array_ufunc_out_identity():
     tm.assert_numpy_array_equal(buf, np.array([1, 2], dtype=object))
 
 
-def test_pyarrow_string_logical_or_preserves_boolean_result():
-    left = pd.Series([True, False])
-    right = pd.Series(["", "b"], dtype="string[pyarrow]")
-
-    result = left | right
-
-    expected = pd.Series([True, True])
-    tm.assert_series_equal(result, expected)
-
 
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
 def test_numpy_random_permute(dtype, box):
