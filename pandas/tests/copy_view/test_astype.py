@@ -258,7 +258,7 @@ def test_convert_dtypes_numpy_backend(values, dtype):
         pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": pd.Series(values).astype(dtype)})
     df_orig = df.copy()
-    result = df.convert_dtypes(dtype_backend="numpy")
+    result = df.convert_dtypes(dtype_backend=None)
     assert not result._mgr._has_no_reference(0)
 
     result.iloc[0, 0] = result.iloc[1, 0]

@@ -160,11 +160,11 @@ class TestConvertDtypes:
         # GH 48893
         df = pd.DataFrame({"a": [1, 2, 3]})
         msg = (
-            "dtype_backend foo is invalid, only 'numpy_nullable', "
-            "'pyarrow' and 'numpy' are allowed."
+            "dtype_backend numpy is invalid, only 'numpy_nullable', "
+            "'pyarrow' and None are allowed."
         )
         with pytest.raises(ValueError, match=msg):
-            df.convert_dtypes(dtype_backend="foo")
+            df.convert_dtypes(dtype_backend="numpy")
 
     def test_pyarrow_backend_no_conversion(self):
         # GH#52872
@@ -304,7 +304,7 @@ class TestConvertDtypes:
                 "cat": pd.Categorical(["a", "b", "a"]),
             }
         )
-        result = df.convert_dtypes(dtype_backend="numpy")
+        result = df.convert_dtypes(dtype_backend=None)
         expected = pd.DataFrame(
             {
                 "int": np.array([1, 2, 3], dtype=np.int32),
@@ -341,7 +341,7 @@ class TestConvertDtypes:
                 "date": pd.array([date, None], dtype="date32[pyarrow]"),
             }
         )
-        result = df.convert_dtypes(dtype_backend="numpy")
+        result = df.convert_dtypes(dtype_backend=None)
         expected = pd.DataFrame(
             {
                 "int": np.array([1, 2], dtype=np.int8),
@@ -362,12 +362,12 @@ class TestConvertDtypes:
         df = pd.DataFrame(
             {"a": np.array([1, 2], dtype=np.int32), "b": [1.5, np.nan], "c": ["x", "y"]}
         )
-        result = df.convert_dtypes().convert_dtypes(dtype_backend="numpy")
+        result = df.convert_dtypes().convert_dtypes(dtype_backend=None)
         tm.assert_frame_equal(result, df)
 
     def test_convert_dtypes_numpy_backend_deprecated_kwargs_raise(self):
         # GH#35694
         df = pd.DataFrame({"a": [1, 2, 3]})
-        msg = "Cannot pass convert_integer with dtype_backend='numpy'"
+        msg = "Cannot pass convert_integer with dtype_backend=None"
         with pytest.raises(ValueError, match=msg):
-            df.convert_dtypes(convert_integer=False, dtype_backend="numpy")
+            df.convert_dtypes(convert_integer=False, dtype_backend=None)

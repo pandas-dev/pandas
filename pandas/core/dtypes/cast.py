@@ -1089,7 +1089,7 @@ def convert_to_default_dtype(values: ArrayLike) -> ArrayLike:
     """
     Convert nullable or pyarrow-backed values to the equivalent default dtype.
 
-    Used by ``convert_dtypes(dtype_backend="numpy")``. Integer and boolean
+    Used by ``convert_dtypes(dtype_backend=None)``. Integer and boolean
     values containing missing values become float64 and object respectively.
     Values without a default-dtype equivalent are returned unchanged.
 
