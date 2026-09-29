@@ -1,7 +1,6 @@
 """test label based indexing with loc"""
 
 from collections import namedtuple
-import contextlib
 from datetime import (
     date,
     datetime,
@@ -750,18 +749,14 @@ class TestLocBaseIndependent:
         ]
         df = pd.DataFrame(values, index=mi, columns=cols)
 
-        ctx = contextlib.nullcontext()
-        if using_infer_string:
-            ctx = pytest.raises(TypeError, match="Invalid value")
-
-        with ctx:
-            df.loc[:, ("Respondent", "StartDate")] = pd.to_datetime(
-                df.loc[:, ("Respondent", "StartDate")]
-            )
-        with ctx:
-            df.loc[:, ("Respondent", "EndDate")] = pd.to_datetime(
-                df.loc[:, ("Respondent", "EndDate")]
-            )
+        msg = "Setting non-object values into entire object-dtype column"
+        for key in [("Respondent", "StartDate"), ("Respondent", "EndDate")]:
+            if using_infer_string:
+                ctx = pytest.raises(TypeError, match="Invalid value")
+            else:
+                ctx = tm.assert_produces_warning(UserWarning, match=msg)
+            with ctx:
+                df.loc[:, key] = pd.to_datetime(df.loc[:, key])
 
         if using_infer_string:
             # infer-objects won't infer stuff anymore
@@ -1553,7 +1548,10 @@ class TestLocBaseIndependent:
 
         # pre-2.0 this swapped in a new array, in 2.0 it operates inplace,
         #  consistent with non-split-path
-        df.loc[:, "Alpha"] = categories
+        warn = None if using_infer_string else UserWarning
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
         expected = pd.Series(categories, index=df.index, name="Alpha").astype(

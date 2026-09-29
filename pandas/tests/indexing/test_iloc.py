@@ -1726,7 +1726,9 @@ class TestiLocBaseIndependent:
             with pytest.raises(TypeError, match="Invalid value"):
                 df.iloc[:, [0]] = pd.DataFrame({"A": pd.to_datetime(["2021", "2022"])})
         else:
-            df.iloc[:, [0]] = pd.DataFrame({"A": pd.to_datetime(["2021", "2022"])})
+            msg = "Setting non-object values into entire object-dtype column"
+            with tm.assert_produces_warning(UserWarning, match=msg):
+                df.iloc[:, [0]] = pd.DataFrame({"A": pd.to_datetime(["2021", "2022"])})
             expected = pd.DataFrame(
                 {
                     "A": [
