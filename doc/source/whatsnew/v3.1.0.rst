@@ -776,6 +776,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :class:`Index` and :class:`api.extensions.ExtensionArray` repr where two-element data was not wrapped to respect ``display.width`` (:issue:`16334`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal` incorrectly raising when equivalent :class:`MultiIndex` column labels contained missing values (:issue:`54521`)
