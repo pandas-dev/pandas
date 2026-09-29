@@ -3109,20 +3109,28 @@ class TextFileReader(abc.Iterator[DataFrame]):
                 self.handles.close()
             raise
 
-    def _sniff_delimiter(self, f: IO) -> _ReplayHandle:
+    def _sniff_delimiter(self, f: IO) -> IO | _ReplayHandle:
         """
         Set the delimiter for ``sep=None`` by sniffing the first row that is not
         in ``skiprows``, blank or a full-line comment.
 
-        Returns a handle that replays the data read here, then the rest of ``f``.
+        Returns ``f`` rewound to where sniffing started or, if ``f`` cannot seek,
+        a handle that replays the data read here and then the rest of ``f``.
         """
         skiprows = self.options["skiprows"]
         skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
         comment = self.options["comment"]
+        try:
+            start = f.tell() if f.seekable() else None
+        except (AttributeError, OSError):
+            # e.g. read-only buffers lacking seekable() or tell()
+            start = None
         chunks: list = []
         delimiter = None
         for pos, raw in enumerate(
-            _iter_physical_lines(f, chunks, self.options["lineterminator"])
+            _iter_physical_lines(
+                f, chunks if start is None else None, self.options["lineterminator"]
+            )
         ):
             if skipfunc(pos) or not raw:
                 continue
@@ -3138,13 +3146,16 @@ class TextFileReader(abc.Iterator[DataFrame]):
         if delimiter is None:
             # nothing to sniff; the c engine reports the empty file
             delimiter = ","
-        elif len(delimiter.encode("utf-8")) > 1:
+        elif len(delimiter.encode("utf-8", "surrogatepass")) > 1:
             raise ValueError(
                 f"sep=None detected the separator {delimiter!r}, which the 'c' "
                 "engine does not support as it is more than one byte in utf-8; "
                 "specify engine='python'."
             )
         self.options["delimiter"] = delimiter
+        if start is not None:
+            f.seek(start)
+            return f
         prefix = chunks[0][:0].join(chunks) if chunks else b""
         return _ReplayHandle(prefix, f)
 
@@ -3696,11 +3707,11 @@ def _validate_skipfooter(kwds: dict[str, Any]) -> None:
 
 
 def _iter_physical_lines(
-    handle: IO, chunks: list, lineterminator: str | None
+    handle: IO, chunks: list | None, lineterminator: str | None
 ) -> Iterator[bytes | str]:
     """
     Yield each line of ``handle`` without its terminator, appending every chunk
-    read to ``chunks``.
+    read to ``chunks`` if it is not None.
     """
     eol: re.Pattern | None = None
     partial: list = []
@@ -3712,7 +3723,8 @@ def _iter_physical_lines(
             if tail:
                 yield tail
             return
-        chunks.append(chunk)
+        if chunks is not None:
+            chunks.append(chunk)
         if eol is None:
             pattern = re.escape(lineterminator) if lineterminator else r"\r\n|\r|\n"
             eol = re.compile(pattern.encode() if isinstance(chunk, bytes) else pattern)

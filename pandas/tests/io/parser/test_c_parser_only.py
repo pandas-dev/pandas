@@ -1927,14 +1927,35 @@ def test_sniff_delimiter(c_parser_only, data, kwargs, as_bytes):
     tm.assert_frame_equal(result, _SNIFF_EXPECTED)
 
 
+class _NonSeekableBytesIO(BytesIO):
+    def seekable(self):
+        return False
+
+    def seek(self, *args):
+        raise OSError("not seekable")
+
+    def tell(self):
+        raise OSError("not seekable")
+
+
+@pytest.mark.parametrize("buf_cls", [BytesIO, _NonSeekableBytesIO])
 @pytest.mark.parametrize("chunk_size", [1, 2, 4])
-def test_sniff_delimiter_small_reads(c_parser_only, monkeypatch, chunk_size):
+def test_sniff_delimiter_small_reads(c_parser_only, monkeypatch, chunk_size, buf_cls):
     # GH#9645 lines, including "\r\n", split across the reads made while
-    # sniffing; the data read is replayed to the parser
+    # sniffing; a non-seekable handle has the data read replayed to the parser
     monkeypatch.setattr("pandas.io.parsers.readers._SNIFF_CHUNK_SIZE", chunk_size)
     parser = c_parser_only
     data = "a,b\r\nc,d\r\nindex|A|B\r\nfoo|1|2\r\nbar|3|4\r\n"
-    result = parser.read_csv(BytesIO(data.encode()), sep=None, index_col=0, skiprows=2)
+    result = parser.read_csv(buf_cls(data.encode()), sep=None, index_col=0, skiprows=2)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+def test_sniff_delimiter_mid_stream(c_parser_only):
+    # GH#9645 a seekable handle is rewound to where it was, not to the start
+    parser = c_parser_only
+    buf = BytesIO(b"junk\nindex|A|B\nfoo|1|2\nbar|3|4\n")
+    buf.readline()
+    result = parser.read_csv(buf, sep=None, index_col=0)
     tm.assert_frame_equal(result, _SNIFF_EXPECTED)
 
 
@@ -1971,3 +1992,17 @@ def test_sniff_delimiter_multibyte(c_parser_only):
     msg = "sep=None detected the separator '\u00a7'"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), sep=None)
+
+
+def test_sniff_delimiter_lone_surrogate(c_parser_only):
+    # GH#9645
+    parser = c_parser_only
+    data = b'"a"\x80"b"\n"1"\x80"2"\n'
+    msg = r"sep=None detected the separator '\\udc80'"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(
+            BytesIO(data),
+            sep=None,
+            encoding="ascii",
+            encoding_errors="surrogateescape",
+        )
