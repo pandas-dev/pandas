@@ -320,7 +320,7 @@ def _maybe_restore_freq(result: Index, indexes: list[Index]) -> Index:
     final values once instead.
     """
     if (
-        not isinstance(result, DatetimeIndex)
+        not isinstance(result, (DatetimeIndex, TimedeltaIndex))
         or result.freq is not None
         or not result.is_monotonic_increasing
     ):
@@ -328,7 +328,8 @@ def _maybe_restore_freq(result: Index, indexes: list[Index]) -> Index:
 
     freq = getattr(indexes[0], "freq", None)
     if freq is None or not all(
-        isinstance(idx, DatetimeIndex) and idx.freq == freq for idx in indexes
+        isinstance(idx, (DatetimeIndex, TimedeltaIndex)) and idx.freq == freq
+        for idx in indexes
     ):
         return result
 

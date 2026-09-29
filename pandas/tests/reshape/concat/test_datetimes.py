@@ -154,6 +154,26 @@ class TestDatetimeConcat:
         # Not checked by assert_index_equal
         assert result.freq == expected.freq
 
+    @pytest.mark.parametrize("sort", [True, False, None])
+    def test_concat_timedeltaindex_freq_order_independent(self, sort):
+        # GH#64253 - same as above for TimedeltaIndex
+        s1 = pd.Series(1, index=pd.timedelta_range("0 days", periods=5, freq="2D"))
+        s2 = pd.Series(1, index=pd.timedelta_range(s1.index[3], periods=5, freq="2D"))
+        s3 = pd.Series(1, index=pd.timedelta_range(s2.index[3], periods=5, freq="2D"))
+
+        kwargs = {} if sort is None else {"sort": sort}
+        with tm.assert_produces_warning(None):
+            result = pd.concat([s1, s3, s2], axis=1, **kwargs).index
+
+        if sort:
+            expected = pd.timedelta_range(s1.index[0], s3.index[-1], freq="2D")
+        else:
+            # not monotonic, so there is no freq to restore
+            expected = s1.index.append([s3.index, s2.index[2:3]])._with_freq(None)
+        tm.assert_index_equal(result, expected)
+        # Not checked by assert_index_equal
+        assert result.freq == expected.freq
+
     def test_concat_datetimeindex_tz_convert_freq(self):
         # GH#41585 - concat after tz_convert should not raise when
         # the converted timestamps no longer conform to the original freq
