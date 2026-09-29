@@ -47,9 +47,14 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     data : DataFrame or Series
         Data for table contents.
     **kwargs
-        Keyword arguments to be passed to matplotlib.table.table.
-        If `rowLabels` or `colLabels` is not specified, data index or column
-        names will be used.
+        Keyword arguments to be passed to :func:`matplotlib.pyplot.table`.
+        The most commonly used are:
+
+        rowLabels : sequence of str, optional
+            Labels for the rows of the table. Defaults to the index of ``data``.
+        colLabels : sequence of str, optional
+            Labels for the columns of the table. Defaults to the columns of a
+            :class:`DataFrame`, or to the name of a :class:`Series`.
 
     Returns
     -------
@@ -77,9 +82,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             ... )
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.table(
-        ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs
-    )
+    return plot_backend.table(ax=ax, data=data, **kwargs)
 
 
 @set_module("pandas.plotting")
