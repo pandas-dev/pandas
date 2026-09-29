@@ -796,17 +796,11 @@ class BaseMethodsTests:
             ser.where(cond, [first, second, first])
 
     def test_mask_listlike_other_inplace(self, data, as_frame):
-        # GH#63842 putmask takes one more shape than where does: a value
-        #  holding one entry per selected position
+        # GH#63842
         orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
 
-        obj = orig.copy()
-        obj.mask(~cond, [first], inplace=True)
-        tm.assert_equal(obj, expected([first, first, second, first]))
-
-        obj = orig.copy()
-        obj.mask(~cond, [second, first], inplace=True)
-        tm.assert_equal(obj, expected([first, second, second, first]))
+        orig.mask(~cond, [first], inplace=True)
+        tm.assert_equal(orig, expected([first, first, second, first]))
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):

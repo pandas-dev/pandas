@@ -1813,28 +1813,23 @@ class EABackedBlock(Block):
             return self
 
     @final
-    def _align_listlike_arg(self, arg, mask: npt.NDArray[np.bool_] | None = None):
+    def _align_listlike_arg(self, arg):
         """
-        Line a list-like ``other``/``new`` up against the values in frame layout.
+        Convert a list-like ``other``/``new`` to an array with one entry per row.
 
-        ``EA._where``/``EA._putmask`` need an arraylike they can index with the
-        mask, so a raw list -- which supports neither boolean indexing nor
-        broadcasting -- would otherwise upcast to object or raise ``TypeError``
-        (GH#63842).  A length-1 argument is broadcast.  When ``mask`` is given
-        we are on the putmask path, which takes one more shape -- one entry
-        per selected position -- and dispatches that case itself.
+        ``EA._where``/``EA._putmask`` index the value with the mask, which a
+        raw list does not support, so it would otherwise upcast to object or
+        raise ``TypeError`` (GH#63842).  A length-1 argument is broadcast.
         """
         if (
-            isinstance(arg, (np.ndarray, ExtensionArray))
+            # TODO: multi-column blocks; like Block.where, only one column is handled
+            (self.ndim == 2 and self.shape[0] != 1)
+            or isinstance(arg, (np.ndarray, ExtensionArray, tuple))
             or not is_list_like(arg)
             or not isinstance(arg, Sequence)
-            or isinstance(arg, tuple)
         ):
-            # An ndarray/EA is left to the EA, as before.  Otherwise only an
-            #  ordered sequence can be lined up against the mask; a dict or set
-            #  has no element order, so it is left for the EA to hold as a
-            #  scalar or reject.  A tuple is excluded because object dtype
-            #  holds one as a scalar (GH#37681) and Index.fillna admits one.
+            # A dict or set has no element order to line up against the mask,
+            #  and object dtype holds a tuple as a scalar (GH#37681).
             return arg
 
         # NB: not _from_sequence(dtype=self.dtype), which would coerce where we
@@ -1842,30 +1837,16 @@ class EABackedBlock(Block):
         #  category into NaN -- and the raise is what upcasts to object.
         arg = com.asarray_tuplesafe(arg)
 
-        # frame layout: (nrows,) or (nrows, ncols)
-        shape = self.values.shape[::-1]
-        nrows = shape[0]
-        if mask is not None and len(arg) == mask.sum():
-            # One entry per selected position; putmask dispatches this itself.
-            #  Checked first, as in putmask_without_repeat.
-            return arg
-
-        if len(shape) == 2:
-            # TODO(EA2D): unnecessary with 2D EAs
-            if len(arg) in (1, shape[1]):
-                # A row template: one value per column, or one for all of them
-                return np.broadcast_to(np.expand_dims(arg, 0), shape)
-            if len(arg) == nrows:
-                # A column template: one value per row, filling every column
-                return np.broadcast_to(np.expand_dims(arg, 1), shape)
-        elif len(arg) == 1:
-            return arg.repeat(nrows)
-        elif len(arg) == nrows:
-            return arg
-
-        raise ValueError(
-            f"Length of values ({len(arg)}) does not match length of index ({nrows})"
-        )
+        nrows = self.shape[-1]
+        if len(arg) == 1:
+            arg = arg.repeat(nrows)
+        elif len(arg) != nrows:
+            raise ValueError(
+                f"Length of values ({len(arg)}) does not match length of index "
+                f"({nrows})"
+            )
+        # TODO(EA2D): reshape not needed with 2D EAs
+        return arg.reshape(self.values.shape[::-1])
 
     @final
     def where(self, other, cond) -> list[Block]:
@@ -1918,14 +1899,14 @@ class EABackedBlock(Block):
 
             else:
                 # Same pattern we use in Block.putmask
-                is_array = isinstance(other, (np.ndarray, ExtensionArray))
+                is_array = isinstance(orig_other, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
                 for i, nb in enumerate(self._split()):
-                    n = other
+                    n = orig_other
                     if is_array:
                         # we have a different value per-column
-                        n = other[:, i : i + 1]
+                        n = orig_other[:, i : i + 1]
 
                     submask = orig_cond[:, i : i + 1]
                     rbs = nb.where(n, submask)
@@ -1960,8 +1941,7 @@ class EABackedBlock(Block):
             #  as a cast failure.
             raise ValueError("Cannot modify read-only array")
 
-        new = self._align_listlike_arg(new, mask)
-        frame_new = new
+        new = self._align_listlike_arg(new)
         if values.ndim == 2:
             # GH#64620 Reorient the read-only inputs to the block's storage
             #  layout and putmask into self.values in place. We must not
@@ -1976,28 +1956,8 @@ class EABackedBlock(Block):
                 new = new.T
 
         try:
-            if (
-                isinstance(new, (np.ndarray, ExtensionArray))
-                and new.ndim == 1
-                and len(new) == mask.sum()
-            ):
-                # One entry per selected position rather than one per row.
-                #  This is the EA analogue of the np.place call that
-                #  putmask_without_repeat makes for numpy dtypes; EA._putmask
-                #  itself takes only a full-length value.
-                if values.ndim == 2:
-                    # np.place consumes the value in the frame's row-major
-                    #  order, and this block stores (ncols, nrows) (GH#63842)
-                    block_rows, block_cols = np.nonzero(mask)
-                    frame_order = np.argsort(
-                        block_cols * mask.shape[0] + block_rows, kind="stable"
-                    )
-                    reordered = np.empty(len(new), dtype=np.intp)
-                    reordered[frame_order] = np.arange(len(new))
-                    new = new[reordered]
-                values[mask] = new
-            else:
-                values._putmask(mask, new)
+            # Caller is responsible for ensuring matching lengths
+            values._putmask(mask, new)
         except OutOfBoundsDatetime:
             raise
         except (TypeError, ValueError):
@@ -2019,24 +1979,14 @@ class EABackedBlock(Block):
 
             else:
                 # Same pattern we use in Block.putmask
-                is_array = isinstance(frame_new, (np.ndarray, ExtensionArray))
-                per_position = (
-                    is_array
-                    and frame_new.ndim == 1
-                    and len(frame_new) == orig_mask.sum()
-                )
-                if per_position:
-                    # one entry per selected position, in row-major order
-                    _, mask_cols = np.nonzero(orig_mask)
+                is_array = isinstance(orig_new, (np.ndarray, ExtensionArray))
 
                 res_blocks = []
                 for i, nb in enumerate(self._split()):
-                    n = frame_new
-                    if per_position:
-                        n = frame_new[mask_cols == i]
-                    elif is_array:
+                    n = orig_new
+                    if is_array:
                         # we have a different value per-column
-                        n = frame_new[:, i : i + 1]
+                        n = orig_new[:, i : i + 1]
 
                     submask = orig_mask[:, i : i + 1]
                     rbs = nb.putmask(submask, n)
