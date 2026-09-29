@@ -1036,8 +1036,8 @@ def _warn_complex_median(func: F) -> F:
     return cast("F", wrapper)
 
 
-@_warn_complex_median
 @_ensure_numeric_input
+@_warn_complex_median
 @bottleneck_switch()
 def nanmedian(
     values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None

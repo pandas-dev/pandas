@@ -328,4 +328,6 @@ def test_complex_median_deprecated(complex_dtype, use_bottleneck):
         df = ser.to_frame()
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.median()
-        tm.assert_series_equal(result, pd.Series([2 + 3j], index=[0], dtype=complex_dtype))
+        tm.assert_series_equal(
+            result, pd.Series([2 + 3j], index=[0], dtype=complex_dtype)
+        )
