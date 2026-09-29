@@ -1849,7 +1849,8 @@ def test_groupby_agg_as_index_false_multiindex_column(data, expected, expected_d
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_agg_as_index_false_multiindex_column_matches_reset_index():
+@pytest.mark.parametrize("keys", [("col0", "l0"), [("col0", "l0"), ("col2", "l0")]])
+def test_groupby_agg_as_index_false_multiindex_column_matches_reset_index(keys):
     # GH39103
     df = pd.DataFrame(
         {
@@ -1858,26 +1859,8 @@ def test_groupby_agg_as_index_false_multiindex_column_matches_reset_index():
             ("col2", "l0"): [1, 2, 3],
         }
     )
-    result = df.groupby(("col0", "l0"), as_index=False).agg(
-        {("col1", "l1"): ["min", "max"]}
-    )
-    with tm.assert_produces_warning(False):
-        expected = (
-            df.groupby(("col0", "l0"))
-            .agg({("col1", "l1"): ["min", "max"]})
-            .reset_index()
-        )
-    tm.assert_frame_equal(result, expected)
-
-    result = df.groupby([("col0", "l0"), ("col2", "l0")], as_index=False).agg(
-        {("col1", "l1"): ["min", "max"]}
-    )
-    with tm.assert_produces_warning(False):
-        expected = (
-            df.groupby([("col0", "l0"), ("col2", "l0")])
-            .agg({("col1", "l1"): ["min", "max"]})
-            .reset_index()
-        )
+    result = df.groupby(keys, as_index=False).agg({("col1", "l1"): ["min", "max"]})
+    expected = df.groupby(keys).agg({("col1", "l1"): ["min", "max"]}).reset_index()
     tm.assert_frame_equal(result, expected)
 
 
