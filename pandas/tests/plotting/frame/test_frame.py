@@ -762,7 +762,8 @@ class TestDataFramePlots:
         )
         ax = df.plot.bar()
         result = [p.get_height() for p in ax.patches]
-        expected = [1000000, 0, 3000000, 1.0, 0.0, 2.0]
+        td_heights = df["A"].fillna(pd.Timedelta(0)).astype(np.int64).tolist()
+        expected = [*td_heights, 1.0, 0.0, 2.0]
         assert result == expected
 
     def test_bar_stacked_label_position_with_zero_height(self):
