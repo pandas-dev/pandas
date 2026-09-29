@@ -156,13 +156,11 @@ def _warn_if_out_of_bounds(value, dtype: BaseMaskedDtype) -> None:
     #  demote the python-int bounds and let np.float64(2**64) through for UInt64.
     low, high = _integer_bounds(dtype.numpy_dtype)
     if not low <= int(value) <= high:
-        # Not "will raise": Index.where/putmask/fillna catch the eventual
-        #  TypeError and widen instead.
         warnings.warn(
             f"Setting the out-of-bounds value {value!s} into an array of dtype "
             f"{dtype} is deprecated: it is currently stored altered to fit, and "
-            "the behavior will change in a future version. Cast the array to a "
-            "dtype that can hold the value first.",
+            "will raise in a future version, as a python integer already does. "
+            "Cast the array to a dtype that can hold the value first.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
