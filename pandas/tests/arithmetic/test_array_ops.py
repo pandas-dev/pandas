@@ -273,7 +273,7 @@ def test_arrow_arith_does_not_consume_iterator(dtype, box):
     assert list(other), "the iterator was consumed instead of treated as a scalar"
 
 
-def test_arrow_logical_op_iterator_raises_arrow_invalid():
+def test_arrow_logical_op_iterator_raises():
     # GH#31646 an iterator is reported the way any other unboxable scalar is
     pa = pytest.importorskip("pyarrow")
     arr = pd.array([True, False, True], dtype="bool[pyarrow]")
