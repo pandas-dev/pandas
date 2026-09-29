@@ -274,11 +274,28 @@ cmd = [
   "{{ pytest_target }}",
 ]
 
+[tasks.ci-test-c-coverage]
+# Serial: pytest-xdist kills workers that take over 10s to exit, and a killed
+# worker never writes its gcov data. No --cov; the other jobs report Python coverage.
+cmd = [
+  "python",
+  "-m",
+  "pytest",
+  "-r",
+  "fE",
+  "-m",
+  "not db and not network and not single_cpu",
+  "--capture=no",
+  "pandas",
+]
+default-environment = "c-coverage"
+
 [tasks.ci-c-coverage]
 # Reports coverage of the hand-written C/C++ after testing a -Db_coverage=true
 # build; Cython's generated C is excluded. gcov must match the compiler version,
-# so use the environment's rather than the system one.
-cmd = "gcovr --root . --gcov-executable $CONDA_PREFIX/bin/gcov --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary build/$PIXI_ENVIRONMENT_NAME"
+# so use the environment's rather than the system one. The floor catches lost
+# gcov data, which otherwise uploads silently as a near-zero report.
+cmd = "gcovr --root . --gcov-executable $CONDA_PREFIX/bin/gcov --filter pandas/_libs/src/ --filter pandas/_libs/include/ --filter pandas/_libs/simd/ --cobertura coverage-c.xml --print-summary --fail-under-line 50 build/$PIXI_ENVIRONMENT_NAME"
 default-environment = "c-coverage"
 
 [tasks.ci-doctests]

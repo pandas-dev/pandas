@@ -461,12 +461,13 @@ jobs:
             -Csetup-args="-Db_coverage=true"
 
       - name: Test
-        uses: ./.github/actions/run-tests
-        with:
-          environment: c-coverage
-          numprocesses: "auto"
-          pytest_marker_expression: "not db and not network and not single_cpu"
-          pytest_target: "pandas"
+        env:
+          MESONPY_EDITABLE_VERBOSE: 1
+          PYTHONDEVMODE: 1
+          PYTHONWARNDEFAULTENCODING: 1
+          # Clipboard tests
+          QT_QPA_PLATFORM: offscreen
+        run: pixi run --environment c-coverage ci-test-c-coverage
 
       - name: Collect C/C++ coverage
         id: collect
