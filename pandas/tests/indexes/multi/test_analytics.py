@@ -288,3 +288,20 @@ def test_map_multiindex_mixed_length_tuple_dict_keys():
     # raise -- the minimal repro reduced by the maintainer
     result_none = mi.map({("a",): "xA", ("z", "z1"): "zz"})
     tm.assert_index_equal(result_none, pd.Index([np.nan, np.nan, np.nan]))
+
+
+@pytest.mark.parametrize("width", [1, 3])
+def test_map_tuples_changing_nlevels_drops_names(width):
+    # GH#24800
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    result = mi.map(lambda tup: (tup[0],) * width)
+    expected = pd.MultiIndex.from_tuples([("a",) * width, ("b",) * width])
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_tuples_same_nlevels_keeps_names():
+    # GH#24800
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    result = mi.map(lambda tup: (tup[1], tup[0]))
+    expected = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
+    tm.assert_index_equal(result, expected)
