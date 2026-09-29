@@ -313,3 +313,19 @@ def test_map_tuples_same_nlevels_keeps_names():
     result = mi.map(lambda tup: (tup[1], tup[0]))
     expected = pd.MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
     tm.assert_index_equal(result, expected)
+
+
+def test_map_tuples_mixed_with_non_tuples_returns_object_index():
+    # GH#24800 non-tuple results must not be split into levels
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+    result = mi.map(lambda tup: tup if tup[0] == "a" else "missing")
+    expected = pd.Index([("a", 1), "missing"], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_dict_missing_keys_to_tuples():
+    # GH#24800
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2), ("c", 3)])
+    result = mi.map({("a", 1): ("p", "q"), ("b", 2): ("r", "s")})
+    expected = pd.MultiIndex.from_tuples([("p", "q"), ("r", "s"), (np.nan, np.nan)])
+    tm.assert_index_equal(result, expected)
