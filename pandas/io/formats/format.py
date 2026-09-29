@@ -1146,13 +1146,9 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-        if na_rep is lib.no_default:
-            na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
-        if na_rep is lib.no_default:
-            na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
@@ -1375,6 +1371,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
+        # FloatArrayFormatter resolves the sentinel to "NaN" in __init__
+        assert self.na_rep is not lib.no_default
+        na_rep: str = self.na_rep
 
         def format_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
@@ -1419,7 +1418,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return np.array(formatted_lst).reshape(values.shape)
 
         if self.formatter is not None:
-            return format_with_na_rep(self.values, self.formatter, self.na_rep)
+            return format_with_na_rep(self.values, self.formatter, na_rep)
 
         if self.fixed_width:
             threshold = config["display"]["chop_threshold"]
@@ -1432,7 +1431,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
             # default formatter leaves a space to the left when formatting
             # floats, must be consistent for left-justifying NaNs (GH #25061)
-            na_rep = " " + self.na_rep if self.justify == "left" else self.na_rep
+            local_na_rep = " " + na_rep if self.justify == "left" else na_rep
 
             # different formatting strategies for complex and non-complex data
             # need to distinguish complex and float NaNs (GH #53762)
@@ -1441,9 +1440,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
             # separate the wheat from the chaff
             if is_complex:
-                values = format_complex_with_na_rep(values, formatter, na_rep)
+                values = format_complex_with_na_rep(values, formatter, local_na_rep)
             else:
-                values = format_with_na_rep(values, formatter, na_rep)
+                values = format_with_na_rep(values, formatter, local_na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1522,11 +1521,13 @@ class _Datetime64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: DatetimeArray,
-        na_rep: str = "NaT",
+        na_rep: str | lib.NoDefault = lib.no_default,
         date_format: None = None,
         **kwargs,
     ) -> None:
         super().__init__(values, na_rep=na_rep, **kwargs)
+        if self.na_rep is lib.no_default:
+            self.na_rep = "NaT"
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
@@ -1535,6 +1536,7 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         if self.formatter is not None:
             return [self.formatter(x) for x in values]
 
+        assert self.na_rep is not lib.no_default
         fmt_values = values._format_native_types(
             na_rep=self.na_rep, date_format=self.date_format
         )
@@ -1694,12 +1696,15 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: TimedeltaArray,
-        na_rep: str = "NaT",
+        na_rep: str | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> None:
         super().__init__(values, na_rep=na_rep, **kwargs)
+        if self.na_rep is lib.no_default:
+            self.na_rep = "NaT"
 
     def _format_strings(self) -> list[str]:
+        assert self.na_rep is not lib.no_default
         formatter = self.formatter or get_format_timedelta64(
             self.values, na_rep=self.na_rep, box=False
         )
