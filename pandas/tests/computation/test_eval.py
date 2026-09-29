@@ -2344,3 +2344,13 @@ def test_not_object_returns_bool():
     result = df.eval("not x", engine="python")
     expected = pd.Series([False, True, True, False], name="x")
     tm.assert_series_equal(result, expected)
+
+
+def test_eval_inplace_object_column_no_loc_warning():
+    # GH#52593 only the inplace deprecation warns, not the .loc object-dtype one
+    df = pd.DataFrame({"A": ["1", "2"], "B": [3, 4]}).astype({"A": object})
+    msg = "The inplace keyword in DataFrame.eval is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.eval("A = B + 1", inplace=True)
+    expected = pd.DataFrame({"A": [4, 5], "B": [3, 4]}).astype({"A": object})
+    tm.assert_frame_equal(df, expected)
