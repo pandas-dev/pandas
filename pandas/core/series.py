@@ -1628,7 +1628,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,
@@ -1649,8 +1649,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         buf : StringIO-like, optional
             Buffer to write to.
-        na_rep : str, default 'NaN'
-            String representation of NaN to use.
+        na_rep : str, optional
+            String representation of missing values to use. If not specified,
+            each type of missing value uses its default representation.
         float_format : one-parameter function, optional
             Formatter function to apply to columns' elements if they are
             floats, default None.

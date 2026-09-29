@@ -142,7 +142,7 @@ class SeriesFormatter:
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         name: bool = False,
         float_format: str | None = None,
         dtype: bool = True,
@@ -377,8 +377,8 @@ class DataFrameFormatter:
         it is assumed to be aliases for the column names.
     index : bool, optional, default True
         Whether to print index (row) labels.
-    na_rep : str, optional, default 'NaN'
-        String representation of ``NaN`` to use.
+    na_rep : str, optional
+        String representation of missing values to use.
     formatters : list, tuple or dict of one-param. functions, optional
         Formatter functions to apply to columns' elements by position or
         name.
@@ -418,9 +418,6 @@ class DataFrameFormatter:
         Display DataFrame dimensions (number of rows by number of columns).
     decimal : str, default '.'
         Character recognized as decimal separator, e.g. ',' in Europe.
-    missing_rep : str or None, default None
-        String representation of missing values. If None, use the default
-        representation for each missing value type.
 
     Returns
     -------
@@ -436,7 +433,7 @@ class DataFrameFormatter:
         col_space: ColspaceArgType | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
@@ -449,7 +446,6 @@ class DataFrameFormatter:
         decimal: str = ".",
         bold_rows: bool = False,
         escape: bool = True,
-        missing_rep: str | None = None,
     ) -> None:
         self.frame = frame
         self.columns = self._initialize_columns(columns)
@@ -457,7 +453,6 @@ class DataFrameFormatter:
         self.header = header
         self.index = index
         self.na_rep = na_rep
-        self.missing_rep = missing_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
         self.float_format = self._validate_float_format(float_format)
@@ -764,7 +759,6 @@ class DataFrameFormatter:
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
-            missing_rep=self.missing_rep,
             space=self.col_space.get(frame.columns[i]),
             decimal=self.decimal,
             leading_space=self.index,
@@ -1100,7 +1094,7 @@ def format_array(
     values: ArrayLike,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
-    na_rep: str = "NaN",
+    na_rep: str | lib.NoDefault = lib.no_default,
     digits: int | None = None,
     space: str | int | None = None,
     justify: str = "right",
@@ -1108,7 +1102,6 @@ def format_array(
     leading_space: bool | None = True,
     quoting: int | None = None,
     fallback_formatter: Callable | None = None,
-    missing_rep: str | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1132,9 +1125,6 @@ def format_array(
         (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
-    missing_rep : str or None, default None
-        String representation of missing values. If None, use the default
-        representation for each missing value type.
 
     Returns
     -------
@@ -1144,12 +1134,12 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-        if na_rep == "NaN" and missing_rep is None:
+        if na_rep is lib.no_default:
             na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
-        if na_rep == "NaN" and missing_rep is None:
+        if na_rep is lib.no_default:
             na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
@@ -1173,7 +1163,6 @@ def format_array(
         values,
         digits=digits,
         na_rep=na_rep,
-        missing_rep=missing_rep,
         float_format=float_format,
         formatter=formatter,
         space=space,
@@ -1193,7 +1182,7 @@ class _GenericArrayFormatter:
         values: ArrayLike,
         digits: int = 7,
         formatter: Callable | None = None,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
         justify: str = "right",
@@ -1202,12 +1191,10 @@ class _GenericArrayFormatter:
         fixed_width: bool = True,
         leading_space: bool | None = True,
         fallback_formatter: Callable | None = None,
-        missing_rep: str | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
         self.na_rep = na_rep
-        self.missing_rep = missing_rep
         self.space = space
         self.formatter = formatter
         self.float_format = float_format
@@ -1248,15 +1235,15 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if self.missing_rep is not None:
-                    return self.missing_rep
+                if self.na_rep is not lib.no_default:
+                    return self.na_rep
                 elif x is None:
                     return "None"
                 elif x is NA:
                     return str(NA)
                 elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
                     return "NaT"
-                return self.na_rep
+                return "NaN"
             elif isinstance(x, PandasObject):
                 return str(x)
             else:
@@ -1299,6 +1286,9 @@ class _GenericArrayFormatter:
 class FloatArrayFormatter(_GenericArrayFormatter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        if self.na_rep is lib.no_default:
+            self.na_rep = "NaN"
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
@@ -1559,7 +1549,6 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             float_format=self.float_format,
             na_rep=self.na_rep,
             digits=self.digits,
-            missing_rep=self.missing_rep,
             space=self.space,
             justify=self.justify,
             decimal=self.decimal,

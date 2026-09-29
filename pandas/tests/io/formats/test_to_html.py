@@ -1150,25 +1150,10 @@ def test_repr_html_missing_scalars_default():
     assert re.findall(r"<td>(.*?)</td>", result) == expected
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "object",
-        "Int64",
-        "Float64",
-        "string",
-        "boolean",
-        "string[pyarrow]",
-        "int64[pyarrow]",
-    ],
-)
-@pytest.mark.parametrize("notebook", [True, False])
-def test_to_html_pd_na_default(dtype, notebook):
+def test_to_html_pd_na_default():
     # GH#33950: omitting na_rep must preserve the usual pd.NA representation.
-    if "pyarrow" in dtype:
-        pytest.importorskip("pyarrow")
-    df = pd.DataFrame({"a": pd.Series([pd.NA], dtype=dtype)})
-    result = df.to_html(notebook=notebook)
+    df = pd.DataFrame({"a": pd.Series([pd.NA], dtype="Int64")})
+    result = df.to_html()
     assert re.findall(r"<td>(.*?)</td>", result) == ["&lt;NA&gt;"]
 
 

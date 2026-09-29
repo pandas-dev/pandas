@@ -773,6 +773,23 @@ class TestDataFrameToString:
         )
         assert result == expected
 
+    def test_to_string_na_rep_extension_dtype(self):
+        # GH#33950: an explicit na_rep applies to pd.NA like other missing values
+        df = pd.DataFrame({"a": [1, pd.NA, 2]}, dtype="Int64")
+        result = df.to_string(na_rep="zzzz")
+        expected = "      a\n0     1\n1  zzzz\n2     2"
+        assert result == expected
+
+        result = df["a"].to_string(na_rep="zzzz")
+        assert "zzzz" in result
+        assert "<NA>" not in result
+
+    def test_to_string_na_rep_default_extension_dtype(self):
+        # GH#33950: omitting na_rep preserves the usual pd.NA representation
+        df = pd.DataFrame({"a": [1, pd.NA, 2]}, dtype="Int64")
+        result = df.to_string()
+        assert "<NA>" in result
+
     def test_to_string_na_rep_datetime_and_timedelta(self):
         # GH#55426
         df = pd.DataFrame(
