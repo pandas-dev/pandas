@@ -4,6 +4,10 @@ Utility functions related to concat.
 
 from __future__ import annotations
 
+from datetime import (
+    datetime,
+    timedelta,
+)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -12,7 +16,11 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    Timedelta,
+    Timestamp,
+    lib,
+)
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import astype_array
@@ -168,8 +176,9 @@ def _category_kind(cat: Any) -> Any:
     are of the same kind.
 
     Plain numbers are one kind, so 1 and 1.0 merge as they do for int64 and
-    float64 categories. Any other type is its own kind, so True and 1, an
-    IntEnum and an int, or a Decimal and an int are kept apart.
+    float64 categories; likewise Timestamp and datetime, Timedelta and
+    timedelta. Any other type is its own kind, so True and 1, an IntEnum and
+    an int, or a Decimal and an int are kept apart.
     """
     cat_type = type(cat)
     if cat_type in _NUMBER_TYPES:
@@ -178,6 +187,10 @@ def _category_kind(cat: Any) -> Any:
         return bool
     if cat_type is np.str_:
         return str
+    if cat_type is Timestamp:
+        return datetime
+    if cat_type is Timedelta:
+        return timedelta
     return cat_type
 
 

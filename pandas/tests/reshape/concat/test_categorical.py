@@ -1,4 +1,7 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timedelta,
+)
 from decimal import Decimal
 from enum import (
     IntEnum,
@@ -757,9 +760,30 @@ def test_union_categories_numpy_and_python_scalars(np_scalar, py_scalar):
     tm.assert_series_equal(result, expected)
 
 
-def test_union_categories_object_dtype_strings_skip_collision_scan():
-    # GH#68440 all-string object-dtype categories cannot collide (str is
-    #  always its own kind), so the per-element scan is skipped
+@pytest.mark.parametrize(
+    "py_scalar, pd_scalar",
+    [
+        (datetime(2020, 1, 1), pd.Timestamp("2020-01-01")),
+        (timedelta(days=1), pd.Timedelta(days=1)),
+    ],
+)
+def test_union_categories_pandas_and_python_datetimelike(py_scalar, pd_scalar):
+    # GH#68440 a Timestamp/Timedelta and its equal Python equivalent are the
+    #  same category
+    s1 = pd.Series(pd.Categorical([py_scalar, "a"]))
+    s2 = pd.Series(pd.Categorical([pd_scalar, "b"]))
+    result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
+    expected = pd.Series(
+        pd.Categorical(
+            [py_scalar, "a", py_scalar, "b"],
+            categories=pd.Index([py_scalar, "a", "b"], dtype=object),
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_union_categories_object_dtype_strings():
+    # GH#68440
     s1 = pd.Series(
         pd.Categorical(
             ["a", "b"], dtype=CategoricalDtype(pd.Index(["a", "b"], dtype=object))
