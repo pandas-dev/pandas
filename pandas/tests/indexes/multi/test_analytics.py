@@ -19,6 +19,19 @@ def test_infer_objects():
     assert result.levels[0].dtype == np.int64
 
 
+def test_infer_objects_level_values_collide():
+    # GH#30517 2**53 + 1 is inferred as float(2**53), duplicating 2**53
+    lev = pd.Index([2**53, 2**53 + 1, 0.5, None], dtype=object)
+    mi = pd.MultiIndex.from_arrays([lev, ["a", "b", "c", "d"]])
+    result = mi.infer_objects()
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([2.0**53, 2.0**53, 0.5, np.nan]), ["a", "b", "c", "d"]]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], pd.Index([0.5, 2.0**53]))
+    assert result.get_loc((2.0**53, "b")) == 1
+
+
 def test_infer_objects_no_object_levels(idx):
     result = idx.infer_objects()
     tm.assert_index_equal(result, idx)

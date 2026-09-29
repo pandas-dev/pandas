@@ -7658,7 +7658,22 @@ class Index(IndexOpsMixin, PandasObject):
             mi = cast("MultiIndex", self)
             if not any(lev.dtype == object for lev in mi.levels):
                 return mi.copy() if copy else mi
-            return mi.set_levels([lev.infer_objects(copy=False) for lev in mi.levels])
+            new_levels = []
+            new_codes = []
+            for lev, level_codes in zip(mi.levels, mi.codes, strict=True):
+                new_lev = lev.infer_objects(copy=False)
+                if not new_lev.is_unique:
+                    # inferred values can collide, e.g. 2**53 + 1 -> float(2**53)
+                    uniq_codes, new_lev = new_lev.factorize()
+                    level_codes = algos.take_nd(uniq_codes, level_codes, fill_value=-1)
+                new_levels.append(new_lev)
+                new_codes.append(level_codes)
+            return type(mi)(
+                levels=new_levels,
+                codes=new_codes,
+                names=mi.names,
+                verify_integrity=False,
+            )
         if self.dtype != object:
             return self.copy() if copy else self
 
