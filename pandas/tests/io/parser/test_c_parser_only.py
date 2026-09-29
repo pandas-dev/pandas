@@ -1929,6 +1929,15 @@ def test_sniff_delimiter_gzip_non_seekable(c_parser_only, encoding):
     tm.assert_frame_equal(result, expected)
 
 
+def test_sniff_delimiter_text_handle_non_ascii(c_parser_only):
+    # GH#9645 non-ASCII text handle larger than one sniffing read
+    parser = c_parser_only
+    data = "a;b\n" + "\u00e9;1\n" * 20_000
+    result = parser.read_csv(StringIO(data), sep=None)
+    expected = pd.DataFrame({"a": ["\u00e9"] * 20_000, "b": [1] * 20_000})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_sniff_delimiter_mid_stream(c_parser_only):
     # GH#9645 a seekable handle is rewound to where it was, not to the start
     parser = c_parser_only
