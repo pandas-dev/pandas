@@ -356,8 +356,8 @@ def _fake_degenerate_sysfs_str(n_cpus):
 def test_physical_cores_linux_degenerate_topology(monkeypatch, n_cpus):
     # Some hypervisors report physical_package_id=0/core_id=0 for every CPU.
     # Collapsing that to 1 physical core would make the guest read serially --
-    # slower than the flat default of 6 -- so it is treated as no
-    # answer at all.  Below 9 CPUs the ratio bound cannot fire, so the
+    # slower than the logical-CPU fallback -- so it is treated as no answer at
+    # all.  Below 9 CPUs the ratio bound cannot fire, so the
     # thread_siblings_list cross-check is the only thing catching the common
     # cloud sizes (GH#66152).
     monkeypatch.setattr(

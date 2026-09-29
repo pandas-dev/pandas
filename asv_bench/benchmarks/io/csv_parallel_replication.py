@@ -87,7 +87,8 @@ WORDS = [
 
 # Shapes match the standalone suite so the ms figures here line up with the
 # PR table.  The comment on each is the speedup that suite measured on an
-# M3 Pro (12 physical cores) for 6 workers -> default workers.
+# M3 Pro (12 physical cores) for 4 workers -> default workers, taken when
+# main's default was 4; the gain over 6 workers is smaller.
 FIXTURES = {
     "float": "1M x 10 float64                        (108 MB, 1.77x)",
     "int": "1M x 10 int64                          (99 MB, 1.78x)",
@@ -306,9 +307,9 @@ class ParallelWorkerSweep:
 
 
 # There is deliberately no `track_` benchmark for the detected core count.
-# One reported the worker count each side dispatches (an honest 6 -> 12), but
-# asv scores every track_ metric as lower-is-better, so a *correct* 6 -> 12
-# rendered as a 2.00x "regression" and made `asv continuous` print
+# One reported the worker count each side dispatches, but asv scores every
+# track_ metric as lower-is-better, so a correct increase rendered as a
+# "regression" and made `asv continuous` print
 # "PERFORMANCE DECREASED" and exit 1 on a run where every timing improved.
 # Worker counts come from the standalone runner's header instead:
 #     python -m asv_bench.benchmarks.io.csv_parallel_replication --fixtures medium
