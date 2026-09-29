@@ -176,9 +176,10 @@ def _category_kind(cat: Any) -> Any:
     are of the same kind.
 
     Plain numbers are one kind, so 1 and 1.0 merge as they do for int64 and
-    float64 categories; likewise Timestamp and datetime, Timedelta and
-    timedelta. Any other type is its own kind, so True and 1, an IntEnum and
-    an int, or a Decimal and an int are kept apart.
+    float64 categories; likewise Timestamp, np.datetime64 and datetime, and
+    Timedelta, np.timedelta64 and timedelta. Any other type is its own kind,
+    so True and 1, an IntEnum and an int, or a Decimal and an int are kept
+    apart.
     """
     cat_type = type(cat)
     if cat_type in _NUMBER_TYPES:
@@ -187,9 +188,9 @@ def _category_kind(cat: Any) -> Any:
         return bool
     if cat_type is np.str_:
         return str
-    if cat_type is Timestamp:
+    if cat_type is Timestamp or cat_type is np.datetime64:
         return datetime
-    if cat_type is Timedelta:
+    if cat_type is Timedelta or cat_type is np.timedelta64:
         return timedelta
     return cat_type
 

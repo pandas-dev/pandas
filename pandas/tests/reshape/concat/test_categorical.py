@@ -761,22 +761,24 @@ def test_union_categories_numpy_and_python_scalars(np_scalar, py_scalar):
 
 
 @pytest.mark.parametrize(
-    "py_scalar, pd_scalar",
+    "other_scalar, pd_scalar",
     [
         (datetime(2020, 1, 1), pd.Timestamp("2020-01-01")),
+        (np.datetime64("2020-01-01"), pd.Timestamp("2020-01-01")),
         (timedelta(days=1), pd.Timedelta(days=1)),
+        (np.timedelta64(1, "D"), pd.Timedelta(days=1)),
     ],
 )
-def test_union_categories_pandas_and_python_datetimelike(py_scalar, pd_scalar):
-    # GH#68440 a Timestamp/Timedelta and its equal Python equivalent are the
-    #  same category
-    s1 = pd.Series(pd.Categorical([py_scalar, "a"]))
+def test_union_categories_datetimelike_scalar_types(other_scalar, pd_scalar):
+    # GH#68440 a Timestamp/Timedelta and its equal Python or NumPy equivalent
+    #  are the same category
+    s1 = pd.Series(pd.Categorical([other_scalar, "a"]))
     s2 = pd.Series(pd.Categorical([pd_scalar, "b"]))
     result = pd.concat([s1, s2], ignore_index=True, union_categories=True)
     expected = pd.Series(
         pd.Categorical(
-            [py_scalar, "a", py_scalar, "b"],
-            categories=pd.Index([py_scalar, "a", "b"], dtype=object),
+            [other_scalar, "a", other_scalar, "b"],
+            categories=pd.Index([other_scalar, "a", "b"], dtype=object),
         )
     )
     tm.assert_series_equal(result, expected)
