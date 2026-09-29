@@ -6014,9 +6014,9 @@ Example of a callable using PostgreSQL `COPY clause
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)

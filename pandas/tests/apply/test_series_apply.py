@@ -395,6 +395,15 @@ def test_agg_evaluate_lambdas(string_series):
     assert result is pd.Series
 
 
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func(func):
+    # GH#39609
+    ser = pd.Series([1, 2], name="a")
+    result = ser.agg(func)
+    expected = pd.Series(index=pd.Index([]), name="a", dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("op_name", ["agg", "apply"])
 def test_with_nested_series(datetime_series, op_name):
     # GH 2316 & GH52123
