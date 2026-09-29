@@ -1,12 +1,16 @@
 import numpy as np
 import pytest
 
+from pandas.compat._optional import import_optional_dependency
+
 import pandas as pd
 
 
 @pytest.fixture(autouse=True)
-def autouse_mpl_cleanup(mpl_cleanup):
-    pass
+def autouse_mpl_cleanup(request):
+    # don't skip without matplotlib; test_backend.py tests that case
+    if import_optional_dependency("matplotlib", errors="ignore") is not None:
+        request.getfixturevalue("mpl_cleanup")
 
 
 @pytest.fixture
