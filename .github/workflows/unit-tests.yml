@@ -461,6 +461,7 @@ jobs:
             -Csetup-args="-Db_coverage=true"
 
       - name: Test
+        # keep in sync with .github/actions/run-tests, which can't be reused because it passes --cov
         env:
           MESONPY_EDITABLE_VERBOSE: 1
           PYTHONDEVMODE: 1
