@@ -553,7 +553,8 @@ class Block(PandasObject, libinternals.Block):
                 return [self.copy(deep=False)]
             res_values = ensure_block_shape(res_values, self.ndim)
             res_values = maybe_coerce_values(res_values)
-            return [self.make_block(res_values)]
+            refs = self.refs if astype_is_view(self.dtype, res_values.dtype) else None
+            return [self.make_block(res_values, refs=refs)]
 
         if infer_objects and self.is_object:
             blks = self.convert()
