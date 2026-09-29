@@ -3062,8 +3062,10 @@ class StringMethods(NoNewAttributesMixin):
         # methods available for making the dummies...
         result, name = self._data.array._str_get_dummies(sep, dtype)
         if is_extension_array_dtype(dtype):
+            # Cast after construction: passing an extension dtype to the
+            # constructor drops the rows when there are no columns.
             return self._wrap_result(
-                DataFrame(result, columns=name, dtype=dtype),
+                DataFrame(result, columns=name).astype(dtype),
                 name=name,
                 returns_string=False,
             )
