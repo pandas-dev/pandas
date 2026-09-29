@@ -580,13 +580,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         axis : int, optional
             Axis for the function to be applied on.
-        dtype, out, keepdims
-            Not implemented; kept for compatibility with :func:`numpy.std`,
-            which calls this method when ``numpy.std(dti)`` is used. Must be
-            left at their default values.
+        dtype : None
+            Unused; for compatibility with :func:`numpy.std`.
+        out : None
+            Not supported; for compatibility with :func:`numpy.std`.
         ddof : int, default 1
             Degrees of Freedom. The divisor used in calculations is `N - ddof`,
             where `N` represents the number of elements.
+        keepdims : bool, default False
+            Not supported; for compatibility with :func:`numpy.std`.
         skipna : bool, default True
             Exclude NA/null values.
 
@@ -799,6 +801,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+            Index with each value rounded to the specified `freq`.
 
         Raises
         ------
@@ -890,6 +893,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+            Index with each value floored to the specified `freq`.
 
         Raises
         ------
@@ -981,6 +985,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+            Index with each value ceiled to the specified `freq`.
 
         Raises
         ------
