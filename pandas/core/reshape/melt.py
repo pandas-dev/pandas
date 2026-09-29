@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -285,7 +288,7 @@ def melt(
 
 @set_module("pandas")
 def lreshape(
-    data: DataFrame, groups: dict[Hashable, list[Hashable]], dropna: bool = True
+    data: DataFrame, groups: dict[Any, list[Any]], dropna: bool = True
 ) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.

@@ -2328,8 +2328,8 @@ class _CrossMergeOperation(_MergeOperation):
         self.right_index = False
         self.indicator = indicator
         self.anti_join = False
-        self.left_on: list[Hashable | AnyArrayLike] = []
-        self.right_on: list[Hashable | AnyArrayLike] = []
+        self.left_on = []
+        self.right_on = []
         self.left_join_keys: list[ArrayLike] = []
         self.right_join_keys: list[ArrayLike] = []
         self.join_names: list[Hashable] = []
