@@ -848,8 +848,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 "Series.values returning an ndarray that drops timezone "
                 "information for DatetimeTZDtype is deprecated. "
                 "In a future version, this will return the underlying "
-                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
-                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                "DatetimeArray instead. Use 'Series.dt.tz_convert(None).to_numpy()' "
+                "to get a NumPy array of UTC values, or 'Series.array' to get the "
+                "ExtensionArray.\n"
+                "See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#whatsnew-310-deprecations-values"
+                " for more details.",
                 Pandas4Warning,
                 # TODO bump this to stacklevel=2 in a future version
                 stacklevel=1,
