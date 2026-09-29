@@ -367,7 +367,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02"], freq="M")
         >>> idx.end_time
         DatetimeIndex(['2023-01-31 23:59:59.999999', '2023-02-28 23:59:59.999999'],
-                       dtype='datetime64[us]', freq=None)
+                      dtype='datetime64[us]', freq=None)
         """
         return DatetimeIndex(self._data.end_time, name=self.name, copy=False)
 
