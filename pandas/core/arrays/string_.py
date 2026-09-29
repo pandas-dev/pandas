@@ -469,7 +469,7 @@ class BaseStringArray(ExtensionArray):
         if not isinstance(result, np.ndarray):
             return result
 
-        if len(result) == 0 or result.dtype.kind == "U":
+        if len(result) == 0:
             return type(self)._from_sequence(result, dtype=self.dtype)
 
         return self._cast_pointwise_result(result)
