@@ -1071,7 +1071,7 @@ def test_difference_datetimelike_vs_parsable_strings(index, sort):
 def test_difference_interval_vs_contained_scalars(sort):
     # GH#58971 a scalar inside an interval is not an element of the IntervalIndex
     index = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
-    other = pd.Index([0.5, 2.0, 3.0])
+    other = pd.Index([0.5, 2.0, 3.0], dtype=object)
 
     result = index.difference(other, sort=sort)
     tm.assert_index_equal(result, index)
