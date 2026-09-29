@@ -31,7 +31,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
-from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.boolean import (
+    BooleanArray,
+    BooleanDtype,
+)
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.integer import Int64Dtype
 from pandas.core.arrays.numeric import NumericDtype
@@ -381,8 +384,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             data = self._pa_array.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
         elif isinstance(dtype, BooleanDtype):
-            # truthiness, matching astype(bool)
-            return dtype.__from_arrow__(pc.not_equal(self._pa_array, ""))
+            return BooleanArray._from_sequence_of_strings(self, dtype=dtype)
         elif isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.floating):
             return self.to_numpy(dtype=dtype, na_value=np.nan)
 

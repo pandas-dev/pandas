@@ -58,6 +58,10 @@ from pandas.core import (
 from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.boolean import (
+    BooleanArray,
+    BooleanDtype,
+)
 from pandas.core.arrays.floating import (
     FloatingArray,
     FloatingDtype,
@@ -924,11 +928,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return isin(np.asarray(self), np.asarray(values))
 
     def astype(self, dtype, copy: bool = True):
-        from pandas.core.arrays.boolean import (
-            BooleanArray,
-            BooleanDtype,
-        )
-
         dtype = pandas_dtype(dtype)
 
         if dtype == self.dtype:
@@ -949,11 +948,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             values = arr_ea.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, BooleanDtype):
-            # truthiness, matching astype(bool)
-            mask = self.isna()
-            arr = self._ndarray.copy()
-            arr[mask] = ""
-            return BooleanArray(arr.astype(bool), mask, copy=False)
+            return BooleanArray._from_sequence_of_strings(self, dtype=dtype)
         elif isinstance(dtype, ExtensionDtype):
             # Skip the NumpyExtensionArray.astype method
             return ExtensionArray.astype(self, dtype, copy)

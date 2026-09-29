@@ -193,7 +193,6 @@ def test_complex_dtype_with_na(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.usefixtures("pyarrow_xfail")
 def test_boolean_dtype(all_parsers):
     parser = all_parsers
     data = "\n".join(

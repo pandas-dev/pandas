@@ -495,7 +495,7 @@ class TestAstypeString:
     @pytest.mark.parametrize(
         "data, dtype",
         [
-            ([True, pd.NA], "boolean"),
+            ([True, False, pd.NA], "boolean"),
             (["A", pd.NA], "category"),
             (["2020-10-10", "2020-10-10"], "datetime64[ns]"),
             (["2020-10-10", "2020-10-10", pd.NaT], "datetime64[ns]"),

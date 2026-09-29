@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_accumulations
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        ArrayLike,
         DtypeObj,
         npt,
         type_t,
@@ -351,7 +352,7 @@ class BooleanArray(BaseMaskedArray):
     @classmethod
     def _from_sequence_of_strings(
         cls,
-        strings: list[str],
+        strings: ArrayLike | list[str],
         *,
         dtype: ExtensionDtype,
         copy: bool = False,
