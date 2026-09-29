@@ -1864,7 +1864,7 @@ class PlotAccessor(PandasObject):
 
         **kwargs
             Additional keyword arguments, such as ``ax``, ``figsize``,
-            ``title`` and ``legend``, are documented in
+            ``title`` and ``grid``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2294,7 +2294,7 @@ class PlotAccessor(PandasObject):
 
         **kwargs
             Additional keyword arguments, such as ``ax``, ``figsize``,
-            ``title`` and ``legend``, are documented in
+            ``title`` and ``grid``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
@@ -2386,7 +2386,7 @@ class PlotAccessor(PandasObject):
             hexagons, pass matplotlib's ``extent`` keyword via ``**kwargs``.
         **kwargs
             Additional keyword arguments, such as ``ax``, ``figsize``,
-            ``title`` and ``legend``, are documented in
+            ``title`` and ``grid``, are documented in
             :meth:`DataFrame.plot`.
 
         Returns
