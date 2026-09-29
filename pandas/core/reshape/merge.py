@@ -2974,13 +2974,15 @@ def _factorize_keys(
                 .dictionary_encode()
             )
 
+            # copy: on 32-bit, intp is int32 and to_numpy is a read-only view
+            # that putmask below would fail on, GH#57523
             llab, rlab, count = (
                 _safe_fill_null(dc.indices[slice(len_lk)], -1)
                 .to_numpy()
-                .astype(np.intp, copy=False),
+                .astype(np.intp),
                 _safe_fill_null(dc.indices[slice(len_lk, None)], -1)
                 .to_numpy()
-                .astype(np.intp, copy=False),
+                .astype(np.intp),
                 len(dc.dictionary),
             )
 
