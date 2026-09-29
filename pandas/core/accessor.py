@@ -212,7 +212,7 @@ class Accessor:
     Parameters
     ----------
     name : str
-        Namespace that will be accessed under, e.g. ``df.foo``.
+        Name of the accessor. Should match the attribute name it is assigned to.
     accessor : type
         Class with the extension methods. Its ``__init__`` receives the
         ``Series``, ``DataFrame`` or ``Index`` the attribute is accessed on.
