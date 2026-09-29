@@ -214,12 +214,6 @@ def coerce_to_array(
 
         values_bool = np.zeros(len(values), dtype=bool)
         values_bool[~mask_values] = values[~mask_values].astype(bool)
-
-        if not np.all(
-            values_bool[~mask_values].astype(values.dtype) == values[~mask_values]
-        ):
-            raise TypeError("Need to pass bool-like values")
-
         values = values_bool
     else:
         values_object = np.asarray(values, dtype=object)
@@ -234,15 +228,6 @@ def coerce_to_array(
         mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))  # type: ignore[redundant-cast]
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
-
-        # if the values were integer-like, validate it were actually 0/1's
-        if (inferred_dtype in integer_like) and not (
-            np.all(
-                values[~mask_values].astype(float)
-                == values_object[~mask_values].astype(float)
-            )
-        ):
-            raise TypeError("Need to pass bool-like values")
 
     if mask is None and mask_values is None:
         mask = np.zeros(values.shape, dtype=bool)

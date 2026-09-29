@@ -101,12 +101,8 @@ def test_to_boolean_array_missing_indicators(a, b):
         ["foo", "bar"],
         ["1", "2"],
         # "foo",
-        [1, 2],
-        [1.0, 2.0],
         pd.date_range("20130101", periods=2),
         np.array(["foo"]),
-        np.array([1, 2]),
-        np.array([1.0, 2.0]),
         [np.nan, {"a": 1}],
     ],
 )
@@ -149,6 +145,27 @@ def test_to_boolean_array_integer_like():
     result = pd.array([1, 0, 1, None], dtype="boolean")
     expected = pd.array([True, False, True, None], dtype="boolean")
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [0, 1, 2],
+        [0.0, 1.0, 0.5],
+        np.array([0, 1, -2]),
+        np.array([0.0, 1.0, 0.5]),
+        pd.array([0, 1, 2], dtype="Int64"),
+        pd.array([0.0, 1.0, 0.5], dtype="Float64"),
+    ],
+)
+def test_to_boolean_array_numeric_truthiness(values):
+    # GH#37614 nonzero values are True, matching np.array(..., dtype=bool)
+    expected = pd.array([False, True, True], dtype="boolean")
+    result = pd.array(values, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = pd.Series(values).astype("boolean")
+    tm.assert_series_equal(result, pd.Series(expected))
 
 
 def test_coerce_to_array():
