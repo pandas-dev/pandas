@@ -707,6 +707,34 @@ def test_series_groupby_as_index_false_keys(index, kwargs, name):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "index, kwargs",
+    [
+        (None, {"by": pd.Series([1, 1, 2, 2], name="val")}),
+        (None, {"by": pd.Series([1, 1, 2, 3], name="val")}),
+        (pd.Index(list("xxyy"), name="val"), {"level": 0}),
+    ],
+)
+@pytest.mark.parametrize(
+    "method, args",
+    [
+        ("sum", ()),
+        ("quantile", ([0.5],)),
+        ("apply", (lambda x: x.sum(),)),
+        ("value_counts", ()),
+    ],
+)
+def test_series_groupby_as_index_false_name_collision(index, kwargs, method, args):
+    # GH#36507 a group label named like the Series raises, matching reset_index
+    ser = pd.Series([1, 1, 2, 3], index=index, name="val")
+    gb = ser.groupby(as_index=False, **kwargs)
+    msg = "cannot insert val, already exists"
+    with pytest.raises(ValueError, match=msg):
+        getattr(gb, method)(*args)
+    with pytest.raises(ValueError, match=msg):
+        getattr(ser.groupby(**kwargs), method)(*args).reset_index()
+
+
 def test_groupby_multiple_key():
     df = pd.DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
