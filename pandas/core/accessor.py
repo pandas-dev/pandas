@@ -200,24 +200,44 @@ def delegate_names(
     return add_delegate_accessors
 
 
+@set_module("pandas.api.extensions")
 class Accessor:
     """
-    Custom property-like object.
+    Descriptor that exposes an accessor class as an attribute namespace.
 
-    A descriptor for accessors.
+    The ``register_*_accessor`` decorators use this to attach accessors.
+    Use it directly to add or override an accessor on a single class, such as
+    a subclass of :class:`DataFrame`, without changing any other class.
 
     Parameters
     ----------
     name : str
         Namespace that will be accessed under, e.g. ``df.foo``.
-    accessor : cls
-        Class with the extension methods.
+    accessor : type
+        Class with the extension methods. Its ``__init__`` receives the
+        ``Series``, ``DataFrame`` or ``Index`` the attribute is accessed on.
+        A new instance is created on every attribute access.
 
-    Notes
-    -----
-    For accessor, The class's __init__ method assumes that one of
-    ``Series``, ``DataFrame`` or ``Index`` as the
-    single argument ``data``.
+    See Also
+    --------
+    register_dataframe_accessor : Register a custom accessor on DataFrame objects.
+    register_series_accessor : Register a custom accessor on Series objects.
+    register_index_accessor : Register a custom accessor on Index objects.
+
+    Examples
+    --------
+    Override ``plot`` on a DataFrame subclass only:
+
+    >>> class MyPlotAccessor:
+    ...     def __init__(self, pandas_obj):
+    ...         self._obj = pandas_obj
+    ...
+    ...     def __call__(self):
+    ...         return f"plotting {len(self._obj)} rows"
+    >>> class MyFrame(pd.DataFrame):
+    ...     plot = pd.api.extensions.Accessor("plot", MyPlotAccessor)
+    >>> MyFrame({"a": [1, 2]}).plot()
+    'plotting 2 rows'
     """
 
     def __init__(self, name: str, accessor) -> None:
@@ -236,7 +256,7 @@ def __getattr__(name: str):
         # Alias kept for downstream libraries
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
-            "Use pandas.core.accessor.Accessor instead.",
+            "Use pandas.api.extensions.Accessor instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )

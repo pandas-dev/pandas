@@ -343,6 +343,7 @@ class TestApi(Base):
         "VariableOffsetWindowIndexer",
     ]
     allowed_api_extensions = [
+        "Accessor",
         "no_default",
         "ExtensionDtype",
         "register_extension_dtype",
