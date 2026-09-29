@@ -153,6 +153,10 @@ backticks. The following are considered inline code:
         bar = 2
         return foo + bar
 
+When referring to missing values in general, use "NA". Use ``NaN`` or ``NaT``
+only for that specific value, e.g. "Check for missing (NA) values. The values
+``NaN`` and ``NaT`` are considered missing."
+
 .. _docstring.short_summary:
 
 Section 1: short summary
@@ -253,7 +257,7 @@ extended summary.
         The index level will be automatically removed from the index when added
         as columns.
 
-        Refer to the :ref:`User Guide <reshaping.stacking>` for more examples.
+        See the :ref:`user guide <reshaping.stacking>` for more.
         """
         pass
 
@@ -401,6 +405,12 @@ DataFrame:
 * pandas.Categorical
 * pandas.arrays.SparseArray
 
+For row or column labels, use label rather than ``str``, since labels need not
+be strings:
+
+* label
+* label or list of labels
+
 If the exact type is not relevant, but must be compatible with a NumPy
 array, array-like can be specified. If Any type that can be iterated is
 accepted, iterable can be used:
@@ -430,8 +440,8 @@ description instead:
     """
     Returns
     -------
-    Axes
-        The :class:`matplotlib.axes.Axes` the plot was drawn on.
+    matplotlib.axes.Axes
+        The :class:`~matplotlib.axes.Axes` the plot was drawn on.
     """
 
 .. _docstring.returns:
