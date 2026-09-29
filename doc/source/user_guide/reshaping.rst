@@ -481,6 +481,16 @@ The values can be cast to a different type using the ``dtype`` argument.
 
     pd.get_dummies(df, dtype=np.float32).dtypes
 
+A categorical input gets one column per category, including categories absent
+from the data. To get a consistent set of columns, e.g. between training and
+test data, set the categories first:
+
+.. ipython:: python
+
+    s = pd.Series(pd.Categorical(list("aca"), categories=["a", "b", "c"]))
+
+    pd.get_dummies(s)
+
 :func:`~pandas.from_dummies` converts the output of :func:`~pandas.get_dummies` back into
 a :class:`Series` of categorical values from indicator values.
 
