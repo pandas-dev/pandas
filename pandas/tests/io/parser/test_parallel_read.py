@@ -785,12 +785,9 @@ def test_parallel_on_by_default(tmp_path, monkeypatch, platform_name):
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-    # Pin the default so the test does not depend on the host's actual core
-    # count, or on how many CPUs a container/affinity mask leaves the runner:
-    # either one would give _n_workers == 1 and skip the parallel path.  Patch
-    # the detectors rather than os.cpu_count, which _default_n_workers does not
-    # consult -- and which would let the real, lru_cached physical_core_count()
-    # run and cache a host-dependent value for the rest of the session.
+    # Pin the default so the test does not depend on the host's core count or
+    # CPU allocation, and so the real lru_cached physical_core_count() does not
+    # cache a host-dependent value for the session.
     monkeypatch.setattr(_readers, "physical_core_count", lambda: 4)
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
@@ -913,7 +910,6 @@ class TestDefaultNWorkers:
     @pytest.mark.parametrize("platform_name", ["linux", "win32"])
     def test_max_threads_wins(self, monkeypatch, platform_name):
         monkeypatch.setattr(_readers.sys, "platform", platform_name)
-        monkeypatch.setattr(_readers, "physical_core_count", lambda: 6)
         with pd.option_context("mode.max_threads", 3):
             assert _default_n_workers() == 3
 
