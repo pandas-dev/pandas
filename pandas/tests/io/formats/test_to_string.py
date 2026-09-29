@@ -44,9 +44,9 @@ class TestDataFrameToStringFormatters:
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
         expected = dedent(
             """\
-                  a     b
-            0  0.12  1.00
-            1  1.12  2.00"""
+                 a    b
+            0 0.12 1.00
+            1 1.12 2.00"""
         )
         assert result == expected
 
@@ -81,11 +81,12 @@ class TestDataFrameToStringFormatters:
         ]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=list(zip(*formatters, strict=True))[1])
+        # GH#26002 no extra leading space for the object column
         assert result == (
-            "  int  float    object\n"
-            "0 0x1 [ 1.0]  -(1, 2)-\n"
-            "1 0x2 [ 2.0]    -True-\n"
-            "2 0x3 [ 3.0]   -False-"
+            "  int  float   object\n"
+            "0 0x1 [ 1.0] -(1, 2)-\n"
+            "1 0x2 [ 2.0]   -True-\n"
+            "2 0x3 [ 3.0]  -False-"
         )
         assert result == result2
 

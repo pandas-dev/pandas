@@ -942,7 +942,7 @@ def test_select_dtypes_ea_class_datetimetz():
 
 @pytest.mark.parametrize("spec", ["datetimetz", "datetime64tz"])
 @pytest.mark.parametrize("arg", ["include", "exclude"])
-def test_select_dtypes_datetimetz_string_deprecated(spec, arg):
+def test_select_dtypes_datetimetz_string(spec, arg):
     # GH#24558
     df = pd.DataFrame(
         {
@@ -950,37 +950,23 @@ def test_select_dtypes_datetimetz_string_deprecated(spec, arg):
             "b": pd.date_range("2016-01-01", periods=2),
         }
     )
-    msg = f"Passing {spec!r} to select_dtypes is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+    with tm.assert_produces_warning(None):
         result = df.select_dtypes(**{arg: spec})
     expected = df[["a"]] if arg == "include" else df[["b"]]
     tm.assert_frame_equal(result, expected)
 
-    # the recommended replacement selects the same columns
-    with tm.assert_produces_warning(None):
-        alt = df.select_dtypes(**{arg: pd.DatetimeTZDtype})
+    # the class spec selects the same columns
+    alt = df.select_dtypes(**{arg: pd.DatetimeTZDtype})
     tm.assert_frame_equal(alt, expected)
 
 
-@pytest.mark.parametrize("spec", ["datetimetz", "datetime64tz"])
-def test_select_dtypes_datetimetz_string_deprecated_ndarray_message(spec):
-    # GH#24558: an ndarray spec yields np.str_ elements, which must not reach
-    # the warning as np.str_('datetimetz')
-    df = pd.DataFrame({"a": pd.date_range("2016-01-01", periods=2, tz="UTC")})
-    msg = f"Passing {spec!r} to select_dtypes is deprecated"
-    with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = df.select_dtypes(include=np.array([spec]))
-    tm.assert_frame_equal(result, df)
-
-
 def test_select_dtypes_datetimetz_string_overlaps_class():
-    # GH#24558: the deprecated string and its replacement resolve to the same
-    # spec, so contradictory include/exclude is caught rather than silently
+    # GH#24558: the string and the class resolve to the same spec, so
+    # contradictory include/exclude is caught rather than silently
     # returning an empty frame
     df = pd.DataFrame({"a": pd.date_range("2016-01-01", periods=2, tz="UTC")})
     with pytest.raises(ValueError, match="include and exclude overlap"):
-        with tm.assert_produces_warning(Pandas4Warning, match="is deprecated"):
-            df.select_dtypes(include="datetimetz", exclude=pd.DatetimeTZDtype)
+        df.select_dtypes(include="datetimetz", exclude=pd.DatetimeTZDtype)
 
 
 def test_select_dtypes_period_string_raises():

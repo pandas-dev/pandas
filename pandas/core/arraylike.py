@@ -23,6 +23,7 @@ from pandas.core.dtypes.generic import ABCNDFrame
 from pandas.core import roperator
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.invalid import disallow_datetimelike_logical_ufunc
 
 REDUCTION_ALIASES = {
     "maximum": "max",
@@ -291,6 +292,8 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     cls = type(self)
 
+    disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
     kwargs = _standardize_out_kwarg(**kwargs)
 
     # for binary ops, use our custom dunder methods
@@ -336,18 +339,31 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             raise NotImplementedError(
                 f"Cannot apply ufunc {ufunc} to mixed DataFrame and Series inputs."
             )
-        axes = self.axes
-        for obj in alignable[1:]:
-            # this relies on the fact that we aren't handling mixed
-            # series / frame ufuncs.
-            for i, (ax1, ax2) in enumerate(zip(axes, obj.axes, strict=True)):
-                axes[i] = ax1.union(ax2)
+        if len(alignable) == 2:
+            # use align rather than union+reindex to support duplicate
+            #  labels, matching the dunder ops, see GH#54416
+            left, right = alignable[0].align(alignable[1], join="outer")
+            aligned = iter([left, right])
+            inputs = tuple(
+                next(aligned) if issubclass(t, NDFrame) else x
+                for x, t in zip(inputs, types, strict=True)
+            )
+            axes = left.axes
+        else:
+            axes = self.axes
+            for obj in alignable[1:]:
+                # this relies on the fact that we aren't handling mixed
+                # series / frame ufuncs.
+                for i, (ax1, ax2) in enumerate(zip(axes, obj.axes, strict=True)):
+                    axes[i] = ax1.union(ax2)
+            inputs = tuple(
+                x.reindex(**dict(zip(self._AXIS_ORDERS, axes, strict=True)))
+                if issubclass(t, NDFrame)
+                else x
+                for x, t in zip(inputs, types, strict=True)
+            )
 
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes, strict=True))
-        inputs = tuple(
-            x.reindex(**reconstruct_axes) if issubclass(t, NDFrame) else x
-            for x, t in zip(inputs, types, strict=True)
-        )
     else:
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes, strict=True))
 

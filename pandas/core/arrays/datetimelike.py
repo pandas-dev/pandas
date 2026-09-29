@@ -1669,8 +1669,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -2497,6 +2496,9 @@ def ensure_arraylike_for_datetimelike(
         #  e.g. the categories are timedelta64s
         data = data.categories.take(data.codes, allow_fill=True, fill_value=NaT)._values
         copy = False
+
+    if data.ndim == 0:
+        raise ValueError(f"Cannot construct {cls_name} from 0-dim input")
 
     return data, copy
 

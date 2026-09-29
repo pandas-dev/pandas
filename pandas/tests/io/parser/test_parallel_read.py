@@ -829,14 +829,14 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
 
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is capped at 4, regardless of core count."""
+    """The default worker count is capped at 6, regardless of core count."""
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # More cores than the cap: the default should clamp down to 4.
+    # More cores than the cap: the default should clamp down to 6.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
-    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
+    # Otherwise a CI runner with fewer than 6 usable CPUs clamps below the cap
     # and this test measures the runner, not the cap.
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
@@ -849,7 +849,7 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     pd.read_csv(path)
-    assert workers == [4]
+    assert workers == [6]
 
     # An explicit mode.max_threads still overrides the cap.
     workers.clear()
@@ -871,10 +871,10 @@ class TestDefaultNWorkers:
         "cpu_count, available, expected",
         [
             (2, None, 2),  # unconstrained, below the cap -> logical CPU count
-            (16, None, 4),  # cap binds
+            (16, None, 6),  # cap binds
             (16, 1, 1),  # single-CPU container
             (16, 2, 2),  # cgroup/affinity tighter than the cap
-            (16, 8, 4),  # allocation looser than the cap -> cap still binds
+            (16, 8, 6),  # allocation looser than the cap -> cap still binds
             (2, 8, 2),  # allocation looser than the machine
         ],
     )
@@ -883,7 +883,7 @@ class TestDefaultNWorkers:
     ):
         # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS),
         # on every threaded platform.
-        assert _readers._MAX_DEFAULT_WORKERS == 4
+        assert _readers._MAX_DEFAULT_WORKERS == 6
         monkeypatch.setattr(_readers.sys, "platform", platform_name)
         monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
         monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)

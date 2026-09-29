@@ -78,6 +78,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
     notna,
@@ -1748,6 +1749,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         sparse_dtype = SparseDtype(data.dtype, fill_value)
         return cls._simple_new(data, sp_index, sparse_dtype)
 
+    def insert(self, loc: int, item) -> Self:
+        if not is_valid_na_for_dtype(item, self.dtype):
+            # GH#69028 our _from_sequence casts to the subtype instead of
+            #  raising, so validate here; Index.insert widens on the raise
+            if not _can_hold_for_fill(self.dtype.subtype, item):
+                raise TypeError(f"Invalid value '{item!s}' for dtype '{self.dtype}'")
+        return super().insert(loc, item)
+
     def astype(self, dtype: AstypeArg | None = None, copy: bool = True):
         """
         Change the dtype of a SparseArray.
@@ -1962,8 +1971,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
@@ -2807,6 +2815,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
+        #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         for x in inputs + out:
