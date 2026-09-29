@@ -170,10 +170,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         The category codes of this categorical index.
 
         Codes are an array of integers which are the positions of the actual
-        values in the categories array.
-
-        There is no setter, use the other categorical methods and the normal item
-        setter to change values in the categorical.
+        values in the categories array. There is no setter.
 
         Returns
         -------
@@ -200,22 +197,17 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     @property
     def categories(self) -> Index:
         """
-        The categories of this categorical.
-
-        Raises
-        ------
-        ValueError
-            If the new categories do not validate as categories or if the
-            number of new categories is unequal the number of old categories
+        The categories of this CategoricalIndex.
 
         See Also
         --------
-        rename_categories : Rename categories.
-        reorder_categories : Reorder categories.
-        add_categories : Add new categories.
-        remove_categories : Remove the specified categories.
-        remove_unused_categories : Remove categories which are not used.
-        set_categories : Set the categories to the specified ones.
+        CategoricalIndex.rename_categories : Rename categories.
+        CategoricalIndex.reorder_categories : Reorder categories.
+        CategoricalIndex.add_categories : Add new categories.
+        CategoricalIndex.remove_categories : Remove the specified categories.
+        CategoricalIndex.remove_unused_categories : Remove categories which
+            are not used.
+        CategoricalIndex.set_categories : Set the categories to the specified ones.
 
         Examples
         --------
@@ -551,7 +543,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Returns
         -------
         CategoricalIndex
-            New categories to be used, with optional ordering changes.
+            CategoricalIndex with the new categories.
 
         Raises
         ------
@@ -590,7 +582,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def as_ordered(self) -> Self:
         """
-        Set the Categorical to be ordered.
+        Set the CategoricalIndex to be ordered.
 
         This method returns a new CategoricalIndex with the ordered attribute
         set to True, enabling comparison operations between categories.
@@ -618,7 +610,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def as_unordered(self) -> Self:
         """
-        Set the Categorical to be unordered.
+        Set the CategoricalIndex to be unordered.
 
         This method returns a new CategoricalIndex with the ordered attribute
         set to False, disabling comparison operations between categories.
@@ -646,9 +638,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def min(self, *, skipna: bool = True, **kwargs: Any) -> Any:  # type: ignore[override]
         """
-        Return the minimum value of the Categorical.
+        Return the minimum value of the CategoricalIndex.
 
-        Only ordered `Categoricals` have a minimum!
+        Only an ordered CategoricalIndex has a minimum.
 
         Parameters
         ----------
@@ -665,11 +657,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Raises
         ------
         TypeError
-            If the `Categorical` is not `ordered`.
+            If the CategoricalIndex is not ordered.
 
         See Also
         --------
-        CategoricalIndex.max : Return the maximum value of the object.
+        CategoricalIndex.max : Return the maximum value of the CategoricalIndex.
 
         Examples
         --------
@@ -681,9 +673,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def max(self, *, skipna: bool = True, **kwargs: Any) -> Any:  # type: ignore[override]
         """
-        Return the maximum value of the Categorical.
+        Return the maximum value of the CategoricalIndex.
 
-        Only ordered `Categoricals` have a maximum!
+        Only an ordered CategoricalIndex has a maximum.
 
         Parameters
         ----------
@@ -700,11 +692,11 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Raises
         ------
         TypeError
-            If the `Categorical` is not `ordered`.
+            If the CategoricalIndex is not ordered.
 
         See Also
         --------
-        CategoricalIndex.min : Return the minimum value in an Index.
+        CategoricalIndex.min : Return the minimum value of the CategoricalIndex.
 
         Examples
         --------
@@ -715,23 +707,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         return self._data.max(skipna=skipna, **kwargs)
 
     def _reverse_indexer(self) -> dict[Hashable, npt.NDArray[np.intp]]:
-        """
-        Compute the inverse of a categorical, returning
-        a dict of categories -> indexers.
-
-        *This is an internal function*
-
-        Returns
-        -------
-        Dict[Hashable, np.ndarray[np.intp]]
-            dict of categories -> indexers
-
-        Examples
-        --------
-        >>> ci = pd.CategoricalIndex(list("aabca"))
-        >>> ci._reverse_indexer()
-        {'a': array([0, 1, 4]), 'b': array([2]), 'c': array([3])}
-        """
+        """See Categorical._reverse_indexer."""
         return self._data._reverse_indexer()
 
     @property
