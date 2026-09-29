@@ -1223,8 +1223,7 @@ class TestTableOrientReader:
     @pytest.mark.parametrize("label", [np.nan, np.inf])
     def test_read_json_table_orient_null_label_no_records(self, label):
         # GH#19129 the writer stores a NaN and an inf label alike as null, so
-        #  both read back as NaN; with no records to place there is still a
-        #  frame rather than the KeyError the label-keyed restore used to give
+        #  both read back as NaN, including with no records
         df = pd.DataFrame(np.empty((0, 2)), columns=[label, "a"])
         out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
