@@ -783,8 +783,18 @@ class DataFrameFormatter:
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            if self.sparsify and len(fmt_columns):
-                fmt_columns = sparsify_labels(fmt_columns)
+            if len(fmt_columns):
+                # same padding issue as the flat case below (GH#8300)
+                fmt_columns = [
+                    [x.strip() for x in level_labels]
+                    if is_numeric_dtype(level.dtype)
+                    else level_labels
+                    for level_labels, level in zip(
+                        fmt_columns, columns.levels, strict=True
+                    )
+                ]
+                if self.sparsify:
+                    fmt_columns = sparsify_labels(fmt_columns)
 
             str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:

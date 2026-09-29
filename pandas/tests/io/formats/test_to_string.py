@@ -614,6 +614,18 @@ class TestDataFrameToString:
 
         assert df.to_string() == expected.to_string()
 
+    @pytest.mark.parametrize("sparsify", [True, False])
+    def test_to_string_numeric_multiindex_columns_alignment(self, sparsify):
+        # GH#8300
+        data = [[1, 2]]
+        columns = pd.MultiIndex.from_arrays([[0, 0], [0, 100]])
+        str_columns = pd.MultiIndex.from_arrays([["0", "0"], ["0", "100"]])
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        result = df.to_string(sparsify=sparsify)
+        assert result == expected.to_string(sparsify=sparsify)
+
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[("err", object)])
         for i in range(len(arr)):
