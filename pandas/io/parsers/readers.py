@@ -14,6 +14,7 @@ from collections import (
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
+import gzip
 import io
 import mmap
 import os
@@ -3013,7 +3014,7 @@ class TextFileReader(abc.Iterator):
         skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
         comment = self.options["comment"]
         try:
-            start = f.tell() if f.seekable() else None
+            start = f.tell() if _can_seek(f) else None
         except (AttributeError, OSError):
             # e.g. read-only buffers lacking seekable() or tell()
             start = None
@@ -3631,6 +3632,17 @@ def _iter_physical_lines(
             start = match.end()
         partial.append(chunk[start:])
         skip_lf = not lineterminator and chunk[-1:] in (b"\r", "\r")
+
+
+def _can_seek(handle: IO) -> bool:
+    """
+    Whether ``handle`` can seek back, checking the source of a ``GzipFile``,
+    whose ``seekable()`` is True even when its source cannot seek.
+    """
+    source: Any = handle.buffer if isinstance(handle, io.TextIOWrapper) else handle
+    if isinstance(source, gzip.GzipFile) and source.fileobj is not None:
+        source = source.fileobj
+    return handle.seekable() and source.seekable()
 
 
 class _ReplayHandle:
