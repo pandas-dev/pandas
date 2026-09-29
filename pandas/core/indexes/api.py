@@ -54,7 +54,6 @@ __all__ = [
     "ensure_index_from_sequences",
     "get_objs_combined_axis",
     "get_unanimous_names",
-    "infer_object_levels",
     "maybe_sequence_to_range",
     "safe_sort_index",
     "union_indexes",
@@ -368,18 +367,3 @@ def all_indexes_same(indexes) -> bool:
 def default_index(n: int) -> RangeIndex:
     rng = range(n)
     return RangeIndex._simple_new(rng, name=None)
-
-
-def infer_object_levels(index: Index) -> Index:
-    """
-    Infer a new dtype for each object-dtype level of ``index``.
-
-    Internal reset_index callers use this to keep inferring after GH#30517.
-    """
-    if isinstance(index, MultiIndex):
-        if any(lev.dtype == object for lev in index.levels):
-            return index.set_levels(
-                [lev.infer_objects(copy=False) for lev in index.levels]
-            )
-        return index
-    return index.infer_objects(copy=False)

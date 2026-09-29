@@ -65,7 +65,6 @@ from pandas import (
     to_datetime,
 )
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import infer_object_levels
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.range import RangeIndex
 from pandas.core.series import Series
@@ -2804,7 +2803,7 @@ class StataWriter(StataParser):
 
         if self._write_index:
             # GH#30517 keep inferring dtypes for object index levels
-            data.index = infer_object_levels(data.index)
+            data.index = data.index.infer_objects(copy=False)
             temp = data.reset_index()
             if isinstance(temp, DataFrame):
                 data = temp

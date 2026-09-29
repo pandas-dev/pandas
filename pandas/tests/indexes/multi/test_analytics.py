@@ -5,9 +5,25 @@ import pandas as pd
 import pandas._testing as tm
 
 
-def test_infer_objects(idx):
-    with pytest.raises(NotImplementedError, match="to_frame"):
-        idx.infer_objects()
+def test_infer_objects():
+    # GH#30517 each object-dtype level is inferred separately
+    mi = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2], dtype=object), pd.Index(["a", 1], dtype=object)],
+        names=["x", "y"],
+    )
+    result = mi.infer_objects()
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2]), pd.Index(["a", 1], dtype=object)], names=["x", "y"]
+    )
+    tm.assert_index_equal(result, expected, exact=True)
+    assert result.levels[0].dtype == np.int64
+
+
+def test_infer_objects_no_object_levels(idx):
+    result = idx.infer_objects()
+    tm.assert_index_equal(result, idx)
+    assert result is not idx
+    assert idx.infer_objects(copy=False) is idx
 
 
 def test_shift(idx):
