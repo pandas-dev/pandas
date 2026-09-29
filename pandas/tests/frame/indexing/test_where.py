@@ -956,6 +956,29 @@ def test_where_listlike_other_single_datetimelike_column(dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2016-01-01", periods=4),
+        pd.period_range("2016-01-01", periods=4),
+        pd.Categorical(list("abab")),
+    ],
+)
+def test_putmask_one_value_per_selected_position(values):
+    # GH#63842 a list with one value per True entry is left to _putmask
+    new = list(values[[3, 2]])
+    cond = [True, True, False, False]
+    expected = pd.Series(values[[3, 2, 2, 3]])
+
+    ser = pd.Series(values)
+    ser.mask(pd.Series(cond), new, inplace=True)
+    tm.assert_series_equal(ser, expected)
+
+    df = pd.DataFrame({"a": values})
+    df[pd.DataFrame({"a": cond})] = new
+    tm.assert_frame_equal(df, expected.to_frame("a"))
+
+
 def test_where_listlike_other_not_coerced_to_dtype(any_string_dtype):
     # GH#63842 the list is not run through _from_sequence, which would turn 9
     #  into "9" rather than upcasting
