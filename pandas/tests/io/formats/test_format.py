@@ -2024,6 +2024,15 @@ def test_precision_complex_in_object_column():
     assert result == expected
 
 
+def test_float_format_complex_in_object_column():
+    # GH#25920 float_format is applied to each part, so float-only callables work
+    ser = pd.Series([0.5, 0.5 + 0.5j, 1 - 2j], dtype=object)
+    with pd.option_context("display.float_format", lambda x: f"{float(x):.2f}"):
+        result = repr(ser)
+    expected = "0            0.50\n1    (0.50+0.50j)\n2    (1.00-2.00j)\ndtype: object"
+    assert result == expected
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 

@@ -64,6 +64,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -74,6 +75,7 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    IntervalArray,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -1224,12 +1226,13 @@ class _GenericArrayFormatter:
         return result
 
     def _format_strings(self) -> list[str]:
-        if self.float_format is None:
-            float_format = config["display"]["float_format"]
-            if float_format is None:
-                float_format = partial(printing.format_with_precision, sign=" ")
+        user_float_format: Any = self.float_format
+        if user_float_format is None:
+            user_float_format = config["display"]["float_format"]
+        if user_float_format is None:
+            float_format = partial(printing.format_with_precision, sign=" ")
         else:
-            float_format = self.float_format
+            float_format = user_float_format
 
         if self.formatter is not None:
             formatter = self.formatter
@@ -1256,7 +1259,7 @@ class _GenericArrayFormatter:
                 return str(x)
             elif self.formatter is None and is_complex(x):
                 # GH#25920
-                return printing.format_with_precision(x)
+                return _format_complex(x, user_float_format)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1551,6 +1554,19 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
+        elif (
+            formatter is None
+            and isinstance(values.dtype, IntervalDtype)
+            and lib.is_np_dtype(values.dtype.subtype, "f")
+        ):
+            array = _format_float_intervals(
+                cast("IntervalArray", values),
+                float_format=self.float_format,
+                digits=self.digits,
+                decimal=self.decimal,
+            )
+            # entries are already strings
+            fallback_formatter = str
         else:
             array = np.asarray(values, dtype=object)
 
@@ -1568,6 +1584,59 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             fallback_formatter=fallback_formatter,
         )
         return fmt_values
+
+
+def _format_complex(value: complex, float_format: Callable | None) -> str:
+    """
+    Format a complex scalar from an object-dtype array.
+
+    ``float_format`` is applied to each part separately so that callables
+    written for floats also work here.
+    """
+    if float_format is None:
+        return printing.format_with_precision(value)
+    real = str(float_format(value.real)).strip()
+    imag = str(float_format(value.imag)).strip()
+    if not imag.startswith("-"):
+        imag = f"+{imag}"
+    return f"({real}{imag}j)"
+
+
+def _format_float_intervals(
+    values: IntervalArray,
+    float_format: FloatFormatType | None,
+    digits: int,
+    decimal: str,
+) -> np.ndarray:
+    """
+    Render Intervals with float endpoints as strings, leaving NA entries as-is.
+
+    All endpoints are formatted together, so they follow the same rules as a
+    float64 column, e.g. switching to scientific notation (GH#25920).
+    """
+    mask = values.isna()
+    left = np.asarray(values.left)[~mask]
+    right = np.asarray(values.right)[~mask]
+    endpoints = format_array(
+        np.concatenate([left, right]),
+        None,
+        float_format=float_format,
+        digits=digits,
+        decimal=decimal,
+        leading_space=False,
+    )
+    endpoints = [endpoint.strip() for endpoint in endpoints]
+    start = "[" if values.closed_left else "("
+    end = "]" if values.closed_right else ")"
+    result = np.asarray(values, dtype=object)
+    n_valid = len(left)
+    result[~mask] = [
+        f"{start}{left_str}, {right_str}{end}"
+        for left_str, right_str in zip(
+            endpoints[:n_valid], endpoints[n_valid:], strict=True
+        )
+    ]
+    return result
 
 
 def format_percentiles(
