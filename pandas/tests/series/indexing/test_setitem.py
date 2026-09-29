@@ -744,6 +744,18 @@ class TestSetitemCasting:
         expected = ser.copy()
         expected.iloc[indices] = pd.Series([4, 6, 9, None, 10, 13, 15], dtype="Int64")
         tm.assert_series_equal(result, expected)
+    def test_setitem_iloc_rhs_series_non_default_index(self):
+        # GH#62473
+        # Same label-vs-position root cause without a missing value: the
+        # precision-loss check looked the assigned value up in the original
+        # by label, which raised (or misfired) for a non-default index.
+        ser = pd.Series([1, 2], dtype="Int64")
+        result = ser.copy()
+        result.iloc[[0, 1]] = pd.Series([1.0, 2.0], index=["a", "b"])
+        expected = ser.copy()
+        expected.iloc[[0, 1]] = pd.Series([1.0, 2.0])
+        tm.assert_series_equal(result, expected)
+
 
 
 class SetitemCastingEquivalents:

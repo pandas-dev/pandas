@@ -226,15 +226,12 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             values = np.ones(values.shape, dtype=dtype)
         else:
             idx = np.nanargmax(values)
-            # GH#62473: index positionally, since original[idx] may hit NA.
+            # GH#62473: index positionally, not by label.
             if isinstance(original, ABCSeries):
                 original_idx = original.iloc[idx]
             else:
                 original_idx = original[idx]
-            if (
-                not libmissing.checknull(original_idx)
-                and int(values[idx]) != original_idx
-            ):
+            if int(values[idx]) != original_idx:
                 # We have ints that lost precision during the cast.
                 inferred_type = lib.infer_dtype(original, skipna=True)
                 if (
