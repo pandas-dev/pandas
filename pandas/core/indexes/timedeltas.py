@@ -252,6 +252,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         TimedeltaIndex
+            Values rounded to the given `freq`.
 
         Raises
         ------
@@ -306,6 +307,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         TimedeltaIndex
+            Values rounded down to the given `freq`.
 
         Raises
         ------
@@ -360,6 +362,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         TimedeltaIndex
+            Values rounded up to the given `freq`.
 
         Raises
         ------
@@ -580,6 +583,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         Timedelta
+            The sum, or NaT if it cannot be computed.
 
         See Also
         --------
@@ -635,6 +639,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         Timedelta
+            The standard deviation, or NaT if it cannot be computed.
 
         See Also
         --------
@@ -678,6 +683,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         Timedelta
+            The median, or NaT if it cannot be computed.
 
         See Also
         --------
