@@ -800,8 +800,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         elif dtype.kind == "M":
             unit = np.datetime_data(dtype)[0]
             if unit == "generic":
-                # a unitless NaT is deprecated as of numpy 2.5; the cast is
-                #  rejected downstream, so the sentinel goes unused
+                # numpy deprecates a unitless NaT; the cast is rejected
+                #  downstream, so the sentinel goes unused
                 na_value = lib.no_default
             else:
                 na_value = np.datetime64("NaT", unit)  # type: ignore[call-overload]
