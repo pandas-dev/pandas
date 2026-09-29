@@ -1413,13 +1413,18 @@ def _labels_pinned_key(res, key: Hashable, name: Hashable) -> bool:
     Whether ``res`` has a column labeled by the pinned group ``key`` that will be
     labeled ``name`` instead once the key is no longer pinned (GH#41090).
     """
-    return (
+    if not (
         isinstance(res, DataFrame)
         # default labels, e.g. pd.DataFrame(ndarray), are not taken from the group
         and not isinstance(res.columns, RangeIndex)
         and key in res.columns
-        and not (key is name or key == name)
-    )
+    ):
+        return False
+    try:
+        return not (key is name or bool(key == name))
+    except (TypeError, ValueError):
+        # e.g. pd.NA, whose == is ambiguous
+        return True
 
 
 def _is_indexed_like(obj, axes) -> bool:

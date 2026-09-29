@@ -281,6 +281,20 @@ def test_apply_result_not_labeled_by_pinned_key(func):
         ser.groupby([0, 0, 1]).apply(func)
 
 
+def test_apply_result_labeled_by_pinned_na_key():
+    # GH#41090 - comparing an NA key to the Series name must not raise
+    ser = pd.Series([3.0, 4.0, 5.0], name="b")
+    by = pd.array([None, 1, 1], dtype="Int64")
+    msg = "with a column labeled by the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.groupby(by, dropna=False, sort=False).apply(lambda x: x.to_frame())
+    expected = pd.DataFrame(
+        {pd.NA: [3.0, np.nan, np.nan], 1: [np.nan, 4.0, 5.0]},
+        index=pd.MultiIndex.from_arrays([by, [0, 1, 2]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_group_apply_once_per_group2(capsys):
     # GH: 31111
     # groupby-apply need to execute len(set(group_by_columns)) times
