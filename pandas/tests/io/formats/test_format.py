@@ -2033,6 +2033,20 @@ def test_float_format_complex_in_object_column():
     assert result == expected
 
 
+@pytest.mark.parametrize(
+    "box, expected",
+    [
+        (pd.Series, "0    (1.00+1.00j)\n1               x"),
+        (pd.DataFrame, "0  (1.00+1.00j)\n1             x"),
+    ],
+)
+def test_float_format_percent_str_complex_in_object_column(box, expected):
+    # GH#25920
+    obj = box([1 + 1j, "x"], dtype=object)
+    result = obj.to_string(float_format="%.2f", header=False)
+    assert result == expected
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 

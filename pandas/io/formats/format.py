@@ -1577,15 +1577,19 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
         return fmt_values
 
 
-def _format_complex(value: complex, float_format: Callable | None) -> str:
+def _format_complex(value: complex, float_format: FloatFormatType | None) -> str:
     """
     Format a complex scalar from an object-dtype array.
 
-    ``float_format`` is applied to each part separately so that callables
+    ``float_format`` is applied to each part separately so that formats
     written for floats also work here.
     """
     if float_format is None:
         return printing.format_with_precision(value)
+    if isinstance(float_format, str):
+        # "%"-style strings reach here unconverted
+        fmt_str = float_format
+        float_format = lambda part: fmt_str % part
     real = str(float_format(value.real)).strip()
     imag = str(float_format(value.imag)).strip()
     if not imag.startswith("-"):
