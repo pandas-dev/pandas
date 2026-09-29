@@ -516,7 +516,7 @@ def test_explicit_arrow_int_dtype_precision_with_na(all_parsers):
 
 @xfail_pyarrow  # pyarrow engine reads the column as float64 first, losing digits
 def test_explicit_arrow_decimal_dtype(all_parsers):
-    # GH#69811
+    # GH#69838
     pa = pytest.importorskip("pyarrow")
     parser = all_parsers
     dtype = pd.ArrowDtype(pa.decimal128(30, 20))
