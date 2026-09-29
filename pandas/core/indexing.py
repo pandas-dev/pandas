@@ -2678,9 +2678,9 @@ class _iLocIndexer(_LocationIndexer):
         object_blknos = [
             blkno for blkno in np.unique(blknos) if mgr.blocks[blkno].dtype == object
         ]
-        is_object = np.isin(blknos, object_blknos)
-        if not is_object.any():
+        if not object_blknos:
             return
+        is_object = np.isin(blknos, object_blknos)
 
         if isinstance(value, ABCDataFrame):
             if name == "iloc":
