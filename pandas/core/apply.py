@@ -23,8 +23,12 @@ from pandas.util._decorators import (
     set_module,
 )
 
-from pandas.core.dtypes.cast import is_nested_object
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    is_nested_object,
+)
 from pandas.core.dtypes.common import (
+    is_datetime64_any_dtype,
     is_dict_like,
     is_extension_array_dtype,
     is_list_like,
@@ -115,6 +119,28 @@ _frame_reduction_names = frozenset(
         "var",
     }
 )
+
+
+def _short_circuit_empty_axis1_agg(func: str, obj) -> bool:
+    """
+    True when a 0-row axis=1 agg should call the reduction directly.
+
+    Transposing a 0-row frame drops dtypes (GH#32802). Direct reductions
+    keep them. ``skew`` rejects axis=1, so it stays on the transpose path.
+    ``all``/``any`` raise on datetime64, but a non-empty mixed-dtype frame
+    is transposed to object first and succeeds. Keep the direct path for
+    those two only when the columns share a datetime64 dtype, so the empty
+    frame still raises the way the non-empty frame does.
+    """
+    if func not in _frame_reduction_names or func == "skew":
+        return False
+    if func not in ("all", "any"):
+        return True
+
+    dtypes = list(obj.dtypes)
+    if not any(is_datetime64_any_dtype(dtype) for dtype in dtypes):
+        return True
+    return is_datetime64_any_dtype(find_common_type(dtypes))
 
 
 @set_module("pandas.api.executors")
@@ -1070,13 +1096,11 @@ class FrameApply(NDFrameApply):
         # Transform-like names such as "abs" must keep the transpose
         # path: apply_str rejects axis=1 for them, so an empty frame
         # would raise or diverge from the non-empty result.
-        # "skew" is a reduction, but apply_str rejects axis=1 for it.
         if (
             axis == 1
             and len(obj.index) == 0
             and isinstance(self.func, str)
-            and self.func in _frame_reduction_names
-            and self.func != "skew"
+            and _short_circuit_empty_axis1_agg(self.func, obj)
         ):
             return self.apply_str()
 
