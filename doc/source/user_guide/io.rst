@@ -72,7 +72,7 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   and different from ``'\s+'`` will be interpreted as regular expressions and
   will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
@@ -178,9 +178,8 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels. The function is applied to the raw text read from the
-  file, before any missing-value detection: an empty field is passed as an empty
-  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
-  column that has a converter.
+  file, so an empty field is passed as an empty string ``''``; ``na_values`` and
+  ``keep_default_na`` are then applied to the value the function returns.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -6017,9 +6016,9 @@ Example of a callable using PostgreSQL `COPY clause
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)

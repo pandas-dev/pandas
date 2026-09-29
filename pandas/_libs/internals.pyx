@@ -693,6 +693,20 @@ cdef class Block:
         args = (self.values, self.mgr_locs.indexer, self.ndim)
         return _unpickle_block, args
 
+    def __reduce_ex__(self, protocol):
+        values = self.values
+        if (
+            protocol >= 5
+            and isinstance(values, ndarray)
+            and not values.flags.forc
+            and not values.dtype.hasobject
+        ):
+            # GH#55781 numpy serializes only contiguous non-object arrays out of
+            #  band; a strided view (df.iloc[:n]) would be copied into the stream.
+            args = (np.ascontiguousarray(values), self.mgr_locs.indexer, self.ndim)
+            return _unpickle_block, args
+        return self.__reduce__()
+
     cpdef __setstate__(self, state):
         from pandas.core.construction import extract_array
 
