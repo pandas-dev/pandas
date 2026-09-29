@@ -285,7 +285,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ------
         ValueError
             If new categories are list-like and do not have the same number of
-            items than the current categories or do not validate as categories
+            items as the current categories or do not validate as categories
 
         See Also
         --------
@@ -523,11 +523,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         removing, and reordering simultaneously and is therefore faster than
         performing the individual steps via the more specialised methods.
 
-        On the other hand this methods does not do checks (e.g., whether the
-        old categories are included in the new categories on a reorder), which
-        can result in surprising changes, for example when using special string
-        dtypes, which do not consider a S1 string equal to a single char
-        python string.
+        On the other hand this method does not check whether the old categories
+        are included in the new categories on a reorder, which can result in
+        surprising changes.
 
         Parameters
         ----------
