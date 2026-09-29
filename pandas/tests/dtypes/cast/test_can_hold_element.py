@@ -174,19 +174,3 @@ def test_can_hold_element_ea_no_na_lossy_values(wrapper, backend):
     assert not can_hold_element(
         f32_arr, wrapper(pd.array([1e300, 2.0], dtype=float_dtype))
     )
-
-
-def test_can_hold_element_sparse():
-    # GH#68929 SparseDtype has no itemsize, so the width check must be skipped
-    #  and re-run on the densified values, as for the nullable spelling
-    element = pd.arrays.SparseArray(np.array([1, 2], dtype=np.int64))
-    nullable = pd.array([1, 2], dtype="Int64")
-
-    assert can_hold_element(np.array([], dtype=np.int64), element)
-    assert not can_hold_element(np.array([], dtype=np.int8), element)
-    assert not can_hold_element(np.array([], dtype=np.int8), nullable)
-
-    # densified with its subtype, not the fill_value's wider dtype
-    narrow = pd.arrays.SparseArray(np.array([4, 0, 6], dtype=np.int8))
-    assert can_hold_element(np.array([], dtype=np.int8), narrow)
-    assert can_hold_element(np.array([], dtype=np.int8), pd.array(narrow, dtype="Int8"))

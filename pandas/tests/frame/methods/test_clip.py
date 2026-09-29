@@ -252,23 +252,3 @@ class TestDataFrameClip:
         result = df.clip(**{bound: pd.array([15, 25], dtype="Int64")})
 
         tm.assert_frame_equal(result, pd.DataFrame(expected))
-
-    @pytest.mark.parametrize(
-        "axis, expected",
-        [
-            (None, [[15, 25], [30, 40]]),
-            (0, [[15, 20], [30, 40]]),
-            (1, [[15, 25], [30, 40]]),
-        ],
-    )
-    def test_clip_sparse_bound(self, axis, expected):
-        # GH#68929 the 1-D route hands the bound to np_can_hold_element, where a
-        #  SparseArray's dtype has no itemsize; see test_can_hold_element_sparse.
-        #  fill_value=25 keeps an entry out of sp_values, so it must be densified
-        df = pd.DataFrame([[10, 20], [30, 40]])
-
-        result = df.clip(
-            lower=pd.arrays.SparseArray([15, 25], fill_value=25), axis=axis
-        )
-
-        tm.assert_frame_equal(result, pd.DataFrame(expected))

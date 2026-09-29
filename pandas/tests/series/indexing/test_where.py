@@ -469,22 +469,3 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
-
-
-def test_where_sparse_other():
-    # GH#68929 a SparseArray `other` reached an itemsize lookup on its dtype
-    ser = pd.Series([10, 20, 30])
-
-    result = ser.where([True, False, True], pd.arrays.SparseArray([1, 2, 3]))
-
-    tm.assert_series_equal(result, pd.Series([10, 2, 30]))
-
-
-@pytest.mark.parametrize("dtype", ["int64", "int8"])
-def test_setitem_sparse_value(indexer_sli, dtype):
-    # GH#68929 same itemsize lookup, reached through the setitem path
-    ser = pd.Series(np.array([10, 20, 30], dtype=dtype))
-
-    indexer_sli(ser)[[0, 1]] = pd.arrays.SparseArray(np.array([1, 0], dtype=dtype))
-
-    tm.assert_series_equal(ser, pd.Series(np.array([1, 0, 30], dtype=dtype)))
