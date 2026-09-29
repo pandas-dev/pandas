@@ -20,8 +20,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs import writers as libwriters
+from pandas._libs import (
+    lib,
+    writers as libwriters,
+)
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
