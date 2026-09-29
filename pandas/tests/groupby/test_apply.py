@@ -248,6 +248,39 @@ def test_apply_setting_name_does_not_write_name_column():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x.to_frame(),
+        lambda x: x.reset_index(),
+        lambda x: pd.DataFrame(x),
+    ],
+)
+def test_apply_result_labeled_by_pinned_key(func):
+    # GH#41090 - the column label comes from the pinned name without user code
+    #  reading it, and becomes "b" once the key is no longer pinned
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3.0, 4.0, 5.0]})
+    msg = "with a column labeled by the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("a")["b"].apply(func)
+    assert 1 in result.columns
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda x: x.rename("b").to_frame(),
+        lambda x: x.to_frame("v"),
+        lambda x: pd.DataFrame(np.ones((2, 2))),
+    ],
+)
+def test_apply_result_not_labeled_by_pinned_key(func):
+    # GH#41090 - these labels do not depend on the pinned name
+    ser = pd.Series([3.0, 4.0, 5.0], name="b")
+    with tm.assert_produces_warning(None):
+        ser.groupby([0, 0, 1]).apply(func)
+
+
 def test_group_apply_once_per_group2(capsys):
     # GH: 31111
     # groupby-apply need to execute len(set(group_by_columns)) times

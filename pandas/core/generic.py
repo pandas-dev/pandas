@@ -6232,12 +6232,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Pin the group key to the 'name' attribute and flag it so that user
         access of the pinned name issues a deprecation warning (GH#41090).
 
-        Two known holes, neither of which warns: an indirect read of the key
-        (e.g. handing the group to another pandas method), which is
+        Two known holes, neither of which warns here: an indirect read of the
+        key (e.g. handing the group to another pandas method), which is
         indistinguishable from an output-neutral one; and a Series derived
         from the group, which inherits the key as its name via __finalize__
         but not the flag, since propagating it would false-positive on e.g.
-        binops with mismatched names.
+        binops with mismatched names. BaseGrouper.apply_groupwise catches the
+        common case of both, a DataFrame result with a column labeled by the key.
         """
         if self.ndim == 1:
             # Goes through the Series.name property setter; for DataFrame
@@ -6257,7 +6258,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         #  reliance; see test_apply_no_name_access_no_warning. Asked one frame
         #  at a time rather than through find_stack_level, whose walk runs on
         #  every read of a pinned group's name
-        if frame_is_pandas_internal(sys._getframe(2)):
+        frame = sys._getframe(2)
+        # skip a subclass's override of Series.name that defers to it via super()
+        while (
+            frame.f_code.co_name == "name"
+            and frame.f_locals.get("self") is self
+            and frame.f_back is not None
+        ):
+            frame = frame.f_back
+        if frame_is_pandas_internal(frame):
             return
         warnings.warn(
             "Pinning the group key to the 'name' attribute of "
@@ -6266,12 +6275,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ".filter()) is deprecated and will not be done in a "
             "future version of pandas. When you need the key "
             "inside the function, iterate over the groupby object "
-            "directly and combine the results yourself. For .apply() that is "
-            "'pd.concat({key: func(group) for key, group in gb})' when func "
-            "returns a Series or DataFrame, or 'pd.Series({key: func(group) "
-            "for key, group in gb})' when it returns a scalar; .transform() "
-            "and .filter() need their own recombination, since they return an "
-            "object indexed like the original rather than keyed by group.",
+            "directly, e.g. for .apply(), 'pd.concat({key: func(group) for "
+            "key, group in gb})' when func returns a Series or DataFrame, or "
+            "'pd.Series({key: func(group) for key, group in gb})' when it "
+            "returns a scalar.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
