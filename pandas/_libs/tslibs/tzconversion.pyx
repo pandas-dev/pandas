@@ -292,7 +292,6 @@ timedelta-like}
     cdef:
         ndarray[uint8_t, cast=True] ambiguous_array
         Py_ssize_t i, n = vals.shape[0]
-        Py_ssize_t delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
         int64_t delta
         int64_t shift_delta = 0
@@ -303,8 +302,7 @@ timedelta-like}
         bint fill_nonexist = False
         str stamp
         Localizer info = Localizer(tz, creso=creso)
-        int64_t ppd = periods_per_day(creso)
-        int64_t pph = ppd // 24
+        int64_t pph = periods_per_day(creso) // 24
 
     # Vectorized version of DstTzInfo.localize
 
@@ -462,10 +460,9 @@ timedelta-like}
                         )
                     result[i] = _shift_to_utc(new_local, delta, creso)
                 else:
-                    delta_idx = _delta_idx_for_local(
-                        new_local, info, ppd, shift_forward or shift_delta > 0
+                    delta = _delta_for_local(
+                        new_local, info, shift_forward or shift_delta > 0
                     )
-                    delta = info.deltas[delta_idx]
                     result[i] = _shift_to_utc(new_local, delta, creso)
                 if result[i] == NPY_NAT:
                     raise_out_of_bounds(
@@ -520,11 +517,11 @@ cdef Py_ssize_t bisect_right_i8(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef Py_ssize_t _delta_idx_for_local(
-    int64_t local_val, Localizer info, int64_t ppd, bint forward
+cdef int64_t _delta_for_local(
+    int64_t local_val, Localizer info, bint forward
 ) noexcept:
     """
-    Index into info.deltas of the UTC offset in effect at wall time local_val.
+    The UTC offset in info.deltas in effect at wall time local_val.
 
     Of the transitions within a day of local_val, take the first whose offset
     maps local_val into its own interval.  If local_val is nonexistent, take
@@ -535,6 +532,7 @@ cdef Py_ssize_t _delta_idx_for_local(
         const int64_t* tdata = info.tdata
         const int64_t[::1] deltas = info.deltas
         int64_t utc_val, before, bracket
+        int64_t ppd = periods_per_day(info._creso)
 
     # start (lo) and end (hi) index into tdata for the +/- 1 day bracket
     if checked_sub(local_val, ppd, &bracket):
@@ -560,16 +558,13 @@ cdef Py_ssize_t _delta_idx_for_local(
         # see test_dti_tz_localize_nonexistent_shift_into_last_interval
         if idx + 1 < ntrans and utc_val >= tdata[idx + 1]:
             continue
-        return idx
+        return deltas[idx]
 
     # Nothing matched, so local_val is itself nonexistent: only the shift out
     #  of the original hour is validated, and a multi-hour gap can swallow the
     #  shifted value too.  Find the transition whose gap contains local_val and
     #  return the side of it the caller is shifting toward.
     for idx in range(lo if lo > 0 else 1, hi + 1):
-        if deltas[idx] <= deltas[idx - 1]:
-            # transition idx opens a gap only if it moves the clock forward
-            continue
         if checked_sub(local_val, deltas[idx - 1], &before):
             continue
         if checked_sub(local_val, deltas[idx], &utc_val):
@@ -578,9 +573,9 @@ cdef Py_ssize_t _delta_idx_for_local(
             # deltas[idx - 1] reads local_val as after the transition,
             #  deltas[idx] as before it, so local_val is in this gap;
             #  deltas[idx - 1] gives the later instant
-            return idx - 1 if forward else idx
+            return deltas[idx - 1] if forward else deltas[idx]
 
-    return lo
+    return deltas[lo]
 
 
 cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
