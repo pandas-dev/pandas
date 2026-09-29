@@ -199,6 +199,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         """
         The categories of this CategoricalIndex.
 
+        These are the unique values the index may hold, in category order.
+        Use the ``*_categories`` methods to return an index with changed
+        categories.
+
         See Also
         --------
         CategoricalIndex.rename_categories : Rename categories.
