@@ -252,8 +252,8 @@ always gives numpy-backed categories (:issue:`66382`).
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`Timestamp` silently dropped date components passed alongside a value to
-convert, and keyword components that left a gap in the positional form landed
-one field early:
+convert, and keyword components mixed with positional ones could land in the
+wrong field:
 
 .. code-block:: ipython
 
