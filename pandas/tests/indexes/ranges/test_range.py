@@ -777,6 +777,46 @@ class TestRangeIndex:
         with pytest.raises(TypeError, match="only list-like"):
             pd.RangeIndex(3).isin(1)
 
+    @pytest.mark.parametrize(
+        "index, values",
+        [
+            # narrow unsigned dtype, subtracted from a large start
+            (pd.RangeIndex(1_000_000, 0, -1), pd.array([5], dtype="UInt64")),
+            # narrow signed dtype, added to a negative start
+            (pd.RangeIndex(-1000, 1_000_000), pd.array([5], dtype="Int8")),
+            # numpy scalar in a plain list
+            (pd.RangeIndex(1_000_000, 0, -1), [np.float16(5)]),
+            (pd.RangeIndex(-1000, 1_000_000), [np.int8(5)]),
+            (pd.RangeIndex(0, 100_000, 2), [np.uint8(6), np.float32(4.0)]),
+            (pd.RangeIndex(1_000_000), pd.array([5, pd.NA], dtype="Int64")),
+            (pd.RangeIndex(1_000_000), pd.array([1.5, 5.0], dtype="Float64")),
+            (pd.RangeIndex(1_000_000), pd.Categorical([5, 6])),
+        ],
+    )
+    def test_isin_narrow_and_scalar_values_match_base(self, index, values):
+        # GH#66263: values backed by narrow dtypes must be converted to Python
+        # objects, as NumPy scalar arithmetic on them overflows or is slow
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_narrow_dtype_values_do_not_overflow(self):
+        # GH#66263: ``np.int8(5) - 1000`` overflows, so the fast path must not
+        # do the range arithmetic on NumPy scalars
+        result = pd.RangeIndex(-1000, 1000).isin(pd.array([5], dtype="Int8"))
+        expected = np.zeros(2000, dtype=bool)
+        expected[1005] = True
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_wide_and_oversized_values_match_base(self):
+        # GH#66263: values that cannot be handled by the fast path are
+        # delegated to the generic implementation
+        index = pd.RangeIndex(-1000, 1000)
+        for values in ([10**30], ["a", None], [None], [[1, 2], [3, 4]]):
+            result = index.isin(values)
+            expected = pd.Index(index._values).isin(values)
+            tm.assert_numpy_array_equal(result, expected)
+
     def test_sort_values_key(self):
         # GH#43666, GH#52764
         sort_order = {8: 2, 6: 0, 4: 8, 2: 10, 0: 12}

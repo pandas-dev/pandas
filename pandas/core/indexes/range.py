@@ -46,6 +46,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
 from pandas.core import ops
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -72,7 +73,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
-    from pandas.core.arrays import ExtensionArray
 
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
@@ -82,6 +82,39 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     """Returns the smallest element greater than or equal to the limit"""
     no_steps = -(-(lower_limit - start) // abs(step))
     return start + abs(step) * no_steps
+
+
+def _asobjects_in(values: Axes | set) -> list | None:
+    """
+    Convert `values` to a list of Python objects, or return None.
+
+    The arithmetic done by ``RangeIndex.isin`` is only competitive with
+    ``algos.isin`` when it operates on Python scalars; comparing NumPy scalars
+    is one to two orders of magnitude slower, and may even overflow the scalar
+    dtype (e.g. ``np.int8(5) - 1000``). Anything that is not backed by a
+    1-dimensional numeric array is reported as unsupported by returning None.
+    """
+    if isinstance(values, np.ndarray):
+        if values.ndim == 1 and values.dtype.kind in "iufb":
+            return values.tolist()
+        return None
+
+    if isinstance(values, ExtensionArray):
+        # ``tolist`` gives Python objects, leaving unsupported entries (e.g.
+        # ``pd.NA``) to the ``TypeError`` fallback in ``RangeIndex.isin``.
+        return values.tolist()
+
+    try:
+        if isinstance(values, (list, tuple)):
+            arr = np.asarray(values)
+        else:
+            # e.g. a set, which NumPy would otherwise wrap in a 0-d array.
+            arr = np.asarray(list(values))
+    except (TypeError, ValueError):
+        return None
+    if arr.ndim != 1 or arr.dtype.kind not in "iufb":
+        return None
+    return arr.tolist()
 
 
 @set_module("pandas")
@@ -1774,12 +1807,9 @@ class RangeIndex(Index):
             start = self.start
             stop = self.stop
             step = self.step
-            if isinstance(values, np.ndarray) and values.dtype.kind in "iubf":
-                # Iterating numpy scalars in a Python loop is ~3x slower than
-                # iterating Python scalars, so materialize a small Python list.
-                query_values = values.tolist()
-            else:
-                query_values = values
+            query_values = _asobjects_in(values)
+            if query_values is None:
+                return super().isin(values, level=level)
             result = np.zeros(len(self), dtype=bool)
             for val in query_values:
                 try:
