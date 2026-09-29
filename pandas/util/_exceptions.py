@@ -41,9 +41,6 @@ _test_dir: str | None = None
 def frame_is_pandas_internal(frame: FrameType) -> bool:
     """
     Whether ``frame`` belongs to pandas' own code (tests notwithstanding).
-
-    One frame lookup, for callers that need the classification of a single
-    known frame rather than the walk find_stack_level performs.
     """
     global _pkg_dir, _test_dir
     if _pkg_dir is None or _test_dir is None:

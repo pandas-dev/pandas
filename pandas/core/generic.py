@@ -6232,11 +6232,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Pin the group key to the 'name' attribute and flag it so that user
         access of the pinned name issues a deprecation warning (GH#41090).
 
-        Two known holes: an indirect read of the key (e.g. handing the group
-        to another pandas method) is indistinguishable from an
-        output-neutral read and won't warn; and propagating the flag through
-        __finalize__ would false-positive whenever the result's name is not
-        the key (e.g. a binop with mismatched names).
+        Two known holes, neither of which warns: an indirect read of the key
+        (e.g. handing the group to another pandas method), which is
+        indistinguishable from an output-neutral one; and a Series derived
+        from the group, which inherits the key as its name via __finalize__
+        but not the flag, since propagating it would false-positive on e.g.
+        binops with mismatched names.
         """
         if self.ndim == 1:
             # Goes through the Series.name property setter; for DataFrame
