@@ -930,6 +930,6 @@ def test_fillna_fill_frame_with_duplicate_labels_raises(axis):
         value = pd.DataFrame({"A": [1, 0, 2], "B": [1, 2, 3]}, index=["b", "a", "b"])
     else:
         value = pd.DataFrame([[1, 2, 3]] * 2, index=["a", "b"], columns=["A", "B", "B"])
-    msg = "Cannot align 'other' with the calling object because 'other' has duplicate"
+    msg = "Cannot align with an object that has duplicate labels"
     with pytest.raises(InvalidIndexError, match=msg):
         df.fillna(value)

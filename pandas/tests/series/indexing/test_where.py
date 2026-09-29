@@ -375,7 +375,7 @@ def test_where_other_with_duplicate_labels_raises():
     # GH#27672
     ser = pd.Series([np.nan, 1.0], index=["a", "b"])
     other = pd.Series([5.0, 6.0, 7.0], index=["a", "a", "b"])
-    msg = "Cannot align 'other' with the calling object because 'other' has duplicate"
+    msg = "Cannot align with an object that has duplicate labels"
     with pytest.raises(InvalidIndexError, match=msg):
         ser.where(ser.notna(), other)
 
