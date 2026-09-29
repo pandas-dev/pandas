@@ -1609,12 +1609,21 @@ def test_cmp_list_of_array_likes():
         ([{"a": 1}, {"a": 2}], pa.struct([("a", pa.int64())])),
     ],
 )
-def test_cmp_nested_dtype_unconvertible_raises(values, pa_type):
-    # GH#62682 a list- or struct-valued element is broadcast by numpy, so the
-    #  pointwise fallback answers True for [1] == 1, and False for {"a": 1} == 1
+def test_cmp_nested_dtype_pointwise(values, pa_type):
+    # GH#62682 nested dtypes still take the pointwise fallback
     arr = pd.array(values, dtype=ArrowDtype(pa_type))
 
-    with pytest.raises(pa.ArrowTypeError):
+    result = arr == [1, "a"]
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_cmp_list_dtype_numpy_scalar_raises():
+    # GH#62682 numpy broadcasts [1] == np.int64(1) to array([True])
+    arr = pd.array([[1], [2]], dtype=ArrowDtype(pa.list_(pa.int64())))
+
+    msg = "operation 'eq' not supported for dtype 'list<item: int64>[pyarrow]'"
+    with pytest.raises(TypeError, match=re.escape(msg)):
         arr == pd.arrays.SparseArray([1, 2])
 
 

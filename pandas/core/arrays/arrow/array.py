@@ -1305,10 +1305,6 @@ class ArrowExtensionArray(
             try:
                 boxed = self._box_pa(other)
             except (pa.lib.ArrowInvalid, pa.lib.ArrowTypeError):
-                if pa.types.is_nested(ltype):
-                    # GH#62682 bool() below would turn a list-valued element
-                    #  into a real-looking answer
-                    raise
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
                 # GH#62682 isna on a list of array-likes gives a 2-D mask
                 other_arr = np.empty(len(other), dtype=object)
@@ -1325,6 +1321,12 @@ class ArrowExtensionArray(
                     # an ordered comparison runs even for an NA pair, so an
                     #  unsupported one raises instead of answering all-NA
                     res = op(left, right)
+                    if isinstance(res, np.ndarray) and pa.types.is_nested(ltype):
+                        # GH#62682 numpy broadcast a list-valued element, so
+                        #  bool() would give a real-looking answer
+                        raise TypeError(
+                            self._op_method_error_message(other, op)
+                        ) from None
                     res_values.append(None if na else bool(res))
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
