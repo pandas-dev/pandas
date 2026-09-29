@@ -5,7 +5,10 @@ for missing values.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -19,7 +22,6 @@ from pandas.core.nanops import check_below_min_count
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any
 
     from pandas._typing import (
         AxisInt,
