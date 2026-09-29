@@ -542,9 +542,12 @@ Current behavior for a timezone-aware Series:
 Use :attr:`Series.array` to get the ExtensionArray, or :meth:`Series.to_numpy`
 to get a NumPy array. For period and interval data, ``to_numpy()`` is a
 drop-in replacement, returning the same object-dtype array ``.values``
-returns today. For timezone-aware data, ``to_numpy()`` instead returns an
+returns today.
+
+For timezone-aware data, ``to_numpy()`` instead returns an
 object-dtype array of :class:`Timestamp` objects. To keep the current result,
-use ``tz_convert(None)``, which converts to UTC and drops the timezone:
+use ``tz_convert(None)``, which converts to UTC and drops the timezone, and
+then convert to a NumPy array using ``to_numpy()``:
 
 .. code-block:: python
 
@@ -552,7 +555,12 @@ use ``tz_convert(None)``, which converts to UTC and drops the timezone:
     <DatetimeArray>
     ['2016-01-01 00:00:00-08:00', '2016-01-02 00:00:00-08:00']
     Length: 2, dtype: datetime64[us, US/Pacific]
+    # Convert to UTC and drop the timezone, and convert tz-naive datetime64 to NumPy array
     >>> ser.dt.tz_convert(None).to_numpy()
+    array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
+          dtype='datetime64[us]')
+    # Implicitly convert to the underlying UTC values by specifying dtype
+    >>> ser.to_numpy(dtype='datetime64[us]')
     array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
           dtype='datetime64[us]')
 
