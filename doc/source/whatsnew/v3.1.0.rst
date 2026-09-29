@@ -166,6 +166,7 @@ Other enhancements
 - :meth:`DataFrame.select_dtypes` can now select ``datetime64`` and ``timedelta64`` columns by a specific resolution (e.g. ``"datetime64[us]"``, ``np.dtype("timedelta64[ms]")``), which previously raised; a unit-specific spec matches only columns with exactly that resolution, while a unitless ``"datetime64"``/``"timedelta64"`` still matches every resolution (:issue:`40234`)
 - :meth:`Series.round` now works on third-party numeric :class:`ExtensionArray` types via a default :meth:`ExtensionArray.round` (:issue:`49387`)
 - :meth:`Timestamp.strftime` and the array-level :meth:`DatetimeIndex.strftime` / :meth:`Series.dt.strftime` now support a ``%N`` directive that formats nanoseconds as a 9-digit zero-padded number; the standard ``%f`` directive is unchanged and continues to format microseconds only (:issue:`29461`)
+- Added :class:`api.extensions.Accessor` to the public API, for adding or overriding an accessor on a single class such as a :class:`DataFrame` subclass (:issue:`40103`)
 - Added :meth:`ExtensionArray.count` (:issue:`64450`)
 - Added :meth:`ExtensionArray.sort` for in-place sorting of :class:`ExtensionArray` (:issue:`64977`)
 - Added :meth:`ExtensionDtype._get_plot_converter` allowing :class:`ExtensionDtype` to register their own :class:`matplotlib.units.ConversionInterface` to support plotting for non-numeric :class:`ExtensionArray` (:issue:`64300`)
@@ -557,7 +558,7 @@ Other deprecations
 - Deprecated :meth:`ExcelFile.parse`, use :func:`read_excel` instead (:issue:`58247`)
 - Deprecated :meth:`Series.fillna`, :meth:`DataFrame.fillna`, and :meth:`Index.fillna` with an incompatible value that requires dtype casting. In a future version, this will raise instead. Explicitly cast to a common dtype before filling (:issue:`45153`)
 - Deprecated ``engine="fastparquet"`` and ``engine="auto"`` in :func:`read_parquet` and :meth:`DataFrame.to_parquet`. The ``fastparquet`` library has been retired; use ``engine="pyarrow"`` or do not pass ``engine`` to use the default. (:issue:`64597`)
-- Deprecated ``pandas.core.accessor.CachedAccessor``, use ``pandas.core.accessor.Accessor`` instead (:issue:`66215`).
+- Deprecated ``pandas.core.accessor.CachedAccessor``, use :class:`api.extensions.Accessor` instead (:issue:`66215`).
 - Deprecated arithmetic, comparison, and logical operations between pandas objects (:class:`DataFrame`, :class:`Series`, :class:`Index`, and pandas-implemented :class:`ExtensionArray` subclasses) and list-likes other than ``list``, ``np.ndarray``, :class:`ExtensionArray`, :class:`Index`, :class:`Series`, :class:`DataFrame`. For e.g. ``tuple`` or ``range``, explicitly cast these to a supported object instead. In a future version, these will be treated as scalar-like for pointwise operation (:issue:`62423`)
 - Deprecated automatic dtype promotion when reindexing with a ``fill_value`` that cannot be held by the original dtype. Explicitly cast to a common dtype instead (:issue:`53910`)
 - Deprecated constructing a :class:`DataFrame` from a list of sequences with mismatched lengths, which silently pads the shorter sequences with NaN. Make all the sequences the same length before constructing instead (:issue:`65751`)
