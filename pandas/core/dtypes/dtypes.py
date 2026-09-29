@@ -1501,18 +1501,7 @@ class IntervalDtype(PandasExtensionDtype):
             results.append(iarr)
 
         if not results:
-            if subtype_is_numpy:
-                left = np.array([], dtype=self.subtype)
-                right = np.array([], dtype=self.subtype)
-            else:
-                # built directly since to_pyarrow_type rejects e.g. Int64 GH#64297
-                left = self.subtype.empty((0,))
-                right = self.subtype.empty((0,))
-            return IntervalArray.from_arrays(
-                left,
-                right,
-                closed=self.closed,
-            )
+            return IntervalArray._from_sequence([], dtype=self)
         return IntervalArray._concat_same_type(results)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
