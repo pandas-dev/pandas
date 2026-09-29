@@ -1711,6 +1711,13 @@ def date_range(
                    '2019-01-31'],
                   dtype='datetime64[us]', freq='3ME')
 
+    Use :class:`pandas.DateOffset` for calendar steps that are not anchored to
+    the start or end of a period.
+
+    >>> pd.date_range(end="2017-03-12", periods=3, freq=pd.DateOffset(years=1))
+    DatetimeIndex(['2015-03-12', '2016-03-12', '2017-03-12'],
+                  dtype='datetime64[us]', freq='<DateOffset: years=1>')
+
     Specify `tz` to set the timezone.
 
     >>> pd.date_range(start="1/1/2018", periods=5, tz="Asia/Tokyo")
