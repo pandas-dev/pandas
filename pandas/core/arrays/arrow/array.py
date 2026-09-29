@@ -2092,6 +2092,15 @@ class ArrowExtensionArray(
 
         data = self._pa_array
 
+        if pa.types.is_null(data.type):
+            if use_na_sentinel or len(self) == 0:
+                indices = np.full(len(self), -1, dtype=np.intp)
+                uniques = self._from_pyarrow_array(pa.chunked_array([], type=pa.null()))
+            else:
+                indices = np.zeros(len(self), dtype=np.intp)
+                uniques = self._from_pyarrow_array(pa.array([None], type=pa.null()))
+            return indices, uniques
+
         if pa.types.is_dictionary(data.type):
             if null_encoding == "encode":
                 # dictionary encode does nothing if an already encoded array is given
@@ -2736,7 +2745,11 @@ class ArrowExtensionArray(
 
         elif name in ["median", "mean", "std", "sem"] and pa.types.is_temporal(pa_type):
             nbits = pa_type.bit_width
-            if nbits == 32:
+            if name in ["std", "sem"] and pa.types.is_date32(pa_type):
+                # compute in seconds, the unit of the result
+                seconds = self._pa_array.cast(pa.timestamp("s"))
+                data_to_reduce = seconds.cast(pa.int64())
+            elif nbits == 32:
                 data_to_reduce = self._pa_array.cast(pa.int32())
             else:
                 data_to_reduce = self._pa_array.cast(pa.int64())
@@ -2839,9 +2852,12 @@ class ArrowExtensionArray(
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
                 result = result.cast(pa.duration(pa_type.unit))
-            elif pa.types.is_date(pa_type):
-                # go with closest available unit, i.e. "s"
+            elif pa.types.is_date32(pa_type):
+                # computed in seconds, the closest available unit
                 result = result.cast(pa.duration("s"))
+            elif pa.types.is_date64(pa_type):
+                # the result is in milliseconds, the storage unit
+                result = result.cast(pa.duration("ms"))
             else:
                 # i.e. timestamp
                 result = result.cast(pa.duration(pa_type.unit))
