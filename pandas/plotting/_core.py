@@ -1438,7 +1438,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
-        color: str | Sequence[str] | dict | None = None,
+        color: str | Sequence[str] | dict[Hashable, str] | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1551,7 +1551,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
-        color: str | Sequence[str] | dict | None = None,
+        color: str | Sequence[str] | dict[Hashable, str] | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1696,7 +1696,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
-        color: str | Sequence[str] | dict | None = None,
+        color: str | Sequence[str] | dict[Hashable, str] | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1957,7 +1957,10 @@ class PlotAccessor(PandasObject):
 
     def kde(
         self,
-        bw_method: Literal["scott", "silverman"] | float | Callable | None = None,
+        bw_method: Literal["scott", "silverman"]
+        | float
+        | Callable[..., float]
+        | None = None,
         ind: np.ndarray | int | None = None,
         weights: np.ndarray | None = None,
         **kwargs,
@@ -2320,7 +2323,7 @@ class PlotAccessor(PandasObject):
         x: Hashable,
         y: Hashable,
         C: Hashable | None = None,
-        reduce_C_function: Callable | None = None,
+        reduce_C_function: Callable[..., float] | None = None,
         gridsize: int | tuple[int, int] | None = None,
         **kwargs,
     ) -> PlotAccessor:
