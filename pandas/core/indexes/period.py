@@ -381,11 +381,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         See Also
         --------
         PeriodIndex.day_of_year : The ordinal day of the year.
-        PeriodIndex.dayofyear : The ordinal day of the year.
         PeriodIndex.is_leap_year : Logical indicating if the date belongs to a
             leap year.
         PeriodIndex.weekofyear : The week ordinal of the year.
-        PeriodIndex.year : The year of the period.
 
         Examples
         --------
@@ -406,7 +404,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         See Also
         --------
         PeriodIndex.days_in_month : The number of days in the month.
-        PeriodIndex.daysinmonth : The number of days in the month.
 
         Examples
         --------
@@ -427,11 +424,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         --------
         PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.day_of_year : The ordinal day of the year.
-        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
-        PeriodIndex.dayofyear : The ordinal day of the year.
         PeriodIndex.days_in_month : The number of days in the month.
-        PeriodIndex.daysinmonth : The number of days in the month.
-        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
 
         Examples
         --------
@@ -518,9 +511,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         See Also
         --------
         PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
-        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.week : The week ordinal of the year.
-        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.year : The year of the period.
 
         Examples
@@ -544,12 +535,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         See Also
         --------
         PeriodIndex.day : The days of the period.
-        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.day_of_year : The ordinal day of the year.
-        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
-        PeriodIndex.dayofyear : The ordinal day of the year.
         PeriodIndex.week : The week ordinal of the year.
-        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.weekofyear : The week ordinal of the year.
 
         Examples
@@ -592,10 +579,6 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         --------
         PeriodIndex.day : The days of the period.
         PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
-        PeriodIndex.day_of_year : The ordinal day of the year.
-        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
-        PeriodIndex.dayofyear : The ordinal day of the year.
-        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
         PeriodIndex.weekofyear : The week ordinal of the year.
         PeriodIndex.year : The year of the period.
 
@@ -698,14 +681,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         See Also
         --------
         PeriodIndex.day : The days of the period.
-        PeriodIndex.days_in_month : The number of days in the month.
-        PeriodIndex.daysinmonth : The number of days in the month.
         PeriodIndex.month : The month as January=1, December=12.
 
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
-        >>> idx.days_in_month  # It can be also entered as `daysinmonth`
+        >>> idx.days_in_month
         Index([31, 28, 31], dtype='int64')
         """
         return self._wrap_field("days_in_month")
