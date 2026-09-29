@@ -115,6 +115,9 @@ backticks. The following are considered inline code:
     <https://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
     for details.
 
+When referring to missing values in general, use "NA". Use ``NaN``, ``NaT`` or
+``pd.NA`` only when referring to that specific value.
+
 **Good:**
 
 .. code-block:: python
@@ -152,10 +155,6 @@ backticks. The following are considered inline code:
         foo = 1
         bar = 2
         return foo + bar
-
-When referring to missing values in general, use "NA". Use ``NaN`` or ``NaT``
-only for that specific value, e.g. "Check for missing (NA) values. The values
-``NaN`` and ``NaT`` are considered missing."
 
 .. _docstring.short_summary:
 
