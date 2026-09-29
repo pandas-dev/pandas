@@ -61,9 +61,6 @@ class TestFeather:
         ]:
             self.check_error_on_write(obj, ValueError, msg, temp_file)
 
-    @pytest.mark.filterwarnings(
-        "ignore:.*values returning.*:pandas.errors.Pandas4Warning"
-    )
     def test_basic(self, temp_file):
         tz = zoneinfo.ZoneInfo("US/Eastern")
         df = pd.DataFrame(
@@ -249,6 +246,9 @@ class TestFeather:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [True, False])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_categorical_object_categories_no_infer_string(self, temp_file, ordered):
         # GH#56044 with the string dtype disabled the categories come back as
         #  object, including for an ordered dtype, where CategoricalDtype.__eq__

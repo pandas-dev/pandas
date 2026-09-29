@@ -158,7 +158,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[s]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -1033,7 +1033,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
                 "'DatetimeIndex.array' to get the ExtensionArray.",
                 Pandas4Warning,
-                stacklevel=find_stack_level(),
+                # TODO bump this to stacklevel=2 in a future version
+                stacklevel=1,
             )
         data = self._data._ndarray
         data = data.view()

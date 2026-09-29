@@ -549,6 +549,19 @@ def test_getitem(idx):
     assert result2.equals(expected)
 
 
+def test_getitem_scalar_result_type(using_python_scalars):
+    # GH#64266
+    mi = pd.MultiIndex.from_arrays([[1, 2], [1.5, 2.5]])
+    result = mi[1]
+    assert result == (2, 2.5)
+    if using_python_scalars:
+        assert type(result[0]) is int
+        assert type(result[1]) is float
+    else:
+        assert isinstance(result[0], np.integer)
+        assert isinstance(result[1], np.floating)
+
+
 def test_getitem_group_select(idx):
     sorted_idx, _ = idx.sortlevel(0)
     assert sorted_idx.get_loc("baz") == slice(3, 4)

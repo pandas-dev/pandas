@@ -30,7 +30,10 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas import DataFrame
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import (
     IOHandles,
     check_parent_directory,
@@ -151,18 +154,27 @@ def _get_path_or_handle(
             )
             path_or_handle = handles.handle
         else:
-            # Local path: hand the string to pyarrow so it can use memory-mapped,
-            # multithreaded C++ I/O rather than the Python I/O layer (GH#47702).
-            # Do not open it via get_handle as well: pyarrow opens the path
-            # itself, so going through get_handle too would open the file twice.
-            # That wastes a syscall on POSIX and, on filesystems that finalize a
-            # file's contents on close, lets the empty pandas-side descriptor
-            # close last and clobber pyarrow's data to 0 bytes. get_handle would
-            # also expand "~" and check the parent directory on write, so
-            # reproduce both below to keep behavior unchanged.
+            # Local path: keep the I/O in pyarrow's C++ layer rather than the
+            # Python one (GH#47702), and open the file only once -- adding a
+            # get_handle open on top would clobber pyarrow's data to 0 bytes
+            # (GH#65810). get_handle would also expand "~" and check the parent
+            # directory on write, so reproduce both below.
             path_or_handle = os.path.expanduser(path_or_handle)
             if "w" in mode or "a" in mode or "x" in mode:
                 check_parent_directory(path_or_handle)
+                # Open the destination instead of handing over its path:
+                # write_table deletes a path-like target when the write raises,
+                # destroying a pre-existing file it never managed to open
+                # (GH#69022). pa.OSFile opens it in C++ rather than through
+                # builtins.open, so this stays a single native open.
+                pa = import_optional_dependency("pyarrow")
+                stream = pa.OSFile(path_or_handle, mode)
+                handles = IOHandles(
+                    handle=stream,
+                    compression={"method": None},
+                    created_handles=[stream],
+                )
+                path_or_handle = stream
     return path_or_handle, handles, fs
 
 
@@ -208,7 +220,8 @@ class PyArrowImpl(BaseImpl):
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
-        table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+        with suppress_pyarrow_values_warning():
+            table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
         if df.attrs:
             df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}

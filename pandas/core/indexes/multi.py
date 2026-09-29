@@ -1660,6 +1660,8 @@ class MultiIndex(Index):
         if len(self) == 0:
             return []
 
+        from pandas.io.formats.format import format_name
+
         stringified_levels = []
         for lev, level_codes in zip(self.levels, self.codes, strict=True):
             na = _get_na_rep(lev.dtype)
@@ -1688,11 +1690,7 @@ class MultiIndex(Index):
             level = []
 
             if include_names:
-                level.append(
-                    pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
-                    if lev_name is not None
-                    else ""
-                )
+                level.append(format_name(lev_name))
 
             level.extend(np.array(lev, dtype=object))
             result_levels.append(level)
@@ -5142,7 +5140,7 @@ def _require_listlike(level, arr, arrname: str):
         if not is_list_like(arr):
             raise TypeError(f"{arrname} must be list-like")
         if len(arr) > 0 and is_list_like(arr[0]):
-            raise TypeError(f"{arrname} must be list-like")
+            raise TypeError(f"{arrname} must be list-like, not a list of list-likes")
         level = [level]
         arr = [arr]
     elif level is None or is_list_like(level):

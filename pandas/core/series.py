@@ -83,7 +83,10 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -149,7 +152,10 @@ from pandas.core.sorting import (
 from pandas.core.strings.accessor import StringMethods
 from pandas.core.tools.datetimes import to_datetime
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
     SeriesInfo,
@@ -474,6 +480,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif isinstance(data, ExtensionArray):
             pass
         else:
+            if isinstance(data, ABCDataFrame):
+                raise ValueError(
+                    "Cannot construct a Series from a DataFrame. To select a "
+                    "single column, use df.iloc[:, 0]."
+                )
             data = com.maybe_iterable_to_list(data)
             if is_list_like(data) and not len(data) and dtype is None:
                 # GH 29405: Pre-2.0, this defaulted to float.
@@ -584,7 +595,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if requested_schema is not None
             else None
         )
-        ca = pa.array(self, type=type)
+        with suppress_pyarrow_values_warning():
+            ca = pa.array(self, type=type)
         if not isinstance(ca, pa.ChunkedArray):
             ca = pa.chunked_array([ca])
         return ca.__arrow_c_stream__()
@@ -821,6 +833,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             ``.values`` will return the underlying ExtensionArray. Use
             :meth:`Series.to_numpy` or :attr:`Series.array` instead.
         """
+        if isinstance(self.dtype, (PeriodDtype, IntervalDtype)):
+            warnings.warn(
+                f"Series.values returning an object-dtype ndarray for "
+                f"{type(self.dtype).__name__} dtype is deprecated. "
+                f"In a future version, this will return the underlying "
+                f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
+                f"NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                stacklevel=2,
+            )
+        elif isinstance(self.dtype, DatetimeTZDtype):
+            warnings.warn(
+                "Series.values returning an ndarray that drops timezone "
+                "information for DatetimeTZDtype is deprecated. "
+                "In a future version, this will return the underlying "
+                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
+                "NumPy array, or 'Series.array' to get the ExtensionArray.",
+                Pandas4Warning,
+                # TODO bump this to stacklevel=2 in a future version
+                stacklevel=1,
+            )
         return self._mgr.external_values()
 
     @property
@@ -1023,7 +1056,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Indexing Methods
 
-    def _ixs(self, i: int, axis: AxisInt = 0) -> Any:
+    def _ixs(self, i: int | np.integer, axis: AxisInt = 0) -> Any:
         """
         Return the i-th value or values in the Series by location.
 
@@ -1035,7 +1068,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         scalar
         """
-        return self._values[i]
+        values = self._values
+        return maybe_unbox_numpy_scalar(values[i], object_with_dtype=values)
 
     def _slice(
         self, slobj: slice, axis: AxisInt = 0, new_index: Index | None = None
@@ -1145,20 +1179,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         scalar value
         """
         if takeable:
-            return self._values[label]
+            return self._ixs(label)
 
         # Similar to Index.get_value, but we do not fall back to positional
         loc = self.index.get_loc(label)
 
         if is_integer(loc):
-            return self._values[loc]
+            return self._ixs(loc)
 
         if isinstance(self.index, MultiIndex):
             mi = self.index
             new_values = self._values[loc]
             if len(new_values) == 1 and mi.nlevels == 1:
                 # If more than one level left, we can not return a scalar
-                return new_values[0]
+                return maybe_unbox_numpy_scalar(
+                    new_values[0], object_with_dtype=new_values
+                )
 
             new_index = mi[loc]
             new_index = maybe_droplevels(new_index, label)
@@ -1174,8 +1210,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
-                self
+            # the cheaper opcode check is deliberately last: on Python 3.14
+            # a plain `df[col] = value` reaches the refcount check, and
+            # is_local_in_caller_frame already short-circuits it there
+            if (
+                sys.getrefcount(self) <= REF_COUNT
+                and not com.is_local_in_caller_frame(self)
+                and com.is_setitem_syntax_in_caller_frame()
             ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -2180,7 +2221,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        <https://pandas.pydata.org/docs/dev/user_guide/groupby.html>`__ for more
         detailed usage and examples, including splitting an object into groups,
         iterating through groups, selecting a group, aggregation, and more.
 
@@ -2990,7 +3031,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._constructor(result, index=idx, name=self.name)
         else:
             # scalar
-            return maybe_unbox_numpy_scalar(result.iloc[0], object_with_dtype=self)
+            return result.iloc[0]
 
     def corr(
         self,
@@ -3524,7 +3565,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         >>> ser.searchsorted(4)
-        np.int64(3)
+        3
         >>> ser.searchsorted([0, 4])
         array([0, 3])
         >>> ser.searchsorted([1, 3], side="left")
@@ -3538,7 +3579,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2   2000-03-13
         dtype: datetime64[us]
         >>> ser.searchsorted("3/14/2000")
-        np.int64(3)
+        3
         >>> ser = pd.Categorical(
         ...     ["apple", "bread", "bread", "cheese", "milk"], ordered=True
         ... )
@@ -3690,7 +3731,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
         `fill_value` is assumed when value is not present at some index
-        from one of the two Series being combined.
+        from one of the two Series being combined. The result index is the
+        union of the two indexes. If a label is duplicated, its occurrences
+        are paired in order: the first occurrence in the Series with the first
+        in `other`, the second with the second, and so on; an occurrence with
+        no counterpart is paired with `fill_value`.
 
         Parameters
         ----------
@@ -3701,7 +3746,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         fill_value : scalar, optional
             The value to assume when an index is missing from
             one Series or the other. The default specifies to use the
-            appropriate NaN value for the underlying dtype of the Series.
+            appropriate NA value for the underlying dtype of the Series.
 
         Returns
         -------
@@ -3749,20 +3794,51 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         eagle     200.0
         falcon    345.0
         dtype: float64
+
+        Occurrences of a duplicated label are paired in order. Below, the
+        first ``"a"`` in ``s3`` is combined with the ``"a"`` in ``s4``,
+        while the second has no counterpart and is paired with
+        ``fill_value``.
+
+        >>> s3 = pd.Series([1, 2, 3], index=["a", "a", "b"])
+        >>> s4 = pd.Series([10, 20], index=["a", "b"])
+        >>> s3.combine(s4, lambda x, y: x + y, fill_value=0)
+        a    11
+        a     2
+        b    23
+        dtype: int64
         """
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
-            # If other is a Series, result is based on union of Series,
-            # so do this element by element
+            if (
+                isinstance(self.index, MultiIndex)
+                and isinstance(other.index, MultiIndex)
+                and self.index.nlevels != other.index.nlevels
+            ):
+                raise ValueError(
+                    "Cannot combine Series whose MultiIndexes have different "
+                    f"numbers of levels: {self.index.nlevels} and "
+                    f"{other.index.nlevels}"
+                )
             new_index = self.index.union(other.index)
+            if self.index.equals(new_index) and other.index.equals(new_index):
+                lindexer = rindexer = range(len(new_index))
+            elif self.index._index_as_unique and other.index._index_as_unique:
+                lindexer = self.index.get_indexer(new_index).tolist()
+                rindexer = other.index.get_indexer(new_index).tolist()
+            else:
+                lindexer = self.index._pairwise_indexer(new_index).tolist()
+                rindexer = other.index._pairwise_indexer(new_index).tolist()
             new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=object)
+            lvalues = self._values
+            rvalues = other._values
             with np.errstate(all="ignore"):
-                for i, idx in enumerate(new_index):
-                    lv = self.get(idx, fill_value)
-                    rv = other.get(idx, fill_value)
+                for i, (li, ri) in enumerate(zip(lindexer, rindexer, strict=True)):
+                    lv = lvalues[li] if li != -1 else fill_value
+                    rv = rvalues[ri] if ri != -1 else fill_value
                     new_values[i] = func(lv, rv)
         else:
             # Assume that other is a scalar, so apply the function for
@@ -4720,7 +4796,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -5629,7 +5705,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -5744,7 +5820,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -5826,7 +5902,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         level : int or name
@@ -6092,7 +6168,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         inplace : bool, default False
@@ -6352,7 +6428,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        return maybe_unbox_numpy_scalar(super().pop(item=item), object_with_dtype=self)
+        return super().pop(item=item)
 
     def info(
         self,
@@ -7182,7 +7258,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns
@@ -7259,7 +7335,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 pandas 3.0, this method always returns a new object using a lazy
                 copy mechanism that defers copies until necessary
                 (Copy-on-Write). See the `user guide on Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                <https://pandas.pydata.org/docs/dev/user_guide/migration.html>`__
                 for more details.
 
         Returns

@@ -437,15 +437,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if hasattr(value, "dtype"):
             their_kind = value.dtype.kind
-            # Compatible numeric/bool ndarrays defer to _coerce_to_array,
-            # which handles precision/NaN checks via _safe_cast.  Bool
-            # ndarrays are accepted for numeric targets to preserve the
-            # long-standing bool-as-int treatment exercised by Series.mask.
+            # Compatible numeric/bool arrays (ndarray or masked) defer to
+            # _coerce_to_array, which handles precision/NaN checks via
+            # _safe_cast.  Bool values are accepted for numeric targets to
+            # preserve the long-standing bool-as-int treatment exercised by
+            # Series.mask.
             if (kind == "b" and their_kind == "b") or (
                 kind in "iuf" and their_kind in "iufb"
             ):
-                if kind in "iuf" and isinstance(value, type(self)):
-                    return self._coerce_same_family(value)
                 return self._coerce_to_array(value, dtype=self.dtype)
         elif not is_list_like(value):
             # is_scalar in __setitem__ misses some non-listlike inputs
@@ -468,20 +467,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             or (kind in "iuf" and casted_kind in "iuf")
         ):
             raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
-        if kind in "iuf" and isinstance(casted, type(self)):
-            return self._coerce_same_family(casted)
         return self._coerce_to_array(casted, dtype=self.dtype)
-
-    def _coerce_same_family(
-        self, value: BaseMaskedArray
-    ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
-        # ``value`` is a masked array of the same numeric family as self.
-        # Coerce its underlying ndarray rather than the masked array itself:
-        # _coerce_to_array's isinstance fast path would raw-astype and
-        # silently wrap out-of-bounds values (GH#65510), whereas the ndarray
-        # takes the general path that rejects a lossy cast via _safe_cast.
-        data, _ = self._coerce_to_array(value._data, dtype=self.dtype)
-        return data, value._mask
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
@@ -841,6 +827,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
+
+        # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
+        #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
 
         out = kwargs.get("out", ())
 
@@ -1847,9 +1837,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         result = self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
         return self._wrap_reduction_result("kurt", result, skipna=skipna, axis=axis)
 
-    def sem(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
+    def sem(
+        self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
+    ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        result = self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        result = self._reduce("sem", skipna=skipna, axis=axis, ddof=ddof, **kwargs)
         return self._wrap_reduction_result("sem", result, skipna=skipna, axis=axis)
 
     def skew(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
@@ -2172,8 +2164,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
         mask = self._mask

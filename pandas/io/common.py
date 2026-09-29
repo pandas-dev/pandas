@@ -810,9 +810,7 @@ def get_handle(
             # GZ Compression
             if compression == "gzip":
                 if isinstance(handle, str):
-                    # error: Incompatible types in assignment (expression has type
-                    # "GzipFile", variable has type "Union[str, BaseBuffer]")
-                    handle = gzip.GzipFile(  # type: ignore[assignment]
+                    handle = gzip.GzipFile(
                         filename=handle,
                         mode=ioargs.mode,
                         **compression_args,
