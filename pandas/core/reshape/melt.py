@@ -678,4 +678,7 @@ def wide_to_long(
     if len(i) == 1:
         return new.set_index(i).join(melted)
     else:
+        # GH#30517 avoid the reset_index inference warning; the merge keeps
+        # ``new``'s id dtypes
+        melted = melted.set_axis(melted.index.infer_objects(copy=False))
         return new.merge(melted.reset_index(), on=i).set_index([*i, j])
