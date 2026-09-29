@@ -84,6 +84,7 @@ from pandas.core.internals.managers import BlockManager
 
 from pandas.io.common import (
     IOHandles,
+    _BytesIOWrapper,
     get_handle,
     infer_compression,
     stringify_path,
@@ -3747,6 +3748,9 @@ def _can_seek(handle: IO) -> bool:
     Whether ``handle`` can seek back, checking the source of a ``GzipFile``,
     whose ``seekable()`` is True even when its source cannot seek.
     """
+    if isinstance(handle, _BytesIOWrapper):
+        # seeking its text buffer would not discard already-encoded overflow bytes
+        return False
     source: Any = handle.buffer if isinstance(handle, io.TextIOWrapper) else handle
     if isinstance(source, gzip.GzipFile) and source.fileobj is not None:
         source = source.fileobj
