@@ -1618,13 +1618,22 @@ def test_cmp_nested_dtype_pointwise(values, pa_type):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_cmp_list_dtype_numpy_scalar_raises():
-    # GH#62682 numpy broadcasts [1] == np.int64(1) to array([True])
+def test_cmp_list_dtype_numpy_scalar_elements():
+    # GH#62682 numpy broadcasts [1] == np.int64(1) to array([True]); treat it
+    #  like the other invalid list-likes
     arr = pd.array([[1], [2]], dtype=ArrowDtype(pa.list_(pa.int64())))
+    other = pd.arrays.SparseArray([1, 2])
 
-    msg = "operation 'eq' not supported for dtype 'list<item: int64>[pyarrow]'"
-    with pytest.raises(TypeError, match=re.escape(msg)):
-        arr == pd.arrays.SparseArray([1, 2])
+    result = arr == other
+    expected = pd.array([False, False], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    result = arr != other
+    expected = pd.array([True, True], dtype=ArrowDtype(pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError, match="Invalid comparison"):
+        arr < other
 
 
 def test_cmp_ne_offset_array_with_na():

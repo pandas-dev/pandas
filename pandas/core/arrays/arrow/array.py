@@ -1324,11 +1324,12 @@ class ArrowExtensionArray(
                     if isinstance(res, np.ndarray) and pa.types.is_nested(ltype):
                         # GH#62682 numpy broadcast a list-valued element, so
                         #  bool() would give a real-looking answer
-                        raise TypeError(
-                            self._op_method_error_message(other, op)
-                        ) from None
+                        result = ops.invalid_comparison(self, other, op)
+                        result = pa.array(result, type=pa.bool_())
+                        break
                     res_values.append(None if na else bool(res))
-                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
+                else:
+                    result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
                 if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
