@@ -408,27 +408,37 @@ Run ``scripts/push_tag_for_release.sh`` from the root of your pandas clone to in
 release process by locally creating and pushing a tagged commit, triggering the release automation.
 Specify the version and branch to release as arguments.
 
-If the release is a release candidate, specify the ``--rc-branch`` option
-to create the new branch.
-
 .. code-block:: bash
 
    # e.g. A patch release
    scripts/push_tag_for_release.sh 3.0.5 3.0.x
    # e.g. A release candidate
-   scripts/push_tag_for_release.sh 3.0.0rc0 main --rc-branch 3.0.x
+   scripts/push_tag_for_release.sh 3.0.0rc0 main
 
 .. note::
 
-   After releasing the first release candidate of a new version, start the development of the next version on ``main``
-   by pushing an empty commit and a ``dev0`` tag, e.g. for 3.1.0
+   After releasing the first release candidate of a new version:
+
+   - Create a maintenance branch. For example:
 
    .. code-block:: bash
 
       git checkout main
-      git commit --allow-empty -m "Start 3.1.0"
-      git tag -a v3.1.0.dev0 -m "DEV: Start 3.1.0"
+      git checkout -b 3.1.x
+      git push upstream 3.1.x
+
+   - Start the development of the next version on ``main``
+     by pushing an empty commit and a ``dev0`` tag, e.g. for 3.2.0
+
+   .. code-block:: bash
+
+      git checkout main
+      git commit --allow-empty -m "Start 3.2.0"
+      git tag -a v3.2.0.dev0 -m "DEV: Start 3.2.0"
       git push upstream main --follow-tags
+
+   - Update the GitHub milestone for the final release of the RC to backport
+     to the maintenance branch (e.g., 3.1.x).
 
 The release automation will then:
 
@@ -450,6 +460,9 @@ The release automation will then:
       The automated conda-forge PR usually takes a while to generate. You can manually open
       an `issue <https://github.com/conda-forge/pandas-feedstock/issues>`_ titled ``@conda-forge-admin, please update version``
       to manually trigger the conda-forge PR.
+
+Then finally, verify that the upload to PyPI was successful, review the release
+notes of the GitHub release, and then publish the GitHub release.
 
 Post-Release
 ````````````

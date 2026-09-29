@@ -14,7 +14,6 @@ Arguments:
 
 Options:
   --remote NAME          Remote to push to (default: upstream)
-  --rc-branch X.Y.x      New maintenance branch to create (release candidate only)
   --yes                  Skip the interactive confirmation prompt
   -h, --help             Show this help and exit
 USAGE
@@ -28,7 +27,6 @@ die() {
 VERSION=""
 BRANCH=""
 REMOTE="upstream"
-RC_BRANCH=""
 ASSUME_YES="false"
 
 POSITIONAL=()
@@ -37,11 +35,6 @@ while [[ $# -gt 0 ]]; do
     --remote)
       [[ $# -ge 2 ]] || die "--remote requires a value"
       REMOTE="$2"
-      shift 2
-      ;;
-    --rc-branch)
-      [[ $# -ge 2 ]] || die "--rc-branch requires a value"
-      RC_BRANCH="$2"
       shift 2
       ;;
     --yes)
@@ -70,17 +63,6 @@ version_pat='^[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$'
 
 [[ "$VERSION" =~ $version_pat ]] || die "Invalid version '$VERSION' (expected e.g. 1.5.2 or 1.4.0rc0)"
 
-IS_RC="false"
-if [[ "$VERSION" == *rc* ]]; then
-  IS_RC="true"
-fi
-
-if [[ "$IS_RC" == "true" ]]; then
-  [[ -n "$RC_BRANCH" ]] || die "Release candidate requires --rc-branch"
-else
-  [[ -z "$RC_BRANCH" ]] || die "--rc-branch is only valid for a release candidate"
-fi
-
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "Not inside a git work tree"
 git remote get-url "$REMOTE" >/dev/null 2>&1 || die "Remote '$REMOTE' does not exist"
 
@@ -94,9 +76,6 @@ fi
 
 echo "About to release pandas $VERSION from branch '$BRANCH' (remote '$REMOTE')."
 echo "  - An empty 'RLS: $VERSION' commit and tag '$TAG' will be pushed to '$REMOTE/$BRANCH'."
-if [[ "$IS_RC" == "true" ]]; then
-  echo "  - Maintenance branch '$RC_BRANCH' will be created and pushed."
-fi
 
 if [[ "$ASSUME_YES" != "true" ]]; then
   read -r -p "Proceed? [y/N] " reply
@@ -111,11 +90,5 @@ git pull --ff-only "$REMOTE" "$BRANCH"
 git commit --allow-empty --author="pandas Development Team <pandas-dev@python.org>" -m "RLS: $VERSION"
 git tag -a "$TAG" -m "Version $VERSION"
 git push "$REMOTE" "$BRANCH" --follow-tags
-
-if [[ "$IS_RC" == "true" ]]; then
-  git checkout -b "$RC_BRANCH"
-  git push "$REMOTE" "$RC_BRANCH"
-  git checkout "$BRANCH"
-fi
 
 echo "Done. Pushed $TAG to $REMOTE/$BRANCH."
