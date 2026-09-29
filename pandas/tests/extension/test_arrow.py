@@ -5871,7 +5871,7 @@ def test_factorize_dictionary_unsupported_value_type_with_na(values):
         pa.array(["a", None], type=pa.string_view()),
         pa.array([b"a", None], type=pa.binary_view()),
         pa.array([[1], None], type=pa.list_(pa.int64())),
-        pa.array([1.0, None], type=pa.float16()),
+        pa.array(np.array([1, 0], dtype=np.float16), mask=np.array([False, True])),
     ],
 )
 def test_factorize_dictionary_unsupported_value_type_null_in_dictionary(
