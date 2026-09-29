@@ -450,7 +450,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return value
 
         elif lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-            # range check belongs here once GH#48867 is enforced
+            # range check belongs here once GH#48867 is enforced; raise
+            #  OverflowError, not TypeError, which Index.where catches and upcasts
             return value
 
         # Note: without the "str" here, the f-string rendering raises in
