@@ -299,6 +299,14 @@ def test_map_tuples_changing_nlevels_drops_names(width):
     tm.assert_index_equal(result, expected)
 
 
+def test_map_tuples_mixed_lengths_pads_with_nan():
+    # GH#24800
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    result = mi.map({("a", 1): ("p",), ("b", 2): ("q", "r", "s")})
+    expected = pd.MultiIndex.from_tuples([("p", np.nan, np.nan), ("q", "r", "s")])
+    tm.assert_index_equal(result, expected)
+
+
 def test_map_tuples_same_nlevels_keeps_names():
     # GH#24800
     mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
