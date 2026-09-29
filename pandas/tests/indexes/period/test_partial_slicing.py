@@ -51,11 +51,7 @@ class TestPeriodIndex:
     def test_string_slice_matches_freq_resolves_single_anchored_period(
         self, freq, label
     ):
-        # GH#66571 partial-string slicing at the same resolution as an
-        # anchored freq (e.g. "2001Q1" on a Q-FEB index) used to resolve the
-        # string via a calendar-freq Period first, discarding the anchor and
-        # shifting the bounds to span two periods instead of the single one
-        # get_loc already resolved it to.
+        # GH#66571
         periods = 12 if freq.startswith("Q") else 8
         start = "2000Q1" if freq.startswith("Q") else "2000"
         pi = pd.period_range(start, periods=periods, freq=freq)
@@ -89,19 +85,14 @@ class TestPeriodIndex:
     def test_string_slice_lower_resolution_label_unchanged(
         self, freq, start, stop, expected
     ):
-        # the GH#66571 shortcut only covers quarterly/annual labels at the
-        # index's own resolution; a lower-resolution label (here a day on a
-        # weekly index) still goes through the calendar-freq path
+        # GH#66571
         pi = pd.period_range("2001-01-01", periods=20, freq=freq)
         ser = pd.Series(range(len(pi)), index=pi)
         result = ser.loc[start:stop]
         assert list(result.index.astype(str)) == expected
 
     def test_string_slice_freq_without_resolution(self):
-        # GH#66571: a weekly PeriodIndex has no Resolution, so reading
-        # _resolution_obj raises KeyError. An annual label against such an
-        # index must still take the calendar-freq path rather than letting
-        # that KeyError escape.
+        # GH#66571
         pi = pd.period_range("2001-01-01", periods=60, freq="W")
         ser = pd.Series(range(len(pi)), index=pi)
         result = ser.loc["2001":"2001"]
