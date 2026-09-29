@@ -584,7 +584,7 @@ class PrettyDict(dict[_KT, _VT]):
         return pprint_thing(self)
 
 
-# ANSI escape sequences (e.g. terminal colors) take up no space on screen
+# CSI escape sequences (e.g. terminal colors) take up no space on screen
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
@@ -594,7 +594,7 @@ class _TextAdjustment:
 
     def len(self, text: str) -> int:
         """
-        Calculate display width, ignoring ANSI escape sequences
+        Calculate display width, ignoring CSI escape sequences
         """
         if "\x1b" in text:
             return len(_ANSI_ESCAPE.sub("", text))
@@ -604,7 +604,7 @@ class _TextAdjustment:
         """
         Perform ljust, center, rjust against string or list-like
         """
-        if "\x1b" in "".join(texts):
+        if any("\x1b" in x for x in texts):
             return self._justify_by_width(texts, max_len, mode)
         return _adj_justify(texts, max_len, mode)
 
