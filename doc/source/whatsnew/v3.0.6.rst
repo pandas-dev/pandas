@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 
+- Fixed regression in timezone localization and conversion with a ``zoneinfo`` timezone built by ``ZoneInfo.from_file`` raising or silently using the installed ``tzdata`` rules (:issue:`66828`)
 
 
 .. ---------------------------------------------------------------------------

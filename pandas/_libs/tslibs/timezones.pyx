@@ -226,12 +226,6 @@ cdef object tz_cache_key(tzinfo tz):
                              "https://github.com/pandas-dev/pandas/pull/7362")
         return "dateutil" + tz._filename
     elif is_zoneinfo(tz):
-        if get_zoneinfo_twin(tz) is None:
-            # i.e. ZoneInfo.from_file; tz.key, if there is one, does not
-            #  identify the data this object holds, so caching under it would
-            #  hand out another zone's transitions.  Callers keep these away
-            #  from get_dst_info, so this is defensive.  GH#64379
-            return None
         return "zoneinfo/" + tz.key
     else:
         return None
@@ -364,12 +358,7 @@ cdef object _build_zoneinfo_twin(tzinfo tz):
         #  installed tzdata under its key, by ZoneInfo() or no_cache().
         return None
 
-    try:
-        return _ZoneInfo(tz.key)
-    except (KeyError, ValueError, OSError):
-        # Not expected to be reached: the C and pure-python loaders search the
-        #  same TZPATH, so having gotten this far the key resolves for both.
-        return None
+    return _ZoneInfo(tz.key)
 
 
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
