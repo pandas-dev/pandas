@@ -552,6 +552,16 @@ def test_to_dict_list_pd_scalars(val):
     "orient, expected",
     [
         ("split", {"index": ["A", "B"], "columns": [], "data": [[], []]}),
+        (
+            "tight",
+            {
+                "index": ["A", "B"],
+                "columns": [],
+                "data": [[], []],
+                "index_names": [None],
+                "column_names": [None],
+            },
+        ),
         ("records", [{}, {}]),
     ],
 )
