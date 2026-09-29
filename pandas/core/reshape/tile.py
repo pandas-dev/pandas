@@ -386,7 +386,15 @@ def qcut(
     else:
         raise ValueError("`q` should be a positive integer or list-like of quantiles.")
 
-    bins = x_idx.to_series().dropna().quantile(quantiles)
+    ser = x_idx.to_series().dropna()
+    # GH#11113 interpolating between infinite observations is undefined
+    #  (inf - inf), so those edges warn and evaluate to NaN; "lower" does no
+    #  arithmetic, so use it for them only
+    with np.errstate(invalid="ignore"):
+        bins = ser.quantile(quantiles)
+    if not ser.empty and bins.isna().any():
+        lower = ser.quantile(quantiles, interpolation="lower")
+        bins = bins.mask(bins.isna(), lower.to_numpy())
 
     fac, bins = _bins_to_cuts(
         x_idx,

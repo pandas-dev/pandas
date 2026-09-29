@@ -78,6 +78,62 @@ def test_qcut_nas():
     assert pd.isna(result[:20]).all()
 
 
+@pytest.mark.parametrize(
+    "data,q,expected",
+    [
+        # only the upper edge is infinite
+        (
+            [1, 2, 3, 4, np.inf],
+            2,
+            [pd.Interval(0.999, 3.0), pd.Interval(3.0, np.inf)],
+        ),
+        # only the lower edge is infinite
+        (
+            [-np.inf, 1, 2, 3, 4],
+            2,
+            [pd.Interval(-np.inf, 2.0), pd.Interval(2.0, 4.0)],
+        ),
+        # both edges are infinite
+        (
+            [-np.inf, 1, 2, 3, 4, 5, np.inf],
+            3,
+            [
+                pd.Interval(-np.inf, 2.0),
+                pd.Interval(2.0, 4.0),
+                pd.Interval(4.0, np.inf),
+            ],
+        ),
+        # infinite values alongside missing ones
+        (
+            [1, 2, np.nan, 3, np.inf],
+            2,
+            [pd.Interval(0.999, 2.5), pd.Interval(2.5, np.inf)],
+        ),
+        # a single infinite value among finite ones
+        (
+            [*range(10), np.inf],
+            2,
+            [pd.Interval(-0.001, 5.0), pd.Interval(5.0, np.inf)],
+        ),
+    ],
+)
+def test_qcut_infinite_values(data, q, expected):
+    # see gh-11113
+    result = pd.qcut(data, q)
+    tm.assert_index_equal(result.categories, pd.IntervalIndex(expected))
+
+
+def test_qcut_only_infinite_values():
+    # see gh-11113 an edge between -inf and inf resolves to -inf, so the bins
+    #  collapse the way they do for constant input
+    with pytest.raises(ValueError, match="edges.*unique"):
+        pd.qcut([-np.inf, np.inf], 2)
+
+    result = pd.qcut([-np.inf, np.inf], 2, duplicates="drop")
+    expected = pd.IntervalIndex([pd.Interval(-np.inf, np.inf)])
+    tm.assert_index_equal(result.categories, expected)
+
+
 def test_qcut_index():
     result = pd.qcut([0, 2], 2)
     intervals = [pd.Interval(-0.001, 1), pd.Interval(1, 2)]
