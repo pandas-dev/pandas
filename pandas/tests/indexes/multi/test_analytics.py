@@ -32,7 +32,8 @@ def test_infer_objects_level_values_collide():
     assert result.get_loc((2.0**53, "b")) == 1
 
 
-def test_infer_objects_no_object_levels(idx):
+def test_infer_objects_no_object_levels():
+    idx = pd.MultiIndex.from_arrays([[1, 2, 3], pd.date_range("2020", periods=3)])
     result = idx.infer_objects()
     tm.assert_index_equal(result, idx)
     assert result is not idx
