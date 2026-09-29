@@ -538,13 +538,21 @@ class TestRank:
         tm.assert_frame_equal(result, expected)
 
     def test_rank_arrow_type_pyarrow_cannot_rank(self, frame_or_series):
-        # GH#52829 pyarrow cannot rank lists; fall back to ranking as object
+        # GH#52829 pyarrow cannot rank lists
         pa = pytest.importorskip("pyarrow")
         dtype = pd.ArrowDtype(pa.list_(pa.int64()))
-        obj = frame_or_series(pd.array([[3], None, [1], [2]], dtype=dtype))
+        obj = frame_or_series(
+            pd.array([[3, 1], None, [1, 5], [1, 2], [1, 5]], dtype=dtype)
+        )
         result = obj.rank()
         expected = frame_or_series(
-            pd.array([3.0, None, 1.0, 2.0], dtype=pd.ArrowDtype(pa.float64()))
+            pd.array([4.0, None, 2.5, 1.0, 2.5], dtype=pd.ArrowDtype(pa.float64()))
+        )
+        tm.assert_equal(result, expected)
+
+        result = obj.rank(method="min", ascending=False, na_option="top")
+        expected = frame_or_series(
+            pd.array([2, 1, 3, 5, 3], dtype=pd.ArrowDtype(pa.uint64()))
         )
         tm.assert_equal(result, expected)
 
