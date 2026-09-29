@@ -1274,6 +1274,17 @@ class TestDataFrameConstructors:
         expected = pd.DataFrame([], dtype="object")
         tm.assert_frame_equal(actual, expected)
 
+    def test_constructor_none_int_dtype_matches_series(self, any_int_numpy_dtype):
+        # GH#24385 an int dtype can't hold the missing values, so both give float64
+        index = [1, 2, 3]
+        expected = pd.Series(np.nan, index=index, name="a")
+
+        df = pd.DataFrame(None, index=index, columns=["a"], dtype=any_int_numpy_dtype)
+        tm.assert_series_equal(df["a"], expected)
+
+        ser = pd.Series(None, index=index, dtype=any_int_numpy_dtype, name="a")
+        tm.assert_series_equal(ser, expected)
+
     def test_constructor_more(self, float_frame):
         # used to be in test_matrix.py
         arr = np.random.default_rng(2).standard_normal(10)
