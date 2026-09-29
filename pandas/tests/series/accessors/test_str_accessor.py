@@ -19,6 +19,18 @@ class TestStrAccessor:
         with pytest.raises(AttributeError, match=msg):
             ser.str.repeat(2)
 
+    def test_str_accessor_arrow_dictionary(self):
+        # GH#69462
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+        ser = pd.Series(["a", "b", "a"], dtype=dtype)
+
+        result = ser.str.upper()
+        index_result = pd.Index(ser.array).str.upper()
+
+        assert result.tolist() == ["A", "B", "A"]
+        assert index_result.tolist() == ["A", "B", "A"]
+
     def test_str_accessor_updates_on_inplace(self):
         ser = pd.Series(list("abc"))
         ser.replace({"a": "A"}, inplace=True)

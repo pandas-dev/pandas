@@ -2385,9 +2385,15 @@ class ArrowDtype(StorageExtensionDtype):
 
     @cache_readonly
     def kind(self) -> str:
-        if pa.types.is_timestamp(self.pyarrow_dtype):
+        pa_type = self.pyarrow_dtype
+        while pa.types.is_dictionary(pa_type):
+            pa_type = pa_type.value_type
+
+        if pa.types.is_timestamp(pa_type):
             # To mirror DatetimeTZDtype
             return "M"
+        if pa.types.is_duration(pa_type):
+            return "m"
         return self.numpy_dtype.kind
 
     @cache_readonly
