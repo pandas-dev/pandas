@@ -223,7 +223,9 @@ def test_to_integer_array_mixed_int_str():
     expected = pd.Series([1, 2, None], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
-    # a lossy non-str element must still raise
+    # lossy elements must still raise, whether str or not
+    with pytest.raises(ValueError, match=r"invalid literal for int\(\) with base 10"):
+        IntegerArray._from_sequence(np.array([1, "1.5"], dtype=object), dtype="Int64")
     with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
         IntegerArray._from_sequence(np.array([1.5, "2"], dtype=object), dtype="Int64")
 
