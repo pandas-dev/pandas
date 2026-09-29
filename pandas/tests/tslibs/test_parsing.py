@@ -1,5 +1,3 @@
-import locale
-
 """
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
@@ -8,6 +6,7 @@ from datetime import (
     UTC,
     datetime,
 )
+import locale
 import re
 
 from dateutil.parser import parse as du_parse

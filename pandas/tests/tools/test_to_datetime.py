@@ -1,5 +1,3 @@
-import locale
-
 """test to_datetime"""
 
 import calendar
@@ -12,6 +10,7 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import locale
 import re
 import zoneinfo
 
