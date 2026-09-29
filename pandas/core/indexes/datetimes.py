@@ -457,7 +457,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return self._data.is_leap_year
 
     # --------------------------------------------------------------------
-    # properties dispatching to DatetimeArray, returning a raw ndarray
+    # properties and methods dispatching to DatetimeArray, result not wrapped
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
@@ -561,6 +561,58 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                datetime.datetime(2018, 3, 1, 0, 0)], dtype=object)
         """
         return self._data.to_pydatetime()
+
+    def std(
+        self,
+        axis=None,
+        dtype=None,
+        out=None,
+        ddof: int = 1,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ) -> Timedelta:
+        """
+        Return sample standard deviation over requested axis.
+
+        Normalized by `N-1` by default. This can be changed using ``ddof``.
+
+        Parameters
+        ----------
+        axis : int, optional
+            Axis for the function to be applied on.
+        dtype, out, keepdims
+            Not implemented; kept for compatibility with :func:`numpy.std`,
+            which calls this method when ``numpy.std(dti)`` is used. Must be
+            left at their default values.
+        ddof : int, default 1
+            Degrees of Freedom. The divisor used in calculations is `N - ddof`,
+            where `N` represents the number of elements.
+        skipna : bool, default True
+            Exclude NA/null values.
+
+        Returns
+        -------
+        Timedelta
+            Standard deviation over requested axis.
+
+        See Also
+        --------
+        numpy.ndarray.std : Returns the standard deviation of the array elements
+            along given axis.
+        Series.std : Return sample standard deviation over requested axis.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[us]', freq='D')
+        >>> idx.std()
+        Timedelta('1 days 00:00:00')
+        """
+        return self._data.std(
+            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims, skipna=skipna
+        )
 
     # --------------------------------------------------------------------
     # methods that dispatch to DatetimeArray and wrap result
@@ -700,8 +752,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return Index(arr, name=self.name, dtype=arr.dtype, copy=False)
 
     # error: Signature of "round" incompatible with supertype "Index"
-    # DatetimeIndex.round rounds to a freq like Index.floor/ceil, unlike
-    # Index.round which rounds numeric values to a number of decimals.
+    # freq-based, unlike Index.round(decimals)
     def round(  # type: ignore[override]
         self,
         freq,
@@ -975,72 +1026,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         arr = self._data.ceil(freq, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
-
-    def std(
-        self,
-        axis=None,
-        dtype=None,
-        out=None,
-        ddof: int = 1,
-        keepdims: bool = False,
-        skipna: bool = True,
-    ) -> Timedelta:
-        """
-        Return sample standard deviation over requested axis.
-
-        Normalized by `N-1` by default. This can be changed using ``ddof``.
-
-        Parameters
-        ----------
-        axis : int, optional
-            Axis for the function to be applied on. For :class:`pandas.Series`
-            this parameter is unused and defaults to ``None``.
-        dtype : dtype, optional, default None
-            Type to use in computing the standard deviation. For arrays of
-            integer type the default is float64, for arrays of float types
-            it is the same as the array type.
-        out : ndarray, optional, default None
-            Alternative output array in which to place the result. It must have
-            the same shape as the expected output but the type (of the
-            calculated values) will be cast if necessary.
-        ddof : int, default 1
-            Degrees of Freedom. The divisor used in calculations is `N - ddof`,
-            where `N` represents the number of elements.
-        keepdims : bool, optional
-            If this is set to True, the axes which are reduced are left in the
-            result as dimensions with size one. With this option, the result
-            will broadcast correctly against the input array. If the default
-            value is passed, then keepdims will not be passed through to the
-            std method of sub-classes of ndarray, however any non-default value
-            will be. If the sub-class method does not implement keepdims any
-            exceptions will be raised.
-        skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is ``NA``, the result
-            will be ``NA``.
-
-        Returns
-        -------
-        Timedelta
-            Standard deviation over requested axis.
-
-        See Also
-        --------
-        numpy.ndarray.std : Returns the standard deviation of the array elements
-            along given axis.
-        Series.std : Return sample standard deviation over requested axis.
-
-        Examples
-        --------
-        >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
-        >>> idx
-        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
-                      dtype='datetime64[us]', freq='D')
-        >>> idx.std()
-        Timedelta('1 days 00:00:00')
-        """
-        return self._data.std(
-            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims, skipna=skipna
-        )
 
     def normalize(self) -> Self:
         """
