@@ -398,6 +398,61 @@ def test_cumprod_nullable_int_no_precision_loss_with_na_group_key():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("cumsum", [1, None, None, 4]),
+        ("cummin", [1, None, None, 1]),
+        ("cummax", [1, None, None, 3]),
+    ],
+)
+def test_timedelta_with_na_group_key(method, expected_values, unit):
+    # GH#69923
+    ser = pd.Series(pd.to_timedelta([1, None, 2, 3], unit="h").as_unit(unit))
+    df = pd.DataFrame({"key": [0, 0, np.nan, 0], "val": ser})
+    gb = df.groupby("key")["val"]
+
+    result = getattr(gb, method)()
+    expected = pd.Series(
+        pd.to_timedelta(expected_values, unit="h").as_unit(unit), name="val"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("cummin", ["2024-01-02", None, None, "2024-01-02"]),
+        ("cummax", ["2024-01-02", None, None, "2024-01-03"]),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_datetime_cummin_max_with_na_group_key(method, expected_values, tz, unit):
+    # GH#69923
+    dti = pd.DatetimeIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"], tz=tz)
+    df = pd.DataFrame({"key": [0, 0, np.nan, 0], "val": dti.as_unit(unit)})
+    gb = df.groupby("key")["val"]
+
+    result = getattr(gb, method)()
+    expected = pd.Series(
+        pd.DatetimeIndex(expected_values, tz=tz).as_unit(unit), name="val"
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_datetime_cummax_no_precision_loss_with_na_group_key():
+    # GH#69923
+    dti = pd.DatetimeIndex(
+        ["2024-01-01 00:00:00.000000001", "2024-01-01 00:00:00.000000002"]
+    )
+    df = pd.DataFrame({"key": [0, np.nan], "val": dti})
+    gb = df.groupby("key")["val"]
+
+    result = gb.cummax()
+    expected = pd.Series([dti[0], pd.NaT], name="val")
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_api2(as_index):
     # this takes the fast apply path
 
