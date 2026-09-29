@@ -300,30 +300,141 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def year(self) -> Index:
+        """
+        The year of the datetime.
+
+        This attribute returns the year component of each datetime value
+        in the DatetimeIndex.
+
+        See Also
+        --------
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.day: The day of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2000-12-31", "2001-12-31", "2002-12-31"])
+        >>> idx.year
+        Index([2000, 2001, 2002], dtype='int32')
+        """
         return self._wrap_field("year")
 
     @property
     def month(self) -> Index:
+        """
+        The month as January=1, December=12.
+
+        This attribute returns the month component of each datetime value
+        in the DatetimeIndex.
+
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.day: The day of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2000-01-31", "2000-02-29", "2000-03-31"])
+        >>> idx.month
+        Index([1, 2, 3], dtype='int32')
+        """
         return self._wrap_field("month")
 
     @property
     def day(self) -> Index:
+        """
+        The day of the datetime.
+
+        This attribute returns the day of the month component of each
+        datetime value in the DatetimeIndex.
+
+        See Also
+        --------
+        DatetimeIndex.year: The year of the datetime.
+        DatetimeIndex.month: The month as January=1, December=12.
+        DatetimeIndex.hour: The hours of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"])
+        >>> idx.day
+        Index([1, 2, 3], dtype='int32')
+        """
         return self._wrap_field("day")
 
     @property
     def hour(self) -> Index:
+        """
+        The hours of the datetime.
+
+        This attribute returns the hour component of each datetime value
+        in the DatetimeIndex.
+
+        See Also
+        --------
+        DatetimeIndex.day: The day of the datetime.
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2000-01-01", periods=3, freq="h")
+        >>> idx.hour
+        Index([0, 1, 2], dtype='int32')
+        """
         return self._wrap_field("hour")
 
     @property
     def minute(self) -> Index:
+        """
+        The minutes of the datetime.
+
+        This attribute returns the minute component of each datetime value
+        in the DatetimeIndex.
+
+        See Also
+        --------
+        DatetimeIndex.hour: The hours of the datetime.
+        DatetimeIndex.second: The seconds of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2000-01-01", periods=3, freq="min")
+        >>> idx.minute
+        Index([0, 1, 2], dtype='int32')
+        """
         return self._wrap_field("minute")
 
     @property
     def second(self) -> Index:
+        """
+        The seconds of the datetime.
+
+        This attribute returns the second component of each datetime value
+        in the DatetimeIndex.
+
+        See Also
+        --------
+        DatetimeIndex.minute: The minutes of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2000-01-01", periods=3, freq="s")
+        >>> idx.second
+        Index([0, 1, 2], dtype='int32')
+        """
         return self._wrap_field("second")
 
     @property
     def weekday(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
         # GH#12816
         warnings.warn(
             "DatetimeIndex.weekday is deprecated and will be removed "
@@ -335,6 +446,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def dayofweek(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_week` instead.
+        """
         warnings.warn(
             "DatetimeIndex.dayofweek is deprecated and will be removed in a "
             "future version. Use DatetimeIndex.day_of_week instead.",
@@ -345,10 +462,34 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def day_of_week(self) -> Index:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        Return the day of the week. It is assumed the week starts on
+        Monday, which is denoted by 0 and ends on Sunday which is denoted
+        by 6.
+
+        See Also
+        --------
+        DatetimeIndex.day_of_year : The ordinal day of the year.
+        DatetimeIndex.day_name : Return the name of the day of the week.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2016-12-31", "2017-01-01", "2017-01-02"])
+        >>> idx.day_of_week
+        Index([5, 6, 0], dtype='int32')
+        """
         return self._wrap_field("day_of_week")
 
     @property
     def dayofyear(self) -> Index:
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.day_of_year` instead.
+        """
         warnings.warn(
             "DatetimeIndex.dayofyear is deprecated and will be removed in a "
             "future version. Use DatetimeIndex.day_of_year instead.",
@@ -359,18 +500,89 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def day_of_year(self) -> Index:
+        """
+        The ordinal day of the year.
+
+        This attribute returns the day of the year for each datetime value
+        in the DatetimeIndex. Values range from 1 to 365 (or 366 for leap
+        years).
+
+        See Also
+        --------
+        DatetimeIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        DatetimeIndex.day : The day of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-01", "2020-02-01"])
+        >>> idx.day_of_year
+        Index([1, 32], dtype='int32')
+        """
         return self._wrap_field("day_of_year")
 
     @property
     def quarter(self) -> Index:
+        """
+        The quarter of the date.
+
+        This attribute returns the quarter of the year for each datetime
+        value in the DatetimeIndex. Quarter 1 includes January through
+        March, quarter 2 includes April through June, quarter 3 includes
+        July through September, and quarter 4 includes October through
+        December.
+
+        See Also
+        --------
+        DatetimeIndex.month : The month as January=1, December=12.
+        DatetimeIndex.is_quarter_start : Indicator for whether the date is the
+            first day of a quarter.
+        DatetimeIndex.is_quarter_end : Indicator for whether the date is the
+            last day of a quarter.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-01", "2020-04-01"])
+        >>> idx.quarter
+        Index([1, 2], dtype='int32')
+        """
         return self._wrap_field("quarter")
 
     @property
     def days_in_month(self) -> Index:
+        """
+        The number of days in the month.
+
+        This attribute returns the total number of days in the month for
+        each datetime value in the DatetimeIndex. The value depends on the
+        month and whether the year is a leap year (e.g., February has 29
+        days in a leap year).
+
+        See Also
+        --------
+        DatetimeIndex.day : Return the day of the month.
+        DatetimeIndex.is_month_end : Return a boolean indicating if the
+            date is the last day of the month.
+        DatetimeIndex.is_month_start : Return a boolean indicating if the
+            date is the first day of the month.
+        DatetimeIndex.month : Return the month as January=1 through
+            December=12.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-01", "2020-02-01"])
+        >>> idx.days_in_month
+        Index([31, 29], dtype='int32')
+        """
         return self._wrap_field("days_in_month")
 
     @property
     def daysinmonth(self) -> Index:
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`DatetimeIndex.days_in_month` instead.
+        """
         warnings.warn(
             "DatetimeIndex.daysinmonth is deprecated and will be removed in a "
             "future version. Use DatetimeIndex.days_in_month instead.",
@@ -381,40 +593,229 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
     @property
     def microsecond(self) -> Index:
+        """
+        The microseconds of the datetime.
+
+        This attribute returns the microsecond component of each datetime
+        value in the DatetimeIndex. Values range from 0 to 999999 (one
+        microsecond is one millionth of a second).
+
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.nanosecond: The nanoseconds of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2000-01-01", periods=3, freq="us")
+        >>> idx.microsecond
+        Index([0, 1, 2], dtype='int32')
+        """
         return self._wrap_field("microsecond")
 
     @property
     def nanosecond(self) -> Index:
+        """
+        The nanoseconds of the datetime.
+
+        This attribute returns the nanosecond component of each datetime
+        value in the DatetimeIndex. Values range from 0 to 999 (one
+        nanosecond is one billionth of a second).
+
+        See Also
+        --------
+        DatetimeIndex.second: The seconds of the datetime.
+        DatetimeIndex.microsecond: The microseconds of the datetime.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2000-01-01", periods=3, freq="ns")
+        >>> idx.nanosecond
+        Index([0, 1, 2], dtype='int32')
+        """
         return self._wrap_field("nanosecond")
 
     # bool_ops: return raw result
 
     @property
     def is_month_start(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicates whether the date is the first day of the month.
+
+        This boolean attribute evaluates to True if the date falls on the
+        first day of a calendar month, and False otherwise.
+        If the index has a business ``freq`` (e.g. ``"BMS"``), the result
+        follows that frequency's month boundaries instead of the calendar's.
+
+        See Also
+        --------
+        DatetimeIndex.is_month_end : Return a boolean indicating whether the
+            date is the last day of the month.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2018-02-27", periods=3)
+        >>> idx.is_month_start
+        array([False, False,  True])
+        """
         return self._data._get_start_end_field("is_month_start", self.freq)
 
     @property
     def is_month_end(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicates whether the date is the last day of the month.
+
+        This boolean attribute evaluates to True if the date falls on the
+        last day of a calendar month, and False otherwise.
+        If the index has a business ``freq`` (e.g. ``"BME"``), the result
+        follows that frequency's month boundaries instead of the calendar's.
+
+        See Also
+        --------
+        DatetimeIndex.is_month_start : Return a boolean indicating whether
+            the date is the first day of the month.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2018-02-27", periods=3)
+        >>> idx.is_month_end
+        array([False,  True, False])
+        """
         return self._data._get_start_end_field("is_month_end", self.freq)
 
     @property
     def is_quarter_start(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicator for whether the date is the first day of a quarter.
+
+        This boolean attribute evaluates to True if the date falls on the
+        first day of a calendar quarter (January 1, April 1, July 1, or
+        October 1), and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BQS"`` or
+        ``"QS-FEB"``), the result follows that frequency's quarter boundaries
+        instead of the calendar's.
+
+        See Also
+        --------
+        DatetimeIndex.quarter : Return the quarter of the date.
+        DatetimeIndex.is_quarter_end : Similar property for indicating the
+            quarter end.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2017-03-30", periods=4)
+        >>> idx.is_quarter_start
+        array([False, False,  True, False])
+        """
         return self._data._get_start_end_field("is_quarter_start", self.freq)
 
     @property
     def is_quarter_end(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicator for whether the date is the last day of a quarter.
+
+        This boolean attribute evaluates to True if the date falls on the
+        last day of a calendar quarter (March 31, June 30, September 30, or
+        December 31), and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BQE"`` or
+        ``"QE-NOV"``), the result follows that frequency's quarter boundaries
+        instead of the calendar's.
+
+        See Also
+        --------
+        DatetimeIndex.quarter : Return the quarter of the date.
+        DatetimeIndex.is_quarter_start : Similar property indicating the
+            quarter start.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2017-03-30", periods=4)
+        >>> idx.is_quarter_end
+        array([False,  True, False, False])
+        """
         return self._data._get_start_end_field("is_quarter_end", self.freq)
 
     @property
     def is_year_start(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicate whether the date is the first day of a year.
+
+        This boolean attribute evaluates to True if the date is January 1st,
+        and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BYS"`` or
+        ``"YS-APR"``), the result follows that frequency's year boundaries
+        instead of the calendar's.
+
+        See Also
+        --------
+        DatetimeIndex.is_year_end : Similar property indicating the last day
+            of the year.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2017-12-30", periods=3)
+        >>> idx.is_year_start
+        array([False, False,  True])
+
+        With a business ``freq``, the first business day of the year counts
+        as the year start even when it is not January 1st:
+
+        >>> idx = pd.date_range("2020-10-30", periods=4, freq="BYS")
+        >>> idx
+        DatetimeIndex(['2021-01-01', '2022-01-03', '2023-01-02', '2024-01-01'],
+                      dtype='datetime64[us]', freq='BYS-JAN')
+        >>> idx.is_year_start
+        array([ True,  True,  True,  True])
+        """
         return self._data._get_start_end_field("is_year_start", self.freq)
 
     @property
     def is_year_end(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicate whether the date is the last day of the year.
+
+        This boolean attribute evaluates to True if the date is December
+        31st, and False otherwise.
+        If the index has a business or anchored ``freq`` (e.g. ``"BYE"`` or
+        ``"YE-MAR"``), the result follows that frequency's year boundaries
+        instead of the calendar's.
+
+        See Also
+        --------
+        DatetimeIndex.is_year_start : Similar property indicating the start
+            of the year.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2017-12-30", periods=3)
+        >>> idx.is_year_end
+        array([False,  True, False])
+        """
         return self._data._get_start_end_field("is_year_end", self.freq)
 
     @property
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
+        """
+        Boolean indicator if the date belongs to a leap year.
+
+        A leap year is a year, which has 366 days (instead of 365) including
+        29th of February as an intercalary day. Leap years are years which
+        are multiples of four with the exception of years divisible by 100
+        but not by 400.
+
+        See Also
+        --------
+        DatetimeIndex.is_year_end : Indicate whether the date is the last
+            day of the year.
+        DatetimeIndex.is_year_start : Indicate whether the date is the first
+            day of a year.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="YE")
+        >>> idx.is_leap_year
+        array([ True, False, False])
+        """
         return self._data.is_leap_year
 
     # --------------------------------------------------------------------
