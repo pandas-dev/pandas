@@ -1492,7 +1492,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             *nbs_tup,
         )
         self.blocks = blocks_tup
-        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb))
+        self._blklocs[first_nb.mgr_locs.indexer] = np.arange(len(first_nb.mgr_locs))
 
         if not nbs_tup and value is not None:
             # No need to update _blknos if split did not happen
