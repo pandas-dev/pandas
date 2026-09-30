@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -150,6 +148,7 @@ from pandas.io.api import (
     read_table,
     # pickle
     read_pickle,
+    to_pickle,
     # pytables
     HDFStore,
     read_hdf,
@@ -339,33 +338,9 @@ __all__ = [
     "timedelta_range",
     "to_datetime",
     "to_numeric",
+    "to_pickle",
     "to_timedelta",
     "tseries",
     "unique",
     "wide_to_long",
 ]
-
-
-if not TYPE_CHECKING:
-    # a module-level __getattr__ that type checkers can see resolves every
-    # unknown pandas attribute to `object`, silencing attr-defined repo-wide
-    del TYPE_CHECKING  # would otherwise land in the public namespace
-
-    def __getattr__(name: str) -> object:
-        if name == "to_pickle":
-            # GH#48402 imported here so they don't land in the pandas namespace
-            import warnings
-
-            from pandas.errors import Pandas4Warning
-            from pandas.io.pickle import to_pickle
-
-            warnings.warn(
-                "pandas.to_pickle is deprecated and will be removed in a future "
-                "version. Use the DataFrame.to_pickle or Series.to_pickle method "
-                "instead.",
-                Pandas4Warning,
-                stacklevel=2,
-            )
-            return to_pickle
-
-        raise AttributeError(f"module 'pandas' has no attribute '{name}'")

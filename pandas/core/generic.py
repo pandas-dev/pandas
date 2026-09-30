@@ -3156,9 +3156,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    3    8
         4    4    9
         """
-        from pandas.io.pickle import to_pickle
+        from pandas.io.pickle import to_pickle_internal
 
-        to_pickle(
+        to_pickle_internal(
             self,
             path,
             compression=compression,

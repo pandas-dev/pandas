@@ -37,6 +37,7 @@ from pandas.compat import (
     pickle_compat,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -44,7 +45,7 @@ from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 from pandas.util.version import Version
 
 import pandas.io.common as icom
-from pandas.io.pickle import to_pickle
+from pandas.io.pickle import to_pickle_internal
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
@@ -215,19 +216,21 @@ def flatten(data: dict) -> list[tuple[str, Any]]:
     "pickle_writer",
     [
         pytest.param(python_pickler, id="python"),
-        pytest.param(to_pickle, id="pandas_proto_default"),
+        pytest.param(to_pickle_internal, id="pandas_proto_default"),
         pytest.param(
-            functools.partial(to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            functools.partial(to_pickle_internal, protocol=pickle.HIGHEST_PROTOCOL),
             id="pandas_proto_highest",
         ),
-        pytest.param(functools.partial(to_pickle, protocol=4), id="pandas_proto_4"),
         pytest.param(
-            functools.partial(to_pickle, protocol=5),
+            functools.partial(to_pickle_internal, protocol=4), id="pandas_proto_4"
+        ),
+        pytest.param(
+            functools.partial(to_pickle_internal, protocol=5),
             id="pandas_proto_5",
         ),
     ],
 )
-@pytest.mark.parametrize("writer", [to_pickle, python_pickler])
+@pytest.mark.parametrize("writer", [to_pickle_internal, python_pickler])
 @pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
 def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
     path = temp_file
@@ -249,6 +252,17 @@ def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
         result = pd.read_pickle(handle)
         handle.seek(0)  # shouldn't close file handle
     compare_element(result, expected, typ)
+
+
+def test_to_pickle_deprecated(temp_file):
+    # GH#48402
+    ser = pd.Series([1, 2, 3])
+    msg = "pandas.to_pickle is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.to_pickle(ser, temp_file)
+
+    result = pd.read_pickle(temp_file)
+    tm.assert_series_equal(result, ser)
 
 
 def test_pickle_path_pathlib(temp_file):

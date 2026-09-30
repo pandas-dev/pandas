@@ -13,7 +13,7 @@ from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 
-from pandas.io.pickle import to_pickle
+from pandas.io.pickle import to_pickle_internal
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -44,7 +44,7 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
     pandas object
         The original object that was pickled and then re-read.
     """
-    to_pickle(obj, tmp_path)
+    to_pickle_internal(obj, tmp_path)
     return pd.read_pickle(tmp_path)
 
 
