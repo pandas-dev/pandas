@@ -545,7 +545,9 @@ class SeriesGroupBy(GroupBy[Series]):
             return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
-        output = self.obj._constructor_expanddim(indexed_output, index=None)
+        # GH#39609 with no funcs, index by the groups
+        index = None if results else self._grouper.result_index
+        output = self.obj._constructor_expanddim(indexed_output, index=index)
         output.columns = Index(key.label for key in results)
 
         return output
@@ -770,9 +772,7 @@ class SeriesGroupBy(GroupBy[Series]):
         obj = self._obj_with_exclusions
 
         try:
-            result = self._grouper._cython_operation(
-                "transform", obj._values, how, 0, **kwargs
-            )
+            result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
             # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
@@ -2463,9 +2463,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(
-                "transform", bvalues, how, 1, **kwargs
-            )
+            return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
 
         res_mgr = mgr.apply(arr_func)
 

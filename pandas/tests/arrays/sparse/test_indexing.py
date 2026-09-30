@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -116,33 +114,28 @@ class TestGetitem:
         tm.assert_sp_array_equal(res, exp)
 
     @pytest.mark.parametrize(
-        "op, other, expected",
+        "fill_value, indices, sp_values",
         [
-            (operator.gt, [3, 3, 4, 1, 0, 0], [4.0]),
-            (operator.ne, [1, 3, 4, 1, 0, 0], [2.0, 3.0, 4.0, np.nan, np.nan]),
+            (False, [0, 1, 3], [True, False, True]),
+            (True, [0, 1, 2], [True, False, False]),
         ],
     )
-    def test_getitem_bool_sparse_array_op_result(self, op, other, expected):
-        # GH#45284 an op result stores values equal to its own fill_value, so the
-        #  mask cannot be read off sp_index alone
-        arr = SparseArray([1, 2, 3, 4, np.nan, np.nan], fill_value=np.nan)
-        mask = op(arr, other)
-        assert (mask.sp_values == mask.fill_value).any()
-
-        res = arr[mask]
-        tm.assert_sp_array_equal(res, SparseArray(expected, fill_value=np.nan))
-
-    def test_getitem_bool_sparse_array_logical_op_result(self):
-        # GH#45284 like a comparison, a logical op can leave a stored value
-        #  equal to the fill
+    def test_getitem_bool_sparse_array_stored_fill(
+        self, fill_value, indices, sp_values
+    ):
+        # GH#45284 a stored value may equal the fill value, so the mask cannot be
+        #  read off sp_index alone
         arr = SparseArray([1.0, 2.0, 3.0, 4.0], fill_value=np.nan)
-        mask = SparseArray([True, True, True, False], fill_value=False) & SparseArray(
-            [True, False, False, False], fill_value=False
+        key = SparseArray.from_indices(
+            np.array(sp_values),
+            indices=indices,
+            length=4,
+            fill_value=fill_value,
         )
-        assert (mask.sp_values == mask.fill_value).any()
+        assert (key.sp_values == key.fill_value).any()
 
-        res = arr[mask]
-        tm.assert_sp_array_equal(res, SparseArray([1.0], fill_value=np.nan))
+        res = arr[key]
+        tm.assert_sp_array_equal(res, SparseArray([1.0, 4.0], fill_value=np.nan))
 
     @pytest.mark.parametrize("fill_value", [True, False, np.nan])
     @pytest.mark.parametrize(
@@ -280,6 +273,21 @@ class TestTake:
         sparse = SparseArray(np.zeros(3, dtype=dtype), fill_value=0)
         result = sparse.take([2, 1, 0], allow_fill=True)
         assert result.dtype == sparse.dtype
+
+    @pytest.mark.parametrize("subtype", ["float16", "float32"])
+    @pytest.mark.parametrize("fill_value", [np.nan, 0])
+    def test_reindex_preserves_narrow_float_subtype(self, subtype, fill_value):
+        # GH#26123 a fill position used to promote the subtype on
+        #  type(fill_value), widening a narrow float to float64
+        ser = pd.Series(
+            SparseArray(np.array([1, 0], dtype=subtype), fill_value=fill_value)
+        )
+        result = ser.reindex([0, 1, 2])
+        expected = pd.Series(
+            SparseArray(np.array([1, 0, np.nan], dtype=subtype), fill_value=fill_value),
+            index=[0, 1, 2],
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_reindex_empty_bool_upcasts_to_object(self):
         # GH#32119 the user-visible path onto the branch above

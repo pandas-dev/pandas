@@ -7,8 +7,8 @@ _chained_assignment_msg = (
     "Try using '.loc[row_indexer, col_indexer] = value' instead, to perform "
     "the assignment in a single step.\n\n"
     "See the documentation for a more detailed explanation: "
-    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
-    "copy_on_write.html#chained-assignment"
+    "https://pandas.pydata.org/docs/dev/user_guide/"
+    "migration.html#chained-assignment"
 )
 
 
@@ -23,8 +23,8 @@ _chained_assignment_method_msg = (
     "the operation inplace on the original object, or try to avoid an inplace "
     "operation using 'df[col] = df[col].method(value)'.\n\n"
     "See the documentation for a more detailed explanation: "
-    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
-    "copy_on_write.html"
+    "https://pandas.pydata.org/docs/dev/user_guide/"
+    "migration.html#copy-on-write-cow"
 )
 
 
@@ -38,6 +38,6 @@ _chained_assignment_method_update_msg = (
     "using 'df.update({col: other})' instead, to perform "
     "the operation inplace on the original object.\n\n"
     "See the documentation for a more detailed explanation: "
-    "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
-    "copy_on_write.html"
+    "https://pandas.pydata.org/docs/dev/user_guide/"
+    "migration.html#copy-on-write-cow"
 )
