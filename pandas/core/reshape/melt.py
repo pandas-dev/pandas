@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -27,7 +30,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-def ensure_list_vars(arg_vars, variable: str, columns) -> list:
+def ensure_list_vars(arg_vars, variable: str, columns) -> list[Hashable]:
     if arg_vars is not None:
         if not is_list_like(arg_vars):
             return [arg_vars]
@@ -284,7 +287,9 @@ def melt(
 
 
 @set_module("pandas")
-def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
+def lreshape(
+    data: DataFrame, groups: dict[Any, list[Any]], dropna: bool = True
+) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
 

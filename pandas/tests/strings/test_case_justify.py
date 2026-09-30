@@ -388,6 +388,18 @@ def test_zfill_signed(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("width", [-5, -2, 0])
+def test_zfill_nonpositive_width(any_string_dtype, width):
+    # GH#69486
+    # str.zfill returns the string unchanged for any width not larger than
+    # the string itself, so nonpositive widths are a no-op
+    values = ["1", "22", "aaa", "-3", "+7", "-", "", "ää", np.nan]
+    s = pd.Series(values, dtype=any_string_dtype)
+    result = s.str.zfill(width)
+    expected = pd.Series(values, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_zfill_all_null(any_string_dtype):
     s = pd.Series([None, None], dtype=any_string_dtype)
     result = s.str.zfill(5)

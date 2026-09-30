@@ -359,7 +359,7 @@ class SAS7BDATReader(SASReader):
             raise
         self._metadata_at_open = self._metadata_signature()
 
-    def _metadata_signature(self) -> tuple:
+    def _metadata_signature(self) -> tuple[int, int, int, int, bytes, int, int]:
         """
         Everything the parser and ``_chunk_to_dataframe`` read out of the file's
         metadata, in one comparable value.

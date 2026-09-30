@@ -212,7 +212,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header, allow_sets=False):
-        header = cast("Sequence", header)
+        header = cast("Sequence[int]", header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
@@ -810,9 +810,7 @@ def get_handle(
             # GZ Compression
             if compression == "gzip":
                 if isinstance(handle, str):
-                    # error: Incompatible types in assignment (expression has type
-                    # "GzipFile", variable has type "Union[str, BaseBuffer]")
-                    handle = gzip.GzipFile(  # type: ignore[assignment]
+                    handle = gzip.GzipFile(
                         filename=handle,
                         mode=ioargs.mode,
                         **compression_args,
@@ -1209,7 +1207,7 @@ def _maybe_memory_map(
         return handle, memory_map, handles
 
     # mmap used by only read_csv
-    handle = cast("ReadCsvBuffer", handle)
+    handle = cast("ReadCsvBuffer[bytes]", handle)
 
     # need to open the file first
     if isinstance(handle, str):

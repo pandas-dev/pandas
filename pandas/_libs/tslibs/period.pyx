@@ -1297,15 +1297,15 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
     # use the appropriate default format depending on frequency group
     is_fmt_none = fmt is None
     if freq_group == FR_ANN and (is_fmt_none or fmt == "%Y"):
-        return f"{dts.year}"
+        return f"{dts.year:04d}"
 
     elif freq_group == FR_QTR and (is_fmt_none or fmt == "%FQ%q"):
         # get quarter and modify dts.year to be the 'Fiscal' year
         quarter = get_yq(value, freq, &dts)
-        return f"{dts.year}Q{quarter}"
+        return f"{dts.year:04d}Q{quarter}"
 
     elif freq_group == FR_MTH and (is_fmt_none or fmt == "%Y-%m"):
-        return f"{dts.year}-{dts.month:02d}"
+        return f"{dts.year:04d}-{dts.month:02d}"
 
     elif freq_group == FR_WK and is_fmt_none:
         # special: start_date/end_date. Recurse
@@ -1317,26 +1317,26 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         (freq_group == FR_BUS or freq_group == FR_DAY)
         and (is_fmt_none or fmt == "%Y-%m-%d")
     ):
-        return f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
+        return f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d}"
 
     elif freq_group == FR_HR and (is_fmt_none or fmt == "%Y-%m-%d %H:00"):
-        return f"{dts.year}-{dts.month:02d}-{dts.day:02d} {dts.hour:02d}:00"
+        return f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} {dts.hour:02d}:00"
 
     elif freq_group == FR_MIN and (is_fmt_none or fmt == "%Y-%m-%d %H:%M"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}")
 
     elif freq_group == FR_SEC and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
     elif freq_group == FR_MS and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%l"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{(dts.us // 1_000):03d}")
 
     elif freq_group == FR_US and (is_fmt_none or fmt == "%Y-%m-%d %H:%M:%S.%u"):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{(dts.us):06d}")
 
@@ -1345,7 +1345,7 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
         or fmt == "%Y-%m-%d %H:%M:%S.%N"
         or fmt == "%Y-%m-%d %H:%M:%S.%n"
     ):
-        return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+        return (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                 f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}"
                 f".{((dts.us * 1000) + (dts.ps // 1000)):09d}")
 
@@ -1455,7 +1455,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
             elif i == 1:  # %f, 2-digit 'Fiscal' year
                 repl = f"{(dts.year % 100):02d}"
             elif i == 2:  # %F, 'Fiscal' year with a century
-                repl = str(dts.year)
+                repl = f"{dts.year:04d}"
             elif i == 3:  # %l, milliseconds
                 repl = f"{(us // 1_000):03d}"
             elif i == 4:  # %u, microseconds
@@ -2334,10 +2334,9 @@ cdef class _Period(PeriodMixin):
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
 
-        how : {'E', 'S', 'end', 'start'}, default 'end'
-            Specifies whether to align the period to the start or end of the interval:
-            - 'E' or 'end': Align to the end of the interval.
-            - 'S' or 'start': Align to the start of the interval.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether to align the period to the end or start of the interval.
+            Case-insensitive.
 
         Returns
         -------
@@ -2403,7 +2402,7 @@ cdef class _Period(PeriodMixin):
         Return the Timestamp representation of the Period.
 
         Uses the target frequency specified at the part of the period specified
-        by `how`, which is either `Start` or `Finish`.
+        by `how`, which is either the start or the end.
 
         If possible, gives microsecond-unit Timestamp. Otherwise gives nanosecond
         unit.
@@ -2413,9 +2412,8 @@ cdef class _Period(PeriodMixin):
         freq : str or DateOffset
             Target frequency. Default is 'D' if self._freq is week or
             longer and 'S' otherwise.
-        how : str, default 'S' (start)
-            One of 'S', 'E'. Can be aliased as case insensitive
-            'Start', 'Finish', 'Begin', 'End'.
+        how : {'start', 'end', 's', 'e'}, default 'start'
+            Whether to use the start or end of the period. Case-insensitive.
 
         Returns
         -------
@@ -3581,10 +3579,12 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     how_dict = {"S": "S", "E": "E",
                 "START": "S", "FINISH": "E",
                 "BEGIN": "S", "END": "E"}
-    how = how_dict.get(str(how).upper())
-    if how not in {"S", "E"}:
-        raise ValueError("How must be one of S or E")
-    return how
+    result = how_dict.get(str(how).upper())
+    if result is None:
+        raise ValueError(
+            f"how must be one of 'start', 'end', 's', 'e', got {repr(how)}"
+        )
+    return result
 
 
 cdef _parse_weekly_str(value, BaseOffset freq):

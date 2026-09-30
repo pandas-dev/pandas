@@ -2152,9 +2152,11 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
-        with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            result = pd.DataFrame({"x": range(size_cutoff)}, dtype="int64")
+        with monkeypatch.context() as m:
+            m.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            # RangeIndex lookups bypass the engine
+            index = pd.Index(np.arange(size_cutoff))
+            result = pd.DataFrame({"x": range(size_cutoff)}, index=index, dtype="int64")
             result.loc[size_cutoff] = size_cutoff
         expected = pd.DataFrame({"x": range(size_cutoff + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
