@@ -3866,7 +3866,9 @@ def dtype_backend_expected():
         ([time(0, 0), time(23, 59, 59, 999999)], "time64[us][pyarrow]"),
     ],
 )
-@pytest.mark.parametrize("null", [None, np.nan, pd.NA, pd.NaT])
+@pytest.mark.parametrize(
+    "null", [None, np.nan, pd.NA, pd.NaT, np.datetime64("NaT"), np.timedelta64("NaT")]
+)
 def test_convert_arrays_to_dataframe_pyarrow_date_time(
     values, dtype, null, string_storage
 ):
@@ -3877,7 +3879,9 @@ def test_convert_arrays_to_dataframe_pyarrow_date_time(
         result = sql._convert_arrays_to_dataframe(
             [(value,) for value in values], ["a"], dtype_backend="pyarrow"
         )
-        expected = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+        expected = pd.DataFrame(
+            {"a": pd.array([None, *values[1:-1], None], dtype=dtype)}
+        )
     tm.assert_frame_equal(result, expected)
 
 
@@ -3960,6 +3964,65 @@ def test_read_sql_pyarrow_date_time(monkeypatch, func, chunksize):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+@pytest.mark.parametrize("chunksize", [None, 1])
+@pytest.mark.parametrize(
+    "parse_dates, expected_dtype",
+    [
+        (["t"], "datetime64[us]"),
+        ({"t": "%H:%M:%S.%f"}, "datetime64[us]"),
+        ({"t": {"format": "%H:%M:%S.%f"}}, "datetime64[us]"),
+        ({"d": "%Y-%m-%d"}, "datetime64[us]"),
+        ({"d": "%H:%M:%S.%f"}, "datetime64[s]"),
+    ],
+)
+def test_read_sql_pyarrow_date_time_parse_dates(
+    monkeypatch, func, chunksize, parse_dates, expected_dtype
+):
+    # GH#56551: temporal inference must preserve explicit date parsing.
+    pytest.importorskip("pyarrow")
+    monkeypatch.setitem(
+        sqlite3.converters,
+        "PANDAS_DATE",
+        lambda value: date.fromisoformat(value.decode()),
+    )
+    monkeypatch.setitem(
+        sqlite3.converters,
+        "PANDAS_TIME",
+        lambda value: time.fromisoformat(value.decode()),
+    )
+    query = """
+        SELECT '2024-01-01' AS "d [PANDAS_DATE]",
+               '12:30:01.123456' AS "t [PANDAS_TIME]"
+        UNION ALL SELECT '2024-02-02', '01:15:00.000001'
+    """
+    warning = (
+        UserWarning if isinstance(parse_dates, list) and chunksize is None else None
+    )
+    with sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_COLNAMES) as conn:
+        with tm.assert_produces_warning(warning, match="Could not infer format"):
+            result = getattr(pd, func)(
+                query,
+                conn,
+                dtype_backend="pyarrow",
+                parse_dates=parse_dates,
+                chunksize=chunksize,
+            )
+            if chunksize is not None:
+                result = pd.concat(result, ignore_index=True)
+
+    column = next(iter(parse_dates))
+    if column == "t":
+        prefix = str(date.today()) if isinstance(parse_dates, list) else "1900-01-01"
+        expected_values = [f"{prefix} 12:30:01.123456", f"{prefix} 01:15:00.000001"]
+    elif parse_dates["d"] == "%Y-%m-%d":
+        expected_values = ["2024-01-01", "2024-02-02"]
+    else:
+        expected_values = [pd.NaT, pd.NaT]
+    expected = pd.Series(expected_values, dtype=expected_dtype, name=column)
+    tm.assert_series_equal(result[column], expected)
 
 
 @pytest.mark.parametrize("conn", all_connectable)

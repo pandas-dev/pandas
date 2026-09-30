@@ -135,6 +135,9 @@ def _warn_and_stringify_numeric_column(col):
 def _handle_date_column(
     col, utc: bool = False, format: str | dict[str, Any] | None = None
 ):
+    if isinstance(col.array, ArrowExtensionArray) and col.dtype.type in (date, time):
+        # Parse inferred dates/times through the same strings as before GH#56551.
+        col = col.astype(StringDtype())
     if isinstance(format, dict):
         # GH35185 Allow custom error values in parse_dates argument of
         # read_sql like functions.
@@ -227,6 +230,9 @@ def _convert_arrays_to_dataframe(
                     for value in original
                 ):
                     arr = original
+                if arr is original:
+                    # Arrow cannot mix NumPy NaT scalars with Python dates/times.
+                    arr = np.where(isna(original), None, original)
             pa_array = pa.array(arr, from_pandas=True)
             if arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
