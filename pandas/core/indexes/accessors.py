@@ -151,7 +151,14 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 )
 @delegate_names(
     delegate=ArrowExtensionArray,
-    accessors=DatetimeArray._datetimelike_ops,
+    accessors=[
+        *DatetimeArray._datetimelike_ops,
+        # deprecated, but should still work
+        "dayofweek",
+        "dayofyear",
+        "daysinmonth",
+        "weekday",
+    ],
     typ="property",
     accessor_mapping=lambda x: f"_dt_{x}",
     raise_on_missing=False,
