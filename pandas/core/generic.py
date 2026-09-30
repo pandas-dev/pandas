@@ -1,6 +1,12 @@
 # pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "json",
+    "pandas.core.window",
+    "pandas.core.methods.describe",
+)
+
 import collections
 from copy import deepcopy
 import datetime as dt

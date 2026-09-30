@@ -10,6 +10,7 @@ __lazy_modules__ = (
     "pandas.testing",
     "pandas.core.computation.api",
     "pandas.api",
+    "pandas.util._print_versions",
 )
 
 # Let users know if they're missing any of our hard dependencies

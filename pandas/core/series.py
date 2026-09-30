@@ -4,6 +4,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.formats.info",)
+
 from collections.abc import (
     Callable,
     Hashable,
