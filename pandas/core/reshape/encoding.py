@@ -358,7 +358,7 @@ def _get_dummies_1d(
 
         sparse_series = []
         N = len(data)
-        sp_indices: list[list] = [[] for _ in range(len(dummy_cols))]
+        sp_indices: list[list[int]] = [[] for _ in range(len(dummy_cols))]
         mask = codes != -1
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
