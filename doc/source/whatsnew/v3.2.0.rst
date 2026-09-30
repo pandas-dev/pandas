@@ -29,6 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
+- :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
 
 .. ---------------------------------------------------------------------------
