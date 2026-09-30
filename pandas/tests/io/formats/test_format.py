@@ -1990,6 +1990,26 @@ def test_precision_float_in_object_index():
     assert "0.55555555" not in result
 
 
+@pytest.mark.parametrize("method", [repr, lambda obj: obj.to_html()])
+def test_precision_float_index_names(method):
+    # GH#25917
+    float_val = 0.55555555
+    mi = pd.MultiIndex.from_tuples([(float_val, float_val)], names=[float_val] * 2)
+    df = pd.DataFrame([float_val], index=mi, columns=mi)
+    ser = pd.Series([float_val], index=pd.Index([float_val], name=float_val))
+    with pd.option_context("display.precision", 3):
+        results = [method(df), method(ser.to_frame()), repr(ser.rename(float_val))]
+    for result in results:
+        assert "0.556" in result
+        assert "0.55555555" not in result
+
+
+def test_to_html_column_index_named_zero():
+    # GH#25917
+    df = pd.DataFrame([[1]], index=["x"], columns=pd.Index(["a"], name=0))
+    assert "<th>0</th>" in df.to_html()
+
+
 def _three_digit_exp():
     return f"{1.7e8:.4g}" == "1.7e+008"
 

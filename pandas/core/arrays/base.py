@@ -2618,7 +2618,7 @@ class ExtensionArray:
         counts = np.ones(shape=(len(self),), dtype=np.uint64)
         return values, counts
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 

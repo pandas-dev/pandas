@@ -1600,6 +1600,21 @@ def test_read_sql_iris_parameter(conn, request, sql_strings):
     check_iris_frame(iris_frame)
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_percent_operator_and_selectable(conn, request):
+    # GH#35484
+    sa = pytest.importorskip("sqlalchemy")
+    conn = request.getfixturevalue(conn)
+
+    expected = pd.DataFrame({"r": [1]})
+
+    result = pd.read_sql(sa.text("SELECT 5 % 2 AS r"), conn)
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.read_sql(sa.select((sa.literal(5) % sa.literal(2)).label("r")), conn)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
@@ -3485,8 +3500,7 @@ def test_double_precision(conn, request):
     )
     res = sql.read_sql_table("test_dtypes", conn)
 
-    # check precision of float64
-    assert np.round(df["f64"].iloc[0], 14) == np.round(res["f64"].iloc[0], 14)
+    tm.assert_series_equal(df["f64"], res["f64"])
 
     # check sql types
     meta = MetaData()
@@ -4524,3 +4538,40 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+@pytest.mark.parametrize("chunksize", [None, 1])
+def test_read_sql_dict_rows(sqlite_buildin, chunksize):
+    # GH#53028
+    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    df.to_sql(name="dict_rows", con=sqlite_buildin, index=False)
+
+    def dict_factory(cursor, row):
+        return {col[0]: val for col, val in zip(cursor.description, row, strict=True)}
+
+    sqlite_buildin.row_factory = dict_factory
+    result = sql.read_sql_query(
+        "SELECT b, a FROM dict_rows", sqlite_buildin, chunksize=chunksize
+    )
+    if chunksize is not None:
+        result = pd.concat(result, ignore_index=True)
+    tm.assert_frame_equal(result, df[["b", "a"]])
+
+
+@pytest.mark.db
+def test_read_sql_pymysql_dict_cursor(mysql_pymysql_engine):
+    # GH#53028
+    pymysql = pytest.importorskip("pymysql")
+    df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    df.to_sql(name="dict_cursor", con=mysql_pymysql_engine, index=False)
+
+    raw_conn = mysql_pymysql_engine.raw_connection()
+    try:
+        conn = raw_conn.driver_connection
+        conn.cursorclass = pymysql.cursors.DictCursor
+        with tm.assert_produces_warning(UserWarning, match="pandas only supports"):
+            result = sql.read_sql_query("SELECT * FROM dict_cursor", conn)
+    finally:
+        # discard rather than return the mutated connection to the pool
+        raw_conn.invalidate()
+    tm.assert_frame_equal(result, df)

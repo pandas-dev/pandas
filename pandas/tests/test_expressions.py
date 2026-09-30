@@ -473,3 +473,15 @@ class TestExpressions:
                     pass
                 else:
                     assert scalar_result == expected
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
+    def test_result_dtype_type_matches_numpy(self, dtype, monkeypatch):
+        # GH#17945 numexpr returns longlong for int64; ensure we get np.int64
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 0)
+            ser = pd.Series(np.arange(10, dtype=dtype))
+            arith = ser - ser
+            where = ser.where(ser > 5, ser)
+
+        assert arith.dtype.type is np.dtype(dtype).type
+        assert where.dtype.type is np.dtype(dtype).type
