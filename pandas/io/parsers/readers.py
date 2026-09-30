@@ -251,9 +251,6 @@ _PARALLEL_MAX_COLUMN_PIECES = 1800
 # disables the taper.
 _PARALLEL_TAPER_RATIO = 0.2
 
-
-
-
 # Ceiling on the *default* parallel-read worker count: parallel CSV reading
 # sees diminishing returns beyond a handful of workers, and a low default
 # avoids oversubscribing the machine.  mode.max_threads overrides it in either
