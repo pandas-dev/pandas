@@ -511,6 +511,22 @@ def test_assert_frame_equal_nested_df_na(na_value):
     tm.assert_frame_equal(df1, df2)
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+def test_assert_equal_nested_list_length_mismatch(frame_or_series, reverse):
+    # GH#69014
+    left = frame_or_series(pd.Series([1, [1, 2], "b"], dtype=object))
+    right = frame_or_series(pd.Series([1, [[1, 2]], "b"], dtype=object))
+    if reverse:
+        left, right = right, left
+
+    msg = r"values are different \(33\.33333 %\)"
+    with pytest.raises(AssertionError, match=msg) as err:
+        tm.assert_equal(left, right)
+
+    first = "[[1, 2]] != [1, 2]" if reverse else "[1, 2] != [[1, 2]]"
+    assert f"At positional index 1, first diff: {first}" in str(err.value)
+
+
 def test_assert_frame_equal_check_freq_columns():
     # GH#51920 a freq mismatch on datetimelike columns is being introduced via
     #  a deprecation: it warns by default, raises only with check_freq=True

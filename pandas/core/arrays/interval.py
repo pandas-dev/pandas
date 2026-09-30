@@ -7,6 +7,7 @@ from operator import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Self,
     TypeAlias,
@@ -112,7 +113,7 @@ if TYPE_CHECKING:
 
 
 IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
-IntervalOrNA: TypeAlias = Interval | float
+IntervalOrNA: TypeAlias = "Interval[Any] | float"
 
 # Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
 # the result is deterministic across processes (unlike the builtin str hash).
@@ -669,7 +670,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # EA Interface
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(np.asarray(self))
 
     def __len__(self) -> int:
@@ -1611,21 +1612,31 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
         try:
-            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
-        except TypeError as err:
+            subtype = to_pyarrow_type(self.dtype.subtype)
+        except (TypeError, pyarrow.ArrowNotImplementedError) as err:
             raise TypeError(
                 f"Conversion to arrow with subtype '{self.dtype.subtype}' "
                 "is not supported"
             ) from err
+        if subtype is None:
+            raise TypeError(
+                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                "is not supported"
+            )
         interval_type = ArrowIntervalType(subtype, self.closed)
+
+        def _to_arrow(values) -> pyarrow.Array:
+            if isinstance(self.dtype.subtype, np.dtype):
+                return pyarrow.array(values, type=subtype, from_pandas=True)
+            # pyarrow would fall back on `.values`, dropping the tz; _ndarray is UTC
+            return pyarrow.array(values._ndarray, from_pandas=True).cast(subtype)
+
         storage_array = pyarrow.StructArray.from_arrays(
-            [
-                pyarrow.array(self._left, type=subtype, from_pandas=True),
-                pyarrow.array(self._right, type=subtype, from_pandas=True),
-            ],
+            [_to_arrow(self._left), _to_arrow(self._right)],
             names=["left", "right"],
         )
         mask = self.isna()
@@ -1728,7 +1739,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             assert not isinstance(self._right, np.ndarray)
             self._right._putmask(mask, value_right)
 
-    def insert(self, loc: int, item: Interval) -> Self:
+    def insert(self, loc: int, item: Interval[Any]) -> Self:
         """
         Return a new IntervalArray inserting new item at location. Follows
         Python numpy.insert semantics for negative values.  Only Interval

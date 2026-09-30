@@ -36,6 +36,7 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -1148,6 +1149,9 @@ class RangeIndex(Index):
         right = other.difference(self)
         result = left.union(right)
 
+        if isinstance(result, RangeIndex) and result.step < 0:
+            result = result[::-1]
+
         if result_name is not None:
             result = result.rename(result_name)
         return result
@@ -1699,5 +1703,5 @@ class RangeIndex(Index):
             result = len(self) - result
         result = np.maximum(np.minimum(result, len(self)), 0)
         if was_scalar:
-            return np.intp(result.item())
+            return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)
