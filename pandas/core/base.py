@@ -945,7 +945,7 @@ class IndexOpsMixin(OpsMixin):
             )
         return maybe_unbox_numpy_scalar(result)
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
@@ -984,7 +984,7 @@ class IndexOpsMixin(OpsMixin):
 
     to_list = tolist
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Return an iterator of the values.
 

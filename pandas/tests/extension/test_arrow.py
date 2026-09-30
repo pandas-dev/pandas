@@ -24,6 +24,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import locale
 import operator
 import pickle
 import re
@@ -48,7 +49,6 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import pandas_dtype
@@ -2505,6 +2505,27 @@ def test_from_arrow_respecting_given_dtype_unsafe():
     array = pa.array([1.5, 2.5], type=pa.float64())
     with tm.external_error_raised(pa.ArrowInvalid):
         array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
+
+
+def test_from_arrow_list_of_extension_struct():
+    # GH#69869 element access used to segfault after a same-type pyarrow cast
+    intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+    storage = pa.ListArray.from_arrays(
+        pa.array([0, 2], pa.int32()), intervals.__arrow_array__()
+    )
+    table = pa.table({"x": storage})
+    result = table.to_pandas(types_mapper=ArrowDtype)
+    assert result["x"].dtype == ArrowDtype(storage.type)
+    assert result["x"].iloc[0] == [{"left": 0, "right": 1}, {"left": 2, "right": 3}]
+
+
+def test_from_arrow_renames_list_field():
+    # GH#69869 an equal type with a different list field name is still cast
+    arr = pa.array([[1]], type=pa.list_(pa.field("element", pa.int64())))
+    dtype = ArrowDtype(pa.list_(pa.int64()))
+    result = pa.table({"x": arr}).to_pandas(types_mapper=lambda _: dtype)["x"]
+    assert str(result.dtype) == str(dtype)
+    assert hash(result.dtype) == hash(dtype)
 
 
 def test_round():
@@ -6207,13 +6228,13 @@ def test_string_to_time_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
 def test_string_to_time_parsing_cast_meridiem(dtype):
-    # GH#18793 the space before AM/PM used to make these coerce to null
-    result = pd.Series(["3:25:00 PM"], dtype=dtype)
-    expected = pd.Series(["15:25:00"], dtype=dtype)
-    tm.assert_series_equal(result, expected)
+    with tm.set_locale("C", locale.LC_TIME):
+        # GH#18793 the space before AM/PM used to make these coerce to null
+        result = pd.Series(["3:25:00 PM"], dtype=dtype)
+        expected = pd.Series(["15:25:00"], dtype=dtype)
+        tm.assert_series_equal(result, expected)
 
 
 def test_to_numpy_float():
