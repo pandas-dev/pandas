@@ -166,8 +166,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.isetitem` corrupting the frame's internal block structure when ``loc`` was not in increasing order, causing later operations such as :meth:`DataFrame.merge` to raise ``AssertionError`` (:issue:`68930`)
 
 Missing
 ^^^^^^^
