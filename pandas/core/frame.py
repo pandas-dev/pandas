@@ -9121,10 +9121,10 @@ class DataFrame(NDFrame, OpsMixin):
 
              .. deprecated:: 3.1.0
 
-                 This keyword is deprecated and will be removed in pandas 4.0.
-                 See `PDEP-8 In-place methods in pandas
-                 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__
-                 for more details.
+                This keyword is deprecated and will be removed in pandas 4.0.
+                See the `whatsnew note on PDEP-8
+                <https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace>`__
+                for more details.
 
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
