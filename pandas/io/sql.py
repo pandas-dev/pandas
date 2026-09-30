@@ -230,7 +230,8 @@ def _convert_arrays_to_dataframe(
                     arr = original
                 if arr is original:
                     # Arrow cannot mix NumPy NaT scalars with Python dates/times.
-                    arr = np.where(isna(original), None, original)
+                    arr = original.copy()
+                    arr[isna(arr)] = None
             pa_array = pa.array(arr, from_pandas=True)
             if arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
