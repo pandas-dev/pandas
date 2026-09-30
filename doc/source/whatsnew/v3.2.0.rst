@@ -211,8 +211,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.apply` and :meth:`DataFrame.aggregate` where a single callable reducing each column (or row) of a nullable- or PyArrow-backed frame to a scalar gave a NumPy-dtyped result, e.g. ``float64`` rather than ``double[pyarrow]`` (:issue:`61812`)
 
 Styler
 ^^^^^^
