@@ -4499,7 +4499,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-    def _check_inplace_deprecation(self, inplace, method):
+    def _check_inplace_deprecation(
+        self, inplace: bool | lib.NoDefault, method: str
+    ) -> bool:
         if inplace is not lib.no_default:
             # GH#63207
             warnings.warn(
