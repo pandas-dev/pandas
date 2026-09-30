@@ -3458,3 +3458,79 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = pd.DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_nan_label():
+    # GH#65899
+    left = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=np.nan, right_on=np.nan)
+    expected = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_nan_label_on_parameter():
+    # GH#65899
+    left = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({np.nan: [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, on=np.nan)
+    expected = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_pd_na_label():
+    # GH#65899
+    left = pd.DataFrame({pd.NA: [1, 2, 3], 1: [10, 20, 30]})
+    right = pd.DataFrame({pd.NA: [1, 2, 3], 2: [40, 50, 60]})
+    result = merge(left, right, left_on=pd.NA, right_on=pd.NA)
+    expected = pd.DataFrame({pd.NA: [1, 2, 3], 1: [10, 20, 30], 2: [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_nat_label():
+    # GH#65899
+    left = pd.DataFrame({pd.NaT: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({pd.NaT: [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=pd.NaT, right_on=pd.NaT)
+    expected = pd.DataFrame({pd.NaT: [1, 2, 3], "a": [10, 20, 30], "b": [40, 50, 60]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_label_eq_raises():
+    # GH#65899
+    left = pd.DataFrame({pd.NA: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({"x": [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=pd.NA, right_on="x")
+    expected = pd.DataFrame(
+        {
+            result.columns[0]: [1, 2, 3],
+            "a": [10, 20, 30],
+            "x": [1, 2, 3],
+            "b": [40, 50, 60],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_label_eq_raises_valueerror():
+    # GH#65899
+    left = pd.DataFrame({np.int64(10): [1, 2, 3], "a": [4, 5, 6]})
+    right = pd.DataFrame([[1, 2], [2, 3], [3, 4]])
+    right.columns = pd.Index([(1, 2), "b"], dtype=object)
+    result = merge(left, right, left_on=[np.int64(10)], right_on=[(1, 2)])
+    expected = pd.DataFrame(
+        [[1, 4, 1, 2], [2, 5, 2, 3], [3, 6, 3, 4]],
+        columns=pd.Index([np.int64(10), "a", (1, 2), "b"], dtype=object),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_on_mismatched_na_labels():
+    # GH#65899
+    left = pd.DataFrame({np.nan: [1, 2, 3], "a": [10, 20, 30]})
+    right = pd.DataFrame({pd.NaT: [1, 2, 3], "b": [40, 50, 60]})
+    result = merge(left, right, left_on=np.nan, right_on=pd.NaT)
+    expected = pd.DataFrame(
+        {np.nan: [1, 2, 3], "a": [10, 20, 30], pd.NaT: [1, 2, 3], "b": [40, 50, 60]}
+    )
+    tm.assert_frame_equal(result, expected)
