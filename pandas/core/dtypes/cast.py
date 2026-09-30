@@ -1148,7 +1148,7 @@ def _to_default_string(values: ExtensionArray) -> ArrayLike:
 
 
 def maybe_cast_to_datetime(
-    value: np.ndarray | list, dtype: np.dtype
+    value: np.ndarray | list[Any], dtype: np.dtype
 ) -> DatetimeArray | TimedeltaArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
@@ -1573,7 +1573,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Collection[Any]) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1596,7 +1596,9 @@ def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
     return np.fromiter(values, dtype="object", count=len(values))
 
 
-def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.ndarray:
+def maybe_cast_to_integer_array(
+    arr: list[Any] | np.ndarray, dtype: np.dtype
+) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.

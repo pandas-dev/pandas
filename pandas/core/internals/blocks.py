@@ -154,7 +154,7 @@ class Block(PandasObject, libinternals.Block):
     values: np.ndarray | ExtensionArray
     ndim: int
     refs: BlockValuesRefs
-    __init__: Callable
+    __init__: Callable[..., None]
 
     __slots__ = ()
     is_numeric = False

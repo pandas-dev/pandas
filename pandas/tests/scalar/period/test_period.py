@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import locale
 import re
 
 import numpy as np
@@ -971,6 +972,30 @@ class TestPeriodMethods:
         per = pd.Period("2023-Q2")
         with pytest.raises(ValueError, match="Invalid format string"):
             per.strftime(fmt)
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            # installed as ISO8859-1 and gb2312 by the locale CI jobs
+            "it_IT",
+            "zh_CN",
+            "sk_SK.ISO8859-2",
+        ],
+    )
+    def test_strftime_non_utf8_locale(self, locale_str):
+        # GH#46319, GH#46468, GH#47009 strftime output and format are
+        # encoded in the current locale, not utf-8
+        if not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Locale '{locale_str}' cannot be set on host.")
+
+        fmt = "%b %p é"
+        with tm.set_locale(locale_str, locale.LC_ALL):
+            expected = datetime(2022, 5, 11, 13).strftime(fmt)
+            per = pd.Period("2022-05-11 13:00", freq="h")
+            assert per.strftime(fmt) == expected
+
+            pi = pd.period_range("2022-05-11 13:00", periods=2, freq="h")
+            tm.assert_index_equal(pi.strftime(fmt), pd.Index([expected, expected]))
 
 
 class TestPeriodProperties:
