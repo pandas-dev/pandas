@@ -11,6 +11,16 @@ from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
 class TestTimedeltaIndex:
+    def test_0d_raises(self):
+        # GH#69411 used to segfault
+        arr = np.array(1)
+
+        msg = "Cannot construct TimedeltaArray from 0-dim input"
+        with pytest.raises(ValueError, match=msg):
+            pd.TimedeltaIndex(arr)
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray._from_sequence(arr)
+
     def test_array_of_dt64_nat_raises(self):
         # GH#39462
         nat = np.datetime64("NaT", "ns")

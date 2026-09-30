@@ -5,6 +5,7 @@ from __future__ import annotations
 import operator
 from typing import (
     TYPE_CHECKING,
+    Self,
     cast,
 )
 import warnings
@@ -41,7 +42,6 @@ from pandas.core.indexes.base import (
     maybe_extract_name,
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
-from pandas.core.indexes.extension import inherit_names
 from pandas.core.roperator import (
     rmul,
     rsub,
@@ -49,12 +49,22 @@ from pandas.core.roperator import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Any
+
+    import numpy as np
 
     from pandas._libs import NaTType
     from pandas._typing import (
+        AxisInt,
         DtypeObj,
+        NpDtype,
+        TimeAmbiguous,
+        TimeNonexistent,
         TimeUnit,
+        npt,
     )
+
+    from pandas import DataFrame
 
 
 def _new_TimedeltaIndex(cls, d):
@@ -81,28 +91,6 @@ def _new_TimedeltaIndex(cls, d):
     return result
 
 
-@inherit_names(
-    [
-        "__abs__",
-        "total_seconds",
-        "round",
-        "floor",
-        "ceil",
-        *TimedeltaArray._field_ops,
-    ],
-    TimedeltaArray,
-    wrap=True,
-)
-@inherit_names(
-    [
-        "components",
-        "to_pytimedelta",
-        "sum",
-        "std",
-        "median",
-    ],
-    TimedeltaArray,
-)
 @set_module("pandas")
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
@@ -190,6 +178,531 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     _get_string_slice = Index._get_string_slice
 
     # -------------------------------------------------------------------
+    # Methods that dispatch to TimedeltaArray and wrap the result
+
+    def _wrap_field_result(self, result: np.ndarray) -> Index:
+        """Wrap an ndarray result computed from ``self._data`` in an Index."""
+        return Index(result, name=self.name, dtype=result.dtype, copy=False)
+
+    def _wrap_td_result(self, result: TimedeltaArray) -> Self:
+        """Wrap a TimedeltaArray result computed from ``self._data``."""
+        return type(self)._simple_new(result, name=self.name)
+
+    def total_seconds(self) -> Index:
+        """
+        Return total duration of each element expressed in seconds.
+
+        This method is available directly on TimedeltaArray, TimedeltaIndex
+        and on Series containing timedelta values under the ``.dt`` namespace.
+
+        Returns
+        -------
+        Index
+            An Index with a float64 dtype.
+
+        See Also
+        --------
+        datetime.timedelta.total_seconds : Standard library version
+            of this method.
+        TimedeltaIndex.components : Return a DataFrame with components of
+            each Timedelta.
+
+        Examples
+        --------
+        >>> idx = pd.to_timedelta(np.arange(5), unit="D")
+        >>> idx
+        TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                       dtype='timedelta64[us]', freq=None)
+
+        >>> idx.total_seconds()
+        Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
+        """
+        return self._wrap_field_result(self._data.total_seconds())
+
+    # error: Signature of "round" incompatible with supertype "Index"
+    # TimedeltaIndex.round rounds to a freq like Index.floor/ceil, unlike
+    # Index.round which rounds numeric values to a number of decimals.
+    def round(  # type: ignore[override]
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> Self:
+        """
+        Perform round operation on the data to the specified `freq`.
+
+        This method rounds each timedelta value in the Series/Index to the
+        nearest specified frequency using standard rounding rules (round half
+        to even).
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to round the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Accepted for compatibility with :meth:`DatetimeIndex.round`;
+            has no effect since TimedeltaIndex values are never tz-aware.
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+            default 'raise'
+            Accepted for compatibility with :meth:`DatetimeIndex.round`;
+            has no effect since TimedeltaIndex values are never tz-aware.
+
+        Returns
+        -------
+        TimedeltaIndex
+            Values rounded to the given `freq`.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        TimedeltaIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+        TimedeltaIndex.ceil : Perform ceil operation on the data to the
+            specified `freq`.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.timedelta_range("1 day", periods=3, freq="6h20min")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:00:00', '1 days 06:20:00', '1 days 12:40:00'],
+                       dtype='timedelta64[us]', freq='380min')
+        >>> tdelta_idx.round("h")
+        TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 13:00:00'],
+                       dtype='timedelta64[us]', freq=None)
+        """
+        return self._wrap_td_result(self._data.round(freq, ambiguous, nonexistent))
+
+    def floor(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> Self:
+        """
+        Perform floor operation on the data to the specified `freq`.
+
+        This method rounds each timedelta value in the Series/Index down to
+        the specified frequency (i.e., towards negative infinity).
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to floor the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Accepted for compatibility with :meth:`DatetimeIndex.floor`;
+            has no effect since TimedeltaIndex values are never tz-aware.
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+            default 'raise'
+            Accepted for compatibility with :meth:`DatetimeIndex.floor`;
+            has no effect since TimedeltaIndex values are never tz-aware.
+
+        Returns
+        -------
+        TimedeltaIndex
+            Values rounded down to the given `freq`.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        TimedeltaIndex.round : Perform round operation on the data to the
+            specified `freq`.
+        TimedeltaIndex.ceil : Perform ceil operation on the data to the
+            specified `freq`.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.timedelta_range("1 day", periods=3, freq="6h20min")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:00:00', '1 days 06:20:00', '1 days 12:40:00'],
+                       dtype='timedelta64[us]', freq='380min')
+        >>> tdelta_idx.floor("h")
+        TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00'],
+                       dtype='timedelta64[us]', freq=None)
+        """
+        return self._wrap_td_result(self._data.floor(freq, ambiguous, nonexistent))
+
+    def ceil(
+        self,
+        freq,
+        ambiguous: TimeAmbiguous = "raise",
+        nonexistent: TimeNonexistent = "raise",
+    ) -> Self:
+        """
+        Perform ceil operation on the data to the specified `freq`.
+
+        This method rounds each timedelta value in the Series/Index up to
+        the specified frequency (i.e., towards positive infinity).
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to ceil the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Accepted for compatibility with :meth:`DatetimeIndex.ceil`;
+            has no effect since TimedeltaIndex values are never tz-aware.
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, \
+            default 'raise'
+            Accepted for compatibility with :meth:`DatetimeIndex.ceil`;
+            has no effect since TimedeltaIndex values are never tz-aware.
+
+        Returns
+        -------
+        TimedeltaIndex
+            Values rounded up to the given `freq`.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        TimedeltaIndex.round : Perform round operation on the data to the
+            specified `freq`.
+        TimedeltaIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.timedelta_range("1 day", periods=3, freq="6h20min")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:00:00', '1 days 06:20:00', '1 days 12:40:00'],
+                       dtype='timedelta64[us]', freq='380min')
+        >>> tdelta_idx.ceil("h")
+        TimedeltaIndex(['1 days 00:00:00', '1 days 07:00:00', '1 days 13:00:00'],
+                       dtype='timedelta64[us]', freq=None)
+        """
+        return self._wrap_td_result(self._data.ceil(freq, ambiguous, nonexistent))
+
+    @property
+    def days(self) -> Index:
+        """
+        Number of days for each element.
+
+        This attribute returns the number of whole days in each timedelta value.
+        It represents the days component of the duration, not the total duration
+        expressed in days.
+
+        See Also
+        --------
+        Series.dt.seconds : Return number of seconds for each element.
+        Series.dt.microseconds : Return number of microseconds for each element.
+        Series.dt.nanoseconds : Return number of nanoseconds for each element.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days', '10 days', '20 days'],
+                        dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.days
+        Index([0, 10, 20], dtype='int64')
+        """
+        return self._wrap_field_result(self._data.days)
+
+    @property
+    def seconds(self) -> Index:
+        """
+        Number of seconds (>= 0 and less than 1 day) for each element.
+
+        This attribute returns the seconds component of each timedelta value,
+        which is the number of seconds remaining after subtracting whole days.
+        Values range from 0 to 86399.
+
+        See Also
+        --------
+        Series.dt.seconds : Return number of seconds for each element.
+        Series.dt.nanoseconds : Return number of nanoseconds for each element.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="s")
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
+                       dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.seconds
+        Index([1, 2, 3], dtype='int32')
+        """
+        return self._wrap_field_result(self._data.seconds)
+
+    @property
+    def microseconds(self) -> Index:
+        """
+        Number of microseconds (>= 0 and less than 1 second) for each element.
+
+        This attribute returns the microseconds component of each timedelta value,
+        which is the number of microseconds remaining after subtracting whole
+        seconds. Values range from 0 to 999999.
+
+        See Also
+        --------
+        Timedelta.microseconds : Number of microseconds (>= 0 and less than
+            1 second).
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="us")
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
+                        '0 days 00:00:00.000003'],
+                       dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.microseconds
+        Index([1, 2, 3], dtype='int32')
+        """
+        return self._wrap_field_result(self._data.microseconds)
+
+    @property
+    def nanoseconds(self) -> Index:
+        """
+        Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+        This attribute returns the nanoseconds component of each timedelta value,
+        which is the number of nanoseconds remaining after subtracting whole
+        microseconds. Values range from 0 to 999.
+
+        See Also
+        --------
+        Series.dt.seconds : Return number of seconds for each element.
+        Series.dt.microseconds : Return number of microseconds for each element.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="ns")
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days 00:00:00.000000001', '0 days 00:00:00.000000002',
+                        '0 days 00:00:00.000000003'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.nanoseconds
+        Index([1, 2, 3], dtype='int32')
+        """
+        return self._wrap_field_result(self._data.nanoseconds)
+
+    @property
+    def components(self) -> DataFrame:
+        """
+        Return a DataFrame of the individual resolution components of the Timedeltas.
+
+        The components (days, hours, minutes seconds, milliseconds, microseconds,
+        nanoseconds) are returned as columns in a DataFrame.
+
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        TimedeltaIndex.total_seconds : Return total duration expressed in seconds.
+        Timedelta.components : Return a components namedtuple-like of a single
+            timedelta.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta(["1 day 3 min 2 us 42 ns"])
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:03:00.000002042'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.components
+           days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
+        0     1      0        3        0             0             2           42
+        """
+        return self._data.components
+
+    def to_pytimedelta(self) -> npt.NDArray[np.object_]:
+        """
+        Return an ndarray of datetime.timedelta objects.
+
+        Each element of the :class:`TimedeltaIndex` is converted to the
+        corresponding native Python :class:`datetime.timedelta` object.
+
+        Returns
+        -------
+        numpy.ndarray
+            Object-dtype array of :class:`datetime.timedelta`.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta format.
+        Timedelta : Represents a duration between two dates or times.
+        DatetimeIndex: Index of datetime64 data.
+        Timedelta.components : Return a components namedtuple-like
+                               of a single timedelta.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.to_pytimedelta()
+        array([datetime.timedelta(days=1), datetime.timedelta(days=2),
+               datetime.timedelta(days=3)], dtype=object)
+        """
+        return self._data.to_pytimedelta()
+
+    def sum(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out=None,
+        keepdims: bool = False,
+        initial=None,
+        skipna: bool = True,
+        min_count: int = 0,
+    ) -> Timedelta | NaTType:
+        """
+        Return the sum of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            Axis for the function to be applied on.
+        dtype, out, keepdims, initial
+            Not implemented; kept for compatibility with :func:`numpy.sum`,
+            which calls this method when ``numpy.sum(tdi)`` is used. Must be
+            left at their default values.
+        skipna : bool, default True
+            Whether to ignore any NaT elements.
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NaT values are present the result is NaT.
+
+        Returns
+        -------
+        Timedelta
+            The sum, or NaT if it cannot be computed.
+
+        See Also
+        --------
+        numpy.ndarray.sum : Returns the sum of array elements along a given axis.
+        Series.sum : Return the sum of the values in a Series.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.sum()
+        Timedelta('6 days 00:00:00')
+        """
+        return self._data.sum(
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            keepdims=keepdims,
+            initial=initial,
+            skipna=skipna,
+            min_count=min_count,
+        )
+
+    def std(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        dtype: NpDtype | None = None,
+        out=None,
+        ddof: int = 1,
+        keepdims: bool = False,
+        skipna: bool = True,
+    ) -> Timedelta | NaTType:
+        """
+        Return the standard deviation of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            Axis for the function to be applied on.
+        dtype, out, keepdims
+            Not implemented; kept for compatibility with :func:`numpy.std`,
+            which calls this method when ``numpy.std(tdi)`` is used. Must be
+            left at their default values.
+        ddof : int, default 1
+            Delta degrees of freedom. The divisor used in calculations is
+            ``N - ddof``, where ``N`` represents the number of elements.
+        skipna : bool, default True
+            Whether to ignore any NaT elements.
+
+        Returns
+        -------
+        Timedelta
+            The standard deviation, or NaT if it cannot be computed.
+
+        See Also
+        --------
+        numpy.ndarray.std : Returns the standard deviation of array elements
+            along a given axis.
+        Series.std : Return sample standard deviation over requested axis.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.std()
+        Timedelta('1 days 00:00:00')
+        """
+        return self._data.std(
+            axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims, skipna=skipna
+        )
+
+    def median(
+        self,
+        *,
+        axis: AxisInt | None = None,
+        skipna: bool = True,
+        **kwargs,
+    ) -> Timedelta | NaTType:
+        """
+        Return the median of the values over the requested axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            Axis for the function to be applied on.
+        skipna : bool, default True
+            Whether to ignore any NaT elements.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with NumPy.
+
+        Returns
+        -------
+        Timedelta
+            The median, or NaT if it cannot be computed.
+
+        See Also
+        --------
+        numpy.median : Compute the median along the specified axis.
+        Series.median : Return the median of the values in a Series.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[us]', freq=None)
+        >>> tdelta_idx.median()
+        Timedelta('2 days 00:00:00')
+        """
+        return self._data.median(axis=axis, skipna=skipna, **kwargs)
+
+    # -------------------------------------------------------------------
     # Constructors
 
     def __new__(
@@ -275,7 +788,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             idx._freq = self.freq
         return idx
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         result = super()._arith_method(other, op)
         if self.freq is None or not is_scalar(other):
             return result
@@ -295,7 +808,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             result._freq = new_freq
         return result
 
-    def _get_arith_result_freq(self, other: object, op: Callable) -> Day | Tick | None:
+    def _get_arith_result_freq(
+        self, other: object, op: Callable[..., Any]
+    ) -> Day | Tick | None:
         """
         Compute the result freq for arithmetic operations whose result
         is also a TimedeltaIndex.
