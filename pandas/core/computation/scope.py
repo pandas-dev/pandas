@@ -12,7 +12,10 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import TypeVar
+from typing import (
+    Any,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -142,9 +145,9 @@ class Scope:
 
     __slots__ = ["level", "resolvers", "scope", "target", "temps"]
     level: int
-    scope: DeepChainMap
-    resolvers: DeepChainMap
-    temps: dict
+    scope: DeepChainMap[str, Any]
+    resolvers: DeepChainMap[str, Any]
+    temps: dict[str, Any]
 
     def __init__(
         self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None
@@ -336,7 +339,7 @@ class Scope:
         return len(self.temps)
 
     @property
-    def full_scope(self) -> DeepChainMap:
+    def full_scope(self) -> DeepChainMap[str, Any]:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.

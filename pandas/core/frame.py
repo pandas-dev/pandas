@@ -1449,16 +1449,23 @@ class DataFrame(NDFrame, OpsMixin):
         # use integer indexing because of possible duplicate column names
         arrays.extend(self.iloc[:, k] for k in range(len(self.columns)))
 
+        rows: Iterator[tuple[Any, ...]]
+        if arrays:
+            rows = zip(*arrays, strict=True)
+        else:
+            # no columns and index=False: still yield one empty tuple per row
+            rows = itertools.repeat((), len(self))
+
         if name is not None:
             # https://github.com/python/mypy/issues/9046
             # error: namedtuple() expects a string literal as the first argument
             itertuple = collections.namedtuple(  # type: ignore[misc]
                 name, fields, rename=True
             )
-            return map(itertuple._make, zip(*arrays, strict=True))
+            return map(itertuple._make, rows)
 
         # fallback to regular tuples
-        return zip(*arrays, strict=True)
+        return rows
 
     def __len__(self) -> int:
         """
@@ -19931,9 +19938,9 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         freq : str, default frequency of PeriodIndex
             Desired frequency.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
-            vs. end.
+            vs. end. Case-insensitive.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default).
         copy : bool, default False
