@@ -441,6 +441,70 @@ class DatetimeProperties(Properties):
         """
         return self._get_values().isocalendar().set_index(self._parent.index)
 
+    @property
+    def weekday(self) -> Series:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.day_of_week
+
+    @property
+    def dayofweek(self) -> Series:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofweek is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.day_of_week
+
+    @property
+    def dayofyear(self) -> Series:
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_year` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofyear is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.day_of_year
+
+    @property
+    def daysinmonth(self) -> Series:
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.days_in_month` instead.
+        """
+        warnings.warn(
+            "Series.dt.daysinmonth is deprecated and will be removed in a "
+            "future version. Use Series.dt.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.days_in_month
+
 
 @delegate_names(
     delegate=TimedeltaArray, accessors=TimedeltaArray._datetimelike_ops, typ="property"
@@ -661,6 +725,70 @@ class PeriodProperties(Properties):
     3    4
     dtype: int64
     """
+
+    @property
+    def weekday(self) -> Series:
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.weekday is deprecated and will be removed "
+            "in a future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.day_of_week
+
+    @property
+    def dayofweek(self):
+        """
+        The day of the week with Monday=0, Sunday=6.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_week` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofweek is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_week instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.day_of_week
+
+    @property
+    def dayofyear(self):
+        """
+        The ordinal day of the year.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.day_of_year` instead.
+        """
+        warnings.warn(
+            "Series.dt.dayofyear is deprecated and will be removed in a "
+            "future version. Use Series.dt.day_of_year instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.day_of_year
+
+    @property
+    def daysinmonth(self):
+        """
+        The number of days in the month.
+
+        .. deprecated:: 3.1.0
+            Use :attr:`Series.dt.days_in_month` instead.
+        """
+        warnings.warn(
+            "Series.dt.daysinmonth is deprecated and will be removed in a "
+            "future version. Use Series.dt.days_in_month instead.",
+            Pandas4Warning,
+            stacklevel=2,
+        )
+        return self.days_in_month
 
 
 class CombinedDatetimelikeProperties(

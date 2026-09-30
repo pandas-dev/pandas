@@ -26,13 +26,14 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 
-ok_for_period = PeriodArray._datetimelike_ops
+# GH#46768 - deprecated aliases that should be skipped in property access tests
+_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
+
+ok_for_period = PeriodArray._datetimelike_ops + list(_deprecated_dt_attrs)
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
 # ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
 # directly rather than on the underlying array, so add it explicitly.
-ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq"]
-# GH#46768 - deprecated aliases that should be skipped in property access tests
-_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
+ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq", *list(_deprecated_dt_attrs)]
 ok_for_dt_methods = [
     "to_period",
     "to_pydatetime",
