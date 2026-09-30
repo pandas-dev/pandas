@@ -992,31 +992,27 @@ class TestPivotTable:
         for value_col in table.columns.levels[0]:
             self._check_output(table[value_col], value_col, data)
 
-    def test_no_col(self, data, using_infer_string):
-        # no col
-
-        # to help with a buglet
-        data.columns = [k * 2 for k in data.columns]
+    @pytest.mark.parametrize(
+        "kwargs", [{"index": ["A", "B"]}, {"columns": ["A"]}, {"columns": ["A", "B"]}]
+    )
+    def test_margins_raises_on_nuisance(self, data, kwargs, using_infer_string):
         msg = re.escape("agg function failed [how->mean,dtype->")
         if using_infer_string:
             msg = "dtype 'str' does not support operation 'mean'"
         with pytest.raises(TypeError, match=msg):
-            data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
+            data.pivot_table(margins=True, aggfunc="mean", **kwargs)
+
+    def test_no_col(self, data):
+        # no col
+
+        # to help with a buglet
+        data.columns = [k * 2 for k in data.columns]
         table = data.drop(columns="CC").pivot_table(
             index=["AA", "BB"], margins=True, aggfunc="mean"
         )
-        for value_col in table.columns:
+        for value_col in ["DD", "EE", "FF"]:
             totals = table.loc[("All", ""), value_col]
             assert totals == data[value_col].mean()
-
-        with pytest.raises(TypeError, match=msg):
-            data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
-        table = data.drop(columns="CC").pivot_table(
-            index=["AA", "BB"], margins=True, aggfunc="mean"
-        )
-        for item in ["DD", "EE", "FF"]:
-            totals = table.loc[("All", ""), item]
-            assert totals == data[item].mean()
 
     @pytest.mark.parametrize(
         "columns, aggfunc, values, expected_columns",
@@ -1049,7 +1045,7 @@ class TestPivotTable:
         ],
     )
     def test_margin_with_only_columns_defined(
-        self, columns, aggfunc, values, expected_columns, using_infer_string
+        self, columns, aggfunc, values, expected_columns
     ):
         # GH 31016
         df = pd.DataFrame(
@@ -1071,12 +1067,6 @@ class TestPivotTable:
                 "E": [2, 4, 5, 5, 6, 6, 8, 9, 9],
             }
         )
-        if aggfunc != "sum":
-            msg = re.escape("agg function failed [how->mean,dtype->")
-            if using_infer_string:
-                msg = "dtype 'str' does not support operation 'mean'"
-            with pytest.raises(TypeError, match=msg):
-                df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:
             df = df.drop(columns="B")
         result = df.drop(columns="C").pivot_table(
@@ -2330,7 +2320,6 @@ class TestPivotTable:
         expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.slow
     def test_pivot_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
@@ -2351,7 +2340,7 @@ class TestPivotTable:
                 {"ind1": np.arange(2**16), "ind2": np.arange(2**16), "count": 0}
             )
 
-            msg = "The following operation may generate"
+            msg = f"may generate {2**32} cells"
             with tm.assert_produces_warning(performance_warning, match=msg):
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.pivot_table(
@@ -3275,6 +3264,21 @@ class TestPivot:
             index=expected_index, columns=expected_columns, dtype=dtype
         )
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_margins_dict_aggfunc_missing_col(self):
+        # GH#66151
+        df = pd.DataFrame(
+            {
+                "random1": [1.0, 2.0, 3.0, 4.0],
+                "random2": [10, 20, 30, 40],
+                "type": ["a", "a", "b", "b"],
+            }
+        )
+        result = df.pivot_table(index="type", aggfunc={"random1": "mean"}, margins=True)
+        expected = pd.DataFrame(
+            {"random1": [1.5, 3.5, 2.5]}, index=pd.Index(["a", "b", "All"], name="type")
+        )
         tm.assert_frame_equal(result, expected)
 
 

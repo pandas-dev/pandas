@@ -294,7 +294,7 @@ class TestSlicing:
         with pytest.raises(KeyError, match="2005-1-1 00:00:00"):
             s["2005-1-1 00:00:00"]
 
-    def test_partial_slicing_dataframe(self):
+    def test_partial_slicing_dataframe(self, using_python_scalars):
         # GH14856
         # Test various combinations of string slicing resolution vs.
         # index resolution
@@ -311,6 +311,7 @@ class TestSlicing:
             "%Y-%m-%d %H:%M:%S",
         ]
         resolutions = ["year", "month", "day", "hour", "minute", "second"]
+        expected_type = int if using_python_scalars else np.int64
         for rnum, resolution in enumerate(resolutions[2:], 2):
             # we check only 'day', 'hour', 'minute' and 'second'
             unit = pd.Timedelta("1 " + resolution)
@@ -327,7 +328,7 @@ class TestSlicing:
                 ts_string = timestamp.strftime(formats[rnum])
                 # make ts_string as precise as index
                 result = df["a"][ts_string]
-                assert isinstance(result, np.int64)
+                assert type(result) is expected_type
                 assert result == expected
                 msg = rf"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):
@@ -355,7 +356,7 @@ class TestSlicing:
             for fmt in formats[rnum + 1 :]:
                 ts_string = index[1].strftime(fmt)
                 result = df["a"][ts_string]
-                assert isinstance(result, np.int64)
+                assert type(result) is expected_type
                 assert result == 2
                 msg = rf"^'{ts_string}'$"
                 with pytest.raises(KeyError, match=msg):

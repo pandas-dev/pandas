@@ -2239,6 +2239,16 @@ fallback:
       *maybe_int = 0;
     p++;
 
+    // With no significant integer digits the fractional leading zeros are not
+    // significant either, see test_precise_xstrtod_fractional_leading_zeros.
+    if (num_digits == 0) {
+      while (*p == '0') {
+        saw_digit = true;
+        p++;
+        num_decimals++;
+      }
+    }
+
     while (num_digits < max_digits && isdigit_ascii(*p)) {
       mantissa = mantissa * 10 + (*p - '0');
       p++;

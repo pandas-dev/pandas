@@ -4,6 +4,7 @@ import io
 import os
 from pathlib import Path
 import struct
+import weakref
 
 import numpy as np
 import pytest
@@ -172,7 +173,8 @@ def test_encoding_default_deprecated_header_text_only(datapath):
     fname = datapath("io", "sas", "data", "datetime.sas7bdat")
     with open(fname, "rb") as fd:
         data = bytearray(fd.read())
-    assert b"s" not in SAS7BDATReader(fname, encoding=None)._column_types
+    with contextlib.closing(SAS7BDATReader(fname, encoding=None)) as rdr:
+        assert b"s" not in rdr._column_types
     # This file declares cp1251; make a column name non-ascii so latin-1 and
     #  the declared encoding disagree
     ix = data.index(b"DateTimeHi")
@@ -912,6 +914,16 @@ def test_chunked_read_closes_the_file_it_rejects(
         while not reader.read().empty:
             pass
     assert reader.handles.handle.closed
+
+
+def test_dropped_reader_closes_the_file(datapath):
+    # GH#68973 the reader used to hold a list of its own bound methods, so it
+    #  outlived its last reference and kept its file open until a cyclic collection.
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
+    reader = pd.read_sas(fname, format="sas7bdat", chunksize=2, encoding=None)
+    handle = weakref.ref(reader.handles.handle)
+    del reader
+    assert handle() is None
 
 
 def test_0x40_control_byte(datapath):
