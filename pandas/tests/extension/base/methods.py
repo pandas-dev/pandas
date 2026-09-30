@@ -23,6 +23,19 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
 
+# GH#24433 methods whose default implementation may cast to object, mapped to
+# the methods an EA must override (any one of) to avoid it; map is left out
+# since it is elementwise regardless, and isin/value_counts since they are only
+# slow without a fast __array__
+SLOW_DEFAULTS = {
+    "unique": ["unique"],
+    "factorize": ["factorize", "_values_for_factorize"],
+    "argsort": ["argsort", "_values_for_argsort"],
+    "argmin": ["argmin", "_values_for_argsort"],
+    "argmax": ["argmax", "_values_for_argsort"],
+    "searchsorted": ["searchsorted"],
+}
+
 
 class BaseMethodsTests:
     """Various Series and DataFrame methods."""
@@ -38,30 +51,18 @@ class BaseMethodsTests:
         assert res.dtype == np.uint64
         assert res.shape == data.shape
 
-    def test_slow_defaults_overridden(self, data):
-        # GH#24433 warn EA authors about defaults that may cast to object; map is
-        # left out since it is elementwise regardless, and isin/value_counts
-        # since they are only slow without a fast __array__
+    @pytest.mark.parametrize("method", list(SLOW_DEFAULTS))
+    def test_slow_defaults_overridden(self, data, method):
+        # GH#24433 warn EA authors about defaults that may cast to object
         base_cls = pd.api.extensions.ExtensionArray
-        overridable = {
-            "unique": ["unique"],
-            "factorize": ["factorize", "_values_for_factorize"],
-            "argsort": ["argsort", "_values_for_argsort"],
-            "argmin": ["argmin", "_values_for_argsort"],
-            "argmax": ["argmax", "_values_for_argsort"],
-            "searchsorted": ["searchsorted"],
-        }
-        inherited = [
-            name
-            for name, methods in overridable.items()
-            if all(
-                getattr(type(data), meth) is getattr(base_cls, meth) for meth in methods
-            )
-        ]
-        if inherited:
+        inherited = all(
+            getattr(type(data), meth) is getattr(base_cls, meth)
+            for meth in SLOW_DEFAULTS[method]
+        )
+        if inherited and pd.get_option("mode.performance_warnings"):
             warnings.warn(
                 f"{type(data).__name__} uses the default ExtensionArray "
-                f"implementation of {', '.join(inherited)}, which may be slow. "
+                f"implementation of {method}, which may be slow. "
                 "See the ExtensionArray docstring for methods to override.",
                 PerformanceWarning,
                 stacklevel=1,
