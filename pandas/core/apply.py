@@ -39,6 +39,7 @@ from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
     ExtensionDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -125,22 +126,19 @@ def _short_circuit_empty_axis1_agg(func: str, obj) -> bool:
     """
     True when a 0-row axis=1 agg should call the reduction directly.
 
-    Transposing a 0-row frame drops dtypes (GH#32802). Direct reductions
-    keep them. ``skew`` rejects axis=1, so it stays on the transpose path.
-    ``all``/``any`` raise on datetime64, but a non-empty mixed-dtype frame
-    is transposed to object first and succeeds. Keep the direct path for
-    those two only when the columns share a datetime64 dtype, so the empty
-    frame still raises the way the non-empty frame does.
+    Transposing a 0-row frame drops dtypes (GH#32802). ``skew`` rejects
+    axis=1, so it stays on the transpose path. ``all``/``any`` raise on
+    homogeneous datetime64/Period, but mixed frames succeed after
+    transpose-to-object; short-circuit those two only when the common
+    dtype is one that raises.
     """
     if func not in _frame_reduction_names or func == "skew":
         return False
     if func not in ("all", "any"):
         return True
 
-    dtypes = list(obj.dtypes)
-    if not any(is_datetime64_any_dtype(dtype) for dtype in dtypes):
-        return True
-    return is_datetime64_any_dtype(find_common_type(dtypes))
+    common = find_common_type(obj._blk_dtypes)
+    return is_datetime64_any_dtype(common) or isinstance(common, PeriodDtype)
 
 
 @set_module("pandas.api.executors")
@@ -1090,12 +1088,7 @@ class FrameApply(NDFrameApply):
         obj = self.obj
         axis = self.axis
 
-        # GH#32802: transposing a 0-row frame produces 0 columns and
-        # drops dtypes (e.g. datetime64[ns, UTC] -> float64). Named
-        # reductions already preserve dtype via DataFrame._reduce.
-        # Transform-like names such as "abs" must keep the transpose
-        # path: apply_str rejects axis=1 for them, so an empty frame
-        # would raise or diverge from the non-empty result.
+        # GH#32802: avoid transpose of a 0-row frame dropping dtypes
         if (
             axis == 1
             and len(obj.index) == 0

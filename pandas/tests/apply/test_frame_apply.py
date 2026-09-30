@@ -2198,6 +2198,17 @@ def test_agg_all_any_axis1_empty_mixed_matches_nonempty(how):
 
 
 @pytest.mark.parametrize("how", ["all", "any"])
+def test_agg_all_any_axis1_empty_mixed_period_matches_nonempty(how):
+    # GH#32802: mixed int/Period must match non-empty after transpose.
+    df = pd.DataFrame(
+        {"a": [1, 2], "b": pd.period_range("2020", periods=2, freq="D")}
+    )
+    result = df.agg(how, axis=1)
+    empty = df.iloc[:0].agg(how, axis=1)
+    tm.assert_series_equal(empty, result.iloc[:0])
+
+
+@pytest.mark.parametrize("how", ["all", "any"])
 def test_agg_all_any_axis1_empty_homogeneous_datetime_matches_nonempty(how):
     # GH#32802: homogeneous datetime64 all/any raises. The empty frame
     # must raise too, rather than follow the 0-column transpose path.
@@ -2208,6 +2219,22 @@ def test_agg_all_any_axis1_empty_homogeneous_datetime_matches_nonempty(how):
         }
     )
     msg = "datetime64"
+    with pytest.raises(TypeError, match=msg):
+        df.agg(how, axis=1)
+    with pytest.raises(TypeError, match=msg):
+        df.iloc[:0].agg(how, axis=1)
+
+
+@pytest.mark.parametrize("how", ["all", "any"])
+def test_agg_all_any_axis1_empty_homogeneous_period_matches_nonempty(how):
+    # GH#32802: homogeneous Period all/any raises; empty must match.
+    df = pd.DataFrame(
+        {
+            "a": pd.period_range("2020", periods=2, freq="D"),
+            "b": pd.period_range("2021", periods=2, freq="D"),
+        }
+    )
+    msg = "PeriodArray"
     with pytest.raises(TypeError, match=msg):
         df.agg(how, axis=1)
     with pytest.raises(TypeError, match=msg):
