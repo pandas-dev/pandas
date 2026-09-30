@@ -252,11 +252,532 @@ _PARALLEL_MAX_COLUMN_PIECES = 1800
 _PARALLEL_TAPER_RATIO = 0.2
 
 
+
+
+# Ceiling on the *default* parallel-read worker count: parallel CSV reading
+# sees diminishing returns beyond a handful of workers, and a low default
+# avoids oversubscribing the machine.  mode.max_threads overrides it in either
+# direction.
+_MAX_DEFAULT_WORKERS = 6
+_pyarrow_unsupported = {
+    "skipfooter",
+    "float_precision",
+    "chunksize",
+    "comment",
+    "nrows",
+    "thousands",
+    "memory_map",
+    "dialect",
+    "quoting",
+    "lineterminator",
+    "converters",
+    "iterator",
+    "dayfirst",
+    "skipinitialspace",
+    "low_memory",
+    "na_filter",
+}
+
+
+@overload
+def validate_integer(name: str, val: None, min_val: int = ...) -> None: ...
+
+
+@overload
+def validate_integer(name: str, val: float, min_val: int = ...) -> int: ...
+
+
+@overload
+def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None: ...
+
+
+def validate_integer(
+    name: str, val: int | float | None, min_val: int = 0
+) -> int | None:
+    """
+    Checks whether the 'name' parameter for parsing is either
+    an integer OR float that can SAFELY be cast to an integer
+    without losing accuracy. Raises a ValueError if that is
+    not the case.
+
+    Parameters
+    ----------
+    name : str
+        Parameter name (used for error reporting)
+    val : int or float
+        The value to check
+    min_val : int
+        Minimum allowed value (val < min_val will result in a ValueError)
+    """
+    if val is None:
+        return val
+
+    msg = f"'{name:s}' must be an integer >={min_val:d}"
+    if is_float(val):
+        if int(val) != val:
+            raise ValueError(msg)
+        val = int(val)
+    elif not (is_integer(val) and val >= min_val):
+        raise ValueError(msg)
+
+    return int(val)
+
+
+def _validate_names(names: Sequence[Hashable] | None) -> None:
+    """
+    Raise ValueError if the `names` parameter contains duplicates or has an
+    invalid data type.
+
+    Parameters
+    ----------
+    names : array-like or None
+        An array containing a list of the names used for the output DataFrame.
+
+    Raises
+    ------
+    ValueError
+        If names are not unique or are not ordered (e.g. set).
+    """
+    if names is not None:
+        if len(names) != len(set(names)):
+            raise ValueError("Duplicate names are not allowed.")
+        if not (
+            is_list_like(names, allow_sets=False) or isinstance(names, abc.KeysView)
+        ):
+            raise ValueError("Names should be an ordered collection.")
+
+
+def _read(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
+) -> DataFrame | TextFileReader:
+    """Generic reader of line files."""
+    # before the `iterator` peek below, which reads it for truthiness
+    _validate_bool_kwargs(kwds)
+
+    # if we pass a date_format and parse_dates=False, we should not parse the
+    # dates GH#44366
+    if kwds.get("parse_dates", None) is None:
+        if kwds.get("date_format", None) is None:
+            kwds["parse_dates"] = False
+        else:
+            kwds["parse_dates"] = True
+
+    # Extract some of the arguments (pass chunksize on).
+    iterator = kwds.get("iterator", False)
+    chunksize = kwds.get("chunksize", None)
+
+    # Check type of encoding_errors
+    errors = kwds.get("encoding_errors", "strict")
+    if not isinstance(errors, str):
+        raise ValueError(
+            f"encoding_errors must be a string, got {type(errors).__name__}"
+        )
+
+    if kwds.get("engine") == "pyarrow":
+        if iterator:
+            raise ValueError(
+                "The 'iterator' option is not supported with the 'pyarrow' engine"
+            )
+
+        if chunksize is not None:
+            raise ValueError(
+                "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            )
+    else:
+        chunksize = validate_integer("chunksize", chunksize, 1)
+
+    nrows = kwds.get("nrows", None)
+
+    # Check for duplicates in names.
+    _validate_names(kwds.get("names", None))
+
+    if kwds.get("float_precision") is not None:
+        warnings.warn(
+            "The 'float_precision' argument is deprecated. "
+            "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+    # For large local uncompressed files with the C engine, attempt parallel reading.
+    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
+    # and type-conversion code in parsers.pyx runs truly in parallel.
+    if not iterator and chunksize is None and nrows is None:
+        _n_workers = _default_n_workers()
+        if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
+            _filepath = stringify_path(filepath_or_buffer)
+            assert isinstance(_filepath, str)  # guaranteed by _can_parallelize_csv
+            try:
+                result = _read_csv_parallel(_filepath, kwds, _n_workers)
+            except (ParserError, UnicodeDecodeError, OverflowError):
+                # e.g. a chunk boundary landed inside a quoted field containing
+                # an embedded newline, or a chunk of only huge ints converted
+                # where the mixed whole-file column would have stayed a string
+                # (GH#66259).  The serial path below handles anything the
+                # parallel path cannot -- and raises in turn if it too fails.
+                # Other exceptions propagate: they signal a parallel-path bug,
+                # not ineligible input.
+                result = None
+            if result is not None:
+                return result
+
+    # Create the parser.
+    parser = TextFileReader(filepath_or_buffer, **kwds)
+
+    if chunksize or iterator:
+        return parser
+
+    with parser:
+        return parser.read(nrows)
+
+
+def _default_n_workers() -> int:
+    """
+    Default worker count for a parallel ``read_csv``.
+
+    ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
+    cannot spawn threads at all).  Otherwise it is the smallest of the machine's
+    logical CPU count, ``_MAX_DEFAULT_WORKERS``, and the CPUs actually available
+    to the process (CPU affinity / cgroup limits) -- so that an embedded or
+    containerised pandas does not oversubscribe its allocation.
+    """
+    max_threads = get_option("mode.max_threads")
+    if sys.platform == "emscripten":
+        # WASM cannot spawn threads, regardless of mode.max_threads.
+        return 1
+    if max_threads is not None:
+        return max_threads
+    n_workers = min(os.cpu_count() or 1, _MAX_DEFAULT_WORKERS)
+    # os.cpu_count() counts the machine's CPUs, not the ones this process may
+    # use, so it alone would put _MAX_DEFAULT_WORKERS parse threads on a
+    # single-CPU container.
+    available = available_cpu_count()
+    if available is not None:
+        n_workers = min(n_workers, available)
+    return n_workers
+
+
+def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
+    """
+    Return True when a ``read_csv`` call is eligible for parallel execution.
+
+    Parallel reading works by splitting the file's data section into
+    byte-range chunks at newline boundaries and processing them concurrently
+    with threads.  The following conditions must all hold:
+
+    * *filepath_or_buffer* is a local file path (not a URL or file object).
+    * The file is not compressed.
+    * The C engine is selected (``engine='c'``, the default).
+    * The call is not in iterator / chunked mode.
+    * The entire file is being read (no ``nrows`` limit).
+    * ``skiprows`` is a plain integer (or absent) - list/callable forms require
+      tracking absolute line numbers across chunks.
+    * ``header`` is a single integer or ``None`` - multi-level headers complicate
+      the preamble boundary.
+    * ``index_col`` is ``None`` or ``False`` - a column-based index would need its
+      name propagated to non-first chunks.
+    * ``usecols`` is ``None`` - column selection changes the mapping between raw
+      column positions and names in non-first chunks.
+    * The separator is a single ASCII character or ``r"\\s+"``, and ``quotechar``
+      is a single ASCII character - anything else forces the python engine
+      inside ``TextFileReader``.
+    * The encoding is ``utf-8`` / ``utf-8-sig`` - chunk workers feed raw file
+      bytes to the C tokenizer, which decodes words as UTF-8.  ``ascii`` is
+      excluded so a non-ASCII byte still raises rather than being masked.
+    * ``comment`` is ``None`` and the preamble has no blank lines - full-line
+      comments and blank lines shift where pandas locates the header relative
+      to the physical line count used by :func:`_find_data_start_offset`.
+    * ``escapechar`` is ``None`` and ``dialect`` is not used - an escaped
+      literal newline would be split mid-field.
+    * ``parse_dates`` is unset - datetime format inference is per-chunk and may
+      disagree with the serial whole-column inference.
+    * ``low_memory`` is truthy - a falsy ``low_memory`` guarantees whole-file
+      type inference, which per-chunk parallel reading cannot honour
+      (``low_memory=True`` already documents per-chunk inference divergence).
+    * ``storage_options`` is ``None`` - it raises for local paths in the serial
+      path, and that error must not be masked.
+    * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
+      chunk-relative (i.e. wrong) line numbers.
+    * Both the file and its data section (i.e. excluding the header preamble)
+      are at least ``_PARALLEL_READ_MIN_BYTES`` bytes large.
+
+    Note that a chunk boundary landing on a newline embedded inside a quoted
+    field leaves that chunk's parser inside an open quote at EOF, which raises
+    ``ParserError`` in the worker and triggers the serial fallback in
+    :func:`_read` - it does not corrupt data silently.
+    """
+    # Must be a local file path, not a URL or file-like object.
+    if is_file_like(filepath_or_buffer):
+        return False
+    filepath = stringify_path(filepath_or_buffer)
+    if not isinstance(filepath, str):
+        return False
+    if "://" in filepath:
+        return False
+
+    # storage_options on a local path raises ValueError in get_handle; the
+    # parallel path strips it and would mask that error.
+    if kwds.get("storage_options") is not None:
+        return False
+
+    # Uncompressed files only (splitting is only meaningful for raw bytes).
+    compression = kwds.get("compression", "infer")
+    if isinstance(compression, dict):
+        compression = compression.get("method")
+    if compression is not None:
+        try:
+            if infer_compression(filepath, compression) is not None:
+                return False
+        except ValueError:
+            # unrecognized compression argument; let the serial path raise
+            return False
+
+    # Iterator / chunked mode: caller handles chunking themselves.
+    if kwds.get("iterator", False) or kwds.get("chunksize") is not None:
+        return False
+
+    # Only the C engine benefits; pyarrow has its own parallelism.
+    # engine=None means "use the default", which is "c".
+    if kwds.get("engine") not in ("c", None):
+        return False
+
+    # nrows: we'd need to distribute the row budget across chunks - skip for now.
+    if kwds.get("nrows") is not None:
+        return False
+
+    # The chunk splitter scans for raw \n bytes.  A custom lineterminator
+    # (which the C engine does honour) would misalign chunk boundaries.
+    lineterminator = kwds.get("lineterminator")
+    if lineterminator is not None and lineterminator != "\n":
+        return False
+
+    # Chunk workers feed raw file bytes to the C tokenizer, which decodes
+    # words as UTF-8.  The serial path instead transcodes through a
+    # TextIOWrapper, so anything that is not already valid UTF-8 (latin-1,
+    # cp1252, UTF-16/32, ...) must take the serial path.  "ascii" is excluded
+    # for the same reason: the workers would decode a non-ASCII byte as UTF-8
+    # and succeed, masking the UnicodeDecodeError the serial path raises for
+    # bytes outside the declared encoding (GH#64347).
+    encoding = kwds.get("encoding")
+    if encoding is not None:
+        try:
+            codec_name = codecs.lookup(encoding).name
+        except LookupError:
+            return False
+        if codec_name not in ("utf-8", "utf-8-sig"):
+            return False
+
+    # Separators that force the python-engine fallback inside TextFileReader
+    # (sep=None sniffing, or multi-char/regex seps other than r"\s+") cannot
+    # use the C-engine buffer-loading fast path.
+    delimiter = kwds.get("delimiter", ",")
+    if delimiter is None or (len(delimiter) > 1 and delimiter != r"\s+"):
+        return False
+
+    # A separator or quotechar wider than one byte forces the python engine
+    # too, and warns on the way.  The eligibility check has to catch these
+    # here: by the time the name-inference read reports the python engine, it
+    # has already raised that warning, which the serial read then raises
+    # again.  GH#66259
+    if len(delimiter) == 1 and ord(delimiter) > 127:
+        return False
+    quotechar = kwds.get("quotechar")
+    if isinstance(quotechar, str) and len(quotechar) == 1 and ord(quotechar) > 127:
+        return False
+
+    # Full-line comments before/inside the preamble shift the header location
+    # in ways _find_data_start_offset cannot see.
+    if kwds.get("comment") is not None:
+        return False
+
+    # An escaped literal newline (escapechar followed by "\n") would be split
+    # mid-field.
+    if kwds.get("escapechar") is not None:
+        return False
+
+    # dialect is merged into the kwds inside TextFileReader, i.e. after this
+    # function runs, so a dialect-specified escapechar would bypass the check
+    # above.  Be conservative and take the serial path.
+    if kwds.get("dialect") is not None:
+        return False
+
+    # Datetime format inference is per-chunk and may disagree with the serial
+    # whole-column inference.
+    if kwds.get("parse_dates"):
+        return False
+
+    # A falsy low_memory guarantees whole-file type inference, which per-chunk
+    # parallel reading cannot honour (GH#64347).  Test truthiness, not identity:
+    # low_memory is not coerced to bool, and the serial path in
+    # CParserWrapper.read also branches on truthiness, so low_memory=0 /
+    # np.False_ must take the serial path too (GH#66327).
+    if not kwds.get("low_memory", True):
+        return False
+
+    # on_bad_lines="warn" includes line numbers in its warnings; chunk workers
+    # would report chunk-relative (i.e. wrong) ones.
+    if kwds.get("on_bad_lines") == ParserBase.BadLineHandleMethod.BLHM_WARN:
+        return False
+
+    # Callable / list skiprows require tracking absolute line numbers.
+    skiprows = kwds.get("skiprows")
+    if skiprows is not None and not isinstance(skiprows, (int, np.integer)):
+        return False
+
+    # Multi-level (list) headers span multiple preamble lines - skip for now.
+    if isinstance(kwds.get("header", "infer"), (list, tuple)):
+        return False
+
+    # skipfooter: the C engine doesn't support it anyway, but be explicit.
+    if kwds.get("skipfooter", 0) > 0:
+        return False
+
+    # A column-based index_col would need its name propagated to non-first chunks.
+    index_col = kwds.get("index_col", None)
+    if index_col is not None and index_col is not False:
+        return False
+
+    # usecols changes the column name ↔ position mapping in non-first chunks.
+    if kwds.get("usecols") is not None:
+        return False
+
+    # Only bother for files large enough to amortise the threading overhead.
+    try:
+        file_size = os.path.getsize(filepath)
+        if file_size < _PARALLEL_READ_MIN_BYTES:
+            return False
+    except OSError:
+        return False
+
+    # Check that the *data section* (after header/skiprows preamble) is large
+    # enough to split into at least 2 chunks.  Without this, _read_csv_parallel
+    # would have to return None for files whose preamble eats most of the bytes.
+    _header = kwds.get("header", "infer")
+    if _header == "infer":
+        _header = 0 if kwds.get("names") is None else None
+    _skiprows = int(kwds.get("skiprows") or 0)
+    data_start = _find_data_start_offset(filepath, _header, _skiprows)
+    if file_size - data_start < _PARALLEL_READ_MIN_BYTES:
+        return False
+
+    # Blank lines in the preamble shift where pandas locates the header
+    # relative to the physical line count used by _find_data_start_offset.
+    with open(filepath, "rb") as fd:
+        preamble = fd.read(data_start)
+    if any(not line.rstrip(b"\r") for line in preamble.splitlines()):
+        return False
+
+    return True
+
+
+def _find_data_start_offset(
+    filepath: str,
+    header: int | None,
+    skiprows: int,
+) -> int:
+    """
+    Return the byte offset of the first data row in *filepath*.
+
+    Reads ``int(skiprows) + (header + 1 if header is not None else 0)``
+    physical lines from the start of the file and returns the position after
+    the last preamble byte.  This is the byte from which each non-first chunk
+    must begin.
+    """
+    if header is None:
+        header_lines = 0
+    else:
+        header_lines = int(header) + 1  # header=0 → 1 header line
+
+    preamble_lines = int(skiprows) + header_lines
+    with open(filepath, "rb") as fd:
+        for _ in range(preamble_lines):
+            if not fd.readline():
+                break
+        return fd.tell()
+
+
+def _chunk_size_weights(n_chunks: int, n_tapered: int) -> list[float]:
+    """
+    Relative sizes for *n_chunks* chunks whose last *n_tapered* shrink.
+
+    The chunks before the tail are full size; across the tail the size falls
+    linearly to ``_PARALLEL_TAPER_RATIO`` of one, so the final chunk is the
+    smallest piece of work in the file.
+    """
+    weights = [1.0] * n_chunks
+    n_tapered = min(n_tapered, n_chunks)
+    for position in range(n_tapered):
+        share = (position + 1) / n_tapered
+        weights[n_chunks - n_tapered + position] = (
+            1.0 - (1.0 - _PARALLEL_TAPER_RATIO) * share
+        )
+    return weights
+
+
+def _find_chunk_byte_offsets(
+    filepath: str,
+    n_chunks: int,
+    data_start: int,
+    n_workers: int = 0,
+) -> list[int]:
+    """
+    Compute byte offsets that partition the data portion of *filepath* into
+    *n_chunks* pieces aligned to newline boundaries.
+
+    The pieces are equal-sized, except that when *n_workers* is given and the
+    chunks take more than one round the last ``2 * n_workers`` taper down: the
+    read finishes when the last chunk a worker picked up does, so ending on
+    small chunks costs less than ending on a full one.  Within a single round
+    every chunk runs at once, so the makespan is the largest of them and any
+    taper would only inflate it.
+
+    Returns a list of ``n + 1`` offsets where the byte range
+    ``[offsets[i], offsets[i+1])`` defines chunk *i*.
+    """
+    file_size = os.path.getsize(filepath)
+    data_size = file_size - data_start
+    offsets = [data_start]
+
+    if n_chunks <= 1 or data_size <= 0:
+        offsets.append(file_size)
+        return offsets
+
+    n_tapered = 2 * n_workers if n_chunks > n_workers else 0
+    weights = _chunk_size_weights(n_chunks, n_tapered)
+    total_weight = sum(weights)
+    running_weight = 0.0
+    with open(filepath, "rb") as fd:
+        for i in range(1, n_chunks):
+            running_weight += weights[i - 1]
+            target = data_start + int(data_size * running_weight / total_weight)
+            if target >= file_size:
+                break
+            fd.seek(target)
+            fd.readline()  # advance past the partial line at the split point
+            pos = fd.tell()
+            if pos >= file_size:
+                break
+            if pos == offsets[-1]:
+                # This target fell inside the line the previous boundary
+                # already ended; skip it rather than abandoning the boundaries
+                # after it, so one long line cannot collapse the whole split.
+                continue
+            offsets.append(pos)
+
+    offsets.append(file_size)
+    return offsets
+
+
+def _raise_collected(warning_sink: list[tuple[str, type[Warning]]]) -> None:
+    """Raise each distinct warning the parallel read's parsers collected."""
+    for warn_msg, warn_category in dict.fromkeys(warning_sink):
+        warnings.warn(warn_msg, warn_category, stacklevel=find_stack_level())
+
+
 def _is_thread_affinity_error(exc: BaseException) -> bool:
     """Return whether an exception message indicates thread affinity."""
     message = str(exc).lower()
     return "thread affinity" in message or "created in a thread" in message
-
 
 def _read_csv_parallel(
     filepath: str,
