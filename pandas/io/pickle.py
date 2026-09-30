@@ -42,7 +42,7 @@ def to_pickle(
     """
     Pickle (serialize) object to file.
 
-    .. deprecated:: 3.1.0
+    .. deprecated:: 3.2.0
         Use :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` instead.
 
     Parameters
