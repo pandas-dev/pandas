@@ -156,8 +156,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
--
+- Bug in :class:`StringDtype` with PyArrow storage rejecting a PyArrow string scalar in item assignment and :meth:`Series.fillna`, and :meth:`Series.where` with one storing a character code (:issue:`68638`)
 
 Interval
 ^^^^^^^^
@@ -211,8 +210,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
--
+- Bug in :meth:`Series.replace`, :meth:`Series.where`, :meth:`Series.fillna`, item assignment and related methods on a PyArrow-backed integer dtype silently truncating a fractional value (``replace(2, 1.5)`` stored ``1``); these now raise ``TypeError``, while :meth:`Index.where`, :meth:`Index.putmask` and :meth:`Index.fillna` upcast, matching the nullable integer dtypes (:issue:`68638`)
 
 Styler
 ^^^^^^
