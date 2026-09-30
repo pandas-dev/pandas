@@ -167,7 +167,7 @@ class MPLPlot(ABC):
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
         fontsize: int | None = None,
-        secondary_y: bool | tuple | list | np.ndarray = False,
+        secondary_y: bool | tuple[Hashable, ...] | list[Hashable] | np.ndarray = False,
         colormap=None,
         table: bool = False,
         layout=None,

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -472,7 +475,7 @@ def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
     column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
-) -> dict:
+) -> dict[Any, ArrayLike]:
     """
     Concatenate chunks of data read with low_memory=True.
 
@@ -491,7 +494,7 @@ def _concatenate_chunks(
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result: dict = {}
+    result: dict[Any, ArrayLike] = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
 
@@ -548,7 +551,9 @@ def ensure_dtype_objs(
     if isinstance(dtype, defaultdict):
         # "None" not callable  [misc]
         default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
-        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        dtype_converted: defaultdict[Hashable, DtypeObj] = defaultdict(
+            lambda: default_dtype
+        )
         for key in dtype.keys():
             dtype_converted[key] = pandas_dtype(dtype[key])
         return dtype_converted
