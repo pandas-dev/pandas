@@ -519,12 +519,12 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass() -> type[dict]:
+def dict_subclass() -> type[dict[Any, Any]]:
     """
     Fixture for a dictionary subclass.
     """
 
-    class TestSubDict(dict):
+    class TestSubDict(dict[Any, Any]):
         def __init__(self, *args, **kwargs) -> None:
             dict.__init__(self, *args, **kwargs)
 
@@ -532,19 +532,19 @@ def dict_subclass() -> type[dict]:
 
 
 @pytest.fixture
-def non_dict_mapping_subclass() -> type[abc.Mapping]:
+def non_dict_mapping_subclass() -> type[abc.Mapping[Any, Any]]:
     """
     Fixture for a non-mapping dictionary subclass.
     """
 
-    class TestNonDictMapping(abc.Mapping):
+    class TestNonDictMapping(abc.Mapping[Any, Any]):
         def __init__(self, underlying_dict) -> None:
             self._data = underlying_dict
 
         def __getitem__(self, key):
             return self._data.__getitem__(key)
 
-        def __iter__(self) -> Iterator:
+        def __iter__(self) -> Iterator[Any]:
             return self._data.__iter__()
 
         def __len__(self) -> int:

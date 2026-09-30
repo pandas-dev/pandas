@@ -3307,6 +3307,18 @@ class TestDataFrameConstructorWithDatetimeTZ:
         expected = pd.DataFrame(array_dim2).astype("datetime64[ns, UTC]")
         tm.assert_frame_equal(df, expected)
 
+    def test_from_2d_dt64_ndarray_with_tz_dtype(self):
+        # GH#58517
+        arr = np.array(
+            ["2020-01-01", "2020-06-01", "2021-01-01", "2021-06-01"], dtype="M8[ns]"
+        ).reshape(2, 2)
+        result = pd.DataFrame(arr, dtype="datetime64[ns, US/Eastern]")
+
+        expected = pd.DataFrame(
+            {i: pd.DatetimeIndex(arr[:, i]).tz_localize("US/Eastern") for i in range(2)}
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("typ", [set, frozenset])
     def test_construction_from_set_raises(self, typ):
         # https://github.com/pandas-dev/pandas/issues/32582

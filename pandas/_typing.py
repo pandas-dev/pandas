@@ -261,11 +261,6 @@ AnyStr_contra = TypeVar("AnyStr_contra", str, bytes, contravariant=True)
 
 
 class BaseBuffer(Protocol):
-    @property
-    def mode(self) -> str:
-        # for _get_filepath_or_buffer
-        ...
-
     def seek(self, offset: int, whence: int = ..., /) -> int:
         # with one argument: gzip.GzipFile, bz2.BZ2File
         # with two arguments: zip.ZipFile, read_sas
