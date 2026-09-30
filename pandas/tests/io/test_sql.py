@@ -3500,8 +3500,7 @@ def test_double_precision(conn, request):
     )
     res = sql.read_sql_table("test_dtypes", conn)
 
-    # check precision of float64
-    assert np.round(df["f64"].iloc[0], 14) == np.round(res["f64"].iloc[0], 14)
+    tm.assert_series_equal(df["f64"], res["f64"])
 
     # check sql types
     meta = MetaData()
