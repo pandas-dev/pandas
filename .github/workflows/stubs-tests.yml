@@ -23,6 +23,9 @@ jobs:
     permissions:
       contents: read
       issues: write # open/update the failure issue
+    env:
+      ISSUE_TITLE: "CI: pandas-stubs tests fail against pandas nightly"
+      STUBS_TEAM: "@pandas-dev/pandas-stubs-team"
     steps:
       - name: Checkout pandas-stubs
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,9 +56,26 @@ jobs:
         run: poetry run pytest --report-log=pytest-log.jsonl
 
       - name: Open or update issue on failure
+        id: issue
         if: failure() && steps.tests.outcome == 'failure'
         uses: scientific-python/issue-from-pytest-log-action@35b4e0a9e06f8e7e261778289cf4b968b722662d # v1.6.2
         with:
           log-path: pytest-log.jsonl
-          issue-title: "CI: pandas-stubs tests fail against pandas nightly"
+          issue-title: ${{ env.ISSUE_TITLE }}
           issue-label: "CI,Typing"
+
+      # the action only edits the body of an existing issue, so ping once per issue
+      - name: Ping pandas-stubs team on a new issue
+        if: failure() && steps.issue.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=$(
+            gh api "repos/$GITHUB_REPOSITORY/issues?state=open&creator=github-actions%5Bbot%5D&labels=CI,Typing&per_page=100" \
+              | jq -r --arg title "$ISSUE_TITLE" 'map(select(.title == $title))[0].number'
+          )
+          if ! gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$number/comments" --jq ".[].body" \
+              | grep -F "$STUBS_TEAM" > /dev/null; then
+            gh issue comment "$number" --repo "$GITHUB_REPOSITORY" \
+              --body "$STUBS_TEAM the pandas-stubs tests are failing against pandas nightly."
+          fi
