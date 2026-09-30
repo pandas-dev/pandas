@@ -200,6 +200,7 @@ if TYPE_CHECKING:
         TimeNonexistent,
         TimestampConvertibleTypes,
         TimeUnit,
+        ToTimestampHow,
         ValueKeyFunc,
         WriteBuffer,
         WriteExcelBuffer,
@@ -3202,7 +3203,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep : str, default ``'\t'``
             Field delimiter.
         **kwargs
-            These parameters will be passed to DataFrame.to_csv.
+            These parameters will be passed to DataFrame.to_csv. If csv output
+            is not produced (``excel=False`` or an invalid ``sep``), they are
+            passed to DataFrame.to_string instead, or ignored for a Series.
 
         See Also
         --------
@@ -6608,6 +6611,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object.
 
+            This does not apply to keys in a ``dtype`` mapping that are not
+            column labels (or, for a Series, not its name); those always raise
+            ``KeyError``.
+
         Returns
         -------
         same type as caller
@@ -9093,7 +9100,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         freq: Frequency,
         method: FillnaOptions | None = None,
-        how: Literal["start", "end"] | None = None,
+        how: ToTimestampHow | None = None,
         normalize: bool = False,
         fill_value: Hashable | None = None,
     ) -> Self:
@@ -9130,7 +9137,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'pad' / 'ffill': propagate last valid observation forward to next
               valid based on the order of the index
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
-        how : {'start', 'end'}, default end
+        how : {'end', 'start', 'e', 's'}, default 'end'
             For PeriodIndex only (see PeriodIndex.asfreq).
         normalize : bool, default False
             Whether to reset output index to midnight.
@@ -10405,7 +10412,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 # if we are NOT aligned, raise as we cannot where index
                 if axis is None and not other._indexed_same(self):
-                    raise InvalidIndexError
+                    raise InvalidIndexError(
+                        "Cannot align with an object that has duplicate labels"
+                    )
 
                 if other.ndim < self.ndim:
                     other = other._values

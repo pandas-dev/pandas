@@ -137,9 +137,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas.io.common import mangle_dupe_names
 
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
@@ -921,37 +922,9 @@ cdef class TextReader:
                     this_header.append(name)
 
                 if not self.has_mi_columns:
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [i for i in range(len(this_header))
-                                      if i not in unnamed_col_indices
-                                      ] + unnamed_col_indices
-                    counts = {}
-
-                    for i in col_loop_order:
-                        col = this_header[i]
-                        old_col = col
-                        cur_count = counts.get(col, 0)
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_header:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts.get(col, 0)
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-
-                        this_header[i] = col
-                        counts[col] = cur_count + 1
+                    this_header = mangle_dupe_names(
+                        this_header, unnamed_col_indices, self.dtype
+                    )
 
                 if self.has_mi_columns:
 
