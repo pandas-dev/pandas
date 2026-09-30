@@ -9,9 +9,20 @@ host_concurrency = 4
 # page still returns 404
 accept = ["200..=299", "403", "429"]
 
+# Files to scan when the input is a directory; .gitignore'd files are skipped
+extensions = [
+    "c", "cff", "h", "hpp", "html", "in", "ipynb", "json", "md", "pxd", "pxi",
+    "py", "pyx", "rst", "template", "toml", "yaml", "yml",
+]
+hidden = true
+
 exclude_path = [
-    "^doc/source/whatsnew/",
-    "^pandas/tests/",
+    "(^|/)\\.git/",
+    "(^|/)doc/source/whatsnew/",
+    "(^|/)pandas/tests/",
+    # regexes that parse as URLs; Sphinx's list of known-broken links
+    "(^|/)\\.github/lychee\\.toml$",
+    "(^|/)doc/source/conf\\.py$",
 ]
 
 # These anchors are created by JavaScript, so drop them and check only the page
@@ -28,6 +39,16 @@ exclude = [
     # URLs split across lines, which lychee reads only up to the line break
     '^https://raw\.githubusercontent\.com/pandas-dev/?$',
     '^https://en\.wikipedia\.org/w/index\.php\?title=Estimation_of_covariance_$',
-    # a URL directly followed by "\n" in a Python string
+    # a URL directly followed by "\n" in a Python string or notebook source
     '/n$',
+    '\\n$',
+    # templates filled in by code ("{user}", "{{ release.tag }}", "%s")
+    '%7B',
+    '/%s$',
+    # API endpoints, not pages
+    '^https://api\.github\.com/',
+    '^https://pandas\.pydata\.org/preview$',
+    # reject requests from bots with status 999 or a 303 to a login page
+    '^https://(www\.)?linkedin\.com/',
+    '\.streamlit\.app/',
 ]

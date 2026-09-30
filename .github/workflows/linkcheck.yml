@@ -25,14 +25,15 @@ jobs:
           persist-credentials: false
 
       # Broken links are reported in the job summary and, outside of pull
-      # requests, in an issue; they never fail the job.
-      - name: Check links in docs and docstrings
+      # requests, in an issue; they never fail the job. --root-dir only lets
+      # lychee resolve root-relative links, which are then skipped as file://.
+      - name: Check links
         id: lychee
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: >-
             --config .github/lychee.toml --no-progress
-            'doc/source/**/*.rst' 'pandas/**/*.py' 'pandas/**/*.pyx'
+            --root-dir "${{ github.workspace }}" .
           fail: false
 
       # lychee exits 2 for broken links; 1 and 3 mean the checker itself failed
