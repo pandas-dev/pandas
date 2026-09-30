@@ -19,10 +19,12 @@ from pandas.core.ops.common import (
     get_op_result_name,
     has_castable_attr,
     maybe_warn_listlike,
+    raise_if_2d,
     unpack_zerodim_and_defer,
 )
 from pandas.core.ops.invalid import (
     disallow_datetimelike_logical_op,
+    disallow_datetimelike_logical_ufunc,
     invalid_comparison,
 )
 from pandas.core.ops.mask_ops import (
@@ -73,6 +75,7 @@ __all__ = [
     "comp_method_OBJECT_ARRAY",
     "comparison_op",
     "disallow_datetimelike_logical_op",
+    "disallow_datetimelike_logical_ufunc",
     "fill_binop",
     "get_array_op",
     "get_op_result_name",
@@ -85,6 +88,7 @@ __all__ = [
     "maybe_prepare_scalar_for_op",
     "maybe_warn_listlike",
     "radd",
+    "raise_if_2d",
     "rand_",
     "rdiv",
     "rdivmod",

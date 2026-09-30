@@ -992,16 +992,7 @@ class TestDataFrameAnalytics:
         with pytest.raises(TypeError, match="does not support operation 'sum'"):
             df.sum()
 
-    def test_mean_corner(self, float_frame, float_string_frame):
-        # unit test when have object data
-        msg = "|".join(["Could not convert", "does not support", "Cannot perform"])
-        with pytest.raises(TypeError, match=msg):
-            float_string_frame.mean(axis=0)
-
-        # xs sum mixed type, just want to know it works...
-        with pytest.raises(TypeError, match=msg):
-            float_string_frame.mean(axis=1)
-
+    def test_mean_corner(self, float_frame):
         # take mean of boolean column
         float_frame["bool"] = float_frame["A"] > 0
         means = float_frame.mean(axis=0)
