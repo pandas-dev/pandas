@@ -28,8 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
--
+- :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` now accept ``dtype_backend=None`` to convert nullable and pyarrow-backed columns back to the default dtypes (:issue:`35694`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.notable_bug_fixes:

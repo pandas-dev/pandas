@@ -7027,7 +7027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               ``dtype_backend`` unset.
 
             .. versionadded:: 2.0
-            .. versionchanged:: 3.1.0
+            .. versionchanged:: 3.2.0
                 Added the ``None`` option.
 
         Returns
