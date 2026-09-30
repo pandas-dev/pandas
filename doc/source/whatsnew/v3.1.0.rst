@@ -205,41 +205,6 @@ nanosecond component. The vectorized :meth:`TimedeltaIndex.total_seconds` and
 they now match the scalar result exactly, including at large magnitudes
 where floating-point rounding previously differed (:issue:`46819`).
 
-.. _whatsnew_310.notable_bug_fixes.dataframe_rank_per_column:
-
-:meth:`DataFrame.rank` ranks each column in its own dtype
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:meth:`DataFrame.rank` with ``axis=0`` cast the whole frame to one common dtype
-before ranking, so its result could differ from :meth:`Series.rank` on the same
-column. Each column is now ranked on its own and the two agree. Besides
-retaining extension dtypes, this changes the ranks themselves for an ordered
-:class:`Categorical` whose categories are not in the natural order of their
-values, and for integers above ``2**53`` in a frame whose common dtype was
-``float64`` (:issue:`52829`, :issue:`15420`).
-
-.. code-block:: ipython
-
-    In [1]: cat = pd.Categorical(
-       ...:     ["b", "a", "c", "a"], categories=["c", "b", "a"], ordered=True
-       ...: )
-
-    In [2]: df = pd.DataFrame({"a": cat})
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [3]: df.rank()["a"].tolist()
-    Out[3]: [3.0, 1.5, 4.0, 1.5]
-
-*New behavior*:
-
-.. code-block:: ipython
-
-    In [3]: df.rank()["a"].tolist()
-    Out[3]: [2.0, 3.5, 1.0, 3.5]
-
 .. _whatsnew_310.notable_bug_fixes.read_csv_categorical:
 
 :func:`read_csv` with ``dtype="category"`` infers numeric and boolean categories
@@ -1447,7 +1412,6 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - :func:`api.extensions.register_extension_dtype` now raises an informative ``TypeError`` at registration when the :class:`~pandas.api.extensions.ExtensionDtype` subclass does not define a string ``name`` attribute, instead of a bare ``AssertionError`` when the dtype is later used (:issue:`46093`)
 - Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` not propagating ``pd.NA`` on numpy-nullable columns (``boolean``, ``Int*``, ``UInt*``, ``Float*``); ``axis=0`` raised ``ValueError`` and ``axis=1`` returned a concrete ``True``/``False`` (:issue:`65710`)
-- Bug in :meth:`Series.rank` raising ``ArrowNotImplementedError`` for an :class:`ArrowDtype` that PyArrow cannot rank, such as ``list[pyarrow]``; the values are now ranked as Python objects, so lists rank lexicographically (:issue:`69136`)
 - Bug in arithmetic, comparison, and logical operations between PyArrow-backed or :class:`StringDtype` data and a two-dimensional operand raising an assortment of internal or misleading errors, or silently returning a wrong result; these now raise ``NotImplementedError`` (:issue:`62682`)
 - Bug in comparisons between PyArrow-backed data and a differently-sized array or list raising ``pyarrow.ArrowInvalid`` instead of reporting the length mismatch (:issue:`62682`)
 - Bug in comparisons between a PyArrow-backed :class:`Series` or :class:`Index` and a :py:class:`range` returning all-``False`` for ``==`` and raising ``TypeError`` for ``<``/``>``, instead of comparing elementwise like the NumPy-backed and nullable equivalents; mismatched lengths now raise ``ValueError`` (:issue:`67979`)
