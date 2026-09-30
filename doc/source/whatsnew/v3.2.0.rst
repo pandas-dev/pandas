@@ -181,8 +181,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in the display of a :class:`MultiIndex` (repr, :meth:`DataFrame.to_string`, :meth:`DataFrame.to_html`, :class:`.Styler`) where distinct labels that display identically (e.g. ``1`` and ``"1"``) were shown as a single label; :meth:`DataFrame.to_excel` merged them into one cell, losing all but the first value (:issue:`10796`)
 
 Period
 ^^^^^^
