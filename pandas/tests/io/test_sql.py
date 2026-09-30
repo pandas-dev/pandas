@@ -3,10 +3,12 @@ from __future__ import annotations
 import contextlib
 import csv
 from datetime import (
+    UTC,
     date,
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from io import StringIO
@@ -3855,6 +3857,111 @@ def dtype_backend_expected():
         return df
 
     return func
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([date(2024, 1, 1), date(2024, 2, 2)], "date32[day][pyarrow]"),
+        ([date(1, 1, 1), date(9999, 12, 31)], "date32[day][pyarrow]"),
+        ([time(12, 30, 1, 123456), time(1, 15)], "time64[us][pyarrow]"),
+        ([time(0, 0), time(23, 59, 59, 999999)], "time64[us][pyarrow]"),
+    ],
+)
+@pytest.mark.parametrize("null", [None, np.nan, pd.NA, pd.NaT])
+def test_convert_arrays_to_dataframe_pyarrow_date_time(
+    values, dtype, null, string_storage
+):
+    # GH#56551: infer from the original DBAPI objects before string conversion.
+    pytest.importorskip("pyarrow")
+    values = [null, *values, null]
+    with pd.option_context("mode.string_storage", string_storage):
+        result = sql._convert_arrays_to_dataframe(
+            [(value,) for value in values], ["a"], dtype_backend="pyarrow"
+        )
+        expected = pd.DataFrame({"a": pd.array(values, dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        [date(2024, 1, 1), datetime(2024, 1, 2, 5, 30)],
+        [date(2024, 1, 1), "2024-01-02"],
+        [time(12, 30), "01:15:00"],
+        [time(12, 30, tzinfo=timezone(timedelta(hours=-5)))],
+        [time(12, 30, tzinfo=UTC)],
+        [time(12, 30), time(1, 15, tzinfo=timezone(timedelta(hours=2)))],
+    ],
+)
+@pytest.mark.parametrize("reverse", [True, False])
+def test_convert_arrays_to_dataframe_pyarrow_temporal_fallback(
+    values, reverse, string_storage
+):
+    # GH#56551: Arrow's inference truncates mixed datetimes and drops timezones.
+    pa = pytest.importorskip("pyarrow")
+    if reverse:
+        values = values[::-1]
+    values = [None, *values, None]
+    with pd.option_context("mode.string_storage", string_storage):
+        result = sql._convert_arrays_to_dataframe(
+            [(value,) for value in values], ["a"], dtype_backend="pyarrow"
+        )
+
+        expected = pd.DataFrame(
+            {
+                "a": pd.array(
+                    [None if v is None else str(v) for v in values],
+                    dtype=pd.ArrowDtype(pa.string()),
+                )
+            }
+        )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+@pytest.mark.parametrize("chunksize", [None, 2])
+def test_read_sql_pyarrow_date_time(monkeypatch, func, chunksize):
+    # SQLite normally returns dates/times as text. These converters emulate the
+    # typed objects returned by DBAPI drivers such as psycopg2 and pymssql.
+    pytest.importorskip("pyarrow")
+    monkeypatch.setitem(
+        sqlite3.converters,
+        "PANDAS_DATE",
+        lambda value: date.fromisoformat(value.decode()),
+    )
+    monkeypatch.setitem(
+        sqlite3.converters,
+        "PANDAS_TIME",
+        lambda value: time.fromisoformat(value.decode()),
+    )
+    query = """
+        SELECT '2024-01-01' AS "d [PANDAS_DATE]",
+               '12:30:01.123456' AS "t [PANDAS_TIME]"
+        UNION ALL SELECT NULL, NULL
+        UNION ALL SELECT '2024-02-02', '01:15:00'
+        UNION ALL SELECT NULL, NULL
+    """
+    with sqlite3.connect(":memory:", detect_types=sqlite3.PARSE_COLNAMES) as conn:
+        result = getattr(pd, func)(
+            query, conn, dtype_backend="pyarrow", chunksize=chunksize
+        )
+        if chunksize is not None:
+            result = pd.concat(result, ignore_index=True)
+
+    expected = pd.DataFrame(
+        {
+            "d": pd.array(
+                [date(2024, 1, 1), None, date(2024, 2, 2), None],
+                dtype="date32[day][pyarrow]",
+            ),
+            "t": pd.array(
+                [time(12, 30, 1, 123456), None, time(1, 15), None],
+                dtype="time64[us][pyarrow]",
+            ),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("conn", all_connectable)

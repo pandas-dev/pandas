@@ -206,7 +206,25 @@ def _convert_arrays_to_dataframe(
         pa = import_optional_dependency("pyarrow")
 
         result_arrays = []
-        for arr in arrays:
+        for arr, original in zip(arrays, content.T, strict=True):
+            if arr.dtype == "string":
+                inferred = lib.infer_dtype(original, skipna=True)
+                if inferred == "mixed":
+                    # Time inference does not skip NaT, a datetime subclass.
+                    inferred = lib.infer_dtype(original[~isna(original)], skipna=True)
+                # GH#56551: convert date/time objects before string coercion.
+                # Mixed dates/datetimes infer as "date", which truncates the time.
+                if inferred == "date" and not any(
+                    isinstance(value, datetime) and not isna(value)
+                    for value in original
+                ):
+                    arr = original
+                # Arrow time types cannot preserve timezone offsets.
+                elif inferred == "time" and all(
+                    not isinstance(value, time) or value.utcoffset() is None
+                    for value in original
+                ):
+                    arr = original
             pa_array = pa.array(arr, from_pandas=True)
             if arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
