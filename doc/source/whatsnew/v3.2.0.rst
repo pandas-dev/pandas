@@ -84,8 +84,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
--
+- The default of the ``display.width`` option is now ``None``, which auto-detects the terminal width (:issue:`21337`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
@@ -181,8 +180,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :meth:`DataFrame.__repr__` where an explicitly set ``display.width`` was ignored when ``display.max_columns`` was ``0`` (:issue:`21337`)
 
 Period
 ^^^^^^
