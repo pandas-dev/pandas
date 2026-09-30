@@ -10,6 +10,7 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
+import pandas._testing as tm
 
 
 def test_isnull_notnull_docstrings():
@@ -159,6 +160,25 @@ def test_searchsorted(request, index_or_series_obj_orderable):
 
     index = np.searchsorted(obj, max_obj, sorter=range(len(obj)))
     assert 0 <= index <= len(obj)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "float64", "Int64", "category", "datetime64[ns]", "object"]
+)
+def test_searchsorted_scalar_python_scalars(
+    index_or_series, dtype, using_python_scalars
+):
+    # GH#64266
+    obj = index_or_series([1, 2, 3], dtype=dtype)
+    result = obj.searchsorted(obj[1])
+    assert result == 1
+    if using_python_scalars:
+        assert type(result) is int
+    else:
+        assert isinstance(result, np.integer)
+
+    result = obj.searchsorted(obj[[1]])
+    tm.assert_numpy_array_equal(result, np.array([1], dtype=np.intp))
 
 
 def test_access_by_position(index_flat):

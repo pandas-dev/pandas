@@ -134,6 +134,16 @@ def test_setitem_masked_array_in_bounds():
     tm.assert_extension_array_equal(arr, pd.array([100, None, 3], dtype="Int8"))
 
 
+def test_setitem_masked_array_out_of_bounds_behind_mask():
+    # GH#55232 a value behind the mask is meaningless, so an NA whose
+    # underlying payload does not fit the target dtype is still assigned
+    value = pd.array([300, 5], dtype="Int64")
+    value[0] = pd.NA
+    arr = pd.array([1, 2, 3], dtype="UInt8")
+    arr[[0, 1]] = value
+    tm.assert_extension_array_equal(arr, pd.array([None, 5, 3], dtype="UInt8"))
+
+
 @pytest.mark.parametrize(
     "dtype",
     [

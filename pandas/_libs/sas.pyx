@@ -507,7 +507,7 @@ def collect_page_subheaders(parser):
             count += 1
         else:
             processor = processors[subheader_index]
-            processor(<int>subheader_offset, <int>subheader_length)
+            processor(parser, <int>subheader_offset, <int>subheader_length)
             # _process_columntext_subheader can turn compression on partway
             # through a page, so re-read it rather than hoisting once.
             compressed = bool(parser.compression)

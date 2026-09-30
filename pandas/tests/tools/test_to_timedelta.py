@@ -121,7 +121,7 @@ class TestTimedeltas:
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype=dtype)
         result = pd.to_timedelta(arr, unit=unit)
-        exp_dtype = "m8[s]"
+        exp_dtype = "m8[us]" if dtype == "int64" else "m8[s]"
         expected = pd.TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
 
@@ -275,7 +275,7 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = pd.Series([timedelta(days=1), expected_val], dtype="m8[s]")
+        expected = pd.Series([timedelta(days=1), expected_val], dtype="m8[us]")
         result = pd.to_timedelta(pd.Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)
@@ -435,7 +435,9 @@ class TestTimedeltas:
     def test_to_timedelta_day_offset_mixed_reso(self, finer):
         # GH#64306 a Day offset mixed with a finer-resolution element must be
         #  rescaled to the array's resolution, not stored as a raw seconds value
-        result = pd.to_timedelta([to_offset("2D"), pd.Timedelta(1, unit=finer)])
+        result = pd.to_timedelta(
+            [to_offset("2D"), pd.Timedelta(1, unit=finer).as_unit(finer)]
+        )
         expected = pd.to_timedelta(["2D", f"1{finer}"]).as_unit(finer)
         tm.assert_index_equal(result, expected)
         assert result[0] == pd.Timedelta(2, unit="D")
@@ -609,7 +611,7 @@ def test_to_timedelta_subint64_with_unit_object_path(dtype):
     #  scalar, where `frac * m` overflowed the narrow dtype and got reported as
     #  OutOfBoundsTimedelta (or silently coerced to NaT).
     # a list is always converted to object dtype, so this is the object path
-    expected = pd.TimedeltaIndex([pd.Timedelta(1, unit="D")]).as_unit("s")
+    expected = pd.TimedeltaIndex([pd.Timedelta(1, unit="D")]).as_unit("us")
 
     result = pd.to_timedelta([dtype(1)], unit="D")
     tm.assert_index_equal(result, expected)

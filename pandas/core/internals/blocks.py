@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
@@ -152,7 +153,7 @@ class Block(PandasObject, libinternals.Block):
     values: np.ndarray | ExtensionArray
     ndim: int
     refs: BlockValuesRefs
-    __init__: Callable
+    __init__: Callable[..., None]
 
     __slots__ = ()
     is_numeric = False
@@ -789,7 +790,10 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and self.dtype not in [object, "string"]:
+        if is_re(to_replace) and _regex_target_dtype(self.dtype) not in [
+            object,
+            "string",
+        ]:
             # only object or string dtype can hold strings, and a regex object
             # will only match strings
             return [self.copy(deep=False)]
@@ -836,7 +840,9 @@ class Block(PandasObject, libinternals.Block):
 
         src_len = len(pairs) - 1
 
-        if is_string_dtype(values.dtype):
+        if is_string_dtype(values.dtype) or (
+            regex and is_string_dtype(_regex_target_dtype(values.dtype))
+        ):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             na_mask = ~isna(values)
@@ -1399,7 +1405,8 @@ class Block(PandasObject, libinternals.Block):
         fillna on the block with the value. If we fail, then convert to
         block to hold objects instead and try again
         """
-        # Caller is responsible for validating limit; if int it is strictly positive
+        # Caller is responsible for validating limit; if int it is strictly positive.
+        # Caller is also responsible for unboxing Series/Index values, GH#22954
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
@@ -1566,7 +1573,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            if self.dtype.kind not in "iubS" or not is_valid_na_for_dtype(
+            if self.dtype.kind not in "iubSUV" or not is_valid_na_for_dtype(
                 fill_value, self.dtype
             ):
                 # GH#53802
@@ -2026,6 +2033,7 @@ class ExtensionBlock(EABackedBlock):
         limit: int | None = None,
         inplace: bool = False,
     ) -> list[Block]:
+        # Caller is responsible for unboxing Series/Index values, GH#22954
         if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
             if isinstance(self.dtype, IntervalDtype) and limit is not None:
@@ -2157,6 +2165,12 @@ class ExtensionBlock(EABackedBlock):
 
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
+
+            elif com.is_bool_indexer(indexer[1]) and len(indexer[1]) == 1:
+                if indexer[1][0]:
+                    indexer = indexer[0]
+                else:
+                    indexer = []
 
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
@@ -2342,6 +2356,16 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     return values
 
 
+def _regex_target_dtype(dtype: DtypeObj) -> DtypeObj:
+    """
+    The dtype a regex is actually matched against. A Categorical's elements have
+    its categories' dtype (GH#38447).
+    """
+    if isinstance(dtype, CategoricalDtype):
+        return dtype.categories.dtype
+    return dtype
+
+
 def get_block_type(dtype: DtypeObj) -> type[Block]:
     """
     Find the appropriate Block subclass to use for the given values and dtype.
@@ -2504,30 +2528,11 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
-        warnings.warn(
-            f"Series.values returning an object-dtype ndarray for "
-            f"{type(values.dtype).__name__} dtype is deprecated. "
-            f"In a future version, this will return the underlying "
-            f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
-            f"NumPy array, or 'Series.array' to get the ExtensionArray.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        if isinstance(values.dtype, DatetimeTZDtype):
-            warnings.warn(
-                "Series.values returning an ndarray that drops timezone "
-                "information for DatetimeTZDtype is deprecated. "
-                "In a future version, this will return the underlying "
-                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
-                "NumPy array, or 'Series.array' to get the ExtensionArray.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

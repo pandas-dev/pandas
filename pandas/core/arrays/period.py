@@ -40,7 +40,6 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     PeriodDtypeBase,
 )
-from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
     Tick,
     delta_to_tick,
@@ -384,7 +383,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         return subarr, freq
 
     @classmethod
-    def _from_fields(cls, *, fields: dict, freq) -> Self:
+    def _from_fields(cls, *, fields: dict[str, Any], freq) -> Self:
         subarr, freq = _range_from_fields(freq=freq, **fields)
         dtype = PeriodDtype(freq)
         return cls._simple_new(subarr, dtype=dtype)
@@ -919,7 +918,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         >>> idx.is_leap_year
         array([False,  True, False])
         """
-        return isleapyear_arr(np.asarray(self.year))
+        # NaT gives year == -1, which the modulo below reports as not-leap
+        year = np.asarray(self.year)
+        return (year % 400 == 0) | ((year % 4 == 0) & (year % 100 > 0))
 
     def to_timestamp(self, freq=None, how: str = "start") -> DatetimeArray:
         """
@@ -934,8 +935,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             's' otherwise.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
+            Case-insensitive.
 
         Returns
         -------
@@ -1071,14 +1073,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         ----------
         freq : str
             A frequency.
-        how : str {'E', 'S'}, default 'E'
-            Whether the elements should be aligned to the end
-            or start within pa period.
-
-            * 'E', 'END', or 'FINISH' for end,
-            * 'S', 'START', or 'BEGIN' for start.
-
-            January 31st ('END') vs. January 1st ('START') for example.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether the elements should be aligned to the end or start of
+            each period, e.g. January 31st vs. January 1st. Case-insensitive.
 
         Returns
         -------

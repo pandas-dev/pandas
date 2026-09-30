@@ -242,6 +242,20 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         res = _stata_ordinals_to_datetime64(ordinals, fmt, "Y")
         return Series(res, index=dates.index)
 
+    if fmt.startswith(("%tC", "tC")):
+        warnings.warn(
+            "Encountered %tC format. Leaving in Stata Internal Format.",
+            stacklevel=find_stack_level(),
+        )
+        # Converts nothing, so hand back the file's own numbers; this must stay
+        #  above the int64 cast below, which saturates out-of-bounds values
+        #  (GH#68034).
+        conv_dates = Series(dates, dtype=object)
+        na_locs = isna(dates)
+        if na_locs.any():
+            conv_dates[na_locs] = NaT
+        return conv_dates
+
     bad_locs = np.isnan(dates)
     has_bad_values = False
     if bad_locs.any():
@@ -249,18 +263,9 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
         dates._values[bad_locs] = 1.0  # Replace with NaT
     dates = dates.astype(np.int64)
 
-    if fmt.startswith(("%tC", "tC")):
-        warnings.warn(
-            "Encountered %tC format. Leaving in Stata Internal Format.",
-            stacklevel=find_stack_level(),
-        )
-        conv_dates = Series(dates, dtype=object)
-        if has_bad_values:
-            conv_dates[bad_locs] = NaT
-        return conv_dates
     # does not count leap days - 7 days is a week.
     # 52nd week may have more than 7 days
-    elif fmt.startswith(("%tw", "tw")):
+    if fmt.startswith(("%tw", "tw")):
         year = stata_epoch.year + dates // 52
         days = (dates % 52) * 7
         res = _stata_ordinals_to_datetime64(year - 1970, fmt, "Y")
@@ -1023,7 +1028,7 @@ class StataParser:
 
 
 @set_module("pandas.api.typing")
-class StataReader(StataParser, abc.Iterator):
+class StataReader(StataParser, abc.Iterator[DataFrame]):
     """
     Class for reading Stata dta files.
 
@@ -1999,7 +2004,8 @@ pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
 low level interface in `StataReader` to separately read the values and the
-value_labels.
+value_labels. This column's labels are stored under the key '{label}' in
+`StataReader.value_labels()`.
 
 The repeated labels are:
 {repeats}
@@ -2098,7 +2104,7 @@ The repeated labels are:
 
     def value_labels(self) -> dict[str, dict[int, str]]:
         """
-        Return a nested dict associating each variable name to its value and label.
+        Return a nested dict mapping each value label name to its values and labels.
 
         This method retrieves the value labels from a Stata file. Value labels are
         mappings between the coded values and their corresponding descriptive labels
@@ -2107,7 +2113,8 @@ The repeated labels are:
         Returns
         -------
         dict
-            A python dictionary.
+            A python dictionary keyed by value label name, which need not match a
+            variable name. Several variables can share one value label set.
 
         See Also
         --------
@@ -2341,8 +2348,10 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         raise NotImplementedError(f"Format {fmt} not implemented")
 
 
-def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
-    new_dict = {}
+def _maybe_convert_to_int_keys(
+    convert_dates: dict[Hashable, str], varlist: list[Hashable]
+) -> dict[Hashable, str]:
+    new_dict: dict[Hashable, str] = {}
     for key, value in convert_dates.items():
         if not value.startswith("%"):  # make sure proper fmts
             convert_dates[key] = "%" + value

@@ -5,6 +5,7 @@ import gzip
 import io
 import itertools
 import os
+import re
 import string
 import struct
 import tarfile
@@ -1586,18 +1587,21 @@ class TestStata:
             original.to_stata(path)
 
     def test_repeated_column_labels(self, datapath):
-        # GH 13923, 25772
-        msg = """
+        # GH 13923, 25772, 54590
+        repeats = "-" * 80 + "\nwolof"
+        msg = f"""
 Value labels for column ethnicsn are not unique. These cannot be converted to
 pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
 low level interface in `StataReader` to separately read the values and the
-value_labels.
+value_labels. This column's labels are stored under the key 'ETHNICSN' in
+`StataReader.value_labels()`.
 
-The repeated labels are:\n-+\nwolof
+The repeated labels are:
+{repeats}
 """
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError, match=re.escape(msg)):
             read_stata(
                 datapath("io", "data", "stata", "stata15.dta"),
                 convert_categoricals=True,
@@ -2545,12 +2549,13 @@ pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
 low level interface in `StataReader` to separately read the values and the
-value_labels.
+value_labels. This column's labels are stored under the key '{col}' in
+`StataReader.value_labels()`.
 
 The repeated labels are:
 {repeats}
 """
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match=re.escape(msg)):
         read_stata(temp_file, convert_categoricals=True)
 
 
@@ -2776,6 +2781,18 @@ def test_stata_elapsed_date_out_of_bounds_raises(fmt, value):
     #  numpy's unchecked datetime64 casts and decode to a silently wrong date
     with pytest.raises(OutOfBoundsDatetime, match="Out of bounds"):
         _stata_elapsed_date_to_datetime_vec(Series([value]), fmt)
+
+
+@pytest.mark.parametrize("value", [1.5e12, 1e19, -1e19, 2.0**63])
+def test_stata_elapsed_date_tc_upper_passthrough(value):
+    # GH#68034 %tC is not converted, so out-of-int64-bounds values must come
+    #  back as stored rather than saturated
+    msg = "Encountered %tC format"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = _stata_elapsed_date_to_datetime_vec(Series([value, np.nan]), "%tC")
+    tm.assert_series_equal(result, Series([value, pd.NaT], dtype=object))
+    # object comparison uses ==, so check the type too
+    assert isinstance(result.iloc[0], float)
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,6 @@
 """Tests for PeriodIndex behaving like a vectorized Period scalar"""
 
+import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
@@ -50,3 +51,11 @@ class TestPeriodIndexOps:
         dti = pd.date_range("1990-01-05", freq="D", periods=1)._with_freq(None)
         expected = dti + pd.Timedelta(1, "D") - pd.Timedelta(1, "us")
         tm.assert_index_equal(result, expected)
+
+
+def test_is_leap_year():
+    # NaT's year sentinel of -1 must not come out as leap
+    pi = pd.PeriodIndex(["2000", "1900", "2024", "2023", pd.NaT], freq="Y")
+    result = pi.is_leap_year
+    expected = np.array([True, False, True, False, False])
+    tm.assert_numpy_array_equal(result, expected)

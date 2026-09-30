@@ -539,10 +539,10 @@ class Holiday:
         month=None,
         day=None,
         offset: BaseOffset | list[BaseOffset] | None = None,
-        observance: Callable | None = None,
+        observance: Callable[[datetime], datetime] | None = None,
         start_date=None,
         end_date=None,
-        days_of_week: tuple | None = None,
+        days_of_week: tuple[int, ...] | None = None,
         exclude_dates: DatetimeIndex | None = None,
     ) -> None:
         if offset is not None:

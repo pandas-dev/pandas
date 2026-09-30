@@ -158,20 +158,21 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
             # i.e. actually dtype == np.dtype("bool")
             return np.asarray(values).view("uint8")
         else:
-            # e.g. Sparse[bool, False]  # TODO: no test cases get here
+            # e.g. Sparse[bool, False], see test_mode_sparse_bool
             return np.asarray(values).astype("uint8", copy=False)
 
     elif is_integer_dtype(values.dtype):
         return np.asarray(values)
 
     elif is_float_dtype(values.dtype):
+        # itemsize comes off the values, not the dtype: an ExtensionDtype
+        # (e.g. Sparse[float64]) may not have one.
         # Note: checking `values.dtype == "float128"` raises on Windows and 32bit
-        # error: Item "ExtensionDtype" of "Union[Any, ExtensionDtype, dtype[Any]]"
-        # has no attribute "itemsize"
-        if values.dtype.itemsize in [2, 12, 16]:  # type: ignore[union-attr]
+        float_values = np.asarray(values)
+        if float_values.dtype.itemsize in [2, 12, 16]:
             # we dont (yet) have float128 hashtable support
-            return ensure_float64(values)
-        return np.asarray(values)
+            return ensure_float64(float_values)
+        return float_values
 
     elif is_complex_dtype(values.dtype):
         # NumpyExtensionArray needs to be unwrapped to the underlying ndarray
@@ -1316,6 +1317,35 @@ def is_monotonic(values: ArrayLike) -> tuple[bool, bool, bool]:
 # ---- #
 # take #
 # ---- #
+
+
+def occurrence_rank(codes: npt.NDArray[np.intp]) -> npt.NDArray[np.intp]:
+    """
+    For each element, the number of earlier elements with the same code.
+
+    Parameters
+    ----------
+    codes : np.ndarray[intp]
+
+    Returns
+    -------
+    np.ndarray[intp]
+
+    Examples
+    --------
+    >>> occurrence_rank(np.array([0, 1, 0, 0, 1]))
+    array([0, 0, 1, 2, 1])
+    """
+    order = np.argsort(codes, kind="stable")
+    sorted_codes = codes[order]
+    n = len(codes)
+    is_start = np.empty(n, dtype=bool)
+    is_start[:1] = True
+    is_start[1:] = sorted_codes[1:] != sorted_codes[:-1]
+    group_start = np.maximum.accumulate(np.where(is_start, np.arange(n), 0))
+    rank = np.empty(n, dtype=np.intp)
+    rank[order] = np.arange(n) - group_start
+    return rank
 
 
 @set_module("pandas.api.extensions")

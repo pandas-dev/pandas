@@ -72,7 +72,7 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
   and different from ``'\s+'`` will be interpreted as regular expressions and
   will force the use of the Python parsing engine. Note that regex
   delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
+delimiter : str, optional
   Alternative argument name for sep.
 
 Column and index locations and names
@@ -178,9 +178,8 @@ engine : {``'c'``, ``'python'``, ``'pyarrow'``}
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels. The function is applied to the raw text read from the
-  file, before any missing-value detection: an empty field is passed as an empty
-  string ``''``, and ``na_values`` and ``keep_default_na`` have no effect on a
-  column that has a converter.
+  file, so an empty field is passed as an empty string ``''``; ``na_values`` and
+  ``keep_default_na`` are then applied to the value the function returns.
 true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
@@ -474,7 +473,8 @@ specification:
    pd.read_csv(StringIO(data), dtype={"col1": "category"}).dtypes
 
 Specifying ``dtype='category'`` will result in an unordered ``Categorical``
-whose ``categories`` are the unique values observed in the data. For more
+whose ``categories`` are the unique values observed in the data, after the
+numeric and boolean inference described below. For more
 control on the categories and order, create a
 :class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
 that column's ``dtype``.
@@ -501,22 +501,30 @@ among the specified categories will raise.
 
 .. note::
 
-   With ``dtype='category'``, the resulting categories will always be parsed
-   as strings (object dtype). If the categories are numeric they can be
-   converted using the :func:`to_numeric` function, or as appropriate, another
-   converter such as :func:`to_datetime`.
+   With ``dtype="category"``, numeric and boolean categories are inferred.
 
-   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
-   all numeric, all datetimes, etc.), the conversion is done automatically.
+   .. versionchanged:: 3.1.0
+
+      Previously the categories were always parsed as strings.
 
    .. ipython:: python
 
       df = pd.read_csv(StringIO(data), dtype="category")
       df.dtypes
       df["col3"]
-      new_categories = pd.to_numeric(df["col3"].cat.categories)
-      df["col3"] = df["col3"].cat.rename_categories(new_categories)
-      df["col3"]
+
+   Columns whose values do not all parse as numeric or boolean retain string
+   categories, and can be converted with an explicit converter such as
+   :func:`to_datetime`.
+
+   Columns read with non-default ``thousands`` or ``decimal`` options also
+   retain string categories, because the inference is unaware of those
+   options. Strip the separators before converting those: with
+   ``thousands="."``, :func:`to_numeric` reads ``"1.000"`` as ``1.0`` rather
+   than ``1000``.
+
+   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
+   all numeric, all datetimes, etc.), the conversion is done automatically.
 
 
 Naming and using columns
@@ -1548,7 +1556,7 @@ Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
 
 The number of threads is controlled with the ``mode.max_threads`` option, which
-defaults to the number of CPU cores, capped at ``4`` and limited to the CPUs
+defaults to the number of CPU cores, capped at ``6`` and limited to the CPUs
 available to the process -- CPU affinity, and the cgroup CPU quota when the
 process runs in its own cgroup namespace, as it does under Docker and
 Kubernetes. Set the option to ``1`` to disable parallel reading, e.g. when
@@ -4370,9 +4378,9 @@ at appending longer strings will raise a ``ValueError``.
 Passing ``min_itemsize={`values`: size}`` as a parameter to append
 will set a larger minimum for the string columns. Storing ``floats,
 strings, ints, bools, datetime64`` are currently supported. For string
-columns, passing ``nan_rep = 'nan'`` to append will change the default
-nan representation on disk (which converts to/from ``np.nan``), this
-defaults to ``nan``.
+columns, passing ``nan_rep`` to append will change the representation used
+on disk for missing values (which converts to/from ``np.nan``); see
+:ref:`nan_rep <io.hdf5-nan-rep>` below.
 
 .. ipython:: python
 
@@ -5108,8 +5116,11 @@ Categorical data
 ++++++++++++++++
 
 You can write data that contains ``category`` dtypes to a ``HDFStore``.
-Queries work the same as if it was an object array. However, the ``category`` dtyped data is
-stored in a more efficient manner.
+Queries work the same as if it was an object array, except that the ordering
+comparisons ``<``, ``<=``, ``>`` and ``>=`` require the column to have been
+written with ``ordered=True`` and compare by category order rather than by
+value. However, the ``category`` dtyped data is stored in a more efficient
+manner.
 
 .. ipython:: python
 
@@ -5168,21 +5179,30 @@ Passing a ``min_itemsize`` dict will cause all passed columns to be created as *
    store.append("dfs2", dfs, min_itemsize={"A": 30})
    store.get_storer("dfs2").table
 
+.. _io.hdf5-nan-rep:
+
 **nan_rep**
 
-String columns will serialize a ``np.nan`` (a missing value) with the ``nan_rep`` string representation. This defaults to the string value ``nan``.
-You could inadvertently turn an actual ``nan`` value into a missing value.
+String columns serialize a missing value as a sentinel string. By default that
+sentinel is chosen so it collides with no value in the column, so a literal
+``"nan"`` and an actual missing value both round-trip.
 
 .. ipython:: python
 
-   dfss = pd.DataFrame({"A": ["foo", "bar", "nan"]})
+   dfss = pd.DataFrame({"A": ["foo", "bar", "nan", np.nan]})
    dfss
 
    store.append("dfss", dfss)
    store.select("dfss")
 
-   # here you need to specify a different nan rep
-   store.append("dfss2", dfss, nan_rep="_nan_")
+Pass ``nan_rep`` to pin the on-disk representation instead, for example so that
+another reader of the file recognizes it. A value equal to the ``nan_rep`` you
+passed is then read back as a missing value, so pick one your data cannot
+contain.
+
+.. ipython:: python
+
+   store.append("dfss2", dfss, nan_rep="nan")
    store.select("dfss2")
 
 
@@ -5994,9 +6014,9 @@ Example of a callable using PostgreSQL `COPY clause
 
           columns = ', '.join(['"{}"'.format(k) for k in keys])
           if table.schema:
-              table_name = '{}.{}'.format(table.schema, table.name)
+              table_name = '"{}"."{}"'.format(table.schema, table.name)
           else:
-              table_name = table.name
+              table_name = '"{}"'.format(table.name)
 
           sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
               table_name, columns)
