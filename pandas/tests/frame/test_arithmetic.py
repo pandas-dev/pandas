@@ -441,17 +441,18 @@ class TestFrameFlexComparisons:
         df = pd.DataFrame([pd.NaT])
 
         result = df == pd.NaT
-        # result.iloc[0, 0] is an np.bool_ object
-        assert result.iloc[0, 0].item() is False
+        expected = pd.DataFrame([False])
+        tm.assert_frame_equal(result, expected)
 
         result = df.eq(pd.NaT)
-        assert result.iloc[0, 0].item() is False
+        tm.assert_frame_equal(result, expected)
 
         result = df != pd.NaT
-        assert result.iloc[0, 0].item() is True
+        expected = pd.DataFrame([True])
+        tm.assert_frame_equal(result, expected)
 
         result = df.ne(pd.NaT)
-        assert result.iloc[0, 0].item() is True
+        tm.assert_frame_equal(result, expected)
 
     def test_df_flex_cmp_constant_return_types(self, comparison_op):
         # GH 15077, non-empty DataFrame
