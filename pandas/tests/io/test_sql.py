@@ -3869,7 +3869,15 @@ def dtype_backend_expected():
     ],
 )
 @pytest.mark.parametrize(
-    "null", [None, np.nan, pd.NA, pd.NaT, np.datetime64("NaT"), np.timedelta64("NaT")]
+    "null",
+    [
+        None,
+        np.nan,
+        pd.NA,
+        pd.NaT,
+        np.datetime64("NaT", "ns"),
+        np.timedelta64("NaT", "ns"),
+    ],
 )
 def test_convert_arrays_to_dataframe_pyarrow_date_time(
     values, dtype, null, string_storage
