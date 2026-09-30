@@ -44,9 +44,9 @@ class TestDataFrameToStringFormatters:
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
         expected = dedent(
             """\
-                  a     b
-            0  0.12  1.00
-            1  1.12  2.00"""
+                 a    b
+            0 0.12 1.00
+            1 1.12 2.00"""
         )
         assert result == expected
 
@@ -81,11 +81,12 @@ class TestDataFrameToStringFormatters:
         ]
         result = df.to_string(formatters=dict(formatters))
         result2 = df.to_string(formatters=list(zip(*formatters, strict=True))[1])
+        # GH#26002 no extra leading space for the object column
         assert result == (
-            "  int  float    object\n"
-            "0 0x1 [ 1.0]  -(1, 2)-\n"
-            "1 0x2 [ 2.0]    -True-\n"
-            "2 0x3 [ 3.0]   -False-"
+            "  int  float   object\n"
+            "0 0x1 [ 1.0] -(1, 2)-\n"
+            "1 0x2 [ 2.0]   -True-\n"
+            "2 0x3 [ 3.0]  -False-"
         )
         assert result == result2
 
@@ -540,6 +541,15 @@ class TestDataFrameToString:
         df = pd.DataFrame({"A": [6.0, 3.1, 2.2]})
         expected = "     A\n0  6,0\n1  3,1\n2  2,2"
         assert df.to_string(decimal=",") == expected
+
+    def test_to_string_column_names_formatted_like_index_names(self):
+        # GH#14286
+        df = pd.DataFrame({"a": [1]}, index=pd.Index(["x"], name=("s", "t")))
+        assert df.T.to_string() == "(s, t)  x\na       1"
+
+        df = pd.DataFrame({"a": [1]})
+        df.columns.name = "c\nd"
+        assert df.to_string() == "c\\nd  a\n0     1"
 
     def test_to_string_left_justify_cols(self):
         df = pd.DataFrame({"x": [3234, 0.253]})

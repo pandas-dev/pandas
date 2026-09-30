@@ -165,12 +165,12 @@ def ensure_python_int(value: int | np.integer) -> int:
     return new_value
 
 
-def classes(*klasses) -> Callable:
+def classes(*klasses) -> Callable[[type], bool]:
     """Evaluate if the tipo is a subclass of the klasses."""
     return lambda tipo: issubclass(tipo, klasses)
 
 
-def _classes_and_not_datetimelike(*klasses) -> Callable:
+def _classes_and_not_datetimelike(*klasses) -> Callable[[type], bool]:
     """
     Evaluate if the tipo is a subclass of the klasses
     and not a datetimelike.

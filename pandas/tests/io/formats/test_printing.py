@@ -109,6 +109,26 @@ def test_repr_object_dtype_0d_array(box):
     assert "array(5)" not in result
 
 
+def test_repr_two_values_wraps_at_display_width():
+    # GH#16334
+    arr = pd.array(["x" * 50, "y" * 50], dtype=object)
+    result = repr(arr)
+    expected = (
+        "<NumpyExtensionArray>\n"
+        f"['{'x' * 50}',\n"
+        f" '{'y' * 50}']\n"
+        "Length: 2, dtype: object"
+    )
+    assert result == expected
+
+
+def test_repr_two_values_max_seq_items_1():
+    # GH#16334 two values are truncated the same way as longer data
+    with cf.option_context("display.max_seq_items", 1):
+        result = repr(pd.array([1, 2]))
+    assert result == "<IntegerArray>\n[...\n 2]\nLength: 2, dtype: Int64"
+
+
 class TestFormatBase:
     def test_adjoin(self):
         data = [["a", "b", "c"], ["dd", "ee", "ff"], ["ggg", "hhh", "iii"]]

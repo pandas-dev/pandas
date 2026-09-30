@@ -280,12 +280,12 @@ def format_array_from_datetime(
         elif basic_format_day:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = f"{dts.year}-{dts.month:02d}-{dts.day:02d}"
+            res = f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d}"
 
         elif basic_format:
 
             pandas_datetime_to_datetimestruct(val, reso, &dts)
-            res = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+            res = (f"{dts.year:04d}-{dts.month:02d}-{dts.day:02d} "
                    f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
 
             if show_ns:
