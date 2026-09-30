@@ -16150,13 +16150,13 @@ class DataFrame(NDFrame, OpsMixin):
             Column or index level names to join on in the right DataFrame. Can also
             be an array or list of arrays of the length of the right DataFrame.
             These arrays are used as the values to join on, as if they were
-            columns of the DataFrame,
-            not as column labels.
+            columns of the DataFrame,not a scolumn tables.
+
         left_index : bool, default False
             Use the index from the left DataFrame as the join key(s). If it is a
             MultiIndex, the number of keys in the other DataFrame (either the index
             or a number of columns) must match the number of levels.
-            
+
         right_index : bool, default False
             Use the index from the right DataFrame as the join key. Same caveats as
             left_index.
