@@ -73,6 +73,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasExtensionDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCExtensionArray,
@@ -1783,8 +1784,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            # unpack e.g. SparseDtype, which has no itemsize of its own
-            if dtype.itemsize < getattr(tipo, "subtype", tipo).itemsize:  # type: ignore[union-attr]
+            # GH#68421: a SparseDtype has no itemsize of its own, so compare
+            #  against its subtype rather than the SparseDtype itself.
+            if isinstance(tipo, SparseDtype):
+                tipo_itemsize = tipo.subtype.itemsize
+            else:
+                tipo_itemsize = tipo.itemsize  # type: ignore[union-attr]
+            if dtype.itemsize < tipo_itemsize:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
@@ -1799,10 +1805,13 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
                 #  np.asarray widens a SparseArray to the fill_value's dtype, so
-                #  ask for the subtype to keep e.g. Sparse[int8] out of int64.
-                np_can_hold_element(
-                    dtype, np.asarray(arr, dtype=getattr(arr.dtype, "subtype", None))
-                )
+                #  ask for the subtype explicitly to keep e.g. Sparse[int8] out
+                #  of int64. (GH#68421)
+                if isinstance(arr.dtype, SparseDtype):
+                    subtype = arr.dtype.subtype
+                else:
+                    subtype = None
+                np_can_hold_element(dtype, np.asarray(arr, dtype=subtype))
                 return element
 
             return element
