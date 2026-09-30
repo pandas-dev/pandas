@@ -84,8 +84,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
--
+- :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.min`, :meth:`DataFrame.max` and :meth:`DataFrame.mean` with ``axis=1`` on a :class:`DataFrame` mixing bool and NumPy-backed numeric columns now return the promoted NumPy dtype instead of reducing through ``object``, so ``sum`` and ``prod`` can overflow and float results can lose precision; ``min`` and ``max`` on a bool and complex mix now return complex instead of raising ``TypeError`` (:issue:`51474`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:
