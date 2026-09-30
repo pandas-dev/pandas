@@ -131,8 +131,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
--
+- Bug in :func:`to_datetime` and :class:`Timestamp` parsing a time-only string with a one-digit minute (e.g. ``"11:0"``) as year 1 instead of relative to today's date, unlike the zero-padded ``"11:00"`` (:issue:`46509`)
 
 Timedelta
 ^^^^^^^^^
