@@ -7,6 +7,7 @@ from operator import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Self,
     TypeAlias,
@@ -112,7 +113,7 @@ if TYPE_CHECKING:
 
 
 IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
-IntervalOrNA: TypeAlias = Interval | float
+IntervalOrNA: TypeAlias = "Interval[Any] | float"
 
 # Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
 # the result is deterministic across processes (unlike the builtin str hash).
@@ -669,7 +670,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # EA Interface
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(np.asarray(self))
 
     def __len__(self) -> int:
@@ -1738,7 +1739,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             assert not isinstance(self._right, np.ndarray)
             self._right._putmask(mask, value_right)
 
-    def insert(self, loc: int, item: Interval) -> Self:
+    def insert(self, loc: int, item: Interval[Any]) -> Self:
         """
         Return a new IntervalArray inserting new item at location. Follows
         Python numpy.insert semantics for negative values.  Only Interval

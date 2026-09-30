@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
     overload,
 )
@@ -839,7 +840,7 @@ def _maybe_repeat(arr: ArrayLike, index: Index | None) -> ArrayLike:
 
 
 def _try_cast(
-    arr: list | np.ndarray,
+    arr: list[Any] | np.ndarray,
     dtype: np.dtype,
     copy: bool,
 ) -> ArrayLike:
