@@ -130,11 +130,14 @@ def _short_circuit_empty_axis1_agg(func: str, obj) -> bool:
     axis=1, so it stays on the transpose path. ``all``/``any`` raise on
     homogeneous datetime64/Period, but mixed frames succeed after
     transpose-to-object; short-circuit those two only when the common
-    dtype is one that raises.
+    dtype is one that raises. A frame with no columns has no dtype to
+    preserve, and ``find_common_type([])`` raises.
     """
     if func not in _frame_reduction_names or func == "skew":
         return False
     if func not in ("all", "any"):
+        return True
+    if not obj._blk_dtypes:
         return True
 
     common = find_common_type(obj._blk_dtypes)

@@ -2200,9 +2200,7 @@ def test_agg_all_any_axis1_empty_mixed_matches_nonempty(how):
 @pytest.mark.parametrize("how", ["all", "any"])
 def test_agg_all_any_axis1_empty_mixed_period_matches_nonempty(how):
     # GH#32802: mixed int/Period must match non-empty after transpose.
-    df = pd.DataFrame(
-        {"a": [1, 2], "b": pd.period_range("2020", periods=2, freq="D")}
-    )
+    df = pd.DataFrame({"a": [1, 2], "b": pd.period_range("2020", periods=2, freq="D")})
     result = df.agg(how, axis=1)
     empty = df.iloc[:0].agg(how, axis=1)
     tm.assert_series_equal(empty, result.iloc[:0])
