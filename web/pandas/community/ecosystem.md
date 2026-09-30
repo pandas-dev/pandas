@@ -87,48 +87,13 @@ that convert the outputs of popular natural language processing libraries into p
 ### Plotting backends
 
 pandas uses [Matplotlib](https://matplotlib.org/) by default for plotting. This can be
-changed with the with `plotting.backend` option:
+changed with the `plotting.backend` option:
 
 ```python
 pd.set_option("plotting.backend", "<plotting-backend-name>")
 ```
 
 This is the list of known plotting backends:
-
-#### [Altair](https://altair-viz.github.io/)
-
-Altair is a declarative statistical visualization library for Python.
-With Altair, you can spend more time understanding your data and its
-meaning. Altair's API is simple, friendly and consistent and built on
-top of the powerful Vega-Lite JSON specification. This elegant
-simplicity produces beautiful and effective visualizations with a
-minimal amount of code. Altair works with Pandas DataFrames.
-
-[altair-pandas](https://github.com/altair-viz/altair_pandas) provides
-the pandas Altair backend via:
-
-```python
-pd.set_option("plotting.backend", "altair")
-```
-
-#### [Bokeh](https://docs.bokeh.org)
-
-Bokeh is a Python interactive visualization library for large datasets
-that natively uses the latest web technologies. Its goal is to provide
-elegant, concise construction of novel graphics in the style of
-Protovis/D3, while delivering high-performance interactivity over large
-data to thin clients.
-
-[Pandas-Bokeh](https://github.com/PatrikHlobil/Pandas-Bokeh) provides a
-high level API for Bokeh that can be loaded as a native Pandas plotting
-backend via:
-
-```python
-pd.set_option("plotting.backend", "pandas_bokeh")
-```
-
-It is very similar to the matplotlib plotting backend, but provides
-interactive web-based charts and maps.
 
 #### [hvplot](https://hvplot.holoviz.org/index.html)
 

@@ -637,6 +637,34 @@ Iterable length are different
         tm.assert_almost_equal([1, 2], [3, 4, 5])
 
 
+@pytest.mark.parametrize(
+    "value",
+    [[1, 2], ([1, 2],), np.array([1, 2]), {1: None, 2: None}],
+    ids=["list", "tuple-with-list", "array", "dict"],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+def test_assert_almost_equal_iterable_length_mismatch_unhashable(value, reverse):
+    # GH#69014
+    left = [1, 2]
+    right = [value]
+    if reverse:
+        left, right = right, left
+
+    msg = (
+        "Iterable are different\n\nIterable length are different\n"
+        f"[left]:  {len(left)}\n[right]: {len(right)}"
+    )
+    with pytest.raises(AssertionError, match=f"^{re.escape(msg)}$"):
+        tm.assert_almost_equal(left, right)
+
+
+def test_assert_almost_equal_iterable_length_mismatch_diff():
+    # GH#69014: retain the extra diagnostic for hashable elements.
+    msg = "[diff]: [3]"
+    with pytest.raises(AssertionError, match=re.escape(msg)):
+        tm.assert_almost_equal([1, 2], [1, 2, 3])
+
+
 def test_assert_almost_equal_iterable_values_mismatch():
     msg = """Iterable are different
 

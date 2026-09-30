@@ -190,7 +190,9 @@ def _check_isinstance(left: Any, right: Any, cls: type) -> None:
         )
 
 
-def assert_dict_equal(left: dict, right: dict, compare_keys: bool = True) -> None:
+def assert_dict_equal(
+    left: dict[Any, Any], right: dict[Any, Any], compare_keys: bool = True
+) -> None:
     _check_isinstance(left, right, dict)
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
@@ -1680,12 +1682,12 @@ def assert_sp_array_equal(left: Any, right: Any) -> None:
     assert_numpy_array_equal(left.to_dense(), right.to_dense())
 
 
-def assert_contains_all(iterable: Iterable, dic: Container) -> None:
+def assert_contains_all(iterable: Iterable[Any], dic: Container[Any]) -> None:
     for k in iterable:
         assert k in dic, f"Did not contain item: {k!r}"
 
 
-def assert_copy(iter1: Iterable, iter2: Iterable, **eql_kwargs: Any) -> None:
+def assert_copy(iter1: Iterable[Any], iter2: Iterable[Any], **eql_kwargs: Any) -> None:
     """
     iter1, iter2: iterables that produce elements
     comparable with assert_almost_equal

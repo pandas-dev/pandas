@@ -2289,3 +2289,67 @@ def test_groupby_observed_false_expands_only_categorical_levels():
         (2, "a", "Y"),
     ]
     assert result.tolist() == [1, 0, 1, 0, 1, 0]
+
+
+def test_categorical_with_noncategorical_na_dropna_sort():
+    # GH#68931 dropping NA keys left the group ids negative, which sort=True
+    #  then used to index
+    df = pd.DataFrame(
+        {
+            "dates": ["X", None],
+            "sector": pd.Categorical([1, np.nan], categories=[1, 2, 3]),
+            "metric": [10, 20],
+        }
+    )
+    result = df.groupby(["dates", "sector"], observed=False).sum()
+    expected = pd.DataFrame(
+        {
+            "dates": ["X"] * 3,
+            "sector": pd.Categorical([1, 2, 3], categories=[1, 2, 3]),
+            "metric": [10, 0, 0],
+        }
+    ).set_index(["dates", "sector"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_with_noncategorical_na_dropna_no_sort():
+    # GH#68931 the same bad ids, which sort=False instead folded into the
+    #  observed groups, duplicating ("X", 3) in the result
+    df = pd.DataFrame(
+        {
+            "dates": [None, None, "X"],
+            "sector": pd.Categorical([2, 3, 3], categories=[1, 2, 3, 4]),
+            "metric": [10, 20, 30],
+        }
+    )
+    result = df.groupby(["dates", "sector"], observed=False, sort=False).sum()
+    expected = pd.DataFrame(
+        {
+            # observed group first, then the unobserved categories in order
+            #  of appearance
+            "dates": ["X"] * 4,
+            "sector": pd.Categorical([3, 2, 1, 4], categories=[1, 2, 3, 4]),
+            "metric": [30, 0, 0, 0],
+        }
+    ).set_index(["dates", "sector"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_with_noncategorical_all_na_dropna(sort):
+    # GH#68931 every row has an NA key, so no group survives dropna=True
+    df = pd.DataFrame(
+        {
+            "dates": [None, None],
+            "sector": pd.Categorical([1, np.nan], categories=[1, 2, 3]),
+            "metric": [10, 20],
+        }
+    )
+    result = df.groupby(["dates", "sector"], observed=False, sort=sort).sum()
+    expected = pd.DataFrame(
+        {
+            "dates": pd.Index([], dtype=object),
+            "sector": pd.Categorical([], categories=[1, 2, 3]),
+            "metric": pd.Index([], dtype="int64"),
+        }
+    ).set_index(["dates", "sector"])
+    tm.assert_frame_equal(result, expected)

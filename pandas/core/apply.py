@@ -83,6 +83,7 @@ if TYPE_CHECKING:
         ExtensionArray,
     )
     from pandas.core.groupby import GroupBy
+    from pandas.core.groupby.groupby import BaseGroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -526,7 +527,19 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
+        from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
+
         obj = self.obj
+
+        if not results:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, BaseGroupBy) and obj._selected_obj.ndim == 1:
+                return obj._selected_obj._constructor_expanddim(
+                    index=_groupby_result_index(obj), columns=Index([])
+                )
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
@@ -654,8 +667,24 @@ class Apply(metaclass=abc.ABCMeta):
         result_data: list,
     ):
         from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
 
         obj = self.obj
+
+        if not result_data:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, ABCDataFrame):
+                return obj._constructor(index=Index([]), columns=obj.columns[:0])
+            elif isinstance(obj, BaseGroupBy):
+                index = _groupby_result_index(obj)
+                if selected_obj.ndim == 2:
+                    frame = cast("DataFrame", selected_obj)
+                    return frame._constructor(index=index, columns=frame.columns[:0])
+                return selected_obj._constructor_expanddim(
+                    index=index, columns=Index([])
+                )
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
@@ -1119,7 +1148,7 @@ class FrameApply(NDFrameApply):
         elif self.kwargs.get("bool_only"):
             obj = obj._get_bool_data()
 
-        if obj.columns.empty:
+        if obj.columns.empty or not func_names:
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
@@ -1885,8 +1914,20 @@ class ResamplerWindowApply(GroupByApply):
         raise NotImplementedError
 
 
+def _groupby_result_index(obj: BaseGroupBy) -> Index:
+    """
+    Index of a groupby aggregation result, used when there is nothing to aggregate.
+    """
+    from pandas.core.resample import Resampler
+
+    if isinstance(obj, Resampler):
+        # a groupby-resample has no single grouper to take the index from
+        return obj.size().index
+    return obj._grouper.result_index
+
+
 def reconstruct_func(
-    func: AggFuncType | None, **kwargs
+    func: AggFuncType | None, allow_skip_normalization: bool = False, /, **kwargs
 ) -> tuple[bool, AggFuncType, tuple[str, ...] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
@@ -1902,10 +1943,22 @@ def reconstruct_func(
     names, and the reconstructed order of columns.
     If relabeling is False, the columns and order will be None.
 
+    Named aggregation is the one exception: when ``allow_skip_normalization`` is
+    True, every output name equals its source column name, and every aggfunc
+    reduces to a scalar, relabeling is reported as False (and columns/order as
+    None) even though named aggregation was used, because the caller can consume
+    the un-normalized func directly.
+
     Parameters
     ----------
     func: agg function (e.g. 'min' or Callable) or list of agg functions
         (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
+    allow_skip_normalization: bool, default False
+        Whether the caller can handle the un-normalized ``{column: aggfunc}`` form
+        that named aggregation reduces to when every output name equals its source
+        column name and every aggfunc is a scalar reduction. Callers that rely on
+        ``columns``/``order`` being returned whenever named aggregation was used
+        must leave this False.
     **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
         normalize_keyword_aggregation function for relabelling
 
@@ -1924,6 +1977,9 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
+    # deferred: pandas.core.groupby.generic imports from this module at import
+    #  time, so a top-level import here would be circular
+    from pandas.core.groupby.base import reduction_kernels
     from pandas.core.groupby.generic import NamedAgg
 
     relabeling = func is None and (
@@ -1946,7 +2002,7 @@ def reconstruct_func(
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
-        normalization_needed = False
+        normalization_needed = not allow_skip_normalization
         # error: Incompatible types in assignment (expression has type
         # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
@@ -1964,7 +2020,17 @@ def reconstruct_func(
             else:
                 column, aggfunc = val
 
-            if column != key:
+            # The un-normalized {column: aggfunc} form only matches the normalized
+            #  one when the aggfunc reduces each group to a single scalar. A
+            #  list-like aggfunc, or a string naming a non-reduction groupby method
+            #  (e.g. "describe"/"ohlc", which give a frame per group), would widen
+            #  the result past the one output column per keyword named aggregation
+            #  promises.
+            if (
+                column != key
+                or is_list_like(aggfunc)
+                or (isinstance(aggfunc, str) and aggfunc not in reduction_kernels)
+            ):
                 normalization_needed = True
             converted_kwargs[key] = column, aggfunc
 
