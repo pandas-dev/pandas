@@ -2524,6 +2524,8 @@ def test_dataframe_comparison_preserve_na(other, expected_1, expected_2):
 def test_dataframe_comparison_with_arraylike_preserve_na(arraylike):
     # GH#63328
     df = pd.DataFrame([[0, 1, 2], [pd.NA, pd.NA, pd.NA]])
-    expected = np.array([[pd.NA, True, False], [pd.NA, pd.NA, pd.NA]])
-    result = np.asarray(df.eq(arraylike([pd.NA, 1, 1]), axis=1))
-    tm.assert_numpy_array_equal(result, expected)
+    expected = pd.DataFrame([[pd.NA, True, False], [pd.NA, pd.NA, pd.NA]])
+    if arraylike is pd.array:
+        expected = expected.astype("boolean")
+    result = df.eq(arraylike([pd.NA, 1, 1]), axis=1)
+    tm.assert_frame_equal(result, expected)
