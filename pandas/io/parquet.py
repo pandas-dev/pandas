@@ -395,7 +395,7 @@ class FastParquetImpl(BaseImpl):
         filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
-        to_pandas_kwargs: dict | None = None,
+        to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
@@ -578,8 +578,8 @@ def read_parquet(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
-    filters: list[tuple] | list[list[tuple]] | None = None,
-    to_pandas_kwargs: dict | None = None,
+    filters: list[tuple[Any, ...]] | list[list[tuple[Any, ...]]] | None = None,
+    to_pandas_kwargs: dict[str, Any] | None = None,
     **kwargs,
 ) -> DataFrame:
     """

@@ -68,7 +68,7 @@ def to_timedelta(
 
 @overload
 def to_timedelta(
-    arg: list | tuple | range | ArrayLike | Index,
+    arg: list[Any] | tuple[Any, ...] | range | ArrayLike | Index,
     unit: UnitChoices | None = ...,
     errors: DateTimeErrorChoices = ...,
 ) -> TimedeltaIndex: ...
@@ -80,8 +80,8 @@ def to_timedelta(
     | int
     | float
     | timedelta
-    | list
-    | tuple
+    | list[Any]
+    | tuple[Any, ...]
     | range
     | ArrayLike
     | Index
