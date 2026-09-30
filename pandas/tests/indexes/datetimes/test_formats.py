@@ -173,6 +173,19 @@ class TestDatetimeIndexRendering:
         )
         assert result == expected
 
+    def test_dti_repr_two_values_wraps_at_display_width(self):
+        # GH#16334
+        dti = pd.DatetimeIndex(
+            ["2017-01-01 12:00:00.000000001", "2017-01-02 12:00:00.000000001"]
+        ).tz_localize("US/Eastern")
+        result = repr(dti)
+        expected = (
+            "DatetimeIndex(['2017-01-01 12:00:00.000000001-05:00',\n"
+            "               '2017-01-02 12:00:00.000000001-05:00'],\n"
+            "              dtype='datetime64[ns, US/Eastern]', freq=None)"
+        )
+        assert result == expected
+
     def test_dti_representation(self, unit):
         idxs = []
         idxs.append(pd.DatetimeIndex([], freq="D"))
