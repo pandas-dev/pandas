@@ -703,3 +703,31 @@ def test_insert_multiindex_full_tuple_no_warning():
     with tm.assert_produces_warning(None):
         df.insert(1, ("c", "d"), [2])
     assert df.columns.tolist() == [("a", "b"), ("c", "d")]
+
+
+def test_iloc_setitem_unique_key_on_duplicated_multiindex_columns():
+    # GH#69959
+    # On a MultiIndex with duplicate labels, Index.get_loc returns a slice
+    # (not an int) even for a unique key; iloc setitem on a single column
+    # then broke inside _mgr.column_setitem and surfaced as a confusing
+    # "The truth value of a Series is ambiguous" ValueError.
+    columns = pd.MultiIndex.from_tuples(
+        [("col1a", "col1b"), ("col2a", "col2b"), ("col2a", "col2b")]
+    )
+    df = pd.DataFrame([[10, 100, 70], [15, 120, 60]], columns=columns)
+
+    df.iloc[:, 0] = df.iloc[:, 1]
+    expected = pd.DataFrame([[100, 100, 70], [120, 120, 60]], columns=columns)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_iloc_setitem_scalar_unique_key_on_duplicated_multiindex_columns():
+    # GH#69959
+    columns = pd.MultiIndex.from_tuples(
+        [("col1a", "col1b"), ("col2a", "col2b"), ("col2a", "col2b")]
+    )
+    df = pd.DataFrame([[10, 100, 70], [15, 120, 60]], columns=columns)
+
+    df.iloc[:, 0] = 5
+    expected = pd.DataFrame([[5, 100, 70], [5, 120, 60]], columns=columns)
+    tm.assert_frame_equal(df, expected)
