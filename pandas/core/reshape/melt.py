@@ -657,7 +657,7 @@ def wide_to_long(
         raise ValueError("stubname can't be identical to a column name")
 
     # GH#46939 melt_stub names the value column stub.rstrip(sep), which clashes with j
-    if any(isinstance(stub, str) and stub.rstrip(sep) == j for stub in stubnames):
+    if any(stub.rstrip(sep) == j for stub in stubnames):
         raise ValueError(f"j ({j}) can't be identical to a stubname")
 
     if not is_list_like(i):
