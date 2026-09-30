@@ -31,6 +31,7 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
+- Added :class:`api.extensions.Accessor` to the public API, for adding or overriding an accessor on a single class such as a :class:`DataFrame` subclass (:issue:`40103`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.notable_bug_fixes:
@@ -110,6 +111,7 @@ Other deprecations
 - Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
+- Deprecated ``pandas.core.accessor.CachedAccessor``, use :class:`api.extensions.Accessor` instead (:issue:`66215`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
