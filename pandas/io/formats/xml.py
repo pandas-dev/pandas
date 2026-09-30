@@ -22,6 +22,8 @@ from pandas.io.common import get_handle
 from pandas.io.xml import get_data_from_filepath
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         CompressionOptions,
         FilePath,
@@ -260,7 +262,7 @@ class _BaseXMLFormatter:
         raise AbstractMethodError(self)
 
     @final
-    def _other_namespaces(self) -> dict:
+    def _other_namespaces(self) -> dict[str, str]:
         """
         Define other namespaces.
 
@@ -301,7 +303,7 @@ class _BaseXMLFormatter:
         return elem_row
 
     @final
-    def _get_flat_col_name(self, col: str | tuple) -> str:
+    def _get_flat_col_name(self, col: str | tuple[Hashable, ...]) -> str:
         flat_col = col
         if isinstance(col, tuple):
             flat_col = (

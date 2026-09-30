@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
+    from typing import Any
 
     from pandas._typing import (
         ArrayLike,
@@ -2430,7 +2431,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Returns an Iterator over the values of this Categorical.
         """
@@ -2805,7 +2806,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> Self:
-        func: Callable
+        func: Callable[..., Any]
         if name == "cummin":
             func = np.minimum.accumulate
         elif name == "cummax":

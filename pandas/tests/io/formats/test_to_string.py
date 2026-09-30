@@ -543,6 +543,15 @@ class TestDataFrameToString:
         expected = "     A\n0  6,0\n1  3,1\n2  2,2"
         assert df.to_string(decimal=",") == expected
 
+    def test_to_string_column_names_formatted_like_index_names(self):
+        # GH#14286
+        df = pd.DataFrame({"a": [1]}, index=pd.Index(["x"], name=("s", "t")))
+        assert df.T.to_string() == "(s, t)  x\na       1"
+
+        df = pd.DataFrame({"a": [1]})
+        df.columns.name = "c\nd"
+        assert df.to_string() == "c\\nd  a\n0     1"
+
     def test_to_string_left_justify_cols(self):
         df = pd.DataFrame({"x": [3234, 0.253]})
         df_s = df.to_string(justify="left")

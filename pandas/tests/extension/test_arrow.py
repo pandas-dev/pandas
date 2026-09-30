@@ -24,6 +24,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import locale
 import operator
 import pickle
 import re
@@ -48,7 +49,6 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import pandas_dtype
@@ -561,8 +561,10 @@ class TestArrowArray(base.ExtensionTests):
             if op_name in ["std", "sem"]:
                 if pa.types.is_duration(pa_type):
                     cmp_dtype = arr.dtype
-                elif pa.types.is_date(pa_type):
+                elif pa.types.is_date32(pa_type):
                     cmp_dtype = ArrowDtype(pa.duration("s"))
+                elif pa.types.is_date64(pa_type):
+                    cmp_dtype = ArrowDtype(pa.duration("ms"))
                 elif pa.types.is_time(pa_type):
                     cmp_dtype = ArrowDtype(pa.duration(pa_type.unit))
                 else:
@@ -2505,6 +2507,27 @@ def test_from_arrow_respecting_given_dtype_unsafe():
         array.to_pandas(types_mapper={pa.float64(): ArrowDtype(pa.int64())}.get)
 
 
+def test_from_arrow_list_of_extension_struct():
+    # GH#69869 element access used to segfault after a same-type pyarrow cast
+    intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (2, 3)])
+    storage = pa.ListArray.from_arrays(
+        pa.array([0, 2], pa.int32()), intervals.__arrow_array__()
+    )
+    table = pa.table({"x": storage})
+    result = table.to_pandas(types_mapper=ArrowDtype)
+    assert result["x"].dtype == ArrowDtype(storage.type)
+    assert result["x"].iloc[0] == [{"left": 0, "right": 1}, {"left": 2, "right": 3}]
+
+
+def test_from_arrow_renames_list_field():
+    # GH#69869 an equal type with a different list field name is still cast
+    arr = pa.array([[1]], type=pa.list_(pa.field("element", pa.int64())))
+    dtype = ArrowDtype(pa.list_(pa.int64()))
+    result = pa.table({"x": arr}).to_pandas(types_mapper=lambda _: dtype)["x"]
+    assert str(result.dtype) == str(dtype)
+    assert hash(result.dtype) == hash(dtype)
+
+
 def test_round():
     dtype = "float64[pyarrow]"
 
@@ -2548,6 +2571,47 @@ def test_sort_values_dictionary():
     expected = df.copy()
     result = df.sort_values(by=["a", "b"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ascending, expected_b, expected_index",
+    [
+        (True, [1, 2], [1, 0]),
+        ([False, True], [1, 2], [1, 0]),
+        ([True, False], [2, 1], [0, 1]),
+    ],
+)
+def test_sort_values_null(ascending, expected_b, expected_index):
+    # GH#54908
+    df = pd.DataFrame(
+        {
+            "a": pd.Series([None, None], dtype="null[pyarrow]"),
+            "b": [2, 1],
+        }
+    )
+    result = df.sort_values(["a", "b"], ascending=ascending)
+    expected = pd.DataFrame(
+        {
+            "a": pd.Series([None, None], dtype="null[pyarrow]"),
+            "b": expected_b,
+        },
+        index=expected_index,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_sort_values_null_empty():
+    # GH#54908
+    df = pd.DataFrame({"a": pd.Series([], dtype="null[pyarrow]")})
+    result = df.sort_values(by="a")
+    tm.assert_frame_equal(result, df)
+
+
+def test_sort_values_null_series():
+    # GH#54908
+    ser = pd.Series([None, None], dtype="null[pyarrow]")
+    result = ser.sort_values()
+    tm.assert_series_equal(result, ser)
 
 
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
@@ -3435,6 +3499,40 @@ def test_str_extract_flags(expand):
     if expand:
         expected = expected.to_frame()
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()], ids=str)
+def test_date_std_sem(pa_type):
+    # GH#69752 the result was read as seconds without converting it from days
+    # (date32) or milliseconds (date64)
+    dates = [date(2020, 1, 1), date(2020, 1, 3), date(2020, 1, 2), date(2020, 1, 6)]
+    ser = pd.Series(dates, dtype=ArrowDtype(pa_type))
+    unit = "s" if pa.types.is_date32(pa_type) else "ms"
+    expected = pd.Series(pd.to_datetime(dates).as_unit(unit))
+
+    result = ser.std()
+    assert result == expected.std()
+    assert result.unit == unit
+    assert ser.std(ddof=0) == expected.std(ddof=0)
+    expected_sem = pd.Timedelta(days=1, hours=1, minutes=55, seconds=22)
+    if unit == "ms":
+        expected_sem += pd.Timedelta(milliseconds=666)
+    assert ser.sem() == expected_sem
+
+    frame_result = pd.DataFrame({"a": ser}).std()
+    assert frame_result.dtype == ArrowDtype(pa.duration(unit))
+    assert frame_result["a"] == result
+
+    with_na = pd.Series([*dates, None], dtype=ArrowDtype(pa_type))
+    assert with_na.std() == result
+    assert with_na.std(skipna=False) is pd.NA
+
+
+def test_date64_std_keeps_milliseconds():
+    # GH#69752
+    ser = pd.Series(ArrowExtensionArray(pa.array([0, 1, 2, 3], pa.date64())))
+    expected = pd.Series(np.array([0, 1, 2, 3], dtype="M8[ms]")).std()
+    assert ser.std() == expected == pd.Timedelta(milliseconds=1)
 
 
 @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
@@ -5522,6 +5620,29 @@ class TestGroupbyAggPyArrowNative:
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize("how", ["any", "all", "std", "sem", "idxmin", "idxmax"])
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pa.array([date(2020, 1, 2), date(2020, 1, 1), None, date(2020, 1, 3)]),
+        pa.array([time(2), time(1), None, time(3)]),
+        pa.array([b"b", b"a", None, b"c"]),
+        pa.array(["b", "a", None, "c"]),
+        pa.array(["b", "a", None, "c"]).dictionary_encode(),
+        pa.array([[2], [1], None, [3]]),
+    ],
+    ids=lambda arr: str(arr.type),
+)
+def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
+    # GH#69717 used to raise NotImplementedError, mostly with no message
+    ser = pd.Series(ArrowExtensionArray(arr))
+    obj = ser.to_frame() if frame else ser
+    msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
+    with pytest.raises(TypeError, match=msg):
+        getattr(obj.groupby([0, 0, 1, 1]), how)()
+
+
 @pytest.mark.parametrize("op_name", ["var", "std", "sem", "mean"])
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_groupby_cython_agg_pyarrow_dtype_retention(op_name, dtype):
@@ -5634,6 +5755,51 @@ def test_factorize_dictionary_with_na():
     expected_uniques = pd.array(["a1", None], dtype=ArrowDtype(pa.string()))
     tm.assert_numpy_array_equal(indices, expected_indices)
     tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_factorize_null():
+    # GH#54908
+    arr = ArrowExtensionArray(pa.array([None, None], type=pa.null()))
+    indices, uniques = arr.factorize(use_na_sentinel=True)
+    expected_indices = np.array([-1, -1], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.chunked_array([], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 0], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.array([None], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_factorize_null_empty():
+    # GH#54908
+    arr = ArrowExtensionArray(pa.array([], type=pa.null()))
+    indices, uniques = arr.factorize(use_na_sentinel=True)
+    expected_indices = np.array([], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.chunked_array([], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([], dtype=np.intp)
+    expected_uniques = ArrowExtensionArray(pa.chunked_array([], type=pa.null()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_null_astype_categorical():
+    # GH#54908
+    ser = pd.Series([None, None], dtype="null[pyarrow]")
+    result = pd.Categorical(ser)
+    dtype = pd.CategoricalDtype(categories=pd.Index([], dtype="null[pyarrow]"))
+    expected = pd.Categorical([None, None], dtype=dtype)
+    tm.assert_categorical_equal(result, expected)
+
+    result_astype = ser.astype("category")
+    expected_ser = pd.Series(expected)
+    tm.assert_series_equal(result_astype, expected_ser)
 
 
 def test_dictionary_astype_categorical():
@@ -5802,13 +5968,13 @@ def test_string_to_time_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_not_english_lc_time
 @pytest.mark.parametrize("dtype", ["time32[s][pyarrow]", "time64[us][pyarrow]"])
 def test_string_to_time_parsing_cast_meridiem(dtype):
-    # GH#18793 the space before AM/PM used to make these coerce to null
-    result = pd.Series(["3:25:00 PM"], dtype=dtype)
-    expected = pd.Series(["15:25:00"], dtype=dtype)
-    tm.assert_series_equal(result, expected)
+    with tm.set_locale("C", locale.LC_TIME):
+        # GH#18793 the space before AM/PM used to make these coerce to null
+        result = pd.Series(["3:25:00 PM"], dtype=dtype)
+        expected = pd.Series(["15:25:00"], dtype=dtype)
+        tm.assert_series_equal(result, expected)
 
 
 def test_to_numpy_float():
