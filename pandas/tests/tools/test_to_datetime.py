@@ -10,6 +10,7 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import locale
 import re
 import zoneinfo
 
@@ -338,38 +339,38 @@ class TestTimeConversionFormats:
                 "01/10/2010 08:14 PM",
                 "%m/%d/%Y %I:%M %p",
                 pd.Timestamp("2010-01-10 20:14"),
-                marks=td.skip_if_not_english_lc_time,
             ),
             pytest.param(
                 "01/10/2010 07:40 AM",
                 "%m/%d/%Y %I:%M %p",
                 pd.Timestamp("2010-01-10 07:40"),
-                marks=td.skip_if_not_english_lc_time,
             ),
             pytest.param(
                 "01/10/2010 09:12:56 AM",
                 "%m/%d/%Y %I:%M:%S %p",
                 pd.Timestamp("2010-01-10 09:12:56"),
-                marks=td.skip_if_not_english_lc_time,
             ),
         ],
     )
     def test_to_datetime_format_time(self, cache, value, format, dt):
-        assert pd.to_datetime(value, format=format, cache=cache) == dt
+        with tm.set_locale("C", locale.LC_TIME):
+            assert pd.to_datetime(value, format=format, cache=cache) == dt
 
-    @td.skip_if_not_english_lc_time
     def test_to_datetime_with_non_exact(self, cache):
-        # GH 10834
-        # 8904
-        # exact kw
-        ser = pd.Series(
-            ["19MAY11", "foobar19MAY11", "19MAY11:00:00:00", "19MAY11 00:00:00Z"]
-        )
-        result = pd.to_datetime(ser, format="%d%b%y", exact=False, cache=cache)
-        expected = pd.to_datetime(
-            ser.str.extract(r"(\d+\w+\d+)", expand=False), format="%d%b%y", cache=cache
-        )
-        tm.assert_series_equal(result, expected)
+        with tm.set_locale("C", locale.LC_TIME):
+            # GH 10834
+            # 8904
+            # exact kw
+            ser = pd.Series(
+                ["19MAY11", "foobar19MAY11", "19MAY11:00:00:00", "19MAY11 00:00:00Z"]
+            )
+            result = pd.to_datetime(ser, format="%d%b%y", exact=False, cache=cache)
+            expected = pd.to_datetime(
+                ser.str.extract(r"(\d+\w+\d+)", expand=False),
+                format="%d%b%y",
+                cache=cache,
+            )
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "format, expected",
@@ -3126,15 +3127,15 @@ class TestToDatetimeMisc:
         )
         tm.assert_series_equal(result_coerce, expected_coerce)
 
-    @td.skip_if_not_english_lc_time
     def test_to_datetime_with_apply(self, cache):
-        # this is only locale tested with US/None locales
-        # GH 5195
-        # with a format and coerce a single item to_datetime fails
-        td = pd.Series(["May 04", "Jun 02", "Dec 11"], index=[1, 2, 3])
-        expected = pd.to_datetime(td, format="%b %y", cache=cache)
-        result = td.apply(pd.to_datetime, format="%b %y", cache=cache)
-        tm.assert_series_equal(result, expected)
+        with tm.set_locale("C", locale.LC_TIME):
+            # this is only locale tested with US/None locales
+            # GH 5195
+            # with a format and coerce a single item to_datetime fails
+            td = pd.Series(["May 04", "Jun 02", "Dec 11"], index=[1, 2, 3])
+            expected = pd.to_datetime(td, format="%b %y", cache=cache)
+            result = td.apply(pd.to_datetime, format="%b %y", cache=cache)
+            tm.assert_series_equal(result, expected)
 
     def test_to_datetime_timezone_name(self):
         # https://github.com/pandas-dev/pandas/issues/49748
@@ -3142,19 +3143,21 @@ class TestToDatetimeMisc:
         expected = pd.Timestamp(2020, 1, 1).tz_localize("UTC")
         assert result == expected
 
-    @td.skip_if_not_english_lc_time
     @pytest.mark.parametrize("errors", ["raise", "coerce"])
     def test_to_datetime_with_apply_with_empty_str(self, cache, errors):
-        # this is only locale tested with US/None locales
-        # GH 5195, GH50251
-        # with a format and coerce a single item to_datetime fails
-        td = pd.Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
-        expected = pd.to_datetime(td, format="%b %y", errors=errors, cache=cache)
+        with tm.set_locale("C", locale.LC_TIME):
+            # this is only locale tested with US/None locales
+            # GH 5195, GH50251
+            # with a format and coerce a single item to_datetime fails
+            td = pd.Series(["May 04", "Jun 02", ""], index=[1, 2, 3])
+            expected = pd.to_datetime(td, format="%b %y", errors=errors, cache=cache)
 
-        result = td.apply(
-            lambda x: pd.to_datetime(x, format="%b %y", errors="coerce", cache=cache)
-        )
-        tm.assert_series_equal(result, expected)
+            result = td.apply(
+                lambda x: pd.to_datetime(
+                    x, format="%b %y", errors="coerce", cache=cache
+                )
+            )
+            tm.assert_series_equal(result, expected)
 
     def test_to_datetime_empty_stt(self, cache):
         # empty string
@@ -4384,6 +4387,49 @@ def test_to_datetime_cache_coerce_50_lines_outofbounds(series_length):
 
     result3 = pd.to_datetime(ser, errors="raise", utc=True)
     tm.assert_series_equal(result3, expected1)
+
+
+@pytest.mark.parametrize(
+    "categories, dtype",
+    [
+        (["2019-09-24 17:00:00", "2020-01-02 03:04:05"], "M8[us]"),
+        (
+            pd.DatetimeIndex(
+                ["2019-09-24 17:00:00", "2020-01-02 03:04:05"], dtype="M8[us, UTC]"
+            ),
+            "M8[us, UTC]",
+        ),
+    ],
+)
+@pytest.mark.parametrize("length", [start_caching_at, start_caching_at + 1])
+def test_to_datetime_categorical_container(categories, dtype, length):
+    # GH#28629 the result dtype must not depend on whether the cache kicked in
+    values = list(categories) * length
+    cat = pd.Categorical(values[:length])
+    expected = pd.DatetimeIndex(values[:length], dtype=dtype)
+
+    tm.assert_index_equal(pd.to_datetime(cat), expected)
+    tm.assert_index_equal(
+        pd.to_datetime(pd.CategoricalIndex(cat, name="foo")), expected.rename("foo")
+    )
+    ser = pd.Series(cat, index=pd.RangeIndex(10, 10 + length), name="foo")
+    tm.assert_series_equal(
+        pd.to_datetime(ser), pd.Series(expected, index=ser.index, name="foo")
+    )
+
+
+@pytest.mark.parametrize("length", [start_caching_at, start_caching_at + 1])
+def test_to_datetime_categorical_all_coerced(length):
+    # GH#28629 categories that all coerce to NaT leave the lookup object dtype
+    cat = pd.Categorical(["foo", "bar"] * length)[:length]
+    expected = pd.DatetimeIndex([pd.NaT] * length, dtype="M8[s]")
+    # a non-ISO format keeps the cache in play, unlike an ISO one
+    kwargs = {"format": "%d/%m/%Y", "errors": "coerce"}
+
+    tm.assert_index_equal(pd.to_datetime(cat, **kwargs), expected)
+    tm.assert_series_equal(
+        pd.to_datetime(pd.Series(cat), **kwargs), pd.Series(expected)
+    )
 
 
 def test_to_datetime_format_f_parse_nanos():
