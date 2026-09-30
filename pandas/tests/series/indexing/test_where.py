@@ -425,7 +425,7 @@ def test_where_sparse():
 
 @pytest.mark.parametrize("method", ["where", "mask"])
 def test_where_int_with_sparse_int_other(method):
-    # SparseDtype has no itemsize, so this raised AttributeError
+    # GH#68457: SparseDtype has no itemsize, so this raised AttributeError
     ser = pd.Series([1, 2, 3])
     other = pd.Series(pd.arrays.SparseArray([4, 5, 6]))
     cond = np.array([True, False, True])

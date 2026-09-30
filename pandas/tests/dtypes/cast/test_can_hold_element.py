@@ -178,7 +178,7 @@ def test_can_hold_element_ea_no_na_lossy_values(wrapper, backend):
 
 @pytest.mark.parametrize("wrapper", [lambda values: values, pd.Series, pd.Index])
 def test_can_hold_element_sparse_int(wrapper):
-    # SparseDtype has no itemsize, so these raised AttributeError
+    # GH#68457: SparseDtype has no itemsize, so these raised AttributeError
     element = wrapper(pd.arrays.SparseArray([4, 0, 6]))
 
     assert can_hold_element(np.array([], dtype=np.int64), element)

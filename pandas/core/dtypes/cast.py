@@ -1784,8 +1784,8 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     #  itemsize issues there?
                     return casted
                 raise LossySetitemError
-            # GH#68421: a SparseDtype has no itemsize of its own, so compare
-            #  against its subtype rather than the SparseDtype itself.
+            # A SparseDtype has the same missing itemsize as GH#68421, so
+            #  compare against its subtype rather than the SparseDtype itself.
             if isinstance(tipo, SparseDtype):
                 tipo_itemsize = tipo.subtype.itemsize
             else:
@@ -1793,8 +1793,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if dtype.itemsize < tipo_itemsize:
                 raise LossySetitemError
             if not isinstance(tipo, np.dtype):
-                # i.e. nullable IntegerDtype; we can put this into an ndarray
-                #  losslessly iff it has no NAs and the values themselves fit
+                # i.e. an ExtensionDtype such as a nullable IntegerDtype or a
+                #  SparseDtype; we can put this into an ndarray losslessly iff it
+                #  has no NAs and the NA-free values themselves fit
                 arr = (
                     element._values
                     if isinstance(element, (ABCIndex, ABCSeries))
@@ -1804,10 +1805,10 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                     raise LossySetitemError
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
-                #  np.asarray widens a SparseArray to the fill_value's dtype, so
-                #  ask for the subtype explicitly to keep e.g. Sparse[int8] out
-                #  of int64. (GH#68421)
                 if isinstance(arr.dtype, SparseDtype):
+                    # np.asarray widens a SparseArray to the fill_value's dtype,
+                    #  so ask for the subtype explicitly to keep e.g. Sparse[int8]
+                    #  out of int64. (GH#68421)
                     subtype = arr.dtype.subtype
                 else:
                     subtype = None
