@@ -1030,8 +1030,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 "DatetimeIndex.values returning an ndarray that drops "
                 "timezone information is deprecated. In a future version, "
                 "this will return the underlying DatetimeArray instead. "
-                "Use 'DatetimeIndex.to_numpy()' to get a NumPy array, or "
-                "'DatetimeIndex.array' to get the ExtensionArray.",
+                "Use 'DatetimeIndex.tz_convert(None).to_numpy()' to get a NumPy array "
+                "of UTC values, or 'DatetimeIndex.array' to get the ExtensionArray.\n"
+                "See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#whatsnew-310-deprecations-values"
+                " for more details.",
                 Pandas4Warning,
                 # TODO bump this to stacklevel=2 in a future version
                 stacklevel=1,

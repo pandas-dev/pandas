@@ -1600,6 +1600,21 @@ def test_read_sql_iris_parameter(conn, request, sql_strings):
     check_iris_frame(iris_frame)
 
 
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_read_sql_percent_operator_and_selectable(conn, request):
+    # GH#35484
+    sa = pytest.importorskip("sqlalchemy")
+    conn = request.getfixturevalue(conn)
+
+    expected = pd.DataFrame({"r": [1]})
+
+    result = pd.read_sql(sa.text("SELECT 5 % 2 AS r"), conn)
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.read_sql(sa.select((sa.literal(5) % sa.literal(2)).label("r")), conn)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     if "adbc" in conn:
@@ -3485,8 +3500,7 @@ def test_double_precision(conn, request):
     )
     res = sql.read_sql_table("test_dtypes", conn)
 
-    # check precision of float64
-    assert np.round(df["f64"].iloc[0], 14) == np.round(res["f64"].iloc[0], 14)
+    tm.assert_series_equal(df["f64"], res["f64"])
 
     # check sql types
     meta = MetaData()
