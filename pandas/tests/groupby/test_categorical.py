@@ -1875,6 +1875,47 @@ def test_groupby_categorical_indices_unused_categories():
         tm.assert_numpy_array_equal(result[key], expected[key])
 
 
+def test_groupby_categorical_indices_sort_false_multi_key():
+    # GH#66893
+    cats = ["low", "mid"]
+    df = pd.DataFrame(
+        {
+            "x": [0, 0, 1, 1, 2, 2],
+            "g": pd.Categorical(["mid", "low"] * 3, categories=cats, ordered=True),
+        }
+    )
+    gb = df.groupby(["x", "g"], sort=False, observed=False)
+
+    result = gb.indices
+    expected = {
+        (0, "mid"): np.array([0], dtype="intp"),
+        (0, "low"): np.array([1], dtype="intp"),
+        (1, "mid"): np.array([2], dtype="intp"),
+        (1, "low"): np.array([3], dtype="intp"),
+        (2, "mid"): np.array([4], dtype="intp"),
+        (2, "low"): np.array([5], dtype="intp"),
+    }
+    assert result.keys() == expected.keys()
+    for key in result.keys():
+        tm.assert_numpy_array_equal(result[key], expected[key])
+
+
+def test_groupby_categorical_get_group_sort_false_multi_key():
+    # GH#66893
+    cats = ["low", "mid"]
+    df = pd.DataFrame(
+        {
+            "x": [0, 0, 1, 1, 2, 2],
+            "g": pd.Categorical(["mid", "low"] * 3, categories=cats, ordered=True),
+        }
+    )
+    gb = df.groupby(["x", "g"], sort=False, observed=False)
+
+    result = gb.get_group((1, "mid"))
+    expected = df.iloc[[2]]
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("func", ["first", "last"])
 def test_groupby_last_first_preserve_categoricaldtype(func):
     # GH#33090

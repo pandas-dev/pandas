@@ -1410,3 +1410,76 @@ def test_isin_mismatched_reso(dtype_kind, self_unit, val_unit):
     # unit, which our parametrization avoids), so isin should be [False, False].
     expected = np.array([False, False])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_construction_from_unit_multiplier_dtype_raises(kind):
+    # GH#25611 "10s" is not a resolution pandas can hold; reading it as "s"
+    #  silently divided every value by the multiplier
+    arr = np.array([1, 2], dtype=f"{kind}8[10s]")
+    name = "datetime64" if kind == "M" else "timedelta64"
+    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Series(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.DataFrame({"a": arr})
+    with pytest.raises(ValueError, match=msg):
+        pd.array(arr)
+
+    if kind == "M":
+        with pytest.raises(ValueError, match=msg):
+            pd.to_datetime(arr)
+        with pytest.raises(ValueError, match=msg):
+            pd.DatetimeIndex(arr)
+    else:
+        with pytest.raises(ValueError, match=msg):
+            pd.to_timedelta(arr)
+        with pytest.raises(ValueError, match=msg):
+            pd.TimedeltaIndex(arr)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_unit_multiplier_dtype_argument_raises(kind):
+    # GH#25611 asking for the resolution is rejected too, rather than being
+    #  silently downgraded to the base unit; matches e.g. "M8[Y]"
+    dtype = f"{kind}8[10s]"
+
+    msg = "is not supported. Supported resolutions are"
+    with pytest.raises(TypeError, match=msg):
+        pd.Series([1, 2], dtype=dtype)
+
+    if kind == "M":
+        err: type[Exception] = TypeError
+        msg = r"Cannot cast DatetimeArray to dtype datetime64\[10s\]"
+    else:
+        err = ValueError
+        msg = r"Cannot convert from timedelta64\[s\] to timedelta64\[10s\]"
+    with pytest.raises(err, match=msg):
+        pd.Series(np.array([1, 2], dtype=f"{kind}8[s]")).astype(dtype)
+
+    msg = "resolutions other than 's', 'ms', 'us', and 'ns' are no longer supported"
+    with pytest.raises(ValueError, match=msg):
+        pd.array([1, 2], dtype=dtype)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_scalar_unit_multiplier_in_object_array_raises(kind):
+    # GH#25611 the per-element paths dropped the multiplier as well
+    scalar = np.datetime64(1, "10s") if kind == "M" else np.timedelta64(1, "10s")
+    box = pd.to_datetime if kind == "M" else pd.to_timedelta
+    msg = (
+        "np.datetime64 objects with units containing a multiplier"
+        if kind == "M"
+        else "np.timedelta64 objects with units containing a multiplier"
+    )
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Series([scalar])
+    with pytest.raises(ValueError, match=msg):
+        box([scalar])
+
+    result = box([scalar], errors="coerce")
+    assert result.isna().all()

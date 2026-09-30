@@ -54,23 +54,22 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
     column to pyarrow's type inference.
 
     GH#57666 dtypes whose conversion must start from the original text --
-    string dtypes, object, and categoricals whose categories hold the
-    parsed strings -- are parsed as strings: converting an inferred column
-    instead is lossy (e.g. leading zeros are lost once a column has been
-    inferred as integer). All other dtypes are left to inference and cast
-    afterwards in _finalize_dtype, which is lossless for them and keeps
-    behavior consistent with the other engines (e.g. a column of
-    "True"/"False" values with dtype=float is inferred as boolean and then
-    cast, which pyarrow's parse-time conversion would reject).
+    string dtypes and object -- are parsed as strings: converting an
+    inferred column instead is lossy (e.g. leading zeros are lost once a
+    column has been inferred as integer). All other dtypes are left to
+    inference and cast afterwards in _finalize_dtype, which is lossless for
+    them and keeps behavior consistent with the other engines (e.g. a column
+    of "True"/"False" values with dtype=float is inferred as boolean and
+    then cast, which pyarrow's parse-time conversion would reject).
     """
     pa = import_optional_dependency("pyarrow")
 
     dtype = pandas_dtype(dtype)
     if isinstance(dtype, CategoricalDtype):
         if dtype.categories is None:
-            # match the other engines: the categories are the raw
-            # strings from the file
-            return pa.large_string()
+            # GH#56044 the categories are inferred like any other column,
+            #  so leave the parsing to inference
+            return None
         # explicitly typed categories behave like their own dtype
         dtype = dtype.categories.dtype
     if dtype == object:
@@ -441,7 +440,7 @@ class ArrowParserWrapper(ParserBase):
                         frame[key] = new_values
                         frame[key] = frame[key].infer_objects()
 
-            frame.set_index(index_to_set, drop=True, inplace=True)
+            frame = frame.set_index(index_to_set, drop=True)
             # Clear names if no name given for the padded leading columns
             if not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)

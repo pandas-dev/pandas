@@ -187,6 +187,7 @@ class TestSetIndex:
         tm.assert_index_equal(df.set_index([df.index, idx2]).index, mi2)
 
     # A has duplicate values, C does not
+    @pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])
     @pytest.mark.parametrize("inplace", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
@@ -208,6 +209,17 @@ class TestSetIndex:
             result = df.set_index(keys, drop=drop)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_set_index_inplace_depr(self):
+        df1 = pd.DataFrame(data=[[1, 2, 3], [2, 4, 6]], columns=["a", "b", "c"])
+        msg = "The inplace keyword in DataFrame.set_index is deprecated"
+
+        with tm.assert_produces_warning(False):
+            df1.set_index("a")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df1.set_index("a", inplace=False)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df1.set_index("a", inplace=True)
 
     # A has duplicate values, C does not
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])
@@ -418,6 +430,16 @@ class TestSetIndex:
         # round-trip
         idf = idf.reset_index().set_index("B")
         tm.assert_index_equal(idf.index, ci)
+
+    def test_set_index_preserve_object_dtype_after_query(self):
+        # GH#30517 set_index must not re-infer a subset that happens to be numeric;
+        #  reset_index still does, so the round trip is not yet lossless
+        df = pd.DataFrame({"mixed": [1, 2, "abc", "def"], "ints": [100, 200, 300, 400]})
+
+        result = df.query("ints < 300").set_index("mixed").index
+        expected = pd.Index([1, 2], dtype=object, name="mixed")
+
+        tm.assert_index_equal(result, expected)
 
     def test_set_index_preserve_categorical_dtype(self):
         # GH#13743, GH#13854

@@ -21,6 +21,7 @@ Instead of splitting it was decided to define sections here:
 from __future__ import annotations
 
 from collections import abc
+import contextlib
 from datetime import (
     UTC,
     date,
@@ -45,6 +46,8 @@ from dateutil.tz import (
 )
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
@@ -203,14 +206,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     """
     doctest_namespace["np"] = np
     doctest_namespace["pd"] = pd
-
-
-@pytest.fixture(autouse=True)
-def configure_tests() -> None:
-    """
-    Configure settings for all tests and test modules.
-    """
-    pd.set_option("chained_assignment", "raise")
 
 
 # ----------------------------------------------------------------
@@ -1947,6 +1942,13 @@ def ip():
 
 @pytest.fixture
 def mpl_cleanup():
+    """Uses mpl_cleanup_context to ensure matplotlib is cleaned up around a test."""
+    with mpl_cleanup_context():
+        yield
+
+
+@contextlib.contextmanager
+def mpl_cleanup_context():
     """
     Ensure Matplotlib is cleaned up around a test.
 
@@ -2083,7 +2085,7 @@ def using_infer_string() -> bool:
     """
     Fixture to check if infer string option is enabled.
     """
-    return pd.options.future.infer_string is True
+    return using_string_dtype()
 
 
 @pytest.fixture

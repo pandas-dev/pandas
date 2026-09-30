@@ -991,18 +991,19 @@ def test_mi_add_cell_missing_row_non_unique():
     tm.assert_frame_equal(result, expected)
 
 
-def test_loc_get_scalar_casting_to_float():
+def test_loc_get_scalar_casting_to_float(using_python_scalars):
     # GH#41369
     df = pd.DataFrame(
         {"a": 1.0, "b": 2},
         index=pd.MultiIndex.from_arrays([[3], [4]], names=["c", "d"]),
     )
+    expected_type = int if using_python_scalars else np.int64
     result = df.loc[(3, 4), "b"]
     assert result == 2
-    assert isinstance(result, np.int64)
+    assert type(result) is expected_type
     result = df.loc[[(3, 4)], "b"].iloc[0]
     assert result == 2
-    assert isinstance(result, np.int64)
+    assert type(result) is expected_type
 
 
 def test_loc_empty_single_selector_with_names():

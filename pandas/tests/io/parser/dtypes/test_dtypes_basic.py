@@ -493,6 +493,25 @@ def test_explicit_arrow_numeric_dtype(all_parsers):
         parser.read_csv(StringIO("a\n0x1F\n"), dtype={"a": "int64[pyarrow]"})
 
 
+def test_explicit_arrow_int_dtype_precision_with_na(all_parsers):
+    # GH#56135 a missing value must not cost the column its precision
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "a\n1582218195625938945\n\n-1582218195625938945\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"a": "int64[pyarrow]"}, skip_blank_lines=False
+    )
+    expected = pd.DataFrame(
+        {
+            "a": pd.array(
+                [1582218195625938945, pd.NA, -1582218195625938945],
+                dtype="int64[pyarrow]",
+            )
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("dtype", ["float", "double[pyarrow]"])
 def test_empty_field_invalid_for_float_dtype(all_parsers, dtype):
     # GH#66834 empty field with keep_default_na=False is not a valid float,

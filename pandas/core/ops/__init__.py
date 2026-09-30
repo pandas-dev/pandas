@@ -21,7 +21,10 @@ from pandas.core.ops.common import (
     maybe_warn_listlike,
     unpack_zerodim_and_defer,
 )
-from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.invalid import (
+    disallow_datetimelike_logical_op,
+    invalid_comparison,
+)
 from pandas.core.ops.mask_ops import (
     kleene_and,
     kleene_or,
@@ -69,6 +72,7 @@ __all__ = [
     "arithmetic_op",
     "comp_method_OBJECT_ARRAY",
     "comparison_op",
+    "disallow_datetimelike_logical_op",
     "fill_binop",
     "get_array_op",
     "get_op_result_name",

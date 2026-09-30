@@ -821,6 +821,9 @@ def test_pandas_dtype_ea_not_instance():
         assert pandas_dtype(CategoricalDtype) == CategoricalDtype()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pandas_dtype_string_dtypes(string_storage):
     with pd.option_context("future.infer_string", True):
         # with the default string_storage setting

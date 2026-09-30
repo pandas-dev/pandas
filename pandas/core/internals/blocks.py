@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
@@ -789,7 +790,10 @@ class Block(PandasObject, libinternals.Block):
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        if is_re(to_replace) and self.dtype not in [object, "string"]:
+        if is_re(to_replace) and _regex_target_dtype(self.dtype) not in [
+            object,
+            "string",
+        ]:
             # only object or string dtype can hold strings, and a regex object
             # will only match strings
             return [self.copy(deep=False)]
@@ -836,7 +840,9 @@ class Block(PandasObject, libinternals.Block):
 
         src_len = len(pairs) - 1
 
-        if is_string_dtype(values.dtype):
+        if is_string_dtype(values.dtype) or (
+            regex and is_string_dtype(_regex_target_dtype(values.dtype))
+        ):
             # Calculate the mask once, prior to the call of comp
             # in order to avoid repeating the same computations
             na_mask = ~isna(values)
@@ -1566,7 +1572,7 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            if self.dtype.kind not in "iubS" or not is_valid_na_for_dtype(
+            if self.dtype.kind not in "iubSUV" or not is_valid_na_for_dtype(
                 fill_value, self.dtype
             ):
                 # GH#53802
@@ -2158,6 +2164,12 @@ class ExtensionBlock(EABackedBlock):
             elif com.is_null_slice(indexer[1]):
                 indexer = indexer[0]
 
+            elif com.is_bool_indexer(indexer[1]) and len(indexer[1]) == 1:
+                if indexer[1][0]:
+                    indexer = indexer[0]
+                else:
+                    indexer = []
+
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]
 
@@ -2340,6 +2352,16 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
             values = np.array(values, dtype=object)
 
     return values
+
+
+def _regex_target_dtype(dtype: DtypeObj) -> DtypeObj:
+    """
+    The dtype a regex is actually matched against. A Categorical's elements have
+    its categories' dtype (GH#38447).
+    """
+    if isinstance(dtype, CategoricalDtype):
+        return dtype.categories.dtype
+    return dtype
 
 
 def get_block_type(dtype: DtypeObj) -> type[Block]:

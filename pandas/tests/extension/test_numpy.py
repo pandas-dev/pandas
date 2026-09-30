@@ -200,9 +200,9 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             super().test_is_not_object_type(dtype)
 
     @skip_nested
-    def test_getitem_scalar(self, data):
+    def test_getitem_scalar(self, data, using_python_scalars):
         # AssertionError
-        super().test_getitem_scalar(data)
+        super().test_getitem_scalar(data, using_python_scalars)
 
     @skip_nested
     def test_shift_fill_value(self, data):
@@ -524,6 +524,20 @@ class TestNumpyExtensionArray(base.ExtensionTests):
                 raise
         else:
             super().test_json_roundtrip(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:Casting complex values to real discards the imaginary part:"
+        "numpy.exceptions.ComplexWarning"
+    )
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # While plotting complex numbers only the real part is plotted, therefore numpy
+        # raises a ComplexWarning. Object dtype as it cannot be plotted on y-axis.
+        if is_object_dtype(plot_data["Data"].dtype):
+            with pytest.raises(TypeError, match="no numeric data to plot"):
+                super().test_plot_on_y_axis(plot_data)
+        else:
+            super().test_plot_on_y_axis(plot_data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

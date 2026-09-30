@@ -13,6 +13,7 @@ import pytest
 from pandas._typing import MergeHow
 
 import pandas as pd
+from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 # TODO:
 # * Binary methods (mul, div, etc.)
@@ -382,9 +383,11 @@ def test_finalize_called(ndframe_method):
     assert result.attrs == {"a": 1}
 
 
+@pytest.mark.skipif(
+    not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
+)
 @not_implemented_mark
 def test_finalize_called_eval_numexpr():
-    pytest.importorskip("numexpr")
     df = pd.DataFrame({"A": [1, 2]})
     df.attrs["A"] = 1
     result = df.eval("A + 1", engine="numexpr")

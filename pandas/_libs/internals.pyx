@@ -889,6 +889,7 @@ cdef class BlockManager:
         self._is_consolidated = False
         self._known_consolidated = False
         self._interleaved_dtype = None
+        self._dtypes_cache = None
         self._rebuild_blknos_and_blklocs()
 
     # -------------------------------------------------------------------

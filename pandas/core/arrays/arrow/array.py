@@ -334,6 +334,44 @@ def _is_varbinary_type(pa_type: pa.DataType) -> bool:
     )
 
 
+def _boxing_may_borrow_memory(pa_type: pa.DataType) -> bool:
+    """
+    Whether ``pa.array`` on this type can return a view on caller-owned memory.
+
+    Zero-copy over numpy/masked arrays for fixed-width layouts; character
+    layouts always repack, so copying those would cost a full copy of the
+    character data for no safety gain. Nested types may have a zero-copy child.
+    """
+    return not (
+        _is_varbinary_type(pa_type)
+        or pa.types.is_string_view(pa_type)
+        or pa.types.is_binary_view(pa_type)
+    )
+
+
+def _copy_pyarrow_buffers(
+    pa_array: pa.Array | pa.ChunkedArray,
+) -> pa.Array | pa.ChunkedArray:
+    """
+    Return an equal array that owns its buffers (GH#67990).
+
+    ``pa.concat_arrays`` reuses the ``dictionary`` child rather than copying it,
+    so dictionary types are rebuilt from copies of both halves.
+    """
+    if isinstance(pa_array, pa.ChunkedArray):
+        return pa.chunked_array(
+            [_copy_pyarrow_buffers(chunk) for chunk in pa_array.chunks],
+            type=pa_array.type,
+        )
+    if pa.types.is_dictionary(pa_array.type):
+        return pa.DictionaryArray.from_arrays(
+            _copy_pyarrow_buffers(pa_array.indices),
+            _copy_pyarrow_buffers(pa_array.dictionary),
+            ordered=pa_array.type.ordered,
+        )
+    return pa.concat_arrays([pa_array])
+
+
 @set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
@@ -508,14 +546,35 @@ class ArrowExtensionArray(
         ):
             from pandas.core.tools.numeric import to_numeric
 
-            scalars = to_numeric(strings, errors="raise")
             if is_pa_array:
+                # to_numeric only to reject spellings pyarrow's cast accepts
+                #  but we do not, e.g. "0x1F"
+                to_numeric(strings, errors="raise")
                 scalars = strings.cast(pa_type)
             else:
+                if pa.types.is_integer(pa_type):
+                    # GH#56135: the default backend widens to float64 as soon
+                    #  as an NA is present, rounding integers above 2**53
+                    scalars = extract_array(
+                        to_numeric(
+                            strings, errors="raise", dtype_backend="numpy_nullable"
+                        ),
+                        extract_numpy=True,
+                    )
+                    if not isinstance(scalars, BaseMaskedArray):
+                        # the nullable backend returns object outside int64,
+                        #  and outside uint64 it also drops the NAs
+                        scalars = to_numeric(strings, errors="raise")
+                else:
+                    scalars = to_numeric(strings, errors="raise")
+
                 mask = isna(strings)
                 # GH#66834: to_numeric coerces "" to NaN instead of raising
                 if (isna(scalars) & ~mask).any():
                     raise ValueError(f"could not convert string to {pa_type}: ''")
+                if isinstance(scalars, BaseMaskedArray):
+                    # the check above leaves scalars._mask a subset of mask
+                    scalars = scalars._data
                 scalars = pa.array(scalars, mask=mask, type=pa_type)
 
         else:
@@ -1104,6 +1163,14 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
+        if isinstance(other, range):
+            # GH#63429 our callers defer both of these to the EA for EA-backed
+            #  values, and ops.comparison_op's length check does not see
+            #  through a range.
+            ops.maybe_warn_listlike(other)
+            if len(self) != len(other):
+                raise ValueError("Lengths must match to compare")
+
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             try:
                 boxed = self._box_pa(other)
@@ -1113,10 +1180,8 @@ class ArrowExtensionArray(
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
-                if (
-                    (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype))
-                    or (pa.types.is_timestamp(rtype) and pa.types.is_date(ltype))
-                    or isinstance(other, range)
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
                 ):
                     # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
@@ -2770,10 +2835,11 @@ class ArrowExtensionArray(
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        ddof: int = 1,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="sem")
-        return self._reduce("sem", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("sem", skipna=skipna, ddof=ddof, axis=axis, **kwargs)
 
     def skew(
         self,
@@ -2905,6 +2971,10 @@ class ArrowExtensionArray(
                 and value.type == self._pa_array.type
                 and len(value) == len(self)
             ):
+                # GH#67990 this adopts ``value`` as our backing array, so copy
+                #  first if the caller may still own and mutate its buffers.
+                if _boxing_may_borrow_memory(value.type):
+                    value = _copy_pyarrow_buffers(value)
                 data = value
             else:
                 data = self._if_else(True, value, self._pa_array)
@@ -3178,18 +3248,11 @@ class ArrowExtensionArray(
         if not self.dtype._is_numeric:
             raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
 
-        if (
-            method == "linear"
-            and limit_area is None
-            and limit is None
-            and limit_direction == "forward"
-        ):
-            values = self._pa_array.combine_chunks()
-            na_value = pa.array([None], type=values.type)
-            y_diff_2 = pc.fill_null_backward(pc.pairwise_diff_checked(values, period=2))
-            prev_values = pa.concat_arrays([na_value, values[:-2], na_value])
-            interps = pc.add_checked(prev_values, pc.divide_checked(y_diff_2, 2))
-            return self._from_pyarrow_array(pc.coalesce(self._pa_array, interps))
+        # GH#65345: a pyarrow-native fast path for
+        # method="linear"/limit_direction="forward" was removed here because
+        # it only handled isolated NAs (leaving consecutive and trailing NAs
+        # unfilled), truncated interpolated values for integer dtypes, and
+        # did not upcast to float64 like the general path below.
 
         mask = self.isna()
         if self.dtype.kind == "f":
@@ -3307,6 +3370,11 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
+        if pa_version_under25p0 and pa.types.is_null(values.type):
+            # GH#66703 pc.replace_with_mask aborts the process for null dtype
+            # (apache/arrow#47447, fixed in pyarrow 25.0.0). The null type
+            # has no non-null values to replace; return it unchanged.
+            return values
         try:
             return pc.replace_with_mask(values, mask, replacements)
         except pa.ArrowNotImplementedError:
@@ -3460,38 +3528,30 @@ class ArrowExtensionArray(
             )
             result_values = pc.if_else(below_min_count, None, result_values)
 
-        # Scatter results into output array ordered by group id.
-        # Fallback to NumPy here due to the limitation of pc.scatter.
-        # Another workaround is to use join + sort.
-        # TODO: revisit this part when pc.scatter becomes more functionally complete.
-        result_group_ids_np = result_group_ids.to_numpy(zero_copy_only=False).astype(
-            np.int64, copy=False
-        )
-        result_values_np = result_values.to_numpy(zero_copy_only=False)
+        # Place the results in group-id order: the inverse permutation takes
+        # the row holding group i, and is null where group i had no rows.
+        group_ids_np = result_group_ids.to_numpy(zero_copy_only=False)
+        inverse = np.full(ngroups, -1, dtype=np.int64)
+        inverse[group_ids_np] = np.arange(len(group_ids_np))
+        indices = pa.array(inverse, mask=inverse < 0)
 
-        default_py = default_value.as_py()
-        try:
-            if default_py is not None and min_count == 0:
-                # Fill missing groups with identity element
-                output_np = np.full(ngroups, default_py, dtype=result_values_np.dtype)
-                output_np[result_group_ids_np] = result_values_np
-                pa_result = pa.array(output_np, type=output_type)
+        if how in ["sum", "prod"] and pa.types.is_decimal(output_type):
+            try:
+                # take would carry an out-of-precision decimal through silently
+                result_values.validate(full=True)
+            except pa.ArrowInvalid:
+                # needs more digits than the maximum precision, so let the
+                # caller fall back to a type that can hold it
+                return None
+
+        pa_result = pc.take(result_values, indices)
+        if default_value.as_py() is not None and min_count == 0:
+            if result_values.null_count == 0:
+                # every null is a group with no rows
+                pa_result = _safe_fill_null(pa_result, default_value)
             else:
-                # Fill missing groups with null
-                output_np = np.empty(ngroups, dtype=result_values_np.dtype)
-                null_mask = np.ones(ngroups, dtype=bool)
-                output_np[result_group_ids_np] = result_values_np
-                null_mask[result_group_ids_np] = False
-                if result_values.null_count > 0:
-                    result_nulls = pc.is_null(result_values).to_numpy()
-                    null_mask[result_group_ids_np[result_nulls]] = True
-                pa_result = pa.array(output_np, type=output_type, mask=null_mask)
-        except pa.ArrowInvalid:
-            # A group result does not fit the aggregated type, e.g. a decimal
-            # sum or product needing more digits than the maximum precision.
-            # Fall back so the result keeps the wider type it needs.
-            return None
-
+                # keep the skipna=False nulls, fill only the empty groups
+                pa_result = pc.if_else(pc.is_null(indices), default_value, pa_result)
         return self._from_pyarrow_array(pa_result)
 
     def _to_groupby_compatible(self) -> ExtensionArray:

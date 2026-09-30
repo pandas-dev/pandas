@@ -93,6 +93,9 @@ def test_dataframe_from_arrow():
 
 
 @td.skip_if_no("pyarrow")
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_dataframe_from_arrow_custom_conversion():
     # ensuring that we use our custom conversion and not the default pyarrow to_pandas
     table = pa.table(

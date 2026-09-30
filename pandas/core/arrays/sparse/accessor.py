@@ -465,7 +465,8 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Ratio of non-sparse points to total (dense) data points.
 
         This property returns the proportion of the data that is not sparse
-        (i.e., not equal to the fill value), as a value between 0 and 1.
+        (i.e., not equal to the fill value), as a value between 0 and 1. An
+        empty DataFrame has no density and returns ``nan``.
 
         See Also
         --------
@@ -478,8 +479,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         >>> df.sparse.density
         np.float64(0.5)
         """
-        tmp = np.mean([column.array.density for _, column in self._parent.items()])
-        return tmp
+        if len(self._parent.columns) == 0:
+            # mean of an empty list is undefined
+            return np.nan
+        return np.mean([column.array.density for _, column in self._parent.items()])
 
     @staticmethod
     def _prep_index(data, index, columns):

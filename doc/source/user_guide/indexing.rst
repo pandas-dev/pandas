@@ -196,6 +196,38 @@ columns.
       df.iloc[:, [1, 0]] = df[['A', 'B']]
       df[['A','B']]
 
+.. _indexing.select:
+
+Selecting columns with ``select``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.select` returns a DataFrame with the requested columns in the
+given order, similar to passing a list of columns to ``[]``. As a method, it
+can be used within a chain of operations. Columns can be given as individual
+arguments or as a single list:
+
+.. ipython:: python
+
+   df.select('B', 'A')
+   df.select(['B', 'A'])
+
+In addition to existing columns, computed columns can be included via
+:func:`pandas.col` expressions or callables. A positional expression keeps the
+name of the underlying column, while a keyword argument names the resulting
+column. Later arguments can refer to columns computed earlier in the same call:
+
+.. ipython:: python
+
+   df.select('A', pd.col('B') * 2, C=pd.col('A') + pd.col('B'), D=pd.col('C') > 0)
+
+A computed column with the same name as an existing column replaces it for
+later arguments. It does not replace a column that was already selected, so
+the result can contain duplicate column labels:
+
+.. ipython:: python
+
+   df.select('A', A=pd.col('A') * 2, E=pd.col('A'))
+
 
 Attribute access
 ----------------
