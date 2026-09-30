@@ -166,8 +166,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
 
 Missing
 ^^^^^^^
