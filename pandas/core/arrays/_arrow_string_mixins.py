@@ -176,6 +176,12 @@ class ArrowStringArrayMixin:
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ) -> Self:
+        if width < 0:
+            # GH#69749 a non-positive width is a no-op in Python (str.ljust
+            #  and friends return the string unchanged), but Arrow's padding
+            #  kernels size their output buffer from width and raise on
+            #  negative values, so clamp before dispatching to the kernel.
+            width = 0
         if side == "left":
             pa_pad = pc.utf8_lpad
         elif side == "right":
