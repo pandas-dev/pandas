@@ -162,6 +162,7 @@ class StylerRenderer:
         max_rows: int | None = None,
         max_cols: int | None = None,
         blank: str = "",
+        trim: bool = True,
     ):
         """
         Computes and applies styles and then generates the general render dicts.
@@ -184,7 +185,7 @@ class StylerRenderer:
                 "foot": f"{foot}_foot",
             }
             dx = concatenated._render(
-                sparse_index, sparse_columns, max_rows, max_cols, blank
+                sparse_index, sparse_columns, max_rows, max_cols, blank, trim
             )
             dxs.append(dx)
 
@@ -196,7 +197,7 @@ class StylerRenderer:
             ctx_len += len(concatenated.index)
 
         d = self._translate(
-            sparse_index, sparse_columns, max_rows, max_cols, blank, dxs
+            sparse_index, sparse_columns, max_rows, max_cols, blank, dxs, trim
         )
         return d
 
@@ -226,7 +227,8 @@ class StylerRenderer:
         """
         Render a Styler in latex format
         """
-        d = self._render(sparse_index, sparse_columns, None, None)
+        # LaTeX is an export format, so never trim to the display limits, GH#68310
+        d = self._render(sparse_index, sparse_columns, trim=False)
         self._translate_latex(d, clines=clines)
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
@@ -317,6 +319,7 @@ class StylerRenderer:
         max_cols: int | None = None,
         blank: str = "&nbsp;",
         dxs: list[dict] | None = None,
+        trim: bool = True,
     ):
         """
         Process Styler data and settings into a dict for template rendering.
@@ -338,6 +341,9 @@ class StylerRenderer:
             Entry to top-left blank cells.
         dxs : list[dict]
             The render dicts of the concatenated Stylers.
+        trim : bool, default True
+            Whether to trim rows and columns to ``max_rows``, ``max_cols`` and the
+            ``styler.render`` options. If False, render all rows and columns.
 
         Returns
         -------
@@ -356,16 +362,21 @@ class StylerRenderer:
             "caption": self.caption,
         }
 
-        max_elements = config["styler"]["render"]["max_elements"]
-        max_rows = max_rows if max_rows else config["styler"]["render"]["max_rows"]
-        max_cols = max_cols if max_cols else config["styler"]["render"]["max_columns"]
-        max_rows, max_cols = _get_trimming_maximums(
-            len(self.data.index),
-            len(self.data.columns),
-            max_elements,
-            max_rows,
-            max_cols,
-        )
+        if trim:
+            max_elements = config["styler"]["render"]["max_elements"]
+            max_rows = max_rows if max_rows else config["styler"]["render"]["max_rows"]
+            max_cols = (
+                max_cols if max_cols else config["styler"]["render"]["max_columns"]
+            )
+            max_rows, max_cols = _get_trimming_maximums(
+                len(self.data.index),
+                len(self.data.columns),
+                max_elements,
+                max_rows,
+                max_cols,
+            )
+        else:
+            max_rows, max_cols = len(self.data.index), len(self.data.columns)
 
         self.cellstyle_map_columns: defaultdict[tuple[CSSPair, ...], list[str]] = (
             defaultdict(list)

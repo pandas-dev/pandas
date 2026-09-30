@@ -1958,6 +1958,16 @@ def test_eval_float_div_numexpr():
     assert result == expected
 
 
+@skip_if_no_numexpr
+def test_eval_int64_result_dtype_type():
+    # GH#17945 numexpr returns longlong for int64, which select_dtypes dropped
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]}, dtype="int64")
+    df["c"] = df.eval("a - b", engine="numexpr")
+    assert df["c"].dtype.type is np.int64
+    result = df.select_dtypes("int64")
+    tm.assert_frame_equal(result, df)
+
+
 def test_call_with_binop_argument():
     # GH#24670 a compound call argument has no .value to read off, as the
     #  unary case in test_unary_in_function

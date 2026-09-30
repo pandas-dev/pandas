@@ -235,7 +235,7 @@ def _has_dense_fill(arr: SparseArray) -> bool:
 
 
 def _sparse_array_op(
-    left: SparseArray, right: SparseArray, op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable[..., Any], name: str
 ) -> SparseArray:
     """
     Perform a binary operation between two arrays.
@@ -354,7 +354,7 @@ def _sparse_array_op(
 
 
 def _dense_array_op(
-    left: SparseArray, right: SparseArray, op: Callable, name: str
+    left: SparseArray, right: SparseArray, op: Callable[..., Any], name: str
 ) -> SparseArray:
     """
     Densify both operands, run the non-sparse op, and re-sparsify on the fill value.
@@ -3114,7 +3114,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # resolve to the ExtensionArray version.
     __repr__ = ExtensionArray.__repr__
 
-    def _formatter(self, boxed: bool = False) -> Callable:
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         # Use str to avoid np.int64(...) wrapping in repr output.
         return str
 
