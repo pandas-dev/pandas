@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -326,6 +327,25 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(date_format="%Y-%m-%d___%H:%M:%S") == expected
 
+    def test_to_csv_date_format_object_dtype(self):
+        # GH#27306 date_format applies to datetimes in object-dtype column
+        # labels, index, and values
+        ts = pd.Timestamp("2019-07-09")
+        per = pd.Period("2019-07", freq="M")
+        index = pd.Index([ts, "a", pd.NaT], dtype=object)
+        df = pd.DataFrame(
+            {ts: [1, 2, 3], "b": pd.array([per, ts, pd.NaT], dtype=object)},
+            index=index,
+        )
+        expected_rows = [
+            ",2019-07-09,b",
+            "2019-07-09,1,2019-07-31",
+            "a,2,2019-07-09",
+            "NA,3,NA",
+        ]
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert df.to_csv(date_format="%Y-%m-%d", na_rep="NA") == expected
+
     def test_to_csv_interval_columns(self):
         # GH#55426 - exercise the column path for IntervalArray
         df = pd.DataFrame(
@@ -416,6 +436,29 @@ $1$,$2$
         )
         expected = np.array([["1.0", "NA"], ["3.0", "4.0"]], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float16",
+            "float32",
+            "Float32",
+            pytest.param("float32[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "quoting, expected_rows",
+        [
+            (csv.QUOTE_NONNUMERIC, ['"a","b"', "8.57,0.5", '"",1.5']),
+            (csv.QUOTE_ALL, ['"a","b"', '"8.57","0.5"', '"","1.5"']),
+        ],
+    )
+    def test_to_csv_quoting_low_precision_float(self, dtype, quoting, expected_rows):
+        # GH#60699 quoting should not write the float64 repr of the values
+        df = pd.DataFrame({"a": [8.57, None], "b": [0.5, 1.5]}, dtype=dtype)
+        result = df.to_csv(index=False, quoting=quoting)
+        expected = tm.convert_rows_list_to_csv_str(expected_rows)
+        assert result == expected
 
     def test_to_csv_multi_index(self):
         # see gh-6618
