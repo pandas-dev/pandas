@@ -176,8 +176,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
--
+- :meth:`MultiIndex.intersection`, :meth:`MultiIndex.union`, :meth:`MultiIndex.difference` and :meth:`MultiIndex.symmetric_difference` now raise ``TypeError`` for a list-like operand holding string or bytes-like entries, which were previously split into their elements and treated as a tuple of levels (:issue:`39699`)
 
 I/O
 ^^^
