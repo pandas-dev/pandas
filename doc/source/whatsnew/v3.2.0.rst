@@ -106,6 +106,7 @@ deprecation2
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
+- Deprecated :meth:`Series.median` and :meth:`DataFrame.median` on ``complex`` data; in a future version these will raise ``TypeError``. Take the median of the real and imaginary parts separately instead (:issue:`43770`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 
 .. ---------------------------------------------------------------------------
@@ -143,8 +144,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
--
+- Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 
 Conversion
 ^^^^^^^^^^
@@ -192,8 +192,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
--
+- Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.std`, :meth:`.GroupBy.sem`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 
 Reshaping
 ^^^^^^^^^
