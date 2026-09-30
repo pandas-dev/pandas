@@ -211,8 +211,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
--
+- Bug in :func:`factorize` and groupby operations with a PyArrow ``dictionary`` dtype producing groups for values no longer present (e.g. after filtering) or splitting one value across two groups; ``uniques`` are now ordered by first appearance, as for other dtypes (:issue:`69024`)
 
 Styler
 ^^^^^^
