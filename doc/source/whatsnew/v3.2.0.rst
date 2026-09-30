@@ -107,6 +107,7 @@ deprecation2
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf`; to control caching, use :func:`to_datetime` with ``cache`` (:issue:`68705`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:

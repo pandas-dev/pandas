@@ -1579,7 +1579,7 @@ def read_csv(
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
-        .. deprecated:: 3.1.0
+        .. deprecated:: 3.2.0
             The ``cache_dates`` argument will be removed in a future version.
             To control caching, use :func:`to_datetime` with ``cache``.
 
@@ -2184,7 +2184,7 @@ def read_table(
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
 
-        .. deprecated:: 3.1.0
+        .. deprecated:: 3.2.0
             The ``cache_dates`` argument will be removed in a future version.
             To control caching, use :func:`to_datetime` with ``cache``.
 
