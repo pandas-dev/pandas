@@ -1271,17 +1271,17 @@ def test_comparison_between_arraylike_preserve_na(left, right):
         return None
 
     result_1 = left(data_1) == right(data_2)
-    result_1 = left(data_2) == right(data_1)
-    result_2 = left(data_2) == right(data_3)
-    result_2 = left(data_3) == right(data_2)
+    result_2 = left(data_2) == right(data_1)
+    result_3 = left(data_2) == right(data_3)
+    result_4 = left(data_3) == right(data_2)
 
     if left is pd.Series or right is pd.Series:
         tm.assert_series_equal(result_1, expected_series_1)
-        tm.assert_series_equal(result_1, expected_series_1)
-        tm.assert_series_equal(result_2, expected_series_2)
-        tm.assert_series_equal(result_2, expected_series_2)
+        tm.assert_series_equal(result_2, expected_series_1)
+        tm.assert_series_equal(result_3, expected_series_2)
+        tm.assert_series_equal(result_4, expected_series_2)
     else:
         tm.assert_numpy_array_equal(result_1, expected_ndarray_1)
-        tm.assert_numpy_array_equal(result_1, expected_ndarray_1)
-        tm.assert_numpy_array_equal(result_2, expected_ndarray_2)
-        tm.assert_numpy_array_equal(result_2, expected_ndarray_2)
+        tm.assert_numpy_array_equal(result_2, expected_ndarray_1)
+        tm.assert_numpy_array_equal(result_3, expected_ndarray_2)
+        tm.assert_numpy_array_equal(result_4, expected_ndarray_2)
