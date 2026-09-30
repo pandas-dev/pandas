@@ -224,8 +224,7 @@ Other
 
 .. ***DO NOT USE THIS SECTION***
 
--
--
+- Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.contributors:
