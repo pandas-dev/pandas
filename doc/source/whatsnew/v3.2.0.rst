@@ -131,8 +131,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
--
+- Bug in :class:`Timestamp` constructor, :func:`to_datetime`, and :func:`read_csv` with ``parse_dates`` where a comma used as a date separator was read as a decimal point, silently giving a wrong result (e.g. ``"2013,11,04"`` parsed as ``2013-04-01``); such strings now raise, and :func:`read_csv` leaves the column unparsed (:issue:`17265`)
 
 Timedelta
 ^^^^^^^^^
