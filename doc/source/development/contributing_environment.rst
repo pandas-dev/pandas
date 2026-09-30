@@ -140,7 +140,7 @@ Consult the `docs <https://github.com/pyenv/pyenv>`_ for setting up pyenv.
 
 Below is a brief overview on how to set-up a virtual environment with Powershell
 under Windows. For details please refer to the
-`official virtualenv user guide <https://virtualenv.pypa.io/en/latest/user_guide.html#activators>`__.
+`official virtualenv user guide <https://virtualenv.pypa.io/en/latest/how-to/usage.html#activate-a-virtual-environment>`__.
 
 Use an ENV_DIR of your choice. We'll use ``~\\virtualenvs\\pandas-dev`` where
 ``~`` is the folder pointed to by either ``$env:USERPROFILE`` (Powershell) or

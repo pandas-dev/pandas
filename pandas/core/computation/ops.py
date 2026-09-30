@@ -111,8 +111,10 @@ class Term:
     def _resolve_name(self):
         local_name = str(self.local_name)
         is_local = self.is_local
-        if local_name in self.env.scope and isinstance(
-            self.env.scope[local_name], type
+        if (
+            not str(self.name).startswith(LOCAL_TAG)
+            and local_name in self.env.scope
+            and isinstance(self.env.scope[local_name], type)
         ):
             is_local = False
 
@@ -222,7 +224,7 @@ class Op:
         self.operands = operands
         self.encoding = encoding
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Term | Op]:
         return iter(self.operands)
 
     def __repr__(self) -> str:
@@ -438,7 +440,7 @@ class BinOp(Op):
         """
 
         def stringify(value):
-            encoder: Callable
+            encoder: Callable[[object], str | bytes]
             if self.encoding is not None:
                 encoder = partial(pprint_thing_encoded, encoding=self.encoding)
             else:
