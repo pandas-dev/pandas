@@ -102,24 +102,6 @@ class TestDecimalArray(base.ExtensionTests):
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_array(self, request, data, all_reductions, skipna: bool):
-        op_name = all_reductions
-        ser = pd.Series(data)
-
-        if op_name != "count":
-            # https://github.com/pandas-dev/pandas/pull/63512
-            # DecimalArray does not overwrite the base reduction methods to forward
-            # them to _reduce.
-            msg = (
-                f"'DecimalArray' with dtype decimal does not support operation "
-                f"'{op_name}'"
-            )
-            with pytest.raises(TypeError, match=msg):
-                getattr(ser.array, op_name)()
-        else:
-            return super().test_reduce_array(request, data, all_reductions, skipna)
-
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
 
