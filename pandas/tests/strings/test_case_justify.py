@@ -209,18 +209,13 @@ def test_pad_fillchar_bad_arg_raises(any_string_dtype):
 
 @pytest.mark.parametrize("method_name", ["center", "ljust", "rjust", "pad"])
 def test_pad_negative_width(method_name, any_string_dtype):
-    s = pd.Series(
-        ["ab", "+ab", "", "café"],
-        dtype=any_string_dtype,
-    )
+    s = pd.Series(["ab", "+ab", "", "café"], dtype=any_string_dtype)
 
     result = getattr(s.str, method_name)(width=-5)
 
     expected = pd.Series(
-        ["ab", "+ab", "", "café"],
-        dtype=any_string_dtype,
+        ["ab", "+ab", "", "café"], dtype=any_string_dtype
     )
-
     tm.assert_series_equal(result, expected)
 
 
