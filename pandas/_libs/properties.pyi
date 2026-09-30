@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from typing import (
+    Any,
     overload,
 )
 
@@ -23,5 +24,5 @@ class AxisProperty:
     @overload
     def __get__(self, obj: None, type: type) -> AxisProperty: ...
     def __set__(
-        self, obj: DataFrame | Series, value: AnyArrayLike | Sequence, /
+        self, obj: DataFrame | Series, value: AnyArrayLike | Sequence[Any], /
     ) -> None: ...
