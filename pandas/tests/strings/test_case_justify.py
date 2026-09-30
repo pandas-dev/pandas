@@ -213,9 +213,7 @@ def test_pad_negative_width(method_name, any_string_dtype):
 
     result = getattr(s.str, method_name)(width=-5)
 
-    expected = pd.Series(
-        ["ab", "+ab", "", "café"], dtype=any_string_dtype
-    )
+    expected = pd.Series(["ab", "+ab", "", "café"], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
