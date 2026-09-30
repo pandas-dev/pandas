@@ -204,8 +204,7 @@ Reshaping
 
 Sparse
 ^^^^^^
--
--
+- Bug in operations between a ``Sparse`` dtype and an object that is neither list-like nor a recognized scalar raising ``ValueError`` about mismatched lengths, or ``TypeError`` on the operand's missing length, instead of operating against it as a scalar (:issue:`31646`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -219,6 +218,9 @@ Styler
 
 Other
 ^^^^^
+
+- Bug in ``&``, ``|`` and ``^`` between a :class:`Series`, :class:`Index` or :class:`DataFrame` and an object that is neither list-like nor a recognized scalar raising a bare ``AssertionError`` instead of ``TypeError`` (:issue:`31646`)
+- Bug in operations between an iterator and a :class:`DataFrame`, :class:`Series`, :class:`Index` or :class:`ExtensionArray` raising, or consuming it element-wise, instead of treating it as scalar-like (:issue:`31646`)
 
 .. ***DO NOT USE THIS SECTION***
 
