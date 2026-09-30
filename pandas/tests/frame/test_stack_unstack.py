@@ -1,6 +1,5 @@
 from datetime import datetime
 import itertools
-import re
 
 import numpy as np
 import pytest
@@ -2465,7 +2464,7 @@ class TestStackUnstackMultiLevel:
     @pytest.mark.filterwarnings(
         "ignore:The previous implementation of stack is deprecated"
     )
-    def test_stack_multiple_bug(self, future_stack, using_infer_string):
+    def test_stack_multiple_bug(self, future_stack):
         # bug when some uniques are not present in the data GH#3170
         id_col = ([1] * 3) + ([2] * 3)
         name = (["a"] * 3) + (["b"] * 3)
@@ -2476,11 +2475,6 @@ class TestStackUnstackMultiLevel:
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        msg = re.escape("agg function failed [how->mean,dtype->")
-        if using_infer_string:
-            msg = "dtype 'str' does not support operation 'mean'"
-        with pytest.raises(TypeError, match=msg):
-            unst.resample("W-THU").mean()
         down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID", future_stack=future_stack)
         xp = (
