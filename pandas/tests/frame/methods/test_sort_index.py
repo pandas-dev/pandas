@@ -915,6 +915,19 @@ class TestDataFrameSortIndexKey:
         ).set_index(list("abc"))
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_sort_multi_index_key_level_name(self, axis):
+        # GH#62361
+        mi = pd.MultiIndex.from_product([["a"], ["top10", "top2"]], names=["A", "B"])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=mi, columns=mi)
+
+        result = df.sort_index(
+            axis=axis, level="B", key=lambda x: x.str.len().to_numpy()
+        )
+
+        expected = df.iloc[[1, 0]] if axis == 0 else df.iloc[:, [1, 0]]
+        tm.assert_frame_equal(result, expected)
+
     def test_changes_length_raises(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         with pytest.raises(ValueError, match="change the shape"):

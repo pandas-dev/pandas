@@ -1923,6 +1923,21 @@ class TestAsOfMerge:
         with pytest.raises(MergeError, match="can only asof on a key for left"):
             pd.merge_asof(trades, quotes, by="ticker")
 
+    def test_valid_join_keys_one_sided_categorical(self):
+        # GH#58517 only the right key is categorical, so the categorical-specific
+        #  message does not apply and the generic one is used
+        left = pd.DataFrame({"time": [1, 2, 3], "k": ["a", "b", "c"], "lv": [1, 2, 3]})
+        right = pd.DataFrame(
+            {
+                "time": [1, 2, 3],
+                "k": pd.Categorical(["a", "b", "c"]),
+                "rv": [4, 5, 6],
+            }
+        )
+        msg = r"incompatible merge keys \[0\] .* must be the same type"
+        with pytest.raises(MergeError, match=msg):
+            pd.merge_asof(left, right, on="time", by="k")
+
     def test_with_duplicates(self, datapath, trades, quotes, asof):
         q = (
             pd.concat([quotes, quotes])

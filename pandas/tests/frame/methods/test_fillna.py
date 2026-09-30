@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import (
+    InvalidIndexError,
     OutOfBoundsDatetime,
     Pandas4Warning,
 )
@@ -919,3 +920,16 @@ def test_fillna_with_duplicate_index_and_unique_fill_frame():
     result = df.fillna(df_fillna)
     expected = pd.DataFrame({"a": [10.0, 20.0, 5.0]}, index=[0, 1, 0])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("axis", ["index", "columns"])
+def test_fillna_fill_frame_with_duplicate_labels_raises(axis):
+    # GH#27672
+    df = pd.DataFrame({"A": [1.0, np.nan], "B": [np.nan, 2.0]}, index=["a", "b"])
+    if axis == "index":
+        value = pd.DataFrame({"A": [1, 0, 2], "B": [1, 2, 3]}, index=["b", "a", "b"])
+    else:
+        value = pd.DataFrame([[1, 2, 3]] * 2, index=["a", "b"], columns=["A", "B", "B"])
+    msg = "Cannot align with an object that has duplicate labels"
+    with pytest.raises(InvalidIndexError, match=msg):
+        df.fillna(value)

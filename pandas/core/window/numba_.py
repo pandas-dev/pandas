@@ -82,7 +82,7 @@ def generate_numba_ewm_func(
     com: float,
     adjust: bool,
     ignore_na: bool,
-    deltas: tuple,
+    deltas: tuple[float, ...],
     normalize: bool,
 ):
     """
@@ -264,7 +264,7 @@ def generate_numba_ewm_table_func(
     com: float,
     adjust: bool,
     ignore_na: bool,
-    deltas: tuple,
+    deltas: tuple[float, ...],
     normalize: bool,
 ):
     """
