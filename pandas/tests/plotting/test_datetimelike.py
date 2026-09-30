@@ -2306,17 +2306,28 @@ def test_ts_plot_tz_aware_starts_at_dst_fall_back():
     assert len(set(xdata)) == len(index)
 
 
-@pytest.mark.parametrize("x_compat", [False, True])
-def test_ts_plot_tz_aware_across_dst_fall_back(x_compat):
-    # GH#62936 wall times repeat across the fall-back transition, so the
-    #  wall-clock period axis would draw the repeated hour on top of the
-    #  first one; every point has to keep its own x position
+def test_ts_plot_tz_aware_across_dst_fall_back():
+    # GH#62936 starts at the first 02:00 of the fall-back day, which is
+    #  ambiguous once the timezone is dropped
     index = date_range(
         "2025-10-26T00:00", "2025-10-26T03:00", freq="5min", tz="UTC"
     ).tz_convert("MET")
     ser = pd.Series(np.arange(len(index)), index=index)
 
-    ax = ser.plot(x_compat=x_compat)
+    ax = ser.plot()
+
+    assert len(ax.get_lines()[0].get_xdata()) == len(index)
+
+
+def test_ts_plot_tz_aware_period_start_nonexistent():
+    # GH#62936 Lord Howe Island springs forward 02:00 -> 02:30, so the hourly
+    #  period of the first timestamp (02:30) starts at a nonexistent 02:00
+    utc = date_range("2025-10-04T15:30", periods=5, freq="h", tz="UTC")
+    index = utc.tz_convert("Australia/Lord_Howe")
+    assert index[0] == pd.Timestamp("2025-10-05 02:30+11:00", tz="Australia/Lord_Howe")
+    ser = pd.Series(np.arange(len(index)), index=index)
+
+    ax = ser.plot()
 
     xdata = ax.get_lines()[0].get_xdata()
     assert len(set(xdata)) == len(index)

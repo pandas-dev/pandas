@@ -298,14 +298,6 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
     # inspect the first element because the index has a (possibly inferred)
     # freq, so the rest are evenly spaced relative to it.
     if isinstance(index, ABCDatetimeIndex):
-        if index.tz is not None:
-            # GH#62936: the dynamic axis plots wall-clock periods, so a tz-aware
-            # index that repeats wall times (the fall-back DST transition) would
-            # draw those points on top of each other. Use the regular datetime
-            # axis instead, which keeps every point distinct.
-            wall = index.tz_localize(None)
-            if not (wall.is_monotonic_increasing and wall.is_unique):
-                return False
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
