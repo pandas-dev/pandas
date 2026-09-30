@@ -1806,13 +1806,14 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                 # GH#47776 re-run the ndarray guards on the NA-free values, e.g.
                 #  to reject a negative value going into an unsigned dtype.
                 if isinstance(arr.dtype, SparseDtype):
-                    # np.asarray widens a SparseArray to the fill_value's dtype,
-                    #  so ask for the subtype explicitly to keep e.g. Sparse[int8]
-                    #  out of int64. (GH#68421)
-                    subtype = arr.dtype.subtype
+                    # np.asarray widens a SparseArray to the fill_value's dtype
+                    #  (e.g. Sparse[int8] to int64), which would reintroduce
+                    #  GH#68421; _densify keeps the subtype's dtype instead, and
+                    #  the values are already NA-free per the guard above.
+                    values = arr._densify()  # type: ignore[union-attr]
                 else:
-                    subtype = None
-                np_can_hold_element(dtype, np.asarray(arr, dtype=subtype))
+                    values = np.asarray(arr)
+                np_can_hold_element(dtype, values)
                 return element
 
             return element
