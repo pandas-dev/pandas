@@ -147,10 +147,10 @@ import pandas as pd
 import polars as pl
 
 df = pd.DataFrame(
-  {
-    'a': ['one', 'two'],
-    'b': [{'name': 'Billy', 'age': 3}, {'name': 'Bob', 'age': 4}],
-  }
+    {
+        "a": ["one", "two"],
+        "b": [{"name": "Billy", "age": 3}, {"name": "Bob", "age": 4}],
+    }
 )
 pl.from_pandas(df)
 ```

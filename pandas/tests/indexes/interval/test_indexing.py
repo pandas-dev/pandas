@@ -305,6 +305,21 @@ class TestGetIndexer:
         expected = np.array(expected, dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_mixed_object_target(self):
+        # GH#19349 Intervals match exactly, numbers match by containment
+        index = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        target = pd.Index(
+            [1, 1.5, pd.Interval(1, 2), pd.Interval(0, 2), "a"], dtype=object
+        )
+
+        result = index.get_indexer(target)
+        expected = np.array([0, 1, 1, -1, -1], dtype="intp")
+        tm.assert_numpy_array_equal(result, expected)
+
+        result_indexer, result_missing = index.get_indexer_non_unique(target)
+        tm.assert_numpy_array_equal(result_indexer, expected)
+        tm.assert_numpy_array_equal(result_missing, np.array([3, 4], dtype="intp"))
+
     @pytest.mark.parametrize("item", [[3], np.arange(0.5, 5, 0.5)])
     def test_get_indexer_length_one(self, item, closed):
         # GH 17284
@@ -587,6 +602,28 @@ def test_get_indexer_scalar_monotonic_timedelta():
     result = index.get_indexer(target)
     expected = np.array([0, -1], dtype="intp")
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("closed", ["left", "right", "neither"])
+def test_get_indexer_nested_empty_interval(closed):
+    # GH#26893 an empty interval nested inside another one is not an overlap,
+    #  so the index is usable with get_indexer; the empty one matches nothing
+    index = pd.IntervalIndex.from_tuples([(0, 3), (1, 1)], closed=closed)
+    assert index.is_overlapping is False
+
+    result = index.get_indexer([0, 1, 2, 3])
+    expected = np.array(
+        {
+            "left": [0, 0, 0, -1],
+            "right": [-1, 0, 0, 0],
+            "neither": [-1, 0, 0, -1],
+        }[closed],
+        dtype="intp",
+    )
+    tm.assert_numpy_array_equal(result, expected)
+
+    # the empty interval is still found by an exact Interval lookup
+    assert index.get_loc(pd.Interval(1, 1, closed=closed)) == 1
 
 
 class TestSliceLocs:

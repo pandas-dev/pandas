@@ -15,7 +15,6 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
@@ -103,8 +102,8 @@ def _astype_nansafe(
         return astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif arr.dtype == object:
-        # if we have a datetime/timedelta array of objects
-        # then coerce to datetime64[ns] and use DatetimeArray.astype
+        # let the datetimelike constructors do the element-wise conversion,
+        #  so a numeric object array is read in the dtype's unit
 
         if lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray
@@ -113,15 +112,20 @@ def _astype_nansafe(
             return dta._ndarray
 
         elif lib.is_np_dtype(dtype, "m"):
-            from pandas.core.construction import ensure_wrapped_if_datetimelike
+            from pandas.core.arrays import TimedeltaArray
 
-            # bc we know arr.dtype == object, this is equivalent to
-            #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
-            #  does not require a circular import.
-            tdvals = array_to_timedelta64(arr)
+            if arr.ndim == 2 and len(arr) > 1:
+                # whether the unit applies depends on the values, so a neighbouring
+                #  column in the same block must not change the answer
+                return np.stack(
+                    [
+                        TimedeltaArray._from_sequence(col, dtype=dtype)._ndarray
+                        for col in arr
+                    ]
+                )
 
-            tda = ensure_wrapped_if_datetimelike(tdvals)  # type: ignore[no-untyped-call]
-            return tda.astype(dtype, copy=False)._ndarray
+            tda = TimedeltaArray._from_sequence(arr, dtype=dtype)
+            return tda._ndarray
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = (

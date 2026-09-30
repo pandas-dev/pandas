@@ -437,11 +437,62 @@ static inline int kh_strview_hash_equal(kh_strview_t a, kh_strview_t b) {
 KHASH_MAP_INIT_STRVIEW(str, size_t)
 KHASH_MAP_INIT_STRVIEW(strbox, kh_pyobject_t)
 
+// A small set of strings (na_values, true_values, false_values) probed once
+// per token on the read_csv hot path, so lookups are built to reject fast:
+// per first byte, a bitmask of the key lengths present (bit 63 stands for
+// every length >= 63) settles nearly every token with one load, and the keys
+// themselves are kept inline, grouped by first byte, and compared directly.
+// Only a set with more than KH_STR_STARTS_NCAND keys falls through to the
+// hashset, whose hash walks the whole token: with a first-byte check alone,
+// every negative number was hashed against "-nan" / "-1.#IND", and every
+// token starting with "1" against "1.#QNAN".
+#define KH_STR_STARTS_NCAND 64
+
 typedef struct {
   kh_str_t *table;
-  int starts[256];
+  uint64_t start_lens[256];
+  // cand[cand_start[c] .. cand_start[c] + ncand[c]) are the keys whose first
+  // byte is c; cand_start[c] is the count of keys with a smaller first byte.
+  kh_strview_t cand[KH_STR_STARTS_NCAND];
+  uint64_t cand_prefix[KH_STR_STARTS_NCAND]; // kh_str_starts_prefix of each
+  uint8_t cand_start[256];
+  uint8_t ncand[256];
+  uint8_t ncand_total;
+  uint8_t overflow; // more keys than cand holds: probe the hashset instead
   int has_empty;
 } kh_str_starts_t;
+
+static inline uint64_t kh_str_starts_lenbit(size_t len) {
+  return (uint64_t)1 << (len < 63 ? len : 63);
+}
+
+// The first min(len, 8) bytes packed into one word, so a candidate is
+// settled by one compare instead of a byte loop.  Fixed-size loads only: a
+// runtime-length memcpy is a libc call, and reading 8 bytes past a short key
+// would overrun it.  The packing is not a byte order, but it is the same
+// bijection on both sides of the compare, which is all that is needed.
+static inline uint64_t kh_str_starts_prefix(const char *key, size_t len) {
+  uint64_t word = 0;
+  if (len >= 8) {
+    memcpy(&word, key, 8);
+    return word;
+  }
+  if (len & 4) {
+    uint32_t part;
+    memcpy(&part, key, 4);
+    word = part;
+    key += 4;
+  }
+  if (len & 2) {
+    uint16_t part;
+    memcpy(&part, key, 2);
+    word |= (uint64_t)part << 32;
+    key += 2;
+  }
+  if (len & 1)
+    word |= (uint64_t)(unsigned char)*key << 48;
+  return word;
+}
 
 typedef kh_str_starts_t *p_kh_str_starts_t;
 
@@ -465,22 +516,66 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
     // The empty key gets its own flag rather than a slot in starts[]. Sharing
     // starts['\0'] with it would make every token that merely *begins* with an
     // embedded NUL look like a candidate.
-    if (len == 0)
+    if (len == 0) {
       table->has_empty = 1;
-    else
-      table->starts[(unsigned char)key[0]] = 1;
+    } else {
+      const unsigned char c0 = (unsigned char)key[0];
+      table->start_lens[c0] |= kh_str_starts_lenbit(len);
+      if (table->ncand_total == KH_STR_STARTS_NCAND) {
+        table->overflow = 1;
+      } else if (!table->overflow) {
+        const unsigned pos = table->cand_start[c0] + table->ncand[c0];
+        memmove(&table->cand[pos + 1], &table->cand[pos],
+                (table->ncand_total - pos) * sizeof(kh_strview_t));
+        memmove(&table->cand_prefix[pos + 1], &table->cand_prefix[pos],
+                (table->ncand_total - pos) * sizeof(uint64_t));
+        table->cand[pos] = kh_strview(key, len);
+        table->cand_prefix[pos] = kh_str_starts_prefix(key, len);
+        table->ncand[c0]++;
+        table->ncand_total++;
+        for (unsigned c = c0 + 1; c < 256; ++c)
+          table->cand_start[c]++;
+      }
+    }
   }
   return result;
+}
+
+// Out-of-line so that the per-token call sites inline only the first-byte
+// reject above it, keeping the converter loops short enough for the CPU to
+// overlap the cache misses of several tokens.
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noinline))
+#endif
+static khuint_t kh_get_str_starts_item_slow(const kh_str_starts_t *table,
+                                            const char *key, size_t len,
+                                            unsigned char c0) {
+  if (table->overflow)
+    return kh_get_str(table->table, kh_strview(key, len)) !=
+           table->table->n_buckets;
+  const uint64_t prefix = kh_str_starts_prefix(key, len);
+  const unsigned start = table->cand_start[c0];
+  const unsigned stop = start + table->ncand[c0];
+  for (unsigned i = start; i < stop; ++i) {
+    if (table->cand_prefix[i] != prefix || table->cand[i].len != len)
+      continue;
+    size_t j = 8;
+    while (j < len && table->cand[i].ptr[j] == key[j])
+      ++j;
+    if (j >= len)
+      return 1;
+  }
+  return 0;
 }
 
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
                                               const char *key, size_t len) {
   if (len == 0)
     return (khuint_t)table->has_empty;
-  if (table->starts[(unsigned char)key[0]] &&
-      kh_get_str(table->table, kh_strview(key, len)) != table->table->n_buckets)
-    return 1;
-  return 0;
+  const unsigned char c0 = (unsigned char)key[0];
+  if (!(table->start_lens[c0] & kh_str_starts_lenbit(len)))
+    return 0;
+  return kh_get_str_starts_item_slow(table, key, len, c0);
 }
 
 static inline void kh_destroy_str_starts(kh_str_starts_t *table) {

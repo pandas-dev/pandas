@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -296,6 +299,9 @@ class CParserWrapper(ParserBase):
                 data = _concatenate_chunks(
                     chunks, self._low_memory_column_labels(chunks)
                 )
+                # GH#56044 category-dtype inference is deferred until after
+                #  concatenation so all chunks agree
+                self._reader._maybe_infer_categoricals(data)
             else:
                 data = self._reader.read(nrows)
                 if self.wrap_deferred:
@@ -444,11 +450,32 @@ def _wrap_deferred_pa(values):
     return values
 
 
+def _harmonize_empty_categories(arrs: list[ArrayLike]) -> list[ArrayLike]:
+    """
+    Give chunks that inferred no categories the others' categories dtype.
+
+    GH#56044 a chunk that is entirely NA yields empty object-dtype categories
+    where a populated chunk yields string ones, which union_categoricals
+    rejects.  When every chunk is empty there is nothing to match, so an
+    all-NA column keeps its object categories.
+    """
+    populated = {arr.categories.dtype for arr in arrs if len(arr.categories)}  # type: ignore[union-attr]
+    if len(populated) != 1:
+        return arrs
+    cat_dtype = populated.pop()
+    return [
+        arr
+        if len(arr.categories)  # type: ignore[union-attr]
+        else arr.set_categories(arr.categories.astype(cat_dtype))  # type: ignore[union-attr]
+        for arr in arrs
+    ]
+
+
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
     column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
-) -> dict:
+) -> dict[Any, ArrayLike]:
     """
     Concatenate chunks of data read with low_memory=True.
 
@@ -467,7 +494,7 @@ def _concatenate_chunks(
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result: dict = {}
+    result: dict[Any, ArrayLike] = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
 
@@ -490,6 +517,7 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
+            arrs = _harmonize_empty_categories(arrs)
             result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)
@@ -523,7 +551,9 @@ def ensure_dtype_objs(
     if isinstance(dtype, defaultdict):
         # "None" not callable  [misc]
         default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
-        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        dtype_converted: defaultdict[Hashable, DtypeObj] = defaultdict(
+            lambda: default_dtype
+        )
         for key in dtype.keys():
             dtype_converted[key] = pandas_dtype(dtype[key])
         return dtype_converted

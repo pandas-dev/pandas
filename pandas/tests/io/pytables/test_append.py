@@ -122,7 +122,7 @@ def test_append_series(temp_hdfstore):
     mi["B"] = np.arange(len(mi))
     mi["C"] = "foo"
     mi.loc[3:5, "C"] = "bar"
-    mi.set_index(["C", "B"], inplace=True)
+    mi = mi.set_index(["C", "B"])
     s = mi.stack()
     s.index = s.index.droplevel(2)
     temp_hdfstore.append("mi", s)
@@ -262,7 +262,7 @@ def test_append_with_different_block_ordering(temp_hdfstore):
             a = df.pop("A")
             df["A"] = a
 
-        df.set_index("index", inplace=True)
+        df = df.set_index("index")
 
         temp_hdfstore.append("df", df)
 
@@ -743,6 +743,17 @@ because its data contents are not [string] but [mixed] object dtype"""
     with pytest.raises(TypeError, match=msg):
         temp_hdfstore.append("df", df)
 
+    # GH#9604 — an unhashable element alongside a missing value must still get
+    # this message: choosing the column's NaN sentinel looks at its values first
+    for label, value in [("unhashable", ["a"]), ("array", np.array([1, 2]))]:
+        df = pd.DataFrame({label: [value, np.nan]})
+        msg2 = re.escape(
+            f"""Cannot serialize the column [{label}]
+because its data contents are not [string] but [mixed] object dtype"""
+        )
+        with pytest.raises(TypeError, match=msg2):
+            temp_hdfstore.append(f"df_{label}", df)
+
     # datetime with embedded nans as object
     df = pd.DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -823,23 +834,19 @@ def test_append_with_timedelta(temp_hdfstore, unit):
     tm.assert_frame_equal(result, df)
 
     result = temp_hdfstore.select("df", where="C<100000")
-    tm.assert_frame_equal(result, df)
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta(100000, unit="s")])
 
     result = temp_hdfstore.select("df", where="C<pd.Timedelta('-3D')")
-    tm.assert_frame_equal(result, df.iloc[3:])
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-3D")])
 
     result = temp_hdfstore.select("df", "C<'-3D'")
-    tm.assert_frame_equal(result, df.iloc[3:])
-
-    # a bit hacky here as we don't really deal with the NaT properly
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-3D")])
 
     result = temp_hdfstore.select("df", "C<'-500000s'")
-    result = result.dropna(subset=["C"])
-    tm.assert_frame_equal(result, df.iloc[6:])
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-500000s")])
 
     result = temp_hdfstore.select("df", "C<'-3.5D'")
-    result = result.iloc[1:]
-    tm.assert_frame_equal(result, df.iloc[4:])
+    tm.assert_frame_equal(result, df[df["C"] < pd.Timedelta("-3.5D")])
 
     # fixed
     temp_hdfstore.put("df2", df, track_times=False)
@@ -1032,3 +1039,21 @@ def test_append_string_nan_rep(temp_hdfstore):
     result = temp_hdfstore["sc"]
     expected = pd.concat([df["A"], df_nan["A"]])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["D", "2D", "W-SUN", "Q-DEC"])
+def test_append_period_index(temp_hdfstore, freq):
+    # GH#68523 - appending to a period-indexed table keeps working; the freq
+    # guard added for the mismatch cases must not over-fire on a matching one.
+    first = pd.DataFrame(
+        {"v": [1.0, 2.0]}, index=pd.period_range("2000", periods=2, freq=freq)
+    )
+    second = pd.DataFrame(
+        {"v": [3.0, 4.0]}, index=pd.period_range("2010", periods=2, freq=freq)
+    )
+
+    temp_hdfstore.append("df", first)
+    temp_hdfstore.append("df", second)
+
+    result = temp_hdfstore.select("df")
+    tm.assert_frame_equal(result, pd.concat([first, second]))

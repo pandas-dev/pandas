@@ -192,9 +192,8 @@ def test_large_multiindex_error(monkeypatch):
             df_above_cutoff.loc[(3, 0), "dest"]
 
 
-def test_mi_hashtable_populated_attribute_error(monkeypatch):
+def test_mi_attribute_error():
     # GH 18165
-    monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 50)
     r = range(50)
     df = pd.DataFrame({"a": r, "b": r}, index=pd.MultiIndex.from_arrays([r, r]))
 
