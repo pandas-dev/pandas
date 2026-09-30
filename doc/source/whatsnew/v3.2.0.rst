@@ -181,8 +181,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :class:`DataFrame` repr and :meth:`DataFrame.to_string` where numeric column labels of differing widths were misaligned with their column's values (:issue:`8300`)
 
 Period
 ^^^^^^
