@@ -28,6 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :func:`array` and :meth:`Series.astype` with ``dtype="boolean"`` now accept numeric values other than 0 and 1, treating nonzero values as ``True`` like NumPy's ``bool`` dtype (:issue:`37614`)
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
 
