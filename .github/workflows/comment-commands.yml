@@ -2,6 +2,8 @@ name: Comment Commands
 on:
   issue_comment:
     types: [created, edited]
+  issues:
+    types: [opened]
 
 permissions: {}
 
@@ -33,6 +35,12 @@ env:
   UNTAKE_NOT_ASSIGNED: >-
     @{user}, you're not currently assigned to this issue, so there's nothing
     to release. If you'd like to work on it, comment `/take` to claim it.
+  UNTAKE_OPEN_PR: >-
+    @{user}, you have an open pull request for this issue ({prs}), so it can't
+    be released yet. Please close it first, then comment `/untake` again. If
+    the pull request is for a different issue, link it to that issue with a
+    closing keyword in the description (for example `closes #1234`) instead.
+    See the [contributing guide]({docs}) for more.
 
 jobs:
   preview_docs:
@@ -50,6 +58,39 @@ jobs:
           previewer-server: "https://pandas.pydata.org/preview"
           artifact-job: "Doc Build and Upload"
 
+  needs_triage:
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      github.event_name == 'issues'
+    steps:
+      # Apply `Needs Triage` to an issue opened by someone other than an owner,
+      # member, collaborator, or bot, unless the label has been applied or
+      # removed before.
+      - &needs_triage_step
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const LABEL = 'Needs Triage';
+            const EXEMPT_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            // Only apply going forward; not retroactively.
+            const ROLLOUT_CUTOFF = new Date('2026-09-28T00:00:00Z');
+            const issue = context.payload.issue;
+            const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
+            if (labels.includes(LABEL)) return;
+            if (new Date(issue.created_at) < ROLLOUT_CUTOFF) return;
+            if (issue.user.type === 'Bot' || EXEMPT_ASSOCIATIONS.includes(issue.author_association)) return;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const events = await github.paginate(github.rest.issues.listEvents, {
+              ...repo, issue_number: issue.number, per_page: 100,
+            });
+            const seen = events.some(event =>
+              ['labeled', 'unlabeled'].includes(event.event) && event.label?.name === LABEL);
+            if (seen) return;
+            await github.rest.issues.addLabels({ ...repo, issue_number: issue.number, labels: [LABEL] });
+
   take:
     runs-on: ubuntu-24.04
     permissions:
@@ -61,6 +102,8 @@ jobs:
     concurrency:
       group: assign-${{ github.event.issue.number }}
     steps:
+      # Covers a `/take` that runs before the `needs_triage` job labels the issue
+      - *needs_triage_step
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -115,6 +158,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       issues: write
+      pull-requests: read
     if: >-
       github.repository_owner == 'pandas-dev' &&
       github.event.issue.pull_request == null &&
@@ -140,6 +184,59 @@ jobs:
                 body: msg('UNTAKE_NOT_ASSIGNED', { user }),
               });
               return;
+            }
+            const exempt = ['OWNER', 'MEMBER', 'COLLABORATOR']
+              .includes(context.payload.comment.author_association);
+            if (!exempt) {
+              // Open PRs by the user that link this issue, or that referenced it
+              // and no longer link any issue (e.g. the closing keyword was removed)
+              const query = `query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
+                repository(owner: $owner, name: $name) {
+                  issue(number: $number) {
+                    closedByPullRequestsReferences(first: 50, includeClosedPrs: false) {
+                      nodes { number author { login } }
+                    }
+                    timelineItems(first: 100, after: $cursor, itemTypes: [CROSS_REFERENCED_EVENT]) {
+                      pageInfo { hasNextPage endCursor }
+                      nodes {
+                        ... on CrossReferencedEvent {
+                          isCrossRepository
+                          source {
+                            ... on PullRequest {
+                              number state author { login }
+                              closingIssuesReferences(first: 1) { totalCount }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }`;
+              const prs = new Set();
+              let cursor = null;
+              do {
+                const { repository: { issue: data } } = await github.graphql(query, {
+                  owner: context.repo.owner, name: context.repo.repo, number: issue.number, cursor,
+                });
+                for (const pr of data.closedByPullRequestsReferences.nodes) {
+                  if (pr.author?.login === user) prs.add(pr.number);
+                }
+                for (const { isCrossRepository, source } of data.timelineItems.nodes) {
+                  if (!isCrossRepository && source?.state === 'OPEN' && source.author?.login === user
+                      && source.closingIssuesReferences.totalCount === 0) {
+                    prs.add(source.number);
+                  }
+                }
+                cursor = data.timelineItems.pageInfo.hasNextPage ? data.timelineItems.pageInfo.endCursor : null;
+              } while (cursor);
+              if (prs.size > 0) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number,
+                  body: msg('UNTAKE_OPEN_PR', { user, prs: [...prs].map(n => `#${n}`).join(', ') }),
+                });
+                return;
+              }
             }
             await github.rest.issues.removeAssignees({
               owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, assignees: [user],

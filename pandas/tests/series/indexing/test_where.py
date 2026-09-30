@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer
@@ -369,6 +370,15 @@ def test_where_dups():
     comb[comb < 2] += 10
     expected = pd.Series([5, 11, 2, 5, 11, 2], index=[0, 1, 2, 0, 1, 2])
     tm.assert_series_equal(comb, expected)
+
+
+def test_where_other_with_duplicate_labels_raises():
+    # GH#27672
+    ser = pd.Series([np.nan, 1.0], index=["a", "b"])
+    other = pd.Series([5.0, 6.0, 7.0], index=["a", "a", "b"])
+    msg = "Cannot align with an object that has duplicate labels"
+    with pytest.raises(InvalidIndexError, match=msg):
+        ser.where(ser.notna(), other)
 
 
 def test_where_numeric_with_string():

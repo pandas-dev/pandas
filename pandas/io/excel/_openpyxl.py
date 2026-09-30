@@ -34,13 +34,13 @@ if TYPE_CHECKING:
     )
 
 
-class OpenpyxlWriter(ExcelWriter):
+class OpenpyxlWriter(ExcelWriter["Workbook"]):
     _engine = "openpyxl"
     _supported_extensions = (".xlsx", ".xlsm")
 
     def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
-        path: FilePath | WriteExcelBuffer | ExcelWriter,
+        path: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
@@ -652,7 +652,7 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Reader using openpyxl engine.
