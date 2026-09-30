@@ -34,6 +34,7 @@ from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_float64,
+    is_arrow_temporal_dtype,
     is_bool,
     is_integer,
     is_numeric_dtype,
@@ -113,7 +114,7 @@ if TYPE_CHECKING:
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
 
-class BaseWindow(SelectionMixin):
+class BaseWindow(SelectionMixin["NDFrame"]):
     """Provides utilities for performing windowing operations."""
 
     _attributes: list[str] = []
@@ -321,7 +322,7 @@ class BaseWindow(SelectionMixin):
         attrs = ",".join(attrs_list)
         return f"{type(self).__name__} [{attrs}]"
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         obj = self._selected_obj.set_axis(self._on)
         obj = self._create_data(obj)
         indexer = self._get_window_indexer()
@@ -341,7 +342,11 @@ class BaseWindow(SelectionMixin):
 
     def _prep_values(self, values: ArrayLike) -> np.ndarray:
         """Convert input to numpy arrays for Cython routines"""
-        if needs_i8_conversion(values.dtype):
+        if needs_i8_conversion(values.dtype) or is_arrow_temporal_dtype(values.dtype):
+            # GH#66445 ArrowDtype timestamps/durations are not covered by
+            #  needs_i8_conversion, so without the second check they fell through
+            #  to the ExtensionArray branch below and were silently converted to
+            #  float64 counts instead of raising like their NumPy counterparts.
             raise NotImplementedError(
                 f"ops for {type(self).__name__} for this "
                 f"dtype {values.dtype} is not implemented"
@@ -910,8 +915,11 @@ class Window(BaseWindow):
         For a DataFrame, a column label or Index level on which
         to calculate the rolling window, rather than the DataFrame's index.
 
-        Provided integer column is ignored and excluded from result since
-        an integer index is not used to calculate the rolling window.
+        For integer ``window`` values, the window bounds are based on the number
+        of observations and are not calculated using the values of the
+        ``on`` column. The ``on`` column is excluded from the aggregation,
+        but is included in the result when its values differ from the
+        object's index.
 
     closed : str, default None
         Determines the inclusivity of points in the window

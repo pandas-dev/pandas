@@ -137,9 +137,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas.io.common import mangle_dupe_names
 
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
@@ -921,37 +922,9 @@ cdef class TextReader:
                     this_header.append(name)
 
                 if not self.has_mi_columns:
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [i for i in range(len(this_header))
-                                      if i not in unnamed_col_indices
-                                      ] + unnamed_col_indices
-                    counts = {}
-
-                    for i in col_loop_order:
-                        col = this_header[i]
-                        old_col = col
-                        cur_count = counts.get(col, 0)
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_header:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts.get(col, 0)
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-
-                        this_header[i] = col
-                        counts[col] = cur_count + 1
+                    this_header = mangle_dupe_names(
+                        this_header, unnamed_col_indices, self.dtype
+                    )
 
                 if self.has_mi_columns:
 
@@ -1341,7 +1314,9 @@ cdef class TextReader:
                     self._warn_parser(f"Both a converter and dtype were specified "
                                       f"for column {name} - only the converter will "
                                       f"be used.")
-                results[i] = _apply_converter(conv, self.parser, i, start, end)
+                results[i] = _apply_converter(
+                    conv, self.parser, i, start, end,
+                    self._get_na_pyset(i, name))
                 continue
 
             # Collect the set of NaN values associated with the column.
@@ -1822,8 +1797,17 @@ cdef class TextReader:
                                               raise_on_invalid)
                 na_count = 0
 
-            if result is not None and dtype != "int64":
-                result = result.astype(dtype)
+            if result is not None and user_dtype and result.dtype != dtype:
+                # GH#55232 gated on user_dtype: inference must keep a uint64
+                #  result from the overflow fallback above, not wrap it into
+                #  the int64 it asked to try.
+                casted = result.astype(dtype)
+                if (casted != result).any():
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{dtype} for {result.dtype.name} dtyped data in "
+                        f"column {i}")
+                result = casted
 
             return result, na_count, na_mask
 
@@ -2163,6 +2147,24 @@ cdef class TextReader:
             return _ensure_encoded(values), fvalues
         else:
             return _ensure_encoded(self.na_values), self.na_fvalues
+
+    cdef set _get_na_pyset(self, Py_ssize_t i, object name):
+        """
+        The na_values entry for column i as python objects, for matching
+        against a converter's output. _get_na_list encodes to bytes for the
+        tokenizer's hashset.
+        """
+        cdef:
+            object key = self._get_na_key(i, name)
+
+        if not self.na_filter:
+            return set()
+        if key is not None:
+            return set(self.na_values[key]) | set(self.na_fvalues[key])
+        if isinstance(self.na_values, dict):
+            # no entry for this column
+            return set(STR_NA_VALUES) if self.keep_default_na else set()
+        return set(self.na_values) | set(self.na_fvalues)
 
     cdef object _get_na_key(self, Py_ssize_t i, object name):
         # The na_values entry column i resolves to, mirroring _get_na_list, so
@@ -4438,7 +4440,7 @@ for k in list(na_values):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _apply_converter(object f, parser_t *parser, int64_t col,
-                      int64_t line_start, int64_t line_end):
+                      int64_t line_start, int64_t line_end, set na_set):
     cdef:
         Py_ssize_t i, lines
         coliter_t it
@@ -4459,7 +4461,33 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
         val = PyUnicode_DecodeUTF8(word, _token_len(parser, token_idx), NULL)
         result[i] = f(val)
 
+    if na_set:
+        _sanitize_converted(result, na_set)
+
     return lib.maybe_convert_objects(result)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef _sanitize_converted(ndarray[object] values, set na_set):
+    # GH#13302: na_values match the converter's output, as in the python
+    # engine. Unlike sanitize_objects this tolerates unhashable output, which
+    # only a converter can produce.
+    cdef:
+        Py_ssize_t i
+        object val
+
+    for i in range(len(values)):
+        val = values[i]
+        if type(val).__hash__ is None:
+            # list/dict/set/ndarray; the try/except below catches the rest, but
+            # raising once per row is ~3x the cost of the read
+            continue
+        try:
+            if val in na_set:
+                values[i] = np.nan
+        except TypeError:
+            pass
 
 
 cdef list _maybe_encode(list values):

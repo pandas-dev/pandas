@@ -161,7 +161,7 @@ def maybe_produces_warning(
     *,
     match: str | tuple[str | None, ...] | None,
     **kwargs: Any,
-) -> AbstractContextManager:
+) -> AbstractContextManager[list[warnings.WarningMessage] | None]:
     """
     Return a context manager that possibly checks a warning based on the condition
     """

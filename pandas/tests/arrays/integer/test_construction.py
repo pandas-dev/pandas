@@ -271,3 +271,18 @@ def test_integer_array_from_boolean():
     expected = pd.array(np.array([True, False]), dtype="Int64")
     result = pd.array(np.array([True, False], dtype=object), dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_integer_array_from_masked_out_of_range(constructor):
+    # GH#55232 casting an existing masked array must not wrap around
+    arr = pd.array([-1, 257], dtype="Int64")
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        constructor(arr, dtype="UInt8")
+
+    # values behind the mask are meaningless and must not trigger the check
+    masked = pd.arrays.IntegerArray(
+        np.array([-1, 5], dtype="int64"), np.array([True, False])
+    )
+    result = constructor(masked, dtype="UInt8")
+    expected = pd.array([None, 5], dtype="UInt8")
+    tm.assert_extension_array_equal(result, expected)

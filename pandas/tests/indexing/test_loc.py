@@ -1423,13 +1423,13 @@ class TestLocBaseIndependent:
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
-        result = np.nan_to_num(df.loc[itr_idx].values)
+        result = df.loc[itr_idx].values
         expected = spmatrix.toarray()[itr_idx]
         tm.assert_numpy_array_equal(result, expected)
 
         # regression test for GH#34540
         result = df.loc[itr_idx].dtypes.values
-        expected = np.full(cols, pd.SparseDtype(dtype))
+        expected = np.full(cols, pd.SparseDtype(dtype, np.array(0, dtype=dtype).item()))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_loc_getitem_listlike_all_retains_sparse(self):
@@ -1441,16 +1441,18 @@ class TestLocBaseIndependent:
         # GH34687
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = pd.DataFrame.sparse.from_spmatrix(sp_sparse.eye(5, dtype=np.int64))
+        df = pd.DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
         result = df.loc[range(2)]
         expected = pd.DataFrame(
-            [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]],
-            dtype=pd.SparseDtype(np.int64),
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
+            dtype=pd.SparseDtype("float64", 0.0),
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[range(2)].loc[range(1)]
-        expected = pd.DataFrame([[1, 0, 0, 0, 0]], dtype=pd.SparseDtype(np.int64))
+        expected = pd.DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=pd.SparseDtype("float64", 0.0)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_sparse_series(self):
@@ -2150,9 +2152,11 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
-        with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            result = pd.DataFrame({"x": range(size_cutoff)}, dtype="int64")
+        with monkeypatch.context() as m:
+            m.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            # RangeIndex lookups bypass the engine
+            index = pd.Index(np.arange(size_cutoff))
+            result = pd.DataFrame({"x": range(size_cutoff)}, index=index, dtype="int64")
             result.loc[size_cutoff] = size_cutoff
         expected = pd.DataFrame({"x": range(size_cutoff + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
