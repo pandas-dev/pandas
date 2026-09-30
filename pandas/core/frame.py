@@ -16035,8 +16035,10 @@ class DataFrame(NDFrame, OpsMixin):
             if can_concat:
                 has_multiindex = any(isinstance(df.index, MultiIndex) for df in frames)
                 if has_multiindex:
-                    first_names = frames[0].index.names
-                    can_concat = all(df.index.names == first_names for df in frames[1:])
+                    first_nlevels = frames[0].index.nlevels
+                    can_concat = all(
+                        df.index.nlevels == first_nlevels for df in frames[1:]
+                    )
 
             # join indexes only using concat
             if can_concat:
