@@ -156,8 +156,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
--
+- Bug in :meth:`Series.astype` from ``str`` or ``string`` dtype to ``"boolean"`` raising ``TypeError``; values such as ``"True"``, ``"false"`` and ``"0"`` are now parsed as booleans, which also fixes :func:`read_csv` with ``engine="pyarrow"`` and ``dtype="boolean"`` (:issue:`40566`)
 
 Interval
 ^^^^^^^^
