@@ -438,7 +438,7 @@ class BaseStringArray(ExtensionArray):
             return op(other, self.astype(bool))
         return NotImplemented
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the value.
 

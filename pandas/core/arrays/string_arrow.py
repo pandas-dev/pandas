@@ -4,6 +4,7 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
+    Any,
     Self,
 )
 
@@ -429,7 +430,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     @classmethod
     def _preprocess_re_pattern(
-        cls, pat: str | re.Pattern, case: bool, flags: int
+        cls, pat: str | re.Pattern[str], case: bool, flags: int
     ) -> tuple[str, bool, int]:
         pattern, case, flags = cls._unwrap_re_pattern(pat, case, flags)
 
@@ -463,7 +464,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -480,7 +481,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -497,8 +498,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern[str],
+        repl: str | Callable[..., Any],
         n: int = -1,
         case: bool = True,
         flags: int = 0,
@@ -530,7 +531,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_count(self, pat: str | re.Pattern, flags: int = 0):
+    def _str_count(self, pat: str | re.Pattern[str], flags: int = 0):
         if (
             flags
             or self._is_re_pattern_with_flags(pat)
