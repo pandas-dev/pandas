@@ -182,14 +182,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         ----------
         freq : str
             A frequency.
-        how : str {'E', 'S'}, default 'E'
-            Whether the elements should be aligned to the end
-            or start within pa period.
-
-            * 'E', 'END', or 'FINISH' for end,
-            * 'S', 'START', or 'BEGIN' for start.
-
-            January 31st ('END') vs. January 1st ('START') for example.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether the elements should be aligned to the end or start of
+            each period, e.g. January 31st vs. January 1st. Case-insensitive.
 
         Returns
         -------
@@ -232,8 +227,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             's' otherwise.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
+            Case-insensitive.
 
         Returns
         -------
