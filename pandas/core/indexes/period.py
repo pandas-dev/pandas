@@ -555,7 +555,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "PeriodIndex.weekday is deprecated and will be removed "
             "in a future version. Use PeriodIndex.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("day_of_week")
 
@@ -571,7 +571,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "PeriodIndex.dayofweek is deprecated and will be removed "
             "in a future version. Use PeriodIndex.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("day_of_week")
 
@@ -616,7 +616,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "PeriodIndex.dayofyear is deprecated and will be removed in a "
             "future version. Use PeriodIndex.day_of_year instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("day_of_year")
 
@@ -717,7 +717,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             "PeriodIndex.daysinmonth is deprecated and will be removed in a "
             "future version. Use PeriodIndex.days_in_month instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("days_in_month")
 

@@ -460,7 +460,7 @@ class DatetimeProperties(Properties):
             "Series.dt.weekday is deprecated and will be removed "
             "in a future version. Use Series.dt.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -476,7 +476,7 @@ class DatetimeProperties(Properties):
             "Series.dt.dayofweek is deprecated and will be removed in a "
             "future version. Use Series.dt.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -492,7 +492,7 @@ class DatetimeProperties(Properties):
             "Series.dt.dayofyear is deprecated and will be removed in a "
             "future version. Use Series.dt.day_of_year instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_year
 
@@ -508,7 +508,7 @@ class DatetimeProperties(Properties):
             "Series.dt.daysinmonth is deprecated and will be removed in a "
             "future version. Use Series.dt.days_in_month instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.days_in_month
 
@@ -745,7 +745,7 @@ class PeriodProperties(Properties):
             "Series.dt.weekday is deprecated and will be removed "
             "in a future version. Use Series.dt.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -761,7 +761,7 @@ class PeriodProperties(Properties):
             "Series.dt.dayofweek is deprecated and will be removed in a "
             "future version. Use Series.dt.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -777,7 +777,7 @@ class PeriodProperties(Properties):
             "Series.dt.dayofyear is deprecated and will be removed in a "
             "future version. Use Series.dt.day_of_year instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_year
 
@@ -793,7 +793,7 @@ class PeriodProperties(Properties):
             "Series.dt.daysinmonth is deprecated and will be removed in a "
             "future version. Use Series.dt.days_in_month instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.days_in_month
 

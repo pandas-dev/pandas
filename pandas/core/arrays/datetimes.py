@@ -1954,7 +1954,7 @@ default 'raise'
             "in a future version. Use DatetimeArray.day_of_week or "
             "Series.dt.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -1970,7 +1970,7 @@ default 'raise'
             "DatetimeArray.dayofweek is deprecated and will be removed in a "
             "future version. Use DatetimeArray.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -2024,7 +2024,7 @@ default 'raise'
             "DatetimeArray.dayofyear is deprecated and will be removed in a "
             "future version. Use DatetimeArray.day_of_year instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_year
 
@@ -2114,7 +2114,7 @@ default 'raise'
             "DatetimeArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use DatetimeArray.days_in_month instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.days_in_month
 

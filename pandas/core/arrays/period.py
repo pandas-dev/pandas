@@ -695,7 +695,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             "PeriodArray.weekday is deprecated and will be removed "
             "in a future version. Use PeriodArray.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -711,7 +711,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             "PeriodArray.dayofweek is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_week
 
@@ -760,7 +760,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             "PeriodArray.dayofyear is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_year instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.day_of_year
 
@@ -879,7 +879,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             "PeriodArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use PeriodArray.days_in_month instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self.days_in_month
 

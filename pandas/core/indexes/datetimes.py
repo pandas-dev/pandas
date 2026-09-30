@@ -479,7 +479,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.weekday is deprecated and will be removed "
             "in a future version. Use DatetimeIndex.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("day_of_week")
 
@@ -495,7 +495,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.dayofweek is deprecated and will be removed in a "
             "future version. Use DatetimeIndex.day_of_week instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("day_of_week")
 
@@ -533,7 +533,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.dayofyear is deprecated and will be removed in a "
             "future version. Use DatetimeIndex.day_of_year instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("day_of_year")
 
@@ -626,7 +626,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "DatetimeIndex.daysinmonth is deprecated and will be removed in a "
             "future version. Use DatetimeIndex.days_in_month instead.",
             Pandas4Warning,
-            stacklevel=2,
+            stacklevel=find_stack_level(),
         )
         return self._wrap_field("days_in_month")
 
