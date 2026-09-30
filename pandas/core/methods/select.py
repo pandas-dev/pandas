@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
 )
 
 import numpy as np
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-def _parse_select_args(args: tuple) -> list:
+def _parse_select_args(args: tuple[Any, ...]) -> list[Any]:
     """
     Parse the positional arguments of DataFrame.select.
 
@@ -57,7 +58,7 @@ def _parse_select_args(args: tuple) -> list:
 
 
 def select(
-    df: DataFrame, select_args: tuple, select_kwargs: dict[str, object]
+    df: DataFrame, select_args: tuple[Any, ...], select_kwargs: dict[str, object]
 ) -> DataFrame:
     """
     Implementation of DataFrame.select.
