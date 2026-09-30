@@ -161,8 +161,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
--
+- Bug in :func:`concat` and :meth:`Index.append` with :class:`IntervalDtype` not retaining an extension dtype subtype, either casting it to a NumPy dtype or raising ``TypeError`` (:issue:`64297`)
 
 Indexing
 ^^^^^^^^
