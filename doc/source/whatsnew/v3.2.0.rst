@@ -92,6 +92,21 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+.. _whatsnew_320.deprecations.depr1:
+
+deprecation1
+^^^^^^^^^^^^
+
+.. _whatsnew_320.deprecations.depr2 :
+
+deprecation2
+^^^^^^^^^^^^
+
+.. _whatsnew_320.deprecations.other:
+
+Other deprecations
+^^^^^^^^^^^^^^^^^^
 -
 -
 
@@ -217,3 +232,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v3.2.0.dev0..v3.2.0|HEAD
