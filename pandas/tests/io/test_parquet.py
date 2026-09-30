@@ -1334,6 +1334,32 @@ class TestParquetPyArrow(Base):
         assert path.exists()
         assert path.read_bytes() == expected
 
+    def test_to_parquet_invalid_kwarg_keeps_existing_file(self, pa, tmp_path):
+        # GH#45815 pyarrow opens the destination before rejecting the kwarg
+        path = tmp_path / "out.parquet"
+        pd.DataFrame({"a": [1, 2, 3]}).to_parquet(path, engine=pa)
+        expected = path.read_bytes()
+
+        with pytest.raises(TypeError, match="partitions_cols"):
+            pd.DataFrame({"a": [4, 5, 6]}).to_parquet(
+                path, engine=pa, partitions_cols=["a"]
+            )
+        assert path.read_bytes() == expected
+
+    def test_to_parquet_invalid_kwarg_directory_path(self, pa, tmp_path):
+        # GH#45815 the misspelled kwarg is reported, not IsADirectoryError
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        with pytest.raises(TypeError, match="partitions_cols"):
+            df.to_parquet(tmp_path, engine=pa, partitions_cols=["a"])
+
+    def test_to_parquet_metadata_collector(self, pa, temp_file):
+        # GH#45815 the kwarg validation must not add to metadata_collector
+        collector = []
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        df.to_parquet(temp_file, engine=pa, metadata_collector=collector)
+        assert len(collector) == 1
+        assert collector[0].num_rows == 3
+
 
 @pytest.mark.filterwarnings("ignore:.*values returning.*:pandas.errors.Pandas4Warning")
 class TestParquetFastParquet(Base):
