@@ -160,8 +160,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
--
+- Bug in :meth:`Series.shift` and :meth:`DataFrame.shift` with an :class:`IntervalDtype` column not retaining the subtype, either changing it or raising ``TypeError`` (:issue:`69922`)
 
 Indexing
 ^^^^^^^^
