@@ -779,6 +779,7 @@ def _is_thread_affinity_error(exc: BaseException) -> bool:
     message = str(exc).lower()
     return "thread affinity" in message or "created in a thread" in message
 
+
 def _read_csv_parallel(
     filepath: str,
     kwds: dict,
