@@ -181,8 +181,9 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- :func:`read_json` with ``orient="table"`` now reads back non-string column labels and index names, such as the default integer columns of ``DataFrame([[1, 2]])``, instead of returning all-NaN values or raising ``IntCastingNaNError``; labels that cannot be matched to their data, such as ``5`` and ``"5"`` in the same frame, now raise ``ValueError`` (:issue:`19129`)
+- :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``orient="table"``, and :func:`build_table_schema`, no longer raise ``AttributeError`` for a :class:`MultiIndex` with non-string level names (:issue:`19129`)
+- :meth:`Series.to_json` with ``orient="table"`` no longer writes a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as the placeholder ``"values"``; only an unnamed :class:`Series` gets the placeholder (:issue:`19129`)
 
 Period
 ^^^^^^
