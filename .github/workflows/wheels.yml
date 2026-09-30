@@ -166,11 +166,9 @@ jobs:
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   report_failure:
-    # Keep one open issue while nightly builds fail, closed by the next passing
-    # night. It opens only on a second consecutive failure, to skip flakes. GH#55903
+    # Keep one open issue while nightly builds fail, closed by the next passing night. GH#55903
     name: Report nightly build failures
     permissions:
-      actions: read           # download the failed jobs' logs
       issues: write           # open, comment on, and close the tracking issue
     if: >-
       !cancelled() &&
@@ -207,78 +205,22 @@ jobs:
               return;
             }
 
-            // This run is still in progress, so the latest completed one is the previous night.
-            const { data: { workflow_runs: [previous] } } = await github.rest.actions.listWorkflowRuns({
-              ...repo, workflow_id: 'wheels.yml', event: 'schedule', status: 'completed', per_page: 1,
-            });
-            if (!issue && previous?.conclusion !== 'failure') {
-              core.info('First failing night; waiting for another before opening an issue.');
-              return;
-            }
-
-            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-              ...repo, run_id: context.runId, per_page: 100,
-            });
-            const failedJobs = jobs
-              .filter(job => job.conclusion === 'failure')
-              .map(job => ({ id: job.id, name: job.name.replace(/^Build wheel for /, '') }));
-            // pytest's short summary lines (ERROR covers collection and fixture errors), e.g.
-            // "<timestamp> FAILED ..\venv\Lib\site-packages\pandas\tests\x.py::test_y[z] - Error"
-            const failedTest = /^\S+ (?:FAILED|ERROR) (.+?)(?: - .*)?\r?$/gm;
-            const failingJobsByTest = new Map();
-            for (const job of failedJobs) {
-              let log;
-              try {
-                ({ data: log } = await github.rest.actions.downloadJobLogsForWorkflowRun({
-                  ...repo, job_id: job.id,
-                }));
-              } catch (err) {
-                core.warning(`Could not download the log of ${job.name}: ${err}`);
-                continue;
-              }
-              log = typeof log === 'string' ? log : Buffer.from(log).toString();
-              for (const [, testId] of log.matchAll(failedTest)) {
-                const [path, ...rest] = testId.split('::');
-                const key = [path.replace(/\\/g, '/').replace(/^.*?(?=pandas\/tests\/)/, ''), ...rest].join('::');
-                failingJobsByTest.set(key, [...(failingJobsByTest.get(key) ?? []), job.name]);
-              }
-            }
-
-            const lines = [
-              `Failing run: ${runUrl}`,
-              '',
-              `Failing jobs (${failedJobs.length}): ${failedJobs.map(job => job.name).join(', ')}`,
-              '',
-            ];
-            if (failingJobsByTest.size === 0) {
-              lines.push('No pytest failures found in the job logs; see the run for the failing step.');
-            } else {
-              lines.push('Failing tests:');
-              for (const [testId, names] of [...failingJobsByTest].slice(0, 50)) {
-                const where = names.length === failedJobs.length ? 'all failing jobs' : names.join(', ');
-                lines.push(`- \`${testId}\` (${where})`);
-              }
-              if (failingJobsByTest.size > 50) {
-                lines.push(`- ... and ${failingJobsByTest.size - 50} more`);
-              }
-            }
-            const report = lines.join('\n');
-
             if (issue) {
-              await github.rest.issues.createComment({ ...repo, issue_number: issue.number, body: report });
+              await github.rest.issues.createComment({
+                ...repo, issue_number: issue.number, body: `Failing run: ${runUrl}`,
+              });
             } else {
               await github.rest.issues.create({
                 ...repo,
                 title: TITLE,
                 labels: ['CI'],
                 body: [
-                  'The scheduled wheel build has failed on consecutive nights, so no nightly',
-                  'wheels were uploaded. This issue is managed by the `report_failure` job in',
+                  'The scheduled wheel build failed, so no nightly wheels were uploaded.',
+                  'This issue is managed by the `report_failure` job in',
                   '`.github/workflows/wheels.yml` and closes on the next passing night.',
                   'Closing it by hand while builds still fail opens a new one on the next failing night.',
                   '',
-                  `Previous failing run: ${previous.html_url}`,
-                  report,
+                  `Failing run: ${runUrl}`,
                 ].join('\n'),
               });
             }
