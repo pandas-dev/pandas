@@ -1570,6 +1570,9 @@ These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
 in pandas.
 
+For a calendar step that is not anchored, such as yearly from an arbitrary
+date, pass a :class:`DateOffset` like ``freq=pd.DateOffset(years=1)``.
+
 Anchored offset semantics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

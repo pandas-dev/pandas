@@ -206,7 +206,7 @@ def read_excel(
 
     Parameters
     ----------
-    io : str, ExcelFile, xlrd.Book, path object, or file-like object
+    io : str, ExcelFile, workbook object, path object, or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.xlsx``.
@@ -220,6 +220,9 @@ def read_excel(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
+
+        A workbook object from a supported engine's library, such as an
+        ``openpyxl.Workbook``, is read with that engine.
 
     sheet_name : str, int, list, or None, default 0
         Strings are used for sheet names. Integers are used in zero-indexed
@@ -291,7 +294,6 @@ def read_excel(
         of dtype conversion.
         If you use ``None``, it will infer the dtype of each column based on the data.
     engine : {'openpyxl', 'calamine', 'odf', 'pyxlsb', 'xlrd'}, default None
-        If io is not a buffer or path, this must be set to identify io.
         Engine compatibility :
 
         - ``openpyxl`` supports newer Excel file formats.
@@ -303,7 +305,8 @@ def read_excel(
 
         When ``engine=None``, the following logic will be used to determine the engine:
 
-        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+        - If ``io`` is a workbook object, the engine that created it will be used.
+        - Otherwise if ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
           then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
@@ -1538,6 +1541,29 @@ def inspect_excel_format(
         return "zip"
 
 
+# GH#46352 - engine name -> (module, class) of the workbook objects it reads
+_WORKBOOK_CLASSES = {
+    "xlrd": ("xlrd", "Book"),
+    "openpyxl": ("openpyxl", "Workbook"),
+    "odf": ("odf.opendocument", "OpenDocument"),
+    "pyxlsb": ("pyxlsb", "Workbook"),
+    "calamine": ("python_calamine", "CalamineWorkbook"),
+}
+
+
+def _infer_engine_from_workbook(obj) -> str | None:
+    """
+    Return the engine whose library created the workbook ``obj``, if any.
+    """
+    for engine, (module_name, class_name) in _WORKBOOK_CLASSES.items():
+        # GH#56692 - avoid importing optional dependencies; such a workbook
+        # can only exist if the caller already imported its module.
+        module = sys.modules.get(module_name)
+        if module is not None and isinstance(obj, getattr(module, class_name)):
+            return engine
+    return None
+
+
 @set_module("pandas")
 class ExcelFile:
     """
@@ -1548,11 +1574,10 @@ class ExcelFile:
     Parameters
     ----------
     path_or_buffer : str, bytes, pathlib.Path,
-        A file-like object, xlrd workbook or openpyxl workbook.
+        A file-like object or a workbook object from a supported engine.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
-        If io is not a buffer or path, this must be set to identify io.
         Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``, ``calamine``
         Engine compatibility :
 
@@ -1568,7 +1593,9 @@ class ExcelFile:
         When ``engine=None``, the following logic will be
         used to determine the engine:
 
-        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+        - If ``path_or_buffer`` is a workbook object, the engine that created it
+            will be used.
+        - Otherwise if ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format,
             ``xlrd`` will be used.
@@ -1645,53 +1672,42 @@ class ExcelFile:
         self._io = stringify_path(path_or_buffer)
 
         if engine is None:
-            # Only determine ext if it is needed
-            ext: str | None = None
+            # GH#68086 - must precede inspect_excel_format, which seeks.
+            engine = _infer_engine_from_workbook(path_or_buffer)
 
-            # GH#56692 - avoid importing xlrd; a Book only exists if the caller
-            # already imported it. GH#68086 - must precede inspect_excel_format,
-            # which seeks.
-            xlrd = sys.modules.get("xlrd")
-            if xlrd is not None and isinstance(path_or_buffer, xlrd.Book):
-                ext = "xls"
-                engine = "xlrd"
-
+        if engine is None:
+            ext = inspect_excel_format(
+                content_or_path=path_or_buffer, storage_options=storage_options
+            )
             if ext is None:
-                ext = inspect_excel_format(
-                    content_or_path=path_or_buffer, storage_options=storage_options
+                raise ValueError(
+                    "Excel file format cannot be determined, you must specify "
+                    "an engine manually."
                 )
-                if ext is None:
-                    raise ValueError(
-                        "Excel file format cannot be determined, you must specify "
-                        "an engine manually."
-                    )
 
-            if engine is None:
-                engine = config["io"]["excel"][ext]["reader"]
-                if engine == "auto":
-                    engine = get_default_engine(ext, mode="reader")
-                    # GH#56542 - the calamine engine will become the default
-                    # for xlsx/xlsm. Warn while calamine is available so the
-                    # switch is actionable; an explicit engine or the
-                    # io.excel.xlsx.reader option silences this. xlsm files
-                    # are format-sniffed as xlsx, so ext is never "xlsm" here.
-                    if (
-                        ext == "xlsx"
-                        and engine == "openpyxl"
-                        and import_optional_dependency(
-                            "python_calamine", errors="ignore"
-                        )
-                        is not None
-                    ):
-                        warnings.warn(
-                            "The default engine for reading 'xlsx' files "
-                            "will change from 'openpyxl' to 'calamine' in a "
-                            "future version. Pass engine='openpyxl' (or set "
-                            "the 'io.excel.xlsx.reader' option) to keep the "
-                            "current engine and silence this warning.",
-                            Pandas4Warning,
-                            stacklevel=find_stack_level(),
-                        )
+            engine = config["io"]["excel"][ext]["reader"]
+            if engine == "auto":
+                engine = get_default_engine(ext, mode="reader")
+                # GH#56542 - the calamine engine will become the default
+                # for xlsx/xlsm. Warn while calamine is available so the
+                # switch is actionable; an explicit engine or the
+                # io.excel.xlsx.reader option silences this. xlsm files
+                # are format-sniffed as xlsx, so ext is never "xlsm" here.
+                if (
+                    ext == "xlsx"
+                    and engine == "openpyxl"
+                    and import_optional_dependency("python_calamine", errors="ignore")
+                    is not None
+                ):
+                    warnings.warn(
+                        "The default engine for reading 'xlsx' files "
+                        "will change from 'openpyxl' to 'calamine' in a "
+                        "future version. Pass engine='openpyxl' (or set "
+                        "the 'io.excel.xlsx.reader' option) to keep the "
+                        "current engine and silence this warning.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
         assert engine is not None
         self.engine = engine
