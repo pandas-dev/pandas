@@ -24,6 +24,7 @@ from pandas import (
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
+    format_name,
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
@@ -129,7 +130,7 @@ class HTMLFormatter:
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self) -> Iterable:
+    def _get_columns_formatted_values(self) -> Iterable[Hashable]:
         return self.columns
 
     @property
@@ -209,7 +210,7 @@ class HTMLFormatter:
 
     def write_tr(
         self,
-        line: Iterable,
+        line: Iterable[Hashable],
         indent: int = 0,
         indent_delta: int = 0,
         header: bool = False,
@@ -355,7 +356,7 @@ class HTMLFormatter:
                     # parity with DataFrameFormatter class.
                     if self.fmt.show_index_names:
                         name = self.columns.names[lnum]
-                        row.append(pprint_thing(name or ""))
+                        row.append(format_name(name))
                     else:
                         row.append("")
 
@@ -385,7 +386,7 @@ class HTMLFormatter:
                 # TODO: Refactor to use _get_column_name_list from
                 # DataFrameFormatter class.
                 if self.fmt.show_index_names:
-                    row.append(self.columns.name or "")
+                    row.append(format_name(self.columns.name))
                 else:
                     row.append("")
             row.extend(self._get_columns_formatted_values())
@@ -399,7 +400,7 @@ class HTMLFormatter:
 
     def _write_row_header(self, indent: int) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
-        row = [x if x is not None else "" for x in self.frame.index.names] + [""] * (
+        row = [format_name(x) for x in self.frame.index.names] + [""] * (
             self.ncols + (1 if is_truncated_horizontally else 0)
         )
         self.write_tr(row, indent, self.indent_delta, header=True)

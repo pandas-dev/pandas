@@ -432,6 +432,39 @@ class TestMelt:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_melt_interval_dtype(self):
+        # GH#64613 the value column went through .values, tripping its own deprecation
+        df = pd.DataFrame(
+            {
+                "a": pd.arrays.IntervalArray.from_breaks(np.arange(3.0)),
+                "b": pd.arrays.IntervalArray.from_breaks(np.arange(10.0, 13.0)),
+            }
+        )
+        with tm.assert_produces_warning(None):
+            result = df.melt()
+        expected = pd.DataFrame(
+            {
+                "variable": ["a", "a", "b", "b"],
+                "value": pd.arrays.IntervalArray.from_tuples(
+                    [(0.0, 1.0), (1.0, 2.0), (10.0, 11.0), (11.0, 12.0)]
+                ),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("case", ["empty", "all_na"])
+    def test_melt_interval_dtype_without_any_interval(self, case):
+        # GH#68925 .values gave an object ndarray, and inferring IntervalDtype
+        #  back needs a non-NA entry
+        arr = pd.arrays.IntervalArray.from_breaks(np.arange(3.0))
+        if case == "empty":
+            arr = arr[:0]
+        else:
+            arr = arr.copy()
+            arr[:] = np.nan
+        df = pd.DataFrame({"a": arr})
+        assert df.melt()["value"].dtype == arr.dtype
+
     def test_melt_ea_columns(self):
         # GH 54297
         df = pd.DataFrame(
@@ -1288,3 +1321,18 @@ def test_wide_to_long_string_columns(string_storage):
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_wide_to_long_no_values_deprecation():
+    # GH#69025 the list-`i` uniqueness check goes through DataFrame.duplicated,
+    # which must not self-trigger the .values deprecation
+    df = pd.DataFrame(
+        {
+            "id1": pd.date_range("2020", periods=3, tz="UTC"),
+            "id2": range(3),
+            "A1": [1.0, 2.0, 3.0],
+            "A2": [4.0, 5.0, 6.0],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        pd.wide_to_long(df, ["A"], i=["id1", "id2"], j="n")

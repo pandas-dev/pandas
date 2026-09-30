@@ -104,6 +104,7 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
+    from typing import Any
 
     from pandas._typing import (
         ArrayLike,
@@ -1399,6 +1400,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+        Series.replace : Replace values, e.g. to merge several categories into one.
 
         Examples
         --------
@@ -2429,7 +2431,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     # ------------------------------------------------------------------
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         """
         Returns an Iterator over the values of this Categorical.
         """
@@ -2805,7 +2807,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return False
 
     def _accumulate(self, name: str, skipna: bool = True, **kwargs) -> Self:
-        func: Callable
+        func: Callable[..., Any]
         if name == "cummin":
             func = np.minimum.accumulate
         elif name == "cummax":
@@ -3006,8 +3008,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ):
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         dtype = self.dtype
         if how in ["sum", "prod", "cumsum", "cumprod", "skew", "kurt"]:
@@ -3028,7 +3029,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "idxmin",
             "idxmax",
         ]:
-            if kind == "transform":
+            if op.kind == "transform":
                 raise TypeError(f"{dtype} type does not support {how} operations")
             raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
 

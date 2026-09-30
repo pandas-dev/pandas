@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 
 def _cum_func(
-    func: Callable,
+    func: Callable[..., np.ndarray],
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
     *,

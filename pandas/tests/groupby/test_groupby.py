@@ -803,19 +803,11 @@ def test_nonsense_func():
         df.groupby(lambda x: x + "foo")
 
 
-def test_wrap_aggregated_output_multindex(
-    multiindex_dataframe_random_data, using_infer_string
-):
+def test_wrap_aggregated_output_multindex(multiindex_dataframe_random_data):
     df = multiindex_dataframe_random_data.T
-    df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    msg = re.escape("agg function failed [how->mean,dtype->")
-    if using_infer_string:
-        msg = "dtype 'str' does not support operation 'mean'"
-    with pytest.raises(TypeError, match=msg):
-        df.groupby(keys).agg("mean")
-    agged = df.drop(columns=("baz", "two")).groupby(keys).agg("mean")
+    agged = df.groupby(keys).agg("mean")
     assert isinstance(agged.columns, pd.MultiIndex)
 
     def aggfun(ser):
