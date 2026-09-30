@@ -49,7 +49,7 @@ def round_trip_pickle(obj: Any, tmp_path: Path) -> DataFrame | Series:
 
 
 def round_trip_pathlib(
-    writer: Callable, reader: Callable, tmp_path: Path
+    writer: Callable[[Path], Any], reader: Callable[[Path], Any], tmp_path: Path
 ) -> DataFrame | Series:
     """
     Write an object to file specified by a pathlib.Path and read it back
@@ -97,7 +97,7 @@ def write_to_compressed(
     args: tuple[Any, ...] = (data,)
     mode = "wb"
     method = "write"
-    compress_method: Callable
+    compress_method: Callable[..., Any]
 
     if compression == "zip":
         compress_method = zipfile.ZipFile

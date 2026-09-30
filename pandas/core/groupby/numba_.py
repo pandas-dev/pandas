@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from pandas._typing import Scalar
 
 
-def validate_udf(func: Callable) -> None:
+def validate_udf(func: Callable[..., Any]) -> None:
     """
     Validate user defined function for ops when using Numba with groupby ops.
 
