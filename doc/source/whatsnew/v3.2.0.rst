@@ -166,8 +166,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` for a ``True`` or ``False`` label present in an object-dtype :class:`Index` or the first level of a :class:`MultiIndex` (:issue:`50165`)
 
 Missing
 ^^^^^^^
