@@ -1037,3 +1037,30 @@ def test_dt_freq_no_warning_when_unable_to_infer():
     ser = pd.Series(pd.to_datetime(["2020-01-01", "2020-03-07", "2020-08-15"]))
     with tm.assert_produces_warning(None):
         assert ser.dt.freq is None
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        pd.Series(pd.date_range("2020-01-01", periods=3)),
+        pd.Series(pd.period_range("2020-01-01", periods=3, freq="D")),
+    ],
+    ids=["datetime64", "period"],
+)
+def test_deprecated_aliases(ser):
+    msg = "Series.dt.{} is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("weekday")):
+        result = ser.dt.weekday
+    tm.assert_series_equal(result, ser.dt.day_of_week)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("dayofweek")):
+        result = ser.dt.dayofweek
+    tm.assert_series_equal(result, ser.dt.day_of_week)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("dayofyear")):
+        result = ser.dt.dayofyear
+    tm.assert_series_equal(result, ser.dt.day_of_year)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("daysinmonth")):
+        result = ser.dt.daysinmonth
+    tm.assert_series_equal(result, ser.dt.days_in_month)
