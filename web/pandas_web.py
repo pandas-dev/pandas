@@ -462,6 +462,12 @@ def main(
     before copying them. ``.md`` files are transformed to HTML.
     """
 
+    if source_path.resolve() == target_path.resolve():
+        raise ValueError(
+            "Target path must not be the same as the source path, "
+            "as the source files would be removed before rendering."
+        )
+
     # Sanity check: validate that versions.json is valid JSON
     versions_path = source_path / "versions.json"
     with versions_path.open(encoding="utf-8") as f:
