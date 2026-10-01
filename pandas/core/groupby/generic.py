@@ -2463,7 +2463,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
+            try:
+                return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
+            except NotImplementedError as err:
+                raise TypeError(
+                    f"{how} is not supported for {bvalues.dtype} dtype"
+                ) from err
 
         res_mgr = mgr.apply(arr_func)
 

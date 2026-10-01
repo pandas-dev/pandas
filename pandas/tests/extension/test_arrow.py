@@ -5621,7 +5621,22 @@ class TestGroupbyAggPyArrowNative:
 
 
 @pytest.mark.parametrize("frame", [True, False])
-@pytest.mark.parametrize("how", ["any", "all", "std", "sem", "idxmin", "idxmax"])
+@pytest.mark.parametrize(
+    "how",
+    [
+        "any",
+        "all",
+        "std",
+        "sem",
+        "idxmin",
+        "idxmax",
+        "cumsum",
+        "cumprod",
+        "cummin",
+        "cummax",
+        "rank",
+    ],
+)
 @pytest.mark.parametrize(
     "arr",
     [
