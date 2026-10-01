@@ -80,6 +80,7 @@ from pandas.plotting import boxplot_frame_groupby
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Mapping,
         Sequence,
     )
 
@@ -780,7 +781,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
     def _transform_general(
-        self, func: Callable, engine, engine_kwargs, *args, **kwargs
+        self, func: Callable[..., Any], engine, engine_kwargs, *args, **kwargs
     ) -> Series:
         """
         Transform with a callable `func`.
@@ -1152,7 +1153,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast("Interval", lab)
+            lab_interval = cast("Interval[Any]", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -2333,7 +2334,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_applied_output(
         self,
         data: DataFrame,
-        values: list,
+        values: list[Any],
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
@@ -2747,10 +2748,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _transform_multiple_funcs(
         self,
-        func: list | dict,
+        func: Sequence[Any] | Mapping[Any, Any],
         *args,
         engine: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2767,7 +2768,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if is_dict_like(func):
             # Also includes NamedAgg / NamedFunc
-            func = cast("dict", func)
+            func = cast("dict[Hashable, Any]", func)
             results: list[Series] = []
             for name, agg in func.items():
                 if isinstance(agg, NamedAgg):
@@ -2797,7 +2798,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Apply every func to every non-key column.
         assert is_list_like(func)
         results_list: list[Series] = []
-        col_order: list[tuple] = []
+        col_order: list[tuple[Hashable, Any]] = []
         for column in self._obj_with_exclusions.columns:
             for agg_func in func:
                 col_result = self._transform_single_column(
@@ -2821,10 +2822,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _transform_single_column(
         self,
         column_name: Hashable,
-        agg_func: Callable | str,
+        agg_func: Callable[..., Any] | str,
         *args,
         engine: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ) -> Series:
         """
@@ -2868,7 +2869,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
         return fast_path, slow_path
 
-    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
+    def _choose_path(
+        self,
+        fast_path: Callable[..., Any],
+        slow_path: Callable[..., Any],
+        group: DataFrame,
+    ):
         path = slow_path
         res = slow_path(group)
 
