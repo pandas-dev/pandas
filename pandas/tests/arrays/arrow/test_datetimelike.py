@@ -93,7 +93,11 @@ def test_unsupported_dt(data):
         ["day", 2],
         ["day_of_week", 0],
         ["weekday", 0],
+        ["dayofweek", 0],
         ["day_of_year", 2],
+        ["dayofyear", 2],
+        ["days_in_month", 31],
+        ["daysinmonth", 31],
         ["hour", 3],
         ["minute", 4],
         ["is_leap_year", False],
@@ -123,12 +127,12 @@ def test_dt_properties(prop, expected):
         ],
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
-    if prop == "weekday":
+    if prop in ["dayofweek", "dayofyear", "daysinmonth", "weekday"]:
         # GH#12816
         warn = Pandas4Warning
     else:
         warn = None
-    with tm.assert_produces_warning(warn, match="weekday"):
+    with tm.assert_produces_warning(warn, match=prop):
         result = getattr(ser.dt, prop)
     exp_type = None
     if isinstance(expected, date):
