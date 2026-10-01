@@ -211,7 +211,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with ``check_dtype=False`` failing when comparing a nullable integer column containing ``pd.NA`` to an object column containing ``pd.NA`` (:issue:`61473`)
 -
 
 Styler
