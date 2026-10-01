@@ -97,6 +97,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Axis,
+        Frequency,
         JoinHow,
         TimeUnit,
         npt,
@@ -738,6 +739,54 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                 raise ValueError("Cannot set freq with ndim > 1")
 
         self._freq = value
+
+    def set_freq(self, freq: Frequency | None) -> Self:
+        """
+        Return a new Index with the given frequency.
+
+        The values are unchanged; only the ``freq`` attribute differs. Unlike
+        assigning to ``freq``, this does not modify the original Index.
+
+        Parameters
+        ----------
+        freq : str, DateOffset or None
+            Frequency to set. It must conform to the values of the Index.
+            ``None`` removes the frequency.
+
+        Returns
+        -------
+        DatetimeIndex or TimedeltaIndex
+            A new Index with ``freq`` set.
+
+        Raises
+        ------
+        ValueError
+            If ``freq`` is invalid or does not conform to the values of the Index.
+
+        See Also
+        --------
+        DatetimeIndex.freq : Return the frequency object if it is set.
+        DatetimeIndex.inferred_freq : Return the frequency inferred from the values.
+        Series.asfreq : Conform a Series to a new frequency, changing its values.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2020-01-01", "2020-01-03", "2020-01-05"])
+        >>> idx
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq=None)
+        >>> idx.set_freq("2D")
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq='2D')
+        >>> idx.set_freq("2D").set_freq(None)
+        DatetimeIndex(['2020-01-01', '2020-01-03', '2020-01-05'],
+                      dtype='datetime64[us]', freq=None)
+        """
+        result = self._view()
+        # don't share the cache, some cached attributes depend on freq
+        result._cache = {}
+        result.freq = freq
+        return result
 
     def astype(self, dtype, copy: bool = True):
         result = super().astype(dtype, copy=copy)
