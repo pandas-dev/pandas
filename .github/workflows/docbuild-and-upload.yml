@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 3.0.x
+      - 3.1.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 3.0.x
+      - 3.1.x
   workflow_dispatch:
     inputs:
       version:
