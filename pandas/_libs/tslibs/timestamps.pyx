@@ -1635,13 +1635,9 @@ cdef class _Timestamp(ABCTimestamp):
         try:
             base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         except NotImplementedError:
-            # GH#68009 embedding the UTC offset for a non-fixed tzinfo requires
-            #  looking up the true year via toordinal(), which is not supported
-            #  outside the range of the stdlib datetime. Substitute an in-range
-            #  year so the stdlib can format the date/time, but pin its tzinfo
-            #  to self's own (already wall-time-consistent) utcoffset() instead
-            #  of letting the substitute year re-derive its own DST rule, which
-            #  would not generally match the wall time being displayed.
+            # GH#68009 a non-fixed tzinfo needs the true year to resolve via
+            #  stdlib, unsupported outside its range; substitute an in-range
+            #  year but pin self's own utcoffset() as a fixed-offset tzinfo.
             year2000 = self.replace(year=2000, tzinfo=dt.timezone(self.utcoffset()))
             base = super(_Timestamp, year2000).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
@@ -1679,11 +1675,7 @@ cdef class _Timestamp(ABCTimestamp):
             try:
                 stamp += self.strftime("%z")
             except (ValueError, NotImplementedError):
-                # GH#68009 strftime raises NotImplementedError (not ValueError)
-                #  for years outside the range of the stdlib datetime it builds
-                #  internally. As in isoformat() above, substitute an in-range
-                #  year but pin its tzinfo to self's own utcoffset() so the
-                #  offset shown matches the wall time above it exactly.
+                # GH#68009 same fallback as isoformat() above.
                 year2000 = self.replace(year=2000, tzinfo=dt.timezone(self.utcoffset()))
                 stamp += year2000.strftime("%z")
 
@@ -2734,14 +2726,10 @@ class Timestamp(_Timestamp):
         try:
             return super().utcoffset()
         except NotImplementedError:
-            # GH#68009 a non-fixed tzinfo needs the true year (via toordinal)
-            #  to look up its offset, which is not supported outside the
-            #  range of the stdlib datetime. Rather than substituting an
-            #  unrelated year's DST rule (which need not match the wall time
-            #  already computed for self, e.g. a different DST season, or a
-            #  zone's pre-standardization era), derive the offset directly
-            #  from self's own wall-clock fields and its true UTC value, so
-            #  the result is guaranteed consistent with self's own display.
+            # GH#68009 a non-fixed tzinfo needs the true year, unsupported
+            #  outside stdlib range; derive the offset directly from self's
+            #  own wall-clock fields and UTC value instead of substituting
+            #  an unrelated year's DST rule.
             pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
             dts.year = self._year
             dts.month = self.month
