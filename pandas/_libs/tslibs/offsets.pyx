@@ -476,15 +476,18 @@ cdef class BaseOffset:
 
         See Also
         --------
-        tseries.offsets.DateOffset : The standard kind of date increment.
+        DateOffset.n : Return the count of the number of periods.
 
         Examples
         --------
-        >>> pd.offsets.Hour(5).normalize
+        >>> pd.offsets.MonthEnd().normalize
         False
 
-        >>> pd.offsets.Day(5).normalize
-        False
+        >>> offset = pd.offsets.MonthEnd(normalize=True)
+        >>> offset.normalize
+        True
+        >>> pd.Timestamp("2020-01-15 12:34") + offset
+        Timestamp('2020-01-31 00:00:00')
         """
         return self._normalize
 
@@ -1632,8 +1635,8 @@ cdef class Day(SingleConstructorOffset):
         """
         Return a string representing the frequency.
 
-        The frequency string is composed of a multiplier (if greater than 1)
-        followed by the offset alias 'D' for days.
+        The frequency string is composed of a multiplier (omitted when it
+        is 1) followed by the offset alias 'D' for days.
 
         See Also
         --------
@@ -1651,6 +1654,9 @@ cdef class Day(SingleConstructorOffset):
 
         >>> pd.offsets.Day(1).freqstr
         'D'
+
+        >>> pd.offsets.Day(-1).freqstr
+        '-1D'
         """
         if self._n != 1:
             return str(self._n) + "D"
@@ -2525,16 +2531,15 @@ cdef class BusinessMixin(SingleConstructorOffset):
     @property
     def offset(self):
         """
-        Return the time offset applied to the business day.
+        Return the ``offset`` passed at construction.
 
-        This property returns the timedelta offset that is added to the
-        business day calculation result. It allows for shifting the result
-        by a fixed time amount.
+        Day- and month-based business offsets add it after the business day
+        calculation.
 
         Returns
         -------
         timedelta
-            The time offset applied to the business day.
+            The ``offset`` argument, ``timedelta(0)`` by default.
 
         See Also
         --------
@@ -2560,76 +2565,27 @@ cdef class BusinessMixin(SingleConstructorOffset):
         """
         Return the holidays used for custom business day calculations.
 
-        This property returns a tuple or list of holidays used when calculating
-        business days for custom business day offsets. For non-custom business
-        offsets (e.g., standard BusinessDay, BusinessHour), this will be None.
+        Custom business offsets skip these dates when counting business days.
 
         Returns
         -------
-        tuple, list, or None
-            Holidays used in business day calculations, or None if no custom
-            holidays are specified.
+        tuple or None
+            Holidays as ``numpy.datetime64[D]`` values, or None for non-custom
+            business offsets such as BusinessDay.
 
         See Also
         --------
-        BusinessDay.holidays : Holidays for standard business day offset.
-        BusinessHour.holidays : Holidays for standard business hour offset.
-        CustomBusinessDay.holidays : Holidays for custom business day offset.
-        CustomBusinessHour.holidays : Holidays for custom business hour offset.
-        CustomBusinessMonthEnd.holidays : Holidays for custom business month end offset.
-        CustomBusinessMonthBegin.holidays : Holidays for custom business month begin
-            offset.
         CustomBusinessDay.weekmask : Weekmask for custom business day offset.
         CustomBusinessDay.calendar : Calendar for custom business day offset.
 
         Examples
         --------
-        For standard business offsets, holidays is None:
-
-        >>> bd = pd.offsets.BusinessDay()
-        >>> bd.holidays is None
+        >>> pd.offsets.BusinessDay().holidays is None
         True
-
-        >>> bh = pd.offsets.BusinessHour()
-        >>> bh.holidays is None
-        True
-
-        For custom business day with explicit holidays:
 
         >>> holidays = [pd.Timestamp("2023-12-25"), pd.Timestamp("2024-01-01")]
-        >>> cbd = pd.offsets.CustomBusinessDay(holidays=holidays)
-        >>> cbd.holidays  # doctest: +SKIP
-        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
-
-        For custom business hour with explicit holidays:
-
-        >>> cbh = pd.offsets.CustomBusinessHour(holidays=holidays)
-        >>> cbh.holidays  # doctest: +SKIP
-        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
-
-        For custom business month end with explicit holidays:
-
-        >>> cbme = pd.offsets.CustomBusinessMonthEnd(holidays=holidays)
-        >>> cbme.holidays  # doctest: +SKIP
-        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
-
-        For custom business month begin with explicit holidays:
-
-        >>> cbmb = pd.offsets.CustomBusinessMonthBegin(holidays=holidays)
-        >>> cbmb.holidays  # doctest: +SKIP
-        (Timestamp('2023-12-25 00:00:00'), Timestamp('2024-01-01 00:00:00'))
-
-        For custom business offsets with a calendar:
-
-        >>> from pandas.tseries.holiday import USFederalHolidayCalendar
-        >>> cal = USFederalHolidayCalendar()
-        >>> cbd_cal = pd.offsets.CustomBusinessDay(calendar=cal)
-        >>> isinstance(cbd_cal.holidays, tuple)
-        True
-
-        >>> cbh_cal = pd.offsets.CustomBusinessHour(calendar=cal)
-        >>> isinstance(cbh_cal.holidays, tuple)
-        True
+        >>> pd.offsets.CustomBusinessDay(holidays=holidays).holidays
+        (np.datetime64('2023-12-25'), np.datetime64('2024-01-01'))
         """
         return self._holidays
 
@@ -2763,8 +2719,8 @@ cdef class BusinessDay(BusinessMixin):
     DateOffset subclass representing possibly n business days.
 
     BusinessDay, also known as BDay, is a date offset representing a single
-    business day or a number of business days. Business days exclude weekends
-    (Saturday and Sunday) by default.
+    business day or a number of business days. Business days are Monday
+    through Friday; use CustomBusinessDay for a different weekmask or holidays.
 
     Parameters
     ----------
@@ -3511,9 +3467,10 @@ cdef class BusinessHour(BusinessMixin):
 
         This method determines if a given timestamp falls within business hours.
         Business hours are defined by the ``start`` and ``end`` parameters
-        (default 09:00 to 17:00). The timestamp must also fall on a business day
-        (Monday through Friday). If ``normalize`` is True, it also checks that
-        the time component is midnight.
+        (default 09:00 to 17:00). The timestamp must also fall on a business day:
+        Monday through Friday, or per ``weekmask`` and ``holidays`` for
+        CustomBusinessHour. If ``normalize`` is True, it also checks that the
+        time component is midnight.
 
         Parameters
         ----------
@@ -3659,14 +3616,13 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         """
         Return the week of the month on which this offset applies.
 
-        Returns an integer representing the week of the month (0-3) that this
-        offset targets. The week is zero-indexed, where 0 corresponds to the
-        first week of the month.
+        For WeekOfMonth this is 0-3, where 0 is the first week of the month.
+        LastWeekOfMonth always targets the last week and returns -1.
 
         Returns
         -------
         int
-            An integer representing the week of the month (0-3).
+            Zero-based week of the month, or -1 for the last week.
 
         See Also
         --------
@@ -3784,9 +3740,8 @@ cdef class YearOffset(SingleConstructorOffset):
         """
         Return the month of the year on which this offset applies.
 
-        Returns an integer representing the month (1-12) that this offset
-        targets. For year-based offsets, this determines which month is used
-        for calculations.
+        The month is 1-12; it defaults to 12 for YearEnd and BYearEnd and to 1
+        for YearBegin and BYearBegin.
 
         See Also
         --------
@@ -3797,8 +3752,8 @@ cdef class YearOffset(SingleConstructorOffset):
 
         Examples
         --------
-        >>> pd.offsets.BYearBegin().month
-        1
+        >>> pd.offsets.YearEnd().month
+        12
 
         >>> pd.offsets.BYearBegin(month=6).month
         6
@@ -4163,12 +4118,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
         ``startingMonth=1`` anchors on January 1, April 1, July 1 and October 1.
         For the ``*End`` offsets it is a month in which a quarter *ends*, so
         ``startingMonth=1`` anchors on January 31, April 30, July 31 and
-        October 31.
+        October 31. The ``B*`` offsets anchor on the first or last business day
+        of those months instead.
 
         See Also
         --------
-        QuarterOffset.rule_code : Return the rule code for the quarter offset.
-        HalfYearOffset.startingMonth : Similar property for half-year-based offsets.
+        QuarterBegin.rule_code : Return the rule code for the quarter offset.
+        HalfYearBegin.startingMonth : Similar property for half-year-based offsets.
 
         Examples
         --------
@@ -4205,8 +4161,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
         """
         Return a string representing the frequency with month suffix.
 
-        This property generates a rule code string that combines the offset's
-        prefix with the abbreviated month name of the starting month.
+        This is the frequency string without the ``n`` multiplier.
 
         Returns
         -------
@@ -4217,59 +4172,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         See Also
         --------
-        BQuarterBegin.rule_code : Rule code for business quarter begin offset.
-        BQuarterEnd.rule_code : Rule code for business quarter end offset.
-        QuarterBegin.rule_code : Rule code for quarter begin offset.
-        QuarterEnd.rule_code : Rule code for quarter end offset.
-        FY5253Quarter.get_rule_code_suffix : Suffix component of rule code for
-            FY5253Quarter.
-        FY5253.get_rule_code_suffix : Suffix component of rule code for FY5253.
+        QuarterBegin.startingMonth : Return the month of the year that anchors
+            the quarters.
 
         Examples
         --------
-        Business quarter begin with different starting months:
-
-        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=1)
-        >>> bqb.rule_code
-        'BQS-JAN'
-
-        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=2)
-        >>> bqb.rule_code
-        'BQS-FEB'
-
-        >>> bqb = pd.offsets.BQuarterBegin(startingMonth=3)
-        >>> bqb.rule_code
-        'BQS-MAR'
-
-        Business quarter end with different starting months:
-
-        >>> bqe = pd.offsets.BQuarterEnd(startingMonth=1)
-        >>> bqe.rule_code
-        'BQE-JAN'
-
-        >>> bqe = pd.offsets.BQuarterEnd(startingMonth=12)
-        >>> bqe.rule_code
-        'BQE-DEC'
-
-        Quarter begin with different starting months:
-
-        >>> qb = pd.offsets.QuarterBegin(startingMonth=1)
-        >>> qb.rule_code
-        'QS-JAN'
-
-        >>> qb = pd.offsets.QuarterBegin(startingMonth=3)
-        >>> qb.rule_code
-        'QS-MAR'
-
-        Quarter end with different starting months:
-
-        >>> qe = pd.offsets.QuarterEnd(startingMonth=1)
-        >>> qe.rule_code
-        'QE-JAN'
-
-        >>> qe = pd.offsets.QuarterEnd(startingMonth=3)
-        >>> qe.rule_code
-        'QE-MAR'
+        >>> pd.offsets.BQuarterEnd(startingMonth=3).rule_code
+        'BQE-MAR'
         """
         month = MONTH_ALIASES[self._startingMonth]
         return f"{self._prefix}-{month}"
@@ -4293,7 +4202,13 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         See Also
         --------
-        QuarterOffset : Parent class with quarterly offset logic.
+        QuarterBegin.is_on_offset : Check if a timestamp is at the start of a
+            quarter.
+        QuarterEnd.is_on_offset : Check if a timestamp is at the end of a quarter.
+        BQuarterBegin.is_on_offset : Check if a timestamp is at the start of a
+            business quarter.
+        BQuarterEnd.is_on_offset : Check if a timestamp is at the end of a
+            business quarter.
 
         Examples
         --------
@@ -4558,12 +4473,13 @@ cdef class HalfYearOffset(SingleConstructorOffset):
         For the ``*Begin`` offsets this is a month in which a half-year starts, so
         ``startingMonth=1`` anchors on January 1 and July 1. For the ``*End``
         offsets it is a month in which a half-year *ends*, so ``startingMonth=1``
-        anchors on January 31 and July 31.
+        anchors on January 31 and July 31. The ``B*`` offsets anchor on the first
+        or last business day of those months instead.
 
         See Also
         --------
-        HalfYearOffset.rule_code : Return the rule code for the half-year offset.
-        QuarterOffset.startingMonth : Similar property for quarter-based offsets.
+        HalfYearBegin.rule_code : Return the rule code for the half-year offset.
+        QuarterBegin.startingMonth : Similar property for quarter-based offsets.
 
         Examples
         --------
@@ -5999,15 +5915,15 @@ cdef class FY5253Mixin(SingleConstructorOffset):
     @property
     def startingMonth(self):
         """
-        Return the starting month of the fiscal year.
+        Return the month in which the fiscal year ends.
 
-        The starting month is the month in which the fiscal year begins.
-        The value is an integer from 1 (January) to 12 (December).
+        The year ends on the last ``weekday`` of this month, or on the
+        ``weekday`` nearest its last day, depending on ``variation``.
 
         Returns
         -------
         int
-            The starting month of the fiscal year (1-12).
+            Month from 1 (January) to 12 (December).
 
         See Also
         --------
@@ -6032,7 +5948,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
 
         See Also
         --------
-        FY5253.startingMonth : Return the starting month of the fiscal year.
+        FY5253.startingMonth : Return the month in which the fiscal year ends.
         FY5253.variation : Return the variation of the fiscal year.
 
         Examples
@@ -6059,7 +5975,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         See Also
         --------
         FY5253.weekday : Return the weekday used by the fiscal year.
-        FY5253.startingMonth : Return the starting month of the fiscal year.
+        FY5253.startingMonth : Return the month in which the fiscal year ends.
 
         Examples
         --------
@@ -6098,9 +6014,7 @@ cdef class FY5253Mixin(SingleConstructorOffset):
         """
         Return a string representing the frequency with fiscal year suffix.
 
-        This property generates a rule code string that combines the offset's
-        prefix with the fiscal year suffix containing the variation, starting
-        month, and weekday information.
+        This is the frequency string without the ``n`` multiplier.
 
         Returns
         -------
@@ -6747,13 +6661,11 @@ cdef class FY5253Quarter(FY5253Mixin):
         In a 52-53 week fiscal year, most years have 52 weeks (4 quarters of
         13 weeks each), but occasionally a year will have 53 weeks. When this
         occurs, one quarter will have 14 weeks instead of the standard 13 weeks.
-        This method determines whether the fiscal year containing the given date
-        is a 53-week year.
 
         Parameters
         ----------
         dt : datetime
-            The date to check, which falls within some fiscal year.
+            The date to check.
 
         Returns
         -------
@@ -6764,8 +6676,7 @@ cdef class FY5253Quarter(FY5253Mixin):
         See Also
         --------
         FY5253Quarter.get_weeks : Get the number of weeks in each quarter.
-        FY5253Quarter.qtr_with_extra_week : Get the quarter number that receives
-            the extra week in 53-week years.
+        FY5253Quarter.qtr_with_extra_week : Return the quarter with the extra week.
 
         Examples
         --------
