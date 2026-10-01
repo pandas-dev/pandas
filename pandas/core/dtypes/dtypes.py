@@ -2583,5 +2583,9 @@ class ArrowDtype(StorageExtensionDtype):
         Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
-        arr = array.cast(self.pyarrow_dtype, safe=True)
-        return array_class(arr)
+        # check_metadata=True also compares list field names, so those still
+        # get cast; skipping the no-op cast avoids a segfault on pyarrow<26,
+        # see https://github.com/apache/arrow/issues/37004
+        if not array.type.equals(self.pyarrow_dtype, check_metadata=True):
+            array = array.cast(self.pyarrow_dtype, safe=True)
+        return array_class(array)

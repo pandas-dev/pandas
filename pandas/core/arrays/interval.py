@@ -11,6 +11,7 @@ from typing import (
     Literal,
     Self,
     TypeAlias,
+    cast,
     overload,
 )
 import warnings
@@ -1068,29 +1069,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         self._validate_scalar(fill_value)
 
-        # ExtensionArray.shift doesn't work for two reasons
-        # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
-        # 2. IntervalArray._from_sequence only accepts NaN for missing values,
-        #    not other values like NaT
-
-        empty_len = min(abs(periods), len(self))
         if isna(fill_value):
-            from pandas import Index
+            # ExtensionArray.shift would build the NA fill with _from_sequence,
+            #  which raises on a numpy integer subtype instead of upcasting.
+            #  take keeps the subtype unless it must upcast to hold NA.
+            indexer = np.arange(len(self)) - periods
+            indexer[(indexer < 0) | (indexer >= len(self))] = -1
+            return self.take(indexer, allow_fill=True)
 
-            fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks(
-                [fill_value] * (empty_len + 1), closed=self.closed
-            )
-        else:
-            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
-
-        if periods > 0:
-            a = empty
-            b = self[:-periods]
-        else:
-            a = self[abs(periods) :]
-            b = empty
-        return self._concat_same_type([a, b])
+        return cast("IntervalArray", super().shift(periods, fill_value))
 
     def take(
         self,
