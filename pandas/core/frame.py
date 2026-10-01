@@ -8319,11 +8319,15 @@ class DataFrame(NDFrame, OpsMixin):
                     level_values,
                     allow_duplicates=allow_duplicates,
                 )
-                if (
-                    lev.dtype == np.object_
-                    and new_obj._get_column_array(0).dtype != np.object_
-                ):
-                    inferred.append(name)
+                if lev.dtype == np.object_:
+                    new_dtype = new_obj._get_column_array(0).dtype
+                    # skip all-NaT levels: infer_objects keeps them object, so
+                    # the warning's advice could not silence it
+                    if (
+                        new_dtype != np.object_
+                        and lev.infer_objects().dtype == new_dtype
+                    ):
+                        inferred.append(name)
 
             if inferred:
                 # GH#30517

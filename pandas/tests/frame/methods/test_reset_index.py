@@ -729,6 +729,15 @@ def test_reset_index_object_level_no_warning():
     tm.assert_frame_equal(result, pd.DataFrame({"v": [1, 2]}))
 
 
+@pytest.mark.parametrize("values", [[pd.NaT, pd.NaT], [pd.NaT, None], [pd.NaT, np.nan]])
+def test_reset_index_all_nat_object_level_no_warning(values):
+    # GH#30517 infer_objects keeps an all-NaT level object, so following the
+    # warning's advice could not silence it
+    df = pd.DataFrame({"v": [1, 2]}, index=pd.Index(values, dtype=object, name="k"))
+    with tm.assert_produces_warning(None):
+        df.reset_index()
+
+
 def test_reset_index_empty_frame_with_datetime64_multiindex():
     # https://github.com/pandas-dev/pandas/issues/35606
     dti = pd.DatetimeIndex(["2020-07-20 00:00:00"], dtype="M8[ns]")
