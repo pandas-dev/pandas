@@ -1206,7 +1206,7 @@ class BaseGrouper:
             if not mutated and not _is_indexed_like(res, group_axes):
                 mutated = True
             if not labels_key and data.ndim == 1:
-                labels_key = _labels_pinned_key(res, group, key, data.name)
+                labels_key = _labels_pinned_key(res, key, data.name)
             result_values.append(res)
         if labels_key:
             warnings.warn(
@@ -1397,7 +1397,7 @@ class BinGrouper(BaseGrouper):
         return self
 
 
-def _labels_pinned_key(res, group: Series, key: Hashable, name: Hashable) -> bool:
+def _labels_pinned_key(res, key: Hashable, name: Hashable) -> bool:
     """
     Whether ``res`` has a column labeled by the pinned group ``key`` that will be
     labeled ``name`` instead once the key is no longer pinned (GH#41090).
@@ -1406,9 +1406,6 @@ def _labels_pinned_key(res, group: Series, key: Hashable, name: Hashable) -> boo
         isinstance(res, DataFrame)
         # default labels, e.g. pd.DataFrame(ndarray), are not taken from the group
         and not isinstance(res.columns, RangeIndex)
-        # skip results of a different length, e.g. unstack, whose labels come
-        #  from the data
-        and len(res) == len(group)
         and key in res.columns
     ):
         return False

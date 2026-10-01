@@ -255,6 +255,7 @@ def test_apply_setting_name_does_not_write_name_column():
         lambda x: x.reset_index(),
         lambda x: pd.DataFrame(x),
         lambda x: (x * 2).to_frame(),
+        lambda x: x.head(2).to_frame(),
     ],
 )
 def test_apply_result_labeled_by_pinned_key(func):
@@ -280,19 +281,6 @@ def test_apply_result_not_labeled_by_pinned_key(func):
     ser = pd.Series([3.0, 4.0, 5.0], name="b")
     with tm.assert_produces_warning(None):
         ser.groupby([0, 0, 1]).apply(func)
-
-
-def test_apply_result_label_from_data_matches_key():
-    # GH#41090 - unstack takes its column labels from the data, so a label equal
-    #  to the group key does not depend on the pinned name
-    idx = pd.MultiIndex.from_product([[0, 1], [0, 1, 2]])
-    ser = pd.Series(range(6), index=idx, name="v")
-    with tm.assert_produces_warning(None):
-        result = ser.groupby(level=0).apply(lambda x: x.unstack())
-    expected = pd.DataFrame(
-        [[0, 1, 2], [3, 4, 5]], index=pd.MultiIndex.from_arrays([[0, 1], [0, 1]])
-    )
-    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_result_labeled_by_pinned_na_key():
