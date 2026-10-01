@@ -763,7 +763,7 @@ class DataFrameFormatter:
             leading_space=self.index,
         )
 
-    def _get_formatter(self, i: str | int) -> Callable | None:
+    def _get_formatter(self, i: str | int) -> Callable[..., Any] | None:
         if isinstance(self.formatters, (list, tuple)):
             if is_integer(i):
                 i = cast("int", i)
@@ -898,7 +898,7 @@ class DataFrameRenderer:
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
-        classes: str | list | tuple | None = None,
+        classes: str | list[str] | tuple[str, ...] | None = None,
         notebook: bool = False,
         border: int | bool | None = None,
         table_id: str | None = None,
@@ -1104,7 +1104,7 @@ def format_name(name: Hashable) -> str:
 
 def format_array(
     values: ArrayLike,
-    formatter: Callable | None,
+    formatter: Callable[..., Any] | None,
     float_format: FloatFormatType | None = None,
     na_rep: str = "NaN",
     digits: int | None = None,
@@ -1113,7 +1113,7 @@ def format_array(
     decimal: str = ".",
     leading_space: bool | None = True,
     quoting: int | None = None,
-    fallback_formatter: Callable | None = None,
+    fallback_formatter: Callable[..., Any] | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1193,7 +1193,7 @@ class _GenericArrayFormatter:
         self,
         values: ArrayLike,
         digits: int = 7,
-        formatter: Callable | None = None,
+        formatter: Callable[..., Any] | None = None,
         na_rep: str = "NaN",
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
@@ -1202,7 +1202,7 @@ class _GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
-        fallback_formatter: Callable | None = None,
+        fallback_formatter: Callable[..., Any] | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
@@ -1313,7 +1313,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         self,
         float_format: FloatFormatType | None = None,
         threshold: float | None = None,
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
         if float_format is None:
@@ -1372,7 +1372,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         """
 
         def format_with_na_rep(
-            values: ArrayLike, formatter: Callable, na_rep: str
+            values: ArrayLike, formatter: Callable[..., Any], na_rep: str
         ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
@@ -1384,7 +1384,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return formatted
 
         def format_complex_with_na_rep(
-            values: ArrayLike, formatter: Callable, na_rep: str
+            values: ArrayLike, formatter: Callable[..., Any], na_rep: str
         ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
@@ -1671,7 +1671,7 @@ def _format_datetime64_dateonly(
 
 def get_format_datetime64(
     is_dates_only: bool, na_rep: str = "NaT", date_format: str | None = None
-) -> Callable:
+) -> Callable[..., Any]:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
@@ -1705,7 +1705,7 @@ def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
-) -> Callable:
+) -> Callable[..., Any]:
     """
     Return a formatter function for a range of timedeltas.
     These will all have the same format argument

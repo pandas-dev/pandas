@@ -88,11 +88,14 @@ class CssExcelCell(ExcelCell):
         row: int,
         col: int,
         val,
-        style: dict | None,
+        style: dict[str, dict[str, str]] | None,
         css_styles: dict[tuple[int, int], list[tuple[str, Any]]] | None,
         css_row: int,
         css_col: int,
-        css_converter: Callable | None,
+        css_converter: (
+            Callable[[str | frozenset[tuple[str, str]]], dict[str, dict[str, str]]]
+            | None
+        ),
         **kwargs,
     ) -> None:
         if css_styles and css_converter:
@@ -549,7 +552,10 @@ class ExcelFormatter:
         index_label: IndexLabel | None = None,
         merge_cells: ExcelWriterMergeCells = False,
         inf_rep: str = "inf",
-        style_converter: Callable | None = None,
+        style_converter: (
+            Callable[[str | frozenset[tuple[str, str]]], dict[str, dict[str, str]]]
+            | None
+        ) = None,
         autofilter: bool = False,
     ) -> None:
         self.rowcounter = 0
@@ -560,7 +566,10 @@ class ExcelFormatter:
             df = df.data
             if style_converter is None:
                 style_converter = CSSToExcelConverter()
-            self.style_converter: Callable | None = style_converter
+            self.style_converter: (
+                Callable[[str | frozenset[tuple[str, str]]], dict[str, dict[str, str]]]
+                | None
+            ) = style_converter
         else:
             self.styler = None
             self.style_converter = None
@@ -668,7 +677,7 @@ class ExcelFormatter:
 
             colnames = self.columns
             if self._has_aliases:
-                self.header = cast("Sequence", self.header)
+                self.header = cast("Sequence[Hashable]", self.header)
                 if len(self.header) != len(self.columns):
                     raise ValueError(
                         f"Writing {len(self.columns)} cols "
@@ -905,14 +914,14 @@ class ExcelFormatter:
 
     def write(
         self,
-        writer: FilePath | WriteExcelBuffer | ExcelWriter,
+        writer: FilePath | WriteExcelBuffer | ExcelWriter[Any],
         sheet_name: str = "Sheet1",
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
         engine: str | None = None,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
