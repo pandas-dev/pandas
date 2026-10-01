@@ -993,6 +993,20 @@ class TestPeriodIndex:
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("label", ["left", "right"])
+    @pytest.mark.parametrize(
+        "start, exp_values",
+        [("1900-01-01 00:00", [15, 51]), ("1900-01-01 01:00", [10, 45, 11])],
+    )
+    def test_resample_tick_closed_right(self, label, start, exp_values):
+        # GH#44363 closed and label have no effect on PeriodIndex bins
+        pi = period_range(start, periods=12, freq="h")
+        ser = pd.Series(np.arange(12), index=pi)
+        result = ser.resample("6h", closed="right", label=label).sum()
+        exp_index = period_range("1900-01-01", periods=len(exp_values), freq="6h")
+        expected = pd.Series(exp_values, index=exp_index)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "first,last,freq,freq_to_offset,exp_first,exp_last",
         [

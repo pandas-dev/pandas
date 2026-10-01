@@ -2861,7 +2861,6 @@ class TimeGrouper(Grouper):
                 start,
                 end,
                 self.freq,
-                closed=self.closed,
                 origin=self.origin,
                 offset=self.offset,
             )
