@@ -1170,7 +1170,9 @@ def test_to_html_na_rep_literal_and_formatter(
 ):
     # GH#33950: replace the missing scalar, not text or formatter output.
     formatter = (lambda value: rendered_text) if use_formatter else None
-    df = pd.DataFrame({"a": [rendered_text, missing_value, rendered_text]}, dtype=object)
+    df = pd.DataFrame(
+        {"a": [rendered_text, missing_value, rendered_text]}, dtype=object
+    )
     result = df.to_html(na_rep="zzzz", formatters={"a": formatter}, escape=escape_html)
     expected = [rendered_text, "zzzz", rendered_text]
     if escape_html:
