@@ -251,50 +251,24 @@ always gives numpy-backed categories (:issue:`66382`).
 :class:`Timestamp` no longer ignores date components and the positional ``tzinfo``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Timestamp` takes either a value to convert (a datetime-like object, a
-string, or an epoch number) or the individual date components, but passing both
-silently dropped the components:
+:class:`Timestamp` silently dropped date components passed alongside a value to
+convert, and keyword components mixed with positional ones could land in the
+wrong field:
 
 .. code-block:: ipython
 
     In [1]: pd.Timestamp(datetime(2020, 12, 31), hour=5)
     Out[1]: Timestamp('2020-12-31 00:00:00')
 
-This now raises ``ValueError``; write ``pd.Timestamp(datetime(2020, 12, 31, 5))``
-instead. Null-like input (``None``, ``NaT``, ``NaN``,
-``pd.NA``, ``numpy.datetime64("NaT")``) is exempt and gives ``NaT`` for any
-combination of the components; ``Timestamp(None, year=2020, month=1, day=1)``
-and friends therefore give ``NaT`` where they used to raise ``TypeError``.
-
-In the *positional* ``datetime.datetime``-like form the parameter names are
-shifted by one -- the parameter named ``hour`` is
-:class:`datetime.datetime`'s ``minute`` -- so a keyword argument used to land
-one field early:
-
-.. code-block:: ipython
-
     In [2]: pd.Timestamp(2020, 12, 31, hour=5)
     Out[2]: Timestamp('2020-12-31 00:05:00')
 
-This now raises ``ValueError`` as well, as does leaving the same gap with an
-explicit ``None`` (``Timestamp(2020, 1, 2, None, 5)``); write
-``pd.Timestamp(year=2020, month=12, day=31, hour=5)`` instead. Two cases cannot
-be detected. An ``int`` first argument is indistinguishable from a ``year``, so
-``Timestamp(2020, year=1, month=1)`` is still read as ``Timestamp(2020, 1, 1)``;
-and a keyword that exactly fills the next free positional slot is
-indistinguishable from passing it positionally, so
-``Timestamp(2020, 12, 31, day=5)`` is still read as ``Timestamp(2020, 12, 31, 5)``.
+Both now raise ``ValueError``; put the component in the value, or pass all
+components by keyword, e.g. ``pd.Timestamp(year=2020, month=12, day=31, hour=5)``.
 
-Finally, in that same positional form the eighth argument is
-:class:`datetime.datetime`'s ``tzinfo`` and used to be dropped; it is now
-attached to the result just as :class:`datetime.datetime` does. Attaching
-differs from the localizing ``tz`` and ``tzinfo`` keywords: with a ``pytz``
-timezone, ``Timestamp(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
-now matches ``datetime(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
-and therefore carries that zone's LMT offset. :func:`copy.replace`
-reconstructs a :class:`Timestamp` through this form, so it too now keeps the
-timezone instead of returning a naive result; it still drops nanoseconds
-(:issue:`31930`, :issue:`45307`).
+A positional ``tzinfo`` (the eighth argument, as in :class:`datetime.datetime`)
+is now attached to the result instead of being dropped, so :func:`copy.replace`
+also keeps the timezone (:issue:`31930`, :issue:`45307`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
@@ -979,6 +953,7 @@ Strings
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 - Bug in :meth:`Series.str.casefold`, :meth:`Series.str.encode`, :meth:`Series.str.findall`, :meth:`Series.str.index`, :meth:`Series.str.partition`, :meth:`Series.str.rfind`, :meth:`Series.str.rindex`, :meth:`Series.str.rpartition`, :meth:`Series.str.translate`, :meth:`Series.str.wrap` and their :class:`Index` counterparts with :class:`ArrowDtype` raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
 - Bug in :meth:`Series.str.casefold`, :meth:`Series.str.encode`, :meth:`Series.str.findall`, :meth:`Series.str.join`, :meth:`Series.str.partition`, :meth:`Series.str.rpartition`, :meth:`Series.str.translate`, :meth:`Series.str.wrap` and their :class:`Index` counterparts with :class:`ArrowDtype` downgrading a ``large_string`` input to a ``string``-based result dtype (:issue:`66822`)
+- Bug in :meth:`Series.str.center`, :meth:`Series.str.ljust`, :meth:`Series.str.rjust` and :meth:`Series.str.pad` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when ``width`` was negative (:issue:`69749`)
 - Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising ``AttributeError`` for :class:`ArrowDtype` when ``flags`` was passed or ``pat`` was a compiled ``re.Pattern`` (:issue:`63108`)
 - Bug in :meth:`Series.str.normalize`, :meth:`Series.str.zfill` and their :class:`Index` counterparts with PyArrow-backed string dtypes raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
