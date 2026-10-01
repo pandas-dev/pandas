@@ -187,8 +187,8 @@ class BaseReduceTests:
         ) and op_name != "count":
             # GH 68959 Reduction function not overwritten in subclass should raise
             msg = (
-                f"'{type(data).__name__}' with dtype {data.dtype} does not support operation"
-                f" '{op_name}'"
+                f"'{type(data).__name__}' with dtype {data.dtype} does not support"
+                f"operation '{op_name}'"
             )
             with pytest.raises(TypeError, match=msg):
                 getattr(ser.array, op_name)()
