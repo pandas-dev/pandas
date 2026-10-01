@@ -109,6 +109,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     IntervalDtype,
     NumpyEADtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -137,9 +138,14 @@ from pandas.core.arrays import (
     ExtensionArray,
     NumpyExtensionArray,
     PeriodArray,
+    SparseArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.arrays.sparse.array import (
+    groupby_sum_dense_fill,
+    groupby_sum_stored,
+)
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.computation.parsing import clean_column_name
 from pandas.core.construction import (
@@ -17084,9 +17090,33 @@ class DataFrame(NDFrame, OpsMixin):
                     # already-known codes (GH#56903).
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype)
+                    nrows, ncols = df.shape
+                    if name == "sum" and isinstance(dtype, SparseDtype):
+                        # GH#28487: the row of a stored value is its index in the
+                        # column, so neither the dense values nor the row codes of
+                        # all nrows * ncols elements are needed.
+                        arrays = cast(
+                            "list[SparseArray]", list(df._iter_column_arrays())
+                        )
+                        sp_ids = np.concatenate(
+                            [a.sp_index.indices for a in arrays]
+                        ).astype(np.intp, copy=False)
+                        n_gaps = ncols - np.bincount(sp_ids, minlength=nrows)
+                        dense_fill = groupby_sum_dense_fill(dtype, bool(n_gaps.any()))
+                        if dense_fill is not None:
+                            sums = groupby_sum_stored(
+                                np.concatenate([a.sp_values for a in arrays]),
+                                sp_ids,
+                                n_gaps,
+                                *dense_fill,
+                                min_count=kwds.get("min_count", 0),
+                                ngroups=nrows,
+                                has_dropped_na=False,
+                                skipna=skipna,
+                            )
+                            return Series(sums, index=df.index)
                     arr = concat_compat(list(df._iter_column_arrays()))
                     assert isinstance(arr, ExtensionArray)
-                    nrows, ncols = df.shape
                     row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
