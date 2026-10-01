@@ -1589,14 +1589,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         from pandas.arrays import IntegerArray
 
-        keys, value_counts, na_counter = algos.value_counts_arraylike(
+        keys, value_counts, na_pos = algos.value_counts_arraylike(
             self._data, dropna=dropna, mask=self._mask
         )
         mask_index = np.zeros((len(value_counts),), dtype=np.bool_)
         mask = mask_index.copy()
 
-        if na_counter > 0:
-            mask_index[-1] = True
+        if na_pos != -1:
+            mask_index[na_pos] = True
 
         arr = IntegerArray(value_counts, mask)
         index = Index(

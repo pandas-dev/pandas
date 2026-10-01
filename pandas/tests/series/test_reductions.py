@@ -91,6 +91,21 @@ def test_mode_boolean_dropna_false(values, expected):
     tm.assert_series_equal(result, pd.Series(expected, dtype="boolean"))
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([pd.NA, pd.NA, 1, 1, 2], [1, pd.NA]),
+        ([1, pd.NA, pd.NA, 2, 2], [2, pd.NA]),
+        ([pd.NA, pd.NA, 1, 1, 1], [1]),
+    ],
+)
+def test_mode_nullable_dtype_na_not_last(any_numeric_ea_dtype, values, expected):
+    # GH#23074 NA is counted where it first appears, not after all other values
+    ser = pd.Series(values, dtype=any_numeric_ea_dtype)
+    result = ser.mode(dropna=False)
+    tm.assert_series_equal(result, pd.Series(expected, dtype=any_numeric_ea_dtype))
+
+
 def test_mode_string(any_string_dtype):
     # GH#56183
     ser = pd.Series(["a", "b"], dtype=any_string_dtype)
