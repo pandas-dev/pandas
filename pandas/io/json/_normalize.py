@@ -50,7 +50,7 @@ def convert_to_line_delimits(s: str) -> str:
 
 @overload
 def nested_to_record(
-    ds: dict,
+    ds: dict[str, Any],
     prefix: str = ...,
     sep: str = ...,
     level: int = ...,
@@ -60,7 +60,7 @@ def nested_to_record(
 
 @overload
 def nested_to_record(
-    ds: list[dict],
+    ds: list[dict[str, Any]],
     prefix: str = ...,
     sep: str = ...,
     level: int = ...,
@@ -69,7 +69,7 @@ def nested_to_record(
 
 
 def nested_to_record(
-    ds: dict | list[dict],
+    ds: dict[str, Any] | list[dict[str, Any]],
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
@@ -216,9 +216,9 @@ def _normalize_json_ordered(data: dict[str, Any], separator: str) -> dict[str, A
 
 
 def _simple_json_normalize(
-    ds: dict | list[dict],
+    ds: dict[str, Any] | list[dict[str, Any]],
     sep: str = ".",
-) -> dict | list[dict] | Any:
+) -> dict[str, Any] | list[dict[str, Any]] | Any:
     """
     An optimized basic json_normalize
 
@@ -301,8 +301,8 @@ def _validate_meta(meta: str | list[str | list[str]] | None) -> None:
 
 @set_module("pandas")
 def json_normalize(
-    data: dict | list[dict] | Series,
-    record_path: str | list | None = None,
+    data: dict[Any, Any] | list[dict[Any, Any]] | Series,
+    record_path: str | list[str] | None = None,
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
     record_prefix: str | None = None,
@@ -489,8 +489,8 @@ def json_normalize(
     _validate_meta(meta)
 
     def _pull_field(
-        js: dict[str, Any], spec: list | str, extract_record: bool = False
-    ) -> Scalar | Iterable:
+        js: dict[str, Any], spec: list[str] | str, extract_record: bool = False
+    ) -> Scalar | Iterable[Any]:
         """Internal function to pull field"""
         result = js
         try:
@@ -517,7 +517,7 @@ def json_normalize(
 
         return result
 
-    def _pull_records(js: dict[str, Any], spec: list | str) -> list:
+    def _pull_records(js: dict[str, Any], spec: list[str] | str) -> list[Any]:
         """
         Internal function to pull field for records, and similar to
         _pull_field, but require to return list. And will raise error
@@ -602,7 +602,7 @@ def json_normalize(
     _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records: list = []
+    records: list[Any] = []
     lengths = []
 
     meta_vals = defaultdict(list)
