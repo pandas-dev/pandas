@@ -462,7 +462,7 @@ class DatetimeProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.day_of_week
+        return self.day_of_week  # type: ignore[attr-defined]
 
     @property
     def dayofweek(self) -> Series:
@@ -478,7 +478,7 @@ class DatetimeProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.day_of_week
+        return self.day_of_week  # type: ignore[attr-defined]
 
     @property
     def dayofyear(self) -> Series:
@@ -494,7 +494,7 @@ class DatetimeProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.day_of_year
+        return self.day_of_year  # type: ignore[attr-defined]
 
     @property
     def daysinmonth(self) -> Series:
@@ -510,7 +510,7 @@ class DatetimeProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.days_in_month
+        return self.days_in_month  # type: ignore[attr-defined]
 
 
 @delegate_names(
@@ -747,7 +747,7 @@ class PeriodProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.day_of_week
+        return self.day_of_week  # type: ignore[attr-defined]
 
     @property
     def dayofweek(self):
@@ -763,7 +763,7 @@ class PeriodProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.day_of_week
+        return self.day_of_week  # type: ignore[attr-defined]
 
     @property
     def dayofyear(self):
@@ -779,7 +779,7 @@ class PeriodProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.day_of_year
+        return self.day_of_year  # type: ignore[attr-defined]
 
     @property
     def daysinmonth(self):
@@ -795,7 +795,7 @@ class PeriodProperties(Properties):
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
-        return self.days_in_month
+        return self.days_in_month  # type: ignore[attr-defined]
 
 
 class CombinedDatetimelikeProperties(
