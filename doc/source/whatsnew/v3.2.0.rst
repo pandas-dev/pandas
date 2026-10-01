@@ -178,7 +178,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :meth:`DataFrame.to_html`, :meth:`DataFrame.to_string` and :meth:`Series.to_string` ignoring an explicitly provided ``na_rep`` for some missing values (:issue:`33950`)
 -
 
 Period
