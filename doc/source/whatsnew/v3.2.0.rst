@@ -186,7 +186,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime` where ``%Y`` was not zero-padded for years before 1000 on Linux (:issue:`48746`)
 -
 
 Plotting

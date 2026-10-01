@@ -1382,16 +1382,36 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%l", b"^`GH`^"),
                         (b"%u", b"^`IJ`^"),
                         (b"%n", b"^`KL`^"),
-                        (b"%N", b"^`MN`^")]
+                        (b"%N", b"^`MN`^"),
+                        # %Y is handled here rather than by C strftime, which
+                        #  does not zero-pad years before 1000 on glibc (GH#48746)
+                        (b"%Y", b"^`OP`^")]
 
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
-                            "^`GH`^", "^`IJ`^", "^`KL`^", "^`MN`^"]
+                            "^`GH`^", "^`IJ`^", "^`KL`^", "^`MN`^", "^`OP`^"]
 
 # Conservative cross-platform set of valid C strftime directives, matching
 # CPython's allowlist for time.strftime on Windows. Pandas-specific
 # directives (q, f, F, l, u, n) are pre-extracted before validation, so they
 # are intentionally absent here.
 cdef frozenset _VALID_STRFTIME_DIRECTIVES = frozenset(b"aAbBcdHIjmMpSUwWxXyYzZ%")
+
+
+cdef bytes _replace_directive(bytes fmt, bytes pat, bytes repl):
+    # Replace the directive `pat` with `repl`, skipping escaped "%%" so that
+    # "%%q" stays a literal "%q".
+    cdef:
+        list parts = []
+        Py_ssize_t start = 0
+        Py_ssize_t idx = fmt.find(b"%")
+    while idx != -1:
+        if fmt[idx:idx + 2] == pat:
+            parts.append(fmt[start:idx])
+            parts.append(repl)
+            start = idx + 2
+        idx = fmt.find(b"%", idx + 2)
+    parts.append(fmt[start:])
+    return b"".join(parts)
 
 
 cdef _validate_strftime_format(bytes fmt):
@@ -1409,9 +1429,10 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
     cdef:
         Py_ssize_t i
         char *formatted
-        bytes pat, brepl
+        bytes pat, brepl, new_fmt
         list found_pat = [False] * len(extra_fmts)
         int quarter
+        int64_t year
         int32_t us, ps
         str result, repl
 
@@ -1421,8 +1442,10 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
         pat = extra_fmts[i][0]
         brepl = extra_fmts[i][1]
         if pat in fmt:
-            fmt = fmt.replace(pat, brepl)
-            found_pat[i] = True
+            new_fmt = _replace_directive(fmt, pat, brepl)
+            if new_fmt != fmt:
+                fmt = new_fmt
+                found_pat[i] = True
 
     _validate_strftime_format(fmt)
 
@@ -1439,6 +1462,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
     # Save these to local vars as dts can be modified by get_yq below
     us = dts.us
     ps = dts.ps
+    year = dts.year
     if any(found_pat[0:3]):
         # Note: this modifies `dts` in-place so that year becomes fiscal year
         # However it looses the us and ps
@@ -1464,6 +1488,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
                 repl = f"{((us * 1000) + (ps // 1000)):09d}"
             elif i == 6:  # %N, nanoseconds
                 repl = f"{((us * 1000) + (ps // 1000)):09d}"
+            elif i == 7:  # %Y, calendar year with a century
+                repl = f"{year:04d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 

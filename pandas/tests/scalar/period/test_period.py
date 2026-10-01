@@ -1399,6 +1399,22 @@ def test_strftime_fiscal_year_lt_1000():
     assert per.strftime("%F-Q%q") == "0020-Q1"
 
 
+@pytest.mark.parametrize(
+    "freq, fmt, expected",
+    [
+        ("D", "%d/%m/%Y", "18/08/0064"),
+        ("D", "%Y%%Y", "0064%Y"),
+        ("D", "%%q", "%q"),
+        # %Y is the calendar year, %F the fiscal year
+        ("Q-JUN", "%Y %F", "0064 0065"),
+    ],
+)
+def test_strftime_year_lt_1000(freq, fmt, expected):
+    # GH#48746
+    per = pd.Period("0064-08-18", freq=freq)
+    assert per.strftime(fmt) == expected
+
+
 def test_negone_ordinals():
     freqs = ["Y", "M", "Q", "D", "h", "min", "s"]
 
