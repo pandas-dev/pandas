@@ -20,6 +20,41 @@ from pandas.api.types import (
 pa = pytest.importorskip("pyarrow")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.tests.arrays.arrow.common import _require_timezone_database
+
+
+def test_from_sequence_pa_array(data):
+    # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
+    # data._pa_array = pa.ChunkedArray
+    result = type(data)._from_sequence(data._pa_array, dtype=data.dtype)
+    tm.assert_extension_array_equal(result, data)
+    assert isinstance(result._pa_array, pa.ChunkedArray)
+
+    result = type(data)._from_sequence(
+        data._pa_array.combine_chunks(), dtype=data.dtype
+    )
+    tm.assert_extension_array_equal(result, data)
+    assert isinstance(result._pa_array, pa.ChunkedArray)
+
+
+def test_from_sequence_pa_array_notimplemented():
+    dtype = ArrowDtype(pa.month_day_nano_interval())
+    with pytest.raises(NotImplementedError, match="Converting strings to"):
+        ArrowExtensionArray._from_sequence_of_strings(["12-1"], dtype=dtype)
+
+
+def test_from_sequence_of_strings_pa_array(data, request):
+    pa_dtype = data.dtype.pyarrow_dtype
+    if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        _require_timezone_database(request)
+
+    pa_array = data._pa_array.cast(pa.string())
+    result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+    tm.assert_extension_array_equal(result, data)
+
+    pa_array = pa_array.combine_chunks()
+    result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+    tm.assert_extension_array_equal(result, data)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():

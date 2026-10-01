@@ -24,7 +24,6 @@ from io import (
     BytesIO,
     StringIO,
 )
-import operator
 import re
 
 import numpy as np
@@ -32,13 +31,8 @@ import pytest
 
 from pandas.compat import (
     PY312,
-    is_platform_windows,
     pa_version_under20p0,
     pa_version_under21p0,
-)
-from pandas.compat.pyarrow import pa_version_under22p0
-from pandas.errors import (
-    Pandas4Warning,
 )
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -56,22 +50,9 @@ from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
 
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 # GH#62423; matched instead of the leading clause, whose wording differs per warn site
 depr_msg = "In a future version these will be treated as scalar-like"
-
-
-def _require_timezone_database(request):
-    if is_platform_windows() and pa_version_under22p0:
-        mark = pytest.mark.xfail(
-            raises=pa.ArrowInvalid,
-            reason=(
-                "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                "on CI to path to the tzdata for pyarrow."
-            ),
-        )
-        request.applymarker(mark)
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -284,35 +265,6 @@ class TestArrowArray(base.ExtensionTests):
                 dtype=dtype,
             )
 
-    def test_compare_range_len(self, data, comparison_op):
-        # GH#63429 a range compares elementwise like the equivalent list.
-        #  Note we can't go through _compare_other here: its pointwise
-        #  expectation uses Series.combine, which treats the range as a scalar
-        #  and so matches an all-False result too.
-        ser = pd.Series(data)
-        rng = range(len(ser))
-
-        try:
-            expected = comparison_op(ser, list(rng))
-        except Exception as err:
-            with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-                with pytest.raises(type(err)):
-                    comparison_op(ser, rng)
-            return
-
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            result = comparison_op(ser, rng)
-        tm.assert_series_equal(result, expected)
-
-    def test_compare_range_mismatched_len(self, data, comparison_op):
-        # GH#63429 the length check must not be bypassed for a range
-        ser = pd.Series(data)
-        rng = range(len(ser) + 1)
-
-        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
-            with pytest.raises(ValueError, match="Lengths must match to compare"):
-                comparison_op(ser, rng)
-
     def test_astype_str(self, data, request, using_infer_string):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
@@ -346,37 +298,6 @@ class TestArrowArray(base.ExtensionTests):
                 )
             )
         super().test_from_dtype(data)
-
-    def test_from_sequence_pa_array(self, data):
-        # https://github.com/pandas-dev/pandas/pull/47034#discussion_r955500784
-        # data._pa_array = pa.ChunkedArray
-        result = type(data)._from_sequence(data._pa_array, dtype=data.dtype)
-        tm.assert_extension_array_equal(result, data)
-        assert isinstance(result._pa_array, pa.ChunkedArray)
-
-        result = type(data)._from_sequence(
-            data._pa_array.combine_chunks(), dtype=data.dtype
-        )
-        tm.assert_extension_array_equal(result, data)
-        assert isinstance(result._pa_array, pa.ChunkedArray)
-
-    def test_from_sequence_pa_array_notimplemented(self, request):
-        dtype = ArrowDtype(pa.month_day_nano_interval())
-        with pytest.raises(NotImplementedError, match="Converting strings to"):
-            ArrowExtensionArray._from_sequence_of_strings(["12-1"], dtype=dtype)
-
-    def test_from_sequence_of_strings_pa_array(self, data, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            _require_timezone_database(request)
-
-        pa_array = data._pa_array.cast(pa.string())
-        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
-        tm.assert_extension_array_equal(result, data)
-
-        pa_array = pa_array.combine_chunks()
-        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
-        tm.assert_extension_array_equal(result, data)
 
     def check_accumulate(self, ser, op_name, skipna):
         result = getattr(ser, op_name)(skipna=skipna)
@@ -587,12 +508,6 @@ class TestArrowArray(base.ExtensionTests):
                 request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
-    @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
-    def test_median_not_approximate(self, typ):
-        # GH 52679
-        result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
-        assert result == 1.5
-
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
@@ -740,12 +655,6 @@ class TestArrowArray(base.ExtensionTests):
                 )
             )
         super().test_diff(data, periods)
-
-    def test_value_counts_returns_pyarrow_int64(self, data):
-        # GH 51462
-        data = data[:10]
-        result = data.value_counts()
-        assert result.dtype == ArrowDtype(pa.int64())
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
@@ -1016,27 +925,6 @@ class TestArrowArray(base.ExtensionTests):
                 )
             )
         super().test_add_series_with_extension_array(data)
-
-    def test_invalid_other_comp(self, data, comparison_op):
-        # GH 48833
-        with pytest.raises(
-            NotImplementedError, match=".* not implemented for <class 'object'>"
-        ):
-            comparison_op(data, object())
-
-    @pytest.mark.parametrize("masked_dtype", ["boolean", "Int64", "Float64"])
-    def test_comp_masked_numpy(self, masked_dtype, comparison_op):
-        # GH 52625
-        data = [1, 0, None]
-        ser_masked = pd.Series(data, dtype=masked_dtype)
-        ser_pa = pd.Series(data, dtype=f"{masked_dtype.lower()}[pyarrow]")
-        result = comparison_op(ser_pa, ser_masked)
-        if comparison_op in [operator.lt, operator.gt, operator.ne]:
-            exp = [False, False, None]
-        else:
-            exp = [True, True, None]
-        expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
-        tm.assert_series_equal(result, expected)
 
     @pytest.mark.filterwarnings(
         "ignore:The default formatting of datetime/timedelta values:DeprecationWarning"

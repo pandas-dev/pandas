@@ -12,6 +12,13 @@ import pandas._testing as tm
 pa = pytest.importorskip("pyarrow")
 
 
+@pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
+def test_median_not_approximate(typ):
+    # GH 52679
+    result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
+    assert result == 1.5
+
+
 @pytest.mark.parametrize("skipna", [True, False])
 def test_boolean_reduce_series_all_null(all_boolean_reductions, skipna):
     # GH51624

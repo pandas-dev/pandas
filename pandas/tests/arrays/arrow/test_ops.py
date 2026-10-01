@@ -184,6 +184,60 @@ class TestLogicalOps:
         tm.assert_series_equal(result, expected)
 
 
+def test_compare_range_len(data, comparison_op):
+    # GH#63429 a range compares elementwise like the equivalent list.
+    #  Note we can't go through _compare_other here: its pointwise
+    #  expectation uses Series.combine, which treats the range as a scalar
+    #  and so matches an all-False result too.
+    ser = pd.Series(data)
+    rng = range(len(ser))
+
+    try:
+        expected = comparison_op(ser, list(rng))
+    except Exception as err:
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            with pytest.raises(type(err)):
+                comparison_op(ser, rng)
+        return
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = comparison_op(ser, rng)
+    tm.assert_series_equal(result, expected)
+
+
+def test_compare_range_mismatched_len(data, comparison_op):
+    # GH#63429 the length check must not be bypassed for a range
+    ser = pd.Series(data)
+    rng = range(len(ser) + 1)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with pytest.raises(ValueError, match="Lengths must match to compare"):
+            comparison_op(ser, rng)
+
+
+def test_invalid_other_comp(data, comparison_op):
+    # GH 48833
+    with pytest.raises(
+        NotImplementedError, match=".* not implemented for <class 'object'>"
+    ):
+        comparison_op(data, object())
+
+
+@pytest.mark.parametrize("masked_dtype", ["boolean", "Int64", "Float64"])
+def test_comp_masked_numpy(masked_dtype, comparison_op):
+    # GH 52625
+    data = [1, 0, None]
+    ser_masked = pd.Series(data, dtype=masked_dtype)
+    ser_pa = pd.Series(data, dtype=f"{masked_dtype.lower()}[pyarrow]")
+    result = comparison_op(ser_pa, ser_masked)
+    if comparison_op in [operator.lt, operator.gt, operator.ne]:
+        exp = [False, False, None]
+    else:
+        exp = [True, True, None]
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES)
 def test_bitwise(pa_type):
     # GH 54495

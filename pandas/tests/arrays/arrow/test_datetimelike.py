@@ -13,10 +13,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import timezones
-from pandas.compat import (
-    is_platform_windows,
-)
-from pandas.compat.pyarrow import pa_version_under22p0
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -33,18 +29,7 @@ import pandas._testing as tm
 pa = pytest.importorskip("pyarrow")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-
-
-def _require_timezone_database(request):
-    if is_platform_windows() and pa_version_under22p0:
-        mark = pytest.mark.xfail(
-            raises=pa.ArrowInvalid,
-            reason=(
-                "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                "on CI to path to the tzdata for pyarrow."
-            ),
-        )
-        request.applymarker(mark)
+from pandas.tests.arrays.arrow.common import _require_timezone_database
 
 
 @pytest.mark.parametrize("pa_type", [pa.date32(), pa.date64()], ids=str)

@@ -406,6 +406,13 @@ def test_factorize_null_empty():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+def test_value_counts_returns_pyarrow_int64(data):
+    # GH 51462
+    data = data[:10]
+    result = data.value_counts()
+    assert result.dtype == ArrowDtype(pa.int64())
+
+
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
         ser = pd.Series(data)
