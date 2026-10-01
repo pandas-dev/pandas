@@ -637,7 +637,7 @@ class TestRangeIndex:
             (pd.RangeIndex(0, 5), [], "00000"),
         ],
     )
-    def test_isin_small_query(self, index, values, expected):
+    def test_isin(self, index, values, expected):
         # GH#66263
         result = index.isin(values)
         expected = np.array([c == "1" for c in expected], dtype=bool)
@@ -667,36 +667,19 @@ class TestRangeIndex:
             ),
         ],
     )
-    def test_isin_small_query_matches_base(self, index, values):
-        # GH#66263: the optimized path (query shorter than the index) must
-        # agree with the generic implementation on a materialized Index
+    def test_isin_matches_base(self, index, values):
+        # GH#66263: the optimized path must agree with the generic
+        # implementation on a materialized Index
         result = index.isin(values)
         expected = pd.Index(index._values).isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_large_query_result_matches_base(self):
-        # GH#66263: the optimized small-query path must agree with the
-        # generic implementation on a materialized Index
+    @pytest.mark.parametrize("n_values", [0, 1, 5, 64, 1_000, 200_000])
+    def test_isin_query_sizes_match_base(self, n_values):
+        # GH#66263: the optimized path applies to queries of any size, including
+        # the ones that are longer than the index
         index = pd.RangeIndex(-10, 30, 2)
-        values = [1, 2, 4, 20, 29, 30]
-        result = index.isin(values)
-        expected = pd.Index(index._values).isin(values)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_isin_large_query_falls_back(self):
-        # GH#66263: when the query is at least as large as the index, delegate
-        # to the generic implementation
-        index = pd.RangeIndex(5)
-        values = list(range(5))
-        result = index.isin(values)
-        expected = np.array([True, True, True, True, True], dtype=bool)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_isin_medium_query_falls_back(self):
-        # GH#66263: the speed-up is bounded by ``len(self) // 64``, so larger
-        # queries delegate to the generic implementation
-        index = pd.RangeIndex(1_000_000)
-        values = list(range(200_000))
+        values = list(range(n_values))
         result = index.isin(values)
         expected = pd.Index(index._values).isin(values)
         tm.assert_numpy_array_equal(result, expected)
@@ -707,6 +690,7 @@ class TestRangeIndex:
             [4, 250_000],
             np.array([4, 250_000]),
             {4, 250_000},
+            list(range(500_000)),
         ],
     )
     def test_isin_does_not_materialize_values(self, monkeypatch, values):
@@ -722,14 +706,14 @@ class TestRangeIndex:
         index = pd.RangeIndex(0, 10_000_000)
         result = index.isin(values)
         expected = np.zeros(len(index), dtype=bool)
-        expected[4] = True
-        expected[250_000] = True
+        for value in values:
+            expected[value] = True
         tm.assert_numpy_array_equal(result, expected)
 
     def test_isin_complex_values_matches_base(self):
-        # GH#66263: complex values (e.g. 1+0j) cannot be compared with the
-        # integer range bounds, so the fast path must fall back to the generic
-        # implementation rather than dropping the matches
+        # GH#66263: complex values (e.g. 1+0j) cannot be represented as int64
+        # targets, so the fast path must fall back to the generic implementation
+        # rather than dropping the matches
         index = pd.RangeIndex(5)
         values = [1 + 0j, 2 + 1j]
         result = index.isin(values)
@@ -777,6 +761,12 @@ class TestRangeIndex:
         with pytest.raises(TypeError, match="only list-like"):
             pd.RangeIndex(3).isin(1)
 
+    def test_isin_empty_index_2d_values_raises(self):
+        # GH#66263: an empty RangeIndex still validates ``values``, matching
+        # Index.isin
+        with pytest.raises(ValueError, match="wrong number of dimensions"):
+            pd.RangeIndex(0).isin(np.array([[1, 2], [3, 4]]))
+
     @pytest.mark.parametrize(
         "index, values",
         [
@@ -794,8 +784,8 @@ class TestRangeIndex:
         ],
     )
     def test_isin_narrow_and_scalar_values_match_base(self, index, values):
-        # GH#66263: values backed by narrow dtypes must be converted to Python
-        # objects, as NumPy scalar arithmetic on them overflows or is slow
+        # GH#66263: values that are not backed by a plain 1D numpy array are
+        # delegated to the generic implementation
         result = index.isin(values)
         expected = pd.Index(index._values).isin(values)
         tm.assert_numpy_array_equal(result, expected)
@@ -816,6 +806,53 @@ class TestRangeIndex:
             result = index.isin(values)
             expected = pd.Index(index._values).isin(values)
             tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "index, value",
+        [
+            (pd.RangeIndex(2**53 + 1, 2**53 + 100_001), 2**53 + 2),
+            (pd.RangeIndex(2**53 + 1, 2**53 + 100_001), 2**53 + 100_000),
+            (pd.RangeIndex(-(2**53) - 100_000, -(2**53)), -(2**53) - 2),
+        ],
+    )
+    @pytest.mark.parametrize("as_float", [True, False])
+    def test_isin_large_values_match_base(self, index, value, as_float):
+        # GH#66263: values above 2**53 must not lose precision, i.e. the
+        # arithmetic has to be done on int64 targets instead of floats
+        query = float(value) if as_float else value
+        result = index.isin([query])
+        expected = pd.Index(index._values).isin([query])
+        tm.assert_numpy_array_equal(result, expected)
+
+        expected_mask = np.zeros(len(index), dtype=bool)
+        expected_mask[(value - index.start) // index.step] = True
+        tm.assert_numpy_array_equal(result, expected_mask)
+
+    @pytest.mark.parametrize("dtype", ["float32", "float64", "int64", "uint64"])
+    def test_isin_large_values_numpy_dtypes_match_base(self, dtype):
+        # GH#66263: narrow float dtypes cannot represent large values exactly,
+        # so the fast path must agree with the generic implementation
+        index = pd.RangeIndex(2**53 + 1, 2**53 + 100_001)
+        values = np.array([2**53 + 2], dtype=dtype)
+        result = index.isin(values)
+        expected = pd.Index(index._values).isin(values)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_rounded_mixed_list_matches_base(self):
+        # GH#66263: a list mixing floats and large ints may already have been
+        # rounded by NumPy, in which case the fast path steps aside
+        index = pd.RangeIndex(2**53 + 1, 2**53 + 100_001)
+        for values in ([2**53 + 3, 1.5], [np.nan, 2**53 + 3], [1e30, 5]):
+            result = index.isin(values)
+            expected = pd.Index(index._values).isin(values)
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_isin_out_of_int64_bounds_falls_back(self):
+        # GH#66263: bounds that the int64 arithmetic cannot represent are left
+        # to the generic implementation, as before
+        index = pd.RangeIndex(2**62, 2**64, 2**62)
+        with pytest.raises(OverflowError, match="too large to convert"):
+            index.isin([2**62])
 
     def test_sort_values_key(self):
         # GH#43666, GH#52764

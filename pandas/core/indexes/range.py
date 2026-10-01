@@ -45,7 +45,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
 )
-from pandas.core.dtypes.generic import ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+    ABCTimedeltaIndex,
+)
 
 from pandas.core import ops
 from pandas.core.arrays import ExtensionArray
@@ -86,37 +90,56 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     return start + abs(step) * no_steps
 
 
-def _asobjects_in(values: Axes | set) -> list | None:
+def _exact_int64_targets(values: Axes | set) -> npt.NDArray[np.int64] | None:
     """
-    Convert `values` to a list of Python objects, or return None.
+    Convert `values` to an int64 array of the integers it may match.
 
-    The arithmetic done by ``RangeIndex.isin`` is only competitive with
-    ``algos.isin`` when it operates on Python scalars; comparing NumPy scalars
-    is one to two orders of magnitude slower, and may even overflow the scalar
-    dtype (e.g. ``np.int8(5) - 1000``). Anything that is not backed by a
-    1-dimensional numeric array is reported as unsupported by returning None.
+    The arithmetic done by ``RangeIndex.isin`` needs int64 targets, so that the
+    range bounds and the queried values are compared exactly: doing it on floats
+    silently loses precision for magnitudes above 2**53, and so does
+    ``algos.isin``, which compares ``float64`` casts of both sides. Values that
+    are not integers (e.g. ``1.5``, ``nan``, ``np.inf``) are dropped, as they
+    cannot match any element of a ``RangeIndex``.
+
+    Anything that cannot be reduced to a 1D int64 array of exact integers, e.g.
+    nullable dtypes, ``pd.NA``, strings, complex numbers or objects, is reported
+    as unsupported by returning None.
     """
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        values = values._values
+
     if isinstance(values, np.ndarray):
-        if values.ndim == 1 and values.dtype.kind in "iufb":
-            return values.tolist()
+        arr = values
+    elif isinstance(values, ExtensionArray):
+        return None
+    else:
+        try:
+            len(values)
+        except TypeError:
+            return None  # e.g. a generator
+        try:
+            # a set would otherwise be wrapped in a 0-d object array
+            arr = np.asarray(values if isinstance(values, list) else list(values))
+        except (TypeError, ValueError):
+            return None  # e.g. a ragged nested sequence
+
+    if arr.ndim != 1:
         return None
 
-    if isinstance(values, ExtensionArray):
-        # ``tolist`` gives Python objects, leaving unsupported entries (e.g.
-        # ``pd.NA``) to the ``TypeError`` fallback in ``RangeIndex.isin``.
-        return values.tolist()
-
-    try:
-        if isinstance(values, (list, tuple)):
-            arr = np.asarray(values)
-        else:
-            # e.g. a set, which NumPy would otherwise wrap in a 0-d array.
-            arr = np.asarray(list(values))
-    except (TypeError, ValueError):
-        return None
-    if arr.ndim != 1 or arr.dtype.kind not in "iufb":
-        return None
-    return arr.tolist()
+    kind = arr.dtype.kind
+    if kind in "bi" or (kind == "u" and arr.dtype.itemsize < 8):
+        return arr.astype(np.int64, copy=False)
+    if kind == "u":
+        return arr[arr <= np.iinfo(np.int64).max].astype(np.int64)
+    if kind == "f":
+        arr = arr.astype(np.float64, copy=False)  # float16 would overflow to inf
+        arr = arr[np.isfinite(arr)]  # NaN and inf never match, and cannot be cast
+        if arr.size and np.abs(arr).max() >= 2**53:
+            # both `values` and the range bounds may have been rounded by the
+            # float64 casts that ``algos.isin`` does, so let it handle this
+            return None
+        return arr[arr == np.trunc(arr)].astype(np.int64)  # exact for integral floats
+    return None
 
 
 @set_module("pandas")
@@ -1796,48 +1819,33 @@ class RangeIndex(Index):
                 f"to isin(), you passed a `{type(values).__name__}`"
             )
 
-        if len(self) == 0:
-            return np.zeros(0, dtype=bool)
-
-        try:
-            n_values = len(values)
-        except TypeError:
-            # e.g. a generator; only the base implementation can handle it, as
-            # it materializes `values` itself before searching.
+        # GH#66263: avoid materializing the full integer array (``self._values``)
+        # that ``algos.isin`` allocates, by matching the queried values against
+        # the range with vectorized integer arithmetic. Anything that is not
+        # exactly representable as an int64 is delegated to the generic path.
+        targets = _exact_int64_targets(values)
+        if targets is None:
             return super().isin(values, level=level)
 
-        # GH#66263: for small query sets, avoid materializing the full
-        # integer array (``self._values``) that algos.isin would allocate. Use
-        # O(1) arithmetic checks identical to ``range.__contains__`` instead.
-        #
-        # The ``len(self) // 64`` cap guarantees the Python-level loop stays
-        # cheaper than the materializing path below it (the loop costs roughly
-        # 1 microsecond per element while the generic path costs ~15
-        # nanoseconds per index element, so the loop only wins if n_values is
-        # well below len(self) / (1us / 15ns)).
-        if n_values < len(self) // 64:
-            start = self.start
-            stop = self.stop
-            step = self.step
-            query_values = _asobjects_in(values)
-            if query_values is None:
-                return super().isin(values, level=level)
-            result = np.zeros(len(self), dtype=bool)
-            for val in query_values:
-                try:
-                    if step > 0:
-                        if not (start <= val < stop):
-                            continue
-                    elif not (stop < val <= start):
-                        continue
-                    if (val - start) % step == 0:
-                        result[int((val - start) // step)] = True
-                except TypeError:
-                    # Non-numeric or non-orderable query values (e.g. complex
-                    # numbers like 1+0j, strings or None) cannot be compared
-                    # with the range bounds; delegate to the generic path so
-                    # they are handled exactly like ``Index.isin``.
-                    return super().isin(values, level=level)
+        result = np.zeros(len(self), dtype=bool)
+        if len(self) == 0 or len(targets) == 0:
             return result
 
-        return super().isin(values, level=level)
+        rng = self._range
+        start, step = rng.start, rng.step
+        lo, hi = min(rng[0], rng[-1]), max(rng[0], rng[-1])
+        int64_info = np.iinfo(np.int64)
+        if not (
+            int64_info.min <= lo <= int64_info.max
+            and int64_info.min <= hi <= int64_info.max
+            and int64_info.min <= start <= int64_info.max
+            and int64_info.min <= step <= int64_info.max
+            and int64_info.min <= hi - lo <= int64_info.max
+        ):
+            # bounds that the int64 arithmetic below cannot represent
+            return super().isin(values, level=level)
+
+        targets = targets[(targets >= lo) & (targets <= hi)]
+        pos, rem = np.divmod(targets - start, step)
+        result[pos[rem == 0]] = True
+        return result
