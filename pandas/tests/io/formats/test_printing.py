@@ -40,7 +40,7 @@ def test_adjoin():
     assert adjoined == expected
 
 
-class MyMapping(Mapping):
+class MyMapping(Mapping[str, int]):
     def __getitem__(self, key):
         return 4
 
