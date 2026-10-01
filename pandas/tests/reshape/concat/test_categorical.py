@@ -11,6 +11,7 @@ from enum import (
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2_2
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -760,13 +761,27 @@ def test_union_categories_numpy_and_python_scalars(np_scalar, py_scalar):
     tm.assert_series_equal(result, expected)
 
 
+xfail_np_datetimelike_hash = pytest.mark.xfail(
+    not np_version_gt2_2,
+    reason="np.datetime64/np.timedelta64 hash like Timestamp/Timedelta from numpy 2.2",
+)
+
+
 @pytest.mark.parametrize(
     "other_scalar, pd_scalar",
     [
         (datetime(2020, 1, 1), pd.Timestamp("2020-01-01")),
-        (np.datetime64("2020-01-01"), pd.Timestamp("2020-01-01")),
+        pytest.param(
+            np.datetime64("2020-01-01"),
+            pd.Timestamp("2020-01-01"),
+            marks=xfail_np_datetimelike_hash,
+        ),
         (timedelta(days=1), pd.Timedelta(days=1)),
-        (np.timedelta64(1, "D"), pd.Timedelta(days=1)),
+        pytest.param(
+            np.timedelta64(1, "D"),
+            pd.Timedelta(days=1),
+            marks=xfail_np_datetimelike_hash,
+        ),
     ],
 )
 def test_union_categories_datetimelike_scalar_types(other_scalar, pd_scalar):
