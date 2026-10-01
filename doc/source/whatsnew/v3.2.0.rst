@@ -107,8 +107,7 @@ deprecation2
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
--
--
+- Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
