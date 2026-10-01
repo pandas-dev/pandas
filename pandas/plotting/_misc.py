@@ -47,14 +47,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     data : DataFrame or Series
         Data for table contents.
     **kwargs
-        Keyword arguments to be passed to :func:`matplotlib.pyplot.table`.
-        The most commonly used are:
-
-        rowLabels : sequence of str, optional
-            Labels for the rows of the table. Defaults to the index of ``data``.
-        colLabels : sequence of str, optional
-            Labels for the columns of the table. Defaults to the columns of a
-            :class:`DataFrame`, or to the name of a :class:`Series`.
+        Keyword arguments to be passed to matplotlib.table.table.
 
     Returns
     -------
