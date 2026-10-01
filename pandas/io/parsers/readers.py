@@ -402,8 +402,7 @@ def _read(
         # GH#68705
         warnings.warn(
             "The 'cache_dates' argument is deprecated and will be removed in a "
-            "future version. To control caching, parse the dates with "
-            "pd.to_datetime(..., cache=...) instead.",
+            "future version.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -1581,7 +1580,6 @@ def read_csv(
 
         .. deprecated:: 3.2.0
             The ``cache_dates`` argument will be removed in a future version.
-            To control caching, use :func:`to_datetime` with ``cache``.
 
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
@@ -2186,7 +2184,6 @@ def read_table(
 
         .. deprecated:: 3.2.0
             The ``cache_dates`` argument will be removed in a future version.
-            To control caching, use :func:`to_datetime` with ``cache``.
 
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
