@@ -215,7 +215,7 @@ def strings_with_wrong_placed_whitespace(
         The unwanted pattern that we are trying to catch is if the spaces in
         a string that is concatenated over multiple lines are placed at the
         end of each string, unless this string is ending with a
-        newline character (\n).
+        newline character (\n) or includes a long url link (.html).
 
         For example, this is bad:
 
@@ -244,7 +244,7 @@ def strings_with_wrong_placed_whitespace(
         ...     " not at the end, like always"
         ... )
         """
-        if first_line.endswith(r"\n"):
+        if first_line.endswith(r"\n") or ".html" in first_line:
             return False
         elif first_line.startswith("  ") or second_line.startswith("  "):
             return False

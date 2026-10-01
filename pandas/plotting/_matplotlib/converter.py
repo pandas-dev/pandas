@@ -71,7 +71,8 @@ if TYPE_CHECKING:
     )
 
 
-_mpl_units: dict = {}  # Cache for units overwritten by us
+# Cache for units overwritten by us
+_mpl_units: dict[type, munits.ConversionInterface] = {}
 
 
 def plottable_ea_pairs() -> list[tuple[type, type[munits.ConversionInterface]]]:
