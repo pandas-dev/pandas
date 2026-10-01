@@ -251,50 +251,24 @@ always gives numpy-backed categories (:issue:`66382`).
 :class:`Timestamp` no longer ignores date components and the positional ``tzinfo``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:class:`Timestamp` takes either a value to convert (a datetime-like object, a
-string, or an epoch number) or the individual date components, but passing both
-silently dropped the components:
+:class:`Timestamp` silently dropped date components passed alongside a value to
+convert, and keyword components mixed with positional ones could land in the
+wrong field:
 
 .. code-block:: ipython
 
     In [1]: pd.Timestamp(datetime(2020, 12, 31), hour=5)
     Out[1]: Timestamp('2020-12-31 00:00:00')
 
-This now raises ``ValueError``; write ``pd.Timestamp(datetime(2020, 12, 31, 5))``
-instead. Null-like input (``None``, ``NaT``, ``NaN``,
-``pd.NA``, ``numpy.datetime64("NaT")``) is exempt and gives ``NaT`` for any
-combination of the components; ``Timestamp(None, year=2020, month=1, day=1)``
-and friends therefore give ``NaT`` where they used to raise ``TypeError``.
-
-In the *positional* ``datetime.datetime``-like form the parameter names are
-shifted by one -- the parameter named ``hour`` is
-:class:`datetime.datetime`'s ``minute`` -- so a keyword argument used to land
-one field early:
-
-.. code-block:: ipython
-
     In [2]: pd.Timestamp(2020, 12, 31, hour=5)
     Out[2]: Timestamp('2020-12-31 00:05:00')
 
-This now raises ``ValueError`` as well, as does leaving the same gap with an
-explicit ``None`` (``Timestamp(2020, 1, 2, None, 5)``); write
-``pd.Timestamp(year=2020, month=12, day=31, hour=5)`` instead. Two cases cannot
-be detected. An ``int`` first argument is indistinguishable from a ``year``, so
-``Timestamp(2020, year=1, month=1)`` is still read as ``Timestamp(2020, 1, 1)``;
-and a keyword that exactly fills the next free positional slot is
-indistinguishable from passing it positionally, so
-``Timestamp(2020, 12, 31, day=5)`` is still read as ``Timestamp(2020, 12, 31, 5)``.
+Both now raise ``ValueError``; put the component in the value, or pass all
+components by keyword, e.g. ``pd.Timestamp(year=2020, month=12, day=31, hour=5)``.
 
-Finally, in that same positional form the eighth argument is
-:class:`datetime.datetime`'s ``tzinfo`` and used to be dropped; it is now
-attached to the result just as :class:`datetime.datetime` does. Attaching
-differs from the localizing ``tz`` and ``tzinfo`` keywords: with a ``pytz``
-timezone, ``Timestamp(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
-now matches ``datetime(2000, 1, 2, 3, 4, 5, 6, pytz.timezone("US/Eastern"))``
-and therefore carries that zone's LMT offset. :func:`copy.replace`
-reconstructs a :class:`Timestamp` through this form, so it too now keeps the
-timezone instead of returning a naive result; it still drops nanoseconds
-(:issue:`31930`, :issue:`45307`).
+A positional ``tzinfo`` (the eighth argument, as in :class:`datetime.datetime`)
+is now attached to the result instead of being dropped, so :func:`copy.replace`
+also keeps the timezone (:issue:`31930`, :issue:`45307`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_310.api_breaking:
@@ -513,6 +487,62 @@ default of ``False``, and since pandas 3.0 those also return the updated object)
 
 For more background about the change, see the motivation section in `PDEP-8 <https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html>`__.
 
+.. _whatsnew_310.deprecations.values:
+
+Deprecated lossy ``.values`` for timezone-aware, period, and interval dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For most extension dtypes (e.g. ``category``, ``str``, or the nullable dtypes),
+:attr:`Series.values` and :attr:`Index.values` return the underlying
+:class:`~pandas.api.extensions.ExtensionArray`. For historical reasons, three
+dtypes are exceptions and instead return a NumPy array that loses information:
+
+- :class:`DatetimeTZDtype`: a ``datetime64`` array converted to UTC, dropping the timezone
+- :class:`PeriodDtype`: an object-dtype array of :class:`Period` objects
+- :class:`IntervalDtype` (:class:`Series` only): an object-dtype array of :class:`Interval` objects
+
+This is now deprecated and emits a :class:`~pandas.errors.Pandas4Warning`. In
+pandas 4.0, ``.values`` will return the ExtensionArray for these dtypes as well
+(:issue:`54717`, :issue:`55128`).
+
+Current behavior for a timezone-aware Series:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(pd.date_range("2016-01-01", periods=2, tz="US/Pacific"))
+    >>> ser.values
+    Pandas4Warning: Series.values returning an ndarray that drops timezone information for DatetimeTZDtype is deprecated. ...
+    array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
+          dtype='datetime64[us]')
+
+Use :attr:`Series.array` to get the ExtensionArray, or :meth:`Series.to_numpy`
+to get a NumPy array. For period and interval data, ``to_numpy()`` is a
+drop-in replacement, returning the same object-dtype array ``.values``
+returns today.
+
+For timezone-aware data, ``to_numpy()`` instead returns an
+object-dtype array of :class:`Timestamp` objects. To keep the current result,
+use ``tz_convert(None)``, which converts to UTC and drops the timezone, and
+then convert to a NumPy array using ``to_numpy()``:
+
+.. code-block:: python
+
+    >>> ser.array
+    <DatetimeArray>
+    ['2016-01-01 00:00:00-08:00', '2016-01-02 00:00:00-08:00']
+    Length: 2, dtype: datetime64[us, US/Pacific]
+    # Convert to UTC and drop the timezone, and convert tz-naive datetime64 to NumPy array
+    >>> ser.dt.tz_convert(None).to_numpy()
+    array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
+          dtype='datetime64[us]')
+    # Implicitly convert to the underlying UTC values by specifying dtype
+    >>> ser.to_numpy(dtype='datetime64[us]')
+    array(['2016-01-01T08:00:00.000000', '2016-01-02T08:00:00.000000'],
+          dtype='datetime64[us]')
+
+:attr:`DataFrame.values` and ``np.asarray(ser)`` are not affected (those already
+return an object-dtype NumPy array of objects for all three cases).
+
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 
@@ -564,7 +594,6 @@ Other deprecations
 - Deprecated the default value of ``track_times`` in :meth:`HDFStore.put`. In a future version, the default will change from ``True`` to ``False`` so that HDF5 files are deterministic by default (:issue:`51456`)
 - Deprecated the inference of ``datetime64`` dtype from data containing ``datetime.date`` objects when used in comparisons or :meth:`Index.equals` with :class:`DatetimeIndex`. Use :func:`pandas.to_datetime` to explicitly convert to ``datetime64`` instead (:issue:`65056`)
 - Deprecated the keyword ``by_blocks`` in :func:`testing.assert_frame_equal` (:issue:`65911`)
-- Deprecated the lossy behavior of :attr:`Series.values`, :attr:`Index.values`, :attr:`PeriodIndex.values`, and :attr:`DatetimeIndex.values` for :class:`DatetimeTZDtype` (drops timezone), :class:`PeriodDtype` (returns object-dtype ndarray), and :class:`IntervalDtype` (returns object-dtype ndarray) dtypes. In a future version, ``.values`` will return the underlying ExtensionArray. Use :meth:`~Series.to_numpy` or :attr:`~Series.array` instead (:issue:`54717`, :issue:`55128`).
 - Deprecated treating array-like objects other than :class:`numpy.ndarray`, :class:`ExtensionArray`, :class:`Index`, and :class:`Series` as array-like when indexing, setting values, and in related operations. Objects that are merely list-like with a ``dtype`` attribute (e.g. arrays from other libraries) will no longer receive array-like handling in a future version; convert them with :func:`numpy.asarray` or :func:`pandas.array` first (:issue:`52834`)
 - The default ``date_format="epoch"`` deprecation warning in :meth:`DataFrame.to_json` and :meth:`Series.to_json` is now also emitted when the datetime-like values are in the index or column labels rather than in the column values (:issue:`65868`)
 - Deprecated passing a non-boolean value for ``numeric_only`` to :meth:`DataFrame.mean`,
@@ -721,6 +750,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :class:`Index` and :class:`api.extensions.ExtensionArray` repr where two-element data was not wrapped to respect ``display.width`` (:issue:`16334`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal` incorrectly raising when equivalent :class:`MultiIndex` column labels contained missing values (:issue:`54521`)
@@ -911,6 +941,7 @@ Conversion
 - Fixed bug in :func:`to_numeric` where values preceding the first complex number in ``object``-dtype data were replaced with uninitialized memory, so e.g. ``to_numeric(Series(["1.5", 2j]))`` returned ``0j`` in place of ``1.5+0j`` (:issue:`35051`)
 - Fixed bug in :func:`to_numeric`, and the readers built on it such as :func:`read_html`, :func:`read_xml`, :func:`read_excel`, :func:`read_fwf` and :func:`read_csv` with ``engine="python"`` or ``dtype="category"``, where a value written with a leading ``+`` and leading zeros after the decimal point lost significant digits, so e.g. ``"+0.0001234567890123456789"`` kept only 14 of them and ``"+0.0000000000000000000000005"`` became ``0.0`` (:issue:`68311`)
 - Fixed bug in :meth:`DataFrame.from_records` where ``exclude`` was ignored when ``data`` was an iterator and ``nrows=0`` (:issue:`63774`)
+- Fixed bug in :meth:`DataFrame.itertuples` with ``index=False`` returning no rows for a :class:`DataFrame` with rows but no columns, which also made :meth:`DataFrame.to_dict` with ``orient="split"``, ``"tight"`` or ``"records"`` drop the rows (:issue:`25408`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was ``Ellipsis`` (``...``) (:issue:`50373`)
 - Fixed bug in :meth:`DataFrame.replace` and :meth:`Series.replace` raising ``TypeError`` when ``to_replace`` was an arbitrary Python object, e.g. an instance of a custom class, that is neither scalar nor list-like (:issue:`36522`)
 - Fixed bug in :meth:`DataFrame.to_dict` with ``orient="index"`` did not respect the ``into`` argument in nested mappings (:issue:`65778`)
@@ -922,6 +953,7 @@ Strings
 - Bug in :meth:`Series.memory_usage` with ``deep=True`` raising ``TypeError`` on PyPy for ``str`` dtype with Python storage (:issue:`46176`)
 - Bug in :meth:`Series.str.casefold`, :meth:`Series.str.encode`, :meth:`Series.str.findall`, :meth:`Series.str.index`, :meth:`Series.str.partition`, :meth:`Series.str.rfind`, :meth:`Series.str.rindex`, :meth:`Series.str.rpartition`, :meth:`Series.str.translate`, :meth:`Series.str.wrap` and their :class:`Index` counterparts with :class:`ArrowDtype` raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
 - Bug in :meth:`Series.str.casefold`, :meth:`Series.str.encode`, :meth:`Series.str.findall`, :meth:`Series.str.join`, :meth:`Series.str.partition`, :meth:`Series.str.rpartition`, :meth:`Series.str.translate`, :meth:`Series.str.wrap` and their :class:`Index` counterparts with :class:`ArrowDtype` downgrading a ``large_string`` input to a ``string``-based result dtype (:issue:`66822`)
+- Bug in :meth:`Series.str.center`, :meth:`Series.str.ljust`, :meth:`Series.str.rjust` and :meth:`Series.str.pad` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when ``width`` was negative (:issue:`69749`)
 - Bug in :meth:`Series.str.find` and :meth:`Index.str.find` with PyArrow-backed string dtypes raising ``ArrowInvalid`` when the values contained non-ASCII characters alongside a stretch of missing values, and returning a null dtype instead of an integer one when the values were all missing or the object was empty (:issue:`64123`)
 - Bug in :meth:`Series.str.match` and :meth:`Index.str.match` raising ``AttributeError`` for :class:`ArrowDtype` when ``flags`` was passed or ``pat`` was a compiled ``re.Pattern`` (:issue:`63108`)
 - Bug in :meth:`Series.str.normalize`, :meth:`Series.str.zfill` and their :class:`Index` counterparts with PyArrow-backed string dtypes raising ``ArrowInvalid`` or returning a ``null`` dtype when the object was empty, the values were all missing, or the missing values were grouped into a chunk of their own (:issue:`66822`)
@@ -1117,6 +1149,7 @@ I/O
 - Fixed :func:`read_json` with ``lines=True`` and ``chunksize`` to respect ``nrows``
   when the requested row count is not a multiple of the chunk size (:issue:`64025`)
 - :meth:`HDFStore.put` and :meth:`HDFStore.append` now support storing :class:`Series` and :class:`DataFrame` columns with :class:`PeriodDtype` in both ``"fixed"`` and ``"table"`` formats (:issue:`41978`)
+- Bug in :meth:`DataFrame.__repr__` and :meth:`DataFrame.to_string` where column level names were not formatted like index names, so a tuple name was shown with quotes and a name containing a newline broke the layout (:issue:`14286`)
 - Bug in :meth:`DataFrame.__repr__` raising ``TypeError`` for a column with a NumPy structured dtype (e.g. produced by :meth:`DataFrame.from_records` from a structured ``ndarray``) (:issue:`55011`)
 - Bug in :meth:`DataFrame.__repr__` where horizontally truncated output could exceed the terminal width by up to 4 characters (:issue:`32461`)
 - Bug in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` ignoring ``date_format`` for datetimes in object-dtype columns, index, or column labels (:issue:`27306`)
@@ -1351,6 +1384,7 @@ ExtensionArray
 - Bug in numpy ufuncs like :func:`numpy.isnan` raising ``TypeError`` on :class:`Series` or :class:`Index` backed by PyArrow dtypes when ``future.distinguish_nan_and_na`` is ``True`` (:issue:`62506`)
 - Bug in the :class:`Series` constructor with an index but no data raising ``RecursionError`` for an :class:`~pandas.api.extensions.ExtensionDtype` whose ``na_value`` is dict-like, e.g. a nested or arrow-backed dtype (:issue:`33900`, :issue:`41377`)
 - Bug in :attr:`Series.list` raising error when using negative indices with PyArrow list dtypes (:issue:`63221`)
+- Bug in :func:`read_parquet` and other conversions from PyArrow with ``dtype_backend="pyarrow"`` where accessing an element of a list-of-interval column (or another list of a struct-backed PyArrow extension type) crashed the interpreter (:issue:`69869`)
 - Bug in :meth:`DataFrame.sort_values` raising ``ValueError`` when sorting on a column with PyArrow null dtype (:issue:`54908`)
 - Bug in the ``prod``, ``mean``, ``median``, ``std``, ``var``, ``sem``, ``skew`` and ``kurt`` methods of a :class:`.StringArray` (and ``np.prod``, ``np.mean``, ``np.std`` and ``np.var``, which dispatch to them) not rejecting the string dtype, returning a value or raising an unrelated error instead of the ``TypeError`` the equivalent :class:`Series` reduction raises (:issue:`68389`)
 - Bug in the repr of a :class:`.NumpyExtensionArray` backed by a numpy bytes dtype rendering ``b"foo"`` as ``'b'foo''`` instead of ``b'foo'`` (:issue:`68080`)

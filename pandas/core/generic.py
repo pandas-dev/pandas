@@ -200,6 +200,7 @@ if TYPE_CHECKING:
         TimeNonexistent,
         TimestampConvertibleTypes,
         TimeUnit,
+        ToTimestampHow,
         ValueKeyFunc,
         WriteBuffer,
         WriteExcelBuffer,
@@ -3171,9 +3172,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    3    8
         4    4    9
         """
-        from pandas.io.pickle import to_pickle
+        from pandas.io.pickle import to_pickle_internal
 
-        to_pickle(
+        to_pickle_internal(
             self,
             path,
             compression=compression,
@@ -4497,6 +4498,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+
+    def _check_inplace_deprecation(
+        self, inplace: bool | lib.NoDefault, method: str
+    ) -> bool:
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                f"The inplace keyword in {type(self).__name__}.{method} is "
+                "deprecated and will be removed in a future version (PDEP-8).\n"
+                "See "
+                "https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace"
+                " for more details.",
+                Pandas4Warning,
+                stacklevel=3,
+            )
+        else:
+            inplace = False
+
+        return inplace
 
     # issue 58667
     @deprecate_kwarg(Pandas4Warning, "method", new_arg_name=None)
@@ -9099,7 +9119,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         freq: Frequency,
         method: FillnaOptions | None = None,
-        how: Literal["start", "end"] | None = None,
+        how: ToTimestampHow | None = None,
         normalize: bool = False,
         fill_value: Hashable | None = None,
     ) -> Self:
@@ -9136,7 +9156,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * 'pad' / 'ffill': propagate last valid observation forward to next
               valid based on the order of the index
             * 'backfill' / 'bfill': use NEXT valid observation to fill.
-        how : {'start', 'end'}, default end
+        how : {'end', 'start', 'e', 's'}, default 'end'
             For PeriodIndex only (see PeriodIndex.asfreq).
         normalize : bool, default False
             Whether to reset output index to midnight.
@@ -10411,7 +10431,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 # if we are NOT aligned, raise as we cannot where index
                 if axis is None and not other._indexed_same(self):
-                    raise InvalidIndexError
+                    raise InvalidIndexError(
+                        "Cannot align with an object that has duplicate labels"
+                    )
 
                 if other.ndim < self.ndim:
                     other = other._values
