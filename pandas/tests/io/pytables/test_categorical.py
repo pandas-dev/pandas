@@ -169,19 +169,32 @@ def test_categorical_nan_only_columns(temp_h5_path):
 
 
 def test_categorical_nan_rep_collision(temp_h5_path):
-    # GH#21741 - a category equal to the default nan_rep ("nan") used to
-    # raise a broadcasting ValueError on read. It should instead be read
-    # back as NaN, with the surviving codes renumbered correctly.
+    # GH#21741, GH#9604 - a category equal to the default nan_rep ("nan") used
+    # to raise a broadcasting ValueError on read, and then to be read back as
+    # NaN. The categories are stored with their own NaN sentinel, so a literal
+    # "nan" category round-trips.
     df = pd.DataFrame(
         {"A": pd.Series(["aaa", "nan", "bbb", "aaa", "zzz", "bbb"]).astype("category")}
     )
     df.to_hdf(temp_h5_path, key="df", format="table")
     result = pd.read_hdf(temp_h5_path, key="df")
 
-    expected = pd.DataFrame(
-        {"A": pd.Series(["aaa", np.nan, "bbb", "aaa", "zzz", "bbb"]).astype("category")}
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_nan_rep_collision_append(temp_hdfstore):
+    # GH#21741, GH#9604 - the stored categories read a literal "nan" category
+    # back as NaN, so a second append saw different categories and raised.
+    dtype = pd.CategoricalDtype(["nan", "b"])
+    temp_hdfstore.append(
+        "df", pd.DataFrame({"A": pd.Series(["nan", "b"], dtype=dtype)})
     )
-    tm.assert_frame_equal(result, expected)
+    temp_hdfstore.append(
+        "df", pd.DataFrame({"A": pd.Series(["b", "nan"], dtype=dtype, index=[2, 3])})
+    )
+
+    expected = pd.DataFrame({"A": pd.Series(["nan", "b", "b", "nan"], dtype=dtype)})
+    tm.assert_frame_equal(temp_hdfstore.select("df"), expected)
 
 
 @pytest.mark.parametrize("where, expected", [["q", []], ["a", ["a"]]])
@@ -244,23 +257,32 @@ def test_categorical_index_with_nan(fmt, temp_h5_path):
 def test_categorical_index_category_equal_nan_rep(fmt, temp_h5_path):
     # GH#65576 - a genuine "nan" category equals the default nan_rep string.
     # Reading such a file used to raise "Categorical categories cannot be
-    # null" and permanently brick the key. fixed format stores categories
-    # verbatim and keeps the category; table format encodes categories with
-    # nan_rep, so "nan" decodes to NaN and is dropped, matching how a
-    # categorical *column* behaves (GH#21741).
+    # null" and permanently brick the key, then to drop the category. The
+    # categories are stored with their own NaN sentinel (GH#9604), so both
+    # formats now keep the literal "nan" category.
     df = pd.DataFrame(
         {"v": [1, 2, 3, 4]}, index=pd.CategoricalIndex(["a", "b", "nan", "a"])
     )
     df.to_hdf(temp_h5_path, key="df", format=fmt)
     result = pd.read_hdf(temp_h5_path, key="df")
 
-    if fmt == "fixed":
-        expected = df
-    else:
-        expected = pd.DataFrame(
-            {"v": [1, 2, 3, 4]},
-            index=pd.CategoricalIndex(["a", "b", np.nan, "a"], categories=["a", "b"]),
-        )
+    tm.assert_frame_equal(result, df)
+
+
+def test_categorical_index_category_equal_explicit_nan_rep(temp_h5_path):
+    # GH#65576, GH#9604 - an explicit nan_rep keeps its table-wide meaning, so a
+    # category equal to it still decodes to NaN, is dropped, and the remaining
+    # codes are renumbered around it.
+    df = pd.DataFrame(
+        {"v": [1, 2, 3, 4]}, index=pd.CategoricalIndex(["a", "b", "nan", "a"])
+    )
+    df.to_hdf(temp_h5_path, key="df", format="table", nan_rep="nan")
+    result = pd.read_hdf(temp_h5_path, key="df")
+
+    expected = pd.DataFrame(
+        {"v": [1, 2, 3, 4]},
+        index=pd.CategoricalIndex(["a", "b", np.nan, "a"], categories=["a", "b"]),
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -479,3 +501,32 @@ def test_categorical_where_ordering_op_unrecorded_ordered(temp_h5_path):
 
     result = pd.read_hdf(temp_h5_path, "df", where='col < "b"')
     tm.assert_frame_equal(result, df.iloc[:1])
+
+
+@pytest.mark.parametrize(
+    "first, second, msg",
+    [
+        (
+            pd.Index([0, 1]),
+            pd.CategoricalIndex(["a", "b"]),
+            "cannot append a categorical index to a non-categorical index",
+        ),
+        (
+            pd.CategoricalIndex(["a", "b"]),
+            pd.Index([0, 1]),
+            "cannot append a non-categorical index to a categorical index",
+        ),
+    ],
+)
+def test_categorical_index_append_mismatch_raises(first, second, msg, temp_h5_path):
+    # GH#65576 - the append used to be accepted, silently reinterpreting the
+    # already-stored index values on read.
+    df = pd.DataFrame({"v": [1.0, 2.0]}, index=first)
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    other = pd.DataFrame({"v": [3.0, 4.0]}, index=second)
+    with pytest.raises(TypeError, match=msg):
+        other.to_hdf(temp_h5_path, key="df", format="table", append=True)
+
+    # the rejected append leaves the stored rows intact and readable
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, key="df"), df)

@@ -275,8 +275,8 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
 
 def floats_fit_integer_dtype(values: np.ndarray, dtype: np.dtype) -> bool:
     """
-    Whether every entry of float-dtype `values` is finite and within the range
-    that casts exactly to integer dtype `dtype`.
+    Whether every entry of float- or bool-dtype `values` is finite and within
+    the range that casts exactly to integer dtype `dtype`.
 
     Casting a float outside that range to an integer dtype is undefined
     behavior in C, so numpy's result varies by platform.
@@ -285,9 +285,12 @@ def floats_fit_integer_dtype(values: np.ndarray, dtype: np.dtype) -> bool:
     # float(iinfo.max) rounds *up* for int64/uint64 (e.g. float64 has no
     # 2**63 - 1), so compare against the exactly-representable power of two
     # one past it, with a strict inequality.
-    upper = float(int(iinfo.max) + 1)
+    lower = np.float64(iinfo.min)
+    upper = np.float64(int(iinfo.max) + 1)
+    # np.float64 scalars, unlike Python floats, promote a narrower `values`
+    # (e.g. float16) instead of downcasting the bounds and overflowing.
     # NaN and +/-inf both fail these comparisons.
-    return bool(((values >= iinfo.min) & (values < upper)).all())
+    return bool(((values >= lower) & (values < upper)).all())
 
 
 @overload
@@ -445,7 +448,7 @@ def ensure_dtype_can_hold_na(dtype: DtypeObj) -> DtypeObj:
             #  overriding instead of returning object below.
             return IntervalDtype(np.float64, closed=dtype.closed)
         return _dtype_obj
-    elif dtype.kind in "bS":
+    elif dtype.kind in "bSUV":
         return _dtype_obj
     elif dtype.kind in "iu":
         return np.dtype(np.float64)
@@ -958,12 +961,14 @@ def convert_dtypes(
                     input_array.dtype, target_int_dtype
                 )
             elif input_array.dtype.kind in "fb":
-                # TODO: de-dup with maybe_cast_to_integer_array?
                 arr = input_array[notna(input_array)]
                 if len(arr) < len(input_array) and not is_nan_na():
                     # In the presence of NaNs, we cannot convert to IntegerDtype
                     pass
-                elif (arr.astype(int) == arr).all():
+                elif (
+                    floats_fit_integer_dtype(arr, np.dtype(int))
+                    and (arr.astype(int) == arr).all()
+                ):
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
@@ -993,12 +998,14 @@ def convert_dtypes(
                 # if we could also convert to integer, check if all floats
                 # are actually integers
                 if convert_integer:
-                    # TODO: de-dup with maybe_cast_to_integer_array?
                     arr = input_array[notna(input_array)]
                     if len(arr) < len(input_array) and not is_nan_na():
                         # In the presence of NaNs, we can't convert to IntegerDtype
                         inferred_dtype = inferred_float_dtype
-                    elif (arr.astype(int) == arr).all():
+                    elif (
+                        floats_fit_integer_dtype(arr, np.dtype(int))
+                        and (arr.astype(int) == arr).all()
+                    ):
                         inferred_dtype = pandas_dtype_func("Int64")
                     else:
                         inferred_dtype = inferred_float_dtype
@@ -1079,7 +1086,7 @@ def convert_dtypes(
 
 
 def maybe_cast_to_datetime(
-    value: np.ndarray | list, dtype: np.dtype
+    value: np.ndarray | list[Any], dtype: np.dtype
 ) -> DatetimeArray | TimedeltaArray | np.ndarray:
     """
     try to cast the array/value to a datetimelike dtype, converting float
@@ -1504,7 +1511,7 @@ def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj) -> Scalar:
     return _maybe_unbox_datetimelike(value, dtype)
 
 
-def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
+def construct_1d_object_array_from_listlike(values: Collection[Any]) -> np.ndarray:
     """
     Transform any list-like object in a 1-dimensional numpy array of object
     dtype.
@@ -1527,7 +1534,9 @@ def construct_1d_object_array_from_listlike(values: Collection) -> np.ndarray:
     return np.fromiter(values, dtype="object", count=len(values))
 
 
-def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.ndarray:
+def maybe_cast_to_integer_array(
+    arr: list[Any] | np.ndarray, dtype: np.dtype
+) -> np.ndarray:
     """
     Takes any dtype and returns the casted version, raising for when data is
     incompatible with integer/unsigned integer dtypes.

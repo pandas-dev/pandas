@@ -186,9 +186,7 @@ class TestSeriesDatetimeValues:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             freq_result = ser.dt.freq
 
-        msg = "Series.values returning an ndarray that drops timezone information"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert freq_result == pd.DatetimeIndex(ser.values, freq="infer").freq
+        assert freq_result == pd.DatetimeIndex(ser.array._ndarray, freq="infer").freq
 
     def test_dt_namespace_accessor_timedelta(self):
         # GH#7207, GH#11128
@@ -253,9 +251,7 @@ class TestSeriesDatetimeValues:
             getattr(ser.dt, prop)
 
         freq_result = ser.dt.freq
-        msg = "Series.values returning an object-dtype ndarray for PeriodDtype"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            assert freq_result == pd.PeriodIndex(ser.values).freq
+        assert freq_result == pd.PeriodIndex(ser.to_numpy()).freq
 
     def test_dt_namespace_accessor_index_and_values(self):
         # both
@@ -650,6 +646,19 @@ class TestSeriesDatetimeValues:
         # composite format still routes through the directive-map fast path
         result = ser.dt.strftime("%Y/%m/%d")
         expected = pd.Series(["0005/06/15", "0099/01/01", "0999/12/31", "2024/03/02"])
+        tm.assert_series_equal(result, expected)
+
+    def test_strftime_dt64_default_formats_year_lt_1000(self):
+        # GH#58179 the default-format fast paths zero-pad the year
+        ser = pd.Series(np.array(["-0020-01-01", "0020-01-01", "2024-03-02"], "M8[s]"))
+        result = ser.dt.strftime(None)
+        expected = pd.Series(["-020-01-01", "0020-01-01", "2024-03-02"])
+        tm.assert_series_equal(result, expected)
+
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
+        expected = pd.Series(
+            ["-020-01-01 00:00:00", "0020-01-01 00:00:00", "2024-03-02 00:00:00"]
+        )
         tm.assert_series_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):

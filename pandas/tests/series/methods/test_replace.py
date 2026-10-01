@@ -471,6 +471,14 @@ class TestSeriesReplace:
         # Ellipsis is equivalent to the spelled-out singleton
         tm.assert_series_equal(series.replace(Ellipsis, 1), expected)
 
+    def test_replace_arbitrary_object(self):
+        # GH#36522 non-scalar, non-list-like objects are valid to_replace values
+        o1, o2, o3 = object(), object(), object()
+        ser = pd.Series([o1, o2, o1])
+        result = ser.replace(o1, o3)
+        expected = pd.Series([o3, o2, o3])
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):
         obj = pd.Series(["a", "b", "c "])

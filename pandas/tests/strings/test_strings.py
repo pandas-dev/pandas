@@ -927,6 +927,9 @@ def test_series_str_decode():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_decode_with_dtype_none():
     with pd.option_context("future.infer_string", True):
         ser = pd.Series([b"a", b"b", b"c"])

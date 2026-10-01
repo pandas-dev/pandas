@@ -37,6 +37,7 @@ from pandas.compat import (
     pickle_compat,
 )
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -44,6 +45,7 @@ from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 from pandas.util.version import Version
 
 import pandas.io.common as icom
+from pandas.io.pickle import to_pickle_internal
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
@@ -214,19 +216,21 @@ def flatten(data: dict) -> list[tuple[str, Any]]:
     "pickle_writer",
     [
         pytest.param(python_pickler, id="python"),
-        pytest.param(pd.to_pickle, id="pandas_proto_default"),
+        pytest.param(to_pickle_internal, id="pandas_proto_default"),
         pytest.param(
-            functools.partial(pd.to_pickle, protocol=pickle.HIGHEST_PROTOCOL),
+            functools.partial(to_pickle_internal, protocol=pickle.HIGHEST_PROTOCOL),
             id="pandas_proto_highest",
         ),
-        pytest.param(functools.partial(pd.to_pickle, protocol=4), id="pandas_proto_4"),
         pytest.param(
-            functools.partial(pd.to_pickle, protocol=5),
+            functools.partial(to_pickle_internal, protocol=4), id="pandas_proto_4"
+        ),
+        pytest.param(
+            functools.partial(to_pickle_internal, protocol=5),
             id="pandas_proto_5",
         ),
     ],
 )
-@pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
+@pytest.mark.parametrize("writer", [to_pickle_internal, python_pickler])
 @pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
 def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
     path = temp_file
@@ -248,6 +252,17 @@ def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
         result = pd.read_pickle(handle)
         handle.seek(0)  # shouldn't close file handle
     compare_element(result, expected, typ)
+
+
+def test_to_pickle_deprecated(temp_file):
+    # GH#48402
+    ser = pd.Series([1, 2, 3])
+    msg = "pandas.to_pickle is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.to_pickle(ser, temp_file)
+
+    result = pd.read_pickle(temp_file)
+    tm.assert_series_equal(result, ser)
 
 
 def test_pickle_path_pathlib(temp_file):
@@ -551,6 +566,46 @@ def test_pickle_preserves_block_ndim(temp_file):
     tm.assert_series_equal(res[[True]], ser)
 
 
+@pytest.mark.parametrize("indexer", [slice(None, 5), slice(None, None, 2)])
+def test_pickle_strided_block_out_of_band(indexer):
+    # GH#55781 numpy serializes only contiguous arrays out of band, so a
+    #  strided view such as df.iloc[:5] was copied into the pickle stream
+    df = pd.DataFrame(1.1 * np.arange(40).reshape((10, 4)))
+    subset = df.iloc[indexer]
+    assert not subset._mgr.blocks[0].values.flags.forc
+
+    buffers = []
+    data = pickle.dumps(subset, protocol=5, buffer_callback=buffers.append)
+
+    assert len(buffers) == 1
+    tm.assert_frame_equal(pickle.loads(data, buffers=buffers), subset)
+
+    # the same reduce tuple has to round-trip in band, which is what to_pickle does
+    tm.assert_frame_equal(pickle.loads(pickle.dumps(subset, protocol=5)), subset)
+
+
+@pytest.mark.parametrize("dtype", ["float64", "object"])
+@pytest.mark.parametrize("protocol", [4, 5])
+def test_pickle_strided_block_no_copy_when_unused(dtype, protocol):
+    # GH#55781 making the block contiguous costs a copy, so it is worth it
+    #  only where numpy would serialize it out of band
+    df = pd.DataFrame(np.arange(40).reshape((10, 4)).astype(dtype))
+    block = df.iloc[:5]._mgr.blocks[0]
+    assert not block.values.flags.forc
+
+    copied = block.__reduce_ex__(protocol)[1][0] is not block.values
+    assert copied == (protocol == 5 and dtype == "float64")
+
+
+def test_pickle_f_contiguous_block_not_copied():
+    # GH#55781 numpy already serializes an F-contiguous block out of band, so
+    #  making it C-contiguous would flip its layout for nothing
+    block = pd.DataFrame(np.zeros((10, 4))).T._mgr.blocks[0]
+    assert block.values.flags.f_contiguous
+
+    assert block.__reduce_ex__(5)[1][0] is block.values
+
+
 @pytest.mark.parametrize("protocol", [pickle.DEFAULT_PROTOCOL, pickle.HIGHEST_PROTOCOL])
 def test_pickle_big_dataframe_compression(protocol, compression, temp_file):
     # GH#39002
@@ -577,6 +632,78 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
+
+
+def _new_bare_series() -> pd.Series:
+    return pd.Series.__new__(pd.Series)
+
+
+class _LegacySeriesPickle:
+    # Emulate pandas<2.1, which listed the Series name in _metadata as
+    #  "name" rather than "_name".
+    def __init__(self, ser: pd.Series) -> None:
+        state = ser.__getstate__()
+        state["name"] = state.pop("_name")
+        state["_metadata"] = ["name"]
+        self._state = state
+
+    def __reduce__(self):
+        return (_new_bare_series, (), self._state)
+
+
+@pytest.mark.parametrize("name", ["hi", 777, (1, 2)])
+def test_unpickle_legacy_series_keeps_name_on_copy(name):
+    # GH#61819 the pickled _metadata shadowed the class attribute, so
+    #  __finalize__ intersected ["name"] with ["_name"] and dropped the name
+    expected = pd.Series([1, 2], name=name)
+
+    result = pickle.loads(pickle.dumps(_LegacySeriesPickle(expected)))
+
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result.copy(), expected)
+    # a pickle written by this version round-trips the name too
+    tm.assert_series_equal(pickle.loads(pickle.dumps(result)).copy(), expected)
+
+
+def test_unpickle_legacy_fixture_keeps_name_on_copy(datapath):
+    # GH#61819 pins the bug against a real pre-2.1 pickle, so it cannot drift
+    #  along with the emulation above
+    pytest.importorskip("pytz")  # the fixture file holds pytz-stamped objects
+    path = datapath(
+        Path(__file__).parent,
+        "data",
+        "legacy_pickle",
+        "2.0.3",
+        "2.0.3_AMD64_windows_3.11.12.pickle",
+    )
+    ser = pd.read_pickle(path)["sp_series"]["float"]
+
+    assert ser.name == "bseries"
+    assert ser.copy().name == "bseries"
+
+
+class _DynMetadataSeries(pd.Series):
+    # A subclass that extends _metadata per instance, so the pickled list is the
+    #  only record of the extra entry.
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        object.__setattr__(self, "_metadata", [*type(self)._metadata, "myattr"])
+
+    @property
+    def _constructor(self):
+        return _DynMetadataSeries
+
+
+def test_unpickle_keeps_instance_level_metadata():
+    # GH#61819 the merge must not discard entries the instance added to _metadata
+    ser = _DynMetadataSeries([1, 2])
+    ser.myattr = "keepme"
+
+    result = pickle.loads(pickle.dumps(ser))
+
+    assert result.myattr == "keepme"
+    assert result.copy().myattr == "keepme"
+    assert pickle.loads(pickle.dumps(result)).copy().myattr == "keepme"
 
 
 def _legacy_timestamp_pickle(args: tuple) -> bytes:

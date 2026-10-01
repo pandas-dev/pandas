@@ -344,3 +344,9 @@ class TestTimestampStrftime:
     )
     def test_strftime(self, ts, fmt, expected):
         assert ts.strftime(fmt) == expected
+
+
+def test_repr_year_lt_1000():
+    # GH#58179
+    ts = pd.Timestamp(np.datetime64("0020-01-01 01:00", "s"))
+    assert repr(ts) == "Timestamp('0020-01-01 01:00:00')"

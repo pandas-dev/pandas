@@ -889,15 +889,50 @@ class TestiLocBaseIndependent:
             else:
                 df.iloc[:, [0]] = value
 
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_mismatched_tuples_single_column(self, indexer):
+        # GH#37629 mismatched-length tuples into a single column are cell values,
+        # even when the column key is a list rather than a scalar label
+        df = pd.DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [(1, 2), (3, 4)]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = pd.DataFrame(
+            {"a": pd.Series([(1, 2), (3, 4)], dtype=object), "b": [0, 0]}
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_mismatched_tuples_arrow_list_column(self, indexer):
+        # GH#65264 the per-cell hatch keys on the target being a single column,
+        # not on it being object dtype
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.list_(pa.int64()))
+        df = pd.DataFrame({"a": pd.array([[9], [9]], dtype=dtype), "b": [0, 0]})
+        value = [(1, 2), (3, 4)]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = pd.DataFrame(
+            {"a": pd.array([[1, 2], [3, 4]], dtype=dtype), "b": [0, 0]}
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize(
         "box",
-        [np.array, pd.Series, pd.Index, pd.array],
-        ids=["ndarray", "Series", "Index", "pd.array"],
+        [np.array, pd.Series, pd.Index, pd.array, tuple],
+        ids=["ndarray", "Series", "Index", "pd.array", "tuple"],
     )
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_list_of_len1_arrays_single_column(self, indexer, box):
         # GH#64230 len-1 rows into a single column is the shape that *does*
-        # match, the counterpart to the mismatch above
+        # match, the counterpart to the mismatch above. Tuples go this route
+        # too, like every other box (GH#65264)
         df = pd.DataFrame({"a": np.zeros(2), "b": [0, 0]})
         value = [box([1]), box([2])]
         if indexer == "loc":
@@ -2197,3 +2232,64 @@ def test_iloc_setitem_series_boolean_index_row_key():
     ser.iloc[pd.Index([True, True, False, False])] = ["a", "b"]
 
     tm.assert_series_equal(ser, pd.Series(["a", "b", 3, 4], dtype=object))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        # string dtypes
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [
+        list,
+        np.array,
+        pytest.param(
+            lambda x: pd.Series(x, index=["a"]),
+            marks=pytest.mark.xfail(reason="Series indexer fails"),
+        ),
+        pd.Index,
+        pd.array,
+    ],
+    # [np.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    if isinstance(dtype, tuple):
+        dtype = pd.StringDtype(*dtype)
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.iloc[:, box([True])] = df * 2
+
+    expected = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = df.iloc[[0, 1], :] * 2
+
+    arr = pd.array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = pd.DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.iloc[:, box([True])] = scalar
+
+    expected = pd.DataFrame({"a": pd.array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = scalar * 2
+
+    expected = pd.DataFrame(
+        {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
+    )
+    tm.assert_frame_equal(df, expected)
