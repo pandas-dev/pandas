@@ -599,11 +599,12 @@ class NumpyExtensionArray(
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        bias: bool = False,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
         )
-        result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna, bias=bias)
         return self._wrap_reduction_result(axis, result)
 
     def skew(
@@ -614,11 +615,12 @@ class NumpyExtensionArray(
         out=None,
         keepdims: bool = False,
         skipna: bool = True,
+        bias: bool = False,
     ):
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
         )
-        result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna, bias=bias)
         return self._wrap_reduction_result(axis, result)
 
     # ------------------------------------------------------------------------
