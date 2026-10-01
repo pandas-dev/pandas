@@ -8321,11 +8321,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 if lev.dtype == np.object_:
                     new_dtype = new_obj._get_column_array(0).dtype
-                    # skip all-NaT levels: infer_objects keeps them object, so
+                    # skip levels infer_objects keeps object (all-NaT), since
                     # the warning's advice could not silence it
                     if (
                         new_dtype != np.object_
-                        and lev.infer_objects().dtype == new_dtype
+                        and lev.infer_objects().dtype != np.object_
                     ):
                         inferred.append(name)
 

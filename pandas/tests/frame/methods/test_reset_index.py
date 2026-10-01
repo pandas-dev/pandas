@@ -729,6 +729,18 @@ def test_reset_index_object_level_no_warning():
     tm.assert_frame_equal(result, pd.DataFrame({"v": [1, 2]}))
 
 
+def test_reset_index_object_level_with_missing_value_deprecated():
+    # GH#30517 the column is float64 after filling the missing code, while the
+    #  level itself infers to int64
+    mi = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2, None], dtype=object), ["a", "b", "c"]], names=["k", "s"]
+    )
+    df = pd.DataFrame({"v": [1, 2, 3]}, index=mi)
+    with tm.assert_produces_warning(Pandas4Warning, match=r"\['k'\]"):
+        result = df.reset_index()
+    assert result["k"].dtype == np.float64
+
+
 @pytest.mark.parametrize("values", [[pd.NaT, pd.NaT], [pd.NaT, None], [pd.NaT, np.nan]])
 def test_reset_index_all_nat_object_level_no_warning(values):
     # GH#30517 infer_objects keeps an all-NaT level object, so following the
