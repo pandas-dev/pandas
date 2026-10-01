@@ -4499,6 +4499,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
+    def _check_inplace_deprecation(
+        self, inplace: bool | lib.NoDefault, method: str
+    ) -> bool:
+        if inplace is not lib.no_default:
+            # GH#63207
+            warnings.warn(
+                f"The inplace keyword in {type(self).__name__}.{method} is "
+                "deprecated and will be removed in a future version (PDEP-8).\n"
+                "See "
+                "https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace"
+                " for more details.",
+                Pandas4Warning,
+                stacklevel=3,
+            )
+        else:
+            inplace = False
+
+        return inplace
+
     # issue 58667
     @deprecate_kwarg(Pandas4Warning, "method", new_arg_name=None)
     @final
