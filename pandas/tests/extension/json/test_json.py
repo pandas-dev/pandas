@@ -185,6 +185,11 @@ class TestJSONArray(base.ExtensionTests):
             request.applymarker(unhashable)
         super().test_value_counts(all_data, dropna)
 
+    @pytest.mark.xfail(reason="JSONArray does not treat {} as missing")
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts_no_sort(self, data_for_grouping, dropna):
+        super().test_value_counts_no_sort(data_for_grouping, dropna)
+
     @unhashable
     def test_sort_values_frame(self):
         # TODO (EA.factorize): see if _values_for_factorize allows this.

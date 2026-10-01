@@ -209,7 +209,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.value_counts` with ``dropna=False`` on nullable dtypes always placing missing values after other values with the same count, instead of where they first appear (:issue:`23074`)
 -
 
 Styler

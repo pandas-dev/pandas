@@ -1134,11 +1134,13 @@ def value_counts_arraylike(
     -------
     uniques : np.ndarray
     counts : np.ndarray[np.int64]
+    na_pos : int
+        Position of the masked NA entry in uniques, -1 if there is none.
     """
     original = values
     values = _ensure_data(values)
 
-    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_pos = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -1148,7 +1150,7 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts, na_counter
+    return res_keys, counts, na_pos
 
 
 def duplicated(
