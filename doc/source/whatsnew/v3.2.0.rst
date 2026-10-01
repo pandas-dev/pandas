@@ -195,11 +195,11 @@ I/O
 - Bug in :meth:`DataFrame.to_excel` where a ``NaN`` label in :class:`MultiIndex` columns was written as the last value of that level instead of an empty cell (:issue:`62340`)
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 - Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and :meth:`DataFrame.to_html` ignoring ``na_rep`` for ``None``, ``pd.NA``, and ``NaT`` values in object-dtype columns and an explicit ``na_rep="NaN"`` for any missing value, and in :meth:`DataFrame.to_xml` raising for ``na_rep`` with nullable, pyarrow-backed, or categorical columns containing missing values (:issue:`54872`)
+- Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and their ``repr`` where values or labels containing ANSI color codes were counted toward the column width, misaligning the other rows (:issue:`55122`)
 - Bug in the repr of a :class:`Series` or :class:`DataFrame` with ``longdouble`` (e.g. ``float128``) dtype showing values outside the ``float64`` range as ``0`` or ``inf`` (:issue:`17809`)
 - Fixed bug in :func:`read_csv` where callable ``skiprows`` received incorrect row numbers on 32-bit big-endian architectures (:issue:`69985`)
 - Bug in :class:`ExcelWriter` with ``engine="openpyxl"`` ignoring ``date_format`` and ``datetime_format`` (:issue:`44284`, :issue:`59882`)
 - Bug in :func:`read_sas` raising ``IndexError`` or reading the wrong format or label for SAS7BDAT files with columns renamed or relabeled after the file was written (:issue:`60809`)
--
 
 Period
 ^^^^^^
@@ -246,7 +246,8 @@ Other
 
 .. ***DO NOT USE THIS SECTION***
 
-- Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and their ``repr`` where values or labels containing ANSI color codes were counted toward the column width, misaligning the other rows (:issue:`55122`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.contributors:
