@@ -96,14 +96,40 @@ class TestMethods:
         result = a.shift(2)
         expected = a.take([-1, -1, 0], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+        # expected is shift's own implementation, so pin the NA positions too
+        assert result.isna().tolist() == [True, True, False]
 
         result = a.shift(-1)
         expected = a.take([1, 2, -1], allow_fill=True)
         tm.assert_interval_array_equal(result, expected)
+        assert result.isna().tolist() == [False, False, True]
 
         msg = "can only insert Interval objects and NA into an IntervalArray"
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
+
+    @pytest.mark.parametrize(
+        "breaks",
+        [
+            pd.date_range("2020", periods=3, tz="Europe/Brussels"),
+            pd.timedelta_range("1 day", periods=3),
+            np.array([1, 2, 3], dtype="float32"),
+        ],
+        ids=["dt64tz", "td64", "float32"],
+    )
+    def test_shift_retains_subtype(self, breaks):
+        # GH#69922
+        arr = IntervalArray.from_breaks(breaks)
+        assert arr.dtype.subtype == breaks.dtype
+
+        result = arr.shift(1)
+
+        assert result.dtype == arr.dtype
+        assert result.isna()[0]
+        tm.assert_interval_array_equal(result[1:], arr[:-1])
+
+        # an all-NA result has no surviving value to re-infer the subtype from
+        assert arr.shift(len(arr)).dtype == arr.dtype
 
     def test_unique_with_negatives(self):
         # GH#61917

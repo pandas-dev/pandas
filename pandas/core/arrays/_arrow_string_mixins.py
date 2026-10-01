@@ -46,11 +46,11 @@ class ArrowStringArrayMixin:
         # Convert an integer-dtype result to the appropriate result type
         raise NotImplementedError
 
-    def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
+    def _apply_elementwise(self, func: Callable[..., Any]) -> list[list[Any]]:
         raise NotImplementedError
 
     @staticmethod
-    def _has_unsupported_regex(pat: str | re.Pattern) -> bool:
+    def _has_unsupported_regex(pat: str | re.Pattern[str]) -> bool:
         """
         Determine if regex pattern contains features not supported by RE2 / pyarrow.
 
@@ -108,7 +108,7 @@ class ArrowStringArrayMixin:
         return has_unsupported_code(tokens)
 
     @staticmethod
-    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
+    def _is_re_pattern_with_flags(pat: str | re.Pattern[str]) -> bool:
         # check if `pat` is a compiled regex pattern with flags that are not
         # supported by pyarrow
         return (
@@ -118,7 +118,7 @@ class ArrowStringArrayMixin:
 
     @staticmethod
     def _unwrap_re_pattern(
-        pat: str | re.Pattern, case: bool, flags: int
+        pat: str | re.Pattern[str], case: bool, flags: int
     ) -> tuple[str, bool, int]:
         """
         Reduce `pat` to the (pattern, case, flags) triple the pyarrow kernels take.
@@ -176,6 +176,8 @@ class ArrowStringArrayMixin:
         side: Literal["left", "right", "both"] = "left",
         fillchar: str = " ",
     ) -> Self:
+        if width < 0:
+            width = 0
         if side == "left":
             pa_pad = pc.utf8_lpad
         elif side == "right":
@@ -209,6 +211,9 @@ class ArrowStringArrayMixin:
             return self._from_pyarrow_array(
                 pa.chunked_array(result, type=self._pa_array.type)
             )
+        # pc.utf8_zfill raises on a negative width, while str.zfill returns the
+        # string unchanged -> clamping to zero to get that behaviour (GH#69486)
+        width = max(width, 0)
         return self._from_pyarrow_array(pc.utf8_zfill(self._pa_array, width))
 
     def _str_normalize(self, form: Literal["NFC", "NFD", "NFKC", "NFKD"]) -> Self:
@@ -281,8 +286,8 @@ class ArrowStringArrayMixin:
 
     def _str_replace(
         self,
-        pat: str | re.Pattern,
-        repl: str | Callable,
+        pat: str | re.Pattern[str],
+        repl: str | Callable[..., Any],
         n: int = -1,
         case: bool = True,
         flags: int = 0,
@@ -456,7 +461,7 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -473,7 +478,7 @@ class ArrowStringArrayMixin:
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,

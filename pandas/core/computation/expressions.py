@@ -113,6 +113,21 @@ def _can_use_numexpr(op, op_str, left_op, right_op, dtype_check) -> bool:
     return False
 
 
+def normalize_numexpr_result(result):
+    """
+    View a numexpr result with numpy's canonical dtype for its itemsize/kind.
+
+    numexpr may return e.g. ``longlong`` where numpy's int64 is ``long``; the
+    two compare equal but have different ``dtype.type``, see GH#17945.
+    """
+    if isinstance(result, np.ndarray):
+        canonical = np.dtype(result.dtype.str)
+        # only view when needed, so the result otherwise keeps owning its data
+        if canonical.type is not result.dtype.type:
+            result = result.view(canonical)
+    return result
+
+
 def _evaluate_numexpr(op, op_str, left_op, right_op):
     result = None
 
@@ -131,6 +146,7 @@ def _evaluate_numexpr(op, op_str, left_op, right_op):
                 local_dict={"left_value": left_value, "right_value": right_value},
                 casting="safe",
             )
+            result = normalize_numexpr_result(result)
         except TypeError:
             # numexpr raises eg for array ** array with integers
             # (https://github.com/pydata/numexpr/issues/379)
@@ -211,6 +227,7 @@ def _where_numexpr(cond, left_op, right_op):
             local_dict={"cond_value": cond, "a_value": left_op, "b_value": right_op},
             casting="safe",
         )
+        result = normalize_numexpr_result(result)
 
     if result is None:
         result = _where_standard(cond, left_op, right_op)
