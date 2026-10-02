@@ -2897,8 +2897,8 @@ class DataFrame(NDFrame, OpsMixin):
             returned as bytes. If a string or path, it will be used as the root
             directory path when writing a partitioned dataset.
 
-            The string could be the URL of a writable remote filesystem, such as
-            ``s3://bucket/path/to/table.parquet``.
+            The string could be a local ``file://`` URL or the URL of a writable
+            remote filesystem, such as ``s3://bucket/path/to/table.parquet``.
 
             Certain URL schemes may require additional packages. For example, S3
             URLs require the ``s3fs`` library. See
