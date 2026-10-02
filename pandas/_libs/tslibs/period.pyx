@@ -2492,6 +2492,8 @@ cdef class _Period(PeriodMixin):
         --------
         period.month : Get the month of the year for the given Period.
         period.day : Return the day of the month the Period falls on.
+        Period.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
         Period.start_time : Get the Timestamp for the start of the period.
         Period.end_time : Get the Timestamp for the end of the period.
 

@@ -528,6 +528,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             leap year.
         PeriodIndex.weekofyear : The week ordinal of the year.
         PeriodIndex.year : The year of the period.
+        PeriodIndex.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
         PeriodIndex.start_time : Get the Timestamp for the start of each period.
         PeriodIndex.end_time : Get the Timestamp for the end of each period.
 
