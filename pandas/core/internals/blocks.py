@@ -1836,7 +1836,7 @@ class EABackedBlock(Block):
         if len(arg) not in (1, nrows):
             if len(arg) == n_selected:
                 # putmask with one value per selected position: pass it
-                #  through, since NDArrayBackedExtensionArray._putmask accepts it
+                #  through unchanged, as before this alignment was added
                 return arg
             raise ValueError(
                 f"Length of values ({len(arg)}) does not match length of index "
