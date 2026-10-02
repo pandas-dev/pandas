@@ -944,8 +944,7 @@ def to_datetime(
             format string default to ``1900-01-01 00:00:00``, consistent with
             Python's :meth:`datetime.datetime.strptime` behavior. For example,
             ``to_datetime(["1", "2"], format="%d")`` returns dates in January 1900.
-            The ``origin`` parameter does not affect string parsing via ``format``;
-            it only applies to numeric input interpreted through ``unit``.
+            The ``origin`` parameter only applies to numeric input.
 
     exact : bool, default True
         Control how `format` is used:
@@ -967,8 +966,8 @@ def to_datetime(
         To truncate datetime values, use :meth:`Series.dt.floor` or
         :meth:`Series.dt.normalize`.
 
-        Only applicable to numeric input; has no effect on datetime-like input
-        or when ``format`` is specified.
+        Only applicable to numeric input; has no effect on datetime-like input.
+        Cannot be used together with ``format``; passing both raises ``ValueError``.
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by ``unit``) since this reference date.
@@ -984,9 +983,9 @@ def to_datetime(
 
         .. note::
 
-            This parameter only affects numeric input used with ``unit``.
-            It does not affect string parsing via ``format``. See the ``format``
-            parameter for how defaults are handled during string parsing.
+            This parameter only affects numeric input; a non-default ``origin``
+            with string input raises ``ValueError``. See the ``format`` parameter
+            for how defaults are handled during string parsing.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing

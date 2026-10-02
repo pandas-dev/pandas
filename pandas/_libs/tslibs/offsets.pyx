@@ -644,8 +644,7 @@ cdef class BaseOffset:
         Return a copy of the frequency.
 
         This method creates a new instance of the same frequency offset
-        with identical parameters. The returned copy is independent of
-        the original, allowing modifications without affecting the source object.
+        with identical parameters.
 
         See Also
         --------
@@ -1077,8 +1076,7 @@ cdef class BaseOffset:
         This property computes the offset duration in nanoseconds. For fixed
         frequency offsets (like Hour, Minute, Second), this returns the exact
         number of nanoseconds. For non-fixed frequencies that depend on
-        calendar context (like Week without a specified weekday), this raises
-        an error.
+        calendar context (like Week or MonthEnd), this raises an error.
 
         Raises
         ------
@@ -1131,7 +1129,7 @@ cdef class BaseOffset:
         Return boolean whether a timestamp occurs on the month end.
 
         This method checks if the given timestamp falls on the last day of
-        a month, taking into account the frequency's normalization settings.
+        a month, or the last business day for business-month offsets.
 
         Parameters
         ----------
@@ -1155,8 +1153,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter start.
 
-        This method checks if the given timestamp falls on the first day of
-        a calendar quarter (January 1, April 1, July 1, or October 1).
+        This method checks if the given timestamp falls on the first day of a
+        quarter, or the first business day for business-quarter offsets. Quarters
+        are anchored on the offset's ``startingMonth`` if it has one.
 
         Parameters
         ----------
@@ -1180,8 +1179,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the quarter end.
 
-        This method checks if the given timestamp falls on the last day of
-        a calendar quarter (March 31, June 30, September 30, or December 31).
+        This method checks if the given timestamp falls on the last day of a
+        quarter, or the last business day for business-quarter offsets. Quarters
+        are anchored on the offset's ``startingMonth`` if it has one.
 
         Parameters
         ----------
@@ -1206,8 +1206,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year start.
 
-        This method checks if the given timestamp falls on January 1st,
-        which marks the beginning of a calendar year.
+        This method checks if the given timestamp falls on the first day of a
+        year, or the first business day for business-year offsets. Year boundaries
+        follow the offset's ``month`` if it has one, and the calendar year otherwise.
 
         Parameters
         ----------
@@ -1231,8 +1232,9 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp occurs on the year end.
 
-        This method checks if the given timestamp falls on December 31st,
-        which marks the end of a calendar year.
+        This method checks if the given timestamp falls on the last day of a
+        year, or the last business day for business-year offsets. Year boundaries
+        follow the offset's ``month`` if it has one, and the calendar year otherwise.
 
         Parameters
         ----------
@@ -1686,10 +1688,9 @@ cdef class Hour(Tick):
     """
     Offset ``n`` hours.
 
-    Represents a fixed duration of ``n`` hours (3,600 seconds each) for
-    use in arithmetic with datetime-like objects. Unlike calendar-based
-    offsets, the result is deterministic and does not depend on
-    timezone or daylight saving.
+    Represents a fixed duration of ``n`` hours (3,600 seconds each). The elapsed
+    time is fixed, but the resulting wall time can still shift across a
+    daylight saving transition.
 
     Parameters
     ----------
@@ -1735,9 +1736,7 @@ cdef class Minute(Tick):
     """
     Offset ``n`` minutes.
 
-    Represents a fixed duration of ``n`` minutes (60 seconds each) for
-    use in arithmetic with datetime-like objects. Useful for
-    time-series alignment at sub-hour resolution.
+    Represents a fixed duration of ``n`` minutes (60 seconds each).
 
     Parameters
     ----------
@@ -1783,9 +1782,7 @@ cdef class Second(Tick):
     """
     Offset ``n`` seconds.
 
-    Represents a fixed duration of ``n`` seconds for use in arithmetic
-    with datetime-like objects. The smallest tick offset that does not
-    involve fractional seconds.
+    Represents a fixed duration of ``n`` seconds.
 
     Parameters
     ----------
@@ -1831,9 +1828,7 @@ cdef class Milli(Tick):
     """
     Offset ``n`` milliseconds.
 
-    Represents a fixed duration of ``n`` milliseconds (1/1000 of a
-    second) for use in arithmetic with datetime-like objects. Supports
-    sub-second precision in time-series operations.
+    Represents a fixed duration of ``n`` milliseconds (1/1000 of a second).
 
     Parameters
     ----------
@@ -1880,9 +1875,7 @@ cdef class Micro(Tick):
     """
     Offset ``n`` microseconds.
 
-    Represents a fixed duration of ``n`` microseconds (1/1,000,000 of a
-    second) for use in arithmetic with datetime-like objects. Enables
-    microsecond-level precision in time-series operations.
+    Represents a fixed duration of ``n`` microseconds (1/1,000,000 of a second).
 
     Parameters
     ----------
@@ -1929,9 +1922,7 @@ cdef class Nano(Tick):
     """
     Offset ``n`` nanoseconds.
 
-    Represents a fixed duration of ``n`` nanoseconds (1/1,000,000,000 of
-    a second) for use in arithmetic with datetime-like objects. The
-    finest resolution tick offset, suitable for high-precision timestamps.
+    Represents a fixed duration of ``n`` nanoseconds (1/1,000,000,000 of a second).
 
     Parameters
     ----------
@@ -3725,8 +3716,8 @@ cdef class WeekOfMonthMixin(SingleConstructorOffset):
         """
         Return a string representing the base frequency.
 
-        This code is used internally to identify the frequency type and
-        includes the week number and weekday information.
+        This code identifies the frequency type and includes the weekday and,
+        for ``WeekOfMonth``, the week number.
 
         See Also
         --------

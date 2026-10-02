@@ -312,9 +312,8 @@ def hash_array(
     """
     Given a 1d array, return an array of deterministic integers.
 
-    This function applies a hash function to each element of the input
-    array, producing a fixed set of uint64 values suitable for use in
-    hashing-based algorithms.
+    Each element is hashed to one uint64 value, deterministic for a given
+    `hash_key` and `encoding`.
 
     Parameters
     ----------

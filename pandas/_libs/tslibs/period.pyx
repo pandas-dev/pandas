@@ -1962,9 +1962,8 @@ class IncompatibleFrequency(TypeError):
     """
     Raised when trying to compare or operate between Periods with different frequencies.
 
-    This error occurs when performing operations between Period objects or
-    PeriodArrays that have different frequencies that cannot be aligned,
-    such as comparing or doing arithmetic on periods with mismatched frequencies.
+    Ordering comparisons and subtraction between Periods with different
+    frequencies raise this error, while equality comparisons return False.
 
     See Also
     --------
@@ -1974,7 +1973,7 @@ class IncompatibleFrequency(TypeError):
 
     Examples
     --------
-    Trying to compare Period objects with different frequencies:
+    Subtracting Period objects with different frequencies:
 
     >>> pd.Period("2024-01", freq="M") - pd.Period("2024-01-01", freq="D")
     Traceback (most recent call last):
@@ -2104,9 +2103,8 @@ cdef class _Period(PeriodMixin):
         Return the integer ordinal for this Period.
 
         The ordinal is the internal integer representation of the Period,
-        representing its position in the sequence of periods of the given
-        frequency. It counts from an epoch (e.g., for daily frequency,
-        ordinal 0 corresponds to January 1, 1970).
+        counting periods of the frequency's base unit from an epoch (e.g., for
+        daily frequency, ordinal 0 corresponds to January 1, 1970).
 
         See Also
         --------
@@ -2369,8 +2367,8 @@ cdef class _Period(PeriodMixin):
         """
         Convert Period to desired frequency, at the start or end of the interval.
 
-        This method converts the Period to a different frequency, aligning
-        the result to either the start or end of the original interval.
+        The result is aligned to the start or end of the original interval,
+        as set by `how`.
 
         Parameters
         ----------
@@ -2455,8 +2453,8 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str or DateOffset
-            Target frequency. Default is 'D' if self._freq is week or
-            longer and 'S' otherwise.
+            Target frequency. Default is 'D' if the frequency of this Period is
+            weekly or longer and 'S' otherwise.
         how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the period. Case-insensitive.
 
@@ -2524,8 +2522,8 @@ cdef class _Period(PeriodMixin):
         """
         Return the year this Period falls on.
 
-        The year is derived from the internal representation of the Period
-        based on its ordinal value and frequency.
+        For fiscal-year and week-anchored frequencies this can differ from the
+        calendar year of the period's start; see Notes.
 
         Returns
         -------
@@ -2670,8 +2668,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the hour of the day component of the Period.
 
-        For periods with a frequency shorter than a day, this returns the
-        hour of the start of the period. For longer frequencies, it returns 0.
+        This is the hour of the period's ``start_time``, which is 0 for
+        frequencies coarser than an hour.
 
         Returns
         -------
@@ -2703,8 +2701,8 @@ cdef class _Period(PeriodMixin):
         """
         Get minute of the hour component of the Period.
 
-        For periods with a frequency shorter than an hour, this returns the
-        minute of the start of the period. For longer frequencies, it returns 0.
+        This is the minute of the period's ``start_time``, which is 0 for
+        frequencies coarser than a minute.
 
         Returns
         -------
@@ -2730,8 +2728,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the second component of the Period.
 
-        For periods with a frequency shorter than a minute, this returns the
-        second of the start of the period. For longer frequencies, it returns 0.
+        This is the second of the period's ``start_time``, which is 0 for
+        frequencies coarser than a second.
 
         Returns
         -------
@@ -2757,8 +2755,7 @@ cdef class _Period(PeriodMixin):
         """
         Get the week of the year on the given Period.
 
-        Weeks are numbered according to ISO 8601, where the first week of
-        the year contains the first Thursday of the year.
+        Alias of :attr:`Period.week`.
 
         The value comes from the last day of the first unit of the period's
         frequency, so a ``"2M"`` period uses the last day of its first month.
@@ -2979,9 +2976,9 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
-        Quarter 1 includes January through March, quarter 2 includes April
-        through June, quarter 3 includes July through September, and quarter
-        4 includes October through December.
+        Quarters are numbered within the fiscal year implied by the frequency, so
+        quarter 1 spans January through March only for calendar-year frequencies
+        such as ``Q-DEC``.
 
         The value comes from the last day of the first unit of the period's
         frequency, so a ``"2M"`` period uses the last day of its first month.

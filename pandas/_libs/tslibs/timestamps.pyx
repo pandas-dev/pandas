@@ -1447,9 +1447,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the nanosecond of the Timestamp.
 
-        This property returns an integer representing the nanosecond component
-        (0-999) of the Timestamp. This is particularly useful when working with
-        high-precision temporal data that requires sub-microsecond resolution.
+        This is the sub-microsecond component, an integer from 0 to 999.
 
         Returns
         -------
@@ -1500,7 +1498,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the number of days in the month.
 
-        This value depends on the month and whether the year is a leap year.
+        February has 29 days in leap years.
 
         Returns
         -------
@@ -1730,14 +1728,14 @@ cdef class _Timestamp(ABCTimestamp):
 
         This method changes the resolution of the Timestamp's internal
         representation. When converting to a coarser resolution (e.g.,
-        nanoseconds to seconds), precision may be lost through rounding
-        unless ``round_ok`` is set to False.
+        nanoseconds to seconds), values are truncated toward negative infinity
+        unless ``round_ok`` is set to False, which raises instead.
 
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
         round_ok : bool, default True
-            If False and the conversion requires rounding, raise.
+            If False and the conversion is lossy, raise.
 
         Returns
         -------
@@ -1778,7 +1776,8 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return numpy datetime64 format with same precision.
 
-        This property provides interoperability with NumPy datetime operations.
+        The unit of the Timestamp is preserved, and a tz-aware Timestamp is
+        returned as the equivalent UTC time.
 
         See Also
         --------
@@ -2604,10 +2603,8 @@ class Timestamp(_Timestamp):
         """
         Return a named tuple containing ISO year, week number, and weekday.
 
-        The ISO 8601 calendar is a widely used international standard. The
-        returned named tuple has three components: ``year``, ``week``, and
-        ``weekday``. The ISO year may differ from the Gregorian year for dates
-        near the start or end of a calendar year.
+        The ISO year may differ from the Gregorian year for dates near the start
+        or end of a calendar year.
 
         See Also
         --------
@@ -3330,8 +3327,8 @@ timedelta}, default 'raise'
         Return a new Timestamp floored to this resolution.
 
         This method rounds the Timestamp down to the nearest boundary of the
-        given frequency. The result will never be later than the original
-        Timestamp.
+        given frequency. Around a DST transition, `ambiguous` and `nonexistent`
+        can place the result later than the original Timestamp.
 
         Parameters
         ----------
@@ -3434,8 +3431,8 @@ timedelta}, default 'raise'
         Return a new Timestamp ceiled to this resolution.
 
         This method rounds the Timestamp up to the nearest boundary of the
-        given frequency. The result will never be earlier than the original
-        Timestamp.
+        given frequency. Around a DST transition, `ambiguous` and `nonexistent`
+        can place the result earlier than the original Timestamp.
 
         Parameters
         ----------
@@ -3569,9 +3566,10 @@ timedelta}, default 'raise'
         """
         Attach or detach a time zone on a Timestamp.
 
-        This method does not shift the date/time values. It attaches a time
-        zone to a tz-naive Timestamp, or detaches the time zone from a
-        tz-aware Timestamp. In both cases the wall time is preserved.
+        This method attaches a time zone to a tz-naive Timestamp, or detaches the
+        time zone from a tz-aware Timestamp. In both cases the wall time is
+        preserved, except that `nonexistent` can shift it and `ambiguous` or
+        `nonexistent` can produce NaT.
 
         Parameters
         ----------

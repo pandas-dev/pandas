@@ -246,7 +246,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         This property returns a string representation of the frequency
         (e.g., ``'D'`` for daily, ``'h'`` for hourly) when one has been set
-        on the index, either explicitly or via inference.
+        on the index.
 
         See Also
         --------

@@ -2451,14 +2451,14 @@ cdef class _Timedelta(timedelta):
         Convert the underlying int64 representation to the given unit.
 
         Converts the Timedelta to a new resolution specified by ``unit``.
-        If the conversion would require rounding (loss of precision), this
-        is allowed by default. Set ``round_ok=False`` to raise an error instead.
+        A lossy conversion is truncated toward negative infinity by default;
+        set ``round_ok=False`` to raise an error instead.
 
         Parameters
         ----------
         unit : {"ns", "us", "ms", "s"}
         round_ok : bool, default True
-            If False and the conversion requires rounding, raise.
+            If False and the conversion is lossy, raise.
 
         Returns
         -------

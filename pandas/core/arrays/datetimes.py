@@ -969,8 +969,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to attach to the tz-naive timestamps; the wall time is
-            preserved. Passing ``None`` detaches the time zone from a tz-aware
-            Array/Index, returning a tz-naive result with the same wall time.
+            preserved unless `nonexistent` shifts it. Passing ``None`` detaches
+            the time zone from a tz-aware Array/Index, returning a tz-naive
+            result with the same wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -980,7 +981,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2147,7 +2148,9 @@ default 'raise'
         Indicates whether the date is the {first_or_last} day of the month.
 
         This boolean attribute evaluates to True if the date falls on the
-        {first_or_last} day of a calendar month, and False otherwise.
+        {first_or_last} day of a calendar month, and False otherwise. With a
+        business frequency such as ``"B"``, the {first_or_last} business day
+        of the month is flagged instead.
 
         Returns
         -------
@@ -2205,8 +2208,8 @@ default 'raise'
         Indicator for whether the date is the first day of a quarter.
 
         This boolean attribute evaluates to True if the date falls on the
-        first day of a calendar quarter (January 1, April 1, July 1, or
-        October 1), and False otherwise.
+        first day of a calendar quarter, and False otherwise. With a business
+        frequency such as ``"B"``, the first business day is flagged instead.
 
         Returns
         -------
@@ -2251,8 +2254,8 @@ default 'raise'
         Indicator for whether the date is the last day of a quarter.
 
         This boolean attribute evaluates to True if the date falls on the
-        last day of a calendar quarter (March 31, June 30, September 30, or
-        December 31), and False otherwise.
+        last day of a calendar quarter, and False otherwise. With a business
+        frequency such as ``"B"``, the last business day is flagged instead.
 
         Returns
         -------
@@ -2297,7 +2300,8 @@ default 'raise'
         Indicate whether the date is the first day of a year.
 
         This boolean attribute evaluates to True if the date is January 1st,
-        and False otherwise.
+        and False otherwise. With a business frequency such as ``"B"``, the
+        first business day of the year is flagged instead.
 
         Returns
         -------
@@ -2370,7 +2374,8 @@ default 'raise'
         Indicate whether the date is the last day of the year.
 
         This boolean attribute evaluates to True if the date is December 31st,
-        and False otherwise.
+        and False otherwise. With a business frequency such as ``"B"``, the
+        last business day of the year is flagged instead.
 
         Returns
         -------

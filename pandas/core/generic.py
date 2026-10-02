@@ -11382,9 +11382,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         tz : str or tzinfo or None
             Time zone to attach to the index; the wall time of each index
-            label is preserved. Passing ``None`` detaches the time zone from
-            a tz-aware index, returning a tz-naive index with the same wall
-            time.
+            label is preserved unless `nonexistent` shifts it. Passing ``None``
+            detaches the time zone from a tz-aware index, returning a tz-naive
+            index with the same wall time.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to localize
         level : int, str, default None
@@ -11412,7 +11412,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool (or bool-ndarray) where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)

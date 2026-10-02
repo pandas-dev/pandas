@@ -143,7 +143,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order. Requires that the timestamps are monotonically increasing.
+          order. Requires that repeated times appear in chronological order.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -1178,7 +1178,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1270,7 +1270,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1362,7 +1362,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1579,9 +1579,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile, datetime.tzinfo or None
             Time zone to attach to the tz-naive timestamps; the wall time is
-            preserved. Passing ``None`` detaches the time zone from a tz-aware
-            DatetimeIndex, returning a tz-naive DatetimeIndex with the same
-            wall time.
+            preserved unless `nonexistent` shifts it. Passing ``None`` detaches
+            the time zone from a tz-aware DatetimeIndex, returning a tz-naive
+            DatetimeIndex with the same wall time.
         ambiguous : 'infer', 'NaT', bool array, default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
             For example in Central European Time (UTC+01), when going from
@@ -1591,7 +1591,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2065,8 +2065,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
-        Each timestamp in the index is adjusted to the nearest occurrence of
-        the specified frequency, snapping backward or forward as appropriate.
+        Each timestamp is adjusted to the nearest occurrence of a non-fixed
+        frequency such as ``"MS"``; fixed frequencies such as ``"h"`` leave the
+        values unchanged.
 
         Parameters
         ----------
@@ -2562,7 +2563,7 @@ def date_range(
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order. Requires that the timestamps are monotonically increasing.
+          order. Requires that repeated times appear in chronological order.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -2808,9 +2809,8 @@ def bdate_range(
     """
     Return a fixed frequency DatetimeIndex with business day as the default.
 
-    This function generates a DatetimeIndex using business day frequency by
-    default, skipping weekends. Custom business day calendars can be
-    specified via ``weekmask`` and ``holidays``.
+    Custom business day calendars can be specified via ``weekmask`` and
+    ``holidays``, which require a custom frequency string such as ``"C"``.
 
     Parameters
     ----------

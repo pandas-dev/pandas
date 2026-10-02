@@ -798,7 +798,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Each field (year, quarter, month, day, hour, minute, second) can be
         specified as a scalar or list-like. At least one field must be
         list-like; scalar fields are broadcast to its length. The frequency
-        is inferred from the fields provided or can be given explicitly.
+        is inferred as ``Q-DEC`` when ``quarter`` is given; otherwise pass `freq`.
 
         Parameters
         ----------
@@ -858,13 +858,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Construct a PeriodIndex from ordinals.
 
-        Ordinals are integer offsets from the proleptic Gregorian epoch,
-        interpreted according to the given frequency.
+        Ordinals count periods of the frequency's base unit from the Unix epoch
+        1970-01-01.
 
         Parameters
         ----------
         ordinals : array-like of int
-            The period offsets from the proleptic Gregorian epoch.
+            The number of base-unit periods since the Unix epoch 1970-01-01.
         freq : str or period object
             One of pandas period strings or corresponding objects.
         name : str, default None
@@ -971,10 +971,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     @property
     def is_full(self) -> bool:
         """
-        Return True if the index contains all periods from start to end
-        (inclusive) with no gaps.
+        Return True if consecutive periods differ by at most one base-frequency step.
 
-        Requires monotonic increasing order. Duplicate periods are allowed.
+        Duplicate periods are allowed. This is False for any index with a
+        frequency multiple (e.g. ``"2D"``) and more than one distinct period,
+        gapless or not. Raises ValueError if the index is not monotonic
+        increasing, which includes any index containing NaT.
 
         .. deprecated:: 3.1.0
             ``PeriodIndex.is_full`` is deprecated and will be removed in
@@ -1134,20 +1136,18 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         periods : int, default 1
             Number of periods (or increments) to shift by,
             can be positive or negative.
-        freq : pandas.DateOffset, pandas.Timedelta or string, optional
-            Frequency increment to shift by.
-            If None, the index is shifted by its own `freq` attribute.
-            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
+        freq : None
+            Must be None; the index is shifted by its own `freq` attribute.
 
         Returns
         -------
-        pandas.DatetimeIndex
+        PeriodIndex
             Shifted index.
 
         See Also
         --------
         Index.shift : Shift values of Index.
-        PeriodIndex.shift : Shift values of PeriodIndex.
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
         if freq is not None:
             raise TypeError(

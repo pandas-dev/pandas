@@ -2062,7 +2062,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2134,13 +2134,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         When rounding near a daylight savings time transition, use ``ambiguous`` or
         ``nonexistent`` to control how the timestamp should be re-localized.
 
-        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:50:00"], tz="Europe/Amsterdam")
 
-        >>> rng_tz.floor("2h", ambiguous=False)
+        >>> rng_tz.round("h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                       dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
-        >>> rng_tz.floor("2h", ambiguous=True)
+        >>> rng_tz.round("h", ambiguous=True)
         DatetimeIndex(['2021-10-31 02:00:00+02:00'],
                       dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         """
@@ -2169,7 +2169,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2276,7 +2276,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that the timestamps are monotonically increasing.
+              order. Requires that repeated times appear in chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
