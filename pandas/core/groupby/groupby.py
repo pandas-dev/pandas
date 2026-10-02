@@ -913,10 +913,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         from pandas.core.reshape.concat import concat
 
+        # GH#12824 apply may return None for a group to drop it
+        mask = np.array([value is not None for value in values], dtype=bool)
+        if not mask.all():
+            values = [value for value in values if value is not None]
+
         if self.group_keys and not is_transform:
             if self.as_index:
                 # possible MI return case
                 group_keys = self._grouper.result_index
+                if not mask.all():
+                    group_keys = group_keys[mask]
                 group_levels = self._grouper.levels
                 group_names = self._grouper.names
 
