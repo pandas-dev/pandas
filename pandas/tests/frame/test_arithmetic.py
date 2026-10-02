@@ -2482,3 +2482,55 @@ def test_frame_with_period_series():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other, expected_1, expected_2",
+    [
+        (
+            3,
+            pd.DataFrame([[False, False, True], [False, False, False]]),
+            pd.DataFrame([[False, False, pd.NA], [pd.NA, True, False]]),
+        ),
+        (
+            pd.DataFrame([[1, 2, 3], [3, 2, 1]]),
+            pd.DataFrame([[True, True, True], [False, False, False]]),
+            pd.DataFrame([[True, True, pd.NA], [pd.NA, False, False]]),
+        ),
+        (
+            pd.DataFrame([[None, False, True], [np.nan, pd.NaT, pd.NA]]),
+            pd.DataFrame([[False, False, False], [False, False, pd.NA]]).astype(
+                {0: bool, 1: object}
+            ),
+            pd.DataFrame([[False, False, pd.NA], [pd.NA, False, pd.NA]]),
+        ),
+    ],
+)
+def test_dataframe_comparison_preserve_na(other, expected_1, expected_2):
+    # GH#63328
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+    res = df == other
+    tm.assert_frame_equal(res, expected_1)
+
+    df2 = pd.DataFrame([[1, 2, pd.NA], [pd.NA, 3, 2]])
+    res2 = df2 == other
+    tm.assert_frame_equal(res2, expected_2)
+
+
+@pytest.mark.parametrize(
+    "arraylike",
+    [pd.Series, pd.Index, pd.array, np.array, pd.arrays.SparseArray],
+)
+def test_dataframe_comparison_with_arraylike_preserve_na(arraylike):
+    # GH#63328
+    df = pd.DataFrame([[0, 1, 2], [pd.NA, pd.NA, pd.NA]])
+    expected = pd.DataFrame([[pd.NA, True, False], [pd.NA, pd.NA, pd.NA]])
+    if arraylike is pd.arrays.SparseArray:
+        other = arraylike([pd.NA, 1, 1], fill_value=0)
+        expected = expected.astype(pd.SparseDtype(object, True))
+    else:
+        other = arraylike([pd.NA, 1, 1])
+        if arraylike is pd.array:
+            expected = expected.astype("boolean")
+    result = df.eq(other, axis=1)
+    tm.assert_frame_equal(result, expected)
