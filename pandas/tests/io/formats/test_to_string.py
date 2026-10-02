@@ -610,6 +610,32 @@ class TestDataFrameToString:
 
         assert df.to_string() == df_cat_cols.to_string()
 
+    @pytest.mark.parametrize("dtype", ["int64", "Int64", "float64", "object"])
+    def test_to_string_numeric_columns_alignment(self, dtype):
+        # GH#8300 labels of differing widths should not be padded
+        data = [[0, 1], [2, 3]]
+        columns = pd.Index([0, 10], dtype=dtype)
+        if dtype == "float64":
+            str_columns = ["0.0", "10.0"]
+        else:
+            str_columns = ["0", "10"]
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        assert df.to_string() == expected.to_string()
+
+    @pytest.mark.parametrize("sparsify", [True, False])
+    def test_to_string_numeric_multiindex_columns_alignment(self, sparsify):
+        # GH#8300
+        data = [[1, 2]]
+        columns = pd.MultiIndex.from_arrays([[0, 0], [0, 100]])
+        str_columns = pd.MultiIndex.from_arrays([["0", "0"], ["0", "100"]])
+        df = pd.DataFrame(data, columns=columns)
+        expected = pd.DataFrame(data, columns=str_columns)
+
+        result = df.to_string(sparsify=sparsify)
+        assert result == expected.to_string(sparsify=sparsify)
+
     def test_repr_embedded_ndarray(self):
         arr = np.empty(10, dtype=[("err", object)])
         for i in range(len(arr)):
@@ -700,35 +726,35 @@ class TestDataFrameToString:
             (
                 10,
                 None,
-                " 0   1   2   3   4   ...  6   7   8   9   10\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0",
+                " 0  1  2  3  4  ...  6  7  8  9  10\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0",
             ),
             (
                 None,
                 2,
-                " 0   1   2   3   4   5   6   7   8   9   10\n"
-                "  0   0   0   0   0   0   0   0   0   0   0\n"
-                " ..  ..  ..  ..  ..  ..  ..  ..  ..  ..  ..\n"
-                "  0   0   0   0   0   0   0   0   0   0   0",
+                " 0  1  2  3  4  5  6  7  8  9  10\n"
+                " 0  0  0  0  0  0  0  0  0  0   0\n"
+                ".. .. .. .. .. .. .. .. .. ..  ..\n"
+                " 0  0  0  0  0  0  0  0  0  0   0",
             ),
             (
                 10,
                 2,
-                " 0   1   2   3   4   ...  6   7   8   9   10\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0\n"
-                " ..  ..  ..  ..  ..  ...  ..  ..  ..  ..  ..\n"
-                "  0   0   0   0   0  ...   0   0   0   0   0",
+                " 0  1  2  3  4  ...  6  7  8  9  10\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0\n"
+                ".. .. .. .. ..  ... .. .. .. ..  ..\n"
+                " 0  0  0  0  0  ...  0  0  0  0   0",
             ),
             (
                 9,
                 2,
-                " 0   1   2   3   ...  7   8   9   10\n"
-                "  0   0   0   0  ...   0   0   0   0\n"
-                " ..  ..  ..  ..  ...  ..  ..  ..  ..\n"
-                "  0   0   0   0  ...   0   0   0   0",
+                " 0  1  2  3  ...  7  8  9  10\n"
+                " 0  0  0  0  ...  0  0  0   0\n"
+                ".. .. .. ..  ... .. .. ..  ..\n"
+                " 0  0  0  0  ...  0  0  0   0",
             ),
             (
                 1,
