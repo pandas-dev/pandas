@@ -1112,7 +1112,13 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
 
   case JT_UTF8: {
     value = enc->getStringValue(obj, &tc, &szlen);
-    if (enc->errorMsg) {
+    if (enc->errorMsg || value == NULL) {
+      if (!enc->errorMsg) {
+        /* Defensive fallback: a getStringValue callback returned NULL
+           without setting errorMsg. Report a generic failure instead
+           of dereferencing NULL below. */
+        SetError(obj, enc, "Encoding failed.");
+      }
       enc->endTypeContext(obj, &tc);
       return;
     }
