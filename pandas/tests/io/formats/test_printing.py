@@ -40,7 +40,7 @@ def test_adjoin():
     assert adjoined == expected
 
 
-class MyMapping(Mapping):
+class MyMapping(Mapping[str, int]):
     def __getitem__(self, key):
         return 4
 
@@ -92,6 +92,11 @@ class TestPPrintThing:
     def test_repr_seq_float_precision(self):
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
+
+    def test_repr_seq_complex_precision(self):
+        # GH#25920
+        with cf.option_context("display.precision", 3):
+            assert printing.pprint_thing([3.14159265 + 1j]) == "[(3.142+1.0j)]"
 
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()

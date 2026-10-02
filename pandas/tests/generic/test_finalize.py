@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import time
 import operator
 import re
+from typing import Any
 
 import numpy as np
 import pytest
@@ -793,7 +794,7 @@ def test_merge_does_not_propagate_metadata_from_unequal_input_metadata():
 def test_merge_does_not_propagate_metadata_if_one_input_has_no_metadata(
     left_has_metadata: bool,
     right_has_metadata: bool,
-    expected: dict,
+    expected: dict[str, Any],
 ):
     left = pd.DataFrame({"test": [1]})
     right = pd.DataFrame({"test": [1]})

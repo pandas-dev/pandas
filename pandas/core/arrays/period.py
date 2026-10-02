@@ -202,7 +202,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "minute",
         "second",
         "weekofyear",
-        "weekday",
         "week",
         "day_of_week",
         "day_of_year",
@@ -210,11 +209,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "qyear",
         "days_in_month",
     ]
-    # GH#46768 - deprecated but still need to be accessible via .dt accessor
-    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
-    _datetimelike_ops: list[str] = (
-        _field_ops + _object_ops + _bool_ops + _deprecated_ops
-    )
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype
@@ -693,13 +688,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_week` instead.
+            Use :attr:`PeriodArray.day_of_week` instead.
         """
         # GH#12816
         warnings.warn(
-            f"{type(self).__name__}.weekday is deprecated and will be removed "
-            "in a future version. Use PeriodIndex.day_of_week or "
-            "Series.dt.day_of_week instead.",
+            "PeriodArray.weekday is deprecated and will be removed "
+            "in a future version. Use PeriodArray.day_of_week instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -711,11 +705,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_week` instead.
+            Use :attr:`PeriodArray.day_of_week` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.dayofweek is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_week instead.",
@@ -763,11 +754,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The ordinal day of the year.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_year` instead.
+            Use :attr:`PeriodArray.day_of_year` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.dayofyear is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_year instead.",
@@ -885,11 +873,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The number of days in the month.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.days_in_month` instead.
+            Use :attr:`PeriodArray.days_in_month` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use PeriodArray.days_in_month instead.",
