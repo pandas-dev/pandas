@@ -407,3 +407,17 @@ class TestExtensionTake:
         assert algos.take(arr, [2]) == 2
         arr = pd.array([1, 2, 3])  # Int64Dtype() (ExtensionArray)
         assert algos.take(arr, [2]) == 2
+
+
+def test_take_nd_non_native_byteorder():
+    # GH#53234
+    arr = np.arange(6, dtype=">i8").reshape(3, 2)
+
+    result = algos.take_nd(arr, np.array([2, 0], dtype=np.intp), axis=0)
+    tm.assert_numpy_array_equal(result, arr[[2, 0]])
+
+    result = algos.take_nd(arr, np.array([1], dtype=np.intp), axis=1)
+    tm.assert_numpy_array_equal(result, arr[:, [1]])
+
+    result = algos.take_nd(arr[:, 0], np.array([1, -1], dtype=np.intp))
+    tm.assert_numpy_array_equal(result, np.array([2.0, np.nan]))
