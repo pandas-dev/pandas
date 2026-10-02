@@ -39,15 +39,40 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_320.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_320.notable_bug_fixes.dataframe_rank_per_column:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:meth:`DataFrame.rank` ranks each column in its own dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_320.notable_bug_fixes.notable_bug_fix2:
+:meth:`DataFrame.rank` with ``axis=0`` cast the whole frame to one common dtype
+before ranking, so its result could differ from :meth:`Series.rank` on the same
+column. Each column is now ranked on its own and the two agree. Besides
+retaining extension dtypes, this changes the ranks themselves for an ordered
+:class:`Categorical` whose categories are not in the natural order of their
+values, and for integers above ``2**53`` in a frame whose common dtype was
+``float64`` (:issue:`52829`, :issue:`15420`).
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+.. code-block:: ipython
+
+    In [1]: cat = pd.Categorical(
+       ...:     ["b", "a", "c", "a"], categories=["c", "b", "a"], ordered=True
+       ...: )
+
+    In [2]: df = pd.DataFrame({"a": cat})
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.rank()["a"].tolist()
+    Out[3]: [3.0, 1.5, 4.0, 1.5]
+
+*New behavior*:
+
+.. code-block:: ipython
+
+    In [3]: df.rank()["a"].tolist()
+    Out[3]: [2.0, 3.5, 1.0, 3.5]
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.api_breaking:
@@ -209,8 +234,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
--
+- Bug in :meth:`Series.rank` raising ``ArrowNotImplementedError`` for an :class:`ArrowDtype` that PyArrow cannot rank, such as ``list[pyarrow]``; the values are now ranked as Python objects, so lists rank lexicographically (:issue:`69136`)
 
 Styler
 ^^^^^^
