@@ -1224,8 +1224,8 @@ def nanstd(
     Returns
     -------
     result : float
-        Unless input is a float32 or float64 array, in which case use the
-        same precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1277,8 +1277,8 @@ def nanvar(
     Returns
     -------
     result : float
-        Unless input is a float32 or float64 array, in which case use the
-        same precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1334,7 +1334,7 @@ def nanvar(
         "np.ndarray | np.float64", sqr.sum(axis=axis, dtype=np.float64) / d
     )
 
-    # Return float64 (the accumulator dtype), keeping float32 input's precision
+    # Return float64 (the accumulator dtype) unless input is a non-float16 float
     if keep_dtype:
         result = result.astype(dtype, copy=False)
     return result
@@ -1367,8 +1367,8 @@ def nansem(
     Returns
     -------
     result : float64
-        Unless input is a float32 or float64 array, in which case use the
-        same precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
