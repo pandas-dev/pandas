@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import pickle
 import re
+import sqlite3
 import tempfile
 
 import numpy as np
@@ -752,3 +753,41 @@ def test_read_directory_not_reported_as_missing(reader, module, fn_ext, tmp_path
     # the strerror text is locale-dependent, so only the path is matched
     with pytest.raises(IsADirectoryError, match=re.escape(str(path))):
         reader(path)
+
+
+@pytest.mark.parametrize(
+    "writer, module",
+    [
+        ("to_hdf", "tables"),
+        ("to_json", "os"),
+        ("to_sql", "os"),
+        ("to_stata", "os"),
+        ("to_xml", "os"),
+    ],
+)
+@pytest.mark.parametrize("multi", [True, False])
+def test_write_object_index_no_reset_index_warning(writer, module, multi, tmp_path):
+    # GH#30517 writers keep inferring object index dtypes without the
+    # reset_index deprecation warning
+    pytest.importorskip(module)
+    index = pd.Index([1, 2], dtype=object, name="k")
+    if multi:
+        index = pd.MultiIndex.from_arrays(
+            [index, pd.Index(["a", "b"], dtype=object)], names=["k", "s"]
+        )
+    df = pd.DataFrame({"v": [1.0, 2.0]}, index=index)
+    path = tmp_path / "out"
+
+    with tm.assert_produces_warning(None):
+        if writer == "to_hdf":
+            df.to_hdf(path, key="df", format="table")
+        elif writer == "to_json":
+            df.to_json(orient="table")
+        elif writer == "to_sql":
+            conn = sqlite3.connect(":memory:")
+            df.to_sql("df", conn)
+            conn.close()
+        elif writer == "to_stata":
+            df.to_stata(path)
+        else:
+            df.to_xml(parser="etree")

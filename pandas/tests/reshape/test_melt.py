@@ -1358,3 +1358,29 @@ def test_wide_to_long_no_values_deprecation():
     )
     with tm.assert_produces_warning(None):
         pd.wide_to_long(df, ["A"], i=["id1", "id2"], j="n")
+
+
+def test_wide_to_long_object_id_columns_no_warning():
+    # GH#30517 wide_to_long must not emit the reset_index inference deprecation
+    df = pd.DataFrame(
+        {
+            "id1": pd.Series([0, 1], dtype=object),
+            "id2": pd.Series([5, 6], dtype=object),
+            "A1970": [1.0, 2.0],
+            "A1980": [3.0, 4.0],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        result = pd.wide_to_long(df, ["A"], i=["id1", "id2"], j="year")
+    expected = pd.DataFrame(
+        {"A": [1.0, 3.0, 2.0, 4.0]},
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Index([0, 0, 1, 1], dtype=object),
+                pd.Index([5, 5, 6, 6], dtype=object),
+                [1970, 1980, 1970, 1980],
+            ],
+            names=["id1", "id2", "year"],
+        ),
+    )
+    tm.assert_frame_equal(result, expected)

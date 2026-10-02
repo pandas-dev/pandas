@@ -1084,6 +1084,8 @@ class SQLTable(PandasObject):
         if self.index is not None:
             temp = self.frame.copy(deep=False)
             temp.index.names = self.index
+            # GH#30517 keep inferring dtypes for object index levels
+            temp.index = temp.index.infer_objects(copy=False)
             try:
                 temp = temp.reset_index()
             except ValueError as err:

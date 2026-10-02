@@ -8218,6 +8218,7 @@ class DataFrame(NDFrame, OpsMixin):
                 to_insert = ((self.index, None),)
 
             multi_col = isinstance(self.columns, MultiIndex)
+            inferred: list[Hashable] = []
             for j, (lev, lab) in enumerate(to_insert, start=1):
                 i = self.index.nlevels - j
                 if level is not None and i not in level:
@@ -8255,6 +8256,27 @@ class DataFrame(NDFrame, OpsMixin):
                     name,
                     level_values,
                     allow_duplicates=allow_duplicates,
+                )
+                if lev.dtype == np.object_:
+                    new_dtype = new_obj._get_column_array(0).dtype
+                    # skip levels infer_objects keeps object (all-NaT), since
+                    # the warning's advice could not silence it
+                    if (
+                        new_dtype != np.object_
+                        and lev.infer_objects().dtype != np.object_
+                    ):
+                        inferred.append(name)
+
+            if inferred:
+                # GH#30517
+                warnings.warn(
+                    "reset_index is inferring a new dtype for the object-dtype "
+                    f"index level(s) {inferred[::-1]}. In a future version, the "
+                    "object dtype will be retained. To keep the current behavior "
+                    "and silence this warning, call `infer_objects` on the index "
+                    "before reset_index.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
                 )
 
         new_obj.index = new_index

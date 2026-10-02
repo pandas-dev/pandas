@@ -5,9 +5,39 @@ import pandas as pd
 import pandas._testing as tm
 
 
-def test_infer_objects(idx):
-    with pytest.raises(NotImplementedError, match="to_frame"):
-        idx.infer_objects()
+def test_infer_objects():
+    # GH#30517 each object-dtype level is inferred separately
+    mi = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2], dtype=object), pd.Index(["a", 1], dtype=object)],
+        names=["x", "y"],
+    )
+    result = mi.infer_objects()
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([1, 2]), pd.Index(["a", 1], dtype=object)], names=["x", "y"]
+    )
+    tm.assert_index_equal(result, expected, exact=True)
+    assert result.levels[0].dtype == np.int64
+
+
+def test_infer_objects_level_values_collide():
+    # GH#30517 2**53 + 1 is inferred as float(2**53), duplicating 2**53
+    lev = pd.Index([2**53, 2**53 + 1, 0.5, None], dtype=object)
+    mi = pd.MultiIndex.from_arrays([lev, ["a", "b", "c", "d"]])
+    result = mi.infer_objects()
+    expected = pd.MultiIndex.from_arrays(
+        [pd.Index([2.0**53, 2.0**53, 0.5, np.nan]), ["a", "b", "c", "d"]]
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_index_equal(result.levels[0], pd.Index([0.5, 2.0**53]))
+    assert result.get_loc((2.0**53, "b")) == 1
+
+
+def test_infer_objects_no_object_levels():
+    idx = pd.MultiIndex.from_arrays([[1, 2, 3], pd.date_range("2020", periods=3)])
+    result = idx.infer_objects()
+    tm.assert_index_equal(result, idx)
+    assert result is not idx
+    assert idx.infer_objects(copy=False) is idx
 
 
 def test_shift(idx):

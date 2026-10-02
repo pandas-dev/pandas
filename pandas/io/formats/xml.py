@@ -221,7 +221,8 @@ class _BaseXMLFormatter:
         df = self.frame
 
         if self.index:
-            df = df.reset_index()
+            # GH#30517 keep inferring dtypes for object index levels
+            df = df.set_axis(df.index.infer_objects(copy=False)).reset_index()
 
         if self.na_rep is not None:
             with warnings.catch_warnings():

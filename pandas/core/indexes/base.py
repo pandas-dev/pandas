@@ -7634,6 +7634,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         For an Index with ``object`` dtype, this attempts to determine a
         more specific dtype (e.g., ``int64`` or ``float64``) from the values.
+        For a MultiIndex, each level is inferred separately.
 
         Parameters
         ----------
@@ -7658,9 +7659,24 @@ class Index(IndexOpsMixin, PandasObject):
         Index([1, 2], dtype='int64')
         """
         if self._is_multi:
-            raise NotImplementedError(
-                "infer_objects is not implemented for MultiIndex. "
-                "Use index.to_frame().infer_objects() instead."
+            mi = cast("MultiIndex", self)
+            if not any(lev.dtype == object for lev in mi.levels):
+                return mi.copy() if copy else mi
+            new_levels = []
+            new_codes = []
+            for lev, level_codes in zip(mi.levels, mi.codes, strict=True):
+                new_lev = lev.infer_objects(copy=False)
+                if not new_lev.is_unique:
+                    # inferred values can collide, e.g. 2**53 + 1 -> float(2**53)
+                    uniq_codes, new_lev = new_lev.factorize()
+                    level_codes = algos.take_nd(uniq_codes, level_codes, fill_value=-1)
+                new_levels.append(new_lev)
+                new_codes.append(level_codes)
+            return type(mi)(
+                levels=new_levels,
+                codes=new_codes,
+                names=mi.names,
+                verify_integrity=False,
             )
         if self.dtype != object:
             return self.copy() if copy else self

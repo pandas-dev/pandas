@@ -4354,6 +4354,8 @@ class Table(Fixed):
                 "cannot store a MultiIndex with a level named 'index' as a "
                 "table; 'index' is reserved for the implicit row index"
             )
+        # GH#30517 keep inferring dtypes for object index levels
+        obj = obj.set_axis(obj.index.infer_objects(copy=False))
         try:
             reset_obj = obj.reset_index()
         except ValueError as err:

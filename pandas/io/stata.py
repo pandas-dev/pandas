@@ -2806,6 +2806,8 @@ class StataWriter(StataParser):
         data = data.copy()
 
         if self._write_index:
+            # GH#30517 keep inferring dtypes for object index levels
+            data.index = data.index.infer_objects(copy=False)
             temp = data.reset_index()
             if isinstance(temp, DataFrame):
                 data = temp

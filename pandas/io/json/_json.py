@@ -454,6 +454,8 @@ class JSONTableWriter(FrameWriter):
                 if not copied:
                     obj = obj.copy(deep=False)
                 obj.index = obj.index.to_timestamp()
+            # GH#30517 keep inferring dtypes for object index levels
+            obj = obj.set_axis(obj.index.infer_objects(copy=False))
             self.obj = obj.reset_index(drop=False)
         self.date_format = "iso"
         self.orient = "records"
