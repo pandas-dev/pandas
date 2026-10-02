@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
 import pytest
@@ -273,7 +274,7 @@ class TestMultiIndexConcat:
         ],
     )
     def test_concat_with_various_multiindex_dtypes(
-        self, mi1_list: list, mi2_list: list
+        self, mi1_list: list[Any], mi2_list: list[Any]
     ):
         # GitHub #23478
         mi1 = pd.MultiIndex.from_product(mi1_list)

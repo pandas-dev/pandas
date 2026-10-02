@@ -52,7 +52,10 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import RelativeDeltaOffset
 from pandas.compat.pyarrow import HAS_PYARROW
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -245,7 +248,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "hour",
         "minute",
         "second",
-        "weekday",
         "day_of_week",
         "day_of_year",
         "quarter",
@@ -254,11 +256,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "nanosecond",
     ]
     _other_ops: list[str] = ["date", "time", "timetz"]
-    # GH#46768 - deprecated but still need to be accessible via .dt accessor
-    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
-    _datetimelike_ops: list[str] = (
-        _field_ops + _bool_ops + _other_ops + _deprecated_ops + ["unit", "tz"]
-    )
+    _datetimelike_ops: list[str] = _field_ops + _bool_ops + _other_ops + ["unit", "tz"]
     _datetimelike_methods: list[str] = [
         "to_period",
         "tz_localize",
@@ -1949,14 +1947,12 @@ default 'raise'
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.day_of_week` instead.
+            Use :attr:`DatetimeArray.day_of_week` instead.
         """
         # GH#12816
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
-            f"{type(self).__name__}.weekday is deprecated and will be removed "
-            "in a future version. Use DatetimeIndex.day_of_week or "
+            "DatetimeArray.weekday is deprecated and will be removed "
+            "in a future version. Use DatetimeArray.day_of_week or "
             "Series.dt.day_of_week instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
@@ -1969,10 +1965,8 @@ default 'raise'
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.day_of_week` instead.
+            Use :attr:`DatetimeArray.day_of_week` instead.
         """
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
             "DatetimeArray.dayofweek is deprecated and will be removed in a "
             "future version. Use DatetimeArray.day_of_week instead.",
@@ -2025,10 +2019,8 @@ default 'raise'
         The ordinal day of the year.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.day_of_year` instead.
+            Use :attr:`DatetimeArray.day_of_year` instead.
         """
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
             "DatetimeArray.dayofyear is deprecated and will be removed in a "
             "future version. Use DatetimeArray.day_of_year instead.",
@@ -2117,10 +2109,8 @@ default 'raise'
         The number of days in the month.
 
         .. deprecated:: 3.1.0
-            Use :attr:`DatetimeIndex.days_in_month` instead.
+            Use :attr:`DatetimeArray.days_in_month` instead.
         """
-        from pandas.errors import Pandas4Warning
-
         warnings.warn(
             "DatetimeArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use DatetimeArray.days_in_month instead.",
