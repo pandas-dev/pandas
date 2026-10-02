@@ -365,6 +365,19 @@ def test_join_overlap(float_frame):
     tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
 
 
+@pytest.mark.parametrize("on", ["a", ["a"]])
+def test_join_on_overlapping_column_hint(on):
+    # GH#13799
+    df1 = pd.DataFrame({"a": [1, 2], "b": [11, 22]})
+    df2 = pd.DataFrame({"a": [1, 2], "c": ["aa", "bb"]})
+    msg = (
+        r"columns overlap but no suffix specified: .*\. Note that 'on' matches "
+        r"\['a'\] against the index of 'other', not its columns"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df1.join(df2, on=on)
+
+
 def test_join_period_index():
     frame_with_period_index = pd.DataFrame(
         data=np.arange(20).reshape(4, 5),
