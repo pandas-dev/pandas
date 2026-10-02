@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 
 import codecs
+import contextlib
 import errno
 from functools import partial
 from io import (
@@ -15,6 +16,7 @@ import os
 from pathlib import Path
 import pickle
 import re
+import sqlite3
 import tempfile
 
 import numpy as np
@@ -30,6 +32,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io import sql
 import pandas.io.common as icom
 
 
@@ -752,3 +755,20 @@ def test_read_directory_not_reported_as_missing(reader, module, fn_ext, tmp_path
     # the strerror text is locale-dependent, so only the path is matched
     with pytest.raises(IsADirectoryError, match=re.escape(str(path))):
         reader(path)
+
+
+@td.skip_if_installed("sqlalchemy")
+def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
+    class MockSqliteConnection:
+        def __init__(self, *args, **kwargs) -> None:
+            self.conn = sqlite3.Connection(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.conn, name)
+
+        def close(self):
+            self.conn.close()
+
+    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
+            sql.read_sql("SELECT 1", conn)

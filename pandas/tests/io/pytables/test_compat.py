@@ -81,12 +81,21 @@ class TestReadPyTablesHDF5:
 _legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
 
 
-@pytest.mark.parametrize("legacy_file", _legacy_files, ids=lambda x: x.name)
-def test_legacy_files(datapath, legacy_file, using_infer_string, request):
+if not _legacy_files:
+    # GH#64604 the data files are not installed, e.g. with a wheel install
+    _legacy_files = [
+        pytest.param(
+            None, marks=pytest.mark.skip(reason="legacy hdf files not installed")
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "legacy_file", _legacy_files, ids=lambda x: getattr(x, "name", "missing")
+)
+def test_legacy_files(legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
-    legacy_file = datapath(
-        "io", "data", "legacy_hdf", legacy_file.parent.name, legacy_file.name
-    )
+    legacy_file = str(legacy_file)
 
     result = pd.read_hdf(legacy_file)
 
