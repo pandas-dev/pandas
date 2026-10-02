@@ -243,14 +243,24 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
                 f"got {type(values).__name__}."
             )
 
+        if isinstance(values, tuple):
+            values = list(values)
         inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "mixed-integer"]:
-            # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
-            if isinstance(values, tuple):
-                values = list(values)
+        if inferred in ["mixed", "string", "mixed-integer", "bytes"]:
+            # np.asarray would stringify mixed values (e.g. ["ss", 42] GH#22160)
+            # and strip trailing NULs from str/bytes
             values = construct_1d_object_array_from_listlike(values)
         else:
-            values = np.asarray(values)
+            arr = np.asarray(values)
+            if (
+                arr.dtype.kind == "f"
+                and inferred != "floating"
+                and (np.abs(arr[np.isfinite(arr)]) >= _FLOAT64_INT_EXACT_MAX).any()
+            ):
+                # ints were cast to float64, which is inexact above 2**53
+                values = construct_1d_object_array_from_listlike(values)
+            else:
+                values = arr
     return values
 
 
@@ -636,12 +646,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
                     values_arr = cast("np.ndarray", values)
                     needs_object = _may_lose_precision_as_float64(values_arr)
                 else:
-                    # float/complex values_dtype means _ensure_arraylike may
-                    # already have rounded large ints in a mixed int/float
-                    # list, so exactness cannot be checked from the array;
-                    # recover it from orig_values via the object cast. Smaller
-                    # ints/bools cast to float64 exactly.
-                    needs_object = values_dtype.kind in "fc"
+                    # comps is not a 64-bit int and _ensure_arraylike kept any
+                    # ints float64 cannot hold as objects, so the cast is exact
+                    needs_object = False
             if needs_object:
                 values = construct_1d_object_array_from_listlike(orig_values)
 

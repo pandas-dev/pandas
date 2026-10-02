@@ -326,3 +326,32 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     result = ser.isin(values)
     expected = ser.isin(list(values))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "float64"])
+@pytest.mark.parametrize("values", [[2**53 + 1, 1.5], [2**53 + 1, np.nan]])
+def test_isin_mixed_int_float_list_no_precision_loss(dtype, values):
+    # GH#70217: 2**53 + 1 must not be rounded to 2**53 by a float64 cast
+    ser = pd.Series([2**53], dtype=dtype)
+    result = ser.isin(values)
+    expected = pd.Series([False], dtype="boolean" if dtype == "Int64" else bool)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values", [[2**62 + 1, 2**63], [np.int64(-1), np.uint64(2**62 + 1)]]
+)
+def test_isin_int_list_cast_to_float_no_precision_loss(values):
+    # GH#70217: numpy casts these int lists to float64, which is inexact
+    ser = pd.Series([2**62, 2**62 + 1], dtype="int64")
+    result = ser.isin(values)
+    expected = pd.Series([False, True])
+    tm.assert_series_equal(result, expected)
+
+
+def test_isin_bytes_list_trailing_nul():
+    # GH#70217: a numpy bytes array would strip the trailing NUL
+    ser = pd.Series([b"a", b"a\x00"], dtype=object)
+    result = ser.isin([b"a\x00"])
+    expected = pd.Series([False, True])
+    tm.assert_series_equal(result, expected)

@@ -1241,9 +1241,8 @@ class TestIsin:
 
     @pytest.mark.parametrize("dtype", ["float32", "complex128"])
     def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
-        # GH#46485: a mixed int/float targets list is cast to float64 by
-        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
-        # can see it; we must still object-cast and compare exactly.
+        # GH#46485: 2**53 + 1 in a mixed int/float targets list must not be
+        # rounded to 2**53 by a float64 cast.
         ser = pd.Series([2**53], dtype="int64").astype(dtype)
         result = ser.isin([2**53 + 1, 1.5])
         expected = pd.Series([False])
