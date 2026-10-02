@@ -827,7 +827,8 @@ def test_groupby_apply_none_first(in_data, out_idx, out_data):
 def test_seriesgroupby_apply_none_later_group():
     # GH#57846 dropping None results must not emit concat's deprecation warning
     ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
-    result = ser.groupby([1, 1, 2, 2]).apply(lambda x: None if x.iloc[0] == 3 else x)
+    keys = np.array([1, 1, 2, 2], dtype=np.int64)
+    result = ser.groupby(keys).apply(lambda x: None if x.iloc[0] == 3 else x)
     expected = pd.Series([1, 2], index=pd.MultiIndex.from_arrays([[1, 1], ["a", "b"]]))
     tm.assert_series_equal(result, expected)
 
