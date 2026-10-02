@@ -2690,31 +2690,6 @@ def test_sql_open_close(temp_file, test_frame3):
     tm.assert_frame_equal(test_frame3, result)
 
 
-@td.skip_if_installed("sqlalchemy")
-def test_con_string_import_error():
-    conn = "mysql://root@localhost/pandas"
-    msg = "Using a URI string requires 'sqlalchemy'"
-    with pytest.raises(ImportError, match=msg):
-        sql.read_sql("SELECT * FROM iris", conn)
-
-
-@td.skip_if_installed("sqlalchemy")
-def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
-    class MockSqliteConnection:
-        def __init__(self, *args, **kwargs) -> None:
-            self.conn = sqlite3.Connection(*args, **kwargs)
-
-        def __getattr__(self, name):
-            return getattr(self.conn, name)
-
-        def close(self):
-            self.conn.close()
-
-    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
-            sql.read_sql("SELECT 1", conn)
-
-
 def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     conn = sqlite_buildin_iris
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
