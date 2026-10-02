@@ -139,7 +139,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in adding a large :class:`Timedelta` to a :class:`DatetimeIndex`, :class:`Series`, or :class:`arrays.DatetimeArray` with a non-UTC, non-fixed-offset timezone (e.g. ``"Europe/Brussels"``) raising when the result fell outside the range of Python's standard library ``datetime`` (year > 9999); the offset is now extrapolated from the DST transition matching the result's calendar date instead, matching the behavior of tz-naive and UTC/fixed-offset data (:issue:`68009`)
 -
 
 Numeric

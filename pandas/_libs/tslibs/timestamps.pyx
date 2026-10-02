@@ -1632,7 +1632,14 @@ cdef class _Timestamp(ABCTimestamp):
         '2020-03-14T15:32:52.192548'
         """
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
-        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        try:
+            base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
+        except NotImplementedError:
+            # GH#68009 a non-fixed tzinfo needs the true year to resolve via
+            #  stdlib, unsupported outside its range; substitute an in-range
+            #  year but pin self's own utcoffset() as a fixed-offset tzinfo.
+            year2000 = self.replace(year=2000, tzinfo=dt.timezone(self.utcoffset()))
+            base = super(_Timestamp, year2000).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
         year_str = f"{self._year:04d}"
         base = year_str + "-" + base.split("-", 1)[1]
@@ -1667,8 +1674,9 @@ cdef class _Timestamp(ABCTimestamp):
         if self.tzinfo is not None:
             try:
                 stamp += self.strftime("%z")
-            except ValueError:
-                year2000 = self.replace(year=2000)
+            except (ValueError, NotImplementedError):
+                # GH#68009 same fallback as isoformat() above.
+                year2000 = self.replace(year=2000, tzinfo=dt.timezone(self.utcoffset()))
                 stamp += year2000.strftime("%z")
 
             zone = get_timezone(self.tzinfo)
@@ -2711,7 +2719,29 @@ class Timestamp(_Timestamp):
         >>> ts.utcoffset()
         datetime.timedelta(seconds=3600)
         """
-        return super().utcoffset()
+        cdef:
+            npy_datetimestruct dts
+            int64_t wall_val
+
+        try:
+            return super().utcoffset()
+        except NotImplementedError:
+            # GH#68009 a non-fixed tzinfo needs the true year, unsupported
+            #  outside stdlib range; derive the offset directly from self's
+            #  own wall-clock fields and UTC value instead of substituting
+            #  an unrelated year's DST rule.
+            pandas_datetime_to_datetimestruct(self._value, self._creso, &dts)
+            dts.year = self._year
+            dts.month = self.month
+            dts.day = self.day
+            dts.hour = self.hour
+            dts.min = self.minute
+            dts.sec = self.second
+            dts.us = self.microsecond
+            wall_val = npy_datetimestruct_to_datetime(self._creso, &dts)
+            return Timedelta._from_value_and_reso(
+                wall_val - self._value, self._creso
+            ).to_pytimedelta()
 
     def utctimetuple(self):
         """
