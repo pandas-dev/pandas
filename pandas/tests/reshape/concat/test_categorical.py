@@ -763,7 +763,7 @@ def test_union_categories_numpy_and_python_scalars(np_scalar, py_scalar):
 
 xfail_np_datetimelike_hash = pytest.mark.xfail(
     not np_version_gt2_2,
-    reason="np.datetime64/np.timedelta64 hash like Timestamp/Timedelta from numpy 2.2",
+    reason="np.timedelta64 hashes like Timedelta from numpy 2.2",
 )
 
 
@@ -771,11 +771,7 @@ xfail_np_datetimelike_hash = pytest.mark.xfail(
     "other_scalar, pd_scalar",
     [
         (datetime(2020, 1, 1), pd.Timestamp("2020-01-01")),
-        pytest.param(
-            np.datetime64("2020-01-01"),
-            pd.Timestamp("2020-01-01"),
-            marks=xfail_np_datetimelike_hash,
-        ),
+        (np.datetime64("2020-01-01"), pd.Timestamp("2020-01-01")),
         (timedelta(days=1), pd.Timedelta(days=1)),
         pytest.param(
             np.timedelta64(1, "D"),
