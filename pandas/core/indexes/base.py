@@ -185,6 +185,7 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterable,
+        Mapping,
         Sequence,
     )
 
@@ -283,7 +284,7 @@ def _maybe_return_indexers(meth: F) -> F:
     return cast("F", join)
 
 
-def _new_Index(cls: type[Index], d: dict) -> Index:
+def _new_Index(cls: type[Index], d: dict[str, Any]) -> Index:
     """
     This is called upon unpickling, rather than the default which doesn't
     have arguments and breaks __new__.
@@ -1002,7 +1003,7 @@ class Index(IndexOpsMixin, PandasObject):
     def __array_wrap__(
         self,
         result: np.ndarray,
-        context: tuple | None = None,
+        context: tuple[Any, ...] | None = None,
         return_scalar: bool = False,
     ) -> Any:
         """
@@ -1591,7 +1592,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         *,
         include_name: bool,
-        formatter: Callable | None = None,
+        formatter: Callable[..., Any] | None = None,
     ) -> list[str_t]:
         """
         Render a string representation of the Index.
@@ -2694,7 +2695,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Pickle Methods
 
-    def __reduce__(self) -> tuple:
+    def __reduce__(self) -> tuple[Any, ...]:
         d = {"data": self._data, "name": self.name}
         return _new_Index, (type(self), d), None
 
@@ -6168,7 +6169,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexer: Literal[False] = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self: ...
 
     @overload
@@ -6178,7 +6179,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexer: Literal[True],
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> tuple[Self, np.ndarray]: ...
 
     @overload
@@ -6188,7 +6189,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexer: bool = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
@@ -6197,7 +6198,7 @@ class Index(IndexOpsMixin, PandasObject):
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
-        key: Callable | None = None,
+        key: Callable[..., Any] | None = None,
     ) -> Self | tuple[Self, np.ndarray]:
         """
         Return a sorted copy of the index.
@@ -6863,7 +6864,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def map(
         self,
-        mapper: Callable | dict | Series,
+        mapper: Callable[..., Any] | Mapping[Any, Any] | Series,
         na_action: Literal["ignore"] | None = None,
     ) -> Index:
         """
@@ -6988,7 +6989,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
-    def _transform_index(self, func: Callable, *, level: int | None = None) -> Index:
+    def _transform_index(
+        self, func: Callable[..., Any], *, level: int | None = None
+    ) -> Index:
         """
         Apply function to all values found in index.
 
@@ -7021,7 +7024,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
     def isin(
-        self, values: Axes | set, level: str_t | int | None = None
+        self, values: Axes | set[Any], level: str_t | int | None = None
     ) -> npt.NDArray[np.bool_]:
         """
         Return a boolean array where the index values are in `values`.
@@ -7759,7 +7762,7 @@ class Index(IndexOpsMixin, PandasObject):
     # --------------------------------------------------------------------
     # Generated Arithmetic, Comparison, and Unary Methods
 
-    def _cmp_method(self, other: object, op: Callable) -> Any:
+    def _cmp_method(self, other: object, op: Callable[..., Any]) -> Any:
         """
         Wrapper used to dispatch comparison operations.
         """
@@ -7802,7 +7805,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def _logical_method(self, other: object, op: Callable) -> Index:
+    def _logical_method(self, other: object, op: Callable[..., Any]) -> Index:
         res_name = ops.get_op_result_name(self, other)  # type: ignore[no-untyped-call]
 
         lvalues = self._values
@@ -7822,7 +7825,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         return Index(result, name=name, dtype=result.dtype, copy=False)
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         if (
             isinstance(other, Index)
             and is_object_dtype(other.dtype)
@@ -7836,7 +7839,7 @@ class Index(IndexOpsMixin, PandasObject):
         return super()._arith_method(other, op)  # type: ignore[no-untyped-call]
 
     @final
-    def _unary_method(self, op: Callable) -> Index:
+    def _unary_method(self, op: Callable[..., Any]) -> Index:
         result = op(self._values)
         return Index(result, name=self.name, copy=False)
 
