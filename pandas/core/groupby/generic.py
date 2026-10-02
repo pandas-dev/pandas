@@ -3307,9 +3307,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Within each group, summarize the central tendency, dispersion,
         and shape of each analyzed column's distribution, excluding
-        ``NaN`` values. By default only numeric, datetime and timedelta
-        columns are analyzed; pass ``include`` to analyze other columns (or
-        ``exclude`` to omit columns by dtype).
+        ``NaN`` values. By default only numeric, tz-naive datetime and
+        timedelta columns are analyzed; pass ``include`` to analyze other
+        columns (or ``exclude`` to omit columns by dtype).
 
         Parameters
         ----------
@@ -3325,8 +3325,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
               given dtypes, in the style of
               :meth:`DataFrame.select_dtypes` (e.g. ``include=[np.number]``
               or ``include=["category"]``).
-            - ``None`` (default) : Include numeric, datetime and timedelta
-              columns, or all columns if there are none of those.
+            - ``None`` (default) : Include numeric, tz-naive datetime and
+              timedelta columns, or all columns if there are none of those.
         exclude : list-like of dtypes or None (default), optional
             Column dtypes to omit from the result, in the style of
             :meth:`DataFrame.select_dtypes`. ``None`` (default) excludes

@@ -2323,7 +2323,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     labels and the Series name are not included
                   - 'index' : dict like {index -> value}
                   - 'table' : dict like {'schema': {schema}, 'data': {data}}, where
-                    'data' is a list of {'index' -> index, name -> value} records
+                    'data' is a list of records keyed by the index name and the
+                    Series name (``'index'`` and ``'values'`` when unnamed)
 
             * DataFrame:
 
@@ -6976,9 +6977,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
-        Each column is converted to a nullable extension dtype of the same bit
-        width (e.g. nullable integer, string, boolean) so that missing values
-        are represented by ``pd.NA`` instead of ``np.nan``.
+        Each column is converted to a nullable extension dtype (e.g. nullable
+        integer, string, boolean) so that missing values are represented by
+        ``pd.NA`` instead of ``np.nan``.
 
         Parameters
         ----------

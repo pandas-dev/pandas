@@ -9106,8 +9106,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Sort by the values along either axis.
 
-        This method sorts the DataFrame by the values of one or more columns
-        and/or index levels (see ``by``).
+        This method sorts the DataFrame by the values of the labels given in
+        ``by``: columns and/or index levels for ``axis=0``, or rows and/or
+        column levels for ``axis=1``.
 
         Parameters
         ----------
@@ -16379,9 +16380,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         Summarize the central tendency, dispersion, and shape of each
         analyzed column's distribution, excluding ``NaN`` values. By
-        default only numeric, datetime and timedelta columns are analyzed;
-        pass ``include`` to analyze other columns (or ``exclude`` to omit
-        columns by dtype).
+        default only numeric, tz-naive datetime and timedelta columns are
+        analyzed; pass ``include`` to analyze other columns (or ``exclude``
+        to omit columns by dtype).
 
         Parameters
         ----------
@@ -16397,8 +16398,8 @@ class DataFrame(NDFrame, OpsMixin):
               given dtypes, in the style of
               :meth:`DataFrame.select_dtypes` (e.g. ``include=[np.number]``
               or ``include=["category"]``).
-            - ``None`` (default) : Include numeric, datetime and timedelta
-              columns, or all columns if there are none of those.
+            - ``None`` (default) : Include numeric, tz-naive datetime and
+              timedelta columns, or all columns if there are none of those.
         exclude : list-like of dtypes or None (default), optional
             Column dtypes to omit from the result, in the style of
             :meth:`DataFrame.select_dtypes`. ``None`` (default) excludes
