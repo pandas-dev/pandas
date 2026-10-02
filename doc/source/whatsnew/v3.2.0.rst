@@ -130,6 +130,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 
 Timedelta
