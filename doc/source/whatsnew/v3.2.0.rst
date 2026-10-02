@@ -115,7 +115,7 @@ Other deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 -
 
 .. ---------------------------------------------------------------------------

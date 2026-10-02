@@ -1415,6 +1415,15 @@ def test_strftime_year_lt_1000(freq, fmt, expected):
     assert per.strftime(fmt) == expected
 
 
+def test_strftime_escaped_n_no_warning():
+    # GH#48746 a literal "%%n" is not the deprecated %n directive
+    per = pd.Period("2020-01-01", freq="D")
+    with tm.assert_produces_warning(None):
+        assert per.strftime("%%n") == "%n"
+        result = pd.PeriodIndex([per]).strftime("%Y%%n")
+    tm.assert_index_equal(result, pd.Index(["2020%n"]))
+
+
 def test_negone_ordinals():
     freqs = ["Y", "M", "Q", "D", "h", "min", "s"]
 
