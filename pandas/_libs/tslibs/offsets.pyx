@@ -379,6 +379,20 @@ cdef _determine_offset(kwds):
         kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        # GH#55909 applying the offset multiplies the relativedelta by ``n``,
+        # and dateutil's ``relativedelta.__mul__`` casts every component
+        # through ``int()``, so a fractional value is silently discarded.
+        # Reject it here rather than returning an offset that ignores part
+        # of what was asked for.
+        for key, value in kwds_no_nanos.items():
+            if is_float_object(value) and value % 1 != 0:
+                raise ValueError(
+                    f"DateOffset does not support non-integer {key}={value}. "
+                    "The fractional part would be discarded when the offset "
+                    "is applied. Pass an integer, or express the remainder "
+                    "using a smaller unit."
+                )
+
         from dateutil.relativedelta import relativedelta
 
         return relativedelta(**kwds_no_nanos), True
