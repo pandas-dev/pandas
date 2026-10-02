@@ -965,7 +965,7 @@ ones, particularly where observations are not evenly spaced in time.
 This approach relies on ``rolling.apply`` and recomputes weights for each window, so it
 may be slow for large datasets.
 
-.. code-block:: python
+.. ipython:: python
 
    df = pd.DataFrame(
        {
@@ -986,15 +986,16 @@ may be slow for large datasets.
 
    def decay_weighted_mean(values, alpha=0.1):
        timestamps = values.index
-       age_hours = (timestamps.max() - timestamps).total_seconds() / 3600
+       age_hours = (timestamps.max() - timestamps).total_seconds().to_numpy() / 3600
        weights = np.exp(-alpha * age_hours)
-       return (weights * values).sum() / weights.sum()
+       return (weights * values.to_numpy()).sum() / weights.sum()
 
    result = (
        df["value"]
        .rolling("7h")
        .apply(decay_weighted_mean)
    )
+   result
 
 `Between times
 <https://stackoverflow.com/questions/14539992/pandas-drop-rows-outside-of-time-range>`__

@@ -26,7 +26,9 @@ You will need `Build Tools for Visual Studio 2026
 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2026>`_.
 
 .. note::
-   If you encounter an error indicating ``cl.exe``,
+   In the installer, select the "Desktop development with C++" workload.
+
+   If you encounter an error indicating ``cl.exe`` is not found when building with Meson,
    reopen the installer and also select the optional component
    **MSVC v142 - VS 2019 C++ x64/x86 build tools** in the right pane for installation.
    If that does not resolve the issue, try installing

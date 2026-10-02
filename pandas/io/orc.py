@@ -169,9 +169,7 @@ def to_orc(
         (e.g. via builtin open function). If path is None,
         a bytes object is returned.
 
-        The string could be a URL. Valid URL schemes include http, ftp, s3,
-        gs, and file. For file URLs, a host is expected. A local file could be:
-        ``file://localhost/path/to/table.orc``. A remote example could be:
+        The string could be the URL of a writable remote filesystem, such as
         ``s3://bucket/path/to/table.orc``.
 
         Certain URL schemes may require additional packages. For example, S3

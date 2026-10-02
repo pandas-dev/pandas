@@ -205,7 +205,7 @@ class MultiIndex(Index):
 
     A MultiIndex allows indexing with multiple keys, effectively enabling
     multiple dimensions of indexing on a single axis. It can be thought of
-    as an array of tuples where each tuple is unique.
+    as an array of tuples, which need not be unique.
 
     Parameters
     ----------
@@ -632,8 +632,8 @@ class MultiIndex(Index):
         """
         Make a MultiIndex from the cartesian product of multiple iterables.
 
-        This method generates a MultiIndex containing all combinations of the
-        input iterables, similar to computing the cartesian product.
+        The result has one level per iterable, with the first iterable varying
+        slowest.
 
         Parameters
         ----------
@@ -1102,9 +1102,7 @@ class MultiIndex(Index):
         """
         Integer number of levels in this MultiIndex.
 
-        This property returns the count of levels (i.e., the depth of the
-        hierarchical index), which corresponds to the number of arrays
-        or columns used to construct the MultiIndex.
+        This is equal to ``len(self.levels)``.
 
         See Also
         --------
@@ -4150,8 +4148,8 @@ class MultiIndex(Index):
         """
         Get location for a sequence of labels.
 
-        This method returns the integer positions in the index that match the
-        given sequence of per-level keys, slices, or boolean masks.
+        Each element of ``seq`` selects on one level; a boolean mask must have
+        the same length as the index.
 
         Parameters
         ----------

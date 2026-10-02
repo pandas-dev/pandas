@@ -5498,7 +5498,7 @@ Iceberg enables the use of SQL tables for big data while making it possible for 
 engines to safely work with the same tables at the same time.
 
 Iceberg support predicate pushdown and column pruning, which are available to pandas
-users via the ``row_filter`` and ``selected_fields`` parameters of the :func:`~pandas.read_iceberg`
+users via the ``row_filter`` and ``columns`` parameters of the :func:`~pandas.read_iceberg`
 function. This is convenient to extract from large tables a subset that fits in memory as a
 pandas ``DataFrame``.
 
@@ -5545,7 +5545,7 @@ To create the ``DataFrame`` with only a subset of the columns:
     df = pd.read_iceberg(
         "my_table",
         catalog_name="my_catalog",
-        selected_fields=["my_column_3", "my_column_7"]
+        columns=["my_column_3", "my_column_7"]
     )
 
 This will execute the function faster, since other columns won't be read. And it will also

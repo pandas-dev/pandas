@@ -6,9 +6,8 @@
 Migration Guides
 ================
 
-For large changes that are difficult or impossible to deprecate in a user-friendly manner,
-pandas will implement the changes under the ``future`` configuration. This section
-goes into detail for each of these changes.
+This section goes into detail on large changes that are difficult or impossible to
+deprecate in a user-friendly manner: Copy-on-Write and the new string data type.
 
 .. _copy_on_write:
 

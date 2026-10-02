@@ -27,7 +27,7 @@ pandas 3.0 introduces several major enhancements:
 
 Further, pandas 3.0 includes a lot of other improvements and bug fixes. You can
 find the complete list of changes in the
-[release notes](https://pandas.pydata.org/docs/dev/whatsnew/v3.0.0.html).
+[release notes](https://pandas.pydata.org/docs/whatsnew/v3.0.0.html).
 
 ## Upgrading to pandas 3.0
 
@@ -59,7 +59,6 @@ dtype: object  # <-- numpy object dtype
 
 # New behavior (pandas 3.0)
 >>> ser = pd.Series(["a", "b"])
->>> ser.dtype
 >>> ser
 0    a
 1    b
@@ -84,7 +83,7 @@ Copy-on-Write is now the default and only mode in pandas 3.0. This makes
 behavior more consistent and predictable, and avoids a lot of defensive copying
 (improving performance), but requires updates to certain coding patterns.
 
-The most impactfull change is that **chained assignment will no longer work**.
+The most impactful change is that **chained assignment will no longer work**.
 As a result, the `SettingWithCopyWarning` is also removed (since there is no
 longer ambiguity whether it would work or not), and defensive `.copy()` calls
 to silence the warning are no longer needed.
@@ -92,7 +91,7 @@ to silence the warning are no longer needed.
 **Example:**
 ```python
 # Old behavior (pandas < 3.0) - chained assignment
-df["foo"][df["bar"] > 5] =   # This might modify df (unpredictable)
+df["foo"][df["bar"] > 5] = 100  # This might modify df (unpredictable)
 
 # New behavior (pandas 3.0) - must do the modification in one step (e.g. with .loc)
 df.loc[df["bar"] > 5, "foo"] = 100
@@ -103,7 +102,6 @@ if it were a copy, so modifications of the result won't affect the original
 DataFrame.
 
 For more details, see the
-
 [Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/migration.html#copy-on-write-cow).
 
 ## Obtaining pandas 3.0
