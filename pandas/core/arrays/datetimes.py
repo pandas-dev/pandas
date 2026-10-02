@@ -2208,7 +2208,9 @@ default 'raise'
         Indicator for whether the date is the first day of a quarter.
 
         This boolean attribute evaluates to True if the date falls on the
-        first day of a calendar quarter, and False otherwise. With a business
+        first day of a quarter, and False otherwise. Quarter boundaries
+        follow the month of a DatetimeIndex's quarterly or yearly ``freq``
+        such as ``"QS-FEB"``, and the calendar otherwise. With a business
         frequency such as ``"B"``, the first business day is flagged instead.
 
         Returns
@@ -2254,7 +2256,9 @@ default 'raise'
         Indicator for whether the date is the last day of a quarter.
 
         This boolean attribute evaluates to True if the date falls on the
-        last day of a calendar quarter, and False otherwise. With a business
+        last day of a quarter, and False otherwise. Quarter boundaries
+        follow the month of a DatetimeIndex's quarterly or yearly ``freq``
+        such as ``"QE-JAN"``, and the calendar otherwise. With a business
         frequency such as ``"B"``, the last business day is flagged instead.
 
         Returns
@@ -2299,9 +2303,11 @@ default 'raise'
         """
         Indicate whether the date is the first day of a year.
 
-        This boolean attribute evaluates to True if the date is January 1st,
-        and False otherwise. With a business frequency such as ``"B"``, the
-        first business day of the year is flagged instead.
+        This boolean attribute evaluates to True if the date is the first day
+        of a year, and False otherwise. Year boundaries follow the month of
+        a DatetimeIndex's quarterly or yearly ``freq`` such as ``"YS-JUL"``, and
+        fall on January 1st otherwise. With a business frequency such as ``"B"``,
+        the first business day of the year is flagged instead.
 
         Returns
         -------
@@ -2373,9 +2379,11 @@ default 'raise'
         """
         Indicate whether the date is the last day of the year.
 
-        This boolean attribute evaluates to True if the date is December 31st,
-        and False otherwise. With a business frequency such as ``"B"``, the
-        last business day of the year is flagged instead.
+        This boolean attribute evaluates to True if the date is the last day
+        of a year, and False otherwise. Year boundaries follow the month of
+        a DatetimeIndex's quarterly or yearly ``freq`` such as ``"YE-JUN"``, and
+        fall on December 31st otherwise. With a business frequency such as ``"B"``,
+        the last business day of the year is flagged instead.
 
         Returns
         -------

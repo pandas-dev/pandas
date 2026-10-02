@@ -1963,7 +1963,8 @@ class IncompatibleFrequency(TypeError):
     Raised when trying to compare or operate between Periods with different frequencies.
 
     Ordering comparisons and subtraction between Periods with different
-    frequencies raise this error, while equality comparisons return False.
+    frequencies raise this error, as does adding an offset that does not match a
+    Period's frequency. Equality comparisons return False.
 
     See Also
     --------
@@ -2976,9 +2977,9 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
-        Quarters are numbered within the fiscal year implied by the frequency, so
-        quarter 1 spans January through March only for calendar-year frequencies
-        such as ``Q-DEC``.
+        For quarterly frequencies such as ``Q-MAR``, quarters are numbered within
+        the fiscal year; otherwise this is the calendar quarter in which the
+        Period ends.
 
         The value comes from the last day of the first unit of the period's
         frequency, so a ``"2M"`` period uses the last day of its first month.

@@ -858,13 +858,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         """
         Construct a PeriodIndex from ordinals.
 
-        Ordinals count periods of the frequency's base unit from the Unix epoch
+        Ordinals count periods of the frequency's base unit from an epoch near
         1970-01-01.
 
         Parameters
         ----------
         ordinals : array-like of int
-            The number of base-unit periods since the Unix epoch 1970-01-01.
+            The number of base-unit periods since an epoch near 1970-01-01.
         freq : str or period object
             One of pandas period strings or corresponding objects.
         name : str, default None
