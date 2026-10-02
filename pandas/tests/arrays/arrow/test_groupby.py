@@ -22,6 +22,33 @@ pa = pytest.importorskip("pyarrow")
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
 
+@pytest.mark.parametrize("pa_type", [pa.int64(), pa.float64()], ids=str)
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("frame", [True, False])
+@pytest.mark.parametrize("chunked", [True, False])
+def test_groupby_cumsum_with_nulls(pa_type, skipna, frame, chunked):
+    # GH#62477: filling nulls must not overwrite non-null values on Windows.
+    values = [4, 2, 3, None, 1, 2, 3]
+    if chunked:
+        arr = pa.chunked_array([values[:2], values[2:5], values[5:]], type=pa_type)
+    else:
+        arr = pa.array(values, type=pa_type)
+    ser = pd.Series(ArrowExtensionArray(arr), name="a")
+    obj = pd.DataFrame({"a": ser, "i": 1}) if frame else ser
+
+    result = obj.groupby([1] * len(ser)).transform("cumsum", skipna=skipna)
+
+    expected_values = (
+        [4, 6, 9, None, 10, 12, 15] if skipna else [4, 6, 9, None, None, None, None]
+    )
+    expected = pd.Series(expected_values, dtype=ArrowDtype(pa_type), name="a")
+    if frame:
+        expected = pd.DataFrame({"a": expected, "i": range(1, len(ser) + 1)})
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
+
+
 class TestGroupbyAggPyArrowNative:
     """Tests for PyArrow-native groupby aggregations on decimal and string types."""
 
