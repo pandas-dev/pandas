@@ -291,17 +291,13 @@ class TestDataFrameFormatting:
         )
         assert "..." not in str(df)
 
-    def test_repr_truncation_accounts_for_dot_separator(self, monkeypatch):
-        # GH#32461 - repr should not exceed terminal width after inserting
+    def test_repr_truncation_accounts_for_dot_separator(self):
+        # GH#32461 - repr should not exceed display.width after inserting
         # the " ..." separator column during horizontal truncation.
         # Width 82 hits the boundary where the unfixed code overflows by 4
         # because the " ..." separator column (4 chars + 1 adjoin spacing)
         # was not budgeted.
-        terminal_width = 82
-        monkeypatch.setattr(
-            "pandas.io.formats.string.get_terminal_size",
-            lambda: (terminal_width, 24),
-        )
+        width = 82
 
         ncols = 20
         df = pd.DataFrame(
@@ -311,12 +307,54 @@ class TestDataFrameFormatting:
             }
         )
 
-        with pd.option_context(
-            "display.width", terminal_width, "display.max_columns", 0
-        ):
+        with pd.option_context("display.width", width, "display.max_columns", 0):
             result = repr(df)
             for line in result.split("\n"):
-                assert len(line) <= terminal_width
+                assert len(line) <= width
+
+    def test_repr_honors_display_width_with_max_columns_zero(self, monkeypatch):
+        # GH#21337
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (80, 24)
+        )
+        df = pd.DataFrame(np.arange(40).reshape(2, 20))
+
+        with pd.option_context("mode.sim_interactive", True, "display.max_columns", 0):
+            # default width (None) auto-detects the narrow terminal -> truncates
+            with pd.option_context("display.width", None):
+                assert "..." in repr(df)
+            # a large explicit width is honored -> no truncation
+            with pd.option_context("display.width", 10000):
+                assert "..." not in repr(df)
+
+        # a small explicit width is honored even when the terminal is wide
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (10000, 24)
+        )
+        with pd.option_context(
+            "mode.sim_interactive",
+            True,
+            "display.max_columns",
+            0,
+            "display.width",
+            40,
+        ):
+            assert "..." in repr(df)
+
+    def test_repr_default_width_non_interactive(self, monkeypatch):
+        # GH#21337 scripts still fit wide frames to the terminal width
+        monkeypatch.setattr(
+            "pandas.io.formats.console.in_interactive_session", lambda: False
+        )
+        monkeypatch.setattr(
+            "pandas.io.formats.console.get_terminal_size", lambda: (80, 24)
+        )
+        df = pd.DataFrame(np.arange(600).reshape(2, 300))
+
+        with pd.option_context("display.width", None, "display.max_columns", 0):
+            result = repr(df)
+        assert "..." in result
+        assert max(len(line) for line in result.splitlines()) <= 80
 
     def test_repr_truncation_column_size(self):
         # dataframe with last column very wide -> check it is not used to
