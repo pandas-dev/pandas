@@ -13,7 +13,10 @@ from io import StringIO
 import os
 from pathlib import Path
 import sqlite3
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import uuid
 
 import numpy as np
@@ -238,7 +241,7 @@ def types_table_metadata(dialect: str):
     return types
 
 
-def create_and_load_types_sqlite3(conn, types_data: list[dict]):
+def create_and_load_types_sqlite3(conn, types_data: list[dict[str, Any]]):
     stmt = """CREATE TABLE types (
                     "TextCol" TEXT,
                     "DateCol" TEXT,
@@ -268,7 +271,7 @@ def create_and_load_types_sqlite3(conn, types_data: list[dict]):
         conn.commit()
 
 
-def create_and_load_types_postgresql(conn, types_data: list[dict]):
+def create_and_load_types_postgresql(conn, types_data: list[dict[str, Any]]):
     with conn.cursor() as cur:
         stmt = """CREATE TABLE types (
                         "TextCol" TEXT,
@@ -293,7 +296,7 @@ def create_and_load_types_postgresql(conn, types_data: list[dict]):
     conn.commit()
 
 
-def create_and_load_types(conn, types_data: list[dict], dialect: str):
+def create_and_load_types(conn, types_data: list[dict[str, Any]], dialect: str):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
