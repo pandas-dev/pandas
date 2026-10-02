@@ -151,7 +151,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-- Bug in :meth:`Series.astype` and :func:`pd.array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
+- Bug in :meth:`Series.astype` and :func:`array` raising ``TypeError`` when converting object-dtype data mixing integers and integer strings (e.g. ``[1, "1"]``) to a nullable integer dtype (:issue:`34460`)
 
 Strings
 ^^^^^^^
