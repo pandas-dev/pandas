@@ -1001,7 +1001,7 @@ class TestPeriodIndex:
     def test_resample_tick_closed_right(self, label, start, exp_values):
         # GH#44363 closed and label have no effect on PeriodIndex bins
         pi = period_range(start, periods=12, freq="h")
-        ser = pd.Series(np.arange(12), index=pi)
+        ser = pd.Series(np.arange(12, dtype="int64"), index=pi)
         result = ser.resample("6h", closed="right", label=label).sum()
         exp_index = period_range("1900-01-01", periods=len(exp_values), freq="6h")
         expected = pd.Series(exp_values, index=exp_index)
