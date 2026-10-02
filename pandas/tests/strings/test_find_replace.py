@@ -793,6 +793,7 @@ def test_replace_named_groups_regex_swap_expected_fail(
 )
 def test_pyarrow_ambiguous_group_references(pyarrow_string_dtype, pattern, repl):
     # GH#62653
+    # pyarrow (RE2) interprets \20 as group 2 + literal "0"
     ser = pd.Series(["One Two Three", "Foo Bar Baz"], dtype=pyarrow_string_dtype)
 
     result = ser.str.replace(pattern, repl, regex=True)
@@ -1078,6 +1079,43 @@ def test_replace_empty_pattern(any_string_dtype):
     ser = pd.Series([], dtype=any_string_dtype)
     result = ser.str.replace("", "X")
     expected = pd.Series([], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_replace_regex_zero_length_match_consistency(any_string_dtype):
+    # GH#64872 - str.replace with regex patterns that can match zero-length
+    # strings should produce consistent results across all string backends
+    ser = pd.Series(["FGHI"], dtype=any_string_dtype)
+    result = ser.str.replace("F?H?", "_", regex=True)
+    expected = pd.Series(["__G__I_"], dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", [[None, None], []])
+def test_replace_regex_zero_length_match_preserves_dtype(any_string_dtype, data):
+    # GH#64872 - the elementwise fallback must keep the original arrow type,
+    # which cannot be inferred when there is no non-null value to infer from
+    ser = pd.Series(data, dtype=any_string_dtype)
+    result = ser.str.replace("F?H?", "_", regex=True)
+    tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"\b|x", "__aa__"),
+        (r"\B", "x_a_a_x"),
+        (r"a?", "_x___x_"),
+        (r"[a-z]*", "__"),
+    ],
+)
+def test_replace_regex_zero_length_match_at_position(any_string_dtype, pat, expected):
+    # GH#64872 - patterns that match zero-length only at certain positions
+    # (word boundaries, anchors) must also match the Python engine, not just
+    # patterns that match empty at the start of the string
+    ser = pd.Series(["xaax"], dtype=any_string_dtype)
+    result = ser.str.replace(pat, "_", regex=True)
+    expected = pd.Series([expected], dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
 
