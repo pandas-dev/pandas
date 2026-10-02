@@ -1985,14 +1985,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         from pandas import Period
 
-        if self.tz is not None:
-            # GH#21333
-            warnings.warn(
-                "Converting to Period representation will drop timezone information.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
-
+        # GH#21333 Period warns if self.tz is not None
         return Period(self, freq=freq)
 
 
