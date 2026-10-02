@@ -1930,7 +1930,8 @@ _dropped_tz_seen = ContextVar("_dropped_tz_seen", default=None)
 cdef _warn_dropped_tz():
     seen = _dropped_tz_seen.get()
     if seen is not None:
-        seen.append(True)
+        if not seen:
+            seen.append(True)
         return
 
     import warnings
