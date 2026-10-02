@@ -30,6 +30,30 @@ def tests_value_counts_index_names_category_column():
 
     tm.assert_series_equal(result, expected)
 
+@pytest.mark.parametrize("bins",
+    [
+        pd.IntervalIndex.from_breaks([0., 20., 40., 60., 80., 100.001], closed="left"),
+        pd.IntervalIndex.from_breaks([-.001, 20., 40., 60., 80., 100.], closed="right"),
+        pd.IntervalIndex.from_breaks([-.001, 20., 40., 60., 80., 100.001], closed="neither"),
+    ]
+)
+def test_value_counts_with_bins(bins):
+    # GH32471 Values misaligned with bins
+    df = pd.DataFrame(
+        {
+            "key": [0,1,0,2,3,4,4,4,1,3],
+            "score": [0, 100, 100, 0, 100, 100, 100, 100, 100, 100]
+        }
+    )
+    result = df.groupby('key')['score'].value_counts(bins=bins).sort_index()
+    b = dict(enumerate(bins))
+
+    counts = {(0, b[0]): 1, (0, b[4]): 1, (1, b[4]): 2,
+              (2, b[0]): 1, (3, b[4]): 2, (4, b[4]): 3}
+
+    idx = pd.MultiIndex.from_product([range(5), bins], names=['key', 'score'])
+    expected = pd.Series(counts, name='count').reindex(idx, fill_value=0)
+    tm.assert_series_equal(result, expected)
 
 def seed_df(seed_nans, n, m):
     days = pd.date_range("2015-08-24", periods=10)
