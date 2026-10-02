@@ -117,6 +117,48 @@ def test_to_boolean_array_error(values):
         pd.array(values, dtype="boolean")
 
 
+@pytest.mark.parametrize(
+    "values",
+    [
+        [True, 0, None],
+        [True, 0.0, np.nan],
+        [np.bool_(True), np.int64(0), pd.NA],
+        [1, False, None],
+        [np.float64(1.0), np.False_, None],
+    ],
+)
+def test_to_boolean_array_bool_number_mix(values):
+    # GH#70220
+    expected = pd.array([True, False, None], dtype="boolean")
+    result = pd.array(values, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = pd.Series(values, dtype="boolean")
+    tm.assert_series_equal(result, pd.Series(expected))
+
+    result = pd.Series(values, dtype=object).astype("boolean")
+    tm.assert_series_equal(result, pd.Series(expected))
+
+    result = pd.Index(values, dtype=object).astype("boolean")
+    tm.assert_index_equal(result, pd.Index(expected))
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[True, 2], [False, 0.5], [True, "a"], [False, 0, "foo"], [True, 1j]],
+)
+def test_to_boolean_array_bool_number_mix_error(values):
+    # GH#70220
+    with pytest.raises(TypeError, match="Need to pass bool-like value"):
+        pd.array(values, dtype="boolean")
+
+
+def test_to_boolean_array_nat_error():
+    # GH#70220 NaT is not a valid missing value for boolean, as for Int64
+    with pytest.raises(TypeError, match="non-numeric NA"):
+        pd.array([True, 0, pd.NaT], dtype="boolean")
+
+
 def test_to_boolean_array_from_integer_array():
     result = pd.array(np.array([1, 0, 1, 0]), dtype="boolean")
     expected = pd.array([True, False, True, False], dtype="boolean")

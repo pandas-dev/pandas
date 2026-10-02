@@ -224,19 +224,30 @@ def coerce_to_array(
     else:
         values_object = np.asarray(values, dtype=object)
 
-        inferred_dtype = lib.infer_dtype(values_object, skipna=True)
-        integer_like = ("floating", "integer", "mixed-integer-float")
-        if inferred_dtype not in ("boolean", "empty", *integer_like):
-            raise TypeError("Need to pass bool-like values")
-
         # mypy does not narrow the type of mask_values to npt.NDArray[np.bool_]
         # within this branch, it assumes it can also be None
         mask_values = cast("npt.NDArray[np.bool_]", isna(values_object))  # type: ignore[redundant-cast]
+        # raise on NaT, matching IntegerArray/FloatingArray
+        libmissing.is_numeric_na(values_object[mask_values])
+        non_na = values_object[~mask_values]
+        all_bool = lib.is_bool_array(non_na)
+        # each non-NA value must be a bool, integer or float, GH#70220;
+        # the array checks are fast paths for the unmixed cases
+        if not (
+            all_bool
+            or lib.is_integer_float_array(non_na)
+            or all(
+                lib.is_bool(val) or lib.is_integer(val) or lib.is_float(val)
+                for val in non_na
+            )
+        ):
+            raise TypeError("Need to pass bool-like values")
+
         values = np.zeros(len(values), dtype=bool)
         values[~mask_values] = values_object[~mask_values].astype(bool)
 
         # if the values were integer-like, validate it were actually 0/1's
-        if (inferred_dtype in integer_like) and not (
+        if not all_bool and not (
             np.all(
                 values[~mask_values].astype(float)
                 == values_object[~mask_values].astype(float)

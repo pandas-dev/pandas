@@ -926,6 +926,7 @@ Conversion
 - Bug in :class:`DataFrame` constructor where ``NaT`` in a :class:`TimedeltaIndex` row was incorrectly inferred as ``datetime64`` instead of ``timedelta64`` (:issue:`23985`)
 - Bug in :class:`DataFrame` constructor where constructing from a list of uniform-dtype arrays (e.g. pyarrow, :class:`CategoricalDtype`, nullable dtypes) lost the dtype (:issue:`49593`)
 - Bug in :class:`Series` construction and :class:`DataFrame` column assignment from a ``numpy.ma.MaskedArray`` where ``.values`` returned a ``MaskedArray`` instead of a ``ndarray`` (:issue:`65458`)
+- Bug in :func:`pd.array` and :meth:`Series.astype` with ``dtype="boolean"`` raising ``TypeError`` for data mixing booleans with numbers, such as ``[True, 0]`` (:issue:`70220`)
 - Bug in :func:`pd.array` silently converting NaN to a nonsensical integer when given float data containing NaN and a NumPy integer dtype (:issue:`41724`)
 - Bug in :func:`pd.array` silently wrapping around instead of raising when converting a nullable integer array to a nullable integer dtype that cannot hold its values (:issue:`55232`)
 - Bug in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` converting a float column to ``Int64`` one off from its true value when it held a value equal to ``2**63``, and raising a spurious ``RuntimeWarning`` for other floats outside the ``int64`` range (:issue:`68315`)
