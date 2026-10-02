@@ -6745,20 +6745,44 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            results = []
-            for i, (col_name, col) in enumerate(self.items()):
-                cdt = dtype_ser.iat[i]
-                if isna(cdt):
-                    res_col = col.copy(deep=False)
-                else:
+            # GH#63433: cast only the listed columns and build the result from
+            #  their blocks plus the untouched blocks. Casting every column on its
+            #  own and concatenating left one block per column.
+            locs_by_dtype: dict[Any, list[int]] = {}
+            for loc in np.flatnonzero(dtype_ser.notna()):
+                locs_by_dtype.setdefault(dtype_ser.iat[loc], []).append(int(loc))
+            if not locs_by_dtype:
+                return self.copy(deep=False)
+
+            pieces = []
+            for cdt, locs in locs_by_dtype.items():
+                casted = None
+                if errors == "raise" and len(locs) > 1:
+                    # Cast the columns going to one dtype together, which is
+                    #  far cheaper than one at a time when there are many.
                     try:
-                        res_col = col.astype(dtype=cdt, errors=errors)
-                    except ValueError as ex:
-                        ex.args = (
-                            f"{ex}: Error while type casting for column '{col_name}'",
-                        )
-                        raise
-                results.append(res_col)
+                        casted = self.iloc[:, locs].astype(cdt)
+                    except (ValueError, TypeError):
+                        pass  # redo per column to report the failing column
+                if casted is None:
+                    cols = []
+                    for i in locs:
+                        try:
+                            cols.append(self._ixs(i, axis=1).astype(cdt, errors=errors))
+                        except ValueError as ex:
+                            ex.args = (
+                                f"{ex}: Error while type casting for column "
+                                f"'{self.columns[i]}'",
+                            )
+                            raise
+                    casted = concat(cols, axis=1)
+                pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
+
+            mgr = self._mgr
+            assert isinstance(mgr, BlockManager)  # dict dtypes on a Series returned
+            new_mgr = mgr.replace_columns(pieces)
+            new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return new.__finalize__(self, method="astype")
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
