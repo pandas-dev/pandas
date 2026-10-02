@@ -87,8 +87,6 @@ class TestPeriodConstruction:
 
         assert i1 == i2
 
-        # GH#54105 - Period can be confusingly instantiated with lowercase freq
-        # TODO: raise in the future an error when passing lowercase freq
         i1 = pd.Period("2005", freq="Y")
         i2 = pd.Period("2005")
 

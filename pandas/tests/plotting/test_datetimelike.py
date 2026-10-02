@@ -2206,10 +2206,17 @@ class TestTSPlot:
             "2020-01-03 00:00:00",
         ]
 
-    def test_bar_plot_datetime_index_inferred_freq(self):
+    @pytest.mark.parametrize(
+        "dates, freq",
+        [
+            (["2020-01-01", "2020-01-02", "2020-01-03"], "D"),
+            (["2020-01-01", "2020-02-01", "2020-03-01"], "M"),
+        ],
+    )
+    def test_bar_plot_datetime_index_inferred_freq(self, dates, freq):
         # GH#66771 - the index freq attribute is unset but inferable, so the
         # bar plot must resolve the freq instead of raising AttributeError
-        idx = DatetimeIndex(["2020-01-01", "2020-01-02", "2020-01-03"])
+        idx = DatetimeIndex(dates)
         assert idx.freq is None
         df = pd.DataFrame({"A": [1, 2, 3]}, index=idx)
 
@@ -2218,6 +2225,8 @@ class TestTSPlot:
         assert isinstance(
             ax.get_xaxis().get_major_formatter(), conv.TimeSeries_DateFormatter
         )
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        assert centers == [Period(ts, freq=freq).ordinal for ts in idx]
 
     def test_barh_plot_datetime_index_inferred_freq(self):
         # GH#66771 - barh shares the freq-resolution path with bar but keeps

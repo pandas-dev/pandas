@@ -2490,10 +2490,17 @@ cdef class _Period(PeriodMixin):
         --------
         period.month : Get the month of the year for the given Period.
         period.day : Return the day of the month the Period falls on.
+        Period.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Notes
         -----
-        The year is based on the `ordinal` and `base` attributes of the Period.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this can differ
+        from the year shown in the period; see ``qyear``.
 
         Examples
         --------
@@ -2540,10 +2547,13 @@ cdef class _Period(PeriodMixin):
         period.week : Get the week of the year on the given Period.
         Period.year : Return the year this Period falls on.
         Period.day : Return the day of the month this Period falls on.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Notes
         -----
-        The month is based on the `ordinal` and `base` attributes of the Period.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Examples
         --------
@@ -2553,7 +2563,7 @@ cdef class _Period(PeriodMixin):
         >>> period.month
         1
 
-        Period object with no specified frequency, resulting in a default frequency:
+        A yearly period uses its last month:
 
         >>> period = pd.Period('2022', 'Y')
         >>> period.month
@@ -2579,11 +2589,8 @@ cdef class _Period(PeriodMixin):
         """
         Get day of the month that a Period falls on.
 
-        The `day` property provides a simple way to access the day component
-        of a `Period` object, which represents time spans in various frequencies
-        (e.g., daily, hourly, monthly). If the period's frequency does not include
-        a day component (e.g., yearly or quarterly periods), the returned day
-        corresponds to the first day of that period.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2593,12 +2600,22 @@ cdef class _Period(PeriodMixin):
         --------
         Period.dayofweek : Get the day of the week.
         Period.dayofyear : Get the day of the year.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
         >>> p = pd.Period("2018-03-11", freq='h')
         >>> p.day
         11
+
+        A monthly period uses its last day, and ``"2M"`` uses the last day of
+        its first month:
+
+        >>> pd.Period("2018-03", freq="M").day
+        31
+        >>> pd.Period("2018-02", freq="2M").day
+        28
         """
         base = self._dtype._dtype_code
         return pday(self.ordinal, base)
@@ -2609,7 +2626,7 @@ cdef class _Period(PeriodMixin):
         Get the hour of the day component of the Period.
 
         For periods with a frequency shorter than a day, this returns the
-        hour portion of the time. For longer frequencies, it returns 0.
+        hour of the start of the period. For longer frequencies, it returns 0.
 
         Returns
         -------
@@ -2642,7 +2659,7 @@ cdef class _Period(PeriodMixin):
         Get minute of the hour component of the Period.
 
         For periods with a frequency shorter than an hour, this returns the
-        minute portion of the time. For longer frequencies, it returns 0.
+        minute of the start of the period. For longer frequencies, it returns 0.
 
         Returns
         -------
@@ -2669,7 +2686,7 @@ cdef class _Period(PeriodMixin):
         Get the second component of the Period.
 
         For periods with a frequency shorter than a minute, this returns the
-        second portion of the time. For longer frequencies, it returns 0.
+        second of the start of the period. For longer frequencies, it returns 0.
 
         Returns
         -------
@@ -2698,6 +2715,9 @@ cdef class _Period(PeriodMixin):
         Weeks are numbered according to ISO 8601, where the first week of
         the year contains the first Thursday of the year.
 
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         Returns
         -------
         int
@@ -2706,6 +2726,8 @@ cdef class _Period(PeriodMixin):
         --------
         Period.dayofweek : Get the day component of the Period.
         Period.weekday : Get the day component of the Period.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
@@ -2732,6 +2754,9 @@ cdef class _Period(PeriodMixin):
         Weeks are numbered according to ISO 8601, where the first week of
         the year contains the first Thursday of the year.
 
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         Returns
         -------
         int
@@ -2740,6 +2765,8 @@ cdef class _Period(PeriodMixin):
         --------
         Period.dayofweek : Get the day component of the Period.
         Period.weekday : Get the day component of the Period.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
@@ -2762,12 +2789,8 @@ cdef class _Period(PeriodMixin):
         """
         Day of the week the period lies in, with Monday=0 and Sunday=6.
 
-        If the period frequency is lower than daily (e.g. hourly), and the
-        period spans over multiple days, the day at the start of the period is
-        used.
-
-        If the frequency is higher than daily (e.g. monthly), the last day
-        of the period is used.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2780,6 +2803,8 @@ cdef class _Period(PeriodMixin):
         Period.weekday : Alias of Period.day_of_week.
         Period.day : Day of the month.
         Period.dayofyear : Day of the year.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
@@ -2787,8 +2812,7 @@ cdef class _Period(PeriodMixin):
         >>> per.day_of_week
         6
 
-        For periods that span over multiple days, the day at the beginning of
-        the period is returned.
+        A ``"4h"`` period uses the day of its first hour.
 
         >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.day_of_week
@@ -2796,8 +2820,7 @@ cdef class _Period(PeriodMixin):
         >>> per.start_time.day_of_week
         6
 
-        For periods with a frequency higher than days, the last day of the
-        period is returned.
+        A monthly period uses its last day.
 
         >>> per = pd.Period('2018-01', 'M')
         >>> per.day_of_week
@@ -2813,12 +2836,8 @@ cdef class _Period(PeriodMixin):
         """
         Day of the week the period lies in, with Monday=0 and Sunday=6.
 
-        If the period frequency is lower than daily (e.g. hourly), and the
-        period spans over multiple days, the day at the start of the period is
-        used.
-
-        If the frequency is higher than daily (e.g. monthly), the last day
-        of the period is used.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2831,6 +2850,8 @@ cdef class _Period(PeriodMixin):
         Period.weekday : Alias of Period.day_of_week.
         Period.day : Day of the month.
         Period.day_of_year : Day of the year.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
@@ -2838,8 +2859,7 @@ cdef class _Period(PeriodMixin):
         >>> per.day_of_week
         6
 
-        For periods that span over multiple days, the day at the beginning of
-        the period is returned.
+        A ``"4h"`` period uses the day of its first hour.
 
         >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.day_of_week
@@ -2847,8 +2867,7 @@ cdef class _Period(PeriodMixin):
         >>> per.start_time.day_of_week
         6
 
-        For periods with a frequency higher than days, the last day of the
-        period is returned.
+        A monthly period uses its last day.
 
         >>> per = pd.Period('2018-01', 'M')
         >>> per.day_of_week
@@ -2879,6 +2898,9 @@ cdef class _Period(PeriodMixin):
         date occurs. The return value ranges between 1 to 365 for regular
         years and 1 to 366 for leap years.
 
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         Returns
         -------
         int
@@ -2889,6 +2911,8 @@ cdef class _Period(PeriodMixin):
         Period.day : Return the day of the month.
         Period.day_of_week : Return the day of week.
         PeriodIndex.day_of_year : Return the day of year of all indexes.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
@@ -2914,11 +2938,18 @@ cdef class _Period(PeriodMixin):
         through June, quarter 3 includes July through September, and quarter
         4 includes October through December.
 
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this is the
+        fiscal quarter instead.
+
         See Also
         --------
         Timestamp.quarter : Return the quarter of the Timestamp.
         Period.year : Return the year of the period.
         Period.month : Return the month of the period.
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------
@@ -2981,6 +3012,9 @@ cdef class _Period(PeriodMixin):
         This value depends on the month and whether the year is a leap year
         (e.g., February has 28 or 29 days).
 
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+
         Returns
         -------
         int
@@ -2991,6 +3025,8 @@ cdef class _Period(PeriodMixin):
         DatetimeIndex.daysinmonth : Gets the number of days in the month.
         calendar.monthrange : Returns a tuple containing weekday
             (0-6 ~ Mon-Sun) and number of days (28-31).
+        Period.start_time : Get the Timestamp for the start of the period.
+        Period.end_time : Get the Timestamp for the end of the period.
 
         Examples
         --------

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import inspect
 import types
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -55,7 +58,7 @@ def get_jit_arguments(engine_kwargs: dict[str, bool] | None = None) -> dict[str,
     return {"nogil": nogil, "parallel": parallel}
 
 
-def jit_user_function(func: Callable) -> Callable:
+def jit_user_function(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     If user function is not jitted already, mark the user's function
     as jitable.
@@ -94,8 +97,12 @@ _sentinel = object()
 
 
 def prepare_function_arguments(
-    func: Callable, args: tuple, kwargs: dict, *, num_required_args: int
-) -> tuple[tuple, dict]:
+    func: Callable[..., Any],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    *,
+    num_required_args: int,
+) -> tuple[tuple[Any, ...], dict[str, Any]]:
     """
     Prepare arguments for jitted function. As numba functions do not support kwargs,
     we try to move kwargs into args if possible.
