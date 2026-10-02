@@ -824,6 +824,14 @@ def test_groupby_apply_none_first(in_data, out_idx, out_data):
     tm.assert_frame_equal(result1, expected1)
 
 
+def test_seriesgroupby_apply_none_later_group():
+    # GH#57846 dropping None results must not emit concat's deprecation warning
+    ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
+    result = ser.groupby([1, 1, 2, 2]).apply(lambda x: None if x.iloc[0] == 3 else x)
+    expected = pd.Series([1, 2], index=pd.MultiIndex.from_arrays([[1, 1], ["a", "b"]]))
+    tm.assert_series_equal(result, expected)
+
+
 def test_groupby_apply_return_empty_chunk():
     # GH 22221: apply filter which returns some empty groups
     df = pd.DataFrame({"value": [0, 1], "group": ["filled", "empty"]})
