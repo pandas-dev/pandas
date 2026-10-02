@@ -84,8 +84,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
--
--
+- :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` now emit a ``UserWarning`` when setting values with a non-object dtype into entire object-dtype columns, e.g. ``df.loc[:, "col"] = pd.to_datetime(df["col"])``. The values are set in place, so the column silently stayed object dtype; use ``df["col"] = values`` to replace the column instead (:issue:`52593`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.deprecations:

@@ -1,7 +1,6 @@
 """test label based indexing with loc"""
 
 from collections import namedtuple
-import contextlib
 from datetime import (
     date,
     datetime,
@@ -750,18 +749,14 @@ class TestLocBaseIndependent:
         ]
         df = pd.DataFrame(values, index=mi, columns=cols)
 
-        ctx = contextlib.nullcontext()
-        if using_infer_string:
-            ctx = pytest.raises(TypeError, match="Invalid value")
-
-        with ctx:
-            df.loc[:, ("Respondent", "StartDate")] = pd.to_datetime(
-                df.loc[:, ("Respondent", "StartDate")]
-            )
-        with ctx:
-            df.loc[:, ("Respondent", "EndDate")] = pd.to_datetime(
-                df.loc[:, ("Respondent", "EndDate")]
-            )
+        msg = "Setting non-object values into entire object-dtype column"
+        for key in [("Respondent", "StartDate"), ("Respondent", "EndDate")]:
+            if using_infer_string:
+                ctx = pytest.raises(TypeError, match="Invalid value")
+            else:
+                ctx = tm.assert_produces_warning(UserWarning, match=msg)
+            with ctx:
+                df.loc[:, key] = pd.to_datetime(df.loc[:, key])
 
         if using_infer_string:
             # infer-objects won't infer stuff anymore
@@ -1553,7 +1548,10 @@ class TestLocBaseIndependent:
 
         # pre-2.0 this swapped in a new array, in 2.0 it operates inplace,
         #  consistent with non-split-path
-        df.loc[:, "Alpha"] = categories
+        warn = None if using_infer_string else UserWarning
+        msg = "Setting non-object values into entire object-dtype column"
+        with tm.assert_produces_warning(warn, match=msg):
+            df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
         expected = pd.Series(categories, index=df.index, name="Alpha").astype(
@@ -4272,3 +4270,60 @@ def test_loc_setitem_empty_boolean_column_mask_frame_value(dtype, box):
     df.loc[:, box([False])] = df * 2
 
     tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+@pytest.mark.parametrize(
+    "key, value",
+    [
+        ("A", pd.Categorical(["x", "y"])),
+        ("A", pd.to_datetime(["2012-01-01", "2012-01-02"])),
+        ("A", np.array([1, 2])),
+        (["A", "B"], np.ones((2, 2), dtype="int64")),
+        (["A", "B"], lambda df: df[["A", "B"]].astype("int64")),
+    ],
+)
+def test_loc_setitem_full_object_column_typed_value_warns(single_block, key, value):
+    # GH#52593
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    if not single_block:
+        df["C"] = [5, 6]
+    if callable(value):
+        value = value(df)
+    msg = "Setting non-object values into entire object-dtype column"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        df.loc[:, key] = value
+    assert df["A"].dtype == object
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+@pytest.mark.parametrize(
+    "rows, key, value",
+    [
+        (slice(None), "A", ["x", "y"]),
+        (slice(None), "A", np.array(["x", 1], dtype=object)),
+        (slice(None), "A", 5),
+        (slice(None), ["A", "B"], lambda df: df[["B", "A"]]),
+        (0, ["A", "B"], np.array([7, 8])),
+        (slice(None), ["A", "C"], lambda df: df[["A", "C"]]),
+    ],
+)
+def test_loc_setitem_full_object_column_no_warning(single_block, rows, key, value):
+    # GH#52593 only typed values set into whole object-dtype columns warn
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    df["C"] = pd.Series([5, 6], dtype=object if single_block else "int64")
+    if callable(value):
+        value = value(df)
+    with tm.assert_produces_warning(None):
+        df.loc[rows, key] = value
+
+
+@pytest.mark.parametrize("single_block", [True, False])
+def test_setitem_rows_only_object_columns_no_warning(single_block, indexer_sli):
+    # GH#52593 a row-only key is a deliberate in-place set, so it does not warn
+    df = pd.DataFrame({"A": ["1", "2"], "B": ["3", "4"]}, dtype=object)
+    if not single_block:
+        df["B"] = df["B"].astype("int64")
+    with tm.assert_produces_warning(None):
+        indexer_sli(df)[:] = np.array([[1, 2], [3, 4]])
+    assert df["A"].dtype == object

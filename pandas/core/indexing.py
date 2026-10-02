@@ -2652,6 +2652,62 @@ class _iLocIndexer(_LocationIndexer):
         else:
             self._setitem_single_block(indexer, value, name)
 
+        self._maybe_warn_object_columns_kept(indexer, value, name)
+
+    def _maybe_warn_object_columns_kept(self, indexer, value, name: str) -> None:
+        """
+        Warn if typed values were set in place into entire object-dtype columns,
+        which therefore stayed object. GH#52593
+        """
+        # only (rows, columns) keys; row-only keys like df[:] = values are
+        #  deliberately in-place
+        if not (self.ndim == 2 and isinstance(indexer, tuple) and len(indexer) == 2):
+            return
+        rows = indexer[0]
+        nrows = len(self.obj)
+        # unlike com.is_full_slice, also accepts e.g. slice(None, nrows)
+        if not (isinstance(rows, slice) and rows.indices(nrows) == (0, nrows, 1)):
+            return
+
+        positions = np.asarray(self._ensure_iterable_column_indexer(indexer[1]))
+        if positions.dtype.kind not in "iu":
+            return
+        mgr = self.obj._mgr
+        # only look up the blocks being set, not every block in the frame
+        blknos = mgr.blknos[positions]
+        object_blknos = [
+            blkno for blkno in np.unique(blknos) if mgr.blocks[blkno].dtype == object
+        ]
+        if not object_blknos:
+            return
+        is_object = np.isin(blknos, object_blknos)
+
+        if isinstance(value, ABCDataFrame):
+            if name == "iloc":
+                if value.shape[1] != len(positions):
+                    return
+                dtypes = list(value.dtypes._values[is_object])
+            elif value.columns.is_unique:
+                labels = self.obj.columns[positions[is_object]]
+                value_dtypes = value.dtypes
+                dtypes = [value_dtypes[lab] for lab in labels if lab in value.columns]
+            else:
+                return
+        elif is_list_like(value) and hasattr(value, "dtype"):
+            dtypes = [value.dtype]
+        else:
+            return
+
+        if any(dtype != object for dtype in dtypes):
+            warnings.warn(
+                "Setting non-object values into entire object-dtype column(s) "
+                "with `.loc`/`.iloc` sets them in place and keeps object dtype. To "
+                "replace the column(s) with the values' dtype, use "
+                "`df[cols] = values` instead.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+
     def _setitem_with_indexer_split_path(self, indexer, value, name: str):
         """
         Setitem column-wise.
