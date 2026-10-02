@@ -84,7 +84,6 @@ if TYPE_CHECKING:
         Sequence,
     )
 
-    from pandas._libs import Interval
     from pandas._typing import (
         ArrayLike,
         BlockManager,
@@ -95,7 +94,10 @@ if TYPE_CHECKING:
         TakeIndexer,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        IntervalIndex,
+    )
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -1153,7 +1155,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast("Interval[Any]", lab)
+            lab_interval = cast("IntervalIndex", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -2759,7 +2761,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        func : list or dict
+        func : list-like or dict-like
             - list of str/callable: applied to every non-key column, producing
               a MultiIndex-column DataFrame (column, func_name).
             - dict mapping output_name -> str/callable or NamedAgg.
@@ -2768,7 +2770,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if is_dict_like(func):
             # Also includes NamedAgg / NamedFunc
-            func = cast("dict[Hashable, Any]", func)
+            func = cast("Mapping[Hashable, Any]", func)
             results: list[Series] = []
             for name, agg in func.items():
                 if isinstance(agg, NamedAgg):
