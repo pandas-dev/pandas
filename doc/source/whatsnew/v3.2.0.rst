@@ -108,6 +108,7 @@ deprecation2
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated setting an out-of-bounds numpy scalar into an array of a numpy-nullable integer dtype. The value is currently stored altered to fit (``np.int64(-1)`` becomes ``255`` in ``UInt8``); in a future version this will raise, as it already does for a Python integer. Cast the array to a dtype that can hold the value first (:issue:`48867`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
