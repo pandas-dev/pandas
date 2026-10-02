@@ -308,3 +308,30 @@ def test_sub64bit_dtype_preserved(constructor, dtype):
     assert result.dtype.subtype == dtype
     assert result.left.dtype == dtype
     assert result.right.dtype == dtype
+
+
+def test_concat_empty_datetimetz_subtype():
+    # GH#64297 an empty result has no value left to re-infer the subtype from
+    arr = IntervalArray.from_breaks(pd.date_range("2020", periods=1, tz="UTC"))
+    assert len(arr) == 0
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    tm.assert_series_equal(result, pd.Series(arr))
+
+
+@pytest.mark.parametrize("subtype", ["Int64", "Float64"])
+def test_concat_retains_masked_subtype(subtype):
+    # GH#64297
+    arr = IntervalArray.from_breaks(pd.array([1, 2, 3], dtype=subtype))
+    assert arr.dtype.subtype == subtype
+
+    result = pd.concat([pd.Series(arr), pd.Series(arr)], ignore_index=True)
+
+    expected = pd.Series(
+        IntervalArray.from_arrays(
+            pd.array([1, 2, 1, 2], dtype=subtype),
+            pd.array([2, 3, 2, 3], dtype=subtype),
+        )
+    )
+    tm.assert_series_equal(result, expected)
