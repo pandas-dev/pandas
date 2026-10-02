@@ -4298,7 +4298,7 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 
    Writing an empty ``DataFrame`` or ``Series`` with ``format='table'`` or via
    ``append`` is a no-op: nothing is written for that key and a ``UserWarning``
-   is emitted. Note that ``mode='w'`` still truncates the file. Use
+   is emitted, though ``to_hdf(..., mode='w')`` still truncates the file. Use
    ``format='fixed'`` to store an empty object.
 
 .. _io.hdf5-keys:
