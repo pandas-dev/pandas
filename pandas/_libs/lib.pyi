@@ -3,7 +3,6 @@
 from collections.abc import (
     Callable,
     Generator,
-    Hashable,
 )
 from decimal import Decimal
 from typing import (
@@ -161,9 +160,7 @@ def tuples_to_object_array(
 
 # TODO: can we be more specific about rows?
 def to_object_array(rows: object, min_width: int = ...) -> ndarray_obj_2d: ...
-def dicts_to_array(
-    dicts: list[dict[Any, Any]], columns: list[Hashable]
-) -> ndarray_obj_2d: ...
+def dicts_to_array(dicts: list[Any], columns: list[Any]) -> ndarray_obj_2d: ...
 def maybe_booleans_to_slice(
     mask: npt.NDArray[np.uint8],
 ) -> slice | npt.NDArray[np.uint8]: ...
