@@ -476,7 +476,8 @@ cdef class BaseOffset:
 
         See Also
         --------
-        DateOffset.n : Return the count of the number of periods.
+        BaseOffset.rollforward : Roll provided date forward to next offset only if
+            not on offset.
 
         Examples
         --------
@@ -4123,7 +4124,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         See Also
         --------
-        QuarterBegin.rule_code : Return the rule code for the quarter offset.
+        BaseOffset.rule_code : Return a string representing the base frequency.
         HalfYearBegin.startingMonth : Similar property for half-year-based offsets.
 
         Examples
@@ -4202,13 +4203,7 @@ cdef class QuarterOffset(SingleConstructorOffset):
 
         See Also
         --------
-        QuarterBegin.is_on_offset : Check if a timestamp is at the start of a
-            quarter.
-        QuarterEnd.is_on_offset : Check if a timestamp is at the end of a quarter.
-        BQuarterBegin.is_on_offset : Check if a timestamp is at the start of a
-            business quarter.
-        BQuarterEnd.is_on_offset : Check if a timestamp is at the end of a
-            business quarter.
+        BaseOffset.is_on_offset : Same check for any offset.
 
         Examples
         --------
@@ -4478,7 +4473,7 @@ cdef class HalfYearOffset(SingleConstructorOffset):
 
         See Also
         --------
-        HalfYearBegin.rule_code : Return the rule code for the half-year offset.
+        BaseOffset.rule_code : Return a string representing the base frequency.
         QuarterBegin.startingMonth : Similar property for quarter-based offsets.
 
         Examples
