@@ -515,10 +515,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the year component for each period in the index.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this can differ
+        from the year shown in the period; see ``qyear``.
 
         See Also
         --------
@@ -546,10 +546,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the month component for each period in the index as an
         integer, where January is 1 and December is 12.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         See Also
         --------
@@ -572,10 +570,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the day-of-month component for each period in the index.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         See Also
         --------
@@ -668,10 +664,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the week number (1 through 53) for each period in the index.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         See Also
         --------
@@ -699,10 +693,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the day-of-week component for each period, following the
         Python convention where Monday is 0 and Sunday is 6.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         See Also
         --------
@@ -770,10 +762,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the day-of-year component for each period, ranging from
         1 (January 1st) to 365 or 366 for leap years.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         See Also
         --------
@@ -828,10 +818,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
 
         Returns the quarter (1 through 4) for each period in the index.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this is the
+        fiscal quarter instead.
 
         See Also
         --------
@@ -899,10 +889,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Returns the total number of days in the month of each period,
         accounting for leap years.
 
-        The value comes from each period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of each period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         See Also
         --------

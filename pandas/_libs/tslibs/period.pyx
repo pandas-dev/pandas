@@ -2497,10 +2497,10 @@ cdef class _Period(PeriodMixin):
 
         Notes
         -----
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this can differ
+        from the year shown in the period; see ``qyear``.
 
         Examples
         --------
@@ -2552,10 +2552,8 @@ cdef class _Period(PeriodMixin):
 
         Notes
         -----
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Examples
         --------
@@ -2591,10 +2589,8 @@ cdef class _Period(PeriodMixin):
         """
         Get day of the month that a Period falls on.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2719,10 +2715,8 @@ cdef class _Period(PeriodMixin):
         Weeks are numbered according to ISO 8601, where the first week of
         the year contains the first Thursday of the year.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2760,10 +2754,8 @@ cdef class _Period(PeriodMixin):
         Weeks are numbered according to ISO 8601, where the first week of
         the year contains the first Thursday of the year.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2797,10 +2789,8 @@ cdef class _Period(PeriodMixin):
         """
         Day of the week the period lies in, with Monday=0 and Sunday=6.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2822,7 +2812,7 @@ cdef class _Period(PeriodMixin):
         >>> per.day_of_week
         6
 
-        For frequencies finer than daily, the start of the period is used.
+        A ``"4h"`` period uses the day of its first hour.
 
         >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.day_of_week
@@ -2830,7 +2820,7 @@ cdef class _Period(PeriodMixin):
         >>> per.start_time.day_of_week
         6
 
-        Otherwise, the last day of the period is used.
+        A monthly period uses its last day.
 
         >>> per = pd.Period('2018-01', 'M')
         >>> per.day_of_week
@@ -2846,10 +2836,8 @@ cdef class _Period(PeriodMixin):
         """
         Day of the week the period lies in, with Monday=0 and Sunday=6.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2871,7 +2859,7 @@ cdef class _Period(PeriodMixin):
         >>> per.day_of_week
         6
 
-        For frequencies finer than daily, the start of the period is used.
+        A ``"4h"`` period uses the day of its first hour.
 
         >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.day_of_week
@@ -2879,7 +2867,7 @@ cdef class _Period(PeriodMixin):
         >>> per.start_time.day_of_week
         6
 
-        Otherwise, the last day of the period is used.
+        A monthly period uses its last day.
 
         >>> per = pd.Period('2018-01', 'M')
         >>> per.day_of_week
@@ -2910,10 +2898,8 @@ cdef class _Period(PeriodMixin):
         date occurs. The return value ranges between 1 to 365 for regular
         years and 1 to 366 for leap years.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
@@ -2952,10 +2938,10 @@ cdef class _Period(PeriodMixin):
         through June, quarter 3 includes July through September, and quarter
         4 includes October through December.
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
+        For fiscal quarterly frequencies such as ``"Q-MAR"``, this is the
+        fiscal quarter instead.
 
         See Also
         --------
@@ -3026,10 +3012,8 @@ cdef class _Period(PeriodMixin):
         This value depends on the month and whether the year is a leap year
         (e.g., February has 28 or 29 days).
 
-        The value comes from the period's label (its ``repr``), so a ``"2M"``
-        period uses its first month. Parts of the date the label leaves out,
-        such as the day of a monthly period, come from the last day of the
-        labeled unit, and parts of the time the label leaves out are 0.
+        The value comes from the last day of the first unit of the period's
+        frequency, so a ``"2M"`` period uses the last day of its first month.
 
         Returns
         -------
