@@ -3,6 +3,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 import numpy as np
@@ -1680,6 +1681,39 @@ class TestMergeDtypes:
         assert is_object_dtype(result.A.dtype) or is_string_dtype(result.A.dtype)
 
     @pytest.mark.parametrize(
+        "obj_vals, num_vals, expected_key",
+        [
+            ([1.5, None], [1.5, 2.5], [1.5]),
+            ([1.5, pd.NA], [1.5, 2.5], [1.5]),
+            ([Decimal("1.5"), None], [1.5, 2.5], [Decimal("1.5")]),
+            ([True, None], [1, 2], [True]),
+            ([None, None], [1.5, 2.5], []),
+            ([], np.array([], dtype="float64"), []),
+        ],
+    )
+    def test_merge_object_with_missing_on_numeric(
+        self, obj_vals, num_vals, expected_key
+    ):
+        # GH#70218 missing values in an object key used to make this raise
+        df1 = pd.DataFrame(
+            {"key": pd.Series(obj_vals, dtype=object), "a": range(len(obj_vals))}
+        )
+        df2 = pd.DataFrame({"key": num_vals, "b": range(len(num_vals))})
+
+        result = merge(df1, df2, on="key")
+        expected = pd.DataFrame(
+            {
+                "key": pd.Series(expected_key, dtype=object),
+                "a": range(len(expected_key)),
+                "b": range(len(expected_key)),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result = merge(df2, df1, on="key")
+        assert len(result) == len(expected_key)
+
+    @pytest.mark.parametrize(
         "df1_vals, df2_vals",
         [
             # do not infer to numeric
@@ -1687,6 +1721,7 @@ class TestMergeDtypes:
             (pd.Series([1, 2], dtype="int32"), ["a", "b", "c"]),
             ([0, 1, 2], ["0", "1", "2"]),
             ([0.0, 1.0, 2.0], ["0", "1", "2"]),
+            ([0.0, 1.0], pd.Series(["0", None], dtype=object)),
             (
                 pd.date_range("1/1/2011", periods=2, freq="D"),
                 ["2011-01-01", "2011-01-02"],
