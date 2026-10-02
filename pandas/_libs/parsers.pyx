@@ -137,9 +137,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas.io.common import mangle_dupe_names
 
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
@@ -921,37 +922,9 @@ cdef class TextReader:
                     this_header.append(name)
 
                 if not self.has_mi_columns:
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [i for i in range(len(this_header))
-                                      if i not in unnamed_col_indices
-                                      ] + unnamed_col_indices
-                    counts = {}
-
-                    for i in col_loop_order:
-                        col = this_header[i]
-                        old_col = col
-                        cur_count = counts.get(col, 0)
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_header:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts.get(col, 0)
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-
-                        this_header[i] = col
-                        counts[col] = cur_count + 1
+                    this_header = mangle_dupe_names(
+                        this_header, unnamed_col_indices, self.dtype
+                    )
 
                 if self.has_mi_columns:
 
@@ -1491,7 +1464,10 @@ cdef class TextReader:
                     st.offset_limit = _STR_OFFSET_LIMIT
                     nstr += 1
                     continue
-                mask = np.zeros(lines, dtype=np.bool_)
+                # not np.zeros: its calloc releases the GIL, a contended
+                # re-acquire per column when many workers run.  Zeroed in
+                # the nogil sweep below.
+                mask = np.empty(lines, dtype=np.bool_)
                 st.na_mask = <uint8_t *>mask.data
                 if kind == BLOCK_KIND_INT64:
                     arr = np.empty(lines, dtype=np.int64)
@@ -1507,8 +1483,9 @@ cdef class TextReader:
             with nogil:
                 for k in range(n):
                     st = &states[k]
-                    if st.kind == BLOCK_KIND_STRING and _str_col_alloc(
-                            st, parser, start, lines):
+                    if st.kind != BLOCK_KIND_STRING:
+                        memset(st.na_mask, 0, lines)
+                    elif _str_col_alloc(st, parser, start, lines):
                         error = 1
                         break
                 blk = start
@@ -1824,8 +1801,17 @@ cdef class TextReader:
                                               raise_on_invalid)
                 na_count = 0
 
-            if result is not None and dtype != "int64":
-                result = result.astype(dtype)
+            if result is not None and user_dtype and result.dtype != dtype:
+                # GH#55232 gated on user_dtype: inference must keep a uint64
+                #  result from the overflow fallback above, not wrap it into
+                #  the int64 it asked to try.
+                casted = result.astype(dtype)
+                if (casted != result).any():
+                    raise ValueError(
+                        f"cannot safely convert passed user dtype of "
+                        f"{dtype} for {result.dtype.name} dtyped data in "
+                        f"column {i}")
+                result = casted
 
             return result, na_count, na_mask
 

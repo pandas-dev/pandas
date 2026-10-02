@@ -261,6 +261,19 @@ def test_hash_pandas_empty_object(klass, dtype, index):
     tm.assert_series_equal(a, b)
 
 
+def test_hash_pandas_object_no_columns(index):
+    # GH#24318
+    df = pd.DataFrame(index=pd.Index([1, 2, 3]))
+    result = hash_pandas_object(df, index=index)
+    assert result.index.equals(df.index)
+    assert result.dtype == np.uint64
+    if not index:
+        # all rows are equal (empty), so their hashes are equal
+        assert result.nunique() == 1
+    else:
+        assert result.nunique() == 3
+
+
 @pytest.mark.parametrize(
     "s1",
     [

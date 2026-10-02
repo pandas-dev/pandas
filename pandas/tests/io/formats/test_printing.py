@@ -93,6 +93,11 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    def test_repr_seq_complex_precision(self):
+        # GH#25920
+        with cf.option_context("display.precision", 3):
+            assert printing.pprint_thing([3.14159265 + 1j]) == "[(3.142+1.0j)]"
+
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()
         assert printing.pprint_thing(np.array(5)) == "5"
@@ -107,6 +112,26 @@ def test_repr_object_dtype_0d_array(box):
     result = repr(obj)
     assert "5" in result
     assert "array(5)" not in result
+
+
+def test_repr_two_values_wraps_at_display_width():
+    # GH#16334
+    arr = pd.array(["x" * 50, "y" * 50], dtype=object)
+    result = repr(arr)
+    expected = (
+        "<NumpyExtensionArray>\n"
+        f"['{'x' * 50}',\n"
+        f" '{'y' * 50}']\n"
+        "Length: 2, dtype: object"
+    )
+    assert result == expected
+
+
+def test_repr_two_values_max_seq_items_1():
+    # GH#16334 two values are truncated the same way as longer data
+    with cf.option_context("display.max_seq_items", 1):
+        result = repr(pd.array([1, 2]))
+    assert result == "<IntegerArray>\n[...\n 2]\nLength: 2, dtype: Int64"
 
 
 class TestFormatBase:

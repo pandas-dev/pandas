@@ -243,6 +243,19 @@ class TestDataFrameEval:
 
         tm.assert_frame_equal(result, df.iloc[[0]])
 
+    def test_query_eval_local_class_attribute(self, engine, parser):
+        # GH#48694 an @-prefixed name is local even when it refers to a class
+        skip_if_no_pandas_parser(parser)
+
+        class A:
+            a = 2
+
+        df = pd.DataFrame({"x": [1, 2, 3]})
+        result = df.query("x == @A.a", engine=engine, parser=parser)
+        tm.assert_frame_equal(result, df.iloc[[1]])
+        result = df.eval("x == @A.a", engine=engine, parser=parser)
+        tm.assert_series_equal(result, df["x"] == 2)
+
     def test_query_duplicate_column_name_cleaned_name_collision(self, engine, parser):
         # GH#65588 clean_column_name is not injective, so the recorder has to
         # ask which label the cleaned name actually resolves to (the last one

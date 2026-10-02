@@ -2,7 +2,7 @@
 # Inspired by numpy's cibuildwheel config https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 #
 # In an attempt to save CI resources, wheel builds do
-# not run on each push but only weekly and for releases.
+# not run on each push but only weekly and on release tag pushes.
 # Wheel builds can be triggered from the Actions page
 # (if you have the permissions) on a commit to main.
 #
@@ -13,8 +13,6 @@
 name: Wheel builder
 
 on:
-  release:
-    types: [published]
   schedule:
   # 3:27 UTC every day
   - cron: "27 3 * * *"
@@ -44,7 +42,6 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
@@ -83,7 +80,6 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
@@ -165,11 +161,72 @@ jobs:
           artifacts_path: dist
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
+  report_failure:
+    # Keep one open issue while nightly builds fail, closed by the next passing night. GH#55903
+    name: Report nightly build failures
+    permissions:
+      issues: write           # open, comment on, and close the tracking issue
+    if: >-
+      !cancelled() &&
+      github.repository == 'pandas-dev/pandas' &&
+      github.event_name == 'schedule'
+    needs:
+      - build_sdist
+      - build_wheels
+      - upload_nightly
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          FAILED: ${{ contains(needs.*.result, 'failure') }}
+        with:
+          script: |
+            const TITLE = 'CI: Nightly wheel builds are failing';
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const runUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}`;
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              ...repo, state: 'open', creator: 'github-actions[bot]', per_page: 100,
+            });
+            const issue = openIssues.find(item => !item.pull_request && item.title === TITLE);
+
+            if (process.env.FAILED !== 'true') {
+              if (issue) {
+                await github.rest.issues.createComment({
+                  ...repo, issue_number: issue.number, body: `Passing again as of ${runUrl}`,
+                });
+                await github.rest.issues.update({
+                  ...repo, issue_number: issue.number, state: 'closed', state_reason: 'completed',
+                });
+              }
+              return;
+            }
+
+            if (issue) {
+              await github.rest.issues.createComment({
+                ...repo, issue_number: issue.number, body: `Failing run: ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                ...repo,
+                title: TITLE,
+                labels: ['CI'],
+                body: [
+                  'The scheduled wheel build failed, so no nightly wheels were uploaded.',
+                  'This issue is managed by the `report_failure` job in',
+                  '`.github/workflows/wheels.yml` and closes on the next passing night.',
+                  'Closing it by hand while builds still fail opens a new one on the next failing night.',
+                  '',
+                  `Failing run: ${runUrl}`,
+                ].join('\n'),
+              });
+            }
+
   publish:
     if: >
       github.repository == 'pandas-dev/pandas' &&
-      github.event_name == 'release' &&
-      startsWith(github.ref, 'refs/tags/v')
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      ( ! endsWith(github.ref, 'dev0'))
 
     needs:
       - build_sdist
@@ -204,3 +261,65 @@ jobs:
         with:
           packages-dir: upload
           skip-existing: true
+
+  create_release:
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      ( ! endsWith(github.ref, 'dev0'))
+
+    needs:
+      - build_sdist
+      - publish
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release notes templates
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            .github/release_notes
+          sparse-checkout-cone-mode: false
+
+      - name: Download sdist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sdist
+          path: ./dist
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export VERSION="${GITHUB_REF_NAME#v}"
+          export BASE_VERSION="${VERSION%%rc*}"
+          export MINOR_VERSION="${BASE_VERSION%.*}"
+
+          if [[ "$VERSION" == *rc* ]]; then
+            TEMPLATE="rc"
+            PRERELEASE="--prerelease"
+          elif [[ "${BASE_VERSION##*.}" != "0" ]]; then
+            TEMPLATE="patch"
+            PRERELEASE=""
+          else
+            TEMPLATE="minor"
+            PRERELEASE=""
+          fi
+
+          envsubst '${VERSION} ${BASE_VERSION} ${MINOR_VERSION}' \
+            < ".github/release_notes/$TEMPLATE.md" > notes.md
+          cat notes.md
+
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "pandas $VERSION" \
+            --notes-file notes.md \
+            --draft \
+            $PRERELEASE \
+            dist/pandas-*.tar.gz

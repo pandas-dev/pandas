@@ -45,6 +45,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import is_matching_na
 from pandas._libs.tslibs import (
+    Period,
     Timestamp,
     tz_compare,
 )
@@ -177,7 +178,6 @@ from pandas.io.formats.printing import (
     default_pprint,
     format_object_summary,
     get_adjustment,
-    pprint_thing,
 )
 
 if TYPE_CHECKING:
@@ -1563,9 +1563,21 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _mpl_repr(self) -> np.ndarray:
         # how to represent ourselves to matplotlib
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind != "M":
-            return cast("np.ndarray", self.values)
-        return self.astype(object, copy=False)._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+        if isinstance(self.dtype, np.dtype) and self.dtype.kind == "M":
+            return self.astype(object, copy=False)._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+        elif isinstance(self.dtype, ExtensionDtype):
+            values = cast("ExtensionArray", self._values)
+            if self.dtype.kind in "mM":
+                # e.g. ArrowDtype - relying on default of NaT for those dtypes
+                # (explicitly specifying NaT raises an error)
+                return values.to_numpy()
+            if self.dtype.kind == "O":
+                return values.to_numpy(na_value=None)
+            if self.hasnans:
+                return values.to_numpy(na_value=np.nan)
+            else:
+                return values.to_numpy()
+        return self._values  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
 
     _default_na_rep = "NaN"
 
@@ -1579,13 +1591,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Render a string representation of the Index.
         """
+        from pandas.io.formats.format import format_name
+
         header = []
         if include_name:
-            header.append(
-                pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
-                if self.name is not None
-                else ""
-            )
+            header.append(format_name(self.name))
 
         if formatter is not None:
             return header + list(self.map(formatter))
@@ -4667,8 +4677,14 @@ class Index(IndexOpsMixin, PandasObject):
         if self.dtype != other.dtype:
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
-            other = other.astype(dtype, copy=False)
-            return this.join(other, how=how, return_indexers=True)
+            that = other.astype(dtype, copy=False)
+            join_index, lidx, ridx = this.join(that, how=how, return_indexers=True)
+            # left/right joins keep the dtype of the side the values come from
+            if how == "left":
+                join_index = self if lidx is None else self.take(lidx)
+            elif how == "right":
+                join_index = other if ridx is None else other.take(ridx)
+            return join_index, lidx, ridx
         elif (
             isinstance(self, ABCCategoricalIndex)
             and isinstance(other, ABCCategoricalIndex)
@@ -8615,7 +8631,16 @@ def get_values_for_csv(
                 else:
                     values = values.astype(str)
             else:
-                values = np.array(values, dtype="object")
+                if isinstance(values, ExtensionArray):
+                    values = values.to_numpy(na_value=np.nan)
+                if values.dtype.itemsize < 8:
+                    # GH#60699 keep numpy scalars; Python floats would be
+                    # written with the float64 repr, e.g. 8.569999694824219
+                    result = np.empty(values.size, dtype=object)
+                    result[:] = list(values.ravel())
+                    values = result.reshape(values.shape)
+                else:
+                    values = np.array(values, dtype="object")
 
             values[mask] = na_rep
             values = values.astype(object, copy=False)
@@ -8651,6 +8676,15 @@ def get_values_for_csv(
             if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
                 # enlarge for the na_rep
                 values = values.astype(f"<U{itemsize}")
+        elif date_format is not None and values.dtype == _dtype_obj:
+            # GH#27306 match the formatting of datetime64 and Period arrays
+            def _format(val: object) -> object:
+                if val is not NaT and isinstance(val, (datetime, Period)):
+                    return val.strftime(date_format)
+                return val
+
+            values = lib.map_infer(values.ravel(), _format, convert=False)
+            values = values.reshape(mask.shape)
         else:
             values = np.array(values, dtype="object")
 
