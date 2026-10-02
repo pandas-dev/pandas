@@ -52,6 +52,7 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
+    is_complex,
     is_complex_dtype,
     is_float,
     is_integer,
@@ -63,6 +64,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -73,6 +75,7 @@ from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
     ExtensionArray,
+    IntervalArray,
     TimedeltaArray,
 )
 from pandas.core.base import PandasObject
@@ -241,7 +244,9 @@ class SeriesFormatter:
 
     def _get_formatted_values(self) -> list[str]:
         return format_array(
-            self.tr_series._values,
+            _maybe_format_float_intervals(
+                self.tr_series._values, None, self.float_format, "."
+            ),
             None,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -754,7 +759,9 @@ class DataFrameFormatter:
         frame = self.tr_frame
         formatter = self._get_formatter(i)
         return format_array(
-            frame._get_column_array(i),
+            _maybe_format_float_intervals(
+                frame._get_column_array(i), formatter, self.float_format, self.decimal
+            ),
             formatter,
             float_format=self.float_format,
             na_rep=self.na_rep,
@@ -763,7 +770,7 @@ class DataFrameFormatter:
             leading_space=self.index,
         )
 
-    def _get_formatter(self, i: str | int) -> Callable | None:
+    def _get_formatter(self, i: str | int) -> Callable[..., Any] | None:
         if isinstance(self.formatters, (list, tuple)):
             if is_integer(i):
                 i = cast("int", i)
@@ -912,7 +919,7 @@ class DataFrameRenderer:
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         encoding: str | None = None,
-        classes: str | list | tuple | None = None,
+        classes: str | list[str] | tuple[str, ...] | None = None,
         notebook: bool = False,
         border: int | bool | None = None,
         table_id: str | None = None,
@@ -1118,7 +1125,7 @@ def format_name(name: Hashable) -> str:
 
 def format_array(
     values: ArrayLike,
-    formatter: Callable | None,
+    formatter: Callable[..., Any] | None,
     float_format: FloatFormatType | None = None,
     na_rep: str = "NaN",
     digits: int | None = None,
@@ -1127,7 +1134,7 @@ def format_array(
     decimal: str = ".",
     leading_space: bool | None = True,
     quoting: int | None = None,
-    fallback_formatter: Callable | None = None,
+    fallback_formatter: Callable[..., Any] | None = None,
 ) -> list[str]:
     """
     Format an array for printing.
@@ -1207,7 +1214,7 @@ class _GenericArrayFormatter:
         self,
         values: ArrayLike,
         digits: int = 7,
-        formatter: Callable | None = None,
+        formatter: Callable[..., Any] | None = None,
         na_rep: str = "NaN",
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
@@ -1216,7 +1223,7 @@ class _GenericArrayFormatter:
         quoting: int | None = None,
         fixed_width: bool = True,
         leading_space: bool | None = True,
-        fallback_formatter: Callable | None = None,
+        fallback_formatter: Callable[..., Any] | None = None,
     ) -> None:
         self.values = values
         self.digits = digits
@@ -1237,15 +1244,13 @@ class _GenericArrayFormatter:
         return result
 
     def _format_strings(self) -> list[str]:
-        if self.float_format is None:
-            float_format = config["display"]["float_format"]
-            if float_format is None:
-                precision = config["display"]["precision"]
-                float_format = lambda x: _trim_zeros_single_float(
-                    f"{x: .{precision:d}f}"
-                )
+        user_float_format: Any = self.float_format
+        if user_float_format is None:
+            user_float_format = config["display"]["float_format"]
+        if user_float_format is None:
+            float_format = partial(printing.format_with_precision, sign=" ")
         else:
-            float_format = self.float_format
+            float_format = user_float_format
 
         if self.formatter is not None:
             formatter = self.formatter
@@ -1270,6 +1275,9 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
+            elif self.formatter is None and is_complex(x):
+                # GH#25920
+                return _format_complex(x, user_float_format)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1327,7 +1335,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         self,
         float_format: FloatFormatType | None = None,
         threshold: float | None = None,
-    ) -> Callable:
+    ) -> Callable[..., Any]:
         """Returns a function to be applied on each value to format it"""
         # the float_format parameter supersedes self.float_format
         if float_format is None:
@@ -1386,7 +1394,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         """
 
         def format_with_na_rep(
-            values: ArrayLike, formatter: Callable, na_rep: str
+            values: ArrayLike, formatter: Callable[..., Any], na_rep: str
         ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
@@ -1398,7 +1406,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return formatted
 
         def format_complex_with_na_rep(
-            values: ArrayLike, formatter: Callable, na_rep: str
+            values: ArrayLike, formatter: Callable[..., Any], na_rep: str
         ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
@@ -1583,6 +1591,84 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
         return fmt_values
 
 
+def _format_complex(value: complex, float_format: FloatFormatType | None) -> str:
+    """
+    Format a complex scalar from an object-dtype array.
+
+    ``float_format`` is applied to each part separately so that formats
+    written for floats also work here.
+    """
+    if float_format is None:
+        return printing.format_with_precision(value)
+    if isinstance(float_format, str):
+        # "%"-style strings reach here unconverted
+        fmt_str = float_format
+        float_format = lambda part: fmt_str % part
+    real = str(float_format(value.real)).strip()
+    imag = str(float_format(value.imag)).strip()
+    if not imag.startswith("-"):
+        imag = f"+{imag}"
+    return f"({real}{imag}j)"
+
+
+def _maybe_format_float_intervals(
+    values: ArrayLike,
+    formatter: Callable[..., Any] | None,
+    float_format: FloatFormatType | None,
+    decimal: str,
+) -> ArrayLike:
+    """
+    Pre-format float-endpoint Interval column values (GH#25920).
+
+    Only column values go through here; index labels and Categorical
+    categories keep ``str(Interval)``.
+    """
+    if (
+        formatter is None
+        and isinstance(values.dtype, IntervalDtype)
+        and lib.is_np_dtype(values.dtype.subtype, "f")
+    ):
+        return _format_float_intervals(
+            cast("IntervalArray", values), float_format=float_format, decimal=decimal
+        )
+    return values
+
+
+def _format_float_intervals(
+    values: IntervalArray,
+    float_format: FloatFormatType | None,
+    decimal: str,
+) -> np.ndarray:
+    """
+    Render Intervals with float endpoints as strings, leaving NA entries as-is.
+
+    All endpoints are formatted together, so they follow the same rules as a
+    float64 column, e.g. switching to scientific notation (GH#25920).
+    """
+    mask = values.isna()
+    left = np.asarray(values.left)[~mask]
+    right = np.asarray(values.right)[~mask]
+    endpoints = format_array(
+        np.concatenate([left, right]),
+        None,
+        float_format=float_format,
+        decimal=decimal,
+        leading_space=False,
+    )
+    endpoints = [endpoint.strip() for endpoint in endpoints]
+    start = "[" if values.closed_left else "("
+    end = "]" if values.closed_right else ")"
+    result = np.asarray(values, dtype=object)
+    n_valid = len(left)
+    result[~mask] = [
+        f"{start}{left_str}, {right_str}{end}"
+        for left_str, right_str in zip(
+            endpoints[:n_valid], endpoints[n_valid:], strict=True
+        )
+    ]
+    return result
+
+
 def format_percentiles(
     percentiles: np.ndarray | Sequence[float],
 ) -> list[str]:
@@ -1685,7 +1771,7 @@ def _format_datetime64_dateonly(
 
 def get_format_datetime64(
     is_dates_only: bool, na_rep: str = "NaT", date_format: str | None = None
-) -> Callable:
+) -> Callable[..., Any]:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
@@ -1719,7 +1805,7 @@ def get_format_timedelta64(
     values: TimedeltaArray,
     na_rep: str | float = "NaT",
     box: bool = False,
-) -> Callable:
+) -> Callable[..., Any]:
     """
     Return a formatter function for a range of timedeltas.
     These will all have the same format argument
@@ -1823,18 +1909,6 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:], strict=True)
     ]
     return padded
-
-
-def _trim_zeros_single_float(str_float: str) -> str:
-    """
-    Trims trailing zeros after a decimal point,
-    leaving just one if necessary.
-    """
-    str_float = str_float.rstrip("0")
-    if str_float.endswith("."):
-        str_float += "0"
-
-    return str_float
 
 
 _NUMBER_WITH_DECIMAL_RE = re.compile(r"^\s*[+-]?[0-9]+\.[0-9]*$")
