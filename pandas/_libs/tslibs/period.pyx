@@ -1280,7 +1280,9 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     return result
 
 
-cdef str period_format(int64_t value, int freq, object fmt=None):
+cdef str period_format(
+    int64_t value, int freq, object fmt=None, tuple prepared_fmt=None
+):
 
     cdef:
         int freq_group, quarter
@@ -1355,11 +1357,9 @@ cdef str period_format(int64_t value, int freq, object fmt=None):
 
     else:
         # A custom format is requested
-        if isinstance(fmt, str):
-            # Encode using current locale, in case fmt contains non-utf8 chars
-            fmt = <bytes>util.string_encode_locale(fmt)
-
-        return _period_strftime(value, freq, fmt, dts)
+        if prepared_fmt is None:
+            prepared_fmt = _prepare_strftime_format(fmt)
+        return _period_strftime(value, freq, prepared_fmt[0], prepared_fmt[1], dts)
 
 
 cdef _warn_period_strftime_n_deprecated():
@@ -1382,16 +1382,35 @@ cdef list extra_fmts = [(b"%q", b"^`AB`^"),
                         (b"%l", b"^`GH`^"),
                         (b"%u", b"^`IJ`^"),
                         (b"%n", b"^`KL`^"),
-                        (b"%N", b"^`MN`^")]
+                        (b"%N", b"^`MN`^"),
+                        # %Y is handled here rather than by C strftime, which
+                        #  does not zero-pad years before 1000 on glibc (GH#48746)
+                        (b"%Y", b"^`OP`^")]
 
 cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
-                            "^`GH`^", "^`IJ`^", "^`KL`^", "^`MN`^"]
+                            "^`GH`^", "^`IJ`^", "^`KL`^", "^`MN`^", "^`OP`^"]
 
 # Conservative cross-platform set of valid C strftime directives, matching
-# CPython's allowlist for time.strftime on Windows. Pandas-specific
-# directives (q, f, F, l, u, n) are pre-extracted before validation, so they
-# are intentionally absent here.
+# CPython's allowlist for time.strftime on Windows. Directives in `extra_fmts`
+# are replaced before validation, so the pandas-specific ones are absent here.
 cdef frozenset _VALID_STRFTIME_DIRECTIVES = frozenset(b"aAbBcdHIjmMpSUwWxXyYzZ%")
+
+
+cdef bytes _replace_directive(bytes fmt, bytes pat, bytes repl):
+    # Replace the directive `pat` with `repl`, skipping escaped "%%" so that
+    # "%%q" stays a literal "%q".
+    cdef:
+        list parts = []
+        Py_ssize_t start = 0
+        Py_ssize_t idx = fmt.find(b"%")
+    while idx != -1:
+        if fmt[idx:idx + 2] == pat:
+            parts.append(fmt[start:idx])
+            parts.append(repl)
+            start = idx + 2
+        idx = fmt.find(b"%", idx + 2)
+    parts.append(fmt[start:])
+    return b"".join(parts)
 
 
 cdef _validate_strftime_format(bytes fmt):
@@ -1405,26 +1424,44 @@ cdef _validate_strftime_format(bytes fmt):
         idx = fmt.find(b"%", idx + 2)
 
 
-cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct dts):
+cdef tuple _prepare_strftime_format(object fmt):
+    # Replace the directives in `extra_fmts` with placeholders that c_strftime
+    # leaves alone, and validate the rest. This depends only on `fmt`, so
+    # period_array_strftime does it once rather than per element.
+    cdef:
+        Py_ssize_t i
+        bytes bfmt, pat, new_fmt
+        list found_pat = [False] * len(extra_fmts)
+
+    if isinstance(fmt, str):
+        # Encode using current locale, in case fmt contains non-utf8 chars
+        bfmt = <bytes>util.string_encode_locale(fmt)
+    else:
+        bfmt = fmt
+
+    for i in range(len(extra_fmts)):
+        pat = extra_fmts[i][0]
+        if pat in bfmt:
+            new_fmt = _replace_directive(bfmt, pat, extra_fmts[i][1])
+            if new_fmt != bfmt:
+                bfmt = new_fmt
+                found_pat[i] = True
+
+    _validate_strftime_format(bfmt)
+    return bfmt, found_pat
+
+
+cdef str _period_strftime(
+    int64_t value, int freq, bytes fmt, list found_pat, npy_datetimestruct dts
+):
+    # `fmt` and `found_pat` come from _prepare_strftime_format
     cdef:
         Py_ssize_t i
         char *formatted
-        bytes pat, brepl
-        list found_pat = [False] * len(extra_fmts)
         int quarter
+        int64_t year
         int32_t us, ps
         str result, repl
-
-    # Find our additional directives in the pattern and replace them with
-    # placeholders that are not processed by c_strftime
-    for i in range(len(extra_fmts)):
-        pat = extra_fmts[i][0]
-        brepl = extra_fmts[i][1]
-        if pat in fmt:
-            fmt = fmt.replace(pat, brepl)
-            found_pat[i] = True
-
-    _validate_strftime_format(fmt)
 
     # Execute c_strftime to process the usual datetime directives
     formatted = c_strftime(&dts, <char*>fmt)
@@ -1439,6 +1476,7 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
     # Save these to local vars as dts can be modified by get_yq below
     us = dts.us
     ps = dts.ps
+    year = dts.year
     if any(found_pat[0:3]):
         # Note: this modifies `dts` in-place so that year becomes fiscal year
         # However it looses the us and ps
@@ -1464,6 +1502,8 @@ cdef str _period_strftime(int64_t value, int freq, bytes fmt, npy_datetimestruct
                 repl = f"{((us * 1000) + (ps // 1000)):09d}"
             elif i == 6:  # %N, nanoseconds
                 repl = f"{((us * 1000) + (ps // 1000)):09d}"
+            elif i == 7:  # %Y, calendar year with a century
+                repl = f"{year:04d}"
 
             result = result.replace(str_extra_fmts[i], repl)
 
@@ -1495,8 +1535,10 @@ def period_array_strftime(
         )
         object[::1] out_flat = out.ravel()
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, values)
+        tuple prepared_fmt = None
 
-    if date_format is not None and "%n" in date_format:
+    # strip escaped "%%" so that a literal "%%n" does not warn
+    if date_format is not None and "%n" in date_format.replace("%%", ""):
         _warn_period_strftime_n_deprecated()
 
     for i in range(n):
@@ -1513,7 +1555,10 @@ def period_array_strftime(
             #     item_repr = per.strftime(date_format)
             # else:
             #     item_repr = str(per)
-            item_repr = period_format(ordinal, dtype_code, date_format)
+            if prepared_fmt is None and date_format is not None:
+                # prepared lazily so an all-NaT array does not validate the format
+                prepared_fmt = _prepare_strftime_format(date_format)
+            item_repr = period_format(ordinal, dtype_code, date_format, prepared_fmt)
 
         # Analogous to: ordinals[i] = ordinal
         out_flat[i] = item_repr
@@ -3376,7 +3421,7 @@ cdef class _Period(PeriodMixin):
         >>> a.strftime('%b. %d, %Y was a %A')
         'Jan. 01, 2001 was a Monday'
         """
-        if isinstance(fmt, str) and "%n" in fmt:
+        if isinstance(fmt, str) and "%n" in fmt.replace("%%", ""):
             _warn_period_strftime_n_deprecated()
         base = self._dtype._dtype_code
         return period_format(self.ordinal, base, fmt)
