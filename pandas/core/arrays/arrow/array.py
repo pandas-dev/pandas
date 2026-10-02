@@ -1379,6 +1379,16 @@ class ArrowExtensionArray(
         other_original = other
         ops.raise_if_2d(other)
         other = self._box_pa(other)
+        other_inferred = other
+        if (
+            isinstance(other, pa.Scalar)
+            and pa.types.is_signed_integer(pa_type)
+            and pa.types.is_integer(other.type)
+        ):
+            try:
+                other = other.cast(pa_type)
+            except (pa.ArrowInvalid, pa.ArrowTypeError):
+                pass
 
         if (
             pa.types.is_string(pa_type)
@@ -1450,8 +1460,34 @@ class ArrowExtensionArray(
 
         try:
             result = pc_func(self._pa_array, other)
+        except pa.ArrowInvalid as err:
+            if "overflow" not in str(err) or other.type == other_inferred.type:
+                raise
+            result = pc_func(self._pa_array, other_inferred)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
+        if (
+            isinstance(other_inferred, pa.Scalar)
+            and pa.types.is_floating(other_inferred.type)
+            and pa.types.is_floating(pa_type)
+            and pa.types.is_floating(result.type)
+            and result.type != pa_type
+        ):
+            casted = result.cast(pa_type)
+            overflow = pc.any(
+                pc.and_kleene(pc.is_finite(result), pc.is_inf(casted))
+            ).as_py()
+            if overflow is not True:
+                result = casted
+        if (
+            isinstance(other_inferred, pa.Scalar)
+            and pa.types.is_decimal(pa_type)
+            and pa.types.is_decimal(result.type)
+        ):
+            try:
+                result = result.cast(pa_type)
+            except pa.ArrowInvalid:
+                pass
         return self._from_pyarrow_array(result)
 
     def _logical_method(self, other, op) -> Self:
