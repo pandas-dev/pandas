@@ -199,6 +199,43 @@ def test_from_sequence_masked_arrow_integers_with_na(dtype):
     tm.assert_period_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("box", [list, tuple, "timestamp[ns][pyarrow]"])
+@pytest.mark.parametrize("freq", ["D", "ns"])
+def test_from_sequence_datetime64_ns_not_ndarray(box, freq):
+    # GH#69776 datetime64[ns] data that is not already an ndarray was cast to
+    #  object as integers, which then failed to parse
+    values = [
+        np.datetime64("2024-09-10T13:05:00.123456789", "ns"),
+        np.datetime64("NaT", "ns"),
+    ]
+    if isinstance(box, str):
+        pytest.importorskip("pyarrow")
+        data = pd.array(values, dtype=box)
+    else:
+        data = box(values)
+
+    result = PeriodArray._from_sequence(data, dtype=pd.PeriodDtype(freq))
+    expected = pd.DatetimeIndex(values).to_period(freq).array
+    tm.assert_period_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "box", [np.array, list, pd.DatetimeIndex, "timestamp[ns][pyarrow]"]
+)
+def test_from_datetime64_without_freq_raises(box):
+    # GH#69776 these raised AttributeError from a None freq
+    values = [np.datetime64("2024-09-10", "ns"), np.datetime64("2024-09-11", "ns")]
+    if isinstance(box, str):
+        pytest.importorskip("pyarrow")
+        data = pd.array(values, dtype=box)
+    else:
+        data = box(values)
+
+    msg = "freq not specified and cannot be inferred"
+    with pytest.raises(ValueError, match=msg):
+        pd.PeriodIndex(data)
+
+
 @pytest.mark.parametrize(
     "values",
     [
