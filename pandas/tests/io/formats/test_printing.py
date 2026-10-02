@@ -114,8 +114,6 @@ class TestPPrintThing:
             def __repr__(self) -> str:
                 return ",".join(self.keys())
 
-            __str__ = __repr__
-
         class ReprMapping(MyMapping):
             def __repr__(self) -> str:
                 return "ReprMapping()"
@@ -182,8 +180,6 @@ def test_frame_repr_dict_subclass_custom_repr():
     class KeysDict(dict):
         def __repr__(self) -> str:
             return ",".join(self.keys())
-
-        __str__ = __repr__
 
     df = pd.DataFrame(
         [["A", 1, KeysDict(alpha="b", beta="c")]], columns=["D", "F", "G"]
