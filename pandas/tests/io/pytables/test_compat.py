@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -78,7 +79,9 @@ class TestReadPyTablesHDF5:
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
 
-_legacy_files = list(Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5"))
+_legacy_files: list[Any] = list(
+    Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
+)
 
 
 if not _legacy_files:
