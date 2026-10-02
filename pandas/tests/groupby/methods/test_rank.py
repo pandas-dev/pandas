@@ -643,6 +643,7 @@ def test_groupby_op_with_nullables(na_option):
         pd.DatetimeIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"]),
         pd.DatetimeIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"], tz="UTC"),
         pd.to_timedelta([2, None, 1, 3], unit="D"),
+        pd.PeriodIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"], freq="D"),
     ],
 )
 @pytest.mark.parametrize(

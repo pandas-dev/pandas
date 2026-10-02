@@ -440,6 +440,24 @@ def test_datetime_cummin_max_with_na_group_key(method, expected_values, tz, unit
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "method,expected_values",
+    [
+        ("cummin", ["2024-01-02", None, None, "2024-01-02"]),
+        ("cummax", ["2024-01-02", None, None, "2024-01-03"]),
+    ],
+)
+def test_period_cummin_max_with_na_group_key(method, expected_values):
+    # GH#69923
+    pi = pd.PeriodIndex(["2024-01-02", None, "2024-01-01", "2024-01-03"], freq="D")
+    df = pd.DataFrame({"key": [0, 0, np.nan, 0], "val": pi})
+    gb = df.groupby("key")["val"]
+
+    result = getattr(gb, method)()
+    expected = pd.Series(pd.PeriodIndex(expected_values, freq="D"), name="val")
+    tm.assert_series_equal(result, expected)
+
+
 def test_datetime_cummax_no_precision_loss_with_na_group_key():
     # GH#69923
     dti = pd.DatetimeIndex(
