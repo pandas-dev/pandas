@@ -417,7 +417,7 @@ Other API changes
 - :meth:`DataFrame.select_dtypes` now raises ``ValueError`` when an interval spec's subtype names a resolution no column can have, such as ``"interval[datetime64[10s]]"`` or ``pd.IntervalDtype(np.dtype("M8[Y]"))``, instead of selecting no columns (:issue:`40234`)
 - :meth:`DataFrame.select_dtypes` now selects only columns with exactly the given dtype when a dtype instance is passed to ``include`` or ``exclude``. Previously an instance selected all columns with a matching ``dtype.type``, e.g. ``pd.DatetimeTZDtype(tz="UTC")`` also selected other timezones, ``np.dtype("int64")`` also selected ``Int64`` and Arrow ``int64`` columns, and ``pd.CategoricalDtype(["a", "b"])`` selected every categorical column (:issue:`40234`)
 - :meth:`DataFrame.select_dtypes` now treats the string specs ``"datetime64[ns]"`` and ``"timedelta64[ns]"`` as naming the nanosecond resolution specifically, so they select only ``ns`` columns; previously they selected every datetime64/timedelta64 column regardless of resolution. Pass the unitless ``"datetime64"``/``"timedelta64"`` to keep that behavior. A spec giving a multiple of a unit, such as ``"timedelta64[2ns]"``, now raises instead of selecting every column (:issue:`40234`)
-- :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file; the value was hardcoded to ``"0.15.2"`` and never reflected the pandas version. As a consequence, ``format="table"`` files written with pandas 3.1 or later cannot be read by pandas 3.0 or earlier (:issue:`62792`)
+- :meth:`DataFrame.to_hdf` no longer writes a ``pandas_version`` attribute into the HDF5 file; the value was hardcoded to ``"0.15.2"`` and never reflected the pandas version. As a consequence, ``format="table"`` files written with pandas 3.1 or later cannot be read by pandas 3.0 or earlier, and ``format="table"`` files written by pandas older than 0.10.1 can no longer be read (:issue:`62792`)
 - :meth:`HDFStore.select`, :meth:`HDFStore.select_as_coordinates`, :meth:`HDFStore.select_as_multiple`, :meth:`HDFStore.remove` and :func:`read_hdf` now raise ``TypeError`` for an ordering comparison (``<``, ``<=``, ``>``, ``>=``) in a ``where`` query against an unordered categorical column or index, matching the comparison on the same data in memory. Previously the query ranked the rows by the arbitrary order the categories happened to be stored in. Write the column with ``ordered=True`` to keep querying it by order (:issue:`68040`)
 - :meth:`Index.join` with ``how="left"`` or ``how="right"`` on indexes of different dtypes now keeps the dtype of the index the result is taken from, instead of casting to a common dtype such as ``object``. This carries through to :meth:`Series.align`, :meth:`DataFrame.join`, :func:`merge` and :meth:`Series.str.cat`, so e.g. ``ser.str.cat(other)`` no longer changes a ``str`` index to ``object`` (:issue:`63371`)
 - :meth:`Series.shift` now raises ``ValueError`` when ``suffix`` is passed together with an integer ``periods``. Previously the argument was silently ignored (:issue:`54806`)
@@ -444,10 +444,8 @@ Deprecations
 Deprecated ``inplace`` keyword for various methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-PDEP-8: https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html
-
 The ``inplace`` keyword is deprecated (and will eventually be removed) for all
-methods that do not actually work "inplace".
+methods that do not actually work "inplace" (:issue:`63207`).
 
 The ``inplace`` keyword has been used in various methods throughout pandas, but
 often, it is essentially syntactic sugar for reassigning the result to the
@@ -455,9 +453,8 @@ calling DataFrame or Series, because it never modifies the underlying values
 directly. Additionally, with the introduction of Copy-on-Write in pandas 3.0,
 users don't need the ``inplace`` keyword to avoid a copy of the data.
 
-For those reasons, the ``inplace`` keyword is deprecated for those methods
-which do not work inplace. In practice, these are the DataFrame and Series
-methods :meth:`~DataFrame.drop`, :meth:`~DataFrame.rename`,
+The affected methods are the DataFrame methods (and their Series equivalents,
+where they exist) :meth:`~DataFrame.drop`, :meth:`~DataFrame.rename`,
 :meth:`~DataFrame.rename_axis`, :meth:`~DataFrame.reset_index`,
 :meth:`~DataFrame.set_index`, :meth:`~DataFrame.dropna`,
 :meth:`~DataFrame.drop_duplicates`, :meth:`~DataFrame.sort_values`,
@@ -667,7 +664,7 @@ Performance improvements
 - Performance improvement in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` with user-defined functions (:issue:`46505`)
 - Performance improvement in :meth:`.Rolling.median`, :meth:`.Rolling.quantile`, and :meth:`.Rolling.rank`, as well as their :class:`.Expanding` counterparts (:issue:`66128`)
 - Performance improvement in :meth:`DataFrame.apply` with ``axis=1`` when the :class:`DataFrame` has :class:`ExtensionDtype` columns (e.g. :class:`ArrowDtype`) (:issue:`61747`)
-- Performance improvement in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` when data contains no NaN values (:issue:`64857`)
+- Performance improvement in :meth:`DataFrame.corr` and :meth:`DataFrame.cov` when data contains no NaN values (:issue:`65046`)
 - Performance improvement in :meth:`DataFrame.corr` for ``method="kendall"`` (:issue:`28329`)
 - Performance improvement in :meth:`DataFrame.diff` (:issue:`64864`)
 - Performance improvement in :meth:`DataFrame.duplicated` and :meth:`DataFrame.drop_duplicates` with multiple columns when one of them has :class:`PeriodDtype` (:issue:`69025`)
@@ -730,7 +727,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
   setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
   through an intermediate object array (:issue:`64229`).
-- Performance improvement in :meth:`Series.reindex` and :meth:`DataFrame.reindex` for non-nanosecond ``datetime64`` and ``timedelta64`` dtypes (:issue:`24566`)
+- Performance improvement in :meth:`Series.reindex` and :meth:`DataFrame.reindex` for non-nanosecond ``datetime64`` and ``timedelta64`` dtypes (:issue:`65165`).
 - Performance improvement in :meth:`Series.iloc` and :meth:`DataFrame.iloc`
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
@@ -802,6 +799,7 @@ Datetimelike
 - Bug in :func:`to_datetime` when passed a :class:`DataFrame` of date/time field columns with ``errors="coerce"`` returning ``datetime64[s]`` dtype instead of ``datetime64[us]`` when all rows were invalid (:issue:`65195`)
 - Bug in :func:`to_datetime` when using a low time resolution ``unit``, higher resolution in ``origin`` is now preserved instead of silently dropped (e.g. ``unit="D"`` with microsecond precision origin) (:issue:`63419`)
 - Bug in :func:`to_datetime` with ``unit`` and a ``float`` too large to represent, returning ``NaT`` or raising ``OverflowError`` instead of ``OutOfBoundsDatetime`` (:issue:`68640`)
+- Bug in :func:`to_datetime` with a nullable integer array, a ``unit``, and ``errors="coerce"`` raising ``OutOfBoundsDatetime`` instead of returning ``NaT`` for out-of-bounds values (:issue:`66988`)
 - Bug in :func:`to_datetime` with string input silently ignoring ``dayfirst`` and ``yearfirst`` when ``unit`` was also passed (:issue:`63472`)
 - Bug in :func:`to_datetime` with the default ``cache=True`` returning ``category`` or ``object`` dtype instead of ``datetime64`` for categorical input with enough repeated values for the cache to be used (:issue:`28629`)
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype` and :meth:`Index.astype` to a big-endian ``datetime64``/``timedelta64`` dtype, e.g. ``astype(">M8[s]")``, silently returning byteswapped values when the cast also changed the resolution; the result now has the equivalent native-byteorder dtype (:issue:`68565`)
@@ -918,7 +916,7 @@ Numeric
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the ``fill_value`` parameter (:issue:`61581`)
 - Fixed bug where :meth:`DataFrame.eval`, :func:`eval`, and arithmetic on large ``int64`` data returned a column that :meth:`DataFrame.select_dtypes` did not recognize as ``int64`` (:issue:`17945`)
-- Fixed bug where calling a binary NumPy ufunc without an operator equivalent (e.g. ``np.logical_or``, ``np.logaddexp``) on two :class:`Series` or two :class:`DataFrame` objects with duplicate labels raised ``ValueError`` instead of aligning like the corresponding binary operations; as a side effect, the result's index/columns names are now taken from the first operand when the two inputs' names differ, instead of always being ``None`` (:issue:`54416`)
+- Fixed bug where calling a binary NumPy ufunc without an operator equivalent (e.g. ``np.logical_or``, ``np.logaddexp``) on two :class:`Series` or two :class:`DataFrame` objects with duplicate labels raised ``ValueError`` instead of aligning like the corresponding binary operations; these ufuncs now align exactly like the binary operators, so the result's index/columns names are taken from the first operand when the inputs' names differ (instead of always being ``None``) and timezone-naive versus timezone-aware indexes raise ``TypeError`` (:issue:`54416`)
 
 Conversion
 ^^^^^^^^^^
@@ -1039,7 +1037,6 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
-- Bug in :class:`MultiIndex` where pickling a :class:`DataFrame` with a ``datetime64[ns]`` level raised ``NotImplementedError`` (:issue:`63078`)
 - Bug in :meth:`DataFrame.loc` with a :class:`MultiIndex` where using a tuple indexer with a scalar and a list (e.g., ``(scalar, list)``) did not drop the scalar-indexed level (:issue:`18631`)
 - Bug in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` with a :class:`MultiIndex` raising ``KeyError`` when ``level`` is given by name and ``key`` returns an array without a name (:issue:`62361`)
 - Bug in :meth:`MultiIndex.get_loc` where looking up a tuple key containing a scalar inside an :class:`IntervalIndex` level with overlapping intervals raised ``KeyError`` or returned incorrect results (:issue:`27456`)
@@ -1137,7 +1134,6 @@ I/O
 - Fixed buffer overflow in :meth:`DataFrame.to_json` and :meth:`Series.to_json` that corrupted the output or crashed the interpreter when serializing deeply nested values with ``indent``, or values holding strings that need escaping (:issue:`67929`)
 - Fixed bug where a file opened by pandas was left open when :func:`read_csv` and other readers raised while opening it -- for example a ZIP or TAR archive holding more than one file -- so on Windows the file could not be renamed or deleted (:issue:`58131`)
 - Fixed memory leak in :func:`read_csv` (:issue:`19941`)
-- Fixed memory leak in :func:`read_csv` with ``engine="c"`` when a string or ``category`` column failed to decode, for example invalid UTF-8 under the default ``encoding_errors="strict"`` (:issue:`67931`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing :class:`Timestamp` with timezones (:issue:`54865`)
 - Fixed memory leak in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing object-dtype ``numpy.datetime64`` values (:issue:`67930`)
 - Fixed segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` when serializing an object-dtype ``datetime.date`` or ``datetime.timedelta`` subclass that carries a ``_value`` attribute but no ``_creso`` attribute (:issue:`65904`)
