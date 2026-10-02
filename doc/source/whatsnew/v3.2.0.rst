@@ -194,7 +194,8 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`.DataFrameGroupBy.agg` with ``as_index=False`` omitting a named external :class:`Series` grouper when its name matched a partial key in :class:`MultiIndex` columns (:issue:`39103`)
+- Bug in :meth:`.DataFrameGroupBy.agg` with ``as_index=False`` raising ``ValueError`` when a :class:`MultiIndex` column is used as the grouping key; the grouping key is now padded with empty-string levels to match the ``as_index=True`` behavior (:issue:`39103`)
 -
 
 Reshaping
