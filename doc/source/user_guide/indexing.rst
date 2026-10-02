@@ -80,6 +80,18 @@ of multi-axis indexing.
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
+  .. note::
+
+     If a label or position appears more than once in the indexer, the
+     corresponding values in the assignment are written in order, so the last
+     one wins. For example:
+
+     .. ipython:: python
+
+        sr = pd.Series([10, 9, 8, 7])
+        sr.loc[[1, 2, 1]] = [5, 4, 3]
+        sr
+
 * ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
 
   .. note::
