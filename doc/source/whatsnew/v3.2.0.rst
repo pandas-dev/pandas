@@ -222,9 +222,12 @@ Styler
 Other
 ^^^^^
 
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
+
 .. ***DO NOT USE THIS SECTION***
 
-- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``inplace=True`` and a list-like or dict ``to_replace`` using memory proportional to the number of values to replace times the length of the data, raising ``MemoryError`` for large mappings (:issue:`25816`)
+-
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.contributors:
