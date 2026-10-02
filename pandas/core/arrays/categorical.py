@@ -3245,7 +3245,9 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         """
         from pandas import Series
 
-        return Series(self._parent.codes, index=self._index, name=self._name).__finalize__(self._series)
+        return Series(
+            self._parent.codes, index=self._index, name=self._name
+        ).__finalize__(self._series)
     def _delegate_method(self, name: str, *args, **kwargs):
         from pandas import Series
 
