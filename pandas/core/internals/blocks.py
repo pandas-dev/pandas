@@ -725,7 +725,14 @@ class Block(PandasObject, libinternals.Block):
             #  bc _can_hold_element is incorrect.
             return [self._maybe_copy(inplace, deep=False)]
 
-        elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
+        elif (
+            self._can_hold_element(value)
+            and not (
+                value is None
+                and not isinstance(self.dtype, ExtensionDtype)
+                and self.dtype != np.dtype(object)
+            )
+        ) or (self.dtype == "string" and is_re(value)):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
             blk = self._maybe_copy(inplace)
@@ -978,10 +985,18 @@ class Block(PandasObject, libinternals.Block):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
+                    if isinstance(self.dtype, StringDtype) and self._can_hold_element(
+                        value
+                    ):
+                        nb = self._maybe_copy(inplace=inplace)
+                        putmask_inplace(nb.values, mask, value)
+                        return [nb]
+
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
                         nb = nb.copy(deep=True)
+
                     elif inplace and has_ref and nb.refs.has_reference():
                         # no copy in astype and we had refs before
                         nb = nb.copy(deep=True)
