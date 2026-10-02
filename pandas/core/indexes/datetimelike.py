@@ -763,7 +763,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         ValueError
             If ``freq`` is invalid or does not conform to the values of the Index.
         TypeError
-            If the Index is a TimedeltaIndex and ``freq`` is not a fixed frequency.
+            If the Index is an empty TimedeltaIndex and ``freq`` is not a fixed
+            frequency.
 
         See Also
         --------
