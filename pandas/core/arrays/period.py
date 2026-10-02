@@ -303,7 +303,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         arrdata = np.asarray(scalars)
         if arrdata.dtype.kind == "M":
             # e.g. pyarrow timestamps or a list of np.datetime64; ensure_object
-            #  below would turn datetime64[ns] into integers, GH#69776
+            #  below would turn datetime64[ns] into integers, GH#70139
             freq = dtype._freq if dtype is not None else None  # type: ignore[union-attr]
             return cls._from_datetime64(arrdata, freq)
         if (

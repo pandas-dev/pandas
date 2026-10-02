@@ -202,7 +202,7 @@ def test_from_sequence_masked_arrow_integers_with_na(dtype):
 @pytest.mark.parametrize("box", [list, tuple, "timestamp[ns][pyarrow]"])
 @pytest.mark.parametrize("freq", ["D", "ns"])
 def test_from_sequence_datetime64_ns_not_ndarray(box, freq):
-    # GH#69776 datetime64[ns] data that is not already an ndarray was cast to
+    # GH#70139 datetime64[ns] data that is not already an ndarray was cast to
     #  object as integers, which then failed to parse
     values = [
         np.datetime64("2024-09-10T13:05:00.123456789", "ns"),
@@ -223,7 +223,7 @@ def test_from_sequence_datetime64_ns_not_ndarray(box, freq):
     "box", [np.array, list, pd.DatetimeIndex, "timestamp[ns][pyarrow]"]
 )
 def test_from_datetime64_without_freq_raises(box):
-    # GH#69776 these raised AttributeError from a None freq
+    # GH#70139 these raised AttributeError from a None freq
     values = [np.datetime64("2024-09-10", "ns"), np.datetime64("2024-09-11", "ns")]
     if isinstance(box, str):
         pytest.importorskip("pyarrow")
