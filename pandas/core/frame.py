@@ -1691,7 +1691,7 @@ class DataFrame(NDFrame, OpsMixin):
     @classmethod
     def from_dict(
         cls,
-        data: dict,
+        data: dict[Any, Any],
         orient: FromDictOrient = "columns",
         dtype: Dtype | None = None,
         columns: Axes | None = None,
@@ -1780,7 +1780,7 @@ class DataFrame(NDFrame, OpsMixin):
         a  b   1  3
            c   2  4
         """
-        index: list | Index | None = None
+        index: list[Hashable] | Index | None = None
         if not isinstance(data, dict):
             warnings.warn(
                 f"Passing a {type(data).__name__} to DataFrame.from_dict is "
@@ -1927,18 +1927,18 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
         *,
-        into: type[dict] = ...,
+        into: type[dict[Any, Any]] = ...,
         index: bool = ...,
-    ) -> dict: ...
+    ) -> dict[Any, Any]: ...
 
     @overload
     def to_dict(
         self,
         orient: Literal["records"],
         *,
-        into: type[dict] = ...,
+        into: type[dict[Any, Any]] = ...,
         index: bool = ...,
-    ) -> list[dict]: ...
+    ) -> list[dict[Any, Any]]: ...
 
     # error: Incompatible default for argument "into" (default has type "type
     # [dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
@@ -3164,7 +3164,7 @@ class DataFrame(NDFrame, OpsMixin):
         show_dimensions: bool | str = ...,
         decimal: str = ...,
         bold_rows: bool = ...,
-        classes: str | list | tuple | None = ...,
+        classes: str | list[str] | tuple[str, ...] | None = ...,
         escape: bool = ...,
         notebook: bool = ...,
         border: int | bool | None = ...,
@@ -3193,7 +3193,7 @@ class DataFrame(NDFrame, OpsMixin):
         show_dimensions: bool | str = ...,
         decimal: str = ...,
         bold_rows: bool = ...,
-        classes: str | list | tuple | None = ...,
+        classes: str | list[str] | tuple[str, ...] | None = ...,
         escape: bool = ...,
         notebook: bool = ...,
         border: int | bool | None = ...,
@@ -3221,7 +3221,7 @@ class DataFrame(NDFrame, OpsMixin):
         show_dimensions: bool | str = False,
         decimal: str = ".",
         bold_rows: bool = True,
-        classes: str | list | tuple | None = None,
+        classes: str | list[str] | tuple[str, ...] | None = None,
         escape: bool = True,
         notebook: bool = False,
         border: int | bool | None = None,
@@ -4153,7 +4153,7 @@ class DataFrame(NDFrame, OpsMixin):
             and first_dtype is not None
             and isinstance(first_dtype, ExtensionDtype)
         ):
-            new_values: list
+            new_values: Sequence[ExtensionArray]
             if isinstance(first_dtype, BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
                 from pandas.core.arrays.masked import (
@@ -4820,7 +4820,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self[cols] = value[value.columns[0]]
                 return
 
-            locs: np.ndarray | list
+            locs: np.ndarray | list[Any]
             if isinstance(loc, slice):
                 locs = np.arange(loc.start, loc.stop, loc.step)
             elif is_scalar(loc):
@@ -4991,7 +4991,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine: Literal["python", "numexpr"] | None = ...,
         local_dict: dict[str, Any] | None = ...,
         global_dict: dict[str, Any] | None = ...,
-        resolvers: list[Mapping] | None = ...,
+        resolvers: Sequence[Mapping[Any, Any]] | None = ...,
         level: int = ...,
         inplace: Literal[False] = ...,
     ) -> DataFrame: ...
@@ -5005,7 +5005,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine: Literal["python", "numexpr"] | None = ...,
         local_dict: dict[str, Any] | None = ...,
         global_dict: dict[str, Any] | None = ...,
-        resolvers: list[Mapping] | None = ...,
+        resolvers: Sequence[Mapping[Any, Any]] | None = ...,
         level: int = ...,
         inplace: Literal[True],
     ) -> None: ...
@@ -5019,7 +5019,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine: Literal["python", "numexpr"] | None = ...,
         local_dict: dict[str, Any] | None = ...,
         global_dict: dict[str, Any] | None = ...,
-        resolvers: list[Mapping] | None = ...,
+        resolvers: Sequence[Mapping[Any, Any]] | None = ...,
         level: int = ...,
         inplace: bool | lib.NoDefault = ...,
     ) -> DataFrame | None: ...
@@ -5032,7 +5032,7 @@ class DataFrame(NDFrame, OpsMixin):
         engine: Literal["python", "numexpr"] | None = None,
         local_dict: dict[str, Any] | None = None,
         global_dict: dict[str, Any] | None = None,
-        resolvers: list[Mapping] | None = None,
+        resolvers: Sequence[Mapping[Any, Any]] | None = None,
         level: int = 0,
         inplace: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
@@ -7580,7 +7580,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
-            periods = cast("Sequence", periods)
+            periods = cast("Sequence[int]", periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -9031,7 +9031,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = (subset,)
 
         #  needed for mypy since can't narrow types using np.iterable
-        subset = cast("Sequence", subset)
+        subset = cast("Sequence[Hashable]", subset)
 
         # Verify all columns in subset exist in the queried dataframe
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
@@ -10141,7 +10141,7 @@ class DataFrame(NDFrame, OpsMixin):
     _logical_method = _arith_method
 
     def _dispatch_frame_op(
-        self, right, func: Callable, axis: AxisInt | None = None
+        self, right, func: Callable[..., Any], axis: AxisInt | None = None
     ) -> DataFrame:
         """
         Evaluate the frame operation func(left, right) by evaluating
@@ -15177,7 +15177,7 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: Callable | Literal["python", "numba"] | None = None,
+        engine: Callable[..., Any] | Literal["python", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -15434,7 +15434,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             # one axis is empty
             if not all(self.shape):
-                func = cast("Callable", func)
+                func = cast("Callable[..., Any]", func)
                 try:
                     if axis == 0:
                         r = func(Series([], dtype=np.float64), *args, **kwargs)
@@ -19948,7 +19948,9 @@ class DataFrame(NDFrame, OpsMixin):
         setattr(new_obj, axis_name, new_ax)
         return new_obj
 
-    def isin(self, values: Series | DataFrame | Sequence | Mapping) -> DataFrame:
+    def isin(
+        self, values: Series | DataFrame | Sequence[Any] | Mapping[Any, Any]
+    ) -> DataFrame:
         """
         Whether each element in the DataFrame is contained in values.
 
@@ -20314,7 +20316,7 @@ def _values_unchanged(before: ArrayLike, after: ArrayLike) -> bool:
     return array_equivalent(left[~both_na], right[~both_na], strict_nan=True)
 
 
-class _DuplicateColumnRecorder(dict):
+class _DuplicateColumnRecorder(dict[Any, Any]):
     """
     Notes whether a query expression referenced a duplicated column label.
 

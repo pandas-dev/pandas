@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pytest
 
@@ -335,7 +337,7 @@ def test_is_string_dtype_nullable(nullable_string_dtype):
     assert com.is_string_dtype(pd.array(["a", "b"], dtype=nullable_string_dtype))
 
 
-integer_dtypes: list = []
+integer_dtypes: list[Any] = []
 
 
 @pytest.mark.parametrize(
@@ -369,7 +371,7 @@ def test_is_not_integer_dtype(dtype):
     assert not com.is_integer_dtype(dtype)
 
 
-signed_integer_dtypes: list = []
+signed_integer_dtypes: list[Any] = []
 
 
 @pytest.mark.parametrize(
@@ -407,7 +409,7 @@ def test_is_not_signed_integer_dtype(dtype):
     assert not com.is_signed_integer_dtype(dtype)
 
 
-unsigned_integer_dtypes: list = []
+unsigned_integer_dtypes: list[Any] = []
 
 
 @pytest.mark.parametrize(

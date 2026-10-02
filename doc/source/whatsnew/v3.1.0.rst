@@ -1213,6 +1213,7 @@ I/O
 
 Period
 ^^^^^^
+- Bug in :class:`PeriodIndex` and :func:`array` with a period ``dtype`` raising when given a list of nanosecond-unit ``np.datetime64`` values, and :class:`PeriodIndex` raising ``AttributeError`` instead of ``ValueError`` for ``datetime64`` data without a ``freq`` (:issue:`70139`)
 - Bug in :class:`Period` constructor where passing ``np.str_`` objects would fail in Cython string parsing (:issue:`48974`)
 - Bug in :class:`Period` subtraction raising ``TypeError`` instead of returning an empty result when either operand was a length-zero :class:`PeriodIndex` or ``period``-dtype :class:`Series` (:issue:`40624`)
 - Bug in :class:`Period`, :class:`PeriodIndex` and :meth:`DatetimeIndex.to_period` silently returning the 1970 epoch for dates the frequency cannot represent, e.g. ``Period("2300-01-01", freq="ns")``; these now raise ``OutOfBoundsDatetime`` (:issue:`66248`)

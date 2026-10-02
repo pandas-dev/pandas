@@ -108,13 +108,14 @@ deprecation2
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+- Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69748`)
+- Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.bug_fixes:
@@ -129,8 +130,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
--
+- Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 
 Timedelta
 ^^^^^^^^^
@@ -179,7 +179,7 @@ MultiIndex
 
 I/O
 ^^^
--
+- Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 -
 
 Period
@@ -194,7 +194,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`Series.resample` and :meth:`DataFrame.resample` with a :class:`PeriodIndex` and ``closed="right"`` returning shifted labels or incorrect aggregations (:issue:`44363`)
 -
 
 Reshaping
@@ -208,8 +208,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
--
+- Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 
 Styler
 ^^^^^^
@@ -218,6 +217,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where ``==`` and ``!=`` against a string gave different results than the same comparison outside of ``query``, e.g. returning no rows for a ``datetime64``, ``timedelta64``, or :class:`PeriodDtype` column, or raising ``NotImplementedError`` with ``parser="python"`` (:issue:`54199`)
 
 - Bug in ``&``, ``|`` and ``^`` between a :class:`Series`, :class:`Index` or :class:`DataFrame` and an object that is neither list-like nor a recognized scalar raising a bare ``AssertionError`` instead of ``TypeError`` (:issue:`31646`)
 - Bug in operations between an iterator and a :class:`DataFrame`, :class:`Series`, :class:`Index` or :class:`ExtensionArray` raising, or consuming it element-wise, instead of treating it as scalar-like (:issue:`31646`)
