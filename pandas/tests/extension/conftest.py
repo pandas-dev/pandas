@@ -221,6 +221,14 @@ def invalid_scalar(data):
 # cannot drift apart.
 
 
+@pytest.fixture(params=[True, False])
+def skipna(request):
+    """
+    Boolean 'skipna' parameter.
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.all_reductions)
 def all_reductions(request):
     """

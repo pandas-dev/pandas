@@ -44,6 +44,18 @@ def test_shares_memory_multiindex():
     assert not tm.shares_memory(mi, mi.levels[0])
 
 
+def test_shares_memory_multiindex_on_right():
+    mi = pd.MultiIndex.from_product([[1, 2], ["a", "b"]])
+    ser = pd.Series(mi.codes[0], copy=False)
+    idx = pd.Index(mi.codes[0], copy=False)
+
+    for other in [ser, idx]:
+        assert tm.shares_memory(mi, other)
+        assert tm.shares_memory(other, mi)
+
+    assert not tm.shares_memory(pd.Series(mi.codes[0].copy()), mi)
+
+
 def test_shares_memory_index_and_series():
     ser = pd.Series(np.arange(10))
     idx = pd.Index(ser._values, copy=False)

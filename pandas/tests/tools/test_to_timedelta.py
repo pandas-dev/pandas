@@ -518,7 +518,7 @@ class TestTimedeltas:
 
         arr = pd.array([1_000_000, 2_000_000, None], dtype="UInt64")
         result = pd.to_timedelta(arr, unit="ns")
-        expected = expected.append(pd.to_timedelta([pd.NaT]))
+        expected = pd.TimedeltaIndex([1_000_000, 2_000_000, pd.NaT], dtype="m8[ns]")
         tm.assert_index_equal(result, expected)
 
     def test_nullable_int_to_timedelta_no_float_precision_loss(

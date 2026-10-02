@@ -868,7 +868,7 @@ def index_or_series_obj(request):
 _index_or_series_objs_orderable = {
     key: value
     for key, value in _index_or_series_objs.items()
-    if "mixed-int-string" not in key
+    if key != "mixed-int-string"
 }
 
 

@@ -2303,7 +2303,7 @@ class TestToDatetimeUnit:
 
         arr = pd.array([1_000_000, 2_000_000, None], dtype="UInt64")
         result = pd.to_datetime(arr, unit="ns")
-        expected = expected.append(pd.to_datetime([pd.NaT]))
+        expected = pd.DatetimeIndex([1_000_000, 2_000_000, pd.NaT], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
     def test_nullable_int_to_datetime_no_float_precision_loss(

@@ -145,21 +145,17 @@ class JSONArray(ExtensionArray):
         else:
             if isinstance(key, slice):
                 key = range(*key.indices(len(self)))
+            elif isinstance(key, np.ndarray) and key.dtype == "bool":
+                # value has one entry per True position, not per row
+                key = np.flatnonzero(key)
 
-            if not isinstance(value, (type(self), abc.Sequence)):
+            if not isinstance(value, (type(self), abc.Sequence, np.ndarray)):
                 # broadcast value
                 value = itertools.cycle([value])
 
-            if isinstance(key, np.ndarray) and key.dtype == "bool":
-                # masking
-                for i, (k, v) in enumerate(zip(key, value, strict=False)):
-                    if k:
-                        assert isinstance(v, self.dtype.type)
-                        self.data[i] = v
-            else:
-                for k, v in zip(key, value, strict=False):
-                    assert isinstance(v, self.dtype.type)
-                    self.data[k] = v
+            for k, v in zip(key, value, strict=False):
+                assert isinstance(v, self.dtype.type)
+                self.data[k] = v
 
     def __len__(self) -> int:
         return len(self.data)

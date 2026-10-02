@@ -2009,6 +2009,29 @@ def test_long_rule_non_nano():
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_tz_localized2():
+    # GH#2245
+    idx = date_range(
+        "2001-09-20 15:59", "2001-09-20 16:00", freq="min", tz="Australia/Sydney"
+    )
+    s = pd.Series([1, 2], index=idx)
+
+    # GH#61985 changed this to behave like "B" rather than "24h"
+    result = s.resample("D", closed="right", label="right").mean()
+    ex_index = date_range("2001-09-20", periods=2, freq="D", tz="Australia/Sydney")
+    expected = pd.Series([np.nan, 1.5], index=ex_index)
+
+    tm.assert_series_equal(result, expected)
+
+    # for good measure
+    msg = "Converting to PeriodArray/Index representation will drop timezone "
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = s.resample("D").mean().to_period()
+    ex_index = period_range("2001-09-20", periods=1, freq="D")
+    expected = pd.Series([1.5], index=ex_index)
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_empty_series_with_tz():
     # GH#53664
     df = pd.DataFrame({"ts": [], "values": []}).astype(

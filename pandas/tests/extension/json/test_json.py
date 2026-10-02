@@ -197,12 +197,9 @@ class TestJSONArray(base.ExtensionTests):
     def test_combine_first(self, data):
         super().test_combine_first(data)
 
-    @pytest.mark.xfail(reason="broadcasting error")
-    def test_where_series(self, data, na_value):
-        # Fails with
-        # *** ValueError: operands could not be broadcast together
-        # with shapes (4,) (4,) (0,)
-        super().test_where_series(data, na_value)
+    @pytest.mark.xfail(reason="dict na_value is treated as list-like by _where")
+    def test_where_series(self, data, na_value, as_frame):
+        super().test_where_series(data, na_value, as_frame)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
@@ -373,10 +370,6 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="Fails to raise")
     def test_setitem_scalar_key_sequence_raise(self, data):
         super().test_setitem_scalar_key_sequence_raise(data)
-
-    @pytest.mark.xfail(reason="slice is not iterable")
-    def test_setitem_frame_2d_values(self, data):
-        super().test_setitem_frame_2d_values(data)
 
     @pytest.mark.xfail(
         reason="cannot set using a list-like indexer with a different length"

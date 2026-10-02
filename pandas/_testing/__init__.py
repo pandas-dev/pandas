@@ -524,6 +524,10 @@ def shares_memory(left: Any, right: Any) -> bool:
         # Call with reversed args to get to unpacking logic below.
         return shares_memory(right, left)
 
+    if isinstance(right, MultiIndex) and not isinstance(left, MultiIndex):
+        # MultiIndex._values is freshly built; compare the codes instead
+        return shares_memory(right, left)
+
     if isinstance(left, RangeIndex):
         return False
     if isinstance(left, MultiIndex):

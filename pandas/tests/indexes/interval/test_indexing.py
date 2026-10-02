@@ -506,6 +506,16 @@ class TestGetIndexer:
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
+    @pytest.mark.parametrize("box", [pd.PeriodIndex, pd.array, list])
+    def test_get_indexer_period_target(self, box):
+        # GH#30178 the reverse of test_get_indexer_interval_index
+        idx = pd.interval_range(pd.Timestamp("2022-07-01"), freq="3D", periods=3)
+        target = box(pd.period_range("2022-07-01", freq="D", periods=3))
+
+        result = idx.get_indexer(target)
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer_read_only(self):
         idx = pd.interval_range(start=0, end=5)
         arr = np.array([1, 2])
