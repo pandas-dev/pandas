@@ -6411,11 +6411,16 @@ class Index(IndexOpsMixin, PandasObject):
     def _should_fallback_to_positional(self) -> bool:
         """
         Should an integer key be treated as positional?
+
+        False when the index holds numeric labels, so an integer key can be a label.
         """
         return self.inferred_type not in {
             "integer",
             "mixed-integer",
             "floating",
+            "mixed-integer-float",
+            "integer-na",
+            "decimal",
             "complex",
         }
 

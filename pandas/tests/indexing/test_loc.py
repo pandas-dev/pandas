@@ -8,6 +8,7 @@ from datetime import (
     time,
     timedelta,
 )
+from decimal import Decimal
 import re
 
 from dateutil.tz import gettz
@@ -3506,6 +3507,19 @@ def test_loc_slice_disallows_positional():
     with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
         # GH#31840 enforce incorrect behavior
         df.loc[1:3, 1] = 2
+
+
+def test_loc_setitem_int_slice_decimal_index(frame_or_series):
+    # GH#70219 integer slice bounds are labels for a Decimal index, as in getitem
+    pa = pytest.importorskip("pyarrow")
+    values = [Decimal(1), Decimal(3), Decimal(5)]
+    index = pd.Index(pd.array(values, dtype=pd.ArrowDtype(pa.decimal128(5, 2))))
+    obj = frame_or_series(range(3), index=index)
+
+    expected = frame_or_series([99, 99, 2], index=index)
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    obj.loc[0:4] = 99
+    tm.assert_equal(obj, expected)
 
 
 def test_loc_datetimelike_mismatched_dtypes():
