@@ -6,6 +6,7 @@ from functools import partial
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
+    Any,
     TypeAlias,
     TypedDict,
     Union,
@@ -111,7 +112,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible: TypeAlias = list | tuple | AnyArrayLike
+ArrayConvertible: TypeAlias = list[Any] | tuple[Any, ...] | AnyArrayLike
 Scalar: TypeAlias = float | str
 DatetimeScalar: TypeAlias = Scalar | date | np.datetime64
 
@@ -258,7 +259,7 @@ def _maybe_cache(
     arg: ArrayConvertible,
     format: str | None,
     cache: bool,
-    convert_listlike: Callable,
+    convert_listlike: Callable[..., Any],
     unit: str | None = None,
 ) -> Series:
     """
@@ -818,7 +819,7 @@ def to_datetime(
 
 @overload
 def to_datetime(
-    arg: list | tuple | Index | ArrayLike,
+    arg: list[Any] | tuple[Any, ...] | Index | ArrayLike,
     errors: DateTimeErrorChoices = ...,
     dayfirst: bool = ...,
     yearfirst: bool = ...,
@@ -1253,7 +1254,9 @@ def to_datetime(
             # ndarray[Any, Any], Series]"; expected "Union[List[Any], Tuple[Any, ...],
             # Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series], Series]"
             argc = cast(
-                "list | tuple | ExtensionArray | np.ndarray | Series | Index", arg
+                "list[Any] | tuple[Any, ...] | ExtensionArray | np.ndarray | Series "
+                "| Index",
+                arg,
             )
             cache_array = _maybe_cache(argc, format, cache, convert_listlike, unit)
         except OutOfBoundsDatetime:

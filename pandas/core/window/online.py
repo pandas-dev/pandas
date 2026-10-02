@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
+@functools.cache
 def generate_online_numba_ewma_func(
     nogil: bool,
     parallel: bool,

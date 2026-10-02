@@ -303,7 +303,7 @@ class RangeIndex(Index):
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
-    def __reduce__(self) -> tuple:
+    def __reduce__(self) -> tuple[Any, ...]:
         d = {"name": self._name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
@@ -848,7 +848,7 @@ class RangeIndex(Index):
         return_indexer: Literal[False] = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self: ...
 
     @overload
@@ -858,7 +858,7 @@ class RangeIndex(Index):
         return_indexer: Literal[True],
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> tuple[Self, np.ndarray]: ...
 
     @overload
@@ -868,7 +868,7 @@ class RangeIndex(Index):
         return_indexer: bool = ...,
         ascending: bool = ...,
         na_position: NaPosition = ...,
-        key: Callable | None = ...,
+        key: Callable[..., Any] | None = ...,
     ) -> Self | tuple[Self, np.ndarray]: ...
 
     def sort_values(
@@ -877,7 +877,7 @@ class RangeIndex(Index):
         return_indexer: bool = False,
         ascending: bool = True,
         na_position: NaPosition = "last",
-        key: Callable | None = None,
+        key: Callable[..., Any] | None = None,
     ) -> Self | tuple[Self, np.ndarray]:
         if key is not None:
             return super().sort_values(
@@ -1461,13 +1461,13 @@ class RangeIndex(Index):
         else:
             return super().round(decimals=decimals)
 
-    def _cmp_method(self, other: object, op: Callable) -> Any:
+    def _cmp_method(self, other: object, op: Callable[..., Any]) -> Any:
         if isinstance(other, RangeIndex) and self._range == other._range:
             # Both are immutable so if ._range attr. are equal, shortcut is possible
             return super()._cmp_method(self, op)
         return super()._cmp_method(other, op)
 
-    def _arith_method(self, other: object, op: Callable) -> Index:
+    def _arith_method(self, other: object, op: Callable[..., Any]) -> Index:
         """
         Parameters
         ----------
@@ -1499,7 +1499,7 @@ class RangeIndex(Index):
         ]:
             return super()._arith_method(other, op)
 
-        step: Callable | None = None
+        step: Callable[..., Any] | None = None
         if op in [operator.mul, ops.rmul, operator.truediv, ops.rtruediv]:
             step = op
 
