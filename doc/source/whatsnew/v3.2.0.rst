@@ -146,7 +146,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in :meth:`DataFrame.sum`, :meth:`DataFrame.prod` and :meth:`DataFrame.mean` with ``axis=1`` on a :class:`DataFrame` mixing NumPy numeric dtypes returning incorrect results, such as an overflowed ``int64`` sum when a float column made the result float, or a bool and complex ``mean`` dropping the imaginary part (:issue:`68641`)
+- Bug in :meth:`DataFrame.sum`, :meth:`DataFrame.prod` and :meth:`DataFrame.mean` with ``axis=1`` on a :class:`DataFrame` mixing NumPy numeric dtypes returning incorrect results or dtypes, such as an overflowed ``int64`` sum when a float column made the result float, or a bool and complex ``mean`` dropping the imaginary part (:issue:`68641`)
 
 Conversion
 ^^^^^^^^^^
