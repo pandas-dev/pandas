@@ -107,7 +107,7 @@ deprecation2
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
-- Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when the left and right ``suffixes`` collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
+- Deprecated :func:`merge` and :meth:`DataFrame.join` producing duplicated columns when suffixed left and right column labels collide, e.g. ``suffixes=("_x", "_x")``; this will raise a :class:`~pandas.errors.MergeError` in a future version (:issue:`13659`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 
 .. ---------------------------------------------------------------------------
