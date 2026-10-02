@@ -50,7 +50,7 @@ def convert_to_line_delimits(s: str) -> str:
 
 @overload
 def nested_to_record(
-    ds: dict[str, Any],
+    ds: dict[Any, Any],
     prefix: str = ...,
     sep: str = ...,
     level: int = ...,
@@ -60,7 +60,7 @@ def nested_to_record(
 
 @overload
 def nested_to_record(
-    ds: list[dict[str, Any]],
+    ds: list[dict[Any, Any]],
     prefix: str = ...,
     sep: str = ...,
     level: int = ...,
@@ -69,7 +69,7 @@ def nested_to_record(
 
 
 def nested_to_record(
-    ds: dict[str, Any] | list[dict[str, Any]],
+    ds: dict[Any, Any] | list[dict[Any, Any]],
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
@@ -216,7 +216,7 @@ def _normalize_json_ordered(data: dict[str, Any], separator: str) -> dict[str, A
 
 
 def _simple_json_normalize(
-    ds: dict[str, Any] | list[dict[str, Any]],
+    ds: dict[Any, Any] | list[dict[Any, Any]],
     sep: str = ".",
 ) -> dict[str, Any] | list[dict[str, Any]] | Any:
     """
