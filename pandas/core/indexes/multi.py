@@ -1707,7 +1707,7 @@ class MultiIndex(Index):
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = sparsify_labels(
-                result_levels, start=int(include_names), sentinel=sentinel
+                result_levels, self.codes, start=int(include_names), sentinel=sentinel
             )
 
         return result_levels
@@ -5075,30 +5075,27 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
     return 0
 
 
-def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
+def sparsify_labels(label_list, codes, start: int = 0, sentinel: object = ""):
+    # Compare codes rather than labels, as distinct values can format
+    # identically, see GH#10796.
     pivoted = list(zip(*label_list, strict=True))
+    keys = list(zip(*codes, strict=True))
     k = len(label_list)
 
     result = pivoted[: start + 1]
-    prev = pivoted[start]
 
-    for cur in pivoted[start + 1 :]:
-        sparse_cur = []
+    for prev, cur, labels in zip(
+        keys[:-1], keys[1:], pivoted[start + 1 :], strict=True
+    ):
+        sparse_cur: list = []
 
-        for i, (p, t) in enumerate(zip(prev, cur, strict=True)):
-            if i == k - 1:
-                sparse_cur.append(t)
-                result.append(sparse_cur)  # type: ignore[arg-type]
+        for i in range(k):
+            if i == k - 1 or prev[i] != cur[i]:
+                sparse_cur.extend(labels[i:])
                 break
+            sparse_cur.append(sentinel)
 
-            if p == t:
-                sparse_cur.append(sentinel)
-            else:
-                sparse_cur.extend(cur[i:])
-                result.append(sparse_cur)  # type: ignore[arg-type]
-                break
-
-        prev = cur
+        result.append(tuple(sparse_cur))
 
     return list(zip(*result, strict=True))
 
