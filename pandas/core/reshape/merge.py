@@ -1826,21 +1826,12 @@ class _MergeOperation:
             elif (lk_is_object_or_string and is_numeric_dtype(rk.dtype)) or (
                 is_numeric_dtype(lk.dtype) and rk_is_object_or_string
             ):
-                inferred_left = lib.infer_dtype(lk, skipna=False)
-                inferred_right = lib.infer_dtype(rk, skipna=False)
-                bool_types = ["integer", "mixed-integer", "boolean", "empty"]
-                string_types = ["string", "unicode", "mixed", "bytes", "empty"]
-
-                # inferred bool
-                if inferred_left in bool_types and inferred_right in bool_types:
-                    pass
-
-                # unless we are merging non-string-like with string-like
-                elif (
-                    inferred_left in string_types and inferred_right not in string_types
-                ) or (
-                    inferred_right in string_types and inferred_left not in string_types
-                ):
+                # raise when merging string-like with non-string-like;
+                # missing values say nothing about that, so skip them
+                inferred_left = lib.infer_dtype(lk, skipna=True)
+                inferred_right = lib.infer_dtype(rk, skipna=True)
+                string_types = ["string", "unicode", "mixed", "bytes"]
+                if (inferred_left in string_types) != (inferred_right in string_types):
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
