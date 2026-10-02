@@ -1548,9 +1548,8 @@ considerably. This happens automatically when all of the following hold:
 * more than one thread is in use -- see ``mode.max_threads`` below, which
   defaults to ``1`` when the process is limited to a single CPU
 * no options are passed that require parsing the file as a whole, such as
-  ``iterator``, ``chunksize``, ``nrows``, ``usecols``, ``index_col``,
-  ``parse_dates``, list/callable ``skiprows``, multi-row headers, or
-  non-UTF-8 encodings
+  ``iterator``, ``chunksize``, ``nrows``, ``index_col``, ``parse_dates``,
+  list/callable ``skiprows``, multi-row headers, or non-UTF-8 encodings
 
 Calls that are not eligible fall back to the serial path, and the result is
 always identical to a serial read.
