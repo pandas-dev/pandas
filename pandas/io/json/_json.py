@@ -1232,11 +1232,11 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
 
     def read(self) -> DataFrame | Series:
         """
-        Read the whole JSON input into a pandas object.
+        Read the remaining JSON input into a pandas object.
 
-        Unlike iterating over the reader, this reads the entire underlying
-        JSON input in a single call, regardless of whether ``chunksize``
-        was specified when this reader was created.
+        Unlike iterating over the reader, this reads all input not yet consumed
+        in a single call, regardless of ``chunksize``, up to ``nrows`` lines
+        if ``nrows`` was given.
 
         Returns
         -------
@@ -1708,7 +1708,7 @@ class Parser:
                     or _parses_strict_iso8601(new_data)
                 ):
                     # all units failed to cast to ns (eg with mixed string / int)
-                    # but to_datetime still returned a result -> use this this
+                    # but to_datetime still returned a result -> use this
                     # result (with the last unit) and re-emit any warning
                     _reemit_parse_warnings(record)
                     data = converted

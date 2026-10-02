@@ -1024,11 +1024,9 @@ class StylerRenderer:
         r"""
         Format the text display value of cells.
 
-        This method allows control over how each data cell is displayed
-        by assigning a formatter function or format string. It is particularly
-        useful for adjusting floating point precision, handling missing values,
-        escaping special characters in HTML or LaTeX output, and adding
-        hyperlinks.
+        This method is particularly useful for adjusting floating point
+        precision, handling missing values, escaping special characters in HTML
+        or LaTeX output, and adding hyperlinks.
 
         Parameters
         ----------
@@ -1288,11 +1286,8 @@ class StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
 
-        This method assigns a formatting function to the index or column header
-        labels of the DataFrame, similar to :meth:`Styler.format` but applied
-        to the axis labels rather than the data cells. It supports the same
-        formatter types: callables, format strings, and dicts keyed by
-        MultiIndex level.
+        This is similar to :meth:`Styler.format` but is applied to the index or
+        column header labels rather than the data cells.
 
         Parameters
         ----------
@@ -1476,11 +1471,8 @@ class StylerRenderer:
         r"""
         Relabel the index, or column header, keys to display a set of specified values.
 
-        This method provides a way to completely replace the displayed index or
-        column header labels with user-specified values without modifying the
-        underlying DataFrame. It is especially useful when the desired display
-        labels are not a simple function of the existing keys, or when
-        enumeration-based labeling is needed.
+        This is especially useful when the desired display labels are not a
+        simple function of the existing keys.
 
         Parameters
         ----------

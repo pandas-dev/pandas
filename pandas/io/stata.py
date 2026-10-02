@@ -1061,7 +1061,7 @@ class StataReader(StataParser, abc.Iterator[DataFrame]):
         Return StataReader object for iterations, returns chunks with
         given number of lines.
     compression : str or dict, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
+        For on-the-fly decompression of on-disk data. If 'infer' and 'path_or_buf' is
         path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
         (otherwise no compression).

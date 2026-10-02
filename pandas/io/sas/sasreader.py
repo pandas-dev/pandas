@@ -137,15 +137,16 @@ def read_sas(
         'filepath_or_buffer' is path-like, then detect compression from the
         following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
         '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
-        Set to ``None`` for no decompression.
+        If using 'zip' or 'tar', the ZIP file must contain only one data file
+        to be read in. Set to ``None`` for no decompression.
         Can also be a dict with key ``'method'`` set to one of {``'zip'``,
         ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and other
         key-value pairs are forwarded to ``zipfile.ZipFile``,
-        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdCompressor``,
+        ``gzip.GzipFile``, ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``,
         ``lzma.LZMAFile`` or ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for faster compression
-        and to create a reproducible gzip archive:
-        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
+        As an example, the following could be passed for Zstandard decompression
+        using a custom compression dictionary:
+        ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
     Returns
     -------
@@ -155,7 +156,7 @@ def read_sas(
 
     See Also
     --------
-    read_csv : Read a comma-separated values (csv) file into a DataFrame.
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
     read_excel : Read an Excel file into a pandas DataFrame.
     read_spss : Read an SPSS file into a pandas DataFrame.
     read_orc : Load an ORC object into a pandas DataFrame.

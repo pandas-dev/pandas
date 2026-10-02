@@ -303,8 +303,7 @@ decimal : str, default ``'.'``
   Character to recognize as decimal point. E.g. use ``','`` for European data.
 float_precision : string, default None
   Specifies which converter the C engine should use for floating-point values.
-  The options are ``None`` for the ordinary converter, ``high`` for the
-  high-precision converter, and ``round_trip`` for the round-trip converter.
+  All options now use the same converter (see :ref:`io.float_precision`).
 lineterminator : str (length 1), default ``None``
   Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1)
@@ -955,25 +954,6 @@ Specifying method for floating-point conversion
 .. deprecated:: 3.1.0
    The ``float_precision`` parameter is deprecated. All float precision
    modes now use the same converter.
-
-The parameter ``float_precision`` can be specified in order to use
-a specific floating-point converter during parsing with the C engine.
-The options are the ordinary converter, the high-precision converter, and
-the round-trip converter (which is guaranteed to round-trip values after
-writing to a file). For example:
-
-.. ipython:: python
-
-   val = "0.3066101993807095471566981359501369297504425048828125"
-   data = "a,b,c\n1,2,{0}".format(val)
-   abs(
-       pd.read_csv(
-           StringIO(data),
-           engine="c",
-           float_precision=None,
-       )["c"][0] - float(val)
-   )
-
 
 .. _io.thousands:
 
@@ -4080,9 +4060,10 @@ for some advanced strategies
 
    pandas reads and writes HDF5 files using a pandas-specific layout built on
    top of PyTables. :func:`read_hdf` and :class:`HDFStore` are intended for
-   round-tripping pandas objects and **do not read arbitrary HDF5 files**, such
-   as those produced directly by ``h5py`` or plain PyTables. To work with
-   general HDF5 files, use ``h5py`` or ``PyTables`` directly.
+   round-tripping pandas objects. A table dataset written by plain PyTables can
+   also be read by passing its ``key``, but **other HDF5 layouts, such as array
+   datasets, are not supported**. To work with general HDF5 files, use ``h5py``
+   or ``PyTables`` directly.
 
 .. warning::
 
@@ -5155,7 +5136,7 @@ may introduce a string for a column **larger** than the column can hold, an Exce
 could have a silent truncation of these columns, leading to loss of information). In the future we may relax this and
 allow a user-specified truncation to occur.
 
-Pass ``min_itemsize`` on the first table creation to a-priori specify the minimum length of a particular string column.
+Pass ``min_itemsize`` on the first table creation to a-priori specify the minimum size, in encoded bytes, of a particular string column.
 ``min_itemsize`` can be an integer, or a dict mapping a column name to an integer. You can pass ``values`` as a key to
 allow all *indexables* or *data_columns* to have this min_itemsize.
 

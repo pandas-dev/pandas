@@ -881,7 +881,7 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
-    This function parses an XML document from a file path, URL, or string buffer,
+    This function parses an XML document from a file path, URL, or file-like object,
     and returns the content as a DataFrame. Nodes are selected using an XPath
     expression, and their child elements and attributes are mapped to columns.
 
@@ -1092,6 +1092,20 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
 
+    An element in a default namespace (``xmlns=``) can only be selected by
+    ``xpath`` through a prefix declared in ``namespaces``:
+
+    >>> df = pd.read_xml(
+    ...     StringIO(xml),
+    ...     xpath="//doc:row",
+    ...     namespaces={"doc": "http://example.com"},
+    ... )
+    >>> df
+          shape  degrees  sides
+    0    square      360    4.0
+    1    circle      360    NaN
+    2  triangle      180    3.0
+
     >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
     ... <data>
     ...   <row shape="square" degrees="360" sides="4.0"/>
@@ -1129,36 +1143,6 @@ def read_xml(
     ...     StringIO(xml),
     ...     xpath="//doc:row",
     ...     namespaces={"doc": "https://example.com"},
-    ... )
-    >>> df
-          shape  degrees  sides
-    0    square      360    4.0
-    1    circle      360    NaN
-    2  triangle      180    3.0
-
-    >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
-    ... <data xmlns="http://example.com">
-    ...  <row>
-    ...    <shape>square</shape>
-    ...    <degrees>360</degrees>
-    ...    <sides>4.0</sides>
-    ...  </row>
-    ...  <row>
-    ...    <shape>circle</shape>
-    ...    <degrees>360</degrees>
-    ...    <sides/>
-    ...  </row>
-    ...  <row>
-    ...    <shape>triangle</shape>
-    ...    <degrees>180</degrees>
-    ...    <sides>3.0</sides>
-    ...  </row>
-    ... </data>'''
-
-    >>> df = pd.read_xml(
-    ...     StringIO(xml),
-    ...     xpath="//doc:row",
-    ...     namespaces={"doc": "http://example.com"},
     ... )
     >>> df
           shape  degrees  sides

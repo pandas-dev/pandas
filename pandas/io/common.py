@@ -312,7 +312,7 @@ def _get_filepath_or_buffer(
     filepath_or_buffer : a url, filepath (str or pathlib.Path),
                          or buffer
 
-    compression : str or dict, default 'infer'
+    compression : str or dict, default None
         For on-the-fly compression of the output data. If 'infer' and
         'filepath_or_buffer' is path-like, then detect compression from the
         following extensions: '.gz',
@@ -585,22 +585,11 @@ def infer_compression(
     filepath_or_buffer : str or file handle
         File path or object.
 
-    compression : str or dict, default 'infer'
-        For on-the-fly compression of the output data. If 'infer' and
-        'filepath_or_buffer' is path-like, then detect compression from the
-        following extensions: '.gz',
-        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
-        (otherwise no compression).
+    compression : str or None
+        If 'infer' and 'filepath_or_buffer' is path-like, then detect compression
+        from the following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst',
+        '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
         Set to ``None`` for no compression.
-        Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``}
-        and other key-value pairs are forwarded to
-        ``zipfile.ZipFile``, ``gzip.GzipFile``,
-        ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
-        ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for faster compression and to
-        create a reproducible gzip archive:
-        ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
     Returns
     -------
@@ -720,7 +709,7 @@ def get_handle(
         Mode to open path_or_buf with.
     encoding : str or None
         Encoding to use.
-    compression : str or dict, default 'infer'
+    compression : str or dict, default None
         For on-the-fly compression of the output data. If 'infer' and 'path_or_buf'
         is path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
@@ -735,13 +724,6 @@ def get_handle(
         As an example, the following could be passed for faster compression and to
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-           May be a dict with key 'method' as compression mode
-           and other keys as compression options if compression
-           mode is 'zip'.
-
-           Passing compression options as keys in dict is
-           supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
 
     memory_map : bool, default False
         See parsers._parser_params for more information. Only used by read_csv.

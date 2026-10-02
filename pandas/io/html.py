@@ -1043,13 +1043,13 @@ def read_html(
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
-    This function requires one of the following libraries:
-    `lxml <https://lxml.de/>`_, `html5lib <https://github.com/html5lib/html5lib-python>`_,
-    or `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/>`_.
+    This function requires either `lxml <https://lxml.de/>`_, or both
+    `beautifulsoup4 <https://www.crummy.com/software/BeautifulSoup/>`_ and
+    `html5lib <https://github.com/html5lib/html5lib-python>`_.
 
     This function searches for ``<table>`` elements within an HTML document
     and parses their rows and columns into DataFrames. It can read from a URL,
-    a file path, or a raw HTML string, and supports filtering tables by
+    a file path, or a file-like object, and supports filtering tables by
     matching text content via a regular expression.
 
     Parameters
@@ -1083,7 +1083,7 @@ def read_html(
         The column (or list of columns) to use to create the index.
 
     skiprows : int, list-like or slice, optional
-        Number of rows to skip after parsing the header. 0-based. If a
+        Number of rows to skip, applied before the header is parsed. 0-based. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
         row' whereas an integer means 'skip n rows'.

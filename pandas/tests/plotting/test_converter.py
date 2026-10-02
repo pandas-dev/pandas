@@ -90,7 +90,7 @@ class TestRegistration:
 
     def test_matplotlib_formatters(self):
         # Can't make any assertion about the start state.
-        # We we check that toggling converters off removes it, and toggling it
+        # We check that toggling converters off removes it, and toggling it
         # on restores it.
 
         with cf.option_context("plotting.matplotlib.register_converters", True):

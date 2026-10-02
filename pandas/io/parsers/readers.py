@@ -1365,6 +1365,8 @@ def read_csv(
         By file-like object, we refer to objects with a ``read()`` method that
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
+        With ``engine='python'`` the object must also support ``readline()`` and
+        iteration.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
@@ -1376,15 +1378,15 @@ def read_csv(
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
         Alias for ``sep``.
-    header : int, Sequence of int, 'infer' or None, default 'infer'
+    header : int, list of int, 'infer' or None, default 'infer'
         Row index or indices in the file to use as DataFrame column labels.
-        Indexing starts at 0 and counts only non-blank, non-commented lines
-        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
-        line of data rather than the first line of the file. Valid arguments
-        are:
+        Indexing starts at 0 and does not count commented lines (see ``comment``)
+        or, when ``skip_blank_lines=True``, blank lines, so ``header=0`` denotes
+        the first line of data rather than the first line of the file. Valid
+        arguments are:
 
         * ``int``: line index at which column labels are read.
-        * Sequence of ``int``: line indices at which column labels are read
+        * list of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
           be skipped (e.g. row 2 in this example).
@@ -1611,11 +1613,9 @@ def read_csv(
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
         ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
         ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
-        Default is ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
-        only fields containing special
-        characters are quoted (e.g., characters defined
-        in ``quotechar``, ``delimiter``,
-        or ``lineterminator``.
+        When reading, ``0`` and ``1`` behave identically, ``2`` converts unquoted
+        numeric fields to ``float``, and ``3`` disables quote processing so
+        ``quotechar`` is kept in the data.
     doublequote : bool, default True
         When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
         whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
@@ -1695,9 +1695,7 @@ def read_csv(
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are ``None`` or ``'high'`` for the ordinary converter,
-        ``'legacy'`` for the original lower precision pandas converter, and
-        ``'round_trip'`` for the round-trip converter.
+        values. All options use the same converter.
 
         .. deprecated:: 3.1.0
             All float precision modes now use the same converter.
@@ -1970,6 +1968,8 @@ def read_table(
         By file-like object, we refer to objects with a ``read()`` method that
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
+        With ``engine='python'`` the object must also support ``readline()`` and
+        iteration.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
@@ -1981,15 +1981,15 @@ def read_table(
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
         Alias for ``sep``.
-    header : int, Sequence of int, 'infer' or None, default 'infer'
+    header : int, list of int, 'infer' or None, default 'infer'
         Row index or indices in the file to use as DataFrame column labels.
-        Indexing starts at 0 and counts only non-blank, non-commented lines
-        when ``skip_blank_lines=True``, so ``header=0`` denotes the first
-        line of data rather than the first line of the file. Valid arguments
-        are:
+        Indexing starts at 0 and does not count commented lines (see ``comment``)
+        or, when ``skip_blank_lines=True``, blank lines, so ``header=0`` denotes
+        the first line of data rather than the first line of the file. Valid
+        arguments are:
 
         * ``int``: line index at which column labels are read.
-        * Sequence of ``int``: line indices at which column labels are read
+        * list of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
           e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
           be skipped (e.g. row 2 in this example).
@@ -2212,11 +2212,9 @@ def read_table(
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
         ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
         ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
-        Default is ``csv.QUOTE_MINIMAL`` (i.e., 0) which
-        implies that only fields containing special
-        characters are quoted (e.g., characters defined
-        in ``quotechar``, ``delimiter``,
-        or ``lineterminator``.
+        When reading, ``0`` and ``1`` behave identically, ``2`` converts unquoted
+        numeric fields to ``float``, and ``3`` disables quote processing so
+        ``quotechar`` is kept in the data.
     doublequote : bool, default True
        When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
        whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
@@ -2296,9 +2294,7 @@ def read_table(
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are ``None`` or ``'high'`` for the ordinary converter,
-        ``'legacy'`` for the original lower precision pandas converter, and
-        ``'round_trip'`` for the round-trip converter.
+        values. All options use the same converter.
 
         .. deprecated:: 3.1.0
             All float precision modes now use the same converter.
@@ -2519,6 +2515,7 @@ def read_fwf(
         By file-like object, we refer to objects with a ``read()`` method that
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
+        The object must also support ``readline()`` and iteration.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to] ).
@@ -2629,10 +2626,12 @@ class TextFileReader(abc.Iterator):
     f : str, path object, or file-like object
         Source to read from. Accepts the same inputs as :func:`read_csv`.
     engine : {'c', 'python', 'pyarrow', 'python-fwf'}, optional
-        Parser engine to use. If not specified, defaults to ``'python'``.
+        Parser engine to use. When constructed directly and not specified,
+        defaults to ``'python'``.
     **kwds
         Any keyword argument accepted by :func:`read_csv`, :func:`read_table`,
-        or :func:`read_fwf`.
+        or :func:`read_fwf`, except that the separator must be passed as
+        ``delimiter``; ``sep`` is ignored.
 
     See Also
     --------
@@ -3197,9 +3196,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. The options are `None` or `high` for the ordinary converter,
-        `legacy` for the original lower precision pandas converter, and
-        `round_trip` for the round-trip converter.
+        values. All options use the same converter.
 
         .. deprecated:: 3.1.0
             All float precision modes now use the same converter.

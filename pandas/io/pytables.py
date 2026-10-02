@@ -386,11 +386,12 @@ def read_hdf(
 
     .. note::
 
-       This function only reads HDF5 files written by pandas (via
+       This function is intended for HDF5 files written by pandas (via
        :meth:`DataFrame.to_hdf`, :meth:`Series.to_hdf`, or :class:`HDFStore`),
-       which use a pandas-specific layout built on PyTables. Arbitrary HDF5
-       files produced by other tools such as ``h5py`` or plain PyTables are
-       not supported; use those libraries directly to read such files.
+       which use a pandas-specific layout built on PyTables. A table dataset
+       written by plain PyTables can also be read by passing ``key``, without
+       index or dtype information. Other HDF5 layouts, such as array datasets,
+       are not supported; use ``h5py`` or PyTables directly for those.
 
     .. warning::
 
@@ -562,9 +563,10 @@ class HDFStore:
     .. note::
 
        ``HDFStore`` uses a pandas-specific layout on top of PyTables and is
-       intended for round-tripping pandas objects. It cannot read arbitrary
-       HDF5 files produced by other tools such as ``h5py`` or plain PyTables;
-       use those libraries directly for general HDF5 interoperability.
+       intended for round-tripping pandas objects. A table dataset written by
+       plain PyTables can also be read, listed by ``keys(include="native")``.
+       Other HDF5 layouts, such as array datasets, are not supported; use
+       ``h5py`` or PyTables directly for those.
 
     .. warning::
 
@@ -744,9 +746,8 @@ class HDFStore:
         """
         Return a list of keys corresponding to objects stored in HDFStore.
 
-        The keys are absolute path-names within the HDF5 file hierarchy.
-        By default only pandas objects are returned, but native HDF5 table
-        objects can be included as well.
+        By default the native HDF5 tables underlying table-format objects, such
+        as ``'/key/table'``, are not listed.
 
         Parameters
         ----------
@@ -924,8 +925,8 @@ class HDFStore:
         """
         Retrieve pandas object stored in file.
 
-        The object is read from the HDF5 file and returned as the
-        same type that was stored (e.g., DataFrame, Series).
+        The whole object is read; use :meth:`HDFStore.select` to read only part
+        of a table-format object.
 
         Parameters
         ----------
@@ -1386,18 +1387,20 @@ class HDFStore:
         append : bool, default False
             This will force Table format, append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
-            Compression library to use, only applied with ``format='table'``.
-            None disables compression. See the ``complib`` parameter of
-            :class:`HDFStore` for the full list of supported compressors.
+            Compression library to use; None disables compression. Only valid with
+            ``format='table'``. If ``complevel`` is not given, the store's
+            ``complevel`` is used if set, otherwise 9. See the ``complib``
+            parameter of :class:`HDFStore` for the full list of supported
+            compressors.
         complevel : int, 0-9, default None
-            Specifies a compression level for data.
-            A value of 0 or None disables compression.
+            Compression level, only used when ``complib`` is given. 0 disables
+            compression.
         min_itemsize : int, dict, or None
-            Minimum number of bytes reserved for object columns.
-            If int, all columns reserve 'min_itemsize' bytes per stored value.
-            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
-            Strings are stored as encoded bytes. Since some characters require multiple
-            bytes, required size may be larger than string length.
+            Minimum number of bytes reserved for string columns, only applied with
+            ``format='table'``. If int, applies to all string columns and a string
+            index; if dict, maps column names, or ``'values'`` for all string
+            columns, to sizes. Strings are stored as encoded bytes, so the required
+            size may be larger than the string length.
         nan_rep : str, optional
             String used on disk to represent missing values in string columns
             (``format="table"`` only).
@@ -1617,20 +1620,22 @@ class HDFStore:
         append : bool, default True
             Append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
-            Compression library to use; None disables compression. See the
-            ``complib`` parameter of :class:`HDFStore` for the full list of
-            supported compressors.
+            Compression library to use; None disables compression. Ignored when
+            appending to an existing table. If ``complevel`` is not given, the
+            store's ``complevel`` is used if set, otherwise 9. See the ``complib``
+            parameter of :class:`HDFStore` for the full list of supported
+            compressors.
         complevel : int, 0-9, default None
-            Specifies a compression level for data.
-            A value of 0 or None disables compression.
+            Compression level, only used when ``complib`` is given. 0 disables
+            compression.
         columns : default None
             This parameter is currently not accepted, try data_columns.
         min_itemsize : int, dict, or None
-            Minimum number of bytes reserved for object columns.
-            If int, all columns reserve 'min_itemsize' bytes per stored value.
-            If dict, specific columns reserve 'min_itemsize' bytes per stored value.
-            Strings are stored as encoded bytes. Since some characters require multiple
-            bytes, required size may be larger than string length.
+            Minimum number of bytes reserved for string columns, only applied when
+            the table is created. If int, applies to all string columns and a string
+            index; if dict, maps column names, or ``'values'`` for all string
+            columns, to sizes. Strings are stored as encoded bytes, so the required
+            size may be larger than the string length.
         nan_rep : str, optional
             String used on disk to represent missing values in string columns.
             By default a sentinel that collides with no value in the column is
@@ -1913,7 +1918,9 @@ class HDFStore:
         --------
         >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
         >>> store = pd.HDFStore("store.h5", "w")  # doctest: +SKIP
-        >>> store.append("data", df, format="table", index=False)  # doctest: +SKIP
+        >>> store.append(
+        ...     "data", df, format="table", index=False, data_columns=["A"]
+        ... )  # doctest: +SKIP
         >>> store.create_table_index("data", columns=["A"])  # doctest: +SKIP
         >>> store.close()  # doctest: +SKIP
         """
@@ -2189,8 +2196,8 @@ class HDFStore:
         """
         Print detailed information on the store.
 
-        The information includes the file path, class name, and a listing
-        of all stored object keys with their types and shapes.
+        Table-format objects are listed with their number of rows and columns
+        and their indexers rather than a shape.
 
         Returns
         -------

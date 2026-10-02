@@ -261,8 +261,8 @@ class Styler(StylerRenderer):
 
         This method enables combining multiple styled DataFrames into a single
         HTML, LaTeX, or string output by appending additional summary rows or
-        related data beneath the original table. Styles, formatting, and CSS
-        classes applied to each Styler are preserved in the concatenated result.
+        related data beneath the original table. Only some of the styles and
+        formatting of ``other`` are carried over, as listed in the Notes.
 
         Parameters
         ----------
@@ -609,7 +609,7 @@ class Styler(StylerRenderer):
         ExcelWriter : Class for writing DataFrame objects into excel sheets.
         read_excel : Read an Excel file into a pandas DataFrame.
         read_csv : Read a comma-separated values (csv) file into DataFrame.
-        io.formats.style.Styler.to_excel : Add styles to Excel sheet.
+        DataFrame.to_excel : Write DataFrame to an Excel sheet.
 
         Notes
         -----
@@ -633,30 +633,32 @@ class Styler(StylerRenderer):
         ...     index=["row 1", "row 2"],
         ...     columns=["col 1", "col 2"],
         ... )
-        >>> df1.to_excel("output.xlsx")  # doctest: +SKIP
+        >>> df1.style.to_excel("output.xlsx")  # doctest: +SKIP
 
         To specify the sheet name:
 
-        >>> df1.to_excel("output.xlsx", sheet_name="Sheet_name_1")  # doctest: +SKIP
+        >>> df1.style.to_excel(
+        ...     "output.xlsx", sheet_name="Sheet_name_1"
+        ... )  # doctest: +SKIP
 
         If you wish to write to more than one sheet in the workbook, it is
         necessary to specify an ExcelWriter object:
 
         >>> df2 = df1.copy()
         >>> with pd.ExcelWriter("output.xlsx") as writer:  # doctest: +SKIP
-        ...     df1.to_excel(writer, sheet_name="Sheet_name_1")
-        ...     df2.to_excel(writer, sheet_name="Sheet_name_2")
+        ...     df1.style.to_excel(writer, sheet_name="Sheet_name_1")
+        ...     df2.style.to_excel(writer, sheet_name="Sheet_name_2")
 
         ExcelWriter can also be used to append to an existing Excel file:
 
         >>> with pd.ExcelWriter("output.xlsx", mode="a") as writer:  # doctest: +SKIP
-        ...     df1.to_excel(writer, sheet_name="Sheet_name_3")
+        ...     df1.style.to_excel(writer, sheet_name="Sheet_name_3")
 
         To set the library that is used to write the Excel file,
         you can pass the `engine` keyword (the default engine is
         automatically chosen depending on the file extension):
 
-        >>> df1.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
+        >>> df1.style.to_excel("output1.xlsx", engine="xlsxwriter")  # doctest: +SKIP
         """
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -1460,9 +1462,10 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
-        The output includes ``<style>`` and ``<table>`` HTML elements with inline
-        CSS, suitable for embedding in web pages or Jupyter notebooks. Use
-        ``doctype_html=True`` to produce a fully structured HTML document.
+        By default the output is a ``<table>`` element preceded by a ``<style>``
+        element holding its CSS, suitable for embedding in web pages or Jupyter
+        notebooks. Use ``doctype_html=True`` to produce a fully structured HTML
+        document.
 
         Parameters
         ----------
@@ -1693,9 +1696,7 @@ class Styler(StylerRenderer):
 
         This method accepts a DataFrame of CSS class names and maps them to
         the corresponding ``<td>`` elements in the rendered HTML table using
-        matching index and column keys. It can be used in combination with
-        ``Styler.set_table_styles`` to build a self-contained CSS styling
-        solution.
+        matching index and column keys.
 
         Parameters
         ----------
@@ -2558,8 +2559,6 @@ class Styler(StylerRenderer):
 
         This method sets the table caption that is rendered as a ``<caption>``
         element in HTML output or as a ``\\caption`` command in LaTeX output.
-        For LaTeX, a tuple of two strings can be provided to specify both a
-        full caption and a short caption.
 
         Parameters
         ----------
@@ -3332,7 +3331,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            Instance of class with text colored in gradient style.
 
         See Also
         --------
@@ -3429,9 +3428,7 @@ class Styler(StylerRenderer):
         Set defined CSS-properties to each ``<td>`` HTML element for the given subset.
 
         This is a convenience method that applies one or more CSS property-value
-        pairs uniformly to every ``<td>`` element in the specified subset. It
-        wraps :meth:`Styler.map` with a function that returns the given CSS
-        properties regardless of the cell data.
+        pairs uniformly to every ``<td>`` element in the specified subset.
 
         Parameters
         ----------

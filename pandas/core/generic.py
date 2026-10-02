@@ -2733,7 +2733,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         index : bool, default True
             Write DataFrame index as a column.
         min_itemsize : dict or int, optional
-            Map column names to minimum string sizes for columns.
+            Map column names to minimum string sizes, in encoded bytes, for columns.
         nan_rep : str, optional
             String used on disk to represent missing values in string columns
             (``format="table"`` only).
