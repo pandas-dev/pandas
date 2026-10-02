@@ -771,6 +771,12 @@ def _raise_collected(warning_sink: list[tuple[str, type[Warning]]]) -> None:
         warnings.warn(warn_msg, warn_category, stacklevel=find_stack_level())
 
 
+def _is_thread_affinity_error(exc: BaseException) -> bool:
+    """Return whether an exception message indicates thread affinity."""
+    message = str(exc).lower()
+    return "thread affinity" in message or "created in a thread" in message
+
+
 def _read_csv_parallel(
     filepath: str,
     kwds: dict,
@@ -1088,7 +1094,17 @@ def _read_csv_chunks(
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
             for fut in [pool.submit(_worker) for _ in range(n_workers)]:
-                fut.result()
+                try:
+                    fut.result()
+                except Exception as err:
+                    if _is_thread_affinity_error(err):
+                        err.add_note(
+                            "A read_csv converter raised a thread-affinity error "
+                            "while running in a parallel parser worker. Use a "
+                            "thread-safe resource in the converter or disable "
+                            "parallel CSV reading with mode.max_threads=1."
+                        )
+                    raise
 
             # A column of only NA tokens and ints too large for int64 converts
             # to no numeric dtype, and is then emitted with its NA tokens left
