@@ -219,6 +219,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where ``==`` and ``!=`` against a string gave different results than the same comparison outside of ``query``, e.g. returning no rows for a ``datetime64``, ``timedelta64``, or :class:`PeriodDtype` column, or raising ``NotImplementedError`` with ``parser="python"`` (:issue:`54199`)
 
 .. ***DO NOT USE THIS SECTION***
 
