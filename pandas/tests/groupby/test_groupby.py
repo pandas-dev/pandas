@@ -694,7 +694,7 @@ def test_series_groupby_as_index_false(groupby_func):
         ),
     ],
 )
-@pytest.mark.parametrize("name", ["val", None])
+@pytest.mark.parametrize("name", ["val", None, "index"])
 def test_series_groupby_as_index_false_keys(index, kwargs, name):
     # GH#36507
     ser = pd.Series([3.0, 4.0, 5.0, 6.0], index=index, name=name)

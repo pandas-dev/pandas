@@ -1034,11 +1034,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             if name is None:
                 # Behave the same as .reset_index() when a level is unnamed
-                name = (
-                    "index"
-                    if n_groupings == 1 and qs is None
-                    else f"level_{n_groupings - level - 1}"
-                )
+                if n_groupings == 1 and qs is None:
+                    name = "index"
+                    if self._raises_on_label_collision and name in result.columns:
+                        name = "level_0"
+                else:
+                    name = f"level_{n_groupings - level - 1}"
 
             if self._raises_on_label_collision and name in result.columns:
                 raise ValueError(f"cannot insert {name}, already exists")
