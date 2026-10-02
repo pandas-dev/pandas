@@ -1400,6 +1400,24 @@ def test_parallel_usecols_matches_serial(tmp_path, monkeypatch, kwargs):
 
 
 @pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_usecols_short_names_falls_back(tmp_path, monkeypatch):
+    # names shorter than the data: workers size their parsers from names, so
+    # usecols=[0, 3] converts only column 0 but still returns both labels
+    raw = b"a,b,c,d\n" + b"".join(
+        f"{i},{i + 10},{i + 20},{i + 30}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+    kwargs = {"header": 0, "names": ["x", "y"], "usecols": [0, 3], "index_col": False}
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["declined"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_usecols_no_header_length_warning(tmp_path, monkeypatch):
     # serial skips the header/data length check under usecols; the
     # name-inference read must not raise it either

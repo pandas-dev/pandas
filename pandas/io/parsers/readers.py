@@ -906,8 +906,9 @@ def _read_csv_chunks(
         # eligibility checks did not anticipate; load_buffer needs the C engine.
         name_reader.close()
         return None
-    # This read ignores usecols, so it can warn about columns the caller
-    # dropped; chunk 0's worker re-reads its data line with usecols applied.
+    # This read ignores usecols, so it can warn about dropped columns or about
+    # header/data length, which serial skips under usecols; chunk 0's worker
+    # re-reads its data line with usecols applied.
     name_sink = warning_sink if kwds.get("usecols") is None else []
     name_reader._engine._warning_sink = name_sink
     name_reader._engine._reader.warning_sink = name_sink
@@ -1131,8 +1132,9 @@ def _read_csv_chunks(
             columns = list(chunk_results[0][0])
             chunk_dicts = [col_dict for _, col_dict in chunk_results]
             col_list = list(chunk_dicts[0])
-            # A usecols position past the header selects a column only in
-            # chunks whose rows reach it, leaving labels and arrays mismatched.
+            # Under usecols, chunk arrays can disagree with their labels or
+            # across chunks; see test_usecols_past_header_returns_none and
+            # test_parallel_usecols_short_names_falls_back.
             if len(columns) != len(col_list) or any(
                 list(chunk_columns) != columns or list(col_dict) != col_list
                 for chunk_columns, col_dict in chunk_results[1:]
