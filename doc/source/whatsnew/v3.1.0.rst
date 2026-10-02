@@ -752,6 +752,7 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :class:`Index` and :class:`api.extensions.ExtensionArray` repr where two-element data was not wrapped to respect ``display.width`` (:issue:`16334`)
 - Fixed bug in :class:`Index` repr where attributes were not wrapped to respect ``display.width`` (:issue:`11552`)
+- Fixed bug in :class:`Series` and :class:`DataFrame` repr ignoring a custom ``__repr__`` on subclasses of ``dict``, ``list``, ``tuple`` or :class:`collections.abc.Mapping` (including namedtuples) in object-dtype values (:issue:`18843`)
 - Fixed bug in :class:`Series` where empty frozensets were formatted incorrectly (:issue:`66192`)
 - Fixed bug in :func:`testing.assert_frame_equal` incorrectly raising when equivalent :class:`MultiIndex` column labels contained missing values (:issue:`54521`)
 - Fixed bug in :func:`testing.assert_frame_equal`, :func:`testing.assert_index_equal`, :func:`testing.assert_series_equal` and :func:`testing.assert_extension_array_equal` where ``rtol`` and ``atol`` were applied after casting to ``float64``, so integers above ``2**53`` could compare equal while differing by more than the tolerance, or unequal while within it (:issue:`66400`)

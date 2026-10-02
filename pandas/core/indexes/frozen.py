@@ -114,8 +114,9 @@ class FrozenList(PandasObject, list):
         raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
     def __str__(self) -> str:
+        # list(self) since pprint_thing defers to our own __repr__, see GH#18843
         return pprint_thing(
-            self, quote_strings=True, escape_chars=("\t", "\r", "\n", "'")
+            list(self), quote_strings=True, escape_chars=("\t", "\r", "\n", "'")
         )
 
     def __repr__(self) -> str:
