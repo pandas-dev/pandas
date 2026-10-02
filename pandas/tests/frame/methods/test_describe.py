@@ -143,17 +143,19 @@ class TestDataFrameDescribe:
         assert np.isnan(result.iloc[3, 0])
 
     def test_describe_categorical_object_tie_is_deterministic(self):
-        # GH#32528 when every value is unique, "top" must be deterministic
-        # (first occurrence) rather than depend on hashtable iteration order
+        # GH#32528 object ties break by first occurrence, categorical ties by
+        # category order; neither depends on hashtable iteration order
         df = pd.DataFrame(
             {
-                "categorical": pd.Categorical(["d", "e", "f"]),
+                "categorical": pd.Categorical(
+                    ["f", "e", "d"], categories=["e", "d", "f"]
+                ),
                 "numeric": [1, 2, 3],
                 "object": ["a", "b", "c"],
             }
         )
         result = df.describe(include="all")
-        assert result.loc["top", "categorical"] == "d"
+        assert result.loc["top", "categorical"] == "e"
         assert result.loc["top", "object"] == "a"
 
     def test_describe_categorical_columns(self):

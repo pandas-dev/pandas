@@ -190,9 +190,10 @@ class TestMixedResolutionDatetime64:
         assert left.get_loc(dt_us) == 0
         assert right.get_loc(dt_ms) == 0
 
+    @_xfail_np_hash
     def test_get_indexer_monotonic(self, dt_ms, dt_us):
-        # GH#50690 - monotonic case uses binary search, not hashtable
-        left = pd.Index([dt_ms], dtype=object)
+        # GH#50690 - target is not equal to the index, so the hashtable is used
+        left = pd.Index([dt_ms, np.datetime64(2, "ms")], dtype=object)
         right = pd.Index([dt_us], dtype=object)
 
         result = left.get_indexer(right)

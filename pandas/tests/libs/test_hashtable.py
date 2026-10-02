@@ -895,3 +895,20 @@ def test_float_complex_int_are_equal_as_objects():
     result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "make_value, expected",
+    [
+        (lambda: {1, 2}, [False, True]),
+        (lambda: [1, 2], [False, True]),
+        # hashes collide, then the elementwise comparison raises and is
+        # swallowed, so the entries compare unequal
+        (lambda: np.array([1, 2]), [False, False]),
+    ],
+    ids=["set", "list", "ndarray"],
+)
+def test_duplicated_unhashable_objects(make_value, expected):
+    ser = pd.Series([make_value(), make_value()], dtype=object)
+    result = ser.duplicated()
+    tm.assert_numpy_array_equal(result.to_numpy(), np.array(expected))

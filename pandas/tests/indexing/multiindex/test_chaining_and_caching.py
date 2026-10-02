@@ -1,7 +1,5 @@
 import numpy as np
 
-from pandas._libs import index as libindex
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -51,19 +49,15 @@ def test_cache_updating():
     assert result == 2
 
 
-def test_indexer_caching(monkeypatch):
+def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set
     size_cutoff = 20
-    with monkeypatch.context():
-        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-        index = pd.MultiIndex.from_arrays(
-            [np.arange(size_cutoff), np.arange(size_cutoff)]
-        )
-        s = pd.Series(np.zeros(size_cutoff), index=index)
+    index = pd.MultiIndex.from_arrays([np.arange(size_cutoff), np.arange(size_cutoff)])
+    s = pd.Series(np.zeros(size_cutoff), index=index)
 
-        # setitem
-        s[s == 0] = 1
+    # setitem
+    s[s == 0] = 1
     expected = pd.Series(np.ones(size_cutoff), index=index)
     tm.assert_series_equal(s, expected)
 

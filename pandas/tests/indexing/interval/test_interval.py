@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._libs import index as libindex
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -67,18 +65,16 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=r"\[-1\] not in index"):
             indexer_sl(ser)[[-1, 3]]
 
-    def test_loc_getitem_large_series(self, monkeypatch):
-        size_cutoff = 20
-        with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            ser = pd.Series(
-                np.arange(size_cutoff),
-                index=pd.IntervalIndex.from_breaks(np.arange(size_cutoff + 1)),
-            )
+    def test_loc_getitem_slice_series(self):
+        size = 20
+        ser = pd.Series(
+            np.arange(size),
+            index=pd.IntervalIndex.from_breaks(np.arange(size + 1)),
+        )
 
-            result1 = ser.loc[:8]
-            result2 = ser.loc[0:8]
-            result3 = ser.loc[0:8:1]
+        result1 = ser.loc[:8]
+        result2 = ser.loc[0:8]
+        result3 = ser.loc[0:8:1]
         tm.assert_series_equal(result1, result2)
         tm.assert_series_equal(result1, result3)
 
