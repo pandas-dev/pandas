@@ -909,6 +909,8 @@ def test_float_complex_int_are_equal_as_objects():
     ids=["set", "list", "ndarray"],
 )
 def test_duplicated_unhashable_objects(make_value, expected):
-    ser = pd.Series([make_value(), make_value()], dtype=object)
-    result = ser.duplicated()
-    tm.assert_numpy_array_equal(result.to_numpy(), np.array(expected))
+    values = np.empty(2, dtype=object)
+    values[0] = make_value()
+    values[1] = make_value()
+    result = ht.duplicated(values)
+    tm.assert_numpy_array_equal(result, np.array(expected))

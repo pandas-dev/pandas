@@ -52,13 +52,13 @@ def test_cache_updating():
 def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set
-    size_cutoff = 20
-    index = pd.MultiIndex.from_arrays([np.arange(size_cutoff), np.arange(size_cutoff)])
-    s = pd.Series(np.zeros(size_cutoff), index=index)
+    size = 20
+    index = pd.MultiIndex.from_arrays([np.arange(size), np.arange(size)])
+    s = pd.Series(np.zeros(size), index=index)
 
     # setitem
     s[s == 0] = 1
-    expected = pd.Series(np.ones(size_cutoff), index=index)
+    expected = pd.Series(np.ones(size), index=index)
     tm.assert_series_equal(s, expected)
 
 
