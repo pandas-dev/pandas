@@ -4609,8 +4609,16 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        join_index, (left_indexer, right_indexer)
+        join_index : Index
             The new index.
+        left_indexer : np.ndarray[np.intp] or None
+            Only returned if ``return_indexers=True``. Positions in the calling
+            index of each element of ``join_index``, with -1 where there is no
+            match. May be None, meaning no reindexing is needed: ``join_index``
+            matches the calling index position by position.
+        right_indexer : np.ndarray[np.intp] or None
+            Only returned if ``return_indexers=True``. Same as ``left_indexer``,
+            for ``other``.
 
         See Also
         --------
@@ -4628,6 +4636,11 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx1.join(other=idx2, how="outer", return_indexers=True)
         (Index([1, 2, 3, 4, 5, 6], dtype='int64'),
         array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2]))
+
+        An indexer is None when that side needs no reindexing:
+
+        >>> idx1.join(idx2, how="left", return_indexers=True)
+        (Index([1, 2, 3], dtype='int64'), None, array([-1, -1, -1]))
         """
         if not isinstance(other, Index):
             warnings.warn(
