@@ -179,8 +179,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :meth:`DataFrame.to_string`, :meth:`Series.to_string` and their ``repr`` where values or labels containing ANSI color codes were counted toward the column width, misaligning the other rows (:issue:`55122`)
 
 Period
 ^^^^^^

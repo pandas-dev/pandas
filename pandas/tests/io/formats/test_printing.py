@@ -151,26 +151,26 @@ class TestFormatBase:
 
         adj = printing._EastAsianTextAdjustment()
 
-        expected = """あ  dd    ggg
-b   ええ  hhh
-c   ff    いいい"""
+        expected = "あ  dd    ggg   \nb   ええ  hhh   \nc   ff    いいい"
 
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
         cols = adjoined.split("\n")
-        assert adj.len(cols[0]) == 13
-        assert adj.len(cols[1]) == 13
+        assert adj.len(cols[0]) == 16
+        assert adj.len(cols[1]) == 16
         assert adj.len(cols[2]) == 16
 
-        expected = """あ       dd         ggg
-b        ええ       hhh
-c        ff         いいい"""
+        expected = (
+            "あ       dd         ggg   \n"
+            "b        ええ       hhh   \n"
+            "c        ff         いいい"
+        )
 
         adjoined = adj.adjoin(7, *data)
         assert adjoined == expected
         cols = adjoined.split("\n")
-        assert adj.len(cols[0]) == 23
-        assert adj.len(cols[1]) == 23
+        assert adj.len(cols[0]) == 26
+        assert adj.len(cols[1]) == 26
         assert adj.len(cols[2]) == 26
 
     def test_justify(self):
@@ -215,6 +215,18 @@ c        ff         いいい"""
             assert adj.len("¡¡ab") == 6
 
         data = [["あ", "b", "c"], ["dd", "ええ", "ff"], ["ggg", "¡¡ab", "いいい"]]
-        expected = "あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい"
+        expected = "あ  dd    ggg   \nb   ええ  ¡¡ab\nc   ff    いいい"
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
+
+
+@pytest.mark.parametrize(
+    "adj", [printing._TextAdjustment(), printing._EastAsianTextAdjustment()]
+)
+def test_ansi_escapes_have_no_width(adj):
+    # GH#55122
+    colored = "\x1b[96mabc\x1b[0m"
+    assert adj.len(colored) == 3
+    assert adj.len("\x1b[1;31;42mab\x1b[0m") == 2
+    assert adj.justify([colored, "de"], 5, mode="right") == ["  " + colored, "   de"]
+    assert adj.adjoin(2, [colored, "de"], ["x", "y"]) == f"{colored}  x\nde   y"
