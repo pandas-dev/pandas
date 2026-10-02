@@ -202,7 +202,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "minute",
         "second",
         "weekofyear",
-        "weekday",
         "week",
         "day_of_week",
         "day_of_year",
@@ -210,11 +209,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         "qyear",
         "days_in_month",
     ]
-    # GH#46768 - deprecated but still need to be accessible via .dt accessor
-    _deprecated_ops: list[str] = ["dayofweek", "dayofyear", "daysinmonth"]
-    _datetimelike_ops: list[str] = (
-        _field_ops + _object_ops + _bool_ops + _deprecated_ops
-    )
+    _datetimelike_ops: list[str] = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods: list[str] = ["strftime", "to_timestamp", "asfreq"]
 
     _dtype: PeriodDtype
@@ -383,7 +378,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         return subarr, freq
 
     @classmethod
-    def _from_fields(cls, *, fields: dict, freq) -> Self:
+    def _from_fields(cls, *, fields: dict[str, Any], freq) -> Self:
         subarr, freq = _range_from_fields(freq=freq, **fields)
         dtype = PeriodDtype(freq)
         return cls._simple_new(subarr, dtype=dtype)
@@ -693,13 +688,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_week` instead.
+            Use :attr:`PeriodArray.day_of_week` instead.
         """
         # GH#12816
         warnings.warn(
-            f"{type(self).__name__}.weekday is deprecated and will be removed "
-            "in a future version. Use PeriodIndex.day_of_week or "
-            "Series.dt.day_of_week instead.",
+            "PeriodArray.weekday is deprecated and will be removed "
+            "in a future version. Use PeriodArray.day_of_week instead.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -711,11 +705,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The day of the week with Monday=0, Sunday=6.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_week` instead.
+            Use :attr:`PeriodArray.day_of_week` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.dayofweek is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_week instead.",
@@ -763,11 +754,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The ordinal day of the year.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.day_of_year` instead.
+            Use :attr:`PeriodArray.day_of_year` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.dayofyear is deprecated and will be removed in a "
             "future version. Use PeriodArray.day_of_year instead.",
@@ -885,11 +873,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         The number of days in the month.
 
         .. deprecated:: 3.1.0
-            Use :attr:`PeriodIndex.days_in_month` instead.
+            Use :attr:`PeriodArray.days_in_month` instead.
         """
-        from pandas.errors import Pandas4Warning
-        from pandas.util._exceptions import find_stack_level
-
         warnings.warn(
             "PeriodArray.daysinmonth is deprecated and will be removed in a "
             "future version. Use PeriodArray.days_in_month instead.",
@@ -935,8 +920,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         freq : str or DateOffset, optional
             Target frequency. The default is 'D' for week or longer,
             's' otherwise.
-        how : {'s', 'e', 'start', 'end'}
+        how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
+            Case-insensitive.
 
         Returns
         -------
@@ -1072,14 +1058,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         ----------
         freq : str
             A frequency.
-        how : str {'E', 'S'}, default 'E'
-            Whether the elements should be aligned to the end
-            or start within pa period.
-
-            * 'E', 'END', or 'FINISH' for end,
-            * 'S', 'START', or 'BEGIN' for start.
-
-            January 31st ('END') vs. January 1st ('START') for example.
+        how : {'end', 'start', 'e', 's'}, default 'end'
+            Whether the elements should be aligned to the end or start of
+            each period, e.g. January 31st vs. January 1st. Case-insensitive.
 
         Returns
         -------

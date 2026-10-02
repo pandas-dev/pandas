@@ -501,7 +501,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return bool(super().__contains__(key))
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         if self.ndim == 1:
             if not self._hasna:
                 for val in self._data:
@@ -711,7 +711,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data.flags.writeable = False
         return data
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
