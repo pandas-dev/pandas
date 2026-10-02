@@ -1267,6 +1267,20 @@ class TestReaders:
         expected = pd.DataFrame([[1, 2, 3, 4]] * 2, columns=exp_columns)
         tm.assert_frame_equal(result, expected)
 
+    def test_read_excel_multiindex_header_index_col_consumes_all_columns(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#66372
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        pd.DataFrame({"A": ["A1", "A2"]}).to_excel(tmp_excel, index=False, header=False)
+        result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0, engine=engine)
+        expected = pd.DataFrame(
+            index=pd.Index([], dtype=object), columns=pd.Index([], dtype=object)
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_excel_old_index_format(self, read_ext):
         # see gh-4679
         filename = "test_index_name_pre17" + read_ext
