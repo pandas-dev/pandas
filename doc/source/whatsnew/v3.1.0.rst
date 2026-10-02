@@ -727,7 +727,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc`
   setitem with a 2D list-of-lists value by avoiding a wasteful round-trip
   through an intermediate object array (:issue:`64229`).
-- Performance improvement in :meth:`Series.reindex` and :meth:`DataFrame.reindex` for non-nanosecond ``datetime64`` and ``timedelta64`` dtypes (:issue:`65165`).
+- Performance improvement in :meth:`Series.reindex` and :meth:`DataFrame.reindex` for non-nanosecond ``datetime64`` and ``timedelta64`` dtypes (:issue:`65165`)
 - Performance improvement in :meth:`Series.iloc` and :meth:`DataFrame.iloc`
   when setting datetimelike values into object-dtype data with list-like
   indexers (:issue:`64250`).
@@ -916,7 +916,7 @@ Numeric
 - Fixed bug in complex-dtype :meth:`Series.duplicated` and :meth:`Series.unique` (and related hashtable-backed methods) raising ``TypeError`` when backed by a :class:`NumpyExtensionArray` (:issue:`54761`)
 - Fixed bug where :class:`DataFrame` arithmetic operations with :class:`Series` did not support the ``fill_value`` parameter (:issue:`61581`)
 - Fixed bug where :meth:`DataFrame.eval`, :func:`eval`, and arithmetic on large ``int64`` data returned a column that :meth:`DataFrame.select_dtypes` did not recognize as ``int64`` (:issue:`17945`)
-- Fixed bug where calling a binary NumPy ufunc without an operator equivalent (e.g. ``np.logical_or``, ``np.logaddexp``) on two :class:`Series` or two :class:`DataFrame` objects with duplicate labels raised ``ValueError`` instead of aligning like the corresponding binary operations; these ufuncs now align exactly like the binary operators, so the result's index/columns names are taken from the first operand when the inputs' names differ (instead of always being ``None``) and timezone-naive versus timezone-aware indexes raise ``TypeError`` (:issue:`54416`)
+- Fixed bug where calling a binary NumPy ufunc without an operator equivalent (e.g. ``np.logical_or``, ``np.logaddexp``) on two :class:`Series` or two :class:`DataFrame` objects with duplicate labels raised ``ValueError`` instead of aligning like the corresponding binary operations; these ufuncs now align like the binary operators, so the result's index/columns names are taken from the first operand when the inputs' names differ (instead of always being ``None``) and timezone-naive versus timezone-aware indexes raise ``TypeError`` (:issue:`54416`)
 
 Conversion
 ^^^^^^^^^^
