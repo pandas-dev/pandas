@@ -49,6 +49,7 @@ if TYPE_CHECKING:
         Mapping,
         Sequence,
     )
+    from typing import TypeAlias
 
     from pandas._typing import (
         ExcelWriterMergeCells,
@@ -59,6 +60,10 @@ if TYPE_CHECKING:
     )
 
     from pandas import ExcelWriter
+
+    _StyleConverter: TypeAlias = Callable[
+        [str | frozenset[tuple[str, str]]], dict[str, dict[str, Any]]
+    ]
 
 
 class ExcelCell:
@@ -88,14 +93,11 @@ class CssExcelCell(ExcelCell):
         row: int,
         col: int,
         val,
-        style: dict[str, dict[str, str]] | None,
+        style: dict[str, dict[str, Any]] | None,
         css_styles: dict[tuple[int, int], list[tuple[str, Any]]] | None,
         css_row: int,
         css_col: int,
-        css_converter: (
-            Callable[[str | frozenset[tuple[str, str]]], dict[str, dict[str, str]]]
-            | None
-        ),
+        css_converter: _StyleConverter | None,
         **kwargs,
     ) -> None:
         if css_styles and css_converter:
@@ -552,10 +554,7 @@ class ExcelFormatter:
         index_label: IndexLabel | None = None,
         merge_cells: ExcelWriterMergeCells = False,
         inf_rep: str = "inf",
-        style_converter: (
-            Callable[[str | frozenset[tuple[str, str]]], dict[str, dict[str, str]]]
-            | None
-        ) = None,
+        style_converter: _StyleConverter | None = None,
         autofilter: bool = False,
     ) -> None:
         self.rowcounter = 0
@@ -566,10 +565,7 @@ class ExcelFormatter:
             df = df.data
             if style_converter is None:
                 style_converter = CSSToExcelConverter()
-            self.style_converter: (
-                Callable[[str | frozenset[tuple[str, str]]], dict[str, dict[str, str]]]
-                | None
-            ) = style_converter
+            self.style_converter: _StyleConverter | None = style_converter
         else:
             self.styler = None
             self.style_converter = None

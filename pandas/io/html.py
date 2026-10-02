@@ -12,6 +12,7 @@ import re
 from re import Pattern
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -43,13 +44,15 @@ from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
+        Hashable,
         Iterable,
+        Mapping,
         Sequence,
     )
 
     from pandas._typing import (
         BaseBuffer,
-        ConvertersArg,
         DtypeBackend,
         FilePath,
         HTMLFlavors,
@@ -1036,7 +1039,7 @@ def read_html(
     thousands: str | None = ",",
     encoding: str | None = None,
     decimal: str = ".",
-    converters: ConvertersArg | None = None,
+    converters: Mapping[Hashable, Callable[..., Any]] | None = None,
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
