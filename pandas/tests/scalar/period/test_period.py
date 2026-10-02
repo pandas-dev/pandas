@@ -1424,6 +1424,15 @@ def test_strftime_escaped_n_no_warning():
     tm.assert_index_equal(result, pd.Index(["2020%n"]))
 
 
+def test_strftime_all_nat_skips_format_validation():
+    # GH#48746 the format is only validated once a non-NaT element is formatted
+    result = pd.PeriodIndex([pd.NaT], freq="D").strftime("%Q")
+    assert len(result) == 1
+    assert result.isna().all()
+    with pytest.raises(ValueError, match="Invalid format string"):
+        pd.PeriodIndex(["2020-01-01"], freq="D").strftime("%Q")
+
+
 def test_negone_ordinals():
     freqs = ["Y", "M", "Q", "D", "h", "min", "s"]
 
