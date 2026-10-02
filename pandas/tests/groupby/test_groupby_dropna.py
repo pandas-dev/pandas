@@ -168,6 +168,14 @@ def test_groupby_dropna_series_by(dropna, expected):
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_dropna_object_key_nan_sorted_last():
+    # GH#70216
+    ser = pd.Series(range(3))
+    result = ser.groupby([2, None, 1], dropna=False).sum()
+    expected = pd.Series([2, 0, 1], index=[1.0, 2.0, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
 def test_grouper_dropna_propagation(dropna):
     # GH 36604
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})

@@ -615,6 +615,31 @@ def test_mixed_str_null(nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([2, np.nan, 1], [1, 2, np.nan]),
+        ([2.0, np.nan, 1.0], [1.0, 2.0, np.nan]),
+        (
+            [pd.Timestamp("2021-01-01"), pd.NaT, pd.Timestamp("2020-01-01")],
+            [pd.Timestamp("2020-01-01"), pd.Timestamp("2021-01-01"), pd.NaT],
+        ),
+    ],
+)
+def test_object_with_nan_sorts_nulls_last(values, expected):
+    # GH#70216 argsort silently misorders NaN/NaT in object arrays
+    values = np.array(values, dtype=object)
+    expected = np.array(expected, dtype=object)
+
+    result = safe_sort(values)
+    tm.assert_numpy_array_equal(result, expected)
+
+    codes = np.array([0, 1, 2, -1], dtype=np.intp)
+    result, result_codes = safe_sort(values, codes)
+    tm.assert_numpy_array_equal(result, expected)
+    tm.assert_numpy_array_equal(result_codes, np.array([1, 2, 0, -1], dtype=np.intp))
+
+
 def test_safe_sort_multiindex():
     # GH#48412
     arr1 = pd.Series([2, 1, pd.NA, pd.NA], dtype="Int64")
