@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Mapping,
     )
 
     from pandas._typing import (
@@ -1034,7 +1035,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def map(
         self,
-        mapper: Callable[..., Any] | dict[Hashable, Any] | Series,
+        mapper: Callable[..., Any] | Mapping[Any, Any] | Series,
         na_action: Literal["ignore"] | None = None,
     ) -> Index:
         """

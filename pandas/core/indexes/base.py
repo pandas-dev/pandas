@@ -185,6 +185,7 @@ if TYPE_CHECKING:
         Callable,
         Hashable,
         Iterable,
+        Mapping,
         Sequence,
     )
 
@@ -6845,7 +6846,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def map(
         self,
-        mapper: Callable[..., Any] | dict[Hashable, Any] | Series,
+        mapper: Callable[..., Any] | Mapping[Any, Any] | Series,
         na_action: Literal["ignore"] | None = None,
     ) -> Index:
         """
