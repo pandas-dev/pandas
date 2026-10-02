@@ -867,6 +867,34 @@ class TestDataFrameAnalytics:
         expected = pd.Series(expected, dtype="float64")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("subtype", ["int64", "float64"])
+    @pytest.mark.parametrize("fill_value", [0, np.nan])
+    @pytest.mark.parametrize("min_count", [0, 1, 2, 3])
+    def test_axis_1_sum_sparse_does_not_densify(
+        self, subtype, fill_value, skipna, min_count, monkeypatch
+    ):
+        # https://github.com/pandas-dev/pandas/issues/28487
+        dense = pd.DataFrame(
+            {
+                "A": [0, 1, 0, 0, 2, 0],
+                "B": [0, 0, 3, 0, 4, 0],
+                "C": [0, -1, 0, 0, 5, 0],
+            },
+            dtype=subtype,
+        )
+        if subtype == "float64":
+            dense.iloc[1, 0] = np.nan
+            dense.iloc[4, 2] = np.nan
+        sparse = dense.astype(pd.SparseDtype(subtype, fill_value))
+        expected = dense.sum(axis=1, skipna=skipna, min_count=min_count)
+
+        def densify(self):
+            raise AssertionError("SparseArray was densified")
+
+        monkeypatch.setattr(pd.arrays.SparseArray, "_densify", densify)
+        result = sparse.sum(axis=1, skipna=skipna, min_count=min_count)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):
