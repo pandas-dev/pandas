@@ -848,17 +848,33 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = _tupleize_axis_indexer(self.ndim, self.axis, key)
 
         ax = self.obj._get_axis(0)
+        mi_lookup_failed = False
 
         if (
             isinstance(ax, MultiIndex)
             and self.name != "iloc"
             and is_hashable(key, allow_slice=False)
         ):
-            with suppress(KeyError, InvalidIndexError):
-                # TypeError e.g. passed a bool
+            # TypeError e.g. passed a bool is not suppressed and propagates
+            try:
                 return ax.get_loc(key)
+            except (KeyError, InvalidIndexError):
+                mi_lookup_failed = True
 
         if isinstance(key, tuple):
+            if (
+                mi_lookup_failed
+                and isinstance(ax, MultiIndex)
+                and len(key) == ax.nlevels == self.ndim
+                and not self._is_multi_axis_overwrite(key)
+            ):
+                # GH#65326 nlevels == ndim is the ambiguous case: the tuple
+                #  could be a MultiIndex key or a set of per-axis indexers.
+                #  The MultiIndex-key lookup above just failed, and at least
+                #  one component doesn't already exist on its axis, so we
+                #  are about to expand either a new MultiIndex row or a new
+                #  column/row via the multi-axis interpretation.
+                _warn_ambiguous_multi_index_tuple(key)
             with suppress(IndexingError):
                 # suppress "Too many indexers"
                 return self._convert_tuple(key)
@@ -868,6 +884,20 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = list(key)
 
         return self._convert_to_indexer(key, axis=0)
+
+    def _is_multi_axis_overwrite(self, key: tuple) -> bool:
+        """
+        Whether ``key``, read as a per-axis (multi-axis) indexer, resolves
+        to labels that already exist on every axis -- i.e. this is a plain
+        overwrite of existing structure rather than an expansion that adds
+        a new MultiIndex row and/or a new row/column. See GH#65326.
+        """
+        for i, k in enumerate(key):
+            try:
+                self.obj._get_axis(i).get_loc(k)
+            except (KeyError, InvalidIndexError, TypeError):
+                return False
+        return True
 
     @final
     def _maybe_mask_setitem_value(self, indexer, value):
@@ -3759,6 +3789,26 @@ def need_slice(obj: slice) -> bool:
         obj.start is not None
         or obj.stop is not None
         or (obj.step is not None and obj.step != 1)
+    )
+
+
+def _warn_ambiguous_multi_index_tuple(key: tuple) -> None:
+    """
+    Warn about tuple keys that are ambiguous between a MultiIndex row label
+    and multi-axis (e.g. row, column) indexing, when the tuple fails to
+    match any existing MultiIndex key and falls back to being interpreted
+    as multi-axis indexers. See GH#65326.
+    """
+    warnings.warn(
+        f"The key {key!r} does not match any label in the MultiIndex, "
+        "so it is being interpreted as a multi-axis indexer (e.g. "
+        "row, column) rather than a MultiIndex key. This fallback is "
+        "ambiguous and will be removed in a future version of pandas, "
+        "at which point the tuple will always be treated as a "
+        "MultiIndex key and this will raise a KeyError. To index by "
+        "row and column explicitly, use `.loc[key, :]` instead.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
     )
 
 

@@ -577,7 +577,9 @@ def test_loc_getitem_lowerdim_corner(multiindex_dataframe_random_data):
         df.loc[("bar", "three"), "B"]
 
     # in theory should be inserting in a sorted space????
-    df.loc[("bar", "three"), "B"] = 0
+    msg = r"\(\('bar', 'three'\), 'B'\)"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df.loc[("bar", "three"), "B"] = 0
     expected = 0
     result = df.sort_index().loc[("bar", "three"), "B"]
     assert result == expected
