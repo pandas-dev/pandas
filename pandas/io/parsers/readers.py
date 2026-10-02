@@ -132,7 +132,7 @@ if TYPE_CHECKING:
         header: int | Sequence[int] | Literal["infer"] | None
         names: Sequence[Hashable] | lib.NoDefault | None
         index_col: IndexLabel | Literal[False] | None
-        usecols: UsecolsArgType[Hashable]
+        usecols: UsecolsArgType[HashableT]
         dtype: DtypeArg | None
         engine: CSVEngine | None
         converters: Mapping[HashableT, Callable[..., Any]] | None
@@ -1293,7 +1293,7 @@ def read_csv(
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: UsecolsArgType[Hashable] = None,
+    usecols: UsecolsArgType[HashableT] = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1898,7 +1898,7 @@ def read_table(
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: UsecolsArgType[Hashable] = None,
+    usecols: UsecolsArgType[HashableT] = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
