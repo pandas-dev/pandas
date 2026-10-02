@@ -408,7 +408,13 @@ class TestPeriodIndex:
         # Index is moved back a day with the timezone conversion from UTC to
         # Pacific
         expected_index = (
-            period_range(start=start, end=end, freq="D", name="idx") - offsets.Day()
+            period_range(
+                start=start.replace(tzinfo=None),
+                end=end.replace(tzinfo=None),
+                freq="D",
+                name="idx",
+            )
+            - offsets.Day()
         )
         expected = pd.Series(1.0, index=expected_index)
         tm.assert_series_equal(result, expected)

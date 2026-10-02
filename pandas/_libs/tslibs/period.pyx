@@ -1,3 +1,4 @@
+from contextvars import ContextVar
 import re
 
 cimport numpy as cnp
@@ -1792,21 +1793,26 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
         bint saw_integer = False
+        list dropped_tz = []
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    for _ in range(n):
-        # Analogous to: p = values[i]
-        p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+    token = _dropped_tz_seen.set(dropped_tz)
+    try:
+        for _ in range(n):
+            # Analogous to: p = values[i]
+            p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, dtype, &saw_integer)
+            ordinal = _extract_ordinal(p, dtype, &saw_integer)
 
-        # Analogous to: ordinals[i] = ordinal
-        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
+            # Analogous to: ordinals[i] = ordinal
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
 
-        cnp.PyArray_MultiIter_NEXT(mi)
+            cnp.PyArray_MultiIter_NEXT(mi)
+    finally:
+        _dropped_tz_seen.reset(token)
 
     if saw_integer:
         # GH#64227; warn once for the array rather than once per element
@@ -1820,6 +1826,9 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
+
+    if dropped_tz:
+        _warn_dropped_tz()
 
     return ordinals
 
@@ -1910,6 +1919,25 @@ INT_TO_PERIOD_SCALAR_DEPR_MSG = (
     "string, e.g. Period(str(value), freq=...). To get the future behavior "
     "now, use Period(ordinal=value, freq=...)."
 )
+
+DROPPED_TZ_MSG = "Converting to Period representation will drop timezone information."
+
+# GH#47005 set by extract_ordinals so it can warn once for the array instead
+#  of once per element
+_dropped_tz_seen = ContextVar("_dropped_tz_seen", default=None)
+
+
+cdef _warn_dropped_tz():
+    seen = _dropped_tz_seen.get()
+    if seen is not None:
+        seen.append(True)
+        return
+
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(DROPPED_TZ_MSG, UserWarning, stacklevel=find_stack_level())
 
 
 @set_module("pandas.errors")
@@ -3484,20 +3512,29 @@ class Period(_Period):
             value = value.upper()
 
             freqstr = freq.rule_code if freq is not None else None
-            try:
-                dt, reso = parse_datetime_string_with_reso(
-                    value, freqstr, warn_quarter=False,
-                )
-            except ValueError as err:
-                match = re.search(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value)
-                if match:
-                    # Case that cannot be parsed (correctly) by our datetime
-                    #  parsing logic
+            dt = None
+            weekly_err = None
+            if "/" in value and re.search(
+                r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}", value
+            ):
+                # Case that cannot be parsed (correctly) by our datetime
+                #  parsing logic, which may read the "-dd" suffix as a UTC
+                #  offset, GH#47005
+                try:
                     dt, freq = _parse_weekly_str(value, freq)
-                else:
-                    raise err
+                except ValueError as err:
+                    weekly_err = err
 
-            else:
+            if dt is None:
+                try:
+                    dt, reso = parse_datetime_string_with_reso(
+                        value, freqstr, warn_quarter=False,
+                    )
+                except ValueError:
+                    if weekly_err is not None:
+                        raise weekly_err
+                    raise
+
                 if reso == "nanosecond":
                     nanosecond = dt.nanosecond
                 if dt is NaT:
@@ -3529,6 +3566,8 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
+            if dt.tzinfo is not None:
+                _warn_dropped_tz()
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,

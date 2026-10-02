@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     date,
     datetime,
     timedelta,
@@ -518,6 +519,27 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             # not 6 days apart
             pd.Period("2016-01-23/2017-01-29")
+
+    @pytest.mark.parametrize("freq", [None, "W", "D"])
+    def test_parse_week_str_day_not_read_as_offset(self, freq):
+        # GH#47005 the "-09" suffix was read as a UTC offset
+        result = pd.Period("2000-01-03/2000-01-09", freq=freq)
+        expected = pd.Period("2000-01-09", freq=freq or "W-SUN")
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "2022-01-01 06:00+02:00",
+            pd.Timestamp("2022-01-01 06:00", tz="US/Pacific"),
+            datetime(2022, 1, 1, 6, tzinfo=UTC),
+        ],
+    )
+    def test_construct_from_tzaware_warns(self, value):
+        # GH#47005
+        with tm.assert_produces_warning(UserWarning, match="drop timezone"):
+            result = pd.Period(value, freq="h")
+        assert result == pd.Period("2022-01-01 06:00", freq="h")
 
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")
