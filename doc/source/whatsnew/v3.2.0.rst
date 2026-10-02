@@ -179,8 +179,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :func:`read_excel` raising ``ValueError`` when ``header`` is a list and ``index_col`` consumes all columns (:issue:`66372`)
 
 Period
 ^^^^^^
