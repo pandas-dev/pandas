@@ -143,6 +143,27 @@ def test_join_lsuffix_rsuffix_deprecated():
         df1.join(df2, lsuffix="_left", suffixes=("_left", "_right"))
 
 
+@pytest.mark.parametrize(
+    "columns, suffixes, expected_columns",
+    [
+        (["a", "b"], ("_x", "_x"), ["a_x", "b_x", "a_x", "b_x"]),
+        (["a", "a_x"], ("", "_x"), ["a", "a_x", "a_x", "a_x_x"]),
+    ],
+)
+def test_join_suffixes_cause_duplicate_columns_deprecated(
+    columns, suffixes, expected_columns
+):
+    # GH#13659
+    df1 = pd.DataFrame([[1, 2]], columns=columns)
+    df2 = pd.DataFrame([[3, 4]], columns=columns)
+
+    msg = "Passing 'suffixes' which cause duplicate columns"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        result = df1.join(df2, suffixes=suffixes)
+    expected = pd.DataFrame([[1, 2, 3, 4]], columns=expected_columns)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_join_invalid_validate(left_no_dup, right_no_dup):
     # GH 46622
     # Check invalid arguments
