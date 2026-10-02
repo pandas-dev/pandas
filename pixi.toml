@@ -276,7 +276,8 @@ cmd = [
 
 [tasks.ci-test-c-coverage]
 # Serial: pytest-xdist kills workers that take over 10s to exit, and a killed
-# worker never writes its gcov data. No --cov; the other jobs report Python coverage.
+# worker never writes its gcov data. No --cov; the other jobs report Python
+# coverage.
 cmd = [
   "python",
   "-m",
