@@ -1114,7 +1114,7 @@ def _read_csv_chunks(
     columns: list[Hashable] = []
     all_columns: list[Hashable] = []
     index_labels: list[Hashable] = []
-    index_dicts: list[dict] = []
+    index_dicts: list[dict[Any, Any]] = []
     total = 0
     readers_closing = False
 
@@ -1252,7 +1252,7 @@ def _read_csv_chunks(
     index: Index
     if index_engine is not None:
         gathered = _concatenate_chunks(index_dicts, index_labels, warn_mixed=False)
-        alldata: list = [None] * len(all_columns)
+        alldata: list[Any] = [None] * len(all_columns)
         for pos, label in zip(index_positions, index_labels, strict=True):
             alldata[pos] = gathered[label]
         made_index, _ = index_engine._make_index(alldata, list(all_columns))

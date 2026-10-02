@@ -501,7 +501,7 @@ disallow_any_unimported = false # TODO
 disallow_any_expr = false # TODO
 disallow_any_decorated = false # TODO
 disallow_any_explicit = false # TODO
-disallow_any_generics = false # TODO
+disallow_any_generics = true
 disallow_subclassing_any = false # TODO
 # Untyped definitions and calls
 disallow_untyped_calls = true
