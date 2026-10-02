@@ -703,7 +703,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 static int skip_this_line(parser_t *self, int64_t rownum) {
   if (self->skipfunc != NULL) {
     PyGILState_STATE state = PyGILState_Ensure();
-    PyObject *result = PyObject_CallFunction(self->skipfunc, "i", rownum);
+    PyObject *result = PyObject_CallFunction(self->skipfunc, "L", (long long) rownum);
 
     // Error occurred. It will be processed
     // and caught at the Cython level.
