@@ -2567,8 +2567,8 @@ class Index(IndexOpsMixin, PandasObject):
         Return if the index has unique values.
 
         An index with no repeated values returns ``True``, otherwise ``False``.
-        Missing values count as repeated, so an index with more than one NA
-        value is not unique.
+        A repeated missing value, such as two ``NaN``, makes the index
+        non-unique.
 
         Returns
         -------
@@ -7371,10 +7371,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         If ``start`` or ``end`` is not present in a monotonic index, the
         returned position is the insertion point that preserves ordering
-        (analogous to :func:`numpy.searchsorted`), except that an object-dtype
-        Index raises a ``TypeError`` for a missing int or float label. If the
-        index is not monotonic and the label is missing, a ``KeyError`` is
-        raised.
+        (analogous to :func:`numpy.searchsorted`). If the index is not
+        monotonic and the label is missing, a ``KeyError`` is raised. An
+        object-dtype Index raises a ``TypeError`` instead for a missing int or
+        float label, whether or not it is monotonic.
 
         Examples
         --------

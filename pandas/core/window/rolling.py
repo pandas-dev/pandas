@@ -3000,7 +3000,8 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        A minimum of one period is required for the calculation.
+        A window needs at least ``ddof + 1`` observations to give a non-NaN
+        result.
 
         Examples
         --------

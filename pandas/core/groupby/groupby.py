@@ -1877,7 +1877,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute count of group, excluding missing values.
 
-        Unlike :meth:`GroupBy.size`, missing values are not counted.
+        Unlike :meth:`DataFrameGroupBy.size`, missing values are not counted.
 
         Returns
         -------
@@ -3562,10 +3562,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        DatetimeIndexResamplerGroupBy
-            Resampler object for the type of the index: a
-            ``PeriodIndexResamplerGroupBy`` for a PeriodIndex or a
-            ``TimedeltaIndexResamplerGroupBy`` for a TimedeltaIndex.
+        DatetimeIndexResamplerGroupBy, PeriodIndexResamplerGroupBy or TimedeltaIndexResamplerGroupBy
+            Resampler object for the type of the index.
 
         See Also
         --------
@@ -3640,7 +3638,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         0   2000-01-01 00:00:00  1
             2000-01-01 00:03:00  2
         5   2000-01-01 00:03:00  1
-        """
+        """  # noqa: E501
         from pandas.core.resample import get_resampler_for_grouping
 
         if include_groups:
@@ -4287,8 +4285,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        GroupBy.head : Return first n rows of each group.
-        GroupBy.tail : Return last n rows of each group.
+        DataFrameGroupBy.head : Return first n rows of each group.
+        DataFrameGroupBy.tail : Return last n rows of each group.
 
         Examples
         --------
@@ -5166,7 +5164,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 Will raise a ``ValueError`` if ``freq`` is provided too.
 
         suffix : str, optional
-            A string to add to each shifted column if there are multiple periods.
+            A string to add to each shifted column if ``periods`` is a list.
 
         Returns
         -------
