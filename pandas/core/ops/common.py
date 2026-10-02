@@ -11,9 +11,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.lib import (
-    is_iterator,
     is_list_like,
-    is_scalar,
     item_from_zerodim,
 )
 from pandas._libs.missing import is_matching_na
@@ -40,16 +38,7 @@ if TYPE_CHECKING:
 
 
 def has_castable_attr(obj) -> bool:
-    attrs = [
-        "__array__",
-        # GH#31646 np.asarray honors __array_interface__ and __array_struct__
-        #  too, so an operand exposing only one of them is still element-wise
-        "__array_interface__",
-        "__array_struct__",
-        "__dlpack__",
-        "__arrow_c_array__",
-        "__arrow_c_stream__",
-    ]
+    attrs = ["__array__", "__dlpack__", "__arrow_c_array__", "__arrow_c_stream__"]
     return any(hasattr(obj, name) for name in attrs)
 
 
@@ -67,39 +56,6 @@ def raise_if_2d(other) -> None:
         raise NotImplementedError("can only perform ops with 1-d structures")
 
 
-def is_listlike_for_op(other) -> bool:
-    """
-    Whether ``other`` should be operated with element-wise, as opposed to
-    being treated as a scalar.
-
-    An iterator is list-like but has no length and is consumed by being read,
-    so it cannot be aligned element-wise; it is treated as scalar-like
-    (GH#31646), matching ndarray and numpy-dtype Series.
-    """
-    return is_list_like(other) and not is_iterator(other)
-
-
-def is_scalar_for_op(other) -> bool:
-    """
-    Whether ``other`` should be treated as a scalar rather than operated with
-    element-wise.
-
-    Wider than ``lib.is_scalar``: an iterator, or any object we neither
-    recognize as a scalar nor can align element-wise, belongs on the scalar
-    path instead of in a ``len()`` call (GH#31646). Not the negation of
-    ``is_listlike_for_op``: a sized sequence defining ``__getitem__`` but not
-    ``__iter__`` is not ``is_list_like``, yet NumPy still coerces it, so it
-    stays element-wise.
-    """
-    return (
-        is_scalar(other)
-        or is_iterator(other)
-        or not (
-            is_list_like(other) or hasattr(other, "__len__") or has_castable_attr(other)
-        )
-    )
-
-
 def maybe_warn_listlike(other) -> None:
     """
     Warn when operating against a list-like that is neither a standard container
@@ -107,10 +63,9 @@ def maybe_warn_listlike(other) -> None:
 
     Such operations (e.g. with ``tuple``, ``range``, ``deque``) are deprecated
     (GH#62423) and will treat ``other`` as scalar-like in a future version.
-    Iterators are already scalar-like, so they do not warn.
     """
     if (
-        is_listlike_for_op(other)
+        is_list_like(other)
         and not isinstance(
             other,
             (list, np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, ABCDataFrame),

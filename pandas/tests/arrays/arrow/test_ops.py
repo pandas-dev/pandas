@@ -215,6 +215,13 @@ def test_compare_range_mismatched_len(data, comparison_op):
             comparison_op(ser, rng)
 
 
+def test_compare_iterator_warns(data, comparison_op):
+    # GH#31646 an iterator is a non-standard list-like (GH#62423)
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        with pytest.raises(NotImplementedError, match="not implemented for"):
+            comparison_op(pd.Series(data), iter(data))
+
+
 def test_invalid_other_comp(data, comparison_op):
     # GH 48833
     with pytest.raises(

@@ -18,8 +18,6 @@ from pandas.core.ops.array_ops import (
 from pandas.core.ops.common import (
     get_op_result_name,
     has_castable_attr,
-    is_listlike_for_op,
-    is_scalar_for_op,
     maybe_warn_listlike,
     raise_if_2d,
     unpack_zerodim_and_defer,
@@ -83,8 +81,6 @@ __all__ = [
     "get_op_result_name",
     "has_castable_attr",
     "invalid_comparison",
-    "is_listlike_for_op",
-    "is_scalar_for_op",
     "kleene_and",
     "kleene_or",
     "kleene_xor",

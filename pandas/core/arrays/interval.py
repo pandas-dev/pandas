@@ -718,7 +718,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def _cmp_method(self, other, op):
         # ensure pandas array for list-like and eliminate non-interval scalars
-        if ops.is_listlike_for_op(other):
+        if is_list_like(other):
             if not isinstance(
                 other, (list, np.ndarray, ExtensionArray)
             ) and not ops.has_castable_attr(other):
