@@ -93,6 +93,11 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    def test_repr_seq_complex_precision(self):
+        # GH#25920
+        with cf.option_context("display.precision", 3):
+            assert printing.pprint_thing([3.14159265 + 1j]) == "[(3.142+1.0j)]"
+
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()
         assert printing.pprint_thing(np.array(5)) == "5"

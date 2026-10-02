@@ -1464,7 +1464,10 @@ cdef class TextReader:
                     st.offset_limit = _STR_OFFSET_LIMIT
                     nstr += 1
                     continue
-                mask = np.zeros(lines, dtype=np.bool_)
+                # not np.zeros: its calloc releases the GIL, a contended
+                # re-acquire per column when many workers run.  Zeroed in
+                # the nogil sweep below.
+                mask = np.empty(lines, dtype=np.bool_)
                 st.na_mask = <uint8_t *>mask.data
                 if kind == BLOCK_KIND_INT64:
                     arr = np.empty(lines, dtype=np.int64)
@@ -1480,8 +1483,9 @@ cdef class TextReader:
             with nogil:
                 for k in range(n):
                     st = &states[k]
-                    if st.kind == BLOCK_KIND_STRING and _str_col_alloc(
-                            st, parser, start, lines):
+                    if st.kind != BLOCK_KIND_STRING:
+                        memset(st.na_mask, 0, lines)
+                    elif _str_col_alloc(st, parser, start, lines):
                         error = 1
                         break
                 blk = start
