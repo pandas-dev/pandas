@@ -129,8 +129,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
--
+- Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 
 Timedelta
 ^^^^^^^^^
