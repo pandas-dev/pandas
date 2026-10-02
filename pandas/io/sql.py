@@ -732,6 +732,8 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
+    >>> conn.close()
+
     pandas supports reading via ADBC drivers:
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
