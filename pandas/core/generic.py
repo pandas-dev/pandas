@@ -3053,6 +3053,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
 
+        >>> engine.dispose()
+
         .. versionadded:: 2.2.0
 
            pandas now supports writing via ADBC drivers

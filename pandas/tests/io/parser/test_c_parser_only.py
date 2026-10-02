@@ -13,6 +13,7 @@ from io import (
     TextIOWrapper,
 )
 import mmap
+import re
 import tarfile
 import tracemalloc
 
@@ -1866,6 +1867,40 @@ def test_converter_unhashable_output_with_na_values(c_parser_only, converter, va
     )
     expected = pd.DataFrame({"A": values})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, dtype, offender",
+    [
+        (
+            "a;b\na;1,20\nb;22,3\nc;1.234,56\n",
+            {"decimal": ","},
+            "float64",
+            "1.234,56",
+        ),
+        (
+            "a;b\na;1,000\nb;x\n",
+            {"thousands": ","},
+            "int64",
+            "x",
+        ),
+        (
+            # overflowing-but-valid token before the offender
+            "a;b\na;18446744073709551615\nb;x\n",
+            {},
+            "int64",
+            "x",
+        ),
+    ],
+)
+def test_unparseable_dtype_names_offending_value(
+    c_parser_only, data, kwargs, dtype, offender
+):
+    # GH#59299 name the value the parser rejected, not an earlier valid one
+    parser = c_parser_only
+
+    with pytest.raises(ValueError, match=re.escape(repr(offender))):
+        parser.read_csv(StringIO(data), sep=";", dtype={"b": dtype}, **kwargs)
 
 
 _SNIFF_EXPECTED = pd.DataFrame(

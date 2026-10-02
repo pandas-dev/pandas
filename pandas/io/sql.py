@@ -82,6 +82,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Generator,
+        Hashable,
         Iterator,
         Mapping,
     )
@@ -731,6 +732,8 @@ def read_sql(
     0           0  2012-11-10
     1           1  2010-11-12
 
+    >>> conn.close()
+
     pandas supports reading via ADBC drivers:
 
     >>> from adbc_driver_postgresql import dbapi  # doctest:+SKIP
@@ -798,7 +801,7 @@ def to_sql(
     index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    method: Literal["multi"] | Callable | None = None,
+    method: Literal["multi"] | Callable[..., Any] | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -1132,7 +1135,7 @@ class SQLTable(PandasObject):
     def insert(
         self,
         chunksize: int | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1400,7 +1403,7 @@ class SQLTable(PandasObject):
     def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast("dict", dtype)
+            dtype = cast("Mapping[Hashable, Any]", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -1555,14 +1558,14 @@ class PandasSQL(PandasObject, ABC):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         pass
 
     @abstractmethod
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause, params=None):
         pass
 
     @abstractmethod
@@ -1718,7 +1721,7 @@ class SQLDatabase(PandasSQL):
         else:
             yield self.con
 
-    def execute(self, sql: str | Select | TextClause | Delete, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause | Delete, params=None):
         """Simple passthrough to SQLAlchemy connectable"""
         from sqlalchemy.exc import SQLAlchemyError
 
@@ -1960,7 +1963,7 @@ class SQLDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast("dict", dtype)
+                dtype = cast("Mapping[Hashable, Any]", dtype)
 
             from sqlalchemy.types import TypeEngine
 
@@ -2024,7 +2027,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2191,7 +2194,7 @@ class ADBCDatabase(PandasSQL):
                 raise
             self.con.commit()
 
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause, params=None):
         from adbc_driver_manager import Error
 
         if not isinstance(sql, str):
@@ -2386,7 +2389,7 @@ class ADBCDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2730,7 +2733,7 @@ class SQLiteTable(SQLTable):
     def _sql_type_name(self, col):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
-            dtype = cast("dict", dtype)
+            dtype = cast("Mapping[Hashable, Any]", dtype)
             if col.name in dtype:
                 return dtype[col.name]
 
@@ -2788,7 +2791,7 @@ class SQLiteDatabase(PandasSQL):
         finally:
             cur.close()
 
-    def execute(self, sql: str | Select | TextClause, params=None):
+    def execute(self, sql: str | Select[Any] | TextClause, params=None):
         from sqlite3 import Error
 
         if not isinstance(sql, str):
@@ -2916,7 +2919,7 @@ class SQLiteDatabase(PandasSQL):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method: Literal["multi"] | Callable | None = None,
+        method: Literal["multi"] | Callable[..., Any] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2969,7 +2972,7 @@ class SQLiteDatabase(PandasSQL):
                 # dtype[Any], Type[object]]"
                 dtype = dict.fromkeys(frame, dtype)  # type: ignore[arg-type]
             else:
-                dtype = cast("dict", dtype)
+                dtype = cast("Mapping[Hashable, Any]", dtype)
 
             for col, my_type in dtype.items():
                 if not isinstance(my_type, str):
