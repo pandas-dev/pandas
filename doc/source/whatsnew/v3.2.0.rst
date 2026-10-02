@@ -1,0 +1,234 @@
+.. _whatsnew_320:
+
+What's new in 3.2.0 (Month XX, 2027)
+------------------------------------
+
+These are the changes in pandas 3.2.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_320.enhancements.enhancement1:
+
+enhancement1
+^^^^^^^^^^^^
+
+.. _whatsnew_320.enhancements.enhancement2:
+
+enhancement2
+^^^^^^^^^^^^
+
+.. _whatsnew_320.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+- Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
+- The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.notable_bug_fixes:
+
+Notable bug fixes
+~~~~~~~~~~~~~~~~~
+
+These are bug fixes that might have notable behavior changes.
+
+.. _whatsnew_320.notable_bug_fixes.notable_bug_fix1:
+
+notable_bug_fix1
+^^^^^^^^^^^^^^^^
+
+.. _whatsnew_320.notable_bug_fixes.notable_bug_fix2:
+
+notable_bug_fix2
+^^^^^^^^^^^^^^^^
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.api_breaking:
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_320.api_breaking.deps:
+
+Increased minimum versions for dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Some minimum supported versions of dependencies were updated.
+If installed, we now require:
+
++-----------------+-----------------+----------+---------+
+| Package         | Minimum Version | Required | Changed |
++=================+=================+==========+=========+
+|                 |                 |    X     |    X    |
++-----------------+-----------------+----------+---------+
+
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
+Optional libraries below the lowest tested version may still work, but are not considered supported.
+
++-----------------+-----------------+---------+
+| Package         | Minimum Version | Changed |
++=================+=================+=========+
+|                 |                 |    X    |
++-----------------+-----------------+---------+
+
+See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
+
+.. _whatsnew_320.api_breaking.other:
+
+Other API changes
+^^^^^^^^^^^^^^^^^
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+.. _whatsnew_320.deprecations.depr1:
+
+deprecation1
+^^^^^^^^^^^^
+
+.. _whatsnew_320.deprecations.depr2 :
+
+deprecation2
+^^^^^^^^^^^^
+
+.. _whatsnew_320.deprecations.other:
+
+Other deprecations
+^^^^^^^^^^^^^^^^^^
+- Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.performance:
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69748`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+-
+-
+
+Timedelta
+^^^^^^^^^
+-
+-
+
+Timezones
+^^^^^^^^^
+-
+-
+
+Numeric
+^^^^^^^
+-
+-
+
+Conversion
+^^^^^^^^^^
+-
+-
+
+Strings
+^^^^^^^
+-
+-
+
+Interval
+^^^^^^^^
+- Bug in :func:`concat` and :meth:`Index.append` with :class:`IntervalDtype` not retaining an extension dtype subtype, either casting it to a NumPy dtype or raising ``TypeError`` (:issue:`64297`)
+- Bug in :meth:`Series.shift` and :meth:`DataFrame.shift` with an :class:`IntervalDtype` column not retaining the subtype, either changing it or raising ``TypeError`` (:issue:`69922`)
+
+Indexing
+^^^^^^^^
+-
+-
+
+Missing
+^^^^^^^
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+-
+-
+
+I/O
+^^^
+-
+-
+
+Period
+^^^^^^
+-
+-
+
+Plotting
+^^^^^^^^
+-
+-
+
+Groupby/resample/rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+-
+-
+
+Reshaping
+^^^^^^^^^
+-
+-
+
+Sparse
+^^^^^^
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+-
+-
+
+Styler
+^^^^^^
+-
+-
+
+Other
+^^^^^
+
+.. ***DO NOT USE THIS SECTION***
+
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_320.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v3.2.0.dev0..v3.2.0|HEAD
