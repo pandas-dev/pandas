@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -79,23 +78,21 @@ class TestReadPyTablesHDF5:
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
 
-_legacy_files: list[Any] = list(
-    Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
-)
+_legacy_params = [
+    pytest.param(path, id=path.name)
+    for path in Path(__file__).parent.parent.glob("data/legacy_hdf/*/*.h5")
+]
+# GH#64604 the data files are not installed, e.g. with a wheel install
+_legacy_params = _legacy_params or [
+    pytest.param(
+        None,
+        id="missing",
+        marks=pytest.mark.skip(reason="legacy hdf files not installed"),
+    )
+]
 
 
-if not _legacy_files:
-    # GH#64604 the data files are not installed, e.g. with a wheel install
-    _legacy_files = [
-        pytest.param(
-            None, marks=pytest.mark.skip(reason="legacy hdf files not installed")
-        )
-    ]
-
-
-@pytest.mark.parametrize(
-    "legacy_file", _legacy_files, ids=lambda x: getattr(x, "name", "missing")
-)
+@pytest.mark.parametrize("legacy_file", _legacy_params)
 def test_legacy_files(legacy_file, using_infer_string, request):
     legacy_version = Version(legacy_file.parent.name)
     legacy_file = str(legacy_file)

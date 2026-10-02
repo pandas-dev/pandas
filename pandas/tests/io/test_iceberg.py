@@ -19,7 +19,7 @@ from pandas.io.iceberg import read_iceberg
 
 pytestmark = [
     pytest.mark.single_cpu,
-    # pyiceberg leaks sqlite connections on Python >=3.13, see
+    # pyiceberg leaks sqlite connections, which warn on Python >=3.13, see
     # https://github.com/apache/iceberg-python/issues/2530
     pytest.mark.filterwarnings(
         "ignore:unclosed database in <sqlite3.Connection object:ResourceWarning"

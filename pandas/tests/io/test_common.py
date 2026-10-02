@@ -757,6 +757,8 @@ def test_read_directory_not_reported_as_missing(reader, module, fn_ext, tmp_path
         reader(path)
 
 
+# not in test_sql.py, whose single_cpu mark keeps it out of the CI jobs
+# that lack sqlalchemy
 @td.skip_if_installed("sqlalchemy")
 def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
     class MockSqliteConnection:
