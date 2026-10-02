@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from typing import (
     TYPE_CHECKING,
+    Any,
     Concatenate,
     Literal,
     Self,
@@ -90,7 +91,6 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        Any,
         AnyArrayLike,
         Axis,
         FreqIndexT,
@@ -116,7 +116,7 @@ if TYPE_CHECKING:
 
 
 @set_module("pandas.api.typing")
-class Resampler(BaseGroupBy, PandasObject):
+class Resampler(BaseGroupBy[Any], PandasObject):
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -578,7 +578,7 @@ class Resampler(BaseGroupBy, PandasObject):
     @final
     def _get_resampler_for_grouping(
         self,
-        groupby: GroupBy,
+        groupby: GroupBy[Any],
         key,
     ):
         """
@@ -1998,21 +1998,21 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("quantile", q=q, **kwargs)
 
 
-class _GroupByMixin(PandasObject, SelectionMixin):
+class _GroupByMixin(PandasObject, SelectionMixin[Any]):
     """
     Provide the groupby facilities.
     """
 
     _attributes: list[str]  # in practice the same as Resampler._attributes
     _selection: IndexLabel | None = None
-    _groupby: GroupBy
+    _groupby: GroupBy[Any]
     _timegrouper: TimeGrouper
 
     def __init__(
         self,
         *,
         parent: Resampler,
-        groupby: GroupBy,
+        groupby: GroupBy[Any],
         key=None,
         selection: IndexLabel | None = None,
     ) -> None:
@@ -2383,7 +2383,7 @@ get_resampler.__doc__ = Resampler.__doc__
 
 
 def get_resampler_for_grouping(
-    groupby: GroupBy,
+    groupby: GroupBy[Any],
     rule,
     how=None,
     fill_method=None,
