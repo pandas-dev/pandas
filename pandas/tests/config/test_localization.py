@@ -160,7 +160,7 @@ def test_set_locale(lang, enc):
 )
 def test_encoding_detected():
     system_locale = os.environ.get("LC_ALL")
-    # a locale without an ".encoding" suffix (e.g. "C") does not name one
+    # "C"/"POSIX" name no encoding; Python enables UTF-8 mode under them (PEP 540)
     if system_locale and "." in system_locale:
         system_encoding = system_locale.split(".")[-1]
     else:
