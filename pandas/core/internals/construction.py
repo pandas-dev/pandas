@@ -83,6 +83,7 @@ from pandas.core.internals.managers import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Mapping,
         Sequence,
     )
 
@@ -911,7 +912,7 @@ def _list_of_series_to_arrays(
 
 
 def _list_of_dict_to_arrays(
-    data: list[dict[Hashable, Any]],
+    data: list[Mapping[Hashable, Any]],
     columns: Index | None,
 ) -> tuple[np.ndarray, Index]:
     """
