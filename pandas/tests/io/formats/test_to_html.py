@@ -1,4 +1,5 @@
 from datetime import datetime
+from html import escape
 from io import StringIO
 import itertools
 import re
@@ -1056,6 +1057,127 @@ def test_to_html_multilevel(multiindex_year_month_day_dataframe_random_data):
     ymd.columns.name = "foo"
     ymd.to_html()
     ymd.T.to_html()
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "object",
+        "Int64",
+        "Float64",
+        "boolean",
+        "string[python]",
+        "string[pyarrow]",
+        "int64[pyarrow]",
+    ],
+)
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", "", "<missing&>", "缺💡<&>"])
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_na_rep_pd_na(dtype, na_rep, notebook):
+    # GH#33950
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    values = [True, pd.NA, False] if dtype == "boolean" else [1, pd.NA, 2]
+    df = pd.DataFrame({"a": pd.Series(values, dtype=dtype)})
+
+    result = df.to_html(na_rep=na_rep, notebook=notebook)
+    if dtype == "boolean":
+        first, last = "True", "False"
+    elif dtype == "Float64":
+        first, last = "1.0", "2.0"
+    else:
+        first, last = "1", "2"
+    expected = [first, escape(na_rep, quote=False), last]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
+
+
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", ""])
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_na_rep_missing_scalars(na_rep, notebook):
+    # GH#33950
+    df = pd.DataFrame(
+        {"a": [float("nan"), pd.NA, pd.NaT, None]},
+        dtype=object,
+    )
+
+    result = df.to_html(na_rep=na_rep, notebook=notebook)
+
+    assert re.findall(r"<td>(.*?)</td>", result) == [na_rep] * 4
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "datetime64[ns]",
+        "timedelta64[ns]",
+        "datetime64[ns, UTC]",
+        "timestamp[ns][pyarrow]",
+    ],
+)
+@pytest.mark.parametrize("na_rep", ["zzzz", "NaN", ""])
+def test_to_html_na_rep_temporal_missing(dtype, na_rep):
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.Series([pd.NaT], dtype=dtype)})
+
+    result = df.to_html(na_rep=na_rep)
+
+    assert re.findall(r"<td>(.*?)</td>", result) == [na_rep]
+
+
+@pytest.mark.parametrize("notebook", [True, False])
+def test_to_html_missing_scalars_default(notebook):
+    df = pd.DataFrame(
+        {"a": [float("nan"), pd.NA, pd.NaT, None]},
+        dtype=object,
+    )
+
+    result = df.to_html(notebook=notebook)
+
+    expected = ["NaN", "&lt;NA&gt;", "NaT", "None"]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
+
+
+def test_repr_html_missing_scalars_default():
+    df = pd.DataFrame(
+        {"a": [float("nan"), pd.NA, pd.NaT, None]},
+        dtype=object,
+    )
+
+    result = df._repr_html_()
+
+    expected = ["NaN", "&lt;NA&gt;", "NaT", "None"]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
+
+
+def test_to_html_pd_na_default():
+    # GH#33950: omitting na_rep must preserve the usual pd.NA representation.
+    df = pd.DataFrame({"a": pd.Series([pd.NA], dtype="Int64")})
+    result = df.to_html()
+    assert re.findall(r"<td>(.*?)</td>", result) == ["&lt;NA&gt;"]
+
+
+@pytest.mark.parametrize("escape_html", [True, False])
+@pytest.mark.parametrize("use_formatter", [True, False])
+@pytest.mark.parametrize("rendered_text", ["<NA>", "NaN"])
+@pytest.mark.parametrize(
+    "missing_value",
+    [pd.NA, np.datetime64("NaT", "ns")],
+    ids=["pd_na", "np_datetime_nat"],
+)
+def test_to_html_na_rep_literal_and_formatter(
+    escape_html, use_formatter, rendered_text, missing_value
+):
+    # GH#33950: replace the missing scalar, not text or formatter output.
+    formatter = (lambda value: rendered_text) if use_formatter else None
+    df = pd.DataFrame(
+        {"a": [rendered_text, missing_value, rendered_text]}, dtype=object
+    )
+    result = df.to_html(na_rep="zzzz", formatters={"a": formatter}, escape=escape_html)
+    expected = [rendered_text, "zzzz", rendered_text]
+    if escape_html:
+        expected = [escape(value, quote=False) for value in expected]
+    assert re.findall(r"<td>(.*?)</td>", result) == expected
 
 
 @pytest.mark.parametrize("na_rep", ["NaN", "Ted"])

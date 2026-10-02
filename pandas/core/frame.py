@@ -999,7 +999,6 @@ class DataFrame(NDFrame, OpsMixin):
                 self,
                 columns=None,
                 col_space=None,
-                na_rep="NaN",
                 formatters=None,
                 float_format=show_floats,
                 sparsify=None,
@@ -1077,7 +1076,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: int | list[int] | dict[Hashable, int] | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: fmt.FormattersType | None = None,
         float_format: fmt.FloatFormatType | None = None,
         sparsify: bool | None = None,
@@ -1113,8 +1112,9 @@ class DataFrame(NDFrame, OpsMixin):
             assumed to be aliases for the column names.
         index : bool, optional, default True
             Whether to print index (row) labels.
-        na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` to use.
+        na_rep : str, optional
+            String representation of missing values to use. If not specified,
+            each type of missing value uses its default representation.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.
@@ -3210,7 +3210,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: ColspaceArgType | None = None,
         header: bool = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: FormattersType | None = None,
         float_format: FloatFormatType | None = None,
         sparsify: bool | None = None,
@@ -3249,8 +3249,9 @@ class DataFrame(NDFrame, OpsMixin):
             Whether to print column labels, default True.
         index : bool, optional, default True
             Whether to print index (row) labels.
-        na_rep : str, optional, default 'NaN'
-            String representation of ``NaN`` to use.
+        na_rep : str, optional
+            String representation of missing values to use. If not specified,
+            each type of missing value uses its default representation.
         formatters : list, tuple or dict of one-param. functions, optional
             Formatter functions to apply to columns' elements by position or
             name.

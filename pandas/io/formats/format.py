@@ -145,7 +145,7 @@ class SeriesFormatter:
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         name: bool = False,
         float_format: str | None = None,
         dtype: bool = True,
@@ -381,8 +381,8 @@ class DataFrameFormatter:
         it is assumed to be aliases for the column names.
     index : bool, optional, default True
         Whether to print index (row) labels.
-    na_rep : str, optional, default 'NaN'
-        String representation of ``NaN`` to use.
+    na_rep : str, optional
+        String representation of missing values to use.
     formatters : list, tuple or dict of one-param. functions, optional
         Formatter functions to apply to columns' elements by position or
         name.
@@ -437,7 +437,7 @@ class DataFrameFormatter:
         col_space: ColspaceArgType | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         formatters: FormattersType | None = None,
         justify: str | None = None,
         float_format: FloatFormatType | None = None,
@@ -1113,7 +1113,7 @@ def format_array(
     values: ArrayLike,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
-    na_rep: str = "NaN",
+    na_rep: str | lib.NoDefault = lib.no_default,
     digits: int | None = None,
     space: str | int | None = None,
     justify: str = "right",
@@ -1153,13 +1153,9 @@ def format_array(
     if lib.is_np_dtype(values.dtype, "M") or isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = _Datetime64Formatter
         values = cast("DatetimeArray", values)
-        if na_rep == "NaN":
-            na_rep = "NaT"
     elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = _Timedelta64Formatter
         values = cast("TimedeltaArray", values)
-        if na_rep == "NaN":
-            na_rep = "NaT"
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
@@ -1201,7 +1197,7 @@ class _GenericArrayFormatter:
         values: ArrayLike,
         digits: int = 7,
         formatter: Callable | None = None,
-        na_rep: str = "NaN",
+        na_rep: str | lib.NoDefault = lib.no_default,
         space: str | int = 12,
         float_format: FloatFormatType | None = None,
         justify: str = "right",
@@ -1252,13 +1248,15 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
+                if self.na_rep is not lib.no_default:
+                    return self.na_rep
+                elif x is None:
                     return "None"
                 elif x is NA:
                     return str(NA)
                 elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
                     return "NaT"
-                return self.na_rep
+                return "NaN"
             elif isinstance(x, PandasObject):
                 return str(x)
             elif self.formatter is None and is_complex(x):
@@ -1307,6 +1305,9 @@ class _GenericArrayFormatter:
 class FloatArrayFormatter(_GenericArrayFormatter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        if self.na_rep is lib.no_default:
+            self.na_rep = "NaN"
 
         # float_format is expected to be a string
         # formatter should be used to pass a function
@@ -1378,6 +1379,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         Returns the float values converted into strings using
         the parameters given at initialisation, as a numpy array
         """
+        # FloatArrayFormatter resolves the sentinel to "NaN" in __init__
+        assert self.na_rep is not lib.no_default
+        na_rep: str = self.na_rep
 
         def format_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
@@ -1422,7 +1426,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             return np.array(formatted_lst).reshape(values.shape)
 
         if self.formatter is not None:
-            return format_with_na_rep(self.values, self.formatter, self.na_rep)
+            return format_with_na_rep(self.values, self.formatter, na_rep)
 
         if self.fixed_width:
             threshold = config["display"]["chop_threshold"]
@@ -1435,7 +1439,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
             # default formatter leaves a space to the left when formatting
             # floats, must be consistent for left-justifying NaNs (GH #25061)
-            na_rep = " " + self.na_rep if self.justify == "left" else self.na_rep
+            local_na_rep = " " + na_rep if self.justify == "left" else na_rep
 
             # different formatting strategies for complex and non-complex data
             # need to distinguish complex and float NaNs (GH #53762)
@@ -1444,9 +1448,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
             # separate the wheat from the chaff
             if is_complex:
-                values = format_complex_with_na_rep(values, formatter, na_rep)
+                values = format_complex_with_na_rep(values, formatter, local_na_rep)
             else:
-                values = format_with_na_rep(values, formatter, na_rep)
+                values = format_with_na_rep(values, formatter, local_na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1525,11 +1529,13 @@ class _Datetime64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: DatetimeArray,
-        na_rep: str = "NaT",
+        na_rep: str | lib.NoDefault = lib.no_default,
         date_format: None = None,
         **kwargs,
     ) -> None:
         super().__init__(values, na_rep=na_rep, **kwargs)
+        if self.na_rep is lib.no_default:
+            self.na_rep = "NaT"
         self.date_format = date_format
 
     def _format_strings(self) -> list[str]:
@@ -1538,6 +1544,7 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         if self.formatter is not None:
             return [self.formatter(x) for x in values]
 
+        assert self.na_rep is not lib.no_default
         fmt_values = values._format_native_types(
             na_rep=self.na_rep, date_format=self.date_format
         )
@@ -1775,12 +1782,15 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: TimedeltaArray,
-        na_rep: str = "NaT",
+        na_rep: str | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> None:
         super().__init__(values, na_rep=na_rep, **kwargs)
+        if self.na_rep is lib.no_default:
+            self.na_rep = "NaT"
 
     def _format_strings(self) -> list[str]:
+        assert self.na_rep is not lib.no_default
         formatter = self.formatter or get_format_timedelta64(
             self.values, na_rep=self.na_rep, box=False
         )
