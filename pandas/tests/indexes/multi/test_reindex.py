@@ -119,6 +119,34 @@ def test_reindex_empty_with_level(values):
     tm.assert_numpy_array_equal(result_indexer, expected_indexer)
 
 
+def test_reindex_level_with_missing_value():
+    # GH#60908
+    midx = pd.MultiIndex.from_arrays(
+        [[np.nan, 81, 82], ["x", "y", "z"]], names=["foo", "bar"]
+    )
+    target = pd.Index([82, np.nan, 81], name="foo")
+
+    result, indexer = midx.reindex(target, level="foo")
+
+    expected = pd.MultiIndex(
+        levels=[target, ["x", "y", "z"]],
+        codes=[[0, -1, 2], [2, 0, 1]],
+        names=midx.names,
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(indexer, np.array([2, 0, 1], dtype=np.intp))
+
+    target = pd.Index([82, 81], name="foo")
+    result, indexer = midx.reindex(target, level="foo")
+    expected = pd.MultiIndex(
+        levels=[target, ["x", "y", "z"]],
+        codes=[[0, 1], [2, 1]],
+        names=midx.names,
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(indexer, np.array([2, 1], dtype=np.intp))
+
+
 def test_reindex_not_all_tuples():
     keys = [("i", "i"), ("i", "j"), ("j", "i"), "j"]
     mi = pd.MultiIndex.from_tuples(keys[:-1])

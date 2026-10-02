@@ -256,6 +256,59 @@ def test_join_dtypes_all_nan(any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+def test_join_level_with_missing_value():
+    # GH#60908
+    midx = pd.MultiIndex.from_arrays(
+        [[np.nan, 81, 82], ["x", "y", "z"]], names=["foo", "bar"]
+    )
+
+    other = pd.Index([81, 82], name="foo")
+    result, lidx, ridx = midx.join(other, how="inner", return_indexers=True)
+    expected = midx[[1, 2]]
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(lidx, np.array([1, 2], dtype=np.intp))
+    tm.assert_numpy_array_equal(ridx, np.array([0, 1], dtype=np.intp))
+
+    other = pd.Index([np.nan, 81, 82], name="foo")
+    result, lidx, ridx = midx.join(other, how="inner", return_indexers=True)
+    expected = pd.MultiIndex(
+        levels=[[81.0, 82.0], ["x", "y", "z"]],
+        codes=[[-1, 0, 1], [0, 1, 2]],
+        names=midx.names,
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(lidx, np.arange(3, dtype=np.intp))
+    tm.assert_numpy_array_equal(ridx, np.arange(3, dtype=np.intp))
+
+    other = pd.Index([None, 81, 82], dtype=object, name="foo")
+    result, lidx, ridx = midx.join(other, how="inner", return_indexers=True)
+    expected = pd.MultiIndex(
+        levels=[pd.Index([81, 82], dtype=object), ["x", "y", "z"]],
+        codes=[[0, 1], [1, 2]],
+        names=midx.names,
+    )
+    tm.assert_index_equal(result, expected)
+    tm.assert_numpy_array_equal(lidx, np.array([1, 2], dtype=np.intp))
+    tm.assert_numpy_array_equal(ridx, np.array([1, 2], dtype=np.intp))
+
+
+def test_join_level_with_nonnegative_na_code():
+    # GH#60908 - missing values may also have nonnegative codes
+    midx = pd.MultiIndex(
+        levels=[[np.nan, 81, 82], ["x", "y", "z"]],
+        codes=[[0, 1, 2], [0, 1, 2]],
+        names=["foo", "bar"],
+        verify_integrity=False,
+    )
+    other = pd.Index([np.nan, 81, 82], name="foo")
+
+    result, lidx, ridx = midx.join(other, how="inner", return_indexers=True)
+
+    tm.assert_index_equal(result, midx)
+    assert lidx is None
+    tm.assert_numpy_array_equal(ridx, np.arange(3, dtype=np.intp))
+
+
 def test_join_index_levels():
     # GH#53093
     midx = pd.MultiIndex.from_tuples([("a", "2019-02-01"), ("a", "2019-02-01")])
