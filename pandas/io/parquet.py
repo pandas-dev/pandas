@@ -476,8 +476,8 @@ def to_parquet(
         ``s3://bucket/path/to/table.parquet``.
 
         Certain URL schemes may require additional packages. For example, S3
-        URLs require the ``s3fs`` library unless the ``'pyarrow'`` engine
-        handles them with ``pyarrow.fs``. See
+        URLs require the ``s3fs`` library unless ``engine='pyarrow'`` and
+        no ``storage_options`` are given. See
         :ref:`install.optional_dependencies` for a full list.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
@@ -607,8 +607,8 @@ def read_parquet(
         ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``.
 
         Certain URL schemes may require additional packages. For example, S3
-        URLs require the ``s3fs`` library unless the ``'pyarrow'`` engine
-        handles them with ``pyarrow.fs``. See
+        URLs require the ``s3fs`` library unless ``engine='pyarrow'`` and
+        no ``storage_options`` are given. See
         :ref:`install.optional_dependencies` for a full list.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option

@@ -1613,9 +1613,9 @@ def read_csv(
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
         ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
         ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
-        When reading, ``0`` and ``1`` behave identically, ``2`` converts unquoted
-        numeric fields to ``float``, and ``3`` disables quote processing so
-        ``quotechar`` is kept in the data.
+        When reading, ``0`` and ``1`` behave identically, ``2`` reads numeric
+        columns as ``float`` rather than ``int``, and ``3`` disables quote
+        processing so ``quotechar`` is kept in the data.
     doublequote : bool, default True
         When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
         whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
@@ -2212,9 +2212,9 @@ def read_table(
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
         ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
         ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
-        When reading, ``0`` and ``1`` behave identically, ``2`` converts unquoted
-        numeric fields to ``float``, and ``3`` disables quote processing so
-        ``quotechar`` is kept in the data.
+        When reading, ``0`` and ``1`` behave identically, ``2`` reads numeric
+        columns as ``float`` rather than ``int``, and ``3`` disables quote
+        processing so ``quotechar`` is kept in the data.
     doublequote : bool, default True
        When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
        whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
