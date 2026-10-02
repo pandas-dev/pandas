@@ -212,6 +212,20 @@ i.e., from the end of the string to the beginning of the string:
 
    s2.str.rsplit("_", expand=True, n=1)
 
+By default (``regex=None``), ``split`` treats a ``pat`` of length 1 as a literal
+string and a longer ``pat`` as a regular expression. Pass ``regex=False`` or
+``regex=True`` to choose explicitly:
+
+.. ipython:: python
+
+   s5 = pd.Series(["a.b.c", "a..b"], dtype="str")
+   s5.str.split(".")
+   s5.str.split("..")
+   s5.str.split("..", regex=False)
+
+``rsplit`` does not support regular expressions; ``pat`` is always treated as a
+literal string.
+
 ``replace`` optionally uses `regular expressions
 <https://docs.python.org/3/library/re.html>`__:
 
@@ -643,6 +657,17 @@ Or whether elements match a pattern:
     `re.match <https://docs.python.org/3/library/re.html#re.match>`_, and
     `re.search <https://docs.python.org/3/library/re.html#re.search>`_,
     respectively.
+
+``contains`` treats ``pat`` as a regular expression by default, and ``match``
+and ``fullmatch`` always do. To check for a literal substring that contains
+characters with a special meaning in regular expressions, such as ``.``, pass
+``regex=False`` to ``contains``:
+
+.. ipython:: python
+
+   s5 = pd.Series(["a.b", "ab"], dtype="str")
+   s5.str.contains(".")
+   s5.str.contains(".", regex=False)
 
 Methods like ``match``, ``fullmatch``, ``contains``, ``startswith``, and
 ``endswith`` take an extra ``na`` argument so missing values can be considered
