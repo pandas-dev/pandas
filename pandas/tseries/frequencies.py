@@ -391,6 +391,10 @@ class _FrequencyInferer:
         if monthly_rule:
             return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
+        semi_monthly_rule = self._get_semi_monthly_rule()
+        if semi_monthly_rule:
+            return semi_monthly_rule
+
         if self.is_unique:
             return self._get_daily_rule()
 
@@ -441,6 +445,32 @@ class _FrequencyInferer:
             return None
         else:
             return {"cs": "QS", "bs": "BQS", "ce": "QE", "be": "BQE"}.get(pos_check)
+
+    def _get_semi_monthly_rule(self) -> str | None:
+        """
+        Infer "SMS" or "SME" if the index alternates between the two anchors
+        of a semi-month frequency.
+
+        These never reach the monthly or daily rules above, because a
+        semi-month index has more than one distinct delta.
+        """
+        days = self.fields["D"]
+
+        if np.all(np.isin(days, [1, 15])) and np.any(days == 1):
+            rule = "SMS"
+        elif np.all((days == 15) | self.index.is_month_end) and np.any(days == 15):
+            rule = "SME"
+        else:
+            return None
+
+        # the two anchors must strictly alternate, advancing one month each
+        # time the day of month drops back to the earlier anchor
+        nmonths = (self.fields["Y"] * 12 + self.fields["M"]).astype("i8")
+        rolls_over = (days[1:] < days[:-1]).astype("i8")
+        if not np.array_equal(np.diff(nmonths), rolls_over):
+            return None
+
+        return rule
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
