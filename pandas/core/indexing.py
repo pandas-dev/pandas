@@ -130,6 +130,7 @@ if TYPE_CHECKING:
 
     _NDFrameIndexerBase: TypeAlias = NDFrameIndexerBase[Any]
 else:
+    # the cdef class is not subscriptable at runtime
     _NDFrameIndexerBase = NDFrameIndexerBase
 
 
