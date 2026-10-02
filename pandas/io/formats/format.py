@@ -1599,7 +1599,7 @@ def _format_complex(value: complex, float_format: FloatFormatType | None) -> str
 
 def _maybe_format_float_intervals(
     values: ArrayLike,
-    formatter: Callable | None,
+    formatter: Callable[..., Any] | None,
     float_format: FloatFormatType | None,
     decimal: str,
 ) -> ArrayLike:
