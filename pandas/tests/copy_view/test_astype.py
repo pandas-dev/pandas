@@ -252,7 +252,7 @@ def test_convert_dtypes(using_infer_string):
         (pd.date_range("2020-01-01", periods=3, unit="ns"), "timestamp[ns][pyarrow]"),
     ],
 )
-def test_convert_dtypes_numpy_backend(values, dtype):
+def test_convert_dtypes_backend_none(values, dtype):
     # GH#35694 without missing values the result can be a view of the input
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")

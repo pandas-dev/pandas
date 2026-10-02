@@ -290,7 +290,7 @@ class TestConvertDtypes:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.convert_dtypes(**{kwarg: True})
 
-    def test_convert_dtypes_numpy_backend(self):
+    def test_convert_dtypes_backend_none(self):
         # GH#35694
         df = pd.DataFrame(
             {
@@ -319,7 +319,7 @@ class TestConvertDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_convert_dtypes_numpy_backend_pyarrow(self):
+    def test_convert_dtypes_backend_none_pyarrow(self):
         # GH#35694
         pa = pytest.importorskip("pyarrow")
         ts = pd.Timestamp("2020-01-01")
@@ -357,7 +357,7 @@ class TestConvertDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_convert_dtypes_numpy_backend_roundtrip(self):
+    def test_convert_dtypes_backend_none_roundtrip(self):
         # GH#35694
         df = pd.DataFrame(
             {"a": np.array([1, 2], dtype=np.int32), "b": [1.5, np.nan], "c": ["x", "y"]}
@@ -365,7 +365,7 @@ class TestConvertDtypes:
         result = df.convert_dtypes().convert_dtypes(dtype_backend=None)
         tm.assert_frame_equal(result, df)
 
-    def test_convert_dtypes_numpy_backend_deprecated_kwargs_raise(self):
+    def test_convert_dtypes_backend_none_deprecated_kwargs_raise(self):
         # GH#35694
         df = pd.DataFrame({"a": [1, 2, 3]})
         msg = "Cannot pass convert_integer with dtype_backend=None"
