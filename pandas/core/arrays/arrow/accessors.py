@@ -217,9 +217,9 @@ class ListAccessor(ArrowAccessor):
         """
         Flatten list values.
 
-        Each list element is expanded into separate rows, preserving the
-        original index. The resulting Series may have a longer length than
-        the original if lists contain more than one element.
+        Each list element is expanded into a separate row, and the index label
+        of its list is repeated for each element. Null and empty lists produce
+        no rows.
 
         Returns
         -------

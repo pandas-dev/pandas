@@ -1750,8 +1750,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return True if any value in the group is truthful, else False.
 
-        This is equivalent to calling ``bool`` on each value in the group and
-        returning ``True`` if at least one is truthful.
+        Missing values are ignored when ``skipna`` is True, so a group with only
+        missing values gives ``False``.
 
         Parameters
         ----------
@@ -1877,7 +1877,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Compute count of group, excluding missing values.
 
-        Returns the number of non-NA/null observations per group.
+        Unlike :meth:`GroupBy.size`, missing values are not counted.
 
         Returns
         -------
@@ -2664,8 +2664,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.size : Apply function size to a Series.
-        DataFrame.size : Apply function size to each row or column of a DataFrame.
+        Series.size : Return the number of elements in the underlying data.
+        DataFrame.size : Return the number of elements in the DataFrame.
 
         Examples
         --------
@@ -2775,22 +2775,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Exclude NA/null values. If the entire group is NA and ``skipna`` is
             ``True``, the result will be NA.
 
-            .. versionchanged:: 3.0.0
+            .. versionadded:: 3.0.0
 
-        engine : str, default None None
-            * ``'cython'`` : Runs rolling apply through C-extensions from cython.
-            * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
-                Only available when ``raw`` is set to ``True``.
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
-                ``compute.use_numba``
+              ``compute.use_numba``
 
-        engine_kwargs : dict, default None None
+        engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept  ``nogil``
-                and ``parallel`` dictionary keys. The values must either be ``True`` or
-                ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-                ``{'nogil': False, 'parallel': False}`` and will be
-                applied to both the ``func`` and the ``apply`` groupby aggregation.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -2984,22 +2982,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Exclude NA/null values. If the entire group is NA and ``skipna`` is
             ``True``, the result will be NA.
 
-            .. versionchanged:: 3.0.0
+            .. versionadded:: 3.0.0
 
-        engine : str, default None None
-            * ``'cython'`` : Runs rolling apply through C-extensions from cython.
-            * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
-                Only available when ``raw`` is set to ``True``.
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
-                ``compute.use_numba``
+              ``compute.use_numba``
 
-        engine_kwargs : dict, default None None
+        engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept  ``nogil``
-                and ``parallel`` dictionary keys. The values must either be ``True`` or
-                ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-                ``{'nogil': False, 'parallel': False}`` and will be
-                applied to both the ``func`` and the ``apply`` groupby aggregation.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -3108,22 +3104,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Exclude NA/null values. If the entire group is NA and ``skipna`` is
             ``True``, the result will be NA.
 
-            .. versionchanged:: 3.0.0
+            .. versionadded:: 3.0.0
 
-        engine : str, default None None
-            * ``'cython'`` : Runs rolling apply through C-extensions from cython.
-            * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
-                Only available when ``raw`` is set to ``True``.
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
-                ``compute.use_numba``
+              ``compute.use_numba``
 
-        engine_kwargs : dict, default None None
+        engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept  ``nogil``
-                and ``parallel`` dictionary keys. The values must either be ``True`` or
-                ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-                ``{'nogil': False, 'parallel': False}`` and will be
-                applied to both the ``func`` and the ``apply`` groupby aggregation.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nogil': False, 'parallel': False}``
 
         Returns
         -------
@@ -3229,9 +3223,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        api.typing.DataFrameGroupBy.last : Compute the last entry of each
+        DataFrameGroupBy.last : Compute the last entry of each
             column within each group.
-        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
+        DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3317,9 +3311,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         DataFrame.groupby : Apply a function groupby to each row or column of a
             DataFrame.
-        api.typing.DataFrameGroupBy.first : Compute the first entry of each
+        DataFrameGroupBy.first : Compute the first entry of each
             column within each group.
-        api.typing.DataFrameGroupBy.nth : Take the nth row from each group.
+        DataFrameGroupBy.nth : Take the nth row from each group.
 
         Examples
         --------
@@ -3568,8 +3562,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        DatetimeIndexResampler, PeriodIndexResampler or TimedeltaResampler
-            Resampler object for the type of the index.
+        DatetimeIndexResamplerGroupBy
+            Resampler object for the type of the index: a
+            ``PeriodIndexResamplerGroupBy`` for a PeriodIndex or a
+            ``TimedeltaIndexResamplerGroupBy`` for a TimedeltaIndex.
 
         See Also
         --------
@@ -4291,8 +4287,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.nth : Apply function nth to a Series.
-        DataFrame.nth : Apply function nth to each row or column of a DataFrame.
+        GroupBy.head : Return first n rows of each group.
+        GroupBy.tail : Return last n rows of each group.
 
         Examples
         --------
@@ -4791,8 +4787,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative product for each group.
 
-        Returns a Series or DataFrame of the same size with the cumulative
-        product computed within each group.
+        The accumulation restarts at the start of each group. Columns used for
+        grouping are excluded from the result.
 
         Parameters
         ----------
@@ -4882,8 +4878,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Cumulative sum for each group.
 
-        Returns a Series or DataFrame of the same size with the cumulative
-        sum computed within each group.
+        The accumulation restarts at the start of each group. Columns used for
+        grouping are excluded from the result.
 
         Parameters
         ----------
@@ -4973,7 +4969,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Cumulative min for each group.
 
         Returns a same-sized object where each value is replaced by the
-        minimum of all preceding values in its group.
+        minimum of the values in its group up to and including that position.
 
         Parameters
         ----------
@@ -5171,7 +5167,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         suffix : str, optional
             A string to add to each shifted column if there are multiple periods.
-            Ignored otherwise.
 
         Returns
         -------
@@ -5499,8 +5494,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.head : Apply function head to a Series.
-        DataFrame.head : Apply function head to each row or column of a DataFrame.
+        Series.head : Return the first n rows of a Series.
+        DataFrame.head : Return the first n rows of a DataFrame.
 
         Examples
         --------
@@ -5539,8 +5534,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         See Also
         --------
-        Series.tail : Apply function tail to a Series.
-        DataFrame.tail : Apply function tail to each row or column of a DataFrame.
+        Series.tail : Return the last n rows of a Series.
+        DataFrame.tail : Return the last n rows of a DataFrame.
 
         Examples
         --------
@@ -5811,61 +5806,26 @@ def get_groupby(
     group_keys: bool = True,
 ) -> GroupBy:
     """
-    Class for grouping and aggregating relational data.
+    Create a GroupBy object appropriate for ``obj``.
 
-    See aggregate, transform, and apply functions on this object.
-
-    It's easiest to use obj.groupby(...) to use GroupBy, but you can also do:
-
-    ::
-
-        grouped = groupby(obj, ...)
+    Returns a SeriesGroupBy for a Series and a DataFrameGroupBy for a DataFrame.
 
     Parameters
     ----------
-    obj : pandas object
+    obj : Series or DataFrame
+        Object to group.
+    by : label, array-like or callable, optional
+        Grouping key(s), as in :meth:`DataFrame.groupby`.
+    grouper : BaseGrouper, optional
+        Pre-computed grouper to use for the grouping.
+    group_keys : bool, default True
+        Whether to add the group keys to the index when ``apply`` returns
+        like-indexed results.
 
     Returns
     -------
-    **Attributes**
-    groups : dict
-        {group name -> group labels}
-    len(grouped) : int
-        Number of groups
-
-    Notes
-    -----
-    After grouping, see aggregate, apply, and transform functions. Here are
-    some other brief notes about usage. When grouping by multiple groups, the
-    result index will be a MultiIndex (hierarchical) by default.
-
-    Iteration produces (key, group) tuples, i.e. chunking the data by group. So
-    you can write code like:
-
-    ::
-
-        grouped = obj.groupby(keys)
-        for key, group in grouped:
-            # do something with the data
-
-    Function calls on GroupBy, if not specially implemented, "dispatch" to the
-    grouped data. So if you group a DataFrame and wish to invoke the std()
-    method on each group, you can simply do:
-
-    ::
-
-        df.groupby(mapper).std()
-
-    rather than
-
-    ::
-
-        df.groupby(mapper).aggregate(np.std)
-
-    You can pass arguments to these "wrapped" functions, too.
-
-    See the online documentation for full exposition on these topics and much
-    more
+    SeriesGroupBy or DataFrameGroupBy
+        The grouped object.
     """
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy

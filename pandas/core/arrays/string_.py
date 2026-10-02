@@ -436,18 +436,24 @@ class BaseStringArray(ExtensionArray):
 
     def tolist(self) -> list[Any]:
         """
-        Return a list of the value.
+        Return a list of the values.
 
         These are each a scalar type, which is a Python scalar
-        (for str, int, float) or pandas scalar
+        (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
 
         Returns
-        ----------
+        -------
         list
+            Python list of values in array.
+
+        See Also
+        --------
+        Index.to_list: Return a list of the values in the Index.
+        Series.to_list: Return a list of the values in the Series.
 
         Examples
-        ----------
+        --------
         >>> arr = pd.array(["a", "b", "c"])
         >>> arr.tolist()
         ['a', 'b', 'c']

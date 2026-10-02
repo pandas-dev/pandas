@@ -93,11 +93,11 @@ class Grouper:
 
     Attributes
     ----------
-    key : str, defaults to None
+    key : str, default None
         Groupby key, which selects the grouping column of the target.
-    level : name/number, defaults to None
+    level : name/number, default None
         The level for the target index.
-    freq : str / frequency object, defaults to None
+    freq : str / frequency object, default None
         This will groupby the specified frequency if the target selection
         (via key or level) is a datetime-like object. For full specification
         of available frequencies, please see :ref:`here<timeseries.offset_aliases>`.

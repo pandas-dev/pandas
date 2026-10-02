@@ -637,9 +637,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         An ``Index`` containing the unique categories allowed.
 
-        If no categories were explicitly provided at construction time, this
-        will be ``None`` until the ``CategoricalDtype`` is attached to actual
-        data.
+        This is ``None`` if no categories were specified at construction. When
+        such a dtype is used to build a Categorical, the categories are inferred
+        from the data and a new dtype is created.
 
         See Also
         --------
@@ -658,8 +658,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         Whether the categories have an ordered relationship.
 
-        When ``True``, comparison operations on the resulting Categorical
-        are valid and sort in the order of the categories.
+        When ``True``, ordering comparisons (``<``, ``>``, ``min``/``max``) are
+        valid; equality comparisons work regardless.
 
         See Also
         --------
@@ -2574,7 +2574,7 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> ArrowExtensionArray:
         """
-        Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
+        Construct an ArrowExtensionArray from a pyarrow Array/ChunkedArray.
         """
         array_class = self.construct_array_type()
         # check_metadata=True also compares list field names, so those still

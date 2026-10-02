@@ -194,6 +194,7 @@ class IntervalIndex(ExtensionIndex):
     from_breaks
     get_loc
     get_indexer
+    get_indexer_non_unique
     contains
     overlaps
     set_closed
@@ -625,9 +626,8 @@ class IntervalIndex(ExtensionIndex):
         """
         Construct an IntervalIndex from an array of splits.
 
-        The *breaks* array of length *N* is converted into *N-1* adjacent,
-        non-overlapping intervals whose endpoints are consecutive pairs of
-        break values.
+        The *breaks* array of length *N* is converted into *N-1* adjacent
+        intervals whose endpoints are consecutive pairs of break values.
 
         Parameters
         ----------

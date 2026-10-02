@@ -357,14 +357,15 @@ class Index(IndexOpsMixin, PandasObject):
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects.
+    The elements of an Index are expected to be hashable. Unhashable elements
+    (such as lists) are accepted, but operations that hash the values
+    (for example ``unique`` and ``is_unique``) can raise ``TypeError``.
     An Index instance *can not* hold numpy float16 dtype.
 
-    NumPy arrays with ``dtype=object`` are handled like other list-like inputs:
-    pandas may infer a more specific dtype (for example ``str`` for an array of
-    Python strings) instead of preserving NumPy object dtype. Values that
-    NumPy already stores in a dedicated dtype (such as ``int64`` integers) are
-    not altered in the same way. To force object dtype, pass ``dtype=object``.
+    When passed a NumPy array with ``dtype=object``, pandas infers a more
+    specific dtype for non-numeric values (for example ``str`` or
+    ``datetime64``); numeric and boolean values are kept as object dtype.
+    To force object dtype, pass ``dtype=object``.
 
     Examples
     --------
@@ -2565,8 +2566,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return if the index has unique values.
 
-        The uniqueness check is based on exact equality of values. An index
-        with no repeated values returns ``True``, otherwise ``False``.
+        An index with no repeated values returns ``True``, otherwise ``False``.
+        Missing values count as repeated, so an index with more than one NA
+        value is not unique.
 
         Returns
         -------
@@ -2860,8 +2862,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Fill NA/NaN values with the specified value.
 
-        Returns a new Index with all NA/NaN entries replaced by the given
-        scalar value.
+        If ``value`` cannot be held by the Index dtype, the result is upcast
+        and a warning is raised.
 
         Parameters
         ----------
@@ -2924,8 +2926,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return Index without NA/NaN values.
 
-        Removes missing values from the Index, returning a shorter Index
-        containing only non-NA entries.
+        If there are no missing values, the result equals the original Index.
 
         Parameters
         ----------
@@ -3772,10 +3773,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Get integer location, slice or boolean mask for requested label.
 
-        The return type depends on the characteristics of the index: an
-        integer for a unique index, a slice for a monotonic index with
-        duplicate entries, or a boolean mask for a non-monotonic index
-        with duplicates.
+        The return type depends on how often the label occurs: an integer if
+        it occurs once, otherwise a slice if the index is monotonic or a boolean
+        mask if it is not.
 
         Parameters
         ----------
@@ -5333,7 +5333,7 @@ class Index(IndexOpsMixin, PandasObject):
         For all remaining dtypes ``.array`` will be a
         :class:`arrays.NumpyExtensionArray` wrapping the actual ndarray
         stored within. If you absolutely need a NumPy array (possibly with
-        copying / coercing data), then use :meth:`Series.to_numpy` instead.
+        copying / coercing data), then use :meth:`Index.to_numpy` instead.
 
         Examples
         --------
@@ -5467,8 +5467,8 @@ class Index(IndexOpsMixin, PandasObject):
         Memory usage of the values.
 
         Returns the number of bytes consumed by the Index. When ``deep=True``,
-        the memory consumption of underlying objects referencing this Index
-        (e.g., the characters of object-dtype values) is included.
+        the memory used by the objects the Index references (e.g., the strings
+        in an object-dtype Index) is also included.
 
         Parameters
         ----------
@@ -5825,9 +5825,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         mask : array-like of bool
             Array of booleans denoting where values should be replaced.
-        value : scalar
-            Scalar value to use to fill holes (e.g. 0).
-            This value cannot be a list-likes.
+        value : scalar or array-like
+            Value(s) to use to fill holes (e.g. 0).
 
         Returns
         -------
@@ -7372,7 +7371,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         If ``start`` or ``end`` is not present in a monotonic index, the
         returned position is the insertion point that preserves ordering
-        (analogous to :func:`numpy.searchsorted`); no error is raised. If the
+        (analogous to :func:`numpy.searchsorted`), except that an object-dtype
+        Index raises a ``TypeError`` for a missing int or float label. If the
         index is not monotonic and the label is missing, a ``KeyError`` is
         raised.
 
@@ -7455,8 +7455,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Make new Index with passed location(-s) deleted.
 
-        Returns a new Index with the entries at the given positional
-        location(s) removed. The original Index is not modified.
+        ``loc`` gives positions, not labels. The original Index is not modified.
 
         Parameters
         ----------
@@ -7842,8 +7841,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether any element is Truthy.
 
-        This is equivalent to calling ``bool(self.any())``. An empty Index
-        will return False.
+        Like :func:`numpy.any`, an empty Index returns False.
 
         Parameters
         ----------
@@ -7890,8 +7888,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return whether all elements are Truthy.
 
-        This is equivalent to calling ``bool(self.all())``. An empty Index
-        will return True.
+        Like :func:`numpy.all`, an empty Index returns True.
 
         Parameters
         ----------
@@ -7963,7 +7960,7 @@ class Index(IndexOpsMixin, PandasObject):
         axis : None
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            Exclude NA/null values. If the entire Index is NA, or if ``skipna=False``
             and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
@@ -7975,28 +7972,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
+        Index.argmax : Return position of the maximum value.
         Series.argmin : Return position of the minimum value.
-        Series.argmax : Return position of the maximum value.
         numpy.ndarray.argmin : Equivalent method for numpy arrays.
         Series.idxmin : Return index label of the minimum values.
         Series.idxmax : Return index label of the maximum values.
 
         Examples
         --------
-        Consider dataset containing cereal calories
-
         >>> idx = pd.Index([100.0, 110.0, 120.0, 110.0])
         >>> idx
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
-        >>> idx.argmax()
-        2
         >>> idx.argmin()
         0
-
-        The maximum cereal calories is the third element and
-        the minimum cereal calories is the first element,
-        since index is zero-indexed.
         """
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -8027,7 +8016,7 @@ class Index(IndexOpsMixin, PandasObject):
         axis : None
             Unused. Parameter needed for compatibility with DataFrame.
         skipna : bool, default True
-            Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
+            Exclude NA/null values. If the entire Index is NA, or if ``skipna=False``
             and there is an NA value, this method will raise a ``ValueError``.
         *args, **kwargs
             Additional arguments and keywords for compatibility with NumPy.
@@ -8039,28 +8028,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
+        Index.argmin : Return position of the minimum value.
         Series.argmax : Return position of the maximum value.
-        Series.argmin : Return position of the minimum value.
         numpy.ndarray.argmax : Equivalent method for numpy arrays.
         Series.idxmax : Return index label of the maximum values.
         Series.idxmin : Return index label of the minimum values.
 
         Examples
         --------
-        Consider dataset containing cereal calories
-
         >>> idx = pd.Index([100.0, 110.0, 120.0, 110.0])
         >>> idx
         Index([100.0, 110.0, 120.0, 110.0], dtype='float64')
 
         >>> idx.argmax()
         2
-        >>> idx.argmin()
-        0
-
-        The maximum cereal calories is the third element and
-        the minimum cereal calories is the first element,
-        since index is zero-indexed.
         """
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
@@ -8082,7 +8063,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the minimum value of the Index.
 
-        The minimum is computed by comparing all values in the Index.
         NA/null values are excluded by default.
 
         Parameters
@@ -8156,7 +8136,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the maximum value of the Index.
 
-        The maximum is computed by comparing all values in the Index.
         NA/null values are excluded by default.
 
         Parameters

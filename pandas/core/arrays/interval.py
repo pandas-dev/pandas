@@ -127,9 +127,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     """
     Pandas array for interval data that are closed on the same side.
 
-    An IntervalArray stores an array of Interval objects, where each Interval
-    represents a contiguous span of values. All intervals in the array must
-    have the same closure (left, right, both, or neither).
+    An IntervalArray stores the left and right bounds of its intervals as
+    arrays. All intervals in the array must have the same closure (left,
+    right, both, or neither).
 
     Parameters
     ----------
@@ -410,9 +410,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Construct an IntervalArray from an array of splits.
 
-        This method creates intervals from consecutive pairs of break points,
-        where each break point is the right edge of one interval and the left
-        edge of the next.
+        The *breaks* array of length *N* is converted into *N-1* adjacent
+        intervals whose endpoints are consecutive pairs of break values.
 
         Parameters
         ----------
@@ -1834,7 +1833,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         See Also
         --------
-        Interval.contains : Check whether Interval object contains value.
         IntervalArray.overlaps : Check if an Interval overlaps the values in the
             IntervalArray.
 

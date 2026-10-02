@@ -2197,9 +2197,9 @@ class Rolling(RollingAndExpandingMixin):
             * ``False`` : passes each row or column as a Series to the
               function.
             * ``True`` : the passed function will receive ndarray
-              objects instead. Pandas-only attributes such as ``.iloc``
-              or ``.index`` are not available on ndarrays and will raise
-              ``AttributeError`` if used inside ``func``.
+              objects instead, so pandas-only attributes such as ``.iloc``
+              or ``.index`` are not available inside ``func`` (with the
+              default ``'cython'`` engine they raise ``AttributeError``).
 
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
@@ -2241,12 +2241,9 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        When ``raw=False``, the :class:`Series` passed to ``func`` is indexed by the
-        column or :class:`Index` used to compute the rolling window. If
-        :meth:`DataFrame.rolling` was called with ``on=col``, the index of the
-        passed :class:`Series` will be the values of ``col`` rather than the
-        original :class:`DataFrame` index. When ``on`` is not specified, the
-        index of the passed :class:`Series` is the original index of the input.
+        When ``raw=False``, the :class:`Series` passed to ``func`` is indexed by
+        the values of ``col`` if :meth:`DataFrame.rolling` was called with
+        ``on=col``, and by the original index otherwise.
 
         Examples
         --------
@@ -2933,8 +2930,8 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling unbiased skewness.
 
-        This is equivalent to applying ``scipy.stats.skew`` over each rolling
-        window. A minimum of three periods is required.
+        This is equivalent to applying ``scipy.stats.skew`` (with ``bias=False``)
+        over each rolling window.
 
         Parameters
         ----------
@@ -2978,7 +2975,7 @@ class Rolling(RollingAndExpandingMixin):
         Calculate the rolling standard error of mean.
 
         This is computed as the rolling standard deviation divided by the
-        square root of the rolling count. A minimum of one period is required.
+        square root of the rolling count.
 
         Parameters
         ----------
@@ -3026,8 +3023,7 @@ class Rolling(RollingAndExpandingMixin):
         Calculate the rolling Fisher's definition of kurtosis without bias.
 
         This is equivalent to applying ``scipy.stats.kurtosis`` (with
-        ``bias=False``) over each rolling window. A minimum of four periods
-        is required.
+        ``bias=False``) over each rolling window.
 
         Parameters
         ----------

@@ -1892,9 +1892,7 @@ class ArrowExtensionArray(
         limit : int, default None
             The maximum number of entries where NA values will be filled.
         copy : bool, default True
-            Whether to make a copy of the data before filling. This parameter
-            is inherited from pandas.ExtensionArray and should be left at its
-            default value (Arrow arrays cannot be altered in place).
+            Ignored; a new array is always returned.
 
         Returns
         -------
@@ -2057,14 +2055,14 @@ class ArrowExtensionArray(
         -------
         codes : ndarray
             An integer NumPy array that's an indexer into the original
-            ArrowArray.
-        uniques : ArrowArray
-            An ArrowArray containing the unique values of `self`.
+            ArrowExtensionArray.
+        uniques : ArrowExtensionArray
+            An ArrowExtensionArray containing the unique values of `self`.
 
             .. note::
 
                uniques will *not* contain an entry for the NA value of
-               the ArrowArray if there are any missing values present
+               the ArrowExtensionArray if there are any missing values present
                in `self`.
 
         See Also

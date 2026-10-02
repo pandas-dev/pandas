@@ -247,6 +247,7 @@ IntervalIndex components
    IntervalIndex.is_overlapping
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
+   IntervalIndex.get_indexer_non_unique
    IntervalIndex.set_closed
    IntervalIndex.contains
    IntervalIndex.overlaps

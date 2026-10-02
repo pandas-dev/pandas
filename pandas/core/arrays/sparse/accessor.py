@@ -51,14 +51,14 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
     Accessor for SparseArray from other sparse matrix data types.
 
     Provides methods and properties to work with the underlying sparse data
-    in a Series or DataFrame. It allows accessing sparse-specific attributes
+    in a Series. It allows accessing sparse-specific attributes
     such as fill value, density, and stored non-fill values, as well as
     converting to and from scipy sparse matrices.
 
     Parameters
     ----------
-    data : Series or DataFrame
-        The Series or DataFrame to which the SparseAccessor is attached.
+    data : Series
+        The Series to which the SparseAccessor is attached.
 
     See Also
     --------
@@ -419,13 +419,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         Returns
         -------
         scipy.sparse.spmatrix
-            If the caller is heterogeneous and contains booleans or objects,
-            the result will be of dtype=object. See Notes.
+            The dtype is the common dtype of the columns. See Notes.
 
         Raises
         ------
         ValueError
-            If any column's ``fill_value`` is not zero.
+            If any column's ``fill_value`` is not zero, or if the common dtype
+            is not supported by SciPy (for example, object).
 
         See Also
         --------

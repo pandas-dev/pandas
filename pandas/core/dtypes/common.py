@@ -332,9 +332,9 @@ def is_datetime64_dtype(arr_or_dtype) -> bool:
     """
     Check whether an array-like or dtype is of the datetime64 dtype.
 
-    This function checks for the base ``datetime64`` dtype without regard
-    to timezone information. For timezone-aware checks, use
-    :func:`api.types.is_datetime64_any_dtype` instead.
+    This function returns False for timezone-aware dtypes such as
+    ``DatetimeTZDtype``. To include them, use
+    :func:`pandas.api.types.is_datetime64_any_dtype` instead.
 
     Parameters
     ----------
@@ -1054,7 +1054,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64 dtype.
 
-    Unlike :func:`api.types.is_datetime64_dtype`, this function also
+    Unlike :func:`pandas.api.types.is_datetime64_dtype`, this function also
     considers timezone-aware dtypes such as ``DatetimeTZDtype`` to be
     datetime64 dtypes.
 
@@ -1121,9 +1121,9 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     """
     Check whether the provided array or dtype is of the datetime64[ns] dtype.
 
-    This function is more restrictive than :func:`api.types.is_datetime64_dtype`
-    because it requires the dtype to have nanosecond resolution specifically,
-    including timezone-aware ``DatetimeTZDtype`` with nanosecond units.
+    This requires nanosecond resolution, and accepts both timezone-naive
+    ``datetime64[ns]`` and timezone-aware ``DatetimeTZDtype`` with nanosecond
+    units.
 
     Parameters
     ----------

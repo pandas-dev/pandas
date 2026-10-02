@@ -633,10 +633,10 @@ class ExtensionArray:
 
     def item(self, index: int | None = None):
         """
-        Return the array element at the specified position as a Python scalar.
+        Return the array element at the specified position.
 
-        Analogous to :meth:`numpy.ndarray.item`, this converts a single
-        element to a native Python object.
+        The type of the returned scalar depends on the dtype and is not
+        necessarily a builtin Python object.
 
         Parameters
         ----------
@@ -1233,8 +1233,8 @@ class ExtensionArray:
         limit_direction : {'forward', 'backward', 'both'}
             Consecutive NaNs will be filled in this direction.
         limit_area : {'inside', 'outside'} or None
-            If limit is specified, consecutive NaNs will be filled with this
-            restriction.
+            Restrict which NaNs are filled based on their position relative to
+            the valid values.
             * None: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
@@ -1327,9 +1327,7 @@ class ExtensionArray:
             This is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
             a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
+            be partially filled.
 
         limit_area : {'inside', 'outside'} or None, default None
             Specifies which area to limit filling.
@@ -1930,8 +1928,7 @@ class ExtensionArray:
         """
         Return a Series containing counts of unique values.
 
-        This method returns a Series with unique values as the index and their
-        counts as the values.
+        The index of the result has the same dtype as the array.
 
         Parameters
         ----------
@@ -1951,8 +1948,7 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> from pandas.core.arrays import IntegerArray
-        >>> arr = IntegerArray._from_sequence([3, 3, 3, 1, 2, 2])
+        >>> arr = pd.array([3, 3, 3, 1, 2, 2])
         >>> arr.value_counts()
         3    3
         1    1
@@ -2135,10 +2131,6 @@ class ExtensionArray:
 
         Examples
         --------
-        This gives view on the underlying data of an ``ExtensionArray`` and is not a
-        copy. Modifications on either the view or the original ``ExtensionArray``
-        will be reflected on the underlying data:
-
         >>> arr = pd.array([1, 2, 3])
         >>> arr2 = arr.view()
         >>> arr[0] = 2
@@ -2295,11 +2287,6 @@ class ExtensionArray:
         See Also
         --------
         ExtensionArray.tolist: Return a list of the values.
-
-        Notes
-        -----
-        - Because ExtensionArrays are 1D-only, this is a no-op.
-        - The "order" argument is ignored, is for compatibility with NumPy.
 
         Examples
         --------

@@ -542,9 +542,8 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) mean.
 
-        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
-        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
-        :meth:`Series.ewm`.
+        Each result is the exponentially weighted average of the observations up
+        to and including that position.
 
         Parameters
         ----------
@@ -631,9 +630,8 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) sum.
 
-        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
-        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
-        :meth:`Series.ewm`.
+        Each result is the exponentially weighted sum of the observations up
+        to and including that position.
 
         Parameters
         ----------
@@ -717,9 +715,7 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) standard deviation.
 
-        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
-        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
-        :meth:`Series.ewm`.
+        This is the square root of :meth:`ExponentialMovingWindow.var`.
 
         Parameters
         ----------
@@ -767,9 +763,8 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) variance.
 
-        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
-        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
-        :meth:`Series.ewm`.
+        Each result is the exponentially weighted variance of the observations up
+        to and including that position.
 
         Parameters
         ----------
@@ -826,9 +821,8 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) sample covariance.
 
-        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
-        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
-        :meth:`Series.ewm`.
+        Computes the exponentially weighted covariance between ``self`` and
+        ``other``, or between the columns of ``self`` if ``other`` is not given.
 
         Parameters
         ----------
@@ -921,9 +915,8 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Calculate the ewm (exponential weighted moment) sample correlation.
 
-        The weighting is controlled by the ``com``, ``span``, ``halflife``, or
-        ``alpha`` parameter specified when calling :meth:`DataFrame.ewm` or
-        :meth:`Series.ewm`.
+        Computes the exponentially weighted correlation between ``self`` and
+        ``other``, or between the columns of ``self`` if ``other`` is not given.
 
         Parameters
         ----------

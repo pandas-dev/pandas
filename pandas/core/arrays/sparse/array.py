@@ -2369,9 +2369,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         Cumulative sum of non-NA/null values.
 
-        When performing the cumulative summation, any non-NA/null values will
-        be skipped. The resulting SparseArray will preserve the locations of
-        NaN values, but the fill value will be `np.nan` regardless.
+        NA values are skipped. The resulting SparseArray preserves the locations
+        of NA values; its fill value is ``self.fill_value`` if that is NA,
+        otherwise ``nan``.
 
         Parameters
         ----------
