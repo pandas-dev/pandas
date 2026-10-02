@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Hashable,
+        Mapping,
     )
 
     from pandas._typing import (
@@ -461,7 +462,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                          ordered=False, dtype='category')
 
         >>> ci.remove_categories(["d", "a"])
-        CategoricalIndex([nan, 'c', 'b', 'c', nan], categories=['b', 'c'],
+        CategoricalIndex([NaN, 'c', 'b', 'c', NaN], categories=['b', 'c'],
                          ordered=False, dtype='category')
         """
         result = self._data.remove_categories(removals)
@@ -567,14 +568,14 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
         ... )
         >>> ci
-        CategoricalIndex(['a', 'b', 'c', nan], categories=['a', 'b', 'c'],
+        CategoricalIndex(['a', 'b', 'c', NaN], categories=['a', 'b', 'c'],
                          ordered=True, dtype='category')
 
         >>> ci.set_categories(["A", "b", "c"])
-        CategoricalIndex([nan, 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex([NaN, 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         >>> ci.set_categories(["A", "b", "c"], rename=True)
-        CategoricalIndex(['A', 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex(['A', 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         """
         result = self._data.set_categories(
@@ -1034,7 +1035,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def map(
         self,
-        mapper: Callable[..., Any] | dict[Hashable, Any] | Series,
+        mapper: Callable[..., Any] | Mapping[Any, Any] | Series,
         na_action: Literal["ignore"] | None = None,
     ) -> Index:
         """
@@ -1104,7 +1105,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({"a": "first", "b": "second"})
-        Index(['first', 'second', nan], dtype='str')
+        Index(['first', 'second', NaN], dtype='str')
         """
         mapped = self._values.map(mapper, na_action=na_action)
         return Index(mapped, name=self.name, copy=False)
