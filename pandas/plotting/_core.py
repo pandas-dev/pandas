@@ -65,9 +65,7 @@ def hist_series(
     """
     Draw histogram of the input series using matplotlib.
 
-    The histogram is computed over the fixed or variable width bins,
-    and drawn using the matplotlib library. This is useful for
-    visualizing the distribution of the data.
+    The histogram is computed over fixed or variable width bins (see ``bins``).
 
     Parameters
     ----------

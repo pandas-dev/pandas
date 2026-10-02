@@ -1825,9 +1825,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Iterate over info axis.
 
-        For a DataFrame this yields column names (labels); for a Series
-        it yields the single name. Enables iteration over the object
-        with ``for col in df``.
+        For a DataFrame this yields the column labels, enabling
+        ``for col in df``.
 
         Returns
         -------
@@ -2164,9 +2163,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         startcol : int, default 0
             Upper left cell column to dump data frame.
         engine : str, optional
-            Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
-            via the options ``io.excel.xlsx.writer`` or
-            ``io.excel.xlsm.writer``.
+            Write engine to use, 'openpyxl' or 'xlsxwriter' for .xlsx, 'openpyxl'
+            for .xlsm, or 'odf' (the ``odfpy`` package) for .ods. You can also
+            set this via the options ``io.excel.xlsx.writer``,
+            ``io.excel.xlsm.writer`` or ``io.excel.ods.writer``.
         merge_cells : bool or 'columns', default True
             If True, write MultiIndex index and columns as merged cells.
             If 'columns', merge MultiIndex column cells only.
@@ -2322,7 +2322,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                   - 'records' : list like [value, ... , value]; the index
                     labels and the Series name are not included
                   - 'index' : dict like {index -> value}
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}, where
+                    'data' is a list of {'index' -> index, name -> value} records
 
             * DataFrame:
 
@@ -2337,9 +2338,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                   - 'index' : dict like {index -> {column -> value}}
                   - 'columns' : dict like {column -> {index -> value}}
                   - 'values' : just the values array
-                  - 'table' : dict like {'schema': {schema}, 'data': {data}}
-
-            For ``orient='table'``, the data component is like ``orient='records'``.
+                  - 'table' : dict like {'schema': {schema}, 'data': {data}}, where
+                    'data' is like ``orient='records'``
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -3109,7 +3109,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         compression : str or dict, default 'infer'
             For on-the-fly compression of the output data. If 'infer' and
-            'path_or_buf' is path-like, then detect compression from the following
+            'path' is path-like, then detect compression from the following
             extensions: '.gz',
             '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
             (otherwise no compression).
@@ -3855,7 +3855,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Write object to a comma-separated values (csv) file.
 
         By default, the resulting file includes row index and column headers.
-        Supports customization of delimiter, encoding, compression, and more.
         The output can be written to a file path, file-like buffer, or
         returned as a string.
 
@@ -4463,24 +4462,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> ser.get("2014-02-13")
         'high'
 
-        If the key isn't found, the default value will be used.
+        If the key isn't found, the default value will be used. For a list of
+        keys, the default is returned if any key is missing, rather than a
+        partial result.
 
         >>> df.get(["temp_celsius", "temp_kelvin"], default="default_value")
         'default_value'
 
         >>> ser.get("2014-02-10", "[unknown]")
         '[unknown]'
-
-        When passing a list of keys, all keys must be present. If any key
-        is missing, the ``default`` value is returned instead of a partial result.
-
-        >>> ser = pd.Series(["a", "b", "c"], index=[1, 2, 3])
-        >>> ser.get([1, 2])
-        1    a
-        2    b
-        dtype: str
-        >>> ser.get([1, 2, -1]) is None
-        True
         """
         try:
             return self[key]
@@ -6836,8 +6826,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -----
         When ``deep=True``, data is copied but actual Python objects
         will not be copied recursively, only the reference to the object.
-        This is in contrast to :py:func:`copy.deepcopy` in the Standard Library,
-        which recursively copies object data (see examples below).
+        :py:func:`copy.deepcopy` on a pandas object behaves the same way.
 
         While ``Index`` objects are copied when ``deep=True``, the underlying
         numpy array is not copied for performance reasons. Since ``Index`` is
@@ -6987,9 +6976,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
-        This finds the smallest dtype that can hold all values, or uses
-        extension dtypes (e.g. nullable integer, string, boolean) so that
-        missing values are represented by ``pd.NA`` instead of ``np.nan``.
+        Each column is converted to a nullable extension dtype of the same bit
+        width (e.g. nullable integer, string, boolean) so that missing values
+        are represented by ``pd.NA`` instead of ``np.nan``.
 
         Parameters
         ----------
@@ -7238,7 +7227,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values with `value`.
 
-        This method replaces missing values with a specified value.
+        ``value`` may also be a dict, Series or DataFrame, to fill different
+        labels with different values.
 
         Parameters
         ----------
@@ -7482,8 +7472,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values by propagating the last valid observation to next valid.
 
-        This method fills missing values using forward fill, where the last
-        valid observation is propagated forward to fill the gaps.
+        Missing values before the first valid observation are left unfilled.
 
         Parameters
         ----------
@@ -7834,9 +7823,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           Conversely, a later entry can rewrite what an earlier one produced:
           ``{"ab": "ba", "ba": "zz"}`` turns ``"ab ba"`` into ``"zz zz"``.
           With overlapping keys, order the dict most-specific-first.
-        * Replacement is based on equality, not identity. Since Python treats
-          ``True == 1`` and ``False == 0``, replacing one will also affect
-          the other when they share a dtype (e.g. ``object``).
+        * In ``object`` dtype, ``True == 1`` and ``False == 0``, so replacing one
+          also replaces the other. In bool and numeric dtypes they do not match
+          each other. Missing values are matched as missing, not by equality.
 
         Examples
         --------
@@ -9244,8 +9233,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Select values at particular time of day (e.g., 9:30AM).
 
-        This method filters rows whose index has a time component matching
-        the specified time. The index must be a DatetimeIndex.
+        This method filters rows (or columns, with ``axis=1``) whose index has
+        a time component matching the specified time. The index must be a
+        DatetimeIndex.
 
         Parameters
         ----------
@@ -10540,10 +10530,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Replace values where the condition is False.
 
-        This method allows conditional replacement of values. Where the
-        condition evaluates to True, the original values are retained; where
-        it evaluates to False, values are replaced with corresponding entries
-        from ``other``.
+        Inverse of :meth:`mask`. If ``other`` is not given, replaced entries
+        become missing values.
 
         Parameters
         ----------
@@ -10586,12 +10574,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        The where method is an application of the if-then idiom. For each
-        element in the caller, if ``cond`` is ``True`` the
-        element is used; otherwise the corresponding element from
-        ``other`` is used. If the axis of ``cond`` does not align with
-        the caller Series/DataFrame, the values of ``cond`` on misaligned
-        index positions will be filled with False.
+        The where method is an application of the if-then idiom. If the axis
+        of ``cond`` does not align with the caller Series/DataFrame, the
+        values of ``cond`` on misaligned index positions will be filled with
+        False.
 
         The signature for :func:`Series.where` or
         :func:`DataFrame.where` differs from :func:`numpy.where`.
@@ -11266,7 +11252,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert tz-aware axis to target time zone.
 
-        This method converts the timezone of a datetime-based index from one
+        This method converts the timezone of a datetime-based axis from one
         timezone to another.
 
         Parameters
@@ -12121,9 +12107,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Provide rolling window calculations.
 
-        This method returns a rolling window object, enabling aggregation,
-        transformation, and other operations over a sliding window of a
-        specified size.
+        No computation happens until an aggregation such as ``mean`` is
+        called on the returned object.
 
         Parameters
         ----------

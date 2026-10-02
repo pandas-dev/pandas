@@ -383,6 +383,15 @@ Period properties
    Series.dt.start_time
    Series.dt.end_time
 
+Period methods
+^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.dt.to_timestamp
+
 Timedelta properties
 ^^^^^^^^^^^^^^^^^^^^
 
