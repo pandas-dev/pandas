@@ -173,7 +173,6 @@ cpdef assert_almost_equal(a, b,
             a_is_ndarray = is_array(a)
             b_is_ndarray = is_array(b)
 
-
     if isiterable(a):
 
         if not isiterable(b):
@@ -299,9 +298,15 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if a_is_ndarray and b_is_ndarray:
-        if not np.isclose(a, b, rtol=rtol, atol=atol):
-            assert False, (f"expected {b:.5f} but got {a:.5f}, "
-                           f"with rtol={rtol}, atol={atol}")
-        return True
+        # np.isclose does not work for all dtypes, e.g. StrDType
+        try:
+            isclose = np.isclose(a, b, rtol=rtol, atol=atol)
+        except TypeError:
+            pass
+        else:
+            if not isclose:
+                assert False, (f"expected {b:.5f} but got {a:.5f}, "
+                               f"with rtol={rtol}, atol={atol}")
+            return True
 
     raise AssertionError(f"{a} != {b}")
