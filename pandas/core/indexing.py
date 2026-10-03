@@ -2931,6 +2931,15 @@ class _iLocIndexer(_LocationIndexer):
                 if len(item_labels.get_indexer_for([col])) == 1:
                     # e.g. test_loc_setitem_empty_append_expands_rows
                     loc = item_labels.get_loc(col)
+                    if not is_integer(loc):
+                        # For a unique key on a non-unique index, get_loc can
+                        # return a slice or boolean mask instead of the integer
+                        # position; e.g. GH#69959. The get_indexer_for check
+                        # above guarantees there is exactly one match.
+                        if isinstance(loc, slice):
+                            loc = loc.start
+                        else:
+                            loc = np.flatnonzero(loc)[0]
                     self._setitem_single_column(loc, value, indexer[0])
                     return
 
