@@ -592,14 +592,8 @@ def test_zoneinfo_from_file_without_key_ambiguous_infer():
 def test_zoneinfo_fast_path_detection():
     # GH#64379 is_fixed_offset needs the pure-python twin, so it shows which
     #  ZoneInfo objects keep the cached transition fast path.
-    class UnhashableZone(zoneinfo.ZoneInfo):
-        def __eq__(self, other):
-            return self is other
-
-    assert UnhashableZone.__hash__ is None
     assert timezones.is_fixed_offset(zoneinfo.ZoneInfo("Etc/GMT+5"))
     assert timezones.is_fixed_offset(zoneinfo.ZoneInfo.no_cache("Etc/GMT+5"))
-    assert timezones.is_fixed_offset(UnhashableZone("Etc/GMT+5"))
     assert not timezones.is_fixed_offset(_zoneinfo_from_file("Etc/GMT+5"))
 
 

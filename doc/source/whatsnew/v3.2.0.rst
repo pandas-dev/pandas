@@ -139,7 +139,8 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
-- Bug in :meth:`Timestamp.tz_localize` and :meth:`Timestamp.tz_convert` (and their :class:`DatetimeIndex` and :class:`Series` counterparts) with a ``zoneinfo`` timezone created by ``ZoneInfo.from_file`` raising or silently using the installed ``tzdata`` rules, a regression since pandas 3.0.3 (:issue:`66828`)
+-
+-
 
 Numeric
 ^^^^^^^

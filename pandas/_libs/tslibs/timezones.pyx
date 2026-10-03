@@ -1,11 +1,9 @@
 cimport cython
-
 from datetime import (
     timedelta,
     timezone,
 )
 import pickle
-import weakref
 import zoneinfo
 from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
@@ -48,12 +46,6 @@ cdef tzinfo utc_dateutil_str = dateutil_gettz("UTC")  # NB: *not* the same as tz
 
 cdef tzinfo utc_zoneinfo = None
 cdef type ZoneInfo = zoneinfo.ZoneInfo
-
-# Pure-python ZoneInfo twins of the ZoneInfo objects we have vetted, see
-#  get_zoneinfo_twin.  Weakly keyed so that we do not keep the tz objects we
-#  are passed alive for the life of the process; the stdlib interns only some
-#  of them.
-cdef object _zoneinfo_twin_cache = weakref.WeakKeyDictionary()
 
 
 # ----------------------------------------------------------------------
@@ -335,27 +327,9 @@ cdef object get_zoneinfo_twin(tzinfo tz):
     zoneinfo._zoneinfo.ZoneInfo or None
     """
     try:
-        return _zoneinfo_twin_cache[tz]
-    except KeyError:
-        pass
-    except TypeError:
-        # i.e. a ZoneInfo subclass that defines __eq__ and not __hash__, so
-        #  there is nothing to memoize under; rebuild on every call rather
-        #  than reject a zone we can otherwise serve.  GH#64379
-        return _build_zoneinfo_twin(tz)
-
-    twin = _build_zoneinfo_twin(tz)
-    _zoneinfo_twin_cache[tz] = twin
-    return twin
-
-
-cdef object _build_zoneinfo_twin(tzinfo tz):
-    try:
         tz.__reduce__()
     except pickle.PicklingError:
-        # i.e. ZoneInfo.from_file, for which both implementations refuse this.
-        #  A __reduce__ that succeeds tells us the object was loaded from the
-        #  installed tzdata under its key, by ZoneInfo() or no_cache().
+        # i.e. ZoneInfo.from_file; both implementations refuse to pickle it
         return None
 
     return _ZoneInfo(tz.key)
