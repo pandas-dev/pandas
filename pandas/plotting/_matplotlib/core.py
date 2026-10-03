@@ -2234,6 +2234,12 @@ class BarPlot(MPLPlot):
             # by format_dateaxis, exactly as line plots do; pinning a tick at
             # every bar would suppress the intermediate minor-tick labels
 
+            # set_xlim can create minor ticks that _post_plot_logic_common
+            # never saw, e.g. when a narrow user xlim left the view with none
+            type(self)._apply_axis_properties(
+                ax.xaxis, rot=self.rot, fontsize=self.fontsize
+            )
+
             index_name = self._get_index_name()
             if index_name is not None and self.use_index:
                 ax.set_xlabel(index_name)
