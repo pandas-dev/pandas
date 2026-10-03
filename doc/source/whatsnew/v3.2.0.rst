@@ -145,8 +145,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
--
+- Fixed bug in :meth:`Series.corr` with ``method="pearson"`` returning an inaccurate result for nearly-constant data, and ``0.0`` instead of ``NaN`` for some constant data (:issue:`59652`)
 
 Conversion
 ^^^^^^^^^^
