@@ -391,7 +391,7 @@ def test_astype_object_target_distinguishes_type():
 )
 @pytest.mark.parametrize("target", [object, str, pd.SparseDtype(object, np.nan)])
 def test_astype_object_subtype_boxed_fill_value(fill_value, target):
-    # an object subtype keeps a boxed fill_value as-is in the gaps
+    # GH#70225 an object subtype keeps a boxed fill_value as-is in the gaps
     values = np.array([fill_value, 1, "a", fill_value], dtype=object)
     arr = SparseArray(values, fill_value=fill_value)
 
@@ -401,7 +401,7 @@ def test_astype_object_subtype_boxed_fill_value(fill_value, target):
 
 
 def test_astype_object_timedelta_subtype_string_fill_value():
-    # a string fill_value is converted to the subtype before filling the gaps
+    # GH#70225 a string fill_value is converted to the subtype before filling the gaps
     arr = SparseArray(["1s", "5s", "5s"], dtype=pd.SparseDtype("m8[s]", "5s"))
 
     result = arr.astype(object)
