@@ -431,6 +431,23 @@ def test_add_unsupported_type_raises(_offset, other):
         off + other
 
 
+@pytest.mark.parametrize("nat", [pd.NaT, np.datetime64("NaT", "ns"), "NaT"])
+@pytest.mark.parametrize("method", ["rollback", "rollforward"])
+@pytest.mark.parametrize("offset", [BusinessHour(), CustomBusinessHour()])
+def test_roll_nat(offset, method, nat):
+    # GH#70221
+    assert getattr(offset, method)(nat) is pd.NaT
+
+
+def test_add_datetime64_nat(_offset):
+    # GH#70221
+    off = _get_offset(_offset)
+    nat = np.datetime64("NaT")
+    assert off + nat is pd.NaT
+    assert nat + off is pd.NaT
+    assert nat - off is pd.NaT
+
+
 def test_add_period_defers_to_period():
     # declining the operation lets python fall back to Period.__radd__
     assert MonthEnd() + pd.Period("2022-01", freq="M") == pd.Period("2022-02", freq="M")
