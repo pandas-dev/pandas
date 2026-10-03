@@ -435,12 +435,12 @@ def test_add_unsupported_type_raises(_offset, other):
 @pytest.mark.parametrize("method", ["rollback", "rollforward"])
 @pytest.mark.parametrize("offset", [BusinessHour(), CustomBusinessHour()])
 def test_roll_nat(offset, method, nat):
-    # GH#70221
+    # GH#70222
     assert getattr(offset, method)(nat) is pd.NaT
 
 
 def test_add_datetime64_nat(_offset):
-    # GH#70221
+    # GH#70222
     off = _get_offset(_offset)
     nat = np.datetime64("NaT")
     assert off + nat is pd.NaT
