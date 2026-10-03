@@ -14,7 +14,6 @@ from collections import (
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
-import gzip
 import io
 import mmap
 import os
@@ -83,7 +82,6 @@ from pandas.core.internals.managers import BlockManager
 
 from pandas.io.common import (
     IOHandles,
-    _BytesIOWrapper,
     get_handle,
     infer_compression,
     stringify_path,
@@ -3063,36 +3061,27 @@ class TextFileReader(abc.Iterator):
                 and self.options.get("delimiter", ",") is None
                 and not isinstance(f, list)
             ):
-                src = self._sniff_delimiter(f)
-                return mapping[engine](src, **self.options)
+                return mapping[engine](self._sniff_delimiter(f), **self.options)
             return mapping[engine](f, **self.options)
         except Exception:
             if self.handles is not None:
                 self.handles.close()
             raise
 
-    def _sniff_delimiter(self, f: IO) -> IO | _ReplayHandle:
+    def _sniff_delimiter(self, f: IO) -> _ReplayHandle:
         """
         Set the delimiter for ``sep=None`` by sniffing the first row that is not
         in ``skiprows``, blank or a full-line comment.
 
-        Returns ``f`` rewound to where sniffing started or, if ``f`` cannot seek,
-        a handle that replays the data read here and then the rest of ``f``.
+        Returns a handle that replays the data read here and then the rest of ``f``.
         """
         skiprows = self.options["skiprows"]
         skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
         comment = self.options["comment"]
-        try:
-            start = f.tell() if _can_seek(f) else None
-        except (AttributeError, OSError):
-            # e.g. read-only buffers lacking seekable() or tell()
-            start = None
         chunks: list = []
         delimiter = None
         for pos, raw in enumerate(
-            _iter_physical_lines(
-                f, chunks if start is None else None, self.options["lineterminator"]
-            )
+            _iter_physical_lines(f, chunks, self.options["lineterminator"])
         ):
             if skipfunc(pos) or not raw:
                 continue
@@ -3115,9 +3104,6 @@ class TextFileReader(abc.Iterator):
                 "specify engine='python'."
             )
         self.options["delimiter"] = delimiter
-        if start is not None:
-            f.seek(start)
-            return f
         prefix = chunks[0][:0].join(chunks) if chunks else b""
         return _ReplayHandle(prefix, f)
 
@@ -3669,11 +3655,11 @@ def _validate_skipfooter(kwds: dict[str, Any]) -> None:
 
 
 def _iter_physical_lines(
-    handle: IO, chunks: list | None, lineterminator: str | None
+    handle: IO, chunks: list, lineterminator: str | None
 ) -> Iterator[bytes | str]:
     """
     Yield each line of ``handle`` without its terminator, appending every chunk
-    read to ``chunks`` if it is not None.
+    read to ``chunks``.
     """
     eol: re.Pattern | None = None
     partial: list = []
@@ -3685,8 +3671,7 @@ def _iter_physical_lines(
             if tail:
                 yield tail
             return
-        if chunks is not None:
-            chunks.append(chunk)
+        chunks.append(chunk)
         if eol is None:
             pattern = re.escape(lineterminator) if lineterminator else r"\r\n|\r|\n"
             eol = re.compile(pattern.encode() if isinstance(chunk, bytes) else pattern)
@@ -3701,20 +3686,6 @@ def _iter_physical_lines(
             start = match.end()
         partial.append(chunk[start:])
         skip_lf = not lineterminator and chunk[-1:] in (b"\r", "\r")
-
-
-def _can_seek(handle: IO) -> bool:
-    """
-    Whether ``handle`` can seek back, checking the source of a ``GzipFile``,
-    whose ``seekable()`` is True even when its source cannot seek.
-    """
-    if isinstance(handle, _BytesIOWrapper):
-        # seeking its text buffer would not discard already-encoded overflow bytes
-        return False
-    source: Any = handle.buffer if isinstance(handle, io.TextIOWrapper) else handle
-    if isinstance(source, gzip.GzipFile) and source.fileobj is not None:
-        source = source.fileobj
-    return handle.seekable() and source.seekable()
 
 
 class _ReplayHandle:
