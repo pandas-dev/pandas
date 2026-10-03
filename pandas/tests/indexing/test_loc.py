@@ -3522,6 +3522,18 @@ def test_loc_setitem_int_slice_decimal_index(frame_or_series):
     tm.assert_equal(obj, expected)
 
 
+def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
+    # GH#70219 MultiIndex defers to its first level
+    level = pd.Index([Decimal(1), Decimal(3), Decimal(5)], dtype=object)
+    index = pd.MultiIndex.from_arrays([level, ["a", "b", "c"]])
+    obj = frame_or_series(range(3), index=index)
+
+    expected = frame_or_series([99, 99, 2], index=index)
+    tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
+    obj.loc[0:4] = 99
+    tm.assert_equal(obj, expected)
+
+
 @pytest.mark.parametrize("values", [[Decimal(1), Decimal(3), Decimal(5)], [1, 2.5, 5]])
 def test_loc_setitem_int_slice_object_numeric_index_missing_bound(
     values, frame_or_series
