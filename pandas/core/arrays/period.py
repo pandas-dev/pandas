@@ -296,6 +296,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
             scalars = scalars.to_numpy(dtype=object, na_value=NaT)
 
         arrdata = np.asarray(scalars)
+        if arrdata.dtype.kind == "M":
+            # e.g. pyarrow timestamps or a list of np.datetime64; ensure_object
+            #  below would turn datetime64[ns] into integers, GH#70139
+            freq = dtype._freq if dtype is not None else None  # type: ignore[union-attr]
+            return cls._from_datetime64(arrdata, freq)
         if (
             arrdata.dtype.kind == "u"
             and arrdata.size
@@ -1548,6 +1553,10 @@ def dt64arr_to_periodarr(
 
     elif isinstance(data, (ABCIndex, ABCSeries)):
         data = data._values
+
+    if freq is None:
+        # match the message from the object-dtype path in libperiod
+        raise ValueError("freq not specified and cannot be inferred")
 
     reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
