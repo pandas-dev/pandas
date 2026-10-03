@@ -1304,8 +1304,9 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         ltype = self._pa_array.type
 
-        # our callers defer this to the EA for EA-backed values (GH#63429)
-        ops.maybe_warn_listlike(other)
+        if isinstance(other, range):
+            # GH#63429 our callers defer this to the EA for EA-backed values
+            ops.maybe_warn_listlike(other)
 
         if isinstance(other, (ExtensionArray, np.ndarray, list, range)):
             ops.raise_if_2d(other)
