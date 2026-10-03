@@ -1723,6 +1723,14 @@ class TestParquetChunksize(Base):
         with pytest.raises(NotImplementedError, match="filters"):
             list(read_parquet(path, engine=pa, chunksize=5, filters=[("b", "==", "x")]))
 
+    @pytest.mark.parametrize("chunksize", [0, -1, 2.5, True, "5"])
+    def test_read_parquet_chunksize_invalid_raises(self, pa, tmp_path, chunksize):
+        path = tmp_path / "test.parquet"
+        pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)
+
+        with pytest.raises(ValueError, match="'chunksize' must be an integer >=1"):
+            read_parquet(path, engine=pa, chunksize=chunksize)
+
     def test_read_parquet_chunksize_unsupported_kwarg_raises(self, pa, tmp_path):
         path = tmp_path / "test.parquet"
         pd.DataFrame({"a": range(10)}).to_parquet(path, engine=pa)

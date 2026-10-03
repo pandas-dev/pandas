@@ -48,6 +48,7 @@ from pandas.io.common import (
     is_url,
     stringify_path,
 )
+from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -602,6 +603,8 @@ class FastParquetImpl(BaseImpl):
         storage_options: StorageOptions | None = None,
         filesystem=None,
         to_pandas_kwargs: dict[str, Any] | None = None,
+        *,
+        chunksize: int | None = None,
         **kwargs,
     ) -> DataFrame:
         if chunksize is not None:
@@ -788,8 +791,8 @@ def read_parquet(
     storage_options: StorageOptions | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     filesystem: Any = ...,
-    filters: list[tuple] | list[list[tuple]] | None = ...,
-    to_pandas_kwargs: dict | None = ...,
+    filters: list[tuple[Any, ...]] | list[list[tuple[Any, ...]]] | None = ...,
+    to_pandas_kwargs: dict[str, Any] | None = ...,
     *,
     chunksize: None = ...,
     **kwargs,
@@ -804,8 +807,8 @@ def read_parquet(
     storage_options: StorageOptions | None = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     filesystem: Any = ...,
-    filters: list[tuple] | list[list[tuple]] | None = ...,
-    to_pandas_kwargs: dict | None = ...,
+    filters: list[tuple[Any, ...]] | list[list[tuple[Any, ...]]] | None = ...,
+    to_pandas_kwargs: dict[str, Any] | None = ...,
     *,
     chunksize: int,
     **kwargs,
@@ -822,6 +825,8 @@ def read_parquet(
     filesystem: Any = None,
     filters: list[tuple[Any, ...]] | list[list[tuple[Any, ...]]] | None = None,
     to_pandas_kwargs: dict[str, Any] | None = None,
+    *,
+    chunksize: int | None = None,
     **kwargs,
 ) -> DataFrame | ParquetFileReader:
     """
@@ -1008,6 +1013,7 @@ def read_parquet(
         engine = "auto"
     impl = get_engine(engine)
     check_dtype_backend(dtype_backend)
+    chunksize = validate_integer("chunksize", chunksize, 1)
 
     return impl.read(
         path,
