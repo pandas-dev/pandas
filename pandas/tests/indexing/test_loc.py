@@ -2606,6 +2606,8 @@ class TestLocSetitemWithExpansion:
             #  then coerced back into the int64 column
             ("int64[pyarrow]", pd.Period("2021-01-01", freq="D")),
             ("int64[pyarrow]", pd.Interval(5, 6)),
+            # used to raise in _post_expansion_casting, GH#70221
+            ("int64[pyarrow]", 2**70),
         ],
     )
     def test_loc_setitem_with_expansion_lossy_pre_cast(self, dtype, item):
@@ -2621,6 +2623,42 @@ class TestLocSetitemWithExpansion:
 
         expected = pd.DataFrame({"a": pd.Series([*original, item], dtype=object)})
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, item",
+        [
+            (pd.StringDtype(na_value=np.nan), 2**70),
+            ("Int64", pd.NaT),
+            ("boolean", pd.NaT),
+            ("float64[pyarrow]", 2**70),
+            ("int64[pyarrow]", 2**70),
+        ],
+    )
+    def test_loc_setitem_with_expansion_series_cannot_hold(self, dtype, item):
+        # GH#70221 a value the dtype cannot hold used to raise instead of
+        #  widening to object
+        if "pyarrow" in str(dtype):
+            pytest.importorskip("pyarrow")
+        ser = pd.Series([1, 0], dtype=dtype)
+        original = list(ser)
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = item
+
+        expected = pd.Series([*original, item], dtype=object)
+        tm.assert_series_equal(ser, expected)
+
+    def test_loc_setitem_with_expansion_all_na_str_large_int(self):
+        # GH#70221 the value must not be rounded through float64
+        pytest.importorskip("pyarrow")
+        dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+        ser = pd.Series([np.nan, np.nan], dtype=dtype)
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = 2**64 - 1
+
+        expected = pd.Series([np.nan, np.nan, 2**64 - 1], dtype=object)
+        tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_with_expansion_sparse_na(self):
         # GH#65431 pre-casting NaN gives Sparse[float64, nan], not the column's
