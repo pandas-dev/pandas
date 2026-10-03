@@ -1785,22 +1785,7 @@ class EABackedBlock(Block):
             raise ValueError("Cannot modify read-only array")
         target = values
         if values.ndim == 2:
-            if isinstance(self, NDArrayBackedExtensionBlock):
-                # GH#68521 .T is a view here, so write through it with the key
-                #  in frame order and let numpy do the broadcasting
-                target = values.T
-                if not isinstance(indexer, tuple):
-                    # a 0-d ndarray key breaks EA.__setitem__; a tuple avoids it
-                    indexer = (indexer,)
-            else:
-                # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
-                #  instead of transposing values, since EA.T may not be a view.
-                if not isinstance(indexer, tuple):
-                    indexer = (indexer, slice(None))
-                if len(indexer) == 2:
-                    indexer = indexer[::-1]
-                if isinstance(value, np.ndarray) and value.ndim == 2:
-                    value = value.T
+            target, indexer, value = self._setitem_target(indexer, value)
         else:
             # GH#68521 check_setitem_lengths's checks are gated on
             #  values.ndim == 1, so it is a no-op for a 2-D block
@@ -1819,8 +1804,8 @@ class EABackedBlock(Block):
                     # GH#68521 not for a 1D block: that would change the
                     #  exception type of Series setitem; see
                     #  test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message
-                    # target is values.T, already in frame order, so err's own
-                    #  message reports the shape mismatch correctly
+                    # target is values.T, already in frame order, so the
+                    #  error's own message reports the shape mismatch correctly
                     raise
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
@@ -1830,6 +1815,20 @@ class EABackedBlock(Block):
 
         else:
             return self
+
+    def _setitem_target(self, indexer, value):
+        """
+        Get the array, indexer and value for setitem on a 2-D block.
+        """
+        # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
+        #  instead of transposing values, since EA.T may not be a view.
+        if not isinstance(indexer, tuple):
+            indexer = (indexer, slice(None))
+        if len(indexer) == 2:
+            indexer = indexer[::-1]
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            value = value.T
+        return self.values, indexer, value
 
     @final
     def where(self, other, cond) -> list[Block]:
@@ -2334,6 +2333,14 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
+
+    def _setitem_target(self, indexer, value):
+        # GH#68521 .T is a view here, so write through it with the key
+        #  in frame order and let numpy do the broadcasting
+        if not isinstance(indexer, tuple):
+            # a 0-d ndarray key breaks EA.__setitem__; a tuple avoids it
+            indexer = (indexer,)
+        return self.values.T, indexer, value
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
