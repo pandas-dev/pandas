@@ -959,7 +959,7 @@ class TestGetDtypesCache:
         # cleared so the caches do not keep the unconsolidated blocks alive
         df = pd.DataFrame({"a": [1, 2]})
         df["b"] = np.array([1.5, 2.5])
-        df["c"] = np.array([3, 4])
+        df["c"] = np.array([3, 4], dtype=np.int64)
         assert len(df._mgr.blocks) == 3
         self._prime_cache(df)
         df.iloc[0]
