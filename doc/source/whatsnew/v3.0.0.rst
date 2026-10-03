@@ -477,9 +477,11 @@ but now infer:
    >>> print(pd.Series([np.datetime64("2024-03-22", "ms")]).dtype)
    datetime64[ms]
 
-The microsecond default for strings also applies to I/O methods reading from text
-files, such as :func:`read_csv` and :func:`read_json`. Strings with nanosecond
-precision give nanosecond resolution:
+Similarly, when passed a sequence of ``np.datetime64`` objects, the resolution of the passed objects will be retained (or for lower-than-second resolution, second resolution will be used).
+
+When parsing strings, the default is now microseconds (which also impacts I/O
+methods reading from text files, such as :func:`read_csv` and :func:`read_json`).
+Except when the string has nanosecond precision, in which case nanosecond resolution is used:
 
 .. code-block:: pycon
 

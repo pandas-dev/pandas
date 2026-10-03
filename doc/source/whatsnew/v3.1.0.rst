@@ -444,6 +444,8 @@ Deprecations
 Deprecated ``inplace`` keyword for various methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+PDEP-8: https://pandas.pydata.org/pdeps/0008-inplace-methods-in-pandas.html
+
 The ``inplace`` keyword is deprecated (and will eventually be removed) for all
 methods that do not actually work "inplace" (:issue:`63207`).
 
@@ -453,8 +455,9 @@ calling DataFrame or Series, because it never modifies the underlying values
 directly. Additionally, with the introduction of Copy-on-Write in pandas 3.0,
 users don't need the ``inplace`` keyword to avoid a copy of the data.
 
-The affected methods are the DataFrame methods (and their Series equivalents,
-where they exist) :meth:`~DataFrame.drop`, :meth:`~DataFrame.rename`,
+For those reasons, the ``inplace`` keyword is deprecated for those methods
+which do not work inplace. In practice, these are the DataFrame and Series
+methods :meth:`~DataFrame.drop`, :meth:`~DataFrame.rename`,
 :meth:`~DataFrame.rename_axis`, :meth:`~DataFrame.reset_index`,
 :meth:`~DataFrame.set_index`, :meth:`~DataFrame.dropna`,
 :meth:`~DataFrame.drop_duplicates`, :meth:`~DataFrame.sort_values`,
