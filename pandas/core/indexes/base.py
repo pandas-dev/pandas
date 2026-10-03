@@ -6930,14 +6930,20 @@ class Index(IndexOpsMixin, PandasObject):
         new_values = self._map_values(mapper, na_action=na_action)  # type: ignore[no-untyped-call]
 
         # we can return a MultiIndex
-        if new_values.size and isinstance(new_values[0], tuple):
+        if (
+            new_values.size
+            and isinstance(new_values[0], tuple)
+            and all(isinstance(val, tuple) for val in new_values[~isna(new_values)])
+        ):
+            # list input pads shorter tuples with NaN instead of truncating
+            result = MultiIndex.from_tuples(new_values.tolist())
             if isinstance(self, MultiIndex):
-                names = self.names
+                # only keep names if the number of levels is unchanged, GH#24800
+                if self.nlevels == result.nlevels:
+                    result.names = self.names
             elif self.name:
-                names = [self.name] * len(new_values[0])
-            else:
-                names = None
-            return MultiIndex.from_tuples(new_values, names=names)
+                result.names = [self.name] * result.nlevels
+            return result
 
         dtype = None
         if not new_values.size:

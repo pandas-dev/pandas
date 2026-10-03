@@ -175,8 +175,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
--
+- Bug in :meth:`Index.map` raising ``ValueError`` when a :class:`MultiIndex` is mapped to tuples with a different number of elements than it has levels (:issue:`24800`)
 
 I/O
 ^^^
