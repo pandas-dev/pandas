@@ -2027,8 +2027,8 @@ default 'raise'
 
         This method changes the resolution of the Timestamp's internal
         representation. When converting to a coarser resolution (e.g.,
-        nanoseconds to seconds), values are truncated toward negative infinity
-        unless ``round_ok`` is set to False, which raises instead.
+        nanoseconds to seconds), values are truncated toward negative infinity.
+        If this loses precision and ``round_ok`` is False, raise instead.
 
         Parameters
         ----------
