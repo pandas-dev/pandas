@@ -2239,7 +2239,8 @@ def test_iloc_setitem_2d_ea_block_1d_value_broadcasts(dtype):
     # GH#68521 the 2D datetimelike block stores columns first, so a 1-D value
     #  was broadcast down rows instead of across the selected columns
     arr = np.arange(12).reshape(4, 3).astype("i8")
-    df = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+    # copy so a write-through to ``arr`` can't make the comparison vacuous
+    df = pd.DataFrame(arr.copy().view(dtype), columns=list("abc"))
 
     df.iloc[[2, 0], ::-1] = np.array([100, 101, 102], dtype="i8").view(dtype)
 

@@ -1786,10 +1786,7 @@ class EABackedBlock(Block):
         target = values
         if values.ndim == 2:
             target, indexer, value = self._setitem_target(indexer, value)
-        else:
-            # GH#68521 check_setitem_lengths's checks are gated on
-            #  values.ndim == 1, so it is a no-op for a 2-D block
-            check_setitem_lengths(indexer, value, values)
+        check_setitem_lengths(indexer, value, values)
 
         try:
             target[indexer] = value
