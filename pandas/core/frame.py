@@ -17306,8 +17306,8 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be False, as for an empty row/column.
-            If skipna is False, ``NaN`` and ``NaT`` are treated as True (they are
-            not equal to zero), ``None`` in object dtype is treated as False and
+            If skipna is False, ``NaN`` (and ``NaT`` in timedelta data) is treated
+            as True, ``None`` in object dtype is treated as False and
             ``pd.NA`` in object dtype raises. For nullable dtypes such as
             ``boolean``, NA values propagate following
             :ref:`Kleene logic <boolean.kleene>`.
@@ -17466,8 +17466,8 @@ class DataFrame(NDFrame, OpsMixin):
         skipna : bool, default True
             Exclude NA/null values. If the entire row/column is NA and skipna is
             True, then the result will be True, as for an empty row/column.
-            If skipna is False, ``NaN`` and ``NaT`` are treated as True (they are
-            not equal to zero), ``None`` in object dtype is treated as False and
+            If skipna is False, ``NaN`` (and ``NaT`` in timedelta data) is treated
+            as True, ``None`` in object dtype is treated as False and
             ``pd.NA`` in object dtype raises. For nullable dtypes such as
             ``boolean``, NA values propagate following
             :ref:`Kleene logic <boolean.kleene>`.
@@ -17776,8 +17776,6 @@ class DataFrame(NDFrame, OpsMixin):
             For DataFrames, specifying ``axis=None`` will apply the aggregation
             across both axes.
 
-            .. versionadded:: 2.0.0
-
         skipna : bool, default True
             Exclude NA/null values when computing the result.
         numeric_only : bool, default False
@@ -17877,8 +17875,6 @@ class DataFrame(NDFrame, OpsMixin):
 
             For DataFrames, specifying ``axis=None`` will apply the aggregation
             across both axes.
-
-            .. versionadded:: 2.0.0
 
         skipna : bool, default True
             Exclude NA/null values when computing the result.

@@ -2340,7 +2340,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                   - 'columns' : dict like {column -> {index -> value}}
                   - 'values' : just the values array
                   - 'table' : dict like {'schema': {schema}, 'data': {data}}, where
-                    'data' is like ``orient='records'``
+                    'data' is like ``orient='records'`` with the index included
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -6977,9 +6977,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Convert columns from numpy dtypes to the best dtypes that support ``pd.NA``.
 
-        Each column is converted to a nullable extension dtype (e.g. nullable
-        integer, string, boolean) so that missing values are represented by
-        ``pd.NA`` instead of ``np.nan``.
+        Numeric, boolean and object columns are converted to nullable extension
+        dtypes (e.g. nullable integer, string, boolean) so that missing values
+        are represented by ``pd.NA`` instead of ``np.nan``. Other columns, such
+        as datetime or categorical, are left unchanged.
 
         Parameters
         ----------
@@ -7228,8 +7229,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Fill NA/NaN values with `value`.
 
-        ``value`` may also be a dict, Series or DataFrame, to fill different
-        labels with different values.
+        ``value`` may also be a dict or an aligned pandas object, to fill
+        different labels with different values.
 
         Parameters
         ----------
@@ -7826,7 +7827,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
           With overlapping keys, order the dict most-specific-first.
         * In ``object`` dtype, ``True == 1`` and ``False == 0``, so replacing one
           also replaces the other. In bool and numeric dtypes they do not match
-          each other. Missing values are matched as missing, not by equality.
+          each other. In ``object`` dtype, ``np.nan``, ``None`` and ``pd.NA``
+          all match each other as missing.
 
         Examples
         --------
