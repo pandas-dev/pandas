@@ -804,7 +804,8 @@ class Expanding(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.
+        A window needs at least ``ddof + 1`` observations to give a non-NaN
+        result.
 
         Examples
         --------
@@ -880,7 +881,8 @@ class Expanding(RollingAndExpandingMixin):
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.
+        A window needs at least ``ddof + 1`` observations to give a non-NaN
+        result.
 
         Examples
         --------
@@ -1373,8 +1375,8 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding correlation.
 
-        At each point in time, the correlation is computed over all data points
-        seen so far.
+        At each point in time, Pearson's correlation is computed over all data
+        points seen so far.
 
         Parameters
         ----------

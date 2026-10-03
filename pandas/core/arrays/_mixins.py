@@ -443,10 +443,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         """
-        Fill NA/NaN values using the specified method.
-
-        This method replaces missing values in the array with a scalar value
-        or corresponding values from an array-like object.
+        Fill NA/NaN values with the specified value.
 
         Parameters
         ----------

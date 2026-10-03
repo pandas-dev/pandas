@@ -359,7 +359,7 @@ class Index(IndexOpsMixin, PandasObject):
     -----
     The elements of an Index are expected to be hashable. Unhashable elements
     (such as lists) are accepted, but operations that hash the values
-    (for example ``unique`` and ``is_unique``) can raise ``TypeError``.
+    (for example ``get_indexer`` and ``factorize``) can raise ``TypeError``.
     An Index instance *can not* hold numpy float16 dtype.
 
     When passed a NumPy array with ``dtype=object``, pandas infers a more
@@ -2863,7 +2863,7 @@ class Index(IndexOpsMixin, PandasObject):
         Fill NA/NaN values with the specified value.
 
         If ``value`` cannot be held by the Index dtype, the result is upcast
-        and a warning is raised.
+        with a ``Pandas4Warning``; this will raise in a future version.
 
         Parameters
         ----------
@@ -3774,8 +3774,8 @@ class Index(IndexOpsMixin, PandasObject):
         Get integer location, slice or boolean mask for requested label.
 
         The return type depends on how often the label occurs: an integer if
-        it occurs once, otherwise a slice if the index is monotonic or a boolean
-        mask if it is not.
+        it occurs once, otherwise a slice if the index is monotonic increasing
+        or a boolean mask if it is not.
 
         Parameters
         ----------
