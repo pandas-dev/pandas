@@ -1723,13 +1723,66 @@ def test_groupby_complex(func, output):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("func", ["min", "max", "var"])
+@pytest.mark.parametrize("func", ["var", "std", "sem"])
+@pytest.mark.parametrize("ddof", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+def test_groupby_complex_var_std_sem(func, ddof, skipna):
+    # GH#43770 match Series, including values with a NaN in only one part
+    data = pd.Series(
+        [
+            1 + 2j,
+            3 - 1j,
+            2 + 5j,
+            4 + 0j,
+            np.nan + 1j,
+            5 + 5j,
+            6 - 2j,
+            complex(1, np.nan),
+        ]
+    )
+    keys = [0, 0, 1, 1, 0, 1, 2, 2]
+    gb = data.groupby(keys)
+    result = getattr(gb, func)(ddof=ddof, skipna=skipna)
+    expected = gb.agg(lambda x: getattr(x, func)(ddof=ddof, skipna=skipna))
+    tm.assert_series_equal(result, expected)
+    assert result.dtype == np.float64
+
+    frame = data.to_frame("a")
+    result = getattr(frame.groupby(keys), func)(ddof=ddof, skipna=skipna)
+    tm.assert_frame_equal(result, expected.to_frame("a"))
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        "min",
+        "max",
+        "median",
+        "skew",
+        "kurt",
+        "idxmin",
+        "idxmax",
+        "quantile",
+        "cummin",
+        "cummax",
+        "rank",
+        "ohlc",
+    ],
+)
 def test_groupby_complex_raises(func):
-    # GH#43701
+    # GH#43701, GH#43770 median/skew/kurt must raise, not discard the
+    #  imaginary part
     data = pd.Series(np.arange(20).reshape(10, 2).dot([1, 2j]))
-    msg = "No matching signature found"
+    msg = f"dtype 'complex128' does not support operation '{func}'"
     with pytest.raises(TypeError, match=msg):
         data.groupby(data.index % 2).agg(func)
+
+    with pytest.raises(TypeError, match=msg):
+        getattr(data.groupby(data.index % 2), func)()
+
+    frame = data.to_frame("a")
+    with pytest.raises(TypeError, match=msg):
+        getattr(frame.groupby(frame.index % 2), func)()
 
 
 @pytest.mark.parametrize(
