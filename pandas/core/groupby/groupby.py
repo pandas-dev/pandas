@@ -996,6 +996,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
+    @property
+    def _raises_on_label_collision(self) -> bool:
+        # GH#36507 with Series.groupby(..., as_index=False), a group label that
+        #  collides with a result column raises like reset_index; df.groupby()[col]
+        #  keeps its existing behavior
+        return self.obj.ndim == 1 and self._selection is None
+
+    @final
     def _insert_inaxis_grouper(
         self, result: Series | DataFrame, qs: npt.NDArray[np.float64] | None = None
     ) -> DataFrame:
@@ -1026,12 +1034,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             if name is None:
                 # Behave the same as .reset_index() when a level is unnamed
-                name = (
-                    "index"
-                    if n_groupings == 1 and qs is None
-                    else f"level_{n_groupings - level - 1}"
-                )
+                if n_groupings == 1 and qs is None:
+                    name = "index"
+                    if self._raises_on_label_collision and name in result.columns:
+                        name = "level_0"
+                else:
+                    name = f"level_{n_groupings - level - 1}"
 
+            if self._raises_on_label_collision and name in result.columns:
+                raise ValueError(f"cannot insert {name}, already exists")
             # GH #28549
             # When using .apply(-), name will be in columns already
             if name not in result.columns:
@@ -2533,10 +2544,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             columns = com.fill_missing_names(index.names)
             if name in columns:
                 raise ValueError(f"Column label '{name}' is duplicate of result column")
+            if self._raises_on_label_collision:
+                duplicated = Index(columns).duplicated()
+                if duplicated.any():
+                    dup_name = columns[duplicated.argmax()]
+                    raise ValueError(f"cannot insert {dup_name}, already exists")
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            orig_dtype = self._grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
+            obj = self._grouper.groupings[0].obj
+            orig_dtype = obj.columns.dtype if isinstance(obj, DataFrame) else None
             cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
             result_frame.columns = cols
             result = result_frame
