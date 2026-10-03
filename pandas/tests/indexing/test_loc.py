@@ -3522,6 +3522,21 @@ def test_loc_setitem_int_slice_decimal_index(frame_or_series):
     tm.assert_equal(obj, expected)
 
 
+@pytest.mark.parametrize("values", [[Decimal(1), Decimal(3), Decimal(5)], [1, 2.5, 5]])
+def test_loc_setitem_int_slice_object_numeric_index_missing_bound(
+    values, frame_or_series
+):
+    # GH#70219 setitem raises the same error as getitem for a missing integer bound
+    index = pd.Index(values, dtype=object)
+    obj = frame_or_series(range(3), index=index)
+
+    msg = r"cannot do slice indexing on Index with these indexers \[0\] of type int"
+    with pytest.raises(TypeError, match=msg):
+        obj.loc[0:4]
+    with pytest.raises(TypeError, match=msg):
+        obj.loc[0:4] = 99
+
+
 def test_loc_datetimelike_mismatched_dtypes():
     # GH#32650 dont mix and match datetime/timedelta/period dtypes
 

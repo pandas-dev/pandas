@@ -6412,7 +6412,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Should an integer key be treated as positional?
 
-        False when the index holds numeric labels, so an integer key can be a label.
+        False when an integer key can be a label.
         """
         return self.inferred_type not in {
             "integer",
