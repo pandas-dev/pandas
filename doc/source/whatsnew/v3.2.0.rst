@@ -106,6 +106,7 @@ deprecation2
 
 Other deprecations
 ^^^^^^^^^^^^^^^^^^
+- Deprecated pinning the group key to the ``name`` attribute of the group passed to a user-defined function in :meth:`.SeriesGroupBy.apply`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.apply`, :meth:`.DataFrameGroupBy.transform`, :meth:`.DataFrameGroupBy.filter`, and the :class:`.Resampler` equivalents :meth:`.Resampler.apply`, :meth:`.Resampler.aggregate`, and :meth:`.Resampler.transform`. In a future version of pandas, the ``name`` attribute will no longer be set to the group key. When you need the key inside the function, iterate over the groupby object and combine the results yourself (:issue:`25457`, :issue:`41090`, :issue:`45894`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated the ``cache_dates`` argument in :func:`read_csv`, :func:`read_table`, and :func:`read_fwf` (:issue:`68705`)
 

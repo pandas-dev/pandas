@@ -53,6 +53,7 @@ from pandas.errors.cow import _chained_assignment_method_msg
 from pandas.util._decorators import deprecate_kwarg
 from pandas.util._exceptions import (
     find_stack_level,
+    frame_is_pandas_internal,
     rewrite_warning,
 )
 from pandas.util._validators import (
@@ -257,6 +258,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _accessors: set[str] = set()
     _hidden_attrs: frozenset[str] = frozenset([])
     _metadata: list[str] = []
+    # GH#41090 set to the group key on groups passed to UDFs in groupby ops;
+    #  user access of the pinned ``name`` then issues a deprecation warning
+    _groupby_pinned_name: Hashable | lib.NoDefault = lib.no_default
     _mgr: Manager
     _attrs: dict[Hashable, Any]
     _typ: str
@@ -6417,13 +6421,74 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self
 
     @final
-    def __getattr__(self, name: str):
+    def _pin_deprecated_group_name(self, key: Hashable) -> None:
+        """
+        Pin the group key to the 'name' attribute and flag it so that user
+        access of the pinned name issues a deprecation warning (GH#41090).
+
+        Two known holes, neither of which warns here: an indirect read of the
+        key (e.g. handing the group to another pandas method), which is
+        indistinguishable from an output-neutral one; and a Series derived
+        from the group, which inherits the key as its name via __finalize__
+        but not the flag, since propagating it would false-positive on e.g.
+        binops with mismatched names. BaseGrouper.apply_groupwise catches the
+        common case of both, a DataFrame result with a column labeled by the key.
+        """
+        if self.ndim == 1:
+            # Goes through the Series.name property setter; for DataFrame
+            #  the key is instead served by __getattr__ so that access can
+            #  be intercepted.
+            object.__setattr__(self, "name", key)
+        else:
+            # A subclass with "name" in _metadata has one put in the instance
+            #  __dict__ by __finalize__, which would shadow __getattr__ and
+            #  serve the subclass value instead of the key.
+            self.__dict__.pop("name", None)
+        object.__setattr__(self, "_groupby_pinned_name", key)
+
+    @final
+    def _maybe_warn_pinned_group_name(self) -> None:
+        # GH#41090 - a read from pandas' own code is bookkeeping, not user
+        #  reliance; see test_apply_no_name_access_no_warning. Asked one frame
+        #  at a time rather than through find_stack_level, whose walk runs on
+        #  every read of a pinned group's name
+        frame = sys._getframe(2)
+        # skip a subclass's override of Series.name that defers to it via super()
+        while (
+            frame.f_code.co_name == "name"
+            and frame.f_locals.get("self") is self
+            and frame.f_back is not None
+        ):
+            frame = frame.f_back
+        if frame_is_pandas_internal(frame):
+            return
+        warnings.warn(
+            "Pinning the group key to the 'name' attribute of "
+            "the group passed to a user-defined function in "
+            "groupby operations (e.g., .apply(), .transform(), "
+            ".filter()) is deprecated and will not be done in a "
+            "future version of pandas. When you need the key "
+            "inside the function, iterate over the groupby object "
+            "directly, e.g. for .apply(), 'pd.concat({key: func(group) for "
+            "key, group in gb})' when func returns a Series or DataFrame, or "
+            "'pd.Series({key: func(group) for key, group in gb})' when it "
+            "returns a scalar.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+    @final
+    def __getattr__(self, name: str) -> Any:
         """
         After regular attribute access, try looking up the name
         This allows simpler access to columns for interactive use.
         """
         # Note: obj.x will always call obj.__getattribute__('x') prior to
         # calling obj.__getattr__('x').
+        if name == "name" and self._groupby_pinned_name is not lib.no_default:
+            # GH#41090 - deprecated group-key pinning in groupby UDFs
+            self._maybe_warn_pinned_group_name()
+            return self._groupby_pinned_name
         if (
             name not in self._internal_names_set
             and name not in self._metadata
@@ -6448,6 +6513,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return object.__setattr__(self, name, value)
         except AttributeError:
             pass
+
+        if name == "name" and self._groupby_pinned_name is not lib.no_default:
+            # GH#41090 - the pinned key is served by __getattr__ rather than
+            #  from the instance __dict__, so without this the assignment
+            #  would fall through to setting a "name" *column*. An
+            #  explicitly-set name is no longer the pinned group key.
+            object.__setattr__(self, "_groupby_pinned_name", lib.no_default)
+            object.__setattr__(self, name, value)
+            return
 
         # if this fails, go on to more involved attribute setting
         # (note that this matches __getattr__, above).

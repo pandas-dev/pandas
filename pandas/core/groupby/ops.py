@@ -61,6 +61,7 @@ from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
     MultiIndex,
+    RangeIndex,
     ensure_index,
 )
 from pandas.core.series import Series
@@ -1194,20 +1195,30 @@ class BaseGrouper:
         # This calls DataSplitter.__iter__
         zipped = zip(group_keys, splitter, strict=True)
 
+        labels_key = False
         for key, group in zipped:
-            # Pinning name is needed for
-            #  test_group_apply_once_per_group,
-            #  test_inconsistent_return_type, test_set_group_name,
-            #  test_group_name_available_in_inference_pass,
-            #  test_groupby_multi_timezone
-            object.__setattr__(group, "name", key)
+            # GH#41090 - user access of the pinned name will warn
+            group._pin_deprecated_group_name(key)
 
             # group might be modified
             group_axes = group.axes
             res = f(group)
             if not mutated and not _is_indexed_like(res, group_axes):
                 mutated = True
+            if not labels_key and data.ndim == 1:
+                labels_key = _labels_pinned_key(res, key, data.name)
             result_values.append(res)
+        if labels_key:
+            warnings.warn(
+                "A user-defined function in groupby apply returned a DataFrame "
+                "with a column labeled by the group key, likely via the "
+                "deprecated pinning of the key to the group's 'name' attribute "
+                "(e.g. .to_frame()). In a future version of pandas, that column "
+                "will be labeled with the name of the Series instead; use e.g. "
+                "'group.rename(series_name).to_frame()' to adopt that behavior.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         # getattr pattern for __name__ is needed for functools.partial objects
         if len(group_keys) == 0 and getattr(f, "__name__", None) in [
             "skew",
@@ -1384,6 +1395,25 @@ class BinGrouper(BaseGrouper):
     @property
     def observed_grouper(self) -> BinGrouper:
         return self
+
+
+def _labels_pinned_key(res, key: Hashable, name: Hashable) -> bool:
+    """
+    Whether ``res`` has a column labeled by the pinned group ``key`` that will be
+    labeled ``name`` instead once the key is no longer pinned (GH#41090).
+    """
+    if not (
+        isinstance(res, DataFrame)
+        # default labels, e.g. pd.DataFrame(ndarray), are not taken from the group
+        and not isinstance(res.columns, RangeIndex)
+        and key in res.columns
+    ):
+        return False
+    try:
+        return not (key is name or bool(key == name))
+    except (TypeError, ValueError):
+        # e.g. pd.NA, whose == is ambiguous
+        return True
 
 
 def _is_indexed_like(obj, axes) -> bool:

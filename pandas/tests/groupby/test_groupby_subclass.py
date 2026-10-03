@@ -142,3 +142,49 @@ def test_groupby_resample_preserves_subclass(obj):
     # Confirm groupby.resample() preserves dataframe type
     result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)
+
+
+def test_groupby_apply_pins_name_over_subclass_metadata():
+    # GH#41090 - a subclass carrying "name" in _metadata gets it propagated
+    #  onto each group by __finalize__; the pinned group key must still win
+    class MyFrame(pd.DataFrame):
+        _metadata = ["name"]
+
+        @property
+        def _constructor(self):
+            return MyFrame
+
+    df = MyFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    df.name = "user-set"
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.groupby("a").apply(lambda g: g.name)
+    expected = pd.Series([1, 2], index=pd.Index([1, 2], name="a"))
+    tm.assert_series_equal(result, expected)
+
+
+def test_groupby_apply_subclass_name_override_no_warning():
+    # GH#41090 - pandas' own reads of the pinned name through a subclass's
+    #  override of Series.name are not user access
+    class MySeries(pd.Series):
+        @property
+        def _constructor(self):
+            return MySeries
+
+        @property
+        def name(self):
+            return super().name
+
+        @name.setter
+        def name(self, value):
+            pd.Series.name.fset(self, value)
+
+    ser = MySeries([1.0, 2.0, 3.0], name="b")
+    with tm.assert_produces_warning(None):
+        ser.groupby([1, 1, 2]).apply(lambda x: x * 2)
+
+    msg = "Pinning the group key"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.groupby([1, 1, 2]).apply(lambda x: x.name)
+    expected = MySeries([1, 2], index=pd.Index([1, 2], dtype=np.intp), name="b")
+    tm.assert_series_equal(result, expected)
