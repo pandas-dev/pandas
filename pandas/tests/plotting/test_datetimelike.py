@@ -2095,6 +2095,23 @@ class TestTSPlot:
         assert {t.get_rotation() for t in drawn} == {45.0}
         assert {t.get_fontsize() for t in drawn} == {16.0}
 
+    @pytest.mark.parametrize("freq", ["D", "3h"])
+    def test_bar_plot_date_axis_subplots_sharex(self, freq):
+        # GH#1918 - as for line plots, only the bottom subplot gets date labels
+        idx = date_range("2020-01-01", periods=10, freq=freq)
+        df = pd.DataFrame({"a": np.arange(10.0), "b": np.arange(10.0)}, index=idx)
+
+        axes = df.plot(kind="bar", subplots=True)
+
+        axes[0].get_figure().canvas.draw()
+
+        def drawn(ax):
+            labels = ax.get_xticklabels() + ax.get_xticklabels(minor=True)
+            return [t.get_text() for t in labels if t.get_visible() and t.get_text()]
+
+        assert drawn(axes[0]) == []
+        assert drawn(axes[1])
+
     def test_bar_plot_datetime_xticks(self):
         # GH#1918 - the converter has to be registered before the user's ticks
         # are applied, both so they land on the right ordinals and so it does
