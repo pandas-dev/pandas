@@ -2150,14 +2150,18 @@ class ExtensionBlock(EABackedBlock):
             if all(isinstance(x, np.ndarray) and x.ndim == 2 for x in indexer):
                 # GH#44703 went through indexing.maybe_convert_ix
                 first, second = indexer
-                if not (
+                if second.size == 0:
+                    # e.g. all-False column mask: nothing to set
+                    indexer = []
+                elif not (
                     second.size == 1 and (second == 0).all() and first.shape[1] == 1
                 ):
                     raise NotImplementedError(
                         "This should not be reached. Please report a bug at "
                         "github.com/pandas-dev/pandas/"
                     )
-                indexer = first[:, 0]
+                else:
+                    indexer = first[:, 0]
 
             elif lib.is_integer(indexer[1]) and indexer[1] == 0:
                 # reached via setitem_single_block passing the whole indexer
@@ -2171,6 +2175,9 @@ class ExtensionBlock(EABackedBlock):
                     indexer = indexer[0]
                 else:
                     indexer = []
+
+            elif is_list_like(indexer[1]) and len(indexer[1]) == 0:
+                indexer = []
 
             elif is_list_like(indexer[1]) and indexer[1][0] == 0:
                 indexer = indexer[0]

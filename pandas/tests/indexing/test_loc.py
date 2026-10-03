@@ -4272,3 +4272,35 @@ def test_loc_setitem_empty_boolean_column_mask_frame_value(dtype, box):
     df.loc[:, box([False])] = df * 2
 
     tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        "Float64",
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize(
+    "col_key",
+    [[False], np.array([False]), pd.Index([False]), pd.array([False]), []],
+    ids=["list", "ndarray", "Index", "pd.array", "empty-list"],
+)
+@pytest.mark.parametrize(
+    "row_key",
+    [[0, 1], np.array([True, True, False]), slice(None)],
+    ids=["list", "mask", "null-slice"],
+)
+def test_setitem_empty_column_indexer_single_column_ea(
+    indexer_li, dtype, col_key, row_key
+):
+    # GH#70222 column key selecting no columns in a 1-column EA frame
+    if isinstance(dtype, tuple):
+        dtype = pd.StringDtype(*dtype)
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    df_orig = df.copy()
+
+    indexer_li(df)[row_key, col_key] = df.iloc[2, 0]
+    tm.assert_frame_equal(df, df_orig)
