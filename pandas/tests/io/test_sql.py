@@ -3500,7 +3500,7 @@ def test_double_precision(conn, request):
 
 
 def test_read_sql_table_float_asdecimal(sqlite_engine):
-    # GH#70221 e.g. MySQL DOUBLE reflects with asdecimal=True
+    # GH#70231 e.g. MySQL DOUBLE reflects with asdecimal=True
     from sqlalchemy import (
         Float,
         event,
