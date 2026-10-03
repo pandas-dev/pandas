@@ -726,19 +726,19 @@ styler_render_repr = """
 styler_max_elements = """
 : int
     The maximum number of data-cell (<td>) elements that will be rendered before
-    trimming will occur over columns, rows or both if needed.
+    trimming will occur over columns, rows or both if needed. Not applied to LaTeX.
 """
 
 styler_max_rows = """
 : int, optional
     The maximum number of rows that will be rendered. May still be reduced to
-    satisfy ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence. Not applied to LaTeX.
 """
 
 styler_max_columns = """
 : int, optional
     The maximum number of columns that will be rendered. May still be reduced to
-    satisfy ``max_elements``, which takes precedence.
+    satisfy ``max_elements``, which takes precedence. Not applied to LaTeX.
 """
 
 styler_precision = """

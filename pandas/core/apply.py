@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         Generator,
         Hashable,
         Iterable,
+        Mapping,
         MutableMapping,
         Sequence,
     )
@@ -83,6 +84,7 @@ if TYPE_CHECKING:
         ExtensionArray,
     )
     from pandas.core.groupby import GroupBy
+    from pandas.core.groupby.groupby import BaseGroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -136,9 +138,9 @@ class BaseExecutionEngine(abc.ABC):
     def map(
         data: Series | DataFrame | np.ndarray,
         func: AggFuncType,
-        args: tuple,
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        decorator: Callable | None,
+        decorator: Callable[..., Any] | None,
         skip_na: bool,
     ):
         """
@@ -179,9 +181,9 @@ class BaseExecutionEngine(abc.ABC):
     def apply(
         data: Series | DataFrame | np.ndarray,
         func: AggFuncType,
-        args: tuple,
+        args: tuple[Any, ...],
         kwargs: dict[str, Any],
-        decorator: Callable,
+        decorator: Callable[..., Any],
         axis: Axis,
     ):
         """
@@ -526,7 +528,19 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
+        from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
+
         obj = self.obj
+
+        if not results:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, BaseGroupBy) and obj._selected_obj.ndim == 1:
+                return obj._selected_obj._constructor_expanddim(
+                    index=_groupby_result_index(obj), columns=Index([])
+                )
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
@@ -651,11 +665,27 @@ class Apply(metaclass=abc.ABCMeta):
         self,
         selected_obj: Series | DataFrame,
         result_index: list[Hashable],
-        result_data: list,
+        result_data: list[Any],
     ):
         from pandas import Index
+        from pandas.core.groupby.groupby import BaseGroupBy
 
         obj = self.obj
+
+        if not result_data:
+            # GH#39609
+            if isinstance(obj, ABCSeries):
+                return obj._constructor(index=Index([]), name=obj.name)
+            elif isinstance(obj, ABCDataFrame):
+                return obj._constructor(index=Index([]), columns=obj.columns[:0])
+            elif isinstance(obj, BaseGroupBy):
+                index = _groupby_result_index(obj)
+                if selected_obj.ndim == 2:
+                    frame = cast("DataFrame", selected_obj)
+                    return frame._constructor(index=index, columns=frame.columns[:0])
+                return selected_obj._constructor_expanddim(
+                    index=index, columns=Index([])
+                )
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
@@ -965,7 +995,7 @@ class FrameApply(NDFrameApply):
     @abc.abstractmethod
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         pass
 
     @abc.abstractmethod
@@ -1119,7 +1149,7 @@ class FrameApply(NDFrameApply):
         elif self.kwargs.get("bool_only"):
             obj = obj._get_bool_data()
 
-        if obj.columns.empty:
+        if obj.columns.empty or not func_names:
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
@@ -1358,7 +1388,7 @@ class FrameRowApply(FrameApply):
     @functools.cache
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
 
@@ -1384,7 +1414,7 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1514,7 +1544,7 @@ class FrameColumnApply(FrameApply):
 
     @staticmethod
     def _make_ea_row_builder(
-        col_arrays: list, dtype: ExtensionDtype, cls: type[ExtensionArray]
+        col_arrays: Sequence[Any], dtype: ExtensionDtype, cls: type[ExtensionArray]
     ) -> Callable[[int], ExtensionArray]:
         """Build a callable that constructs an EA row for a given row index.
 
@@ -1561,7 +1591,7 @@ class FrameColumnApply(FrameApply):
     @functools.cache
     def generate_numba_apply_func(
         func, nogil: bool = True, parallel: bool = False
-    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+    ) -> Callable[[npt.NDArray[Any], Index, Index], dict[int, Any]]:
         numba = import_optional_dependency("numba")
         from pandas import Series
         from pandas.core._numba.extensions import maybe_cast_str
@@ -1588,7 +1618,7 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         args, kwargs = prepare_function_arguments(
             func, self.args, self.kwargs, num_required_args=1
         )
@@ -1735,7 +1765,7 @@ class SeriesApply(NDFrameApply):
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
-        func = cast("Callable", self.func)
+        func = cast("Callable[..., Any]", self.func)
         obj = self.obj
 
         if isinstance(func, np.ufunc):
@@ -1764,7 +1794,7 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
-    obj: GroupBy | Resampler | BaseWindow
+    obj: GroupBy[Any] | Resampler | BaseWindow
 
     def __init__(
         self,
@@ -1883,6 +1913,18 @@ class ResamplerWindowApply(GroupByApply):
 
     def transform(self):
         raise NotImplementedError
+
+
+def _groupby_result_index(obj: BaseGroupBy[Any]) -> Index:
+    """
+    Index of a groupby aggregation result, used when there is nothing to aggregate.
+    """
+    from pandas.core.resample import Resampler
+
+    if isinstance(obj, Resampler):
+        # a groupby-resample has no single grouper to take the index from
+        return obj.size().index
+    return obj._grouper.result_index
 
 
 def reconstruct_func(
@@ -2039,7 +2081,7 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
 
 def normalize_keyword_aggregation(
-    kwargs: dict,
+    kwargs: Mapping[str, Any],
 ) -> tuple[
     MutableMapping[Hashable, list[AggFuncTypeBase]],
     tuple[str, ...],
@@ -2119,7 +2161,7 @@ def _make_unique_kwarg_list(
 
 def relabel_result(
     result: DataFrame | Series,
-    func: dict[str, list[Callable | str]],
+    func: dict[str, list[Callable[..., Any] | str]],
     columns: Iterable[Hashable],
     order: Iterable[int],
 ) -> dict[Hashable, Series]:
@@ -2308,7 +2350,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
 
 def validate_func_kwargs(
-    kwargs: dict,
+    kwargs: Mapping[str, Any],
 ) -> tuple[list[str], list[str | Callable[..., Any]]]:
     """
     Validates types of user-provided "named aggregation" kwargs.

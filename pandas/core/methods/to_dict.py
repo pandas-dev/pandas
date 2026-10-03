@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     overload,
 )
@@ -24,7 +25,10 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core import common as com
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import (
+        Generator,
+        Hashable,
+    )
 
     from pandas._typing import MutableMappingT
 
@@ -33,7 +37,7 @@ if TYPE_CHECKING:
 
 def create_data_for_split(
     df: DataFrame, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-) -> Generator[list]:
+) -> Generator[list[Any]]:
     """
     Simple helper method to create data for to ``to_dict(orient="split")``
     to create the main output data
@@ -77,9 +81,9 @@ def to_dict(
     df: DataFrame,
     orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
     *,
-    into: type[dict] = ...,
+    into: type[dict[Hashable, Any]] = ...,
     index: bool = ...,
-) -> dict: ...
+) -> dict[Hashable, Any]: ...
 
 
 @overload
@@ -87,9 +91,9 @@ def to_dict(
     df: DataFrame,
     orient: Literal["records"],
     *,
-    into: type[dict] = ...,
+    into: type[dict[Hashable, Any]] = ...,
     index: bool = ...,
-) -> list[dict]: ...
+) -> list[dict[Hashable, Any]]: ...
 
 
 # error: Incompatible default for argument "into" (default has type "type[dict

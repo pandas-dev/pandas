@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
+@functools.cache
 def generate_online_numba_ewma_func(
     nogil: bool,
     parallel: bool,
@@ -68,7 +70,7 @@ def generate_online_numba_ewma_func(
                     if is_observations[j] or not ignore_na:
                         # note that len(deltas) = len(vals) - 1 and deltas[i] is to be
                         # used in conjunction with vals[i+1]
-                        old_wt[j] *= old_wt_factor ** deltas[j - 1]
+                        old_wt[j] *= old_wt_factor ** deltas[i - 1]
                         if is_observations[j]:
                             # avoid numerical errors on constant series
                             if weighted_avg[j] != cur[j]:

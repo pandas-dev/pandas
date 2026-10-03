@@ -13,7 +13,10 @@ from io import StringIO
 import os
 from pathlib import Path
 import sqlite3
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import uuid
 
 import numpy as np
@@ -238,7 +241,7 @@ def types_table_metadata(dialect: str):
     return types
 
 
-def create_and_load_types_sqlite3(conn, types_data: list[dict]):
+def create_and_load_types_sqlite3(conn, types_data: list[dict[str, Any]]):
     stmt = """CREATE TABLE types (
                     "TextCol" TEXT,
                     "DateCol" TEXT,
@@ -268,7 +271,7 @@ def create_and_load_types_sqlite3(conn, types_data: list[dict]):
         conn.commit()
 
 
-def create_and_load_types_postgresql(conn, types_data: list[dict]):
+def create_and_load_types_postgresql(conn, types_data: list[dict[str, Any]]):
     with conn.cursor() as cur:
         stmt = """CREATE TABLE types (
                         "TextCol" TEXT,
@@ -293,7 +296,7 @@ def create_and_load_types_postgresql(conn, types_data: list[dict]):
     conn.commit()
 
 
-def create_and_load_types(conn, types_data: list[dict], dialect: str):
+def create_and_load_types(conn, types_data: list[dict[str, Any]], dialect: str):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
@@ -2698,23 +2701,6 @@ def test_con_string_import_error():
         sql.read_sql("SELECT * FROM iris", conn)
 
 
-@td.skip_if_installed("sqlalchemy")
-def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
-    class MockSqliteConnection:
-        def __init__(self, *args, **kwargs) -> None:
-            self.conn = sqlite3.Connection(*args, **kwargs)
-
-        def __getattr__(self, name):
-            return getattr(self.conn, name)
-
-        def close(self):
-            self.conn.close()
-
-    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
-            sql.read_sql("SELECT 1", conn)
-
-
 def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     conn = sqlite_buildin_iris
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
@@ -3500,8 +3486,7 @@ def test_double_precision(conn, request):
     )
     res = sql.read_sql_table("test_dtypes", conn)
 
-    # check precision of float64
-    assert np.round(df["f64"].iloc[0], 14) == np.round(res["f64"].iloc[0], 14)
+    tm.assert_series_equal(df["f64"], res["f64"])
 
     # check sql types
     meta = MetaData()

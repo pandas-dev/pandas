@@ -72,6 +72,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
+    Index,
     RangeIndex,
     ensure_index,
 )
@@ -111,19 +112,21 @@ if TYPE_CHECKING:
     from types import TracebackType
 
     from pandas._typing import (
+        ArrayLike,
         CompressionOptions,
         CSVEngine,
         DtypeArg,
         DtypeBackend,
         FilePath,
         HashableT,
+        HashableT2,
         IndexLabel,
         ReadCsvBuffer,
         StorageOptions,
         UsecolsArgType,
     )
 
-    class _read_shared(TypedDict, Generic[HashableT], total=False):
+    class _read_shared(TypedDict, Generic[HashableT, HashableT2], total=False):
         # annotations shared between read_csv/fwf/table's overloads
         # NOTE: Keep in sync with the annotations of the implementation
         sep: str | lib.NoDefault | None
@@ -131,12 +134,12 @@ if TYPE_CHECKING:
         header: int | Sequence[int] | Literal["infer"] | None
         names: Sequence[Hashable] | lib.NoDefault | None
         index_col: IndexLabel | Literal[False] | None
-        usecols: UsecolsArgType
+        usecols: UsecolsArgType[HashableT2]
         dtype: DtypeArg | None
         engine: CSVEngine | None
-        converters: Mapping[HashableT, Callable] | None
-        true_values: list | None
-        false_values: list | None
+        converters: Mapping[HashableT, Callable[..., Any]] | None
+        true_values: list[Any] | None
+        false_values: list[Any] | None
         skipinitialspace: bool
         skiprows: list[int] | int | Callable[[Hashable], bool] | None
         skipfooter: int
@@ -348,6 +351,8 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
+    if kwds.get("cache_dates") is lib.no_default:
+        del kwds["cache_dates"]
     # before the `iterator` peek below, which reads it for truthiness
     _validate_bool_kwargs(kwds)
 
@@ -392,6 +397,15 @@ def _read(
         warnings.warn(
             "The 'float_precision' argument is deprecated. "
             "Use the default float precision instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+
+    if "cache_dates" in kwds:
+        # GH#68705
+        warnings.warn(
+            "The 'cache_dates' argument is deprecated and will be removed in a "
+            "future version.",
             Pandas4Warning,
             stacklevel=find_stack_level(),
         )
@@ -454,7 +468,7 @@ def _default_n_workers() -> int:
     return n_workers
 
 
-def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
+def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
     """
     Return True when a ``read_csv`` call is eligible for parallel execution.
 
@@ -471,8 +485,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
       tracking absolute line numbers across chunks.
     * ``header`` is a single integer or ``None`` - multi-level headers complicate
       the preamble boundary.
-    * ``index_col`` is ``None`` or ``False`` - a column-based index would need its
-      name propagated to non-first chunks.
     * ``usecols`` is ``None`` - column selection changes the mapping between raw
       column positions and names in non-first chunks.
     * The separator is a single ASCII character or ``r"\\s+"``, and ``quotechar``
@@ -629,11 +641,6 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: dict) -> bool:
     if kwds.get("skipfooter", 0) > 0:
         return False
 
-    # A column-based index_col would need its name propagated to non-first chunks.
-    index_col = kwds.get("index_col", None)
-    if index_col is not None and index_col is not False:
-        return False
-
     # usecols changes the column name ↔ position mapping in non-first chunks.
     if kwds.get("usecols") is not None:
         return False
@@ -773,7 +780,7 @@ def _raise_collected(warning_sink: list[tuple[str, type[Warning]]]) -> None:
 
 def _read_csv_parallel(
     filepath: str,
-    kwds: dict,
+    kwds: Mapping[str, Any],
     n_workers: int,
 ) -> DataFrame | None:
     """
@@ -827,7 +834,7 @@ def _read_csv_parallel(
 
 def _read_csv_chunks(
     filepath: str,
-    kwds: dict,
+    kwds: Mapping[str, Any],
     n_workers: int,
     warning_sink: list[tuple[str, type[Warning]]],
 ) -> DataFrame | None:
@@ -873,12 +880,15 @@ def _read_csv_chunks(
     # ------------------------------------------------------------------
     # Infer column names from the preamble + one data line (very fast).
     # ------------------------------------------------------------------
-    base_kwds: dict = {
+    base_kwds: dict[str, Any] = {
         **kwds,
         "compression": None,
         "memory_map": False,
         "storage_options": None,
     }
+    # Only the index engine below sees a real index_col; index_col=False must
+    # still reach every reader, as it disables implicit-index detection.
+    parse_index_col = False if kwds.get("index_col") is False else None
 
     with open(filepath, "rb") as fd:
         preamble = fd.read(data_start)
@@ -894,6 +904,7 @@ def _read_csv_chunks(
         "dtype": str,
         "converters": None,
         "dtype_backend": lib.no_default,
+        "index_col": parse_index_col,
     }
     try:
         name_reader = TextFileReader(name_buf, **name_kwds)
@@ -916,7 +927,7 @@ def _read_csv_chunks(
         name_reader.close()
         return None
     assert name_reader._engine.orig_names is not None
-    col_names: list = list(name_reader._engine.orig_names)
+    col_names: list[Hashable] = list(name_reader._engine.orig_names)
     # name_buf holds the preamble plus exactly one data line.  Parsing it must
     # yield exactly one row; anything else means the preamble's physical line
     # count disagrees with its logical row count (e.g. a quoted embedded
@@ -925,6 +936,33 @@ def _read_csv_chunks(
     name_reader.close()
     if n_first_rows != 1:
         return None
+
+    # The workers parse the index columns as ordinary columns; after the gather,
+    # an engine built from the caller's kwds makes the index as a serial read
+    # would.
+    index_engine = None
+    index_positions: list[int] = []
+    if is_index_col(kwds.get("index_col")):
+        if any(isinstance(name, tuple) for name in col_names):
+            # tuple names change how a serial read de-duplicates the columns
+            return None
+        try:
+            index_reader = TextFileReader(
+                io.BytesIO(preamble + first_line), **base_kwds
+            )
+        except Exception:
+            # e.g. an out-of-range index_col; let the serial read raise
+            return None
+        index_reader.close()
+        index_engine = index_reader._engine
+        if not all(is_integer(pos) for pos in index_engine.index_col):
+            # an index_col name matching no column; the serial read raises
+            return None
+        index_positions = [int(pos) % len(col_names) for pos in index_engine.index_col]
+        if len(set(index_positions)) != len(index_positions):
+            # serial _make_index pops a different column for a repeat, e.g.
+            # index_col=[0, 0]
+            return None
 
     # A dict ``dtype`` is applied per raw header name: when a name is repeated,
     # the serial path assigns that dtype to every de-duplicated column (``a``
@@ -986,11 +1024,12 @@ def _read_csv_chunks(
     # memoryview slice of the mmapped file and calls load_buffer() so
     # tokenisation is fully GIL-free.
     # ------------------------------------------------------------------
-    chunk_kwds: dict = {
+    chunk_kwds: dict[str, Any] = {
         **base_kwds,
         "header": None,
         "names": col_names,
         "skiprows": None,
+        "index_col": parse_index_col,
         # A worker's byte slice already bounds peak memory, and skipping
         # low_memory avoids a per-worker GIL-held concatenate.
         "low_memory": False,
@@ -998,11 +1037,11 @@ def _read_csv_chunks(
 
     # Each thread reuses one parser to drain the queue, so no worker stalls
     # the gather on a straggler and no chunk pays parser construction.
-    chunk_queue: queue.SimpleQueue = queue.SimpleQueue()
+    chunk_queue: queue.SimpleQueue[int] = queue.SimpleQueue()
     for chunk_idx in range(n_chunks):
         chunk_queue.put(chunk_idx)
-    results: list = [None] * n_chunks
-    workers_readers: list = []
+    results: list[Any] = [None] * n_chunks
+    workers_readers: list[Any] = []
 
     def _worker() -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
@@ -1068,11 +1107,14 @@ def _read_csv_chunks(
         dtype_arg is not None and pandas_dtype(dtype_arg) in (np.str_, np.object_)
     )
 
-    block_specs: list[tuple] = []
+    block_specs: list[tuple[ArrayLike, np.ndarray]] = []
     leftover_pos: list[int] = []
-    col_list: list = []
-    chunk_dicts: list[dict] = []
+    col_list: list[Any] = []
+    chunk_dicts: list[dict[Any, Any]] = []
     columns: list[Hashable] = []
+    all_columns: list[Hashable] = []
+    index_labels: list[Hashable] = []
+    index_dicts: list[dict] = []
     total = 0
     readers_closing = False
 
@@ -1110,7 +1152,7 @@ def _read_csv_chunks(
             # needlessly trip the dtype reconciliation below.
             chunk_results = [
                 res
-                for res in cast("list[tuple]", results)
+                for res in cast("list[tuple[Any, Any]]", results)
                 if res[1] and len(next(iter(res[1].values()))) > 0
             ]
             if not chunk_results:
@@ -1137,6 +1179,18 @@ def _read_csv_chunks(
                     for dt in chunk_dtypes
                 ):
                     return None
+
+            # Pull the index columns out of the block gather.
+            index_labels = [col_list[pos] for pos in index_positions]
+            index_dicts = [
+                {label: chunk_dict.pop(label) for label in index_labels}
+                for chunk_dict in chunk_dicts
+            ]
+            all_columns = columns
+            columns = [
+                name for pos, name in enumerate(columns) if pos not in index_positions
+            ]
+            col_list = list(chunk_dicts[0])
 
             if not needs_series_wrap:
                 # Gather same-dtype ndarray columns straight into one
@@ -1195,12 +1249,22 @@ def _read_csv_chunks(
         with contextlib.suppress(BufferError):
             mm.close()
 
-    index = RangeIndex(total)
+    index: Index
+    if index_engine is not None:
+        gathered = _concatenate_chunks(index_dicts, index_labels, warn_mixed=False)
+        alldata: list = [None] * len(all_columns)
+        for pos, label in zip(index_positions, index_labels, strict=True):
+            alldata[pos] = gathered[label]
+        made_index, _ = index_engine._make_index(alldata, list(all_columns))
+        assert made_index is not None
+        index = made_index
+    else:
+        index = RangeIndex(total)
 
     if needs_series_wrap:
         data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
         if isinstance(dtype_arg, dict):
-            dtype: defaultdict = defaultdict(lambda: None)
+            dtype: defaultdict[Hashable, Any] = defaultdict(lambda: None)
             dtype.update(dtype_arg)
         else:
             dtype = defaultdict(lambda: dtype_arg)
@@ -1248,7 +1312,7 @@ def read_csv(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1258,7 +1322,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1268,7 +1332,7 @@ def read_csv(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> DataFrame: ...
 
 
@@ -1278,7 +1342,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> DataFrame | TextFileReader: ...
 
 
@@ -1292,13 +1356,13 @@ def read_csv(
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: UsecolsArgType = None,
+    usecols: UsecolsArgType[HashableT2] = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters: Mapping[HashableT, Callable] | None = None,
-    true_values: list | None = None,
-    false_values: list | None = None,
+    converters: Mapping[HashableT, Callable[..., Any]] | None = None,
+    true_values: list[Any] | None = None,
+    false_values: list[Any] | None = None,
     skipinitialspace: bool = False,
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = None,
     skipfooter: int = 0,
@@ -1314,7 +1378,7 @@ def read_csv(
     parse_dates: bool | Sequence[Hashable] | None = None,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
-    cache_dates: bool = True,
+    cache_dates: bool | lib.NoDefault = lib.no_default,
     # Iteration
     iterator: bool = False,
     chunksize: int | None = None,
@@ -1566,6 +1630,9 @@ def read_csv(
         If ``True``, use a cache of unique, converted dates to apply the ``datetime``
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
+
+        .. deprecated:: 3.2.0
+            The ``cache_dates`` argument will be removed in a future version.
 
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
@@ -1853,7 +1920,7 @@ def read_table(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1863,7 +1930,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1873,7 +1940,7 @@ def read_table(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> DataFrame: ...
 
 
@@ -1883,7 +1950,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> DataFrame | TextFileReader: ...
 
 
@@ -1897,13 +1964,13 @@ def read_table(
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: UsecolsArgType = None,
+    usecols: UsecolsArgType[HashableT2] = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
-    converters: Mapping[HashableT, Callable] | None = None,
-    true_values: list | None = None,
-    false_values: list | None = None,
+    converters: Mapping[HashableT, Callable[..., Any]] | None = None,
+    true_values: list[Any] | None = None,
+    false_values: list[Any] | None = None,
     skipinitialspace: bool = False,
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = None,
     skipfooter: int = 0,
@@ -1919,7 +1986,7 @@ def read_table(
     parse_dates: bool | Sequence[Hashable] | None = None,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
-    cache_dates: bool = True,
+    cache_dates: bool | lib.NoDefault = lib.no_default,
     # Iteration
     iterator: bool = False,
     chunksize: int | None = None,
@@ -2167,6 +2234,9 @@ def read_table(
         If ``True``, use a cache of unique, converted dates to apply the ``datetime``
         conversion. May produce significant speed-up when parsing duplicate
         date strings, especially ones with timezone offsets.
+
+        .. deprecated:: 3.2.0
+            The ``cache_dates`` argument will be removed in a future version.
 
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
@@ -2453,7 +2523,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -2466,7 +2536,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -2479,7 +2549,7 @@ def read_fwf(
     infer_nrows: int = ...,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> DataFrame: ...
 
 
@@ -2492,7 +2562,7 @@ def read_fwf(
     infer_nrows: int = 100,
     iterator: bool = False,
     chunksize: int | None = None,
-    **kwds: Unpack[_read_shared[HashableT]],
+    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
 ) -> DataFrame | TextFileReader:
     r"""
     Read a table of fixed-width formatted lines into DataFrame.
@@ -2609,7 +2679,7 @@ def read_fwf(
     )
 
 
-class TextFileReader(abc.Iterator):
+class TextFileReader(abc.Iterator[DataFrame]):
     """
     Iterator over chunks of a delimited text file.
 
@@ -2652,7 +2722,7 @@ class TextFileReader(abc.Iterator):
 
     def __init__(
         self,
-        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list,
+        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list[Any],
         engine: CSVEngine | None = None,
         **kwds,
     ) -> None:
@@ -2698,7 +2768,7 @@ class TextFileReader(abc.Iterator):
         if "has_index_names" in kwds:
             self.options["has_index_names"] = kwds["has_index_names"]
 
-        self.handles: IOHandles | None = None
+        self.handles: IOHandles[str] | IOHandles[bytes] | None = None
         self._engine = self._make_engine(f, self.engine)
 
     def close(self) -> None:
@@ -2942,7 +3012,7 @@ class TextFileReader(abc.Iterator):
 
     def _make_engine(
         self,
-        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list | IO,
+        f: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | list[Any] | IO[Any],
         engine: CSVEngine = "c",
     ) -> ParserBase:
         mapping: dict[str, type[ParserBase]] = {
@@ -3210,7 +3280,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
 
 
 def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = True):
-    na_fvalues: set | dict
+    na_fvalues: set[float] | dict[Hashable, set[float]]
     if na_values is None:
         if keep_default_na:
             na_values = STR_NA_VALUES
@@ -3291,7 +3361,7 @@ def _refine_defaults_read(
     delimiter: str | lib.NoDefault | None,
     engine: CSVEngine | None,
     sep: str | lib.NoDefault | None,
-    on_bad_lines: str | Callable,
+    on_bad_lines: str | Callable[..., Any],
     names: Sequence[Hashable] | lib.NoDefault | None,
     defaults: dict[str, Any],
     dtype_backend: DtypeBackend | lib.NoDefault,
