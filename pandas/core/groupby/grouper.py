@@ -360,17 +360,13 @@ class Grouper:
             key = self.key
             # The 'on' is already defined
             if getattr(gpr_index, "name", None) == key and isinstance(obj, Series):
-                # Sometimes self._grouper will have been resorted while
-                # obj has not. In this case there is a mismatch when we
-                # call self._grouper.take(obj.index) so we need to undo the sorting
-                # before we call _grouper.take.
+                # Sometimes self._grouper has been sorted while obj has not.
                 assert self._grouper is not None
                 if self._indexer is not None:
                     reverse_indexer = self._indexer.argsort()
-                    unsorted_ax = self._grouper.take(reverse_indexer)
-                    ax = unsorted_ax.take(obj.index)  # type: ignore[arg-type]
+                    ax = self._grouper.take(reverse_indexer)
                 else:
-                    ax = self._grouper.take(obj.index)  # type: ignore[arg-type]
+                    ax = self._grouper
             else:
                 if key not in obj._info_axis:
                     raise KeyError(f"The grouper name {key} is not found")
