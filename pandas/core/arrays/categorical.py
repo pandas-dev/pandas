@@ -134,8 +134,9 @@ def _cat_compare_op(op):
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
         hashable = is_hashable(other)
-        if is_list_like(other) and len(other) != len(self) and not hashable:
-            # in hashable case we may have a tuple that is itself a category
+        if not hashable and is_list_like(other) and len(other) != len(self):
+            # in hashable case we may have a tuple that is itself a category;
+            #  an iterator is hashable too, so it is scalar-like (GH#31646)
             raise ValueError("Lengths must match.")
 
         if not self.ordered:

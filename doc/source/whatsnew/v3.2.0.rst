@@ -125,7 +125,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
 -
 
 Datetimelike
