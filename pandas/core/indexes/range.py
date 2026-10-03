@@ -45,9 +45,14 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_signed_integer_dtype,
 )
-from pandas.core.dtypes.generic import ABCTimedeltaIndex
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+    ABCTimedeltaIndex,
+)
 
 from pandas.core import ops
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -74,7 +79,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
-    from pandas.core.arrays import ExtensionArray
 
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
@@ -84,6 +88,58 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     """Returns the smallest element greater than or equal to the limit"""
     no_steps = -(-(lower_limit - start) // abs(step))
     return start + abs(step) * no_steps
+
+
+def _exact_int64_targets(values: Axes | set) -> npt.NDArray[np.int64] | None:
+    """
+    Convert `values` to an int64 array of the integers it may match.
+
+    The arithmetic done by ``RangeIndex.isin`` needs int64 targets, so that the
+    range bounds and the queried values are compared exactly: doing it on floats
+    silently loses precision for magnitudes above 2**53, and so does
+    ``algos.isin``, which compares ``float64`` casts of both sides. Values that
+    are not integers (e.g. ``1.5``, ``nan``, ``np.inf``) are dropped, as they
+    cannot match any element of a ``RangeIndex``.
+
+    Anything that cannot be reduced to a 1D int64 array of exact integers, e.g.
+    nullable dtypes, ``pd.NA``, strings, complex numbers or objects, is reported
+    as unsupported by returning None.
+    """
+    if isinstance(values, (ABCIndex, ABCSeries)):
+        values = values._values
+
+    if isinstance(values, np.ndarray):
+        arr = values
+    elif isinstance(values, ExtensionArray):
+        return None
+    else:
+        try:
+            len(values)
+        except TypeError:
+            return None  # e.g. a generator
+        try:
+            # a set would otherwise be wrapped in a 0-d object array
+            arr = np.asarray(values if isinstance(values, list) else list(values))
+        except (TypeError, ValueError):
+            return None  # e.g. a ragged nested sequence
+
+    if arr.ndim != 1:
+        return None
+
+    kind = arr.dtype.kind
+    if kind in "bi" or (kind == "u" and arr.dtype.itemsize < 8):
+        return arr.astype(np.int64, copy=False)
+    if kind == "u":
+        return arr[arr <= np.iinfo(np.int64).max].astype(np.int64)
+    if kind == "f":
+        arr = arr.astype(np.float64, copy=False)  # float16 would overflow to inf
+        arr = arr[np.isfinite(arr)]  # NaN and inf never match, and cannot be cast
+        if arr.size and np.abs(arr).max() >= 2**53:
+            # both `values` and the range bounds may have been rounded by the
+            # float64 casts that ``algos.isin`` does, so let it handle this
+            return None
+        return arr[arr == np.trunc(arr)].astype(np.int64)  # exact for integral floats
+    return None
 
 
 @set_module("pandas")
@@ -1705,3 +1761,91 @@ class RangeIndex(Index):
         if was_scalar:
             return maybe_unbox_numpy_scalar(np.intp(result.item()))
         return result.astype(np.intp, copy=False)
+
+    def isin(
+        self, values: Axes | set, level: str | int | None = None
+    ) -> npt.NDArray[np.bool_]:
+        """
+        Return a boolean array where the index values are in `values`.
+
+        Compute boolean array of whether each index value is found in the
+        passed set of values. The length of the returned boolean array matches
+        the length of the index.
+
+        Parameters
+        ----------
+        values : set or list-like
+            Sought values.
+        level : str or int, optional
+            Name or position of the index level to use (if the index is a
+            `MultiIndex`).
+
+        Returns
+        -------
+        np.ndarray[bool]
+            NumPy array of boolean values.
+
+        See Also
+        --------
+        Series.isin : Same for Series.
+        DataFrame.isin : Same method for DataFrames.
+
+        Notes
+        -----
+        In the case of `MultiIndex` you must either specify `values` as a
+        list-like object containing tuples that are the same length as the
+        number of levels, or specify `level`. Otherwise it will raise a
+        ``ValueError``.
+
+        If `level` is specified:
+
+        - if it is the name of one *and only one* index level, use that level;
+        - otherwise it should be a number indicating level position.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(3)
+        >>> idx
+        RangeIndex(start=0, stop=3, step=1)
+        >>> idx.isin([1, 4])
+        array([False,  True, False])
+        """
+        if level is not None:
+            self._validate_index_level(level)
+
+        if not lib.is_list_like(values):
+            raise TypeError(
+                "only list-like objects are allowed to be passed "
+                f"to isin(), you passed a `{type(values).__name__}`"
+            )
+
+        # GH#66263: avoid materializing the full integer array (``self._values``)
+        # that ``algos.isin`` allocates, by matching the queried values against
+        # the range with vectorized integer arithmetic. Anything that is not
+        # exactly representable as an int64 is delegated to the generic path.
+        targets = _exact_int64_targets(values)
+        if targets is None:
+            return super().isin(values, level=level)
+
+        result = np.zeros(len(self), dtype=bool)
+        if len(self) == 0 or len(targets) == 0:
+            return result
+
+        rng = self._range
+        start, step = rng.start, rng.step
+        lo, hi = min(rng[0], rng[-1]), max(rng[0], rng[-1])
+        int64_info = np.iinfo(np.int64)
+        if not (
+            int64_info.min <= lo <= int64_info.max
+            and int64_info.min <= hi <= int64_info.max
+            and int64_info.min <= start <= int64_info.max
+            and int64_info.min <= step <= int64_info.max
+            and int64_info.min <= hi - lo <= int64_info.max
+        ):
+            # bounds that the int64 arithmetic below cannot represent
+            return super().isin(values, level=level)
+
+        targets = targets[(targets >= lo) & (targets <= hi)]
+        pos, rem = np.divmod(targets - start, step)
+        result[pos[rem == 0]] = True
+        return result
