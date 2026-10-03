@@ -961,6 +961,9 @@ def _read_csv_chunks(
         # positions count only the columns usecols keeps, as the workers return
         assert index_engine.orig_names is not None
         n_cols = len(index_engine.orig_names)
+        if not n_cols:
+            # usecols kept no columns; let the serial read raise
+            return None
         index_positions = [int(pos) % n_cols for pos in index_engine.index_col]
         if len(set(index_positions)) != len(index_positions):
             # serial _make_index pops a different column for a repeat, e.g.

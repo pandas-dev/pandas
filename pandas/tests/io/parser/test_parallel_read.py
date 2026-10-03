@@ -1492,6 +1492,20 @@ def test_parallel_invalid_usecols_raises_like_serial(tmp_path, monkeypatch, usec
         _read_forced_parallel(path, monkeypatch, usecols=usecols)
 
 
+def test_parallel_usecols_keeps_nothing_with_index_col_raises_like_serial(
+    tmp_path, monkeypatch
+):
+    raw = b"a,b,c\n" + b"".join(f"{i},1,2\n".encode() for i in range(2000))
+    path = tmp_path / "usecols.csv"
+    path.write_bytes(raw)
+    kwargs = {"usecols": lambda name: False, "index_col": 0}
+
+    with pytest.raises(IndexError) as expected:
+        pd.read_csv(io.BytesIO(raw), **kwargs)
+    with pytest.raises(IndexError, match=re.escape(str(expected.value))):
+        _read_forced_parallel(path, monkeypatch, **kwargs)
+
+
 @pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_index_col_to_csv_round_trip(tmp_path, monkeypatch):
     # to_csv's unnamed index header reads back as an unnamed index
