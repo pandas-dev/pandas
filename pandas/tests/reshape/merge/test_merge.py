@@ -1710,8 +1710,12 @@ class TestMergeDtypes:
         )
         tm.assert_frame_equal(result, expected)
 
+        # key values come from the left (numeric) frame, as object dtype
         result = merge(df2, df1, on="key")
-        assert len(result) == len(expected_key)
+        expected = expected[["key", "b", "a"]].assign(
+            key=pd.Series(num_vals[: len(expected_key)], dtype=object)
+        )
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "df1_vals, df2_vals",
