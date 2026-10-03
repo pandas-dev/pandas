@@ -212,3 +212,21 @@ def test_comment_char_in_default_value(all_parsers, request):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("sep", [";", r"\s+"])
+@pytest.mark.parametrize("whitespace", ["    ", "\t"])
+def test_comment_after_leading_whitespace(all_parsers, sep, whitespace):
+    # GH#55916
+    parser = all_parsers
+    delim = ";" if sep == ";" else " "
+    data = f"a{delim}b\n1{delim}2\n{whitespace}#comment{delim}99\n3{delim}4\n"
+    expected = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
+
+    if parser.engine == "pyarrow":
+        msg = "The 'comment' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), sep=sep, comment="#")
+        return
+    result = parser.read_csv(StringIO(data), sep=sep, comment="#")
+    tm.assert_frame_equal(result, expected)
