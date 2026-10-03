@@ -20,6 +20,59 @@ class FrameOps:
         self.df_func(axis=axis)
 
 
+class FrameOpsAxis1EA:
+    # axis=1 reductions on frames whose columns share a nullable (masked or
+    # Arrow) numeric/boolean dtype; these go through the EA groupby-kernel
+    # path in DataFrame._reduce rather than a transpose.
+    params = [
+        ["sum", "prod", "min", "max"],
+        ["Int64", "Float64", "boolean", "int64[pyarrow]", "float64[pyarrow]"],
+        [(100_000, 4), (1_000, 400)],
+    ]
+    param_names = ["op", "dtype", "shape"]
+
+    def setup(self, op, dtype, shape):
+        if "pyarrow" in dtype:
+            try:
+                import pyarrow  # noqa: F401
+            except ImportError as err:
+                raise NotImplementedError from err
+        values = np.random.randn(*shape)
+        if "Int" in dtype or "int" in dtype:
+            values = values.astype(int)
+        elif dtype == "boolean":
+            values = values > 0
+        df = pd.DataFrame(values).astype(dtype)
+        df = df.mask(np.random.rand(*shape) < 0.1)
+        self.df_func = getattr(df, op)
+
+    def time_op(self, op, dtype, shape):
+        self.df_func(axis=1)
+
+
+class FrameOpsAxis1EAPeakmem:
+    # Use a larger frame so that peak RSS resolves the eliminated label array
+    # above the process baseline.
+    params = [["sum", "max"], ["Int64", "float64[pyarrow]"]]
+    param_names = ["op", "dtype"]
+
+    def setup(self, op, dtype):
+        if "pyarrow" in dtype:
+            try:
+                import pyarrow  # noqa: F401
+            except ImportError as err:
+                raise NotImplementedError from err
+        values = np.random.randn(2_000_000, 5)
+        if dtype == "Int64":
+            values = values.astype(int)
+        df = pd.DataFrame(values).astype(dtype)
+        df = df.mask(np.random.rand(*values.shape) < 0.1)
+        self.df_func = getattr(df, op)
+
+    def peakmem_op(self, op, dtype):
+        self.df_func(axis=1)
+
+
 class FrameMixedDtypesOps:
     params = [ops, [0, 1, None]]
     param_names = ["op", "axis"]
