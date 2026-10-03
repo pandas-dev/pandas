@@ -61,6 +61,10 @@ IMPORT_TO_CONDA = {
 # Modules that are legitimately absent from pixi.toml, with the reason why.
 ALLOWED_UNDECLARED = {
     "moto": "CI serves moto from a container, see PANDAS_MOTO_URL",
+    "tzdata": (
+        "declared under [target.win.dependencies], which is the only platform "
+        "that needs it; elsewhere the zone files come from zoneinfo.TZPATH"
+    ),
 }
 
 MESSAGE = (
