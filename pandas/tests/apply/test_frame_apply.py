@@ -2037,6 +2037,76 @@ def test_agg_empty_dict():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype", ["uint64", "UInt64", "uint64[pyarrow]", "Sparse[uint64]"]
+)
+@pytest.mark.parametrize(
+    "funcs", [["max", "count"], ["max", "count", "mean"], ["max", "any", "count"]]
+)
+@pytest.mark.parametrize("big", [True, False])
+def test_agg_list_like_unsigned_and_signed_is_object(request, dtype, funcs, big):
+    # GH#65031 max returns unsigned and count signed, and their common float
+    # dtype rounds values above 2**53, so the result is object whatever the values
+    if dtype == "uint64[pyarrow]":
+        pa = pytest.importorskip("pyarrow")
+        if big and "any" in funcs:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="pyarrow any fails on uint64 above int64 max",
+                    raises=pa.lib.ArrowInvalid,
+                    strict=True,
+                )
+            )
+    value = 2**64 - 3 if big else 5
+    df = pd.DataFrame(
+        {"a": pd.Series([value, 1], dtype=dtype), "b": pd.Series([5, 1], dtype=dtype)}
+    )
+
+    result = df.agg(funcs)
+
+    # asserted entry-wise because mean's own result is not under test
+    assert (result.dtypes == object).all()
+    assert result.loc["max", "a"] == value
+    assert result.loc["count", "a"] == 2
+
+
+@pytest.mark.parametrize("funcs", [["sum", "mean"], ["min", "max", "mean"]])
+@pytest.mark.parametrize("values", [[10**17, 10**17 + 16], [10**17, 10**17 + 1]])
+def test_agg_list_like_signed_int_and_float_is_float(funcs, values):
+    # GH#65031 only mixing signed with unsigned gives object; int64 with float64
+    # stays float64 as in Series.agg, whatever the values
+    df = pd.DataFrame({"a": values})
+
+    result = df.agg(funcs)
+
+    tm.assert_series_equal(result["a"], df["a"].agg(funcs))
+    assert result["a"].dtype == np.float64
+
+
+def test_agg_list_like_unsigned_and_signed_common_int():
+    # GH#65031 uint32 and int64 have a common integer dtype, so nothing is lost
+    df = pd.DataFrame({"a": pd.Series([5, 1], dtype="uint32")})
+
+    result = df.agg(["max", "count"])
+
+    expected = pd.DataFrame({"a": [5, 2]}, index=["max", "count"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_list_like_axis_1_not_cast_to_float():
+    # GH#65031 axis=1 reduces the transpose, so the object fallback applies there
+    # too
+    big = 2**64 - 3
+    df = pd.DataFrame({"a": pd.Series([big, 5], dtype="uint64")})
+
+    result = df.agg(["max", "count"], axis=1)
+
+    # the dtype assert is what fires: a rounded np.float64 still compares equal to
+    # big, because numpy widens the int rather than comparing it exactly
+    assert result["max"].dtype == object
+    assert result.loc[0, "max"] == big
+
+
 def test_agg_dist_like_and_nonunique_columns():
     # GH#51099
     df = pd.DataFrame(
