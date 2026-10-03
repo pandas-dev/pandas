@@ -1959,7 +1959,15 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        value_set = self._box_pa(values)
+        try:
+            value_set = self._box_pa(values)
+        except (pa.ArrowInvalid, OverflowError):
+            # values this type cannot represent exactly can't match; compare as
+            # objects, since np.asarray(self) is lossy for ints with nulls
+            res = algos.isin(self.to_numpy(dtype=object), values)
+            # match pc.is_in: nulls match any missing value in values
+            res[self.isna()] = isna(values).any()
+            return res
         result = pc.is_in(self._pa_array, value_set=value_set)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import algorithms
@@ -328,7 +330,16 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["int64", "Int64", "float64"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64",
+        "Int64",
+        "float64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
 @pytest.mark.parametrize("values", [[2**53 + 1, 1.5], [2**53 + 1, np.nan]])
 def test_isin_mixed_int_float_list_no_precision_loss(dtype, values):
     # GH#70217: 2**53 + 1 must not be rounded to 2**53 by a float64 cast
@@ -354,4 +365,15 @@ def test_isin_bytes_list_trailing_nul():
     ser = pd.Series([b"a", b"a\x00"], dtype=object)
     result = ser.isin([b"a\x00"])
     expected = pd.Series([False, True])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_isin_arrow_values_not_representable(dtype):
+    # GH#70217: values pyarrow cannot box into the array's type match nothing,
+    # while nulls still match a missing value in values
+    pytest.importorskip("pyarrow")
+    ser = pd.Series([2**53, 1, None], dtype=dtype)
+    result = ser.isin([1, 2**53 + 1, 2**63, None])
+    expected = pd.Series([False, True, True])
     tm.assert_series_equal(result, expected)

@@ -243,8 +243,6 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
                 f"got {type(values).__name__}."
             )
 
-        if isinstance(values, tuple):
-            values = list(values)
         inferred = lib.infer_dtype(values, skipna=False)
         if inferred in ["mixed", "string", "mixed-integer", "bytes"]:
             # np.asarray would stringify mixed values (e.g. ["ss", 42] GH#22160)
