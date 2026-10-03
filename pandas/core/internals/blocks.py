@@ -2114,7 +2114,7 @@ class ExtensionBlock(EABackedBlock):
 
     def _maybe_squeeze_arg(self, arg):
         """
-        If necessary, squeeze a (N, 1) ndarray to (N,)
+        If necessary, squeeze a (N, 1) ndarray to (N,), or (N, 0) to (0,)
         """
         # e.g. if we are passed a 2D mask for putmask
         if (
@@ -2122,10 +2122,14 @@ class ExtensionBlock(EABackedBlock):
             and arg.ndim == self.values.ndim + 1
         ):
             # TODO(EA2D): unnecessary with 2D EAs
-            assert arg.shape[1] == 1
-            # error: No overload variant of "__getitem__" of "ExtensionArray"
-            # matches argument type "Tuple[slice, int]"
-            arg = arg[:, 0]  # type: ignore[call-overload]
+            if arg.shape[1] == 0:
+                # GH#70232 setitem with a column key selecting no columns
+                arg = arg.ravel()
+            else:
+                assert arg.shape[1] == 1
+                # error: No overload variant of "__getitem__" of "ExtensionArray"
+                # matches argument type "Tuple[slice, int]"
+                arg = arg[:, 0]  # type: ignore[call-overload]
         elif isinstance(arg, ABCDataFrame):
             # 2022-01-06 only reached for setitem
             # TODO: should we avoid getting here with DataFrame?

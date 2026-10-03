@@ -4247,16 +4247,7 @@ def test_loc_setitem_empty_boolean_column_mask(dtype, box):
     tm.assert_frame_equal(df, df_orig)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "float64",
-        pytest.param(
-            "Float64",
-            marks=pytest.mark.xfail(reason="Setting frame causes AssertionError"),
-        ),
-    ],
-)
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
 @pytest.mark.parametrize(
     "box",
     # Series boolean key needs to be aligned with the indexed axis
@@ -4303,4 +4294,25 @@ def test_setitem_empty_column_indexer_single_column_ea(
     df_orig = df.copy()
 
     indexer_li(df)[row_key, col_key] = df.iloc[2, 0]
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", pd.StringDtype("python", np.nan)]
+)
+@pytest.mark.parametrize("col_key", [[False], []], ids=["mask", "empty-list"])
+@pytest.mark.parametrize(
+    "row_key",
+    [[0, 1], np.array([True, True, False]), slice(None)],
+    ids=["list", "mask", "null-slice"],
+)
+def test_loc_setitem_empty_column_indexer_single_column_ea_frame_value(
+    dtype, col_key, row_key
+):
+    # GH#70232 frame value aligned to the empty column selection
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    df_orig = df.copy()
+    value = pd.DataFrame({"a": pd.array([3, 2, 1], dtype=dtype)})
+
+    df.loc[row_key, col_key] = value
     tm.assert_frame_equal(df, df_orig)
