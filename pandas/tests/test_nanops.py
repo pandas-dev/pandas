@@ -1596,6 +1596,26 @@ def test_nanmean_float16_overflow(disable_bottleneck):
     assert result == 120000.0
 
 
+@pytest.mark.parametrize("with_nan", [True, False])
+@pytest.mark.parametrize(
+    "values",
+    [
+        # the count is inexact in float16
+        np.ones(2049),
+        # the count overflows float16
+        np.arange(70_000) % 7,
+    ],
+)
+def test_nanmean_float16_count(with_nan, values):
+    # GH#43929 the count must be upcast along with the sum
+    expected = values.mean()
+    if with_nan:
+        values = np.append(values, np.nan)
+    ser = pd.Series(values, dtype=np.float16)
+    assert ser.mean() == expected
+    assert ser.to_frame().T.mean(axis=1).iloc[0] == expected
+
+
 @pytest.mark.parametrize("val", [2**55, -(2**55), 20150515061816532])
 def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     # GH 10155
