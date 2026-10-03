@@ -442,7 +442,7 @@ def test_roll_nat(offset, method, nat):
 def test_add_datetime64_nat(_offset):
     # GH#70226
     off = _get_offset(_offset)
-    nat = np.datetime64("NaT")
+    nat = np.datetime64("NaT", "ns")
     assert off + nat is pd.NaT
     assert nat + off is pd.NaT
     assert nat - off is pd.NaT
