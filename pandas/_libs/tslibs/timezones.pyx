@@ -302,7 +302,7 @@ cdef datetime _UTC_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 cdef int64_t _MIN_TRANS_SECONDS = -(-(NPY_NAT + 1) // 1_000_000_000)
 
 
-cdef object get_zoneinfo_twin(tzinfo tz):
+cdef tzinfo get_zoneinfo_twin(tzinfo tz):
     """
     Get the pure-python ``zoneinfo`` implementation of `tz`.
 
