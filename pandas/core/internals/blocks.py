@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import inspect
 import re
 from typing import (
@@ -119,7 +120,6 @@ if TYPE_CHECKING:
         Callable,
         Generator,
         Iterable,
-        Sequence,
     )
 
     from pandas._typing import (
@@ -1814,6 +1814,46 @@ class EABackedBlock(Block):
             return self
 
     @final
+    def _align_listlike_arg(self, arg, n_selected: int | None = None):
+        """
+        Convert a list-like ``other``/``new`` to an array with one entry per row.
+
+        ``EA._where``/``EA._putmask`` index the value with the mask, which a
+        raw list does not support, so it would otherwise upcast to object or
+        raise ``TypeError`` (GH#63842).  A length-1 argument is broadcast.
+        """
+        if (
+            # TODO: multi-column datetimelike blocks are not aligned
+            (self.ndim == 2 and self.shape[0] != 1)
+            or isinstance(arg, (np.ndarray, ExtensionArray, tuple))
+            or not is_list_like(arg)
+            or not isinstance(arg, Sequence)
+        ):
+            # A dict or set has no element order to line up against the mask,
+            #  and object dtype holds a tuple as a scalar (GH#37681).
+            return arg
+
+        nrows = self.shape[-1]
+        if len(arg) not in (1, nrows):
+            if len(arg) == n_selected:
+                # putmask with one value per selected position: pass it
+                #  through unchanged, as before this alignment was added
+                return arg
+            raise ValueError(
+                f"Length of values ({len(arg)}) does not match length of index "
+                f"({nrows})"
+            )
+
+        # NB: not _from_sequence(dtype=self.dtype), which would coerce where we
+        #  want to raise -- str turns 9 into "9", Categorical an unknown
+        #  category into NaN -- and the raise is what upcasts to object.
+        arg = com.asarray_tuplesafe(arg)
+        if len(arg) == 1:
+            arg = arg.repeat(nrows)
+        # TODO(EA2D): reshape not needed with 2D EAs
+        return arg.reshape(self.values.shape[::-1])
+
+    @final
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
 
@@ -1832,6 +1872,8 @@ class EABackedBlock(Block):
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
             return [self.copy(deep=False)]
+
+        other = self._align_listlike_arg(other)
 
         try:
             res_values = arr._where(cond, other).T
@@ -1903,6 +1945,8 @@ class EABackedBlock(Block):
             #  the except clause below misinterpret the EA-level ValueError
             #  as a cast failure.
             raise ValueError("Cannot modify read-only array")
+
+        new = self._align_listlike_arg(new, n_selected=int(mask.sum()))
         if values.ndim == 2:
             # GH#64620 Reorient the read-only inputs to the block's storage
             #  layout and putmask into self.values in place. We must not
