@@ -1982,159 +1982,14 @@ cdef float64_t[:] _roll_weighted_sum_mean(const float64_t[:] values,
 # Rolling var for weighted window
 
 
-cdef float64_t calc_weighted_var(float64_t t,
-                                 float64_t sum_w,
-                                 Py_ssize_t win_n,
-                                 unsigned int ddof,
-                                 float64_t nobs,
-                                 int64_t minp) noexcept nogil:
-    """
-    Calculate weighted variance for a window using West's method.
-
-    Paper: https://dl.acm.org/citation.cfm?id=359153
-
-    Parameters
-    ----------
-    t: float64_t
-        sum of weighted squared differences
-    sum_w: float64_t
-        sum of weights
-    win_n: Py_ssize_t
-        window size
-    ddof: unsigned int
-        delta degrees of freedom
-    nobs: float64_t
-        number of observations
-    minp: int64_t
-        minimum number of observations
-
-    Returns
-    -------
-    result : float64_t
-        weighted variance of the window
-    """
-
-    cdef:
-        float64_t result
-
-    # Variance is unchanged if no observation is added or removed
-    if (nobs >= minp) and (nobs > ddof):
-
-        # pathological case
-        if nobs == 1:
-            result = 0
-        else:
-            result = t * win_n / ((win_n - ddof) * sum_w)
-            if result < 0:
-                result = 0
-    else:
-        result = NaN
-
-    return result
-
-
-cdef void add_weighted_var(float64_t val,
-                           float64_t w,
-                           float64_t *t,
-                           float64_t *sum_w,
-                           float64_t *mean,
-                           float64_t *nobs) noexcept nogil:
-    """
-    Update weighted mean, sum of weights and sum of weighted squared
-    differences to include value and weight pair in weighted variance
-    calculation using West's method.
-
-    Paper: https://dl.acm.org/citation.cfm?id=359153
-
-    Parameters
-    ----------
-    val: float64_t
-        window values
-    w: float64_t
-        window weights
-    t: float64_t
-        sum of weighted squared differences
-    sum_w: float64_t
-        sum of weights
-    mean: float64_t
-        weighted mean
-    nobs: float64_t
-        number of observations
-    """
-
-    cdef:
-        float64_t temp, q, r
-
-    if val != val:
-        return
-
-    nobs[0] = nobs[0] + 1
-
-    q = val - mean[0]
-    temp = sum_w[0] + w
-    r = q * w / temp
-
-    mean[0] = mean[0] + r
-    t[0] = t[0] + r * sum_w[0] * q
-    sum_w[0] = temp
-
-
-cdef void remove_weighted_var(float64_t val,
-                              float64_t w,
-                              float64_t *t,
-                              float64_t *sum_w,
-                              float64_t *mean,
-                              float64_t *nobs) noexcept nogil:
-    """
-    Update weighted mean, sum of weights and sum of weighted squared
-    differences to remove value and weight pair from weighted variance
-    calculation using West's method.
-
-    Paper: https://dl.acm.org/citation.cfm?id=359153
-
-    Parameters
-    ----------
-    val: float64_t
-        window values
-    w: float64_t
-        window weights
-    t: float64_t
-        sum of weighted squared differences
-    sum_w: float64_t
-        sum of weights
-    mean: float64_t
-        weighted mean
-    nobs: float64_t
-        number of observations
-    """
-
-    cdef:
-        float64_t temp, q, r
-
-    if val == val:
-        nobs[0] = nobs[0] - 1
-
-        if nobs[0]:
-            q = val - mean[0]
-            temp = sum_w[0] - w
-            r = q * w / temp
-
-            mean[0] = mean[0] - r
-            t[0] = t[0] - r * sum_w[0] * q
-            sum_w[0] = temp
-
-        else:
-            t[0] = 0
-            sum_w[0] = 0
-            mean[0] = 0
-
-
 def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
                       int64_t minp, unsigned int ddof):
     """
-    Calculates weighted rolling variance using West's online algorithm.
+    Calculates weighted rolling variance.
 
-    Paper: https://dl.acm.org/citation.cfm?id=359153
+    Each window is computed directly, so that a weight stays attached to its
+    position in the window rather than to the value that first entered with it,
+    the same alignment ``_roll_weighted_sum_mean`` uses.
 
     Parameters
     ----------
@@ -2147,7 +2002,7 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
         variance of a window
     ddof: unsigned int
          the divisor used in variance calculations
-         is the window size - ddof
+         is the number of observations - ddof
 
     Returns
     -------
@@ -2156,44 +2011,63 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
     """
 
     cdef:
-        float64_t t = 0, sum_w = 0, mean = 0, nobs = 0
-        float64_t val, pre_val, w, pre_w
-        Py_ssize_t i, n, win_n
+        float64_t val, w, mean, t, sum_w, nobs, result
+        Py_ssize_t i, j, k, n, win_n
         float64_t[:] output
 
     n = len(values)
     win_n = len(weights)
     output = np.empty(n, dtype=np.float64)
 
+    minp = max(minp, 1)
+
     with nogil:
+        for i in range(n):
+            sum_w = 0
+            mean = 0
+            nobs = 0
 
-        for i in range(min(win_n, n)):
-            add_weighted_var(values[i], weights[i], &t,
-                             &sum_w, &mean, &nobs)
+            for j in range(win_n):
+                k = i - win_n + 1 + j
+                if k < 0:
+                    continue
+                val = values[k]
+                w = weights[j]
+                if val != val or w != w:
+                    continue
+                sum_w += w
+                mean += w * val
+                nobs += 1
 
-            output[i] = calc_weighted_var(t, sum_w, win_n,
-                                          ddof, nobs, minp)
+            if nobs < minp or nobs <= ddof or sum_w == 0:
+                output[i] = NaN
+                continue
 
-        for i in range(win_n, n):
-            val = values[i]
-            pre_val = values[i - win_n]
+            # pathological case
+            if nobs == 1:
+                output[i] = 0
+                continue
 
-            w = weights[i % win_n]
-            pre_w = weights[(i - win_n) % win_n]
+            mean /= sum_w
 
-            if val == val:
-                if pre_val == pre_val:
-                    remove_weighted_var(pre_val, pre_w, &t,
-                                        &sum_w, &mean, &nobs)
+            t = 0
+            for j in range(win_n):
+                k = i - win_n + 1 + j
+                if k < 0:
+                    continue
+                val = values[k]
+                w = weights[j]
+                if val != val or w != w:
+                    continue
+                t += w * (val - mean) * (val - mean)
 
-                add_weighted_var(val, w, &t, &sum_w, &mean, &nobs)
-
-            elif pre_val == pre_val:
-                remove_weighted_var(pre_val, pre_w, &t,
-                                    &sum_w, &mean, &nobs)
-
-            output[i] = calc_weighted_var(t, sum_w, win_n,
-                                          ddof, nobs, minp)
+            # The correction uses the number of observations, not the window
+            # length: with missing values, or with `min_periods` below the
+            # window size, fewer values contribute to the window.
+            result = t * nobs / ((nobs - ddof) * sum_w)
+            if result < 0:
+                result = 0
+            output[i] = result
 
     return output
 
