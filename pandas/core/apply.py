@@ -1149,7 +1149,7 @@ class FrameApply(NDFrameApply):
         elif self.kwargs.get("bool_only"):
             obj = obj._get_bool_data()
 
-        if obj.columns.empty or not func_names:
+        if obj.columns.empty or len(func_names) == 0:
             return obj._constructor(index=func_names, columns=obj.columns)
 
         # Compute reductions per dtype group to preserve per-column dtypes.
