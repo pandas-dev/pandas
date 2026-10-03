@@ -13,6 +13,7 @@ from io import StringIO
 import os
 from pathlib import Path
 import sqlite3
+from types import SimpleNamespace
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -4542,6 +4543,29 @@ def test_read_sql_dict_rows(sqlite_buildin, chunksize):
     if chunksize is not None:
         result = pd.concat(result, ignore_index=True)
     tm.assert_frame_equal(result, df[["b", "a"]])
+
+
+def test_read_sql_psycopg2_dict_row_duplicate_columns(sqlite_buildin):
+    # GH#53028 psycopg2's DictRow is a list whose values() drops duplicate columns
+    extras = pytest.importorskip("psycopg2.extras")
+    sqlite_buildin.execute("CREATE TABLE dup_a (id INTEGER, x TEXT)")
+    sqlite_buildin.execute("CREATE TABLE dup_b (id INTEGER, y INTEGER)")
+    sqlite_buildin.execute("INSERT INTO dup_a VALUES (1, 'x')")
+    sqlite_buildin.execute("INSERT INTO dup_b VALUES (2, 10)")
+    query = "SELECT * FROM dup_a, dup_b"
+    expected = sql.read_sql_query(query, sqlite_buildin)
+
+    def dict_row_factory(cursor, row):
+        # index built as in psycopg2's DictCursor
+        index = {col[0]: i for i, col in enumerate(cursor.description)}
+        fake_cursor = SimpleNamespace(index=index, description=cursor.description)
+        dict_row = extras.DictRow(fake_cursor)
+        dict_row[:] = row
+        return dict_row
+
+    sqlite_buildin.row_factory = dict_row_factory
+    result = sql.read_sql_query(query, sqlite_buildin)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.db
