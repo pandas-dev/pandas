@@ -86,3 +86,20 @@ def test_web_preprocessor_creates_releases(mock_response, context) -> None:
         context = Preprocessors.home_add_releases(context)
         release_versions = [release["name"] for release in context["releases"]]
         assert release_versions == ["10.0.1", "2.1.3", "2.0.0", "1.5.6"]
+
+
+def test_web_main_same_source_and_target(tmp_path) -> None:
+    # GH#70082: building with --target-path pointing at the source directory
+    # used to remove the source files before rendering.
+    source = tmp_path / "site"
+    source.mkdir()
+    (source / "config.yml").write_text("main: {}\n", encoding="utf-8")
+    (source / "versions.json").write_text("{}", encoding="utf-8")
+
+    from web.pandas_web import main
+
+    with pytest.raises(ValueError, match="same as the source path"):
+        main(source, source)
+
+    assert (source / "config.yml").exists()
+    assert (source / "versions.json").exists()
