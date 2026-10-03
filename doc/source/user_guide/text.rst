@@ -658,16 +658,17 @@ Or whether elements match a pattern:
     `re.search <https://docs.python.org/3/library/re.html#re.search>`_,
     respectively.
 
-``contains`` treats ``pat`` as a regular expression by default, and ``match``
-and ``fullmatch`` always do. To check for a literal substring that contains
+``contains`` treats ``pat`` as a regular expression by default (unlike
+``replace``, where ``regex`` defaults to ``False``), and ``match`` and
+``fullmatch`` always do. To check for a literal substring that contains
 characters with a special meaning in regular expressions, such as ``.``, pass
 ``regex=False`` to ``contains``:
 
 .. ipython:: python
 
-   s5 = pd.Series(["a.b", "ab"], dtype="str")
-   s5.str.contains(".")
-   s5.str.contains(".", regex=False)
+   s6 = pd.Series(["a.b", "ab"], dtype="str")
+   s6.str.contains(".")
+   s6.str.contains(".", regex=False)
 
 Methods like ``match``, ``fullmatch``, ``contains``, ``startswith``, and
 ``endswith`` take an extra ``na`` argument so missing values can be considered
