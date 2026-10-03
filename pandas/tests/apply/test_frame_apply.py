@@ -2034,7 +2034,9 @@ def test_agg_empty_list():
 def test_agg_array_like_func_names(box, func):
     # GH#69496 an ndarray or Index of names matches the list
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-    result = df.agg(box(func, dtype=object))
+    # np.array([]) would default to float64
+    arg = box(func) if func else box(func, dtype=object)
+    result = df.agg(arg)
     expected = df.agg(func)
     tm.assert_frame_equal(result, expected)
 
