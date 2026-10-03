@@ -128,8 +128,20 @@ def test_no_circular_reference(klass, registrar):
 def test_cached_accessor_deprecation():
     # GH#66215
     with tm.assert_produces_warning(
-        Pandas4Warning, match="CachedAccessor is deprecated"
+        Pandas4Warning, match="Use pandas.api.extensions.Accessor instead"
     ):
         from pandas.core.accessor import CachedAccessor
 
-    assert CachedAccessor is accessor.Accessor
+    assert CachedAccessor is pd.api.extensions.Accessor
+
+
+def test_accessor_override_on_subclass():
+    # GH#40103
+    class SubFrame(pd.DataFrame):
+        plot = pd.api.extensions.Accessor("plot", MyAccessor)
+
+    sub = SubFrame({"a": [1]})
+    assert isinstance(sub.plot, MyAccessor)
+    assert sub.plot.obj is sub
+    assert SubFrame.plot is MyAccessor
+    assert not isinstance(pd.DataFrame({"a": [1]}).plot, MyAccessor)
