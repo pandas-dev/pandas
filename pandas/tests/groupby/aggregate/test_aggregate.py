@@ -2189,7 +2189,9 @@ def test_agg_relabel_with_name_match_named_columns():
     result = df.groupby("A").agg(B=("B", "sum"))
     expected = df.groupby("A").agg(x=("B", "sum"))
     expected.columns = ["B"]
-    assert expected.columns.name is None
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
     tm.assert_frame_equal(result, expected)
 
 
