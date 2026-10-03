@@ -2164,6 +2164,101 @@ def test_agg_dict_string_funcs_with_duplicate_columns():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("method", ["min", "max"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "datetime64[ns, UTC]",
+        "datetime64[ns]",
+        "timedelta64[ns]",
+    ],
+)
+def test_minmax_empty_homogeneous_axis1_preserves_dtype(method, dtype):
+    # GH#32802: empty frame with homogeneous datetime-like columns
+    # must not fall back to float64 for axis=1 reductions.
+    ser = pd.Series([], dtype=dtype)
+    df = pd.concat([ser, ser], axis=1)
+    expected = pd.Series([], dtype=dtype, index=df.index)
+
+    result = getattr(df, method)(axis=1)
+    tm.assert_series_equal(result, expected)
+
+    result_agg = df.agg(method, axis=1)
+    tm.assert_series_equal(result_agg, expected)
+
+
+def test_agg_abs_axis1_empty_matches_nonempty():
+    # GH#32802: empty axis=1 agg("abs") must follow the same transpose
+    # path as a non-empty frame, not the reduction short-circuit.
+    df = pd.DataFrame({"a": [1.5, -2.5], "b": [3.5, 4.5]})
+    result = df.agg("abs", axis=1)
+    empty = df.iloc[:0].agg("abs", axis=1)
+    tm.assert_frame_equal(empty, result.iloc[:0])
+
+
+@pytest.mark.parametrize("how", ["sum", "mean", "skew"])
+def test_agg_reduction_axis1_empty_matches_nonempty(how):
+    # sum/mean still use the empty-frame reduction short-circuit.
+    # skew stays on the transpose path: apply_str rejects axis=1.
+    # Either way the empty result must match the non-empty slice.
+    df = pd.DataFrame({"a": [1.5, -2.5], "b": [3.5, 4.5]})
+    result = df.agg(how, axis=1)
+    empty = df.iloc[:0].agg(how, axis=1)
+    tm.assert_series_equal(empty, result.iloc[:0])
+
+
+@pytest.mark.parametrize("how", ["all", "any"])
+def test_agg_all_any_axis1_empty_mixed_matches_nonempty(how):
+    # GH#32802: mixed datetime/int. Non-empty axis=1 agg transposes to
+    # object and succeeds; the empty frame must do the same.
+    df = pd.DataFrame({"a": pd.date_range("2020", periods=2), "b": [1, 2]})
+    result = df.agg(how, axis=1)
+    empty = df.iloc[:0].agg(how, axis=1)
+    tm.assert_series_equal(empty, result.iloc[:0])
+
+
+@pytest.mark.parametrize("how", ["all", "any"])
+def test_agg_all_any_axis1_empty_mixed_period_matches_nonempty(how):
+    # GH#32802: mixed int/Period must match non-empty after transpose.
+    df = pd.DataFrame({"a": [1, 2], "b": pd.period_range("2020", periods=2, freq="D")})
+    result = df.agg(how, axis=1)
+    empty = df.iloc[:0].agg(how, axis=1)
+    tm.assert_series_equal(empty, result.iloc[:0])
+
+
+@pytest.mark.parametrize("how", ["all", "any"])
+def test_agg_all_any_axis1_empty_homogeneous_datetime_matches_nonempty(how):
+    # GH#32802: homogeneous datetime64 all/any raises. The empty frame
+    # must raise too, rather than follow the 0-column transpose path.
+    df = pd.DataFrame(
+        {
+            "a": pd.date_range("2020", periods=2),
+            "b": pd.date_range("2021", periods=2),
+        }
+    )
+    msg = "datetime64"
+    with pytest.raises(TypeError, match=msg):
+        df.agg(how, axis=1)
+    with pytest.raises(TypeError, match=msg):
+        df.iloc[:0].agg(how, axis=1)
+
+
+@pytest.mark.parametrize("how", ["all", "any"])
+def test_agg_all_any_axis1_empty_homogeneous_period_matches_nonempty(how):
+    # GH#32802: homogeneous Period all/any raises; empty must match.
+    df = pd.DataFrame(
+        {
+            "a": pd.period_range("2020", periods=2, freq="D"),
+            "b": pd.period_range("2021", periods=2, freq="D"),
+        }
+    )
+    msg = "PeriodArray"
+    with pytest.raises(TypeError, match=msg):
+        df.agg(how, axis=1)
+    with pytest.raises(TypeError, match=msg):
+        df.iloc[:0].agg(how, axis=1)
+
+
 def test_apply_expand_single_row_preserves_dict_order():
     # GH#45783 apply(result_type="expand") on a single-row frame must preserve
     # the dict key order returned by the callable instead of sorting columns
