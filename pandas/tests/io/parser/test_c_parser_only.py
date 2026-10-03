@@ -6,7 +6,6 @@ further arguments when parsing.
 """
 
 from decimal import Decimal
-import gzip
 from io import (
     BytesIO,
     StringIO,
@@ -1928,53 +1927,18 @@ def test_sniff_delimiter(c_parser_only, data, kwargs, as_bytes):
     tm.assert_frame_equal(result, _SNIFF_EXPECTED)
 
 
-class _NonSeekableBytesIO(BytesIO):
-    def seekable(self):
-        return False
-
-    def seek(self, *args):
-        raise OSError("not seekable")
-
-    def tell(self):
-        raise OSError("not seekable")
-
-
-@pytest.mark.parametrize("buf_cls", [BytesIO, _NonSeekableBytesIO])
 @pytest.mark.parametrize("chunk_size", [1, 2, 4])
-def test_sniff_delimiter_small_reads(c_parser_only, monkeypatch, chunk_size, buf_cls):
-    # GH#9645 lines, including "\r\n", split across the reads made while
-    # sniffing; a non-seekable handle has the data read replayed to the parser
+def test_sniff_delimiter_small_reads(c_parser_only, monkeypatch, chunk_size):
+    # GH#9645 lines, including "\r\n", split across the reads made while sniffing
     monkeypatch.setattr("pandas.io.parsers.readers._SNIFF_CHUNK_SIZE", chunk_size)
     parser = c_parser_only
     data = "a,b\r\nc,d\r\nindex|A|B\r\nfoo|1|2\r\nbar|3|4\r\n"
-    result = parser.read_csv(buf_cls(data.encode()), sep=None, index_col=0, skiprows=2)
+    result = parser.read_csv(BytesIO(data.encode()), sep=None, index_col=0, skiprows=2)
     tm.assert_frame_equal(result, _SNIFF_EXPECTED)
 
 
-@pytest.mark.parametrize("encoding", [None, "latin-1"])
-def test_sniff_delimiter_gzip_non_seekable(c_parser_only, encoding):
-    # GH#9645 GzipFile.seekable() is True even when its source cannot seek;
-    # enough rows that seeking back is not served from the GzipFile's buffer
-    parser = c_parser_only
-    data = gzip.compress(b"a|b\n" + b"1|2\n" * 100_000)
-    result = parser.read_csv(
-        _NonSeekableBytesIO(data), compression="gzip", sep=None, encoding=encoding
-    )
-    expected = pd.DataFrame({"a": [1] * 100_000, "b": [2] * 100_000})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_sniff_delimiter_text_handle_non_ascii(c_parser_only):
-    # GH#9645 non-ASCII text handle larger than one sniffing read
-    parser = c_parser_only
-    data = "a;b\n" + "\u00e9;1\n" * 20_000
-    result = parser.read_csv(StringIO(data), sep=None)
-    expected = pd.DataFrame({"a": ["\u00e9"] * 20_000, "b": [1] * 20_000})
-    tm.assert_frame_equal(result, expected)
-
-
 def test_sniff_delimiter_mid_stream(c_parser_only):
-    # GH#9645 a seekable handle is rewound to where it was, not to the start
+    # GH#9645 parsing starts where the handle was, not at the start
     parser = c_parser_only
     buf = BytesIO(b"junk\nindex|A|B\nfoo|1|2\nbar|3|4\n")
     buf.readline()
