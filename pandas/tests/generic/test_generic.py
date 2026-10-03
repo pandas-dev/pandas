@@ -170,6 +170,30 @@ class TestGeneric:
         f("float64")
         f("M8[ns]")
 
+    @pytest.mark.parametrize(
+        "dtype", [np.dtype([("a", "i4"), ("b", "f4")]), np.dtype("V8")]
+    )
+    def test_astype_compound_dtypes(self, frame_or_series, dtype):
+        # GH#4464
+        obj = construct(frame_or_series, shape=3, value=1)
+        msg = "compound dtypes are not implemented in astype"
+        with pytest.raises(NotImplementedError, match=msg):
+            obj.astype(dtype)
+        if frame_or_series is pd.DataFrame:
+            with pytest.raises(NotImplementedError, match=msg):
+                obj.astype({obj.columns[0]: dtype})
+
+    def test_constructor_dict_dtype_raises(self, frame_or_series):
+        # GH#4464
+        msg = f"The {frame_or_series.__name__} constructor does not accept a dict"
+        with pytest.raises(TypeError, match=msg):
+            frame_or_series([1.0, 2.0], dtype={"a": np.float64})
+
+        # a valid structured dtype spec reaches the compound dtype check
+        msg = "compound dtypes are not implemented"
+        with pytest.raises(NotImplementedError, match=msg):
+            frame_or_series([1.0, 2.0], dtype={"names": ["a"], "formats": ["f8"]})
+
     def test_metadata_propagation(self, frame_or_series):
         # check that the metadata matches up on the resulting ops
 

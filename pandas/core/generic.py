@@ -492,7 +492,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _validate_dtype(cls, dtype) -> DtypeObj | None:
         """validate the passed dtype"""
         if dtype is not None:
-            dtype = pandas_dtype(dtype)
+            try:
+                dtype = pandas_dtype(dtype)
+            except TypeError as err:
+                if isinstance(dtype, dict):
+                    # numpy's error for a column mapping is opaque, GH#4464
+                    raise TypeError(
+                        f"The {cls.__name__} constructor does not accept a dict "
+                        "for dtype; use .astype with a dict after construction."
+                    ) from err
+                raise
 
             # a compound dtype
             if dtype.kind == "V" and not isinstance(dtype, ExtensionDtype):
