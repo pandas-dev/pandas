@@ -186,9 +186,9 @@ class VariableWindowMethods(Methods):
         self.window = getattr(pd, constructor)(arr, index=index).rolling(window)
 
 
-class SkewKurtHardData:
-    # the existing benchmarks all use uniform random data, which never makes the
-    # skew/kurt accumulators fall back to rescanning the window (GH#68934)
+class SkewKurtNumericStability:
+    # data that can trip the skew/kurt cancellation check into recomputing
+    # windows from scratch, a path uniform random data doesn't reach (GH#68934)
     params = (
         [("rolling", {"window": 100}), ("expanding", {})],
         ["symmetric", "heavy_tailed", "outlier"],

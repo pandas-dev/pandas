@@ -315,7 +315,6 @@ def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
     result = getattr(series.rolling(window), roll_func)()
 
     # once the extreme values leave, the windows are ordinary data and exact
-    assert not result.iloc[9:].isna().any()
     tm.assert_series_equal(
         result.iloc[9:],
         _window_reduction(series, window, roll_func).iloc[9:],
@@ -351,13 +350,13 @@ def test_rolling_skew_kurt_drifting_level(roll_func):
     rng = np.random.default_rng(0)
     values = 1.7e9 + np.arange(n) + rng.normal(size=n) * 0.3
 
-    result = getattr(pd.Series(values).rolling(window), roll_func)()
+    series = pd.Series(values)
 
-    # over a slice, not one index: a single position can land on a good value
-    # while its neighbours are wrong
-    for i in range(n - 50, n):
-        expected = getattr(pd.Series(values[i - window + 1 : i + 1]), roll_func)()
-        assert result.iloc[i] == pytest.approx(expected, rel=1e-8)
+    result = getattr(series.rolling(window), roll_func)()
+
+    tm.assert_series_equal(
+        result, _window_reduction(series, window, roll_func), rtol=1e-8, atol=1e-12
+    )
 
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
