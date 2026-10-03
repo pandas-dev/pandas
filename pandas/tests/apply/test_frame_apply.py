@@ -2029,6 +2029,16 @@ def test_agg_empty_list():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("box", [np.array, pd.Index])
+@pytest.mark.parametrize("func", [["sum", "min"], []])
+def test_agg_array_like_func_names(box, func):
+    # GH#69496 an ndarray or Index of names matches the list
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    result = df.agg(box(func, dtype=object))
+    expected = df.agg(func)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_empty_dict():
     # GH#39609
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
