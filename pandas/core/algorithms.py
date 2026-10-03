@@ -1752,17 +1752,17 @@ def safe_sort(
 
     if use_counting:
         ordered = np.sort(cast("np.ndarray", values))
-    elif (
-        values.dtype == object
-        and not isinstance(values, ABCMultiIndex)
-        and isna(values).any()
-    ):
-        # argsort does not raise on NaN/NaT but misplaces them, since every
-        #  comparison with them is False; _sort_mixed puts nulls last
-        ordered = _sort_mixed(values)
     else:
         try:
             if (
+                values.dtype == object
+                and not isinstance(values, ABCMultiIndex)
+                and isna(values).any()
+            ):
+                # argsort does not raise on NaN/NaT but misplaces them, since
+                #  every comparison with them is False; _sort_mixed puts nulls last
+                ordered = _sort_mixed(values)
+            elif (
                 codes is None
                 and isinstance(values, np.ndarray)
                 and values.dtype.kind in "iufb"

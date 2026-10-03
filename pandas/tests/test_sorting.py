@@ -5,6 +5,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import algorithms
@@ -638,6 +640,30 @@ def test_object_with_nan_sorts_nulls_last(values, expected):
     result, result_codes = safe_sort(values, codes)
     tm.assert_numpy_array_equal(result, expected)
     tm.assert_numpy_array_equal(result_codes, np.array([1, 2, 0, -1], dtype=np.intp))
+
+
+@pytest.mark.parametrize(
+    "keys, expected_keys, expected_sums",
+    [
+        ([("a", 2), ("a", None), np.nan], [("a", 2), ("a", None), np.nan], [1, 2, 3]),
+        ([("b", 2), (1, "a"), np.nan], [(1, "a"), ("b", 2), np.nan], [2, 1, 3]),
+    ],
+)
+def test_tuples_with_nan_falls_back_to_sort_tuples(keys, expected_keys, expected_sums):
+    # GH#70216 tuples whose elements argsort cannot compare
+    keys = pd.Series(keys, dtype=object)
+    expected_keys = pd.Index(expected_keys, dtype=object, tupleize_cols=False)
+
+    # _sort_tuples pads the NaN key to tuple length, deprecated in GH#65751
+    msg = "mismatched lengths"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = safe_sort(keys.to_numpy())
+    tm.assert_numpy_array_equal(result, expected_keys.to_numpy())
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.Series([1, 2, 3]).groupby(keys, dropna=False).sum()
+    expected = pd.Series(expected_sums, index=expected_keys)
+    tm.assert_series_equal(result, expected)
 
 
 def test_safe_sort_multiindex():
