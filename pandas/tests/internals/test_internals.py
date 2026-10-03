@@ -863,19 +863,21 @@ class TestBlockManager:
 
 class TestGetDtypesCache:
     # GH#65382 get_dtypes caches the per-column dtypes array on the manager;
-    # block-mutating operations must invalidate the cache.
+    # block-mutating operations clear it so it does not keep old blocks alive.
 
     @staticmethod
     def _prime_cache(df):
         df.dtypes
         assert df._mgr._dtypes_cache is not None
+        # fills _interleaved_dtype only when there are several blocks
+        df.iloc[0]
 
     def test_get_dtypes_returns_copy(self):
         df = pd.DataFrame({"a": [1, 2], "b": [1.5, 2.5]})
         mgr = df._mgr
         result = mgr.get_dtypes()
         assert mgr._dtypes_cache is not None
-        assert result is not mgr._dtypes_cache
+        assert result is not mgr._dtypes_cache[1]
 
         # mutating the returned array must not corrupt the cache
         result[0] = np.dtype("float64")
@@ -898,18 +900,23 @@ class TestGetDtypesCache:
 
         df["a"] = np.array([1 + 2j, 3 + 4j])
         assert df._mgr._dtypes_cache is None
+        assert df._mgr._interleaved_dtype is None
         expected = pd.Series(
             [np.dtype("complex128"), np.dtype("float64")], index=["a", "b"]
         )
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_insert_invalidates(self):
-        df = pd.DataFrame({"a": [1, 2]})
+        df = pd.DataFrame({"a": [1, 2], "c": [1.5, 2.5]})
         self._prime_cache(df)
 
         df.insert(1, "b", np.array([1.5, 2.5]))
         assert df._mgr._dtypes_cache is None
-        expected = pd.Series([np.dtype("int64"), np.dtype("float64")], index=["a", "b"])
+        assert df._mgr._interleaved_dtype is None
+        expected = pd.Series(
+            [np.dtype("int64"), np.dtype("float64"), np.dtype("float64")],
+            index=["a", "b", "c"],
+        )
         tm.assert_series_equal(df.dtypes, expected)
 
     def test_delitem_dtypes_correct(self):
@@ -939,14 +946,32 @@ class TestGetDtypesCache:
         view = df[:]
         self._prime_cache(df)
 
+        df.iloc[0]
         df.iloc[0, 0] = 10
+        # cleared so the caches do not keep the replaced block alive
+        assert df._mgr._dtypes_cache is None
+        assert df._mgr._interleaved_dtype is None
         expected = pd.Series([np.dtype("int64")] * 2, index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
         tm.assert_frame_equal(view, pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
 
-    def test_stale_array_not_cached_when_blocks_replaced(self):
-        # GH#68446 get_dtypes must not cache an array it built from blocks that a
-        # write has replaced meanwhile: that write's invalidation already ran.
+    def test_consolidate_inplace_clears(self):
+        # cleared so the caches do not keep the unconsolidated blocks alive
+        df = pd.DataFrame({"a": [1, 2]})
+        df["b"] = np.array([1.5, 2.5])
+        df["c"] = np.array([3, 4])
+        assert len(df._mgr.blocks) == 3
+        self._prime_cache(df)
+        df.iloc[0]
+
+        df._mgr._consolidate_inplace()
+        assert len(df._mgr.blocks) == 2
+        assert df._mgr._dtypes_cache is None
+        assert df._mgr._interleaved_dtype is None
+
+    def test_stale_array_not_used_when_blocks_replaced(self):
+        # GH#68446 get_dtypes must not keep returning an array it built from
+        # blocks that a write replaced while it was computing.
         df = pd.DataFrame(
             {"a": pd.array([1], dtype="Int64"), "b": pd.array([2], dtype="Int64")}
         )
@@ -970,6 +995,41 @@ class TestGetDtypesCache:
 
         expected = pd.Series([pd.Int64Dtype(), np.dtype("float64")], index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
+
+    def test_entry_stored_after_write_not_used(self):
+        # GH#68446 a reader racing a write can store its entry after the write
+        # has invalidated the cache
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        self._prime_cache(df)
+        stale = df._mgr._dtypes_cache
+
+        df["a"] = np.array([1.5, 2.5])
+        df._mgr._dtypes_cache = stale
+
+        expected = pd.Series([np.dtype("float64"), np.dtype("int64")], index=["a", "b"])
+        tm.assert_series_equal(df.dtypes, expected)
+
+
+@pytest.mark.parametrize("method", ["row", "to_numpy"])
+def test_interleaved_dtype_entry_stored_after_write_not_used(method):
+    # GH#68446 same race as TestGetDtypesCache.test_entry_stored_after_write_not_used;
+    # a stale common dtype would silently truncate 1.5 to 1
+    df = pd.DataFrame({"a": [1, 2], "b": np.array([3, 4], dtype="int32")})
+    df.iloc[0]
+    stale = df._mgr._interleaved_dtype
+    assert stale is not None
+
+    df["b"] = np.array([1.5, 2.5])
+    df._mgr._interleaved_dtype = stale
+
+    if method == "row":
+        result = df.iloc[0]
+        expected = pd.Series([1.0, 1.5], index=["a", "b"], name=0)
+        tm.assert_series_equal(result, expected)
+    else:
+        result = df.to_numpy()
+        expected = np.array([[1.0, 1.5], [2.0, 2.5]])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 def _as_array(mgr):
