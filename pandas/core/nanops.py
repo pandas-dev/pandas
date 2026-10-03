@@ -995,9 +995,9 @@ def nanmean(
     elif dtype.kind in "iu":
         dtype_sum = np.dtype(np.float64)
     elif dtype.kind == "f":
-        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        # GH#43929 float16 sum and count overflow easily; upcast like numpy does
         dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
-        dtype_count = dtype
+        dtype_count = dtype_sum
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = values.sum(axis, dtype=dtype_sum)
