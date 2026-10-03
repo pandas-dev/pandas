@@ -248,3 +248,161 @@ def test_rolling_skew_kurt_recovers_after_empty_window(
     # GH-69037
     result = getattr(pd.Series(values).rolling(window), roll_func)()
     tm.assert_series_equal(result, pd.Series(expected))
+
+
+def _window_reduction(series, window, roll_func):
+    # oracle: the matching whole-array reduction over each window on its own. It
+    # accumulates independently of the sliding kernels under test and centres the
+    # values first, so it stays well inside the tolerances below. It also skips
+    # NaN, so windows holding one are blanked to match rolling's default
+    # min_periods=window.
+    values = series.to_numpy()
+    expected = [np.nan] * (window - 1)
+    for stop in range(window, len(values) + 1):
+        chunk = values[stop - window : stop]
+        if np.isnan(chunk).any():
+            expected.append(np.nan)
+        else:
+            expected.append(getattr(pd.Series(chunk), roll_func)())
+    return pd.Series(expected)
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+@pytest.mark.parametrize("offset", [1e6, 1e10])
+def test_rolling_skew_kurt_shared_offset(roll_func, offset):
+    # GH#68934 an offset shared by the whole series left the deviations the
+    # accumulators are built from several digits short, so results were wrong
+    # with no outlier anywhere in the data
+    window = 5
+    series = pd.Series([1, 2, 4, 7, 3, 5, 9, 2, 6, 8], dtype="float64") + offset
+
+    result = getattr(series.rolling(window), roll_func)()
+
+    tm.assert_series_equal(
+        result, _window_reduction(series, window, roll_func), rtol=1e-12, atol=0
+    )
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_rolling_skew_kurt_low_variance_offset(roll_func):
+    # GH#68934 values one float64 ulp apart on a large offset: the incremental
+    # mean update is a no-op at that magnitude, so the accumulators drifted into
+    # garbage. kurt returned 213 here, well outside the [-6, 4] a 4-point window
+    # can attain at all.
+    window = 4
+    ulp = np.spacing(1e8)
+    codes = [0, 1, 0, 2, 1, 0, 3, 1, 2, 0, 1, 4, 0, 2, 1, 0]
+    series = pd.Series([1e8 + ulp * code for code in codes])
+
+    result = getattr(series.rolling(window), roll_func)()
+
+    # skew and kurt are unchanged by translation, so the same window without the
+    # offset is the answer. atol covers the windows whose true skew is 0, where
+    # both sides are round-off and a relative tolerance means nothing.
+    expected = getattr(pd.Series(codes, dtype="float64").rolling(window), roll_func)()
+    tm.assert_series_equal(result, expected, rtol=1e-12, atol=1e-12)
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
+    # GH#68934 a window spanning nearly the whole float64 range must not leave
+    # the accumulators holding NaN, which would blank every later window
+    window = 5
+    series = pd.Series(
+        [1e308, 1.0, 2.0, 3.0, -1e308, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 3.0]
+    )
+
+    result = getattr(series.rolling(window), roll_func)()
+
+    # once the extreme values leave, the windows are ordinary data and exact
+    tm.assert_series_equal(
+        result.iloc[9:],
+        _window_reduction(series, window, roll_func).iloc[9:],
+        rtol=1e-12,
+        atol=0,
+    )
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_expanding_skew_kurt_shared_offset(roll_func):
+    # GH#68934 expanding never removes an observation, so the origin stays a member
+    # of its own window and the anchor-drift check never retires it
+    rng = np.random.default_rng(0)
+    values = 1e10 + rng.normal(size=200)
+
+    result = getattr(pd.Series(values).expanding(), roll_func)()
+
+    # skew and kurt do not depend on location, so the recentred series is the
+    # same statistic computed without the cancellation
+    expected = getattr(pd.Series(values - 1e10).expanding(), roll_func)()
+    tm.assert_series_equal(result, expected, rtol=1e-10, atol=0)
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_rolling_skew_kurt_drifting_level(roll_func):
+    # GH#68934 anchoring the accumulators to a window's first value only helps
+    # while the data stays near it. On a series whose level drifts -- a timestamp
+    # column, a counter -- the anchor goes stale and the result was wrong again,
+    # with nothing in the window itself to show for it: the same window
+    # recomputed on its own is exact.
+    window = 20
+    n = 2_000
+    rng = np.random.default_rng(0)
+    values = 1.7e9 + np.arange(n) + rng.normal(size=n) * 0.3
+
+    series = pd.Series(values)
+
+    result = getattr(series.rolling(window), roll_func)()
+
+    tm.assert_series_equal(
+        result, _window_reduction(series, window, roll_func), rtol=1e-8, atol=1e-12
+    )
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
+    # GH#68934 a 1e90 outlier overflowed kurt's m4 to inf; the instability test
+    # then compared inf with inf, never fired, and later windows stayed NaN
+    window = 20
+    rng = np.random.default_rng(4)
+    values = rng.normal(size=120)
+    values[40] = 1e90
+
+    result = getattr(pd.Series(values).rolling(window), roll_func)()
+
+    # once the outlier leaves, the windows are ordinary data
+    tm.assert_series_equal(
+        result.iloc[60:],
+        _window_reduction(pd.Series(values), window, roll_func).iloc[60:],
+        rtol=1e-12,
+        atol=0,
+    )
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_rolling_skew_kurt_accumulated_roundoff(roll_func):
+    # GH#68934 no window here is ill-conditioned on its own, but the round-off
+    # the accumulators carry from one window to the next is: kurt came back a
+    # factor of four away from the same window reduced on its own, on positive
+    # data with no offset and no outlier. It is the peak-deviation check in the
+    # instability test that has to notice, so this also pins its threshold.
+    window = 4
+    series = pd.Series(np.random.default_rng(3006).lognormal(0.0, 2.0, size=120))
+
+    result = getattr(series.rolling(window), roll_func)()
+
+    tm.assert_series_equal(
+        result, _window_reduction(series, window, roll_func), rtol=1e-8, atol=0
+    )
+
+
+@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
+def test_rolling_skew_kurt_degenerate_window_after_offset(roll_func):
+    # GH#68934 a window of identical values is degenerate and gives NaN
+    # (GH#62864), but reached incrementally on offset data it gave a number: the
+    # digits the accumulators had lost left m2 nonzero.
+    series = pd.Series([1e8 + np.spacing(1e8) * step for step in range(4)] + [1e8] * 6)
+
+    result = getattr(series.rolling(4), roll_func)()
+
+    assert result.iloc[-3:].isna().all()
