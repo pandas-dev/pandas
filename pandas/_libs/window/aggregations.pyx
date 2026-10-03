@@ -67,17 +67,12 @@ cdef:
     # squared deviations would overflow anyway, so there is nothing to gain.
     float64_t MaxOriginMagnitude = np.sqrt(np.finfo(np.float64).max)
 
-    # GH#68934 limits on the two magnitudes a skew/kurt window's deviations get
-    # taken against, each applied as ``magnitude ** 2 * limit > m2``. Past a
-    # deviation of ~1e154 both sides are inf, ``inf > inf`` is False, and the
-    # NaN check in moment_cancellation_suspected takes over.
-    #
-    # PeakDevLimit fires once m2's own round-off, of order
-    # ``EpsF64 * peak_dev ** 2``, has grown past InvCondTol relative to m2.
-    # AnchorDriftLimit retires an anchor once the window's centre has drifted
-    # more than 4*sqrt(m2) away from it. The 4 is margin over the 1*sqrt(m2) a
-    # freshly anchored window can reach -- the origin is one of its own members,
-    # so its deviation is already counted in m2.
+    # GH#68934 thresholds for moment_cancellation_suspected. PeakDevLimit fires
+    # once m2's own round-off, ~``EpsF64 * peak_dev ** 2``, exceeds InvCondTol
+    # relative to m2. AnchorDriftLimit retires an anchor once the window's centre
+    # is more than 4*sqrt(m2) from it; a fresh anchor is a window member, so it
+    # starts within 1*sqrt(m2). Past a deviation of ~1e154 both are compared as
+    # inf > inf, so the NaN check there takes over.
     float64_t PeakDevLimit = EpsF64 / InvCondTol
     float64_t AnchorDriftLimit = 1.0 / 16.0
 
@@ -506,12 +501,10 @@ cdef inline void track_moment_dev(
     float64_t val, float64_t mean, float64_t *peak_dev
 ) noexcept nogil:
     """
-    Grow the margin the cancellation test measures m2 against.
+    Single-variable track_peak_dev for the skew/kurt accumulators.
 
-    ``val`` is already shifted by the accumulators' origin, so this is a
-    deviation within the window rather than an absolute magnitude. The remove
-    side calls this too: ``mean`` has moved by then, so a value's deviation
-    against the new mean can exceed what was recorded when it was added.
+    The remove side calls this too: ``mean`` has moved by then, so a value's
+    deviation against the new mean can exceed what was recorded when it was added.
     """
     cdef float64_t dev = fabs(val - mean)
 
@@ -561,11 +554,8 @@ cdef void add_skew(float64_t val, int64_t *nobs,
     # Not NaN
     if val == val:
         if nobs[0] == 0:
-            # GH#68934 anchor the accumulators to the window's first value, so an
-            # offset shared by the whole window cancels exactly instead of costing
-            # precision in every deviation taken against a huge mean. Declining to
-            # anchor on a huge value keeps `val - origin` from overflowing to
-            # +/-inf, which would poison the accumulators with NaN.
+            # GH#68934 anchor the accumulators to the window's first value, see
+            # add_cov
             origin[0] = val if fabs(val) < MaxOriginMagnitude else 0
 
         shifted = val - origin[0]
