@@ -864,7 +864,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Parameters
         ----------
         ordinals : array-like of int
-            The number of base-unit periods since an epoch near 1970-01-01.
+            Ordinals of the periods.
         freq : str or period object
             One of pandas period strings or corresponding objects.
         name : str, default None

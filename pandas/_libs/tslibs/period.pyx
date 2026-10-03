@@ -2669,8 +2669,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the hour of the day component of the Period.
 
-        This is the hour of the period's ``start_time``, which is 0 for
-        frequencies coarser than an hour.
+        For periods with a frequency shorter than a day, this returns the
+        hour of the start of the period. For longer frequencies, it returns 0.
 
         Returns
         -------
@@ -2702,8 +2702,8 @@ cdef class _Period(PeriodMixin):
         """
         Get minute of the hour component of the Period.
 
-        This is the minute of the period's ``start_time``, which is 0 for
-        frequencies coarser than a minute.
+        For periods with a frequency shorter than an hour, this returns the
+        minute of the start of the period. For longer frequencies, it returns 0.
 
         Returns
         -------
@@ -2729,8 +2729,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the second component of the Period.
 
-        This is the second of the period's ``start_time``, which is 0 for
-        frequencies coarser than a second.
+        For periods with a frequency shorter than a minute, this returns the
+        second of the start of the period. For longer frequencies, it returns 0.
 
         Returns
         -------
@@ -2756,7 +2756,8 @@ cdef class _Period(PeriodMixin):
         """
         Get the week of the year on the given Period.
 
-        Alias of :attr:`Period.week`.
+        Weeks are numbered according to ISO 8601, where the first week of
+        the year contains the first Thursday of the year.
 
         The value comes from the last day of the first unit of the period's
         frequency, so a ``"2M"`` period uses the last day of its first month.
@@ -2977,9 +2978,9 @@ cdef class _Period(PeriodMixin):
         """
         Return the quarter this Period falls on.
 
-        For quarterly frequencies such as ``Q-MAR``, quarters are numbered within
-        the fiscal year; otherwise this is the calendar quarter in which the
-        Period ends.
+        Quarter 1 includes January through March, quarter 2 includes April
+        through June, quarter 3 includes July through September, and quarter
+        4 includes October through December.
 
         The value comes from the last day of the first unit of the period's
         frequency, so a ``"2M"`` period uses the last day of its first month.

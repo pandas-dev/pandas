@@ -1155,7 +1155,7 @@ cdef class BaseOffset:
 
         This method checks if the given timestamp falls on the first day of a
         quarter, or the first business day for business-quarter offsets. Quarters
-        are anchored on the offset's ``startingMonth`` if it has one.
+        are anchored on the offset's ``startingMonth`` or ``month`` if it has one.
 
         Parameters
         ----------
@@ -1181,7 +1181,7 @@ cdef class BaseOffset:
 
         This method checks if the given timestamp falls on the last day of a
         quarter, or the last business day for business-quarter offsets. Quarters
-        are anchored on the offset's ``startingMonth`` if it has one.
+        are anchored on the offset's ``startingMonth`` or ``month`` if it has one.
 
         Parameters
         ----------
@@ -1208,7 +1208,8 @@ cdef class BaseOffset:
 
         This method checks if the given timestamp falls on the first day of a
         year, or the first business day for business-year offsets. Year boundaries
-        follow the offset's ``month`` if it has one, and the calendar year otherwise.
+        follow the offset's ``month`` or ``startingMonth`` if it has one, and the
+        calendar year otherwise.
 
         Parameters
         ----------
@@ -1234,7 +1235,8 @@ cdef class BaseOffset:
 
         This method checks if the given timestamp falls on the last day of a
         year, or the last business day for business-year offsets. Year boundaries
-        follow the offset's ``month`` if it has one, and the calendar year otherwise.
+        follow the offset's ``month`` or ``startingMonth`` if it has one, and the
+        calendar year otherwise.
 
         Parameters
         ----------

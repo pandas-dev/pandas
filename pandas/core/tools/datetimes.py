@@ -984,8 +984,8 @@ def to_datetime(
         .. note::
 
             This parameter only affects numeric input; a non-default ``origin``
-            with string input raises ``ValueError``. See the ``format`` parameter
-            for how defaults are handled during string parsing.
+            with non-numeric input raises ``ValueError``. See the ``format``
+            parameter for how defaults are handled during string parsing.
     cache : bool, default True
         If :const:`True`, use a cache of unique, converted dates to apply the
         datetime conversion. May produce significant speed-up when parsing

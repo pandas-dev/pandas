@@ -988,7 +988,7 @@ def timedelta_range(
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
     a maximum of three can be specified at once. Of the three parameters
     ``start``, ``end``, and ``periods``, at least two must be specified.
-    If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have
+    If ``freq`` is omitted, the resulting ``TimedeltaIndex`` will have
     ``periods`` linearly spaced elements between ``start`` and ``end``
     (closed on both sides).
 

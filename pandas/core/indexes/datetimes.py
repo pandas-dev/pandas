@@ -143,7 +143,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order. Requires that repeated times appear in chronological order.
+          order. Requires that the ambiguous times be adjacent and in
+          chronological order.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)
@@ -1178,7 +1179,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1270,7 +1272,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1362,7 +1365,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -1591,7 +1595,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             handled.
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False signifies a
               non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2563,7 +2568,8 @@ def date_range(
         dictates how ambiguous times should be handled.
 
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order. Requires that repeated times appear in chronological order.
+          order. Requires that the ambiguous times be adjacent and in
+          chronological order.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
           times)

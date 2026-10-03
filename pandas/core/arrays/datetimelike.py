@@ -2062,7 +2062,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2169,7 +2170,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)
@@ -2276,7 +2278,8 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             Only relevant for DatetimeIndex:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
-              order. Requires that repeated times appear in chronological order.
+              order. Requires that the ambiguous times be adjacent and in
+              chronological order.
             - bool-ndarray where True signifies a DST time, False designates
               a non-DST time (note that this flag is only applicable for
               ambiguous times)

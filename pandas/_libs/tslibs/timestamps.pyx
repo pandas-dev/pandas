@@ -1498,7 +1498,7 @@ cdef class _Timestamp(ABCTimestamp):
         """
         Return the number of days in the month.
 
-        February has 29 days in leap years.
+        This value depends on the month and whether the year is a leap year.
 
         Returns
         -------
@@ -3575,8 +3575,9 @@ timedelta}, default 'raise'
         ----------
         tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
             Time zone to attach to the tz-naive Timestamp; the wall time is
-            preserved. ``None`` detaches the time zone from a tz-aware
-            Timestamp, returning a tz-naive Timestamp with the same wall time.
+            preserved unless `nonexistent` shifts it. ``None`` detaches the
+            time zone from a tz-aware Timestamp, returning a tz-naive Timestamp
+            with the same wall time.
 
         ambiguous : bool, 'NaT', default 'raise'
             When clocks moved backward due to DST, ambiguous times may arise.
