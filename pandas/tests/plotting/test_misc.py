@@ -106,6 +106,35 @@ def test_savefig(kind, data, index):
     fig.savefig(os.devnull)
 
 
+@pytest.mark.parametrize(
+    "kwargs, expected_rows, expected_columns",
+    [
+        ({}, ["a", "b"], ["old_title"]),
+        ({"rowLabels": None, "colLabels": None}, ["a", "b"], ["old_title"]),
+        ({"rowLabels": ["first", "second"]}, ["first", "second"], ["old_title"]),
+        ({"colLabels": ["new_title"]}, ["a", "b"], ["new_title"]),
+        (
+            {"rowLabels": ["first", "second"], "colLabels": ["new_title"]},
+            ["first", "second"],
+            ["new_title"],
+        ),
+    ],
+)
+def test_table_labels(frame_or_series, kwargs, expected_rows, expected_columns):
+    # GH#37811
+    data = pd.Series([42, 73], index=["a", "b"], name="old_title")
+    if frame_or_series is pd.DataFrame:
+        data = data.to_frame()
+    _, ax = plt.subplots()
+
+    result = pd.plotting.table(ax, data, **kwargs)
+
+    rows = [result[i + 1, -1].get_text().get_text() for i in range(len(data))]
+    columns = [result[0, 0].get_text().get_text()]
+    assert rows == expected_rows
+    assert columns == expected_columns
+
+
 class TestSeriesPlots:
     def test_autocorrelation_plot(self):
         ser = pd.Series(

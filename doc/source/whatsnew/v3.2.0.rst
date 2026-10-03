@@ -191,8 +191,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
--
+- Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
