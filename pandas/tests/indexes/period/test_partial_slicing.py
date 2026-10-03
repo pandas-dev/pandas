@@ -218,3 +218,20 @@ def test_periodindex_quarterly_string_no_deprecation_warning():
     # GH#45580 an np.str_ bound must take the same no-warn path
     with tm.assert_produces_warning(None):
         pidx.slice_locs(np.str_("2000Q1"), np.str_("2000Q3"))
+
+
+def test_partial_slice_no_matches_raises():
+    # GH#57596 a partial string matching none of our entries is an absent
+    #  label, not a zero-length match
+    pi = pd.PeriodIndex(["2024-01-01 10:00", "2024-01-03 10:00"], freq="min")
+    ser = pd.Series(np.arange(2), index=pi)
+
+    assert "2024-01-02" not in pi
+    with pytest.raises(KeyError, match="2024-01-02"):
+        pi.get_loc("2024-01-02")
+    with pytest.raises(KeyError, match="2024-01-02"):
+        ser["2024-01-02"]
+
+    tm.assert_series_equal(ser["2024-01-01"], ser.iloc[:1])
+
+    assert "2024" not in pd.PeriodIndex([], freq="D")
