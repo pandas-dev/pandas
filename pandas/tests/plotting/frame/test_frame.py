@@ -1179,7 +1179,14 @@ class TestDataFramePlots:
             dtype=pd.ArrowDtype(pa.decimal128(5, 2)),
         )
         df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": dec, "g": ["x", "y", "x"]})
-        _check_plot_works(df.plot, default_axes=bool(kwargs), kind=kind, **kwargs)
+        ret = _check_plot_works(df.plot, default_axes=bool(kwargs), kind=kind, **kwargs)
+        # the decimal column "b" must be plotted, not dropped
+        if kwargs:
+            _check_text_labels([ax.title for ax in ret], ["a", "b"])
+        elif kind == "box":
+            _check_text_labels(ret.get_xticklabels(), ["a", "b"])
+        else:
+            _check_legend_labels(ret, labels=["a", "b"])
 
     def test_kde_df(self):
         pytest.importorskip("scipy")
