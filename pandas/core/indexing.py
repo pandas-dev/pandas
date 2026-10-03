@@ -20,7 +20,6 @@ from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import (
     is_np_dtype,
     item_from_zerodim,
-    maybe_convert_objects,
 )
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import REF_COUNT_IDX
@@ -37,7 +36,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
-    construct_1d_object_array_from_listlike,
     floats_fit_integer_dtype,
     maybe_downcast_to_dtype,
 )
@@ -3867,16 +3865,7 @@ def infer_and_maybe_downcast(
     *,
     warn_if_cast: bool = True,
 ) -> ArrayLike:
-    try:
-        new_arr = orig._cast_pointwise_result(new_arr)
-    except Exception:
-        # Some subclasses raise for values the dtype cannot hold instead of
-        #  falling back to default inference; pyarrow alone raises several
-        #  unrelated exception types. GH#70233
-        if not (isinstance(new_arr, np.ndarray) and new_arr.dtype == object):
-            new_arr = construct_1d_object_array_from_listlike(new_arr)
-        # safe=True so e.g. [nan, 2**64 - 1] stays object instead of rounding
-        new_arr = maybe_convert_objects(new_arr, convert_non_numeric=True, safe=True)
+    new_arr = orig._cast_pointwise_result(new_arr)
 
     dtype = orig.dtype
     if isinstance(dtype, NumpyEADtype):

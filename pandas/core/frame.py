@@ -15654,7 +15654,9 @@ class DataFrame(NDFrame, OpsMixin):
                         row_vals, casted
                     )
                 except Exception:
-                    # Deliberately broad, and around the checks too: an
+                    # Deliberately broad, and around the checks too:
+                    #  _cast_pointwise_result makes no promise about what it
+                    #  raises for a value the dtype cannot hold, and an
                     #  optimization must not make a working append raise.
                     adopt = False
                 if adopt:

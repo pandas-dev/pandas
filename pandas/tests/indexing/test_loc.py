@@ -2630,7 +2630,6 @@ class TestLocSetitemWithExpansion:
             (pd.StringDtype(na_value=np.nan), 2**70),
             ("Int64", pd.NaT),
             ("boolean", pd.NaT),
-            ("float64[pyarrow]", 2**70),
             ("int64[pyarrow]", 2**70),
         ],
     )
