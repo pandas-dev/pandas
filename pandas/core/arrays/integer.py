@@ -65,7 +65,14 @@ class IntegerDtype(NumericDtype):
             return values.astype(dtype, copy=copy)
 
         casted = values.astype(dtype, copy=copy)
-        if (casted == values).all():
+        equal = casted == values
+        if equal.all():
+            return casted
+        if values.dtype == object and all(
+            isinstance(val, str) for val in values[~equal]
+        ):
+            # GH#34460 strs compare unequal to ints, but parsing them with
+            #  int() raises on any lossy value
             return casted
 
         raise TypeError(
