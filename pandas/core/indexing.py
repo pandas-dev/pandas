@@ -3872,7 +3872,7 @@ def infer_and_maybe_downcast(
     except Exception:
         # Some subclasses raise for values the dtype cannot hold instead of
         #  falling back to default inference; pyarrow alone raises several
-        #  unrelated exception types. GH#70221
+        #  unrelated exception types. GH#70233
         if not (isinstance(new_arr, np.ndarray) and new_arr.dtype == object):
             new_arr = construct_1d_object_array_from_listlike(new_arr)
         # safe=True so e.g. [nan, 2**64 - 1] stays object instead of rounding

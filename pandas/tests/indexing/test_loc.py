@@ -2606,7 +2606,7 @@ class TestLocSetitemWithExpansion:
             #  then coerced back into the int64 column
             ("int64[pyarrow]", pd.Period("2021-01-01", freq="D")),
             ("int64[pyarrow]", pd.Interval(5, 6)),
-            # used to raise in _post_expansion_casting, GH#70221
+            # used to raise in _post_expansion_casting, GH#70233
             ("int64[pyarrow]", 2**70),
         ],
     )
@@ -2635,7 +2635,7 @@ class TestLocSetitemWithExpansion:
         ],
     )
     def test_loc_setitem_with_expansion_series_cannot_hold(self, dtype, item):
-        # GH#70221 a value the dtype cannot hold used to raise instead of
+        # GH#70233 a value the dtype cannot hold used to raise instead of
         #  widening to object
         if "pyarrow" in str(dtype):
             pytest.importorskip("pyarrow")
@@ -2649,7 +2649,7 @@ class TestLocSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_with_expansion_all_na_str_large_int(self):
-        # GH#70221 the value must not be rounded through float64
+        # GH#70233 the value must not be rounded through float64
         pytest.importorskip("pyarrow")
         dtype = pd.StringDtype("pyarrow", na_value=np.nan)
         ser = pd.Series([np.nan, np.nan], dtype=dtype)
