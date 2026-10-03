@@ -23,6 +23,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 import warnings
@@ -1378,6 +1379,26 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
         return formatter
 
+    def _fixed_width_format(self, kind: Literal["f", "e"]) -> Callable:
+        # np.longdouble.__format__ casts to float64, which turns values outside
+        # its range into 0 or inf, so format those with numpy (GH#17809)
+        if (
+            self.values.dtype == np.longdouble
+            and np.finfo(np.longdouble).precision > np.finfo(np.float64).precision
+        ):
+            return partial(
+                _format_longdouble,
+                kind=kind,
+                digits=self.digits,
+                leading_space=self.leading_space,
+            )
+
+        if self.leading_space is True:
+            fmt_str = "{value: .{digits:d}{kind}}"
+        else:
+            fmt_str = "{value:.{digits:d}{kind}}"
+        return partial(fmt_str.format, digits=self.digits, kind=kind)
+
     def get_result_as_array(self) -> np.ndarray:
         """
         Returns the float values converted into strings using
@@ -1467,11 +1488,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         float_format: FloatFormatType | None
         if self.float_format is None:
             if self.fixed_width:
-                if self.leading_space is True:
-                    fmt_str = "{value: .{digits:d}f}"
-                else:
-                    fmt_str = "{value:.{digits:d}f}"
-                float_format = partial(fmt_str.format, digits=self.digits)
+                float_format = self._fixed_width_format("f")
             else:
                 float_format = self.float_format
         else:
@@ -1500,11 +1517,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
-            if self.leading_space is True:
-                fmt_str = "{value: .{digits:d}e}"
-            else:
-                fmt_str = "{value:.{digits:d}e}"
-            float_format = partial(fmt_str.format, digits=self.digits)
+            float_format = self._fixed_width_format("e")
             formatted_values = format_values_with(float_format)
 
         return formatted_values
@@ -1867,6 +1880,21 @@ def _make_fixed_width(
 
     result = adjustment.justify(strings, max_len, mode=justify)
     return result, max_len
+
+
+def _format_longdouble(
+    value, kind: Literal["f", "e"], digits: int, leading_space: bool | None
+) -> str:
+    np_format = (
+        np.format_float_scientific if kind == "e" else np.format_float_positional
+    )
+    # at precision 0, numpy keeps the trailing decimal point
+    # (e.g. "2.") where str.format drops it; strip it to match
+    trim: Literal["-", "k"] = "-" if digits == 0 else "k"
+    result = np_format(value, precision=digits, unique=False, trim=trim)
+    if leading_space is True and not result.startswith("-"):
+        result = " " + result
+    return result
 
 
 def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[str]:

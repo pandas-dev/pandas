@@ -1397,6 +1397,40 @@ def test_strftime_fiscal_year_lt_1000():
     assert per.strftime("%F-Q%q") == "0020-Q1"
 
 
+@pytest.mark.parametrize(
+    "freq, fmt, expected",
+    [
+        ("D", "%d/%m/%Y", "18/08/0064"),
+        ("D", "%Y%%Y", "0064%Y"),
+        ("D", "%%q", "%q"),
+        # %Y is the calendar year, %F the fiscal year
+        ("Q-JUN", "%Y %F", "0064 0065"),
+    ],
+)
+def test_strftime_year_lt_1000(freq, fmt, expected):
+    # GH#48746
+    per = pd.Period("0064-08-18", freq=freq)
+    assert per.strftime(fmt) == expected
+
+
+def test_strftime_escaped_n_no_warning():
+    # GH#48746 a literal "%%n" is not the deprecated %n directive
+    per = pd.Period("2020-01-01", freq="D")
+    with tm.assert_produces_warning(None):
+        assert per.strftime("%%n") == "%n"
+        result = pd.PeriodIndex([per]).strftime("%Y%%n")
+    tm.assert_index_equal(result, pd.Index(["2020%n"]))
+
+
+def test_strftime_all_nat_skips_format_validation():
+    # GH#48746 the format is only validated once a non-NaT element is formatted
+    result = pd.PeriodIndex([pd.NaT], freq="D").strftime("%Q")
+    assert len(result) == 1
+    assert result.isna().all()
+    with pytest.raises(ValueError, match="Invalid format string"):
+        pd.PeriodIndex(["2020-01-01"], freq="D").strftime("%Q")
+
+
 def test_negone_ordinals():
     freqs = ["Y", "M", "Q", "D", "h", "min", "s"]
 
