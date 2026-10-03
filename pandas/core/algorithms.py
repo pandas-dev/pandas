@@ -1752,14 +1752,24 @@ def safe_sort(
 
     if use_counting:
         ordered = np.sort(cast("np.ndarray", values))
-    elif (
-        not isinstance(values.dtype, ExtensionDtype)
-        and lib.infer_dtype(values, skipna=False) == "mixed-integer"
-    ):
-        ordered = _sort_mixed(values)
     else:
+        null_mask = (
+            isna(values)
+            if values.dtype == object and not isinstance(values, ABCMultiIndex)
+            else None
+        )
         try:
-            if (
+            if null_mask is not None and null_mask.any():
+                # argsort does not raise on NaN/NaT but misplaces them, since
+                #  every comparison with them is False; _sort_mixed puts nulls last
+                non_null = values[~null_mask]
+                if len(non_null) and isinstance(non_null[0], tuple):
+                    # _sort_mixed would argsort the tuples, misplacing NaN
+                    #  elements inside them
+                    ordered = _sort_tuples(values)  # type: ignore[arg-type]
+                else:
+                    ordered = _sort_mixed(values)
+            elif (
                 codes is None
                 and isinstance(values, np.ndarray)
                 and values.dtype.kind in "iufb"
