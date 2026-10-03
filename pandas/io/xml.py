@@ -1092,8 +1092,8 @@ def read_xml(
     1    circle      360    NaN
     2  triangle      180    3.0
 
-    An element in a default namespace (``xmlns=``) can only be selected by
-    ``xpath`` through a prefix declared in ``namespaces``:
+    An element in a default namespace (``xmlns=``) cannot be selected by its
+    bare name in ``xpath``; use a prefix declared in ``namespaces``:
 
     >>> df = pd.read_xml(
     ...     StringIO(xml),

@@ -1378,7 +1378,7 @@ def read_csv(
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
         Alias for ``sep``.
-    header : int, list of int, 'infer' or None, default 'infer'
+    header : int, Sequence of int, 'infer' or None, default 'infer'
         Row index or indices in the file to use as DataFrame column labels.
         Indexing starts at 0 and does not count commented lines (see ``comment``)
         or, when ``skip_blank_lines=True``, blank lines, so ``header=0`` denotes
@@ -1614,8 +1614,9 @@ def read_csv(
         ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
         ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
         When reading, ``0`` and ``1`` behave identically, ``2`` reads numeric
-        columns as ``float`` rather than ``int``, and ``3`` disables quote
-        processing so ``quotechar`` is kept in the data.
+        columns as ``float`` rather than ``int`` (the python engine also raises
+        on unquoted non-numeric fields), and ``3`` disables quote processing so
+        ``quotechar`` is kept in the data. The pyarrow engine accepts only ``0``.
     doublequote : bool, default True
         When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
         whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
@@ -1695,7 +1696,7 @@ def read_csv(
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
-        values. All options use the same converter.
+        values.
 
         .. deprecated:: 3.1.0
             All float precision modes now use the same converter.
@@ -1981,7 +1982,7 @@ def read_table(
         to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
         Alias for ``sep``.
-    header : int, list of int, 'infer' or None, default 'infer'
+    header : int, Sequence of int, 'infer' or None, default 'infer'
         Row index or indices in the file to use as DataFrame column labels.
         Indexing starts at 0 and does not count commented lines (see ``comment``)
         or, when ``skip_blank_lines=True``, blank lines, so ``header=0`` denotes
@@ -2213,8 +2214,9 @@ def read_table(
         ``0`` or ``csv.QUOTE_MINIMAL``, ``1`` or ``csv.QUOTE_ALL``,
         ``2`` or ``csv.QUOTE_NONNUMERIC``, or ``3`` or ``csv.QUOTE_NONE``.
         When reading, ``0`` and ``1`` behave identically, ``2`` reads numeric
-        columns as ``float`` rather than ``int``, and ``3`` disables quote
-        processing so ``quotechar`` is kept in the data.
+        columns as ``float`` rather than ``int`` (the python engine also raises
+        on unquoted non-numeric fields), and ``3`` disables quote processing so
+        ``quotechar`` is kept in the data. The pyarrow engine accepts only ``0``.
     doublequote : bool, default True
        When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
        whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
@@ -2294,7 +2296,7 @@ def read_table(
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {'high', 'legacy', 'round_trip'}, optional
         Specifies which converter the C engine should use for floating-point
-        values. All options use the same converter.
+        values.
 
         .. deprecated:: 3.1.0
             All float precision modes now use the same converter.
@@ -3196,7 +3198,7 @@ def TextParser(*args, **kwds) -> TextFileReader:
         Encoding to use for UTF when reading/writing (ex. 'utf-8')
     float_precision : str, optional
         Specifies which converter the C engine should use for floating-point
-        values. All options use the same converter.
+        values.
 
         .. deprecated:: 3.1.0
             All float precision modes now use the same converter.

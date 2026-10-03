@@ -302,8 +302,7 @@ thousands : str, default ``None``
 decimal : str, default ``'.'``
   Character to recognize as decimal point. E.g. use ``','`` for European data.
 float_precision : string, default None
-  Specifies which converter the C engine should use for floating-point values.
-  All options use the same converter (see :ref:`io.float_precision`).
+  Deprecated; all options use the same converter.
 lineterminator : str (length 1), default ``None``
   Character to break file into lines. Only valid with C parser.
 quotechar : str (length 1)

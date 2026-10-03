@@ -389,8 +389,8 @@ def read_hdf(
        This function is intended for HDF5 files written by pandas (via
        :meth:`DataFrame.to_hdf`, :meth:`Series.to_hdf`, or :class:`HDFStore`),
        which use a pandas-specific layout built on PyTables. A table dataset
-       written by plain PyTables can also be read by passing ``key``, without
-       index or dtype information. Other HDF5 layouts, such as array datasets,
+       written by plain PyTables can also be read by passing ``key``; it gets a
+       default ``RangeIndex``. Other HDF5 layouts, such as array datasets,
        are not supported; use ``h5py`` or PyTables directly for those.
 
     .. warning::
@@ -564,7 +564,7 @@ class HDFStore:
 
        ``HDFStore`` uses a pandas-specific layout on top of PyTables and is
        intended for round-tripping pandas objects. A table dataset written by
-       plain PyTables can also be read, listed by ``keys(include="native")``.
+       plain PyTables can also be read; ``keys(include="native")`` lists them.
        Other HDF5 layouts, such as array datasets, are not supported; use
        ``h5py`` or PyTables directly for those.
 
@@ -1387,11 +1387,11 @@ class HDFStore:
         append : bool, default False
             This will force Table format, append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
-            Compression library to use; None disables compression. Only valid with
-            ``format='table'``. If ``complevel`` is not given, the store's
-            ``complevel`` is used if set, otherwise 9. See the ``complib``
-            parameter of :class:`HDFStore` for the full list of supported
-            compressors.
+            Compression library to use; if None, the store's compression settings
+            apply. Only valid with ``format='table'``. If ``complevel`` is not
+            given, the store's ``complevel`` is used if set, otherwise 9. See the
+            ``complib`` parameter of :class:`HDFStore` for the full list of
+            supported compressors.
         complevel : int, 0-9, default None
             Compression level, only used when ``complib`` is given. 0 disables
             compression.
@@ -1620,11 +1620,11 @@ class HDFStore:
         append : bool, default True
             Append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
-            Compression library to use; None disables compression. Ignored when
-            appending to an existing table. If ``complevel`` is not given, the
-            store's ``complevel`` is used if set, otherwise 9. See the ``complib``
-            parameter of :class:`HDFStore` for the full list of supported
-            compressors.
+            Compression library to use; if None, the store's compression settings
+            apply. Ignored when appending to an existing table. If ``complevel``
+            is not given, the store's ``complevel`` is used if set, otherwise 9.
+            See the ``complib`` parameter of :class:`HDFStore` for the full list
+            of supported compressors.
         complevel : int, 0-9, default None
             Compression level, only used when ``complib`` is given. 0 disables
             compression.
