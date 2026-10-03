@@ -647,10 +647,15 @@ def test_object_with_nan_sorts_nulls_last(values, expected):
     [
         ([("a", 2), ("a", None), np.nan], [("a", 2), ("a", None), np.nan], [1, 2, 3]),
         ([("b", 2), (1, "a"), np.nan], [(1, "a"), ("b", 2), np.nan], [2, 1, 3]),
+        (
+            [("a", 3.0), ("a", np.nan), np.nan, ("a", 1.0), ("a", 2.0)],
+            [("a", 1.0), ("a", 2.0), ("a", 3.0), ("a", np.nan), np.nan],
+            [4, 5, 1, 2, 3],
+        ),
     ],
 )
 def test_tuples_with_nan_falls_back_to_sort_tuples(keys, expected_keys, expected_sums):
-    # GH#70216 tuples whose elements argsort cannot compare
+    # GH#70216 argsort raises on incomparable tuple elements, misorders NaN ones
     keys = pd.Series(keys, dtype=object)
     expected_keys = pd.Index(expected_keys, dtype=object, tupleize_cols=False)
 
@@ -660,8 +665,9 @@ def test_tuples_with_nan_falls_back_to_sort_tuples(keys, expected_keys, expected
         result = safe_sort(keys.to_numpy())
     tm.assert_numpy_array_equal(result, expected_keys.to_numpy())
 
+    values = pd.Series(range(1, len(keys) + 1))
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
-        result = pd.Series([1, 2, 3]).groupby(keys, dropna=False).sum()
+        result = values.groupby(keys, dropna=False).sum()
     expected = pd.Series(expected_sums, index=expected_keys)
     tm.assert_series_equal(result, expected)
 
