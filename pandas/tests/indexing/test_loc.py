@@ -4296,7 +4296,7 @@ def test_loc_setitem_empty_boolean_column_mask_frame_value(dtype, box):
 def test_setitem_empty_column_indexer_single_column_ea(
     indexer_li, dtype, col_key, row_key
 ):
-    # GH#70224 column key selecting no columns in a 1-column EA frame
+    # GH#70232 column key selecting no columns in a 1-column EA frame
     if isinstance(dtype, tuple):
         dtype = pd.StringDtype(*dtype)
     df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
