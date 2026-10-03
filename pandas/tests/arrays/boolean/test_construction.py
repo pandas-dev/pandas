@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -125,6 +127,8 @@ def test_to_boolean_array_error(values):
         [np.bool_(True), np.int64(0), pd.NA],
         [1, False, None],
         [np.float64(1.0), np.False_, None],
+        # Decimal("NaN") is NA, as for Int64
+        [True, 0, Decimal("NaN")],
     ],
 )
 def test_to_boolean_array_bool_number_mix(values):

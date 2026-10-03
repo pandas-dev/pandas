@@ -244,14 +244,11 @@ def coerce_to_array(
             raise TypeError("Need to pass bool-like values")
 
         values = np.zeros(len(values), dtype=bool)
-        values[~mask_values] = values_object[~mask_values].astype(bool)
+        values[~mask_values] = non_na.astype(bool)
 
         # if the values were integer-like, validate it were actually 0/1's
         if not all_bool and not (
-            np.all(
-                values[~mask_values].astype(float)
-                == values_object[~mask_values].astype(float)
-            )
+            np.all(values[~mask_values].astype(float) == non_na.astype(float))
         ):
             raise TypeError("Need to pass bool-like values")
 
