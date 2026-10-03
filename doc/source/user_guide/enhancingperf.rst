@@ -479,22 +479,22 @@ The following Python syntax is **not** allowed:
 
 * Expressions
 
-    * Function calls other than math functions.
-    * ``is``/``is not`` operations
-    * ``if`` expressions
-    * ``lambda`` expressions
-    * ``list``/``set``/``dict`` comprehensions
-    * Literal ``dict`` and ``set`` expressions
-    * ``yield`` expressions
-    * Generator expressions
-    * Boolean expressions consisting of only scalar values
+  * Function calls other than math functions.
+  * ``is``/``is not`` operations
+  * ``if`` expressions
+  * ``lambda`` expressions
+  * ``list``/``set``/``dict`` comprehensions
+  * Literal ``dict`` and ``set`` expressions
+  * ``yield`` expressions
+  * Generator expressions
+  * Boolean expressions consisting of only scalar values
 
 * Statements
 
-    * Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
-      or `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
-      statements are allowed. This includes ``for``, ``while``, and
-      ``if``.
+  * Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
+    or `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
+    statements are allowed. This includes ``for``, ``while``, and
+    ``if``.
 
 Local variables
 ~~~~~~~~~~~~~~~

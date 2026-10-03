@@ -1892,13 +1892,13 @@ fall back in the following manner:
 * if an object is unsupported it will attempt the following:
 
 
-    - check if the object has defined a ``toDict`` method and call it.
-      A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
+  - check if the object has defined a ``toDict`` method and call it.
+    A ``toDict`` method should return a ``dict`` which will then be JSON serialized.
 
-    - invoke the ``default_handler`` if one was provided.
+  - invoke the ``default_handler`` if one was provided.
 
-    - convert the object to a ``dict`` by traversing its contents. However this will often fail
-      with an ``OverflowError`` or give unexpected results.
+  - convert the object to a ``dict`` by traversing its contents. However this will often fail
+    with an ``OverflowError`` or give unexpected results.
 
 In general the best approach for unsupported objects or dtypes is to provide a ``default_handler``.
 For example:
@@ -2289,13 +2289,13 @@ A few notes on the generated table schema:
 
 * The default naming roughly follows these rules:
 
-    - For series, the ``object.name`` is used. If that's none, then the
-      name is ``values``
-    - For ``DataFrames``, the stringified version of the column name is used
-    - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
-      fallback to ``index`` if that is None.
-    - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
-      then ``level_<i>`` is used.
+  - For series, the ``object.name`` is used. If that's none, then the
+    name is ``values``
+  - For ``DataFrames``, the stringified version of the column name is used
+  - For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
+    fallback to ``index`` if that is None.
+  - For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
+    then ``level_<i>`` is used.
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
@@ -2697,22 +2697,22 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    - |lxml|_ is very fast.
+  - |lxml|_ is very fast.
 
-    - |lxml|_ requires Cython to install correctly.
+  - |lxml|_ requires Cython to install correctly.
 
 * Drawbacks
 
-    - |lxml|_ does *not* make any guarantees about the results of its parse
-      *unless* it is given |svm|_.
+  - |lxml|_ does *not* make any guarantees about the results of its parse
+    *unless* it is given |svm|_.
 
-    - In light of the above, we have chosen to allow you, the user, to use the
-      |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
-      fails to parse
+  - In light of the above, we have chosen to allow you, the user, to use the
+    |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
+    fails to parse
 
-    - It is therefore *highly recommended* that you install both
-      |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
-      result (provided everything else is valid) even if |lxml|_ fails.
+  - It is therefore *highly recommended* that you install both
+    |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
+    result (provided everything else is valid) even if |lxml|_ fails.
 
 **Issues with** |BeautifulSoup4|_ **using** |lxml|_ **as a backend**
 
@@ -2723,27 +2723,27 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 
 * Benefits
 
-    - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
-      with *real-life markup* in a much saner way rather than just, e.g.,
-      dropping an element without notifying you.
+  - |html5lib|_ is far more lenient than |lxml|_ and consequently deals
+    with *real-life markup* in a much saner way rather than just, e.g.,
+    dropping an element without notifying you.
 
-    - |html5lib|_ *generates valid HTML5 markup from invalid markup
-      automatically*. This is extremely important for parsing HTML tables,
-      since it guarantees a valid document. However, that does NOT mean that
-      it is "correct", since the process of fixing markup does not have a
-      single definition.
+  - |html5lib|_ *generates valid HTML5 markup from invalid markup
+    automatically*. This is extremely important for parsing HTML tables,
+    since it guarantees a valid document. However, that does NOT mean that
+    it is "correct", since the process of fixing markup does not have a
+    single definition.
 
-    - |html5lib|_ is pure Python and requires no additional build steps beyond
-      its own installation.
+  - |html5lib|_ is pure Python and requires no additional build steps beyond
+    its own installation.
 
 * Drawbacks
 
-    - The biggest drawback to using |html5lib|_ is that it is slow as
-      molasses.  However consider the fact that many tables on the web are not
-      big enough for the parsing algorithm runtime to matter. It is more
-      likely that the bottleneck will be in the process of reading the raw
-      text from the URL over the web, i.e., IO (input-output). For very large
-      tables, this might not be true.
+  - The biggest drawback to using |html5lib|_ is that it is slow as
+    molasses.  However consider the fact that many tables on the web are not
+    big enough for the parsing algorithm runtime to matter. It is more
+    likely that the bottleneck will be in the process of reading the raw
+    text from the URL over the web, i.e., IO (input-output). For very large
+    tables, this might not be true.
 
 
 .. |svm| replace:: **strictly valid markup**
