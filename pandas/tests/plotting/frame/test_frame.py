@@ -1183,6 +1183,8 @@ class TestDataFramePlots:
         # the decimal column "b" must be plotted, not dropped
         if kwargs:
             _check_text_labels([ax.title for ax in ret], ["a", "b"])
+            for ax in ret:
+                _check_text_labels(ax.get_xticklabels(), ["x", "y"])
         elif kind == "box":
             _check_text_labels(ret.get_xticklabels(), ["a", "b"])
         else:
