@@ -7299,7 +7299,7 @@ class Index(IndexOpsMixin, PandasObject):
                     values = self
                 if (
                     is_integer(original_label) or is_float(original_label)
-                ) and values.inferred_type == "string":
+                ) and lib.infer_dtype(values, skipna=True) == "string":
                     # sorting would not make a numeric bound comparable to strings
                     self._raise_invalid_indexer("slice", original_label, None)
                 raise KeyError(

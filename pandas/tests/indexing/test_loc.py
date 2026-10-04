@@ -3543,10 +3543,11 @@ def test_loc_slice_object_numeric_index_missing_bound(values, frame_or_series):
     tm.assert_equal(obj.loc[2:9], obj.iloc[1:])
 
 
+@pytest.mark.parametrize("values", [["b", "a", "c"], ["b", np.nan, "a"]])
 @pytest.mark.parametrize("dtype", [object, "str"])
-def test_loc_slice_unsorted_string_index_numeric_bound(dtype, frame_or_series):
+def test_loc_slice_unsorted_string_index_numeric_bound(values, dtype, frame_or_series):
     # GH#70295 sorting cannot help, so raise TypeError rather than KeyError
-    obj = frame_or_series(range(3), index=pd.Index(["b", "a", "c"], dtype=dtype))
+    obj = frame_or_series(range(3), index=pd.Index(values, dtype=dtype))
     msg = r"cannot do slice indexing on Index with these indexers \[1\] of type int"
     with pytest.raises(TypeError, match=msg):
         obj.loc[1:2]
