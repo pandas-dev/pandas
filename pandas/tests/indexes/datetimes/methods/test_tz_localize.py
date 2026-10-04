@@ -668,9 +668,9 @@ def test_dti_tz_localize_nonexistent_shift_stays_inside_the_gap(nonexistent, exp
         # past the last stored transition, so the zone's DST rule applies
         (
             "America/New_York",
-            "2100-03-14 02:30",
-            "2099-11-01 01:30",
-            "2099-11-01 01:30:00-04:00",
+            "2101-03-13 02:30",
+            "2100-11-07 01:30",
+            "2100-11-07 01:30:00-04:00",
         ),
     ],
 )
