@@ -605,7 +605,7 @@ class BaseBlockManager(PandasObject):
                     elif isinstance(indexer[1], slice):
                         # the new block holds the columns sorted, so a slice
                         # over them differs from the caller's only in direction
-                        step = None if inverse[0] <= inverse[-1] else -1
+                        step = -1 if (indexer[1].step or 1) < 0 else None
                         indexer[1] = slice(None, None, step)
                     else:
                         indexer[1] = inverse
