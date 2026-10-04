@@ -3477,7 +3477,8 @@ def test_loc_with_positional_slice_raises():
     # GH#31840
     ser = pd.Series(range(4), index=["A", "B", "C", "D"])
 
-    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
+    msg = r"cannot do slice indexing on Index with these indexers \[3\] of type int"
+    with pytest.raises(TypeError, match=msg):
         ser.loc[:3] = 2
 
 
@@ -3497,15 +3498,13 @@ def test_loc_slice_disallows_positional():
         with pytest.raises(TypeError, match=msg):
             obj.loc[1:3]
 
-        with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
-            # GH#31840 enforce incorrect behavior
+        with pytest.raises(TypeError, match=msg):
             obj.loc[1:3] = 1
 
     with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1]
 
-    with pytest.raises(TypeError, match="Slicing a positional slice with .loc"):
-        # GH#31840 enforce incorrect behavior
+    with pytest.raises(TypeError, match=msg):
         df.loc[1:3, 1] = 2
 
 
@@ -3523,7 +3522,7 @@ def test_loc_setitem_int_slice_decimal_index(frame_or_series):
 
 
 def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
-    # GH#70219 MultiIndex defers to its first level
+    # GH#70219
     level = pd.Index([Decimal(1), Decimal(3), Decimal(5)], dtype=object)
     index = pd.MultiIndex.from_arrays([level, ["a", "b", "c"]])
     obj = frame_or_series(range(3), index=index)
@@ -3532,21 +3531,6 @@ def test_loc_setitem_int_slice_decimal_multiindex_level(frame_or_series):
     tm.assert_equal(obj.loc[0:4], obj.iloc[:2])
     obj.loc[0:4] = 99
     tm.assert_equal(obj, expected)
-
-
-@pytest.mark.parametrize("values", [[Decimal(1), Decimal(3), Decimal(5)], [1, 2.5, 5]])
-def test_loc_setitem_int_slice_object_numeric_index_missing_bound(
-    values, frame_or_series
-):
-    # GH#70219 setitem raises the same error as getitem for a missing integer bound
-    index = pd.Index(values, dtype=object)
-    obj = frame_or_series(range(3), index=index)
-
-    msg = r"cannot do slice indexing on Index with these indexers \[0\] of type int"
-    with pytest.raises(TypeError, match=msg):
-        obj.loc[0:4]
-    with pytest.raises(TypeError, match=msg):
-        obj.loc[0:4] = 99
 
 
 def test_loc_datetimelike_mismatched_dtypes():
