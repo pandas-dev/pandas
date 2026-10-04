@@ -477,8 +477,11 @@ class TestCategoricalIndex:
 
     def test_loc_slice(self, df):
         # GH9748
-        msg = "non-monotonic index with a missing label 1"
-        with pytest.raises(KeyError, match=msg):
+        msg = (
+            "cannot do slice indexing on CategoricalIndex with these "
+            r"indexers \[1\] of type int"
+        )
+        with pytest.raises(TypeError, match=msg):
             df.loc[1:5]
 
         result = df.loc["b":"c"]

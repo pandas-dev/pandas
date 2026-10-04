@@ -3543,6 +3543,15 @@ def test_loc_slice_object_numeric_index_missing_bound(values, frame_or_series):
     tm.assert_equal(obj.loc[2:9], obj.iloc[1:])
 
 
+@pytest.mark.parametrize("dtype", [object, "str"])
+def test_loc_slice_unsorted_string_index_numeric_bound(dtype, frame_or_series):
+    # GH#70295 sorting cannot help, so raise TypeError rather than KeyError
+    obj = frame_or_series(range(3), index=pd.Index(["b", "a", "c"], dtype=dtype))
+    msg = r"cannot do slice indexing on Index with these indexers \[1\] of type int"
+    with pytest.raises(TypeError, match=msg):
+        obj.loc[1:2]
+
+
 def test_loc_datetimelike_mismatched_dtypes():
     # GH#32650 dont mix and match datetime/timedelta/period dtypes
 
