@@ -95,6 +95,9 @@ def data_for_compare(request):
     return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:SparseArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestSparseArray(base.ExtensionTests):
     def _honors_copy_keyword(self, data) -> bool:
         return False
@@ -195,8 +198,23 @@ class TestSparseArray(base.ExtensionTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_no_op_returns_copy(self, data, request):
-        super().test_fillna_no_op_returns_copy(data)
+    def test_fillna_no_op_returns_copy(self, data):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        if pd.isna(data.dtype.fill_value):
+            # GH#68582 filling an NA-filled array moves the fill value to the
+            #  fill scalar, see the fillna docstring
+            assert result.dtype == pd.SparseDtype(data.dtype.subtype, valid)
+            tm.assert_numpy_array_equal(result.to_dense(), data.to_dense())
+        else:
+            tm.assert_extension_array_equal(result, data)
+
+        result = data._pad_or_backfill(method="backfill")
+        assert result is not data
+        tm.assert_extension_array_equal(result, data)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
@@ -272,7 +290,9 @@ class TestSparseArray(base.ExtensionTests):
         cond = np.array([True, True, False, False])
         result = ser.where(cond)
 
-        new_dtype = pd.SparseDtype("float", 0.0)
+        # GH#68582 where() promotes the subtype to float but keeps the
+        #  fill_value
+        new_dtype = pd.SparseDtype("float64", data.dtype.fill_value)
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
@@ -381,8 +401,6 @@ class TestSparseArray(base.ExtensionTests):
             "rmul",
             "floordiv",
             "rfloordiv",
-            "truediv",
-            "rtruediv",
             "pow",
             "mod",
             "rmod",

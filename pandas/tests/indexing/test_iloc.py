@@ -889,15 +889,50 @@ class TestiLocBaseIndependent:
             else:
                 df.iloc[:, [0]] = value
 
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_mismatched_tuples_single_column(self, indexer):
+        # GH#37629 mismatched-length tuples into a single column are cell values,
+        # even when the column key is a list rather than a scalar label
+        df = pd.DataFrame({"a": np.zeros(2, dtype=object), "b": [0, 0]})
+        value = [(1, 2), (3, 4)]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = pd.DataFrame(
+            {"a": pd.Series([(1, 2), (3, 4)], dtype=object), "b": [0, 0]}
+        )
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_split_path_mismatched_tuples_arrow_list_column(self, indexer):
+        # GH#65264 the per-cell hatch keys on the target being a single column,
+        # not on it being object dtype
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.list_(pa.int64()))
+        df = pd.DataFrame({"a": pd.array([[9], [9]], dtype=dtype), "b": [0, 0]})
+        value = [(1, 2), (3, 4)]
+        if indexer == "loc":
+            df.loc[:, ["a"]] = value
+        else:
+            df.iloc[:, [0]] = value
+
+        expected = pd.DataFrame(
+            {"a": pd.array([[1, 2], [3, 4]], dtype=dtype), "b": [0, 0]}
+        )
+        tm.assert_frame_equal(df, expected)
+
     @pytest.mark.parametrize(
         "box",
-        [np.array, pd.Series, pd.Index, pd.array],
-        ids=["ndarray", "Series", "Index", "pd.array"],
+        [np.array, pd.Series, pd.Index, pd.array, tuple],
+        ids=["ndarray", "Series", "Index", "pd.array", "tuple"],
     )
     @pytest.mark.parametrize("indexer", ["loc", "iloc"])
     def test_setitem_split_path_list_of_len1_arrays_single_column(self, indexer, box):
         # GH#64230 len-1 rows into a single column is the shape that *does*
-        # match, the counterpart to the mismatch above
+        # match, the counterpart to the mismatch above. Tuples go this route
+        # too, like every other box (GH#65264)
         df = pd.DataFrame({"a": np.zeros(2), "b": [0, 0]})
         value = [box([1]), box([2])]
         if indexer == "loc":
@@ -2197,3 +2232,220 @@ def test_iloc_setitem_series_boolean_index_row_key():
     ser.iloc[pd.Index([True, True, False, False])] = ["a", "b"]
 
     tm.assert_series_equal(ser, pd.Series(["a", "b", 3, 4], dtype=object))
+
+
+def _datetimelike_values(ints, dtype):
+    # ``ints`` as the i8 values of ``dtype``, keeping the shape
+    if dtype == "period[D]":
+        return pd.arrays.PeriodArray(ints.ravel(), dtype=dtype).reshape(ints.shape)
+    if dtype == "M8[ns, UTC]":
+        values = pd.array(ints.ravel().view("M8[ns]")).tz_localize("UTC")
+        return values.reshape(ints.shape)
+    return ints.view(dtype)
+
+
+_ROW_KEYS = [
+    1,
+    [2, 0],
+    slice(None, None, -1),
+    np.array([True, False, True, False]),
+    [],
+    ...,
+]
+_COL_KEYS = [0, [2, 0], slice(None, None, 2), [2, 1, 0], []]
+
+
+class TestILocSetItem2DDatetimelikeBlock:
+    @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+    def test_1d_value_broadcasts(self, dtype):
+        # GH#68521 the 2D datetimelike block stores columns first, so a 1-D value
+        #  was broadcast down rows instead of across the selected columns
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        # copy so a write-through to ``arr`` can't make the comparison vacuous
+        df = pd.DataFrame(arr.copy().view(dtype), columns=list("abc"))
+
+        df.iloc[[2, 0], ::-1] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+        arr[[2, 0], ::-1] = [100, 101, 102]
+        expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]", "M8[ns, UTC]", "period[D]"])
+    @pytest.mark.parametrize(
+        "key",
+        [
+            (row_key, col_key)
+            for row_key in _ROW_KEYS
+            for col_key in _COL_KEYS
+            if not (isinstance(row_key, int) and isinstance(col_key, int))
+        ]
+        + [
+            (range(2), range(2)),
+            ([2, 0],),
+            (None,),
+            (None, ...),
+            (np.array([[1], [2]]),),
+            (np.array([[1, 2]]),),
+            (slice(None), np.array([[0, 2]])),
+        ],
+    )
+    def test_matches_numeric(self, dtype, key):
+        # GH#68521 a 2D datetimelike block writes the cells a NumPy-backed frame
+        #  does, and raises where it raises
+        ints = np.arange(12, dtype="i8").reshape(4, 3)
+        if len(key) == 2 and all(
+            isinstance(entry, (list, np.ndarray)) for entry in key
+        ):
+            # iloc takes the outer product of two list-likes, like np.ix_
+            shape = ints[np.ix_(*key)].shape
+        else:
+            shape = ints[key].shape
+        value_shapes = {shape, shape[:1], shape[-1:], shape[::-1]}
+        if len(shape) == 2:
+            value_shapes |= {(shape[0], 1), (1, *shape)}
+
+        for value_shape in value_shapes:
+            numeric = pd.DataFrame(ints.copy())
+            df = pd.DataFrame(_datetimelike_values(ints, dtype))
+            value = np.arange(100, 100 + np.prod(value_shape), dtype="i8")
+            value = value.reshape(value_shape)
+            try:
+                numeric.iloc[key] = value
+            except (ValueError, IndexError):
+                with pytest.raises((ValueError, IndexError)):
+                    df.iloc[key] = _datetimelike_values(value, dtype)
+            else:
+                df.iloc[key] = _datetimelike_values(value, dtype)
+            expected = pd.DataFrame(_datetimelike_values(numeric.to_numpy(), dtype))
+            tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "box",
+        [
+            list,
+            tuple,
+            pd.Index,
+            pd.Series,
+            pd.array,
+            pd.Categorical,
+            lambda x: [str(pd.Timestamp(v)) for v in x],
+        ],
+    )
+    def test_1d_value_not_ndarray(self, box):
+        # GH#68521 these spellings of a 1-D value wrote the wrong cells silently too
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.copy().view("M8[s]"), columns=list("abc"))
+
+        df.iloc[[2, 0], ::2] = box(np.array([100, 101], dtype="i8").view("M8[s]"))
+
+        arr[[2, 0], ::2] = [100, 101]
+        expected = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["M8[s]", "m8[s]"])
+    def test_0d_row_key(self, dtype):
+        # GH#68521 a 0-d ndarray row key selects one row, like an int
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.copy().view(dtype), columns=list("abc"))
+
+        df.iloc[np.array(1)] = np.array([100, 101, 102], dtype="i8").view(dtype)
+
+        arr[1] = [100, 101, 102]
+        expected = pd.DataFrame(arr.view(dtype), columns=list("abc"))
+        tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("col_key", [slice(None, None, -1), [2, 1, 0]])
+    def test_shape_mismatch_message(self, col_key):
+        # GH#68521 a value that cannot be broadcast is a shape problem; the upcast
+        #  fallback reported it as a datetime resolution one
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.view("M8[s]"), columns=list("abc"))
+
+        msg = (
+            r"shape mismatch: value array of shape \(2,\) could not be broadcast "
+            r"to indexing result of shape \(2,3\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.iloc[[2, 0], col_key] = np.array([100, 101], dtype="i8").view("M8[s]")
+
+    def test_row_vector_into_one_row(self):
+        # GH#68521 numpy drops the row vector's leading length-1 axis; this raised
+        #  because the value was transposed into a column vector
+        arr = np.arange(12).reshape(4, 3).astype("i8")
+        df = pd.DataFrame(arr.copy().view("M8[s]"), columns=list("abc"))
+
+        value = np.array([[100, 101, 102]])
+        df.iloc[1] = value.astype("i8").view("M8[s]")
+
+        arr[1] = value
+        tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
+
+
+def test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message():
+    # GH#68521 the broadcast message is for 2D blocks only; a Series keeps its
+    #  dtype error
+    ser = pd.Series(np.arange(4).astype("i8").view("M8[s]"))
+
+    with pytest.raises(TypeError, match="Invalid value"):
+        ser.iloc[0] = [1, 2]
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        # string dtypes
+        ("python", np.nan),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize(
+    "box",
+    [
+        list,
+        np.array,
+        pytest.param(
+            lambda x: pd.Series(x, index=["a"]),
+            marks=pytest.mark.xfail(reason="Series indexer fails"),
+        ),
+        pd.Index,
+        pd.array,
+    ],
+    # [np.array],
+    ids=["list", "ndarray", "Series", "Index", "pd.array"],
+)
+def test_iloc_setitem_single_column_frame_ea_dtype(dtype, box):
+    # https://github.com/pandas-dev/pandas/issues/66527
+    # column boolean mask that sets into the single column of a 1-column df
+    if isinstance(dtype, tuple):
+        dtype = pd.StringDtype(*dtype)
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+
+    # setting with a 2d dataframe
+    df.iloc[:, box([True])] = df * 2
+
+    expected = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype) * 2})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = df.iloc[[0, 1], :] * 2
+
+    arr = pd.array([1, 2, 3], dtype=dtype) * 2
+    arr[[0, 1]] = arr[[0, 1]] * 2
+    expected = pd.DataFrame({"a": arr})
+    tm.assert_frame_equal(df, expected)
+
+    # setting with a scalar
+    df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype=dtype)})
+    scalar = df.iloc[1, 0]
+
+    df.iloc[:, box([True])] = scalar
+
+    expected = pd.DataFrame({"a": pd.array([scalar] * 3, dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+    df.iloc[[0, 1], box([True])] = scalar * 2
+
+    expected = pd.DataFrame(
+        {"a": pd.array([scalar * 2, scalar * 2, scalar], dtype=dtype)}
+    )
+    tm.assert_frame_equal(df, expected)

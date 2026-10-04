@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import errno
 from functools import partial
 from io import (
     BytesIO,
@@ -13,7 +14,10 @@ from urllib.error import URLError
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    WASM,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -97,9 +101,7 @@ def flavor_read_html(request):
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785
-        msg = r"\[Errno 2\] No such file or director"
-
-        with pytest.raises(FileNotFoundError, match=msg):
+        with pytest.raises(OSError, match=r"\[Errno \d+\]") as excinfo:
             flavor_read_html(
                 """<table>
                 <thead>
@@ -122,6 +124,24 @@ class TestReadHtml:
                 </tbody>
             </table>"""
             )
+
+        # Windows rejects the literal as a filename with EINVAL rather than ENOENT.
+        # Compare the errno symbolically; WASM numbers them differently.
+        assert excinfo.value.errno in (errno.ENOENT, errno.EINVAL)
+
+    @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
+    @pytest.mark.skipif(
+        is_platform_windows(),
+        reason="Windows reports a directory as a permission error",
+    )
+    def test_directory_not_reported_as_missing(self, flavor_read_html, tmp_path):
+        # GH#29125 both flavors must surface the real error, not a missing file
+        path = tmp_path / "a_directory.html"
+        path.mkdir()
+
+        # the strerror text is locale-dependent, so only the path is matched
+        with pytest.raises(IsADirectoryError, match=re.escape(str(path))):
+            flavor_read_html(path)
 
     @pytest.fixture
     def spam_data(self, datapath):

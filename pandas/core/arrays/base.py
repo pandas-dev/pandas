@@ -64,6 +64,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import (
     arraylike,
     missing,
+    ops,
     roperator,
 )
 from pandas.core.algorithms import (
@@ -205,18 +206,18 @@ class ExtensionArray:
     * __repr__ : A default repr for the ExtensionArray.
     * _formatter : Print scalars inside a Series or DataFrame.
 
-    Some methods require casting the ExtensionArray to an ndarray of Python
-    objects with ``self.astype(object)``, which may be expensive. When
+    Some methods convert the ExtensionArray to an ndarray of Python objects,
+    with ``self.astype(object)`` or with ``np.asarray(self)`` when
+    ``__array__`` is not implemented, which may be expensive. When
     performance is a concern, we highly recommend overriding the following
     methods:
 
-    * fillna
-    * _pad_or_backfill
-    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
+    * isin
+    * value_counts
     * map
 
     The remaining methods implemented on this class should be performant,
@@ -2617,7 +2618,7 @@ class ExtensionArray:
         counts = np.ones(shape=(len(self),), dtype=np.uint64)
         return values, counts
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
@@ -2953,6 +2954,10 @@ class ExtensionArray:
         return type(self)._from_sequence(rounded, dtype=self.dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # the fallback at the end of this method np.asarray()s the values: M8/m8
+        #  survive to be truth-tested, the rest flatten to object
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         if any(
             isinstance(other, (ABCSeries, ABCIndex, ABCDataFrame)) for other in inputs
         ):
@@ -3054,8 +3059,7 @@ class ExtensionArray:
         from pandas.core.arrays.string_ import StringDtype
         from pandas.core.groupby.ops import WrappedCythonOp
 
-        kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         initial: Any = 0
         # GH#43682

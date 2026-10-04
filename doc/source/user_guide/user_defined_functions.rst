@@ -84,7 +84,7 @@ User-Defined Functions can be applied across various pandas methods:
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.pipe`               | Series or DataFrame    | Series or DataFrame      | Chain functions together to apply to Series or DataFrame                                                                                     |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.filter`             | Series or DataFrame    | Boolean                  | Only accepts UDFs in group by. Function is called for each group, and the group is removed from the result if the function returns ``False`` |
+| :ref:`udf.filter`             | Series or DataFrame    | Boolean mask             | Function is called with the object and returns a boolean mask; rows where the mask is ``False`` are removed from the result                  |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarize values, e.g., sum or custom reducer                                                                                  |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
@@ -267,9 +267,19 @@ When to use: Use :meth:`pipe` when you need to create a pipeline of operations a
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``filter`` method is used to select a subset of rows that match certain criteria.
-:meth:`Series.filter` and :meth:`DataFrame.filter` do not support user defined functions,
-but :meth:`SeriesGroupBy.filter` and :meth:`DataFrameGroupBy.filter` do. You can read more
-about ``filter`` in groupby operations in :ref:`groupby.filter`.
+:meth:`Series.filter` and :meth:`DataFrame.filter` accept a callable that is passed the
+object and returns a boolean mask; the rows where the mask is True are kept. This is
+convenient in a method chain where the intermediate object has no name.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+   df.assign(c=df["a"] + df["b"]).filter(lambda df: df["c"] > 5)
+
+You can read more about filtering with a boolean mask in :ref:`indexing.boolean.filter`.
+:meth:`SeriesGroupBy.filter` and :meth:`DataFrameGroupBy.filter` instead call the function
+once per group; you can read more about ``filter`` in groupby operations in
+:ref:`groupby.filter`.
 
 .. _udf.agg:
 
@@ -383,7 +393,7 @@ By annotating your UDFs with ``@numba.jit``, you can achieve performance closer 
 especially for computationally heavy tasks.
 
 .. note::
-    You may also refer to the user guide on `Enhancing performance <https://pandas.pydata.org/pandas-docs/dev/user_guide/enhancingperf.html#numba-jit-compilation>`_
+    You may also refer to the user guide on :ref:`Enhancing performance <enhancingperf.numba>`
     for a more detailed guide to using **Numba**.
 
 Using :meth:`DataFrame.pipe` for Composable Logic

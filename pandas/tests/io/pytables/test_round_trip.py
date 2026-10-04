@@ -134,6 +134,116 @@ def test_string_index_real_na_roundtrips_table(temp_hdfstore):
     not using_string_dtype(),
     reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
 )
+def test_string_index_na_read_from_file_without_sentinel_fixed(temp_hdfstore):
+    # GH#9604 — pandas 3.0 stored a NaN in a string Index as the bare string
+    # "nan" and read it back as missing. Those files carry no sentinel
+    # attribute, so the reader has to keep substituting "nan" for them.
+    ser = pd.Series(range(3), index=pd.Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    temp_hdfstore.put("s", ser, track_times=False)
+    assert temp_hdfstore.get_storer("s").group.index[:].tolist() == [
+        b"aaa",
+        b"nan",
+        b"bbb",
+    ]
+    del temp_hdfstore.get_storer("s").group.index._v_attrs.nan_rep
+
+    tm.assert_series_equal(temp_hdfstore.get("s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_na_read_from_file_without_sentinel_table(temp_hdfstore):
+    # GH#9604 — same, table format.
+    ser = pd.Series(range(3), index=pd.Index(["aaa", np.nan, "bbb"], dtype=str))
+
+    temp_hdfstore.append("s", ser)
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    tm.assert_series_equal(temp_hdfstore.select("s"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_to_file_without_sentinel(temp_hdfstore):
+    # GH#9604 — appending to such a file adopts "nan" as the sentinel, so the
+    # rows already stored and the appended missing values agree.
+    ser1 = pd.Series(range(2), index=pd.Index(["aaa", np.nan], dtype=str))
+    temp_hdfstore.append("s", ser1)
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    ser2 = pd.Series(range(2, 4), index=pd.Index(["bbb", np.nan], dtype=str))
+    temp_hdfstore.append("s", ser2)
+
+    expected = pd.Series(
+        range(4), index=pd.Index(["aaa", np.nan, "bbb", np.nan], dtype=str)
+    )
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_literal_nan_to_file_without_sentinel_raises(temp_hdfstore):
+    # GH#9604 — a file written before the sentinel was persisted stores a NaN
+    # as "nan", so a row labelled "nan" can no longer be appended to one: it
+    # would be indistinguishable from those.
+    temp_hdfstore.append(
+        "s", pd.Series([0, 1], index=pd.Index(["aaa", np.nan], dtype=str))
+    )
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    ser2 = pd.Series([2], index=pd.Index(["nan"], dtype=str))
+    with pytest.raises(ValueError, match="collides with the sentinel"):
+        temp_hdfstore.append("s", ser2)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
+def test_string_index_append_na_to_file_without_missing_values(temp_hdfstore):
+    # GH#9604 — the sentinel minted for the first missing value appended to such
+    # a file has to dodge the values already stored, not just the ones in the
+    # appended chunk: here "nan" and "_nan_" are both taken.
+    temp_hdfstore.append(
+        "s", pd.Series([0, 1], index=pd.Index(["_nan_", "bbbbbbbbbb"], dtype=str))
+    )
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    ser2 = pd.Series([2, 3], index=pd.Index(["nan", np.nan], dtype=str))
+    temp_hdfstore.append("s", ser2)
+
+    expected = pd.Series(
+        range(4),
+        index=pd.Index(["_nan_", "bbbbbbbbbb", "nan", np.nan], dtype=str),
+    )
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+def test_string_index_append_literal_nan_to_file_without_missing_values(temp_hdfstore):
+    # GH#9604 — but a pre-sentinel file that stores no "nan" at all has no
+    # sentinel to protect, so appending that label still works as it did.
+    temp_hdfstore.append(
+        "s", pd.Series([0, 1], index=pd.Index(["aaa", "bbb"], dtype=str))
+    )
+    del temp_hdfstore.get_storer("s").table.attrs.index_nan_rep
+
+    temp_hdfstore.append("s", pd.Series([2], index=pd.Index(["nan"], dtype=str)))
+
+    expected = pd.Series(range(3), index=pd.Index(["aaa", "bbb", "nan"], dtype=str))
+    tm.assert_series_equal(temp_hdfstore.select("s"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_index_real_na_and_literal_nan_roundtrip(temp_h5_path):
     # GH#9604 — a real NA and the literal string "nan" coexist in one string
     # Index and both round-trip: the NaN sentinel is chosen to avoid colliding
@@ -315,16 +425,219 @@ def test_string_index_literal_nan_multichunk_append_no_na(temp_hdfstore):
     tm.assert_series_equal(temp_hdfstore.select("s"), expected)
 
 
-def test_string_multiindex_level_literal_nan(temp_h5_path):
-    # GH#9604 — a literal "nan" string in a MultiIndex level round-trips in the
-    # table format. Levels are stored as data columns, which previously read a
-    # literal "nan" back as a missing value via the global NaN sentinel.
+def test_string_column_literal_nan(temp_h5_path):
+    # GH#9604 — a literal "nan" string in a data column round-trips in the table
+    # format. Data columns previously encoded missing values with the global
+    # nan_rep ("nan"), so a real value equal to it was read back as missing.
+    df = pd.DataFrame({"A": pd.Series(["nan", "aaa", "bbb"], dtype=str)})
+
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, "df"), df)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object column under infer_string=0",
+)
+def test_string_column_literal_nan_and_real_na(temp_h5_path):
+    # GH#9604 — a literal "nan" and a genuine missing value coexist in one data
+    # column and both round-trip (the per-column sentinel dodges "nan").
+    df = pd.DataFrame({"A": pd.Series(["nan", np.nan, "bbb"], dtype=str)})
+
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, "df"), df)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object column under infer_string=0",
+)
+def test_string_data_column_literal_nan_and_real_na(temp_hdfstore):
+    # GH#9604 — same for an indexable data column, which is also queryable.
+    df = pd.DataFrame({"A": pd.Series(["nan", np.nan, "bbb"], dtype=str)})
+
+    temp_hdfstore.append("df", df, data_columns=["A"])
+
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
+    tm.assert_frame_equal(
+        temp_hdfstore.select("df", "A == 'nan'"), df.iloc[[0]], check_index_type=False
+    )
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object column under infer_string=0",
+)
+def test_string_column_literal_nan_append(temp_hdfstore):
+    # GH#9604 — a literal "nan" written first and a genuine missing value
+    # appended later both round-trip: the sentinel minted for the second chunk
+    # avoids the value already stored.
+    df1 = pd.DataFrame({"A": pd.Series(["nan", "wide_value"], dtype=str)})
+    df2 = pd.DataFrame(
+        {"A": pd.Series([np.nan, "y"], dtype=str, index=[2, 3])},
+    )
+
+    temp_hdfstore.append("df", df1)
+    temp_hdfstore.append("df", df2)
+
+    expected = pd.DataFrame(
+        {"A": pd.Series(["nan", "wide_value", np.nan, "y"], dtype=str)}
+    )
+    tm.assert_frame_equal(temp_hdfstore.select("df"), expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object column under infer_string=0",
+)
+def test_string_column_append_value_colliding_with_sentinel_raises(temp_hdfstore):
+    # GH#9604 — appending a real value equal to the NaN sentinel already in use
+    # for the column would be read back as missing, so it is refused.
+    df1 = pd.DataFrame({"A": pd.Series([np.nan, "b"], dtype=str)})
+    df2 = pd.DataFrame({"A": pd.Series(["nan", "c"], dtype=str, index=[2, 3])})
+
+    temp_hdfstore.append("df", df1)
+    with pytest.raises(ValueError, match="collides with the sentinel"):
+        temp_hdfstore.append("df", df2)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object column under infer_string=0",
+)
+def test_string_column_explicit_nan_rep_is_still_table_wide(temp_hdfstore):
+    # GH#9604 — an explicit nan_rep keeps its documented meaning: it is the
+    # on-disk representation of a missing value for the whole table, so a value
+    # equal to it is read back as missing. Only the default is collision-free.
+    df = pd.DataFrame({"A": pd.Series(["_NA_", np.nan, "bbb"], dtype=str)})
+
+    temp_hdfstore.append("df", df, nan_rep="_NA_")
+
+    expected = pd.DataFrame({"A": pd.Series([np.nan, np.nan, "bbb"], dtype=str)})
+    tm.assert_frame_equal(temp_hdfstore.select("df"), expected)
+
+
+def test_string_columns_sharing_a_block_literal_nan(temp_h5_path):
+    # GH#9604 — object-dtype string columns share one stored block and therefore
+    # one sentinel; a literal "nan" in either of them still round-trips. A
+    # dtype=str column is an ExtensionArray and gets a block of its own, so this
+    # deliberately uses object dtype to exercise the 2-D block.
+    df = pd.DataFrame({"A": ["nan", np.nan], "B": ["nan", "y"]}, dtype=object)
+
+    df.to_hdf(temp_h5_path, key="df", format="table")
+
+    # check_dtype: an object column of strings is read back as str under
+    # infer_string; the values are what this test is about
+    tm.assert_frame_equal(pd.read_hdf(temp_h5_path, "df"), df, check_dtype=False)
+
+
+def test_string_columns_sharing_a_block_collision_names_the_column(temp_hdfstore):
+    # GH#9604 — the sentinel is minted per stored block, so the collision error
+    # has to name the frame column that actually holds the offending value
+    # rather than the internal block name.
+    df1 = pd.DataFrame({"A": ["x", np.nan], "B": ["y", "z"]}, dtype=object)
+    df2 = pd.DataFrame({"A": ["p", "q"], "B": ["nan", "r"]}, index=[2, 3], dtype=object)
+
+    temp_hdfstore.append("df", df1)
+    with pytest.raises(ValueError, match=r"in column \[B\]"):
+        temp_hdfstore.append("df", df2)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object column under infer_string=0",
+)
+def test_string_column_append_needing_a_longer_sentinel_raises(temp_hdfstore):
+    # GH#9604 — a stored literal "nan" forces the longer "_nan_" sentinel, which
+    # may not fit a column sized from short strings. Refusing is the honest
+    # outcome (the alternative is reading the stored "nan" back as missing), but
+    # the room has to be reserved when the table is created.
+    df1 = pd.DataFrame({"A": pd.Series(["nan", "abc"], dtype=str)})
+    df2 = pd.DataFrame({"A": pd.Series([np.nan, "z"], dtype=str, index=[2, 3])})
+
+    temp_hdfstore.append("df", df1)
+    with pytest.raises(ValueError, match="NaN representation is too large"):
+        temp_hdfstore.append("df", df2)
+
+    temp_hdfstore.append("wide", df1, min_itemsize={"A": 5})
+    temp_hdfstore.append("wide", df2)
+    expected = pd.DataFrame({"A": pd.Series(["nan", "abc", np.nan, "z"], dtype=str)})
+    tm.assert_frame_equal(temp_hdfstore.select("wide"), expected)
+
+
+def test_string_column_append_to_file_with_only_the_mi_marker(temp_hdfstore):
+    # GH#9604 — a file from an intermediate build that has the MultiIndex-level
+    # marker but not the data-column one: the level keeps its per-level sentinel
+    # while the data column stays on the legacy table-wide nan_rep.
+    mi1 = pd.MultiIndex.from_arrays(
+        [pd.Index(["nan", "wide_value"], dtype=str), [1, 2]], names=["s", "i"]
+    )
+    df1 = pd.DataFrame(
+        {"A": pd.Series(["nan", "wide_value"], dtype=str).values}, index=mi1
+    )
+    temp_hdfstore.append("t", df1)
+    storer = temp_hdfstore.get_storer("t")
+    del storer.attrs.data_col_nan_rep
+    storer.attrs.nan_rep = "nan"
+
+    mi2 = pd.MultiIndex.from_arrays(
+        [pd.Index([np.nan, "y"], dtype=str), [3, 4]], names=["s", "i"]
+    )
+    df2 = pd.DataFrame({"A": pd.Series([np.nan, "y"], dtype=str).values}, index=mi2)
+    temp_hdfstore.append("t", df2)
+
+    result = temp_hdfstore.select("t")
+    # the level round-trips both the literal and the missing value ...
+    assert list(result.index.get_level_values("s")) == [
+        "nan",
+        "wide_value",
+        np.nan,
+        "y",
+    ]
+    # ... while the data column reads the stored "nan" back as missing, as it
+    # did before the per-column sentinel existed
+    expected = pd.Series(
+        [np.nan, "wide_value", np.nan, "y"], dtype=str, index=result.index, name="A"
+    )
+    tm.assert_series_equal(result["A"], expected)
+
+
+def test_string_column_append_to_file_without_marker(temp_hdfstore):
+    # GH#9604 — the per-column sentinel is honored on read only when the table
+    # carries the marker attribute, which is written when the table is created.
+    # Appending a missing value to a file written before the marker existed must
+    # keep using the table-wide nan_rep, otherwise the sentinel would be read
+    # back as a literal string.
+    df1 = pd.DataFrame({"A": pd.Series(["nan", "wide_value"], dtype=str)})
+    temp_hdfstore.append("df", df1)
+    storer = temp_hdfstore.get_storer("df")
+    del storer.attrs.data_col_nan_rep
+    storer.attrs.nan_rep = "nan"  # what a pre-marker writer stored
+
+    df2 = pd.DataFrame({"A": pd.Series([np.nan, "y"], dtype=str, index=[2, 3])})
+    temp_hdfstore.append("df", df2)
+
+    # the stored "nan" reads back as missing, as it did before the sentinel was
+    # introduced, and so does the appended missing value
+    expected = pd.DataFrame(
+        {"A": pd.Series([np.nan, "wide_value", np.nan, "y"], dtype=str)}
+    )
+    tm.assert_frame_equal(temp_hdfstore.select("df"), expected)
+
+
+@pytest.mark.parametrize("fmt", ["fixed", "table"])
+def test_string_multiindex_level_literal_nan(temp_h5_path, fmt):
+    # GH#9604 — a literal "nan" in a MultiIndex level round-trips in both
+    # formats. In the fixed format the empty sentinel attribute is what keeps it
+    # a string: an absent one marks a pre-3.1 file and means substitute.
     mi = pd.MultiIndex.from_arrays(
         [pd.Index(["nan", "a", "b"], dtype=str), [1, 2, 3]], names=["s", "i"]
     )
     ser = pd.Series(range(3), index=mi)
 
-    ser.to_hdf(temp_h5_path, key="t", format="table")
+    ser.to_hdf(temp_h5_path, key="t", format=fmt)
     tm.assert_series_equal(pd.read_hdf(temp_h5_path, "t"), ser)
 
 
@@ -397,6 +710,23 @@ def test_string_multiindex_level_literal_nan_append(temp_hdfstore):
     not using_string_dtype(),
     reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
 )
+def test_string_multiindex_level_with_explicit_nan_rep(temp_hdfstore):
+    # GH#9604 — a MultiIndex level is part of the index, so it keeps its own
+    # sentinel even when the caller supplies a nan_rep for the data columns.
+    mi = pd.MultiIndex.from_arrays(
+        [pd.Index([np.nan, "_NA_"], dtype=str), [1, 2]], names=["s", "i"]
+    )
+    ser = pd.Series(range(2), index=mi)
+
+    temp_hdfstore.append("t", ser, nan_rep="_NA_")
+
+    tm.assert_series_equal(temp_hdfstore.select("t"), ser)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(),
+    reason="a real NaN in dtype=str is an object/mixed Index under infer_string=0",
+)
 def test_string_multiindex_level_append_to_file_without_marker(temp_hdfstore):
     # GH#9604 — the per-level sentinel is honored on read only when the table
     # carries the marker attribute, which is written when the table is created.
@@ -411,6 +741,7 @@ def test_string_multiindex_level_append_to_file_without_marker(temp_hdfstore):
     )
     temp_hdfstore.append("t", s1)
     del temp_hdfstore.get_storer("t").attrs.mi_level_nan_rep
+    del temp_hdfstore.get_storer("t").attrs.data_col_nan_rep
 
     s2 = pd.Series(
         range(2, 4),

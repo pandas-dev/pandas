@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from decimal import Decimal
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -32,6 +33,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
     is_bool,
+    is_bool_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -44,7 +46,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
-    DatetimeTZDtype,
+    CategoricalDtypeType,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -63,6 +65,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
+    plottable_types,
     register_pandas_matplotlib_converters,
 )
 from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
@@ -165,7 +168,7 @@ class MPLPlot(ABC):
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
         fontsize: int | None = None,
-        secondary_y: bool | tuple | list | np.ndarray = False,
+        secondary_y: bool | tuple[Hashable, ...] | list[Hashable] | np.ndarray = False,
         colormap=None,
         table: bool = False,
         layout=None,
@@ -666,8 +669,14 @@ class MPLPlot(ABC):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)) and isinstance(
-            data.dtype, ExtensionDtype
+        # Same for Decimal EAs (e.g. pyarrow decimal), as box/kde/area can't
+        # mix Decimal with float
+        dtype = data.dtype
+        if isinstance(dtype, ExtensionDtype) and (
+            is_integer_dtype(dtype)
+            or is_float_dtype(dtype)
+            or is_bool_dtype(dtype)
+            or issubclass(dtype.type, Decimal)
         ):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
@@ -706,24 +715,40 @@ class MPLPlot(ABC):
         # GH16953, infer_objects is needed as fallback, for ``Series``
         # with ``dtype == object``
         data = data.infer_objects()
-        include_type = [np.number, "datetime", DatetimeTZDtype, "timedelta"]
+        include_type = plottable_types()
 
         # GH23719, allow plotting boolean
         if self.include_bool is True:
-            include_type.append(np.bool_)
+            include_type.extend([bool, np.bool_])
 
         # GH22799, exclude datetime-like type for boxplot
-        exclude_type = None
+        exclude_type = []
         if self._kind == "box":
             # TODO: change after solving issue 27881
             include_type = [np.number]
-            exclude_type = ["timedelta"]
+            exclude_type = [np.timedelta64]
 
-        # GH 18755, include object and category type for scatter plot
+        # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend(["object", "category", "string"])
+            include_type.extend([np.object_, CategoricalDtypeType, str, bytes])
 
-        numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
+        # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
+        def dtype_predicate(dtype, types) -> bool:
+            type_ = dtype.type
+            return issubclass(type_, tuple(types)) or (
+                np.number in types
+                and getattr(dtype, "_is_numeric", False)
+                and not is_bool_dtype(dtype)
+            )
+
+        def predicate_for_plottability(blk_vals) -> bool:
+            dtype = blk_vals.dtype
+            is_included = dtype_predicate(dtype, include_type)
+            is_excluded = dtype_predicate(dtype, exclude_type)
+            return is_included and not is_excluded
+
+        mgr = data._mgr._get_data_subset(predicate_for_plottability)
+        numeric_data = data._constructor_from_mgr(mgr, axes=mgr.axes)
 
         is_empty = numeric_data.shape[-1] == 0
         # no non-numeric frames or series allowed
@@ -2051,10 +2076,18 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        data = self.data.fillna(0)
+        # GH#39320 plot timedeltas as integers, as matplotlib draws them;
+        # it would otherwise add int bottoms to them, deprecated in numpy 2.5
+        data = self.data.apply(
+            lambda col: (
+                col.fillna(np.timedelta64(0, "ns")).astype(np.int64)
+                if lib.is_np_dtype(col.dtype, "m")
+                else col.fillna(0)
+            )
+        )
 
         _stacked_subplots_ind: dict[int, int] = {}
-        _stacked_subplots_offsets: list[tuple[np.ndarray, np.ndarray]] = []
+        _stacked_subplots_offsets: dict[int, tuple[np.ndarray, np.ndarray]] = {}
 
         self.subplots: list[Any]
 
@@ -2065,7 +2098,7 @@ class BarPlot(MPLPlot):
                         continue
                     for plot in sub_plot:
                         _stacked_subplots_ind[int(plot)] = i
-                    _stacked_subplots_offsets.append((pos_prior, neg_prior))
+                    _stacked_subplots_offsets[i] = (pos_prior, neg_prior)
 
         for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
@@ -2114,12 +2147,23 @@ class BarPlot(MPLPlot):
                 _stacked_subplots_offsets[offset_index] = (pos_new, neg_new)
 
             elif self.subplots:
-                w = self.bar_width / 2
+                if isinstance(self.subplots, list):
+                    subplot_columns = self.subplots[self._col_idx_to_axis_idx(i)]
+                    series_idx = subplot_columns.index(i)
+                    width = self.bar_width / len(subplot_columns)
+                else:
+                    series_idx = 0
+                    width = self.bar_width
+
+                if self._align == "edge":
+                    bar_position = self.ax_pos + self.bar_width / 2 + series_idx * width
+                else:
+                    bar_position = self.ax_pos + (series_idx + 0.5) * width
                 rect = self._plot(
                     ax,
-                    self.ax_pos + w,
+                    bar_position,
                     y,
-                    self.bar_width,
+                    width,
                     start=start,
                     label=label,
                     log=self.log,

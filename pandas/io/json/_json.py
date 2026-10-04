@@ -653,7 +653,7 @@ def read_json(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
-) -> DataFrame | Series | JsonReader:
+) -> DataFrame | Series | JsonReader[Any]:
     """
     Convert a JSON string to pandas object.
 
@@ -1018,7 +1018,7 @@ def read_json(
 
 
 @set_module("pandas.api.typing")
-class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
+class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
     """
     JsonReader provides an interface for reading in a JSON file.
 
@@ -1202,19 +1202,14 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             2. file-like object (e.g. open file object, StringIO)
         """
         filepath_or_buffer = stringify_path(filepath_or_buffer)
-        try:
-            self.handles = get_handle(
-                filepath_or_buffer,
-                "r",
-                encoding=self.encoding,
-                compression=self.compression,
-                storage_options=self.storage_options,
-                errors=self.encoding_errors,
-            )
-        except OSError as err:
-            raise FileNotFoundError(
-                f"File {filepath_or_buffer} does not exist"
-            ) from err
+        self.handles = get_handle(
+            filepath_or_buffer,
+            "r",
+            encoding=self.encoding,
+            compression=self.compression,
+            storage_options=self.storage_options,
+            errors=self.encoding_errors,
+        )
         filepath_or_buffer = self.handles.handle
         return filepath_or_buffer
 
@@ -1492,7 +1487,7 @@ class Parser:
         self.dtype_backend = dtype_backend
 
     @final
-    def check_keys_split(self, decoded: dict) -> None:
+    def check_keys_split(self, decoded: dict[str, Any]) -> None:
         """
         Checks that dict has only the appropriate keys for orient='split'.
         """

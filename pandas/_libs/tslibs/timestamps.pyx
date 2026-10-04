@@ -97,6 +97,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     convert_reso,
     dts_to_iso_string,
     get_datetime64_unit,
+    get_unit_count_from_dtype,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -246,9 +247,14 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic timedelta64 in the other operand's unit
         other_reso = reso
-    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
+    elif (
+        other_reso < NPY_FR_W
+        or other_reso > NPY_FR_ns
+        or get_unit_count_from_dtype(other.dtype) != 1
+    ):
         # year/month, which numpy itself refuses to add to a time unit, and
-        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+        #  sub-nanosecond or multiplier units such as m8[10s], which we have no
+        #  reso for; leave all to numpy (GH#25611)
         return (ts.asm8 - other) if subtract else (ts.asm8 + other)
 
     if not cnp.PyArray_CheckExact(other):
@@ -271,9 +277,8 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
 
     i8other = other.view("i8")
     if subtract:
-        # asarray: np.negative hands back a scalar for a 0-dim operand, which
-        #  add_overflowsafe rejects. NPY_NAT negates to itself, so NaT still
-        #  propagates.
+        # asarray: np.negative returns a scalar for a 0-dim operand.
+        #  NPY_NAT negates to itself, so NaT still propagates
         i8other = np.asarray(np.negative(i8other))
 
     try:
@@ -1698,7 +1703,7 @@ cdef class _Timestamp(ABCTimestamp):
     def _date_repr(self) -> str:
         # Ideal here would be self.strftime("%Y-%m-%d"), but
         # the datetime strftime() methods require year >= 1900 and is slower
-        return f"{self._year}-{self.month:02d}-{self.day:02d}"
+        return f"{self._year:04d}-{self.month:02d}-{self.day:02d}"
 
     @property
     def _time_repr(self) -> str:
@@ -3020,9 +3025,14 @@ class Timestamp(_Timestamp):
                     "Valid values for the fold argument are None, 0, or 1."
                 )
 
-            if (ts_input is not _no_input and not (
-                    PyDateTime_Check(ts_input) and
-                    getattr(ts_input, "tzinfo", None) is None)):
+            if not (
+                ts_input is _no_input
+                # GH#52117 two leading integers mean the positional
+                #  by-component form, as unambiguous as the keyword form
+                or (is_integer_object(ts_input) and is_integer_object(year))
+                or (PyDateTime_Check(ts_input)
+                    and getattr(ts_input, "tzinfo", None) is None)
+            ):
                 raise ValueError(
                     "Cannot pass fold with possibly unambiguous input: int, "
                     "float, numpy.datetime64, str, or timezone-aware "

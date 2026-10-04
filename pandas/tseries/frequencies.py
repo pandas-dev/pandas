@@ -330,14 +330,18 @@ class _FrequencyInferer:
             return _maybe_add_count("ns", delta)
 
     @cache_readonly
-    def day_deltas(self) -> list[int]:
+    def day_deltas(self) -> list[float]:
+        # NB: must be true division; flooring would let a fractional gap
+        #  match the exact [1, 3] check in _is_business_daily
         ppd = periods_per_day(self._creso)
-        return [x // ppd for x in self.deltas]
+        return [x / ppd for x in self.deltas]
 
     @cache_readonly
-    def hour_deltas(self) -> list[int]:
+    def hour_deltas(self) -> list[float]:
+        # NB: must be true division, as in day_deltas; this one feeds the
+        #  exact [1, 17]/[1, 65] check in get_freq
         pph = periods_per_day(self._creso) // 24
-        return [x // pph for x in self.deltas]
+        return [x / pph for x in self.deltas]
 
     @cache_readonly
     def fields(self) -> np.ndarray:  # structured array of fields
@@ -345,7 +349,8 @@ class _FrequencyInferer:
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
-        return Timestamp(self.i8values[0], unit=self.index.unit)
+        # creating a Timestamp preserving the i8 unit
+        return Timestamp._from_value_and_reso(self.i8values[0], self._creso, None)
 
     def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.day_of_week)

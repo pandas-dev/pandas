@@ -78,6 +78,9 @@ def data_for_grouping():
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore:JSONArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(
         reason="comparison method not implemented for JSONArray (GH-37867)"
@@ -429,6 +432,11 @@ class TestJSONArray(base.ExtensionTests):
         # dictionaries are not unpacked again, so the JSONArray cannot be reconstructed
         # with the simple deserialization in the test.
         super().test_json_roundtrip(data)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # JSONArray cannot be plotted on y-axis
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(plot_data)
 
 
 def custom_assert_series_equal(left, right, *args, **kwargs):

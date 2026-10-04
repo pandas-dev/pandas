@@ -144,6 +144,8 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
+    _WhereArg: TypeAlias = dict[Any, Any] | list[Any] | tuple[Any, ...] | str
+
 
 # encoding
 _default_encoding = "UTF-8"
@@ -369,7 +371,7 @@ def read_hdf(
     key=None,
     mode: str = "r",
     errors: str = "strict",
-    where: str | list | None = None,
+    where: str | list[Any] | None = None,
     start: int | None = None,
     stop: int | None = None,
     columns: list[str] | None = None,
@@ -456,7 +458,7 @@ def read_hdf(
     Examples
     --------
     >>> df = pd.DataFrame([[1, 1.0, "a"]], columns=["x", "y", "z"])  # doctest: +SKIP
-    >>> df.to_hdf("./store.h5", "data")  # doctest: +SKIP
+    >>> df.to_hdf("./store.h5", key="data")  # doctest: +SKIP
     >>> reread = pd.read_hdf("./store.h5")  # doctest: +SKIP
     """
     if mode not in ["r", "r+", "a"]:
@@ -795,7 +797,7 @@ class HDFStore:
     def __iter__(self) -> Iterator[str]:
         return iter(self.keys())
 
-    def items(self) -> Iterator[tuple[str, list]]:
+    def items(self) -> Iterator[tuple[str, Node]]:
         """
         iterate on key->group
         """
@@ -1398,8 +1400,12 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str, default 'nan'
-            Str to use as str nan representation.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns
+            (``format="table"`` only).
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
@@ -1438,7 +1444,7 @@ class HDFStore:
         Notes
         -----
         Writing an empty ``DataFrame`` or ``Series`` with ``format='table'``
-        or ``append=True`` is a no-op: the store is not modified and a
+        or ``append=True`` is a no-op: nothing is written for ``key`` and a
         ``UserWarning`` is emitted. Use ``format='fixed'`` to store an empty
         object.
 
@@ -1627,8 +1633,13 @@ class HDFStore:
             If dict, specific columns reserve 'min_itemsize' bytes per stored value.
             Strings are stored as encoded bytes. Since some characters require multiple
             bytes, required size may be larger than string length.
-        nan_rep : str, default 'nan'
-            Str to use as str nan representation.
+        nan_rep : str, optional
+            String used on disk to represent missing values in string columns.
+            By default a sentinel that collides with no value in the column is
+            used, so a literal ``"nan"`` round-trips unchanged; when this is
+            passed, a value equal to it is read back as a missing value.
+            Only used when the table is created; ignored on later appends,
+            which reuse whatever the table already stores.
         chunksize : int, default 100000
             Number of rows to write in each chunk.
         expectedrows : int
@@ -1665,8 +1676,8 @@ class HDFStore:
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
 
-        Appending an empty ``DataFrame`` or ``Series`` is a no-op: the store
-        is not modified and a ``UserWarning`` is emitted.
+        Appending an empty ``DataFrame`` or ``Series`` is a no-op: nothing is
+        written for ``key`` and a ``UserWarning`` is emitted.
 
         Examples
         --------
@@ -1722,7 +1733,7 @@ class HDFStore:
 
     def append_to_multiple(
         self,
-        d: dict,
+        d: dict[str, Any],
         value,
         selector,
         data_columns=None,
@@ -1802,7 +1813,7 @@ class HDFStore:
 
         # figure out how to split the value
         remain_key = None
-        remain_values: list = []
+        remain_values: list[Hashable] = []
         for k, v in d.items():
             if v is None:
                 if remain_key is not None:
@@ -1918,7 +1929,7 @@ class HDFStore:
             raise TypeError("cannot create table index on a Fixed format store")
         s.create_index(columns=columns, optlevel=optlevel, kind=kind)
 
-    def groups(self) -> list:
+    def groups(self) -> list[Node]:
         """
         Return a list of all the top-level nodes.
 
@@ -2372,7 +2383,7 @@ class HDFStore:
         if getattr(value, "empty", None) and (format == "table" or append):
             warnings.warn(
                 "Writing an empty DataFrame or Series with format='table' "
-                "or append=True is a no-op; the HDFStore is not modified.",
+                f"or append=True is a no-op; nothing is written for key {key!r}.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
@@ -2549,7 +2560,7 @@ class TableIterator:
 
         self.auto_close = auto_close
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         # iterate
         if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
@@ -2625,10 +2636,10 @@ class IndexCol:
 
     is_an_indexable: bool = True
     is_data_indexable: bool = True
-    # GH#9604: True for a data column that stores a string MultiIndex level, so
-    # it round-trips missing values like a string Index rather than via the
-    # global data-column nan_rep default.
-    is_mi_level: bool = False
+    # GH#9604: set on a DataCol whose missing values use the sentinel in
+    # ``nan_rep`` rather than a table-wide one (an old file, or a table written
+    # with an explicit nan_rep).
+    uses_col_nan_rep: bool = False
     _info_fields = ["freq", "tz", "index_name", "ordered"]
 
     def __init__(
@@ -2666,8 +2677,8 @@ class IndexCol:
         self.table = table
         self.meta = meta
         self.metadata = metadata
-        # GH#9604: for a string Index, the sentinel used on write to encode
-        # missing values (None when the index had no missing values).
+        # GH#9604: the sentinel used on write to encode this column's missing
+        # values (None when it had none).
         self.nan_rep = nan_rep
 
         if pos is not None:
@@ -2868,7 +2879,7 @@ class IndexCol:
         """return my cython values"""
         return self.values
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(self.values)
 
     def maybe_set_size(self, min_itemsize=None) -> None:
@@ -2918,9 +2929,24 @@ class IndexCol:
         # check for backwards incompatibility
         if append:
             existing_kind = getattr(self.attrs, self.kind_attr, None)
-            if existing_kind is not None and existing_kind != self.kind:
+            if existing_kind is None:
+                # brand new table, nothing to be incompatible with
+                return
+            if existing_kind != self.kind:
                 raise TypeError(
                     f"incompatible kind in col [{existing_kind} - {self.kind}]"
+                )
+            existing_meta = getattr(self.attrs, self.meta_attr, None)
+            if existing_meta != self.meta:
+                # A CategoricalIndex stores its codes, so both sides are kind
+                # "integer" and the check above passes; without this the append
+                # silently reinterprets codes as labels or vice versa. GH#65576
+                if self.meta == "category":
+                    raise TypeError(
+                        "cannot append a categorical index to a non-categorical index"
+                    )
+                raise TypeError(
+                    "cannot append a non-categorical index to a categorical index"
                 )
 
     def update_info(self, info) -> None:
@@ -2968,10 +2994,11 @@ class IndexCol:
             # empty categories cannot be written as metadata, still round-trips
             # as categorical rather than as raw integer codes. GH#65576
             _set_attr_if_changed(self.attrs, self.meta_attr, self.meta)
-        if self.nan_rep is not None:
-            # GH#9604: persist the string-Index NaN sentinel so select() can
-            # restore missing values on read (see IndexCol.convert).
-            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
+        if self.kind == "string":
+            # GH#9604: the NaN sentinel, empty when the index has no missing
+            # value, so that its absence marks an older file. Table.indexables
+            # reads it back through _read_index_nan_rep.
+            _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep or "")
 
     def validate_metadata(self, handler: AppendableTable) -> None:
         """validate that kind=category does not change the categories"""
@@ -3325,15 +3352,12 @@ class DataCol(IndexCol):
 
         # convert nans / decode
         if kind == "string":
-            if self.is_mi_level:
-                # GH#9604: a string MultiIndex level round-trips like a string
-                # Index. self.nan_rep is the per-level sentinel (None when the
-                # level had no missing value), and a literal "nan" is left
-                # untouched instead of being read back as a missing value.
+            if self.uses_col_nan_rep:
+                # GH#9604: None when the column had no missing value, in which
+                # case a literal "nan" is left untouched
                 col_nan_rep = self.nan_rep
             else:
-                # Old files may have been written without nan_rep persisted; the
-                # writer (write_data) defaulted None to "nan", so do the same.
+                # the table-wide nan_rep, which the writer defaulted to "nan"
                 col_nan_rep = nan_rep if nan_rep is not None else "nan"
             converted = _unconvert_string_array(
                 converted,
@@ -3351,7 +3375,7 @@ class DataCol(IndexCol):
         assert self.dtype is not None
         _set_attr_if_changed(self.attrs, self.dtype_attr, self.dtype)
         if self.nan_rep is not None:
-            # GH#9604: per-level string MultiIndex NaN sentinel (see convert).
+            # GH#9604: this column's own NaN sentinel (see convert).
             _set_attr_if_changed(self.attrs, self.nan_rep_attr, self.nan_rep)
 
 
@@ -3558,7 +3582,7 @@ class GenericFixed(Fixed):
     def _get_index_factory(self, attrs):
         index_class = self._alias_to_class(getattr(attrs, "index_class", ""))
 
-        factory: Callable
+        factory: Callable[..., Index]
 
         kwargs = {}
         if index_class == DatetimeIndex:
@@ -3738,10 +3762,9 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = converted.kind
             node._v_attrs.name = index.name
 
-            if converted.nan_rep is not None:
-                # GH#9604: persist the string-Index NaN sentinel so read_index
-                # can restore missing values (see read_index_node).
-                node._v_attrs.nan_rep = converted.nan_rep
+            if converted.kind == "string":
+                # GH#9604: the NaN sentinel, as in IndexCol.set_attr
+                node._v_attrs.nan_rep = converted.nan_rep or ""
 
             if isinstance(index, (DatetimeIndex, PeriodIndex)):
                 node._v_attrs.index_class = self._class_to_alias(type(index))
@@ -3772,8 +3795,9 @@ class GenericFixed(Fixed):
             node._v_attrs.kind = conv_level.kind
             node._v_attrs.name = name
 
-            if conv_level.nan_rep is not None:
-                node._v_attrs.nan_rep = conv_level.nan_rep
+            if conv_level.kind == "string":
+                # GH#9604: the NaN sentinel, as in IndexCol.set_attr
+                node._v_attrs.nan_rep = conv_level.nan_rep or ""
 
             # write the name
             setattr(node._v_attrs, f"{key}_name{name}", name)
@@ -3834,8 +3858,7 @@ class GenericFixed(Fixed):
         attrs = node._v_attrs
         factory, kwargs = self._get_index_factory(attrs)
 
-        # GH#9604: per-index string NaN sentinel (absent for old files)
-        nan_rep = getattr(node._v_attrs, "nan_rep", None)
+        nan_rep = _read_index_nan_rep(attrs) if kind == "string" else None
 
         if kind == "string" and using_string_dtype():
             # GH#9604: once the sentinel is substituted back to NaN, dtype
@@ -4227,7 +4250,7 @@ class Table(Fixed):
     levels: int | list[Hashable] = 1  # pyright: ignore[reportRedeclaration]
     is_table = True
 
-    metadata: list
+    metadata: list[Any]
 
     def __init__(
         self,
@@ -4238,8 +4261,8 @@ class Table(Fixed):
         index_axes: list[IndexCol] | None = None,
         non_index_axes: list[tuple[AxisInt, Any]] | None = None,
         values_axes: list[DataCol] | None = None,
-        data_columns: list | None = None,
-        info: dict | None = None,
+        data_columns: list[str] | None = None,
+        info: dict[Hashable, Any] | None = None,
         nan_rep=None,
     ) -> None:
         super().__init__(parent, group, encoding=encoding, errors=errors)
@@ -4465,6 +4488,10 @@ class Table(Fixed):
         # per-level NaN sentinel (older files lack it and read back as before).
         # self.levels is the int default 1 for non-MI tables, a list for MI.
         self.attrs.mi_level_nan_rep = isinstance(self.levels, list)
+        # GH#9604: every string data column is stored with its own NaN
+        # sentinel, superseding mi_level_nan_rep. A caller-supplied nan_rep
+        # keeps its documented table-wide meaning, so such a table opts out.
+        self.attrs.data_col_nan_rep = self.nan_rep is None
         self.attrs.info = self.info
 
     def get_attrs(self) -> None:
@@ -4512,6 +4539,7 @@ class Table(Fixed):
         levels_attr = getattr(self.attrs, "levels", None)
         levels = levels_attr if isinstance(levels_attr, list) else []
         mi_level_marker = getattr(self.attrs, "mi_level_nan_rep", False)
+        data_col_marker = getattr(self.attrs, "data_col_nan_rep", False)
 
         # Note: each of the `name` kwargs below are str, ensured
         #  by the definition in index_cols.
@@ -4529,8 +4557,11 @@ class Table(Fixed):
 
             kind_attr = f"{name}_kind"
             kind = getattr(table_attrs, kind_attr, None)
-            # GH#9604: per-index string NaN sentinel (absent for old files)
-            nan_rep = getattr(table_attrs, f"{name}_nan_rep", None)
+            nan_rep = (
+                _read_index_nan_rep(table_attrs, f"{name}_nan_rep")
+                if kind == "string"
+                else None
+            )
 
             index_col = IndexCol(
                 name=name,
@@ -4570,12 +4601,12 @@ class Table(Fixed):
             #  meta = "category" if md is not None else None
             meta = getattr(table_attrs, f"{c}_meta", None)
 
-            # GH#9604: a string MultiIndex level stored as a data column carries
-            # a per-level NaN sentinel and round-trips missing values like a
-            # string Index; older files lack the marker and read back as before.
-            is_mi_level = c in levels and mi_level_marker
+            # GH#9604: mi_level_nan_rep predates data_col_nan_rep and covers
+            # only the MultiIndex levels, which keep a sentinel even when the
+            # caller supplied a nan_rep for the data columns.
+            uses_col_nan_rep = data_col_marker or (c in levels and mi_level_marker)
             nan_rep = (
-                getattr(table_attrs, f"{c}_nan_rep", None) if is_mi_level else None
+                getattr(table_attrs, f"{c}_nan_rep", None) if uses_col_nan_rep else None
             )
 
             obj = klass(
@@ -4591,7 +4622,7 @@ class Table(Fixed):
                 dtype=dtype,
                 ordered=self.info.get(c, {}).get("ordered"),
             )
-            obj.is_mi_level = is_mi_level
+            obj.uses_col_nan_rep = uses_col_nan_rep
             obj.nan_rep = nan_rep
             return obj
 
@@ -4728,7 +4759,7 @@ class Table(Fixed):
 
     def validate_data_columns(
         self, data_columns, min_itemsize, non_index_axes, index_cnames=()
-    ) -> list:
+    ) -> list[Hashable]:
         """
         take the input data_columns and min_itemize and create a data
         columns spec
@@ -4828,12 +4859,19 @@ class Table(Fixed):
         # map axes to numbers
         axes = [obj._get_axis_number(a) for a in axes]
 
+        # GH#9604: None means no nan_rep was requested, so each string column
+        # mints a collision-free sentinel instead. A caller-supplied one keeps
+        # its documented table-wide meaning and is persisted, so a later append
+        # to the same table keeps it.
+        user_nan_rep = nan_rep
+
         # do we have an existing table (if so, use its axes & data_columns)
         if self.infer_axes():
             table_exists = True
             axes = [a.axis for a in self.index_axes]
             data_columns = list(self.data_columns)
-            nan_rep = self.nan_rep
+            # an existing table's nan_rep supersedes whatever this append passed
+            nan_rep = user_nan_rep = self.nan_rep
             # TODO: do we always have validate=True here?
         else:
             table_exists = False
@@ -4848,7 +4886,7 @@ class Table(Fixed):
             )
 
         # create according to the new data
-        new_non_index_axes: list = []
+        new_non_index_axes: list[Any] = []
 
         # nan_representation
         if nan_rep is None:
@@ -4898,12 +4936,23 @@ class Table(Fixed):
         if table_exists:
             existing_index_col = self.index_axes[0]
             existing_nan_rep = existing_index_col.nan_rep
+            if existing_index_col.kind == "string" and not hasattr(
+                self.table.attrs, existing_index_col.nan_rep_attr
+            ):
+                # _read_index_nan_rep assumes "nan" is the sentinel of a file
+                # written before one was persisted, which only holds if such a
+                # value is stored. Without one the column has no sentinel to
+                # protect, so a literal "nan" may still be appended to it. Test
+                # the raw bytes rather than decoding a possibly large column.
+                stored = getattr(self.table.cols, existing_index_col.cname)[:]
+                if not (stored == existing_nan_rep.encode(self.encoding)).any():
+                    existing_nan_rep = None
             if (
                 existing_nan_rep is None
                 and existing_index_col.kind == "string"
                 and np.asarray(a.isna()).any()
             ):
-                existing_values = _read_stored_index_values(
+                existing_values = _read_stored_column_values(
                     self.table, existing_index_col.cname, self.encoding, self.errors
                 )
         new_index = _convert_index(
@@ -4919,6 +4968,46 @@ class Table(Fixed):
         # Because we are always 2D, there is only one new_index, so
         #  we know it will have pos=0
         new_index.set_pos(0)
+
+        if table_exists and new_index.kind == existing_index_col.kind == "integer":
+            # A PeriodIndex is stored as its i8 ordinals with kind "integer", so
+            # freq is the only thing separating it from a plain integer index.
+            # Check it before update_info silently overwrites the stored freq,
+            # which would reinterpret the rows already stored. GH#68523
+            existing_freq = new_info.get(new_index.name, {}).get("freq")
+            if existing_freq != new_index.freq:
+                if existing_freq is None:
+                    raise TypeError(
+                        "cannot append a period index to a non-period index"
+                    )
+                if new_index.freq is None:
+                    raise TypeError(
+                        "cannot append a non-period index to a period index"
+                    )
+                # PeriodDtype's alias ("M"), not the offset's datetime alias
+                # ("ME"), which Period itself rejects. Same alias and warning
+                # filter as raise_on_incompatible.
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        r"PeriodDtype\[B\] is deprecated",
+                        category=FutureWarning,
+                    )
+                    existing_str = PeriodDtype(existing_freq)._freqstr
+                    new_str = PeriodDtype(new_index.freq)._freqstr
+                raise TypeError(
+                    f"incompatible freq in col [{existing_str} - {new_str}]"
+                )
+
+        # tz can only differ within a matching kind; a differing one already
+        # gets validate_attr's more specific message.
+        if table_exists and new_index.kind == existing_index_col.kind:
+            _check_tz_conflict(
+                new_index.name,
+                new_info.get(new_index.name, {}).get("tz"),
+                new_index.tz,
+            )
+
         new_index.update_info(new_info)
         new_index.maybe_set_size(min_itemsize)  # check for column conflicts
 
@@ -4986,32 +5075,33 @@ class Table(Fixed):
 
             new_name = name or f"values_block_{i}"
 
-            # GH#9604: a string MultiIndex level (stored as a data column)
-            # encodes its missing values with a per-level sentinel rather than
-            # the global nan_rep, so a literal "nan" in a level survives the
-            # round-trip like it does for a string Index.
-            # The read path honors the per-level sentinel only when the table
-            # carries the marker attribute, which set_attrs writes when the
-            # table is created and an append cannot add retroactively. So when
-            # appending to a table written before the marker existed, keep
-            # encoding missing values with the global nan_rep, otherwise the
-            # sentinel would be read back as a literal string.
+            # GH#9604: the read path honors a per-column sentinel only when
+            # the table carries the marker attribute, which set_attrs writes at
+            # creation and an append cannot add retroactively. So when appending
+            # to a table written before the marker existed, keep encoding
+            # missing values with the table-wide nan_rep, otherwise the sentinel
+            # would be read back as a literal string.
             level_names = self.levels if isinstance(self.levels, list) else []
             is_level = name is not None and name in level_names
-            if is_level and table_exists:
-                is_level = bool(getattr(self.attrs, "mi_level_nan_rep", False))
-            level_nan_rep = None
-            if is_level:
-                assert name is not None  # for mypy, implied by is_level
-                level_nan_rep = _make_level_nan_rep(
+            if table_exists:
+                uses_col_nan_rep = bool(
+                    getattr(self.attrs, "data_col_nan_rep", False)
+                ) or (is_level and bool(getattr(self.attrs, "mi_level_nan_rep", False)))
+            else:
+                # a MultiIndex level is part of the index rather than of the
+                # data, so a caller-supplied nan_rep does not govern it
+                uses_col_nan_rep = user_nan_rep is None or is_level
+            col_nan_rep = None
+            if uses_col_nan_rep:
+                col_nan_rep = _make_data_col_nan_rep(
                     blk.values,
-                    name,
+                    b_items,
                     existing_col,
                     self.table,
                     self.encoding,
                     self.errors,
                 )
-            block_nan_rep = level_nan_rep if level_nan_rep is not None else nan_rep
+            block_nan_rep = col_nan_rep if col_nan_rep is not None else nan_rep
 
             data_converted = _maybe_convert_for_string_atom(
                 new_name,
@@ -5040,6 +5130,11 @@ class Table(Fixed):
 
             data, dtype_name = _get_data_and_dtype_name(data_converted)
 
+            # A new tz-aware data column's kind carries the tz while the
+            # stored one's does not, so gate on the dtype actually persisted.
+            if existing_col is not None and existing_col.dtype == dtype_name:
+                _check_tz_conflict(new_name, new_info.get(new_name, {}).get("tz"), tz)
+
             col = klass(
                 name=new_name,
                 cname=new_name,
@@ -5054,8 +5149,8 @@ class Table(Fixed):
                 dtype=dtype_name,
                 data=data,
             )
-            col.is_mi_level = is_level
-            col.nan_rep = level_nan_rep
+            col.uses_col_nan_rep = uses_col_nan_rep
+            col.nan_rep = col_nan_rep
             col.update_info(new_info)
 
             vaxes.append(col)
@@ -5074,7 +5169,7 @@ class Table(Fixed):
             values_axes=vaxes,
             data_columns=dcs,
             info=new_info,
-            nan_rep=nan_rep,
+            nan_rep=user_nan_rep,
         )
         if hasattr(self, "levels"):
             # TODO: get this into constructor, only for appropriate subclass
@@ -5750,7 +5845,7 @@ class AppendableSeriesTable(AppendableFrameTable):
                     columns.insert(0, n)
         s = super().read(where=where, columns=columns, start=start, stop=stop)
         if is_multi_index:
-            s.set_index(self.levels, inplace=True)
+            s = s.set_index(self.levels)
 
         s = s.iloc[:, 0]
 
@@ -5920,6 +6015,22 @@ def _get_tz(tz: tzinfo) -> str | tzinfo:
     return zone
 
 
+def _check_tz_conflict(
+    name: str, existing_tz: str | tzinfo | None, tz: str | tzinfo | None
+) -> None:
+    """
+    Raise if an append would add or drop the timezone of a stored column.
+
+    The read path localizes the whole stored column with this single tz, so
+    changing it reinterprets the rows already written. update_info raises only
+    when both sides are set, leaving the None cases silent. GH#68583
+    """
+    if existing_tz is None and tz is not None:
+        raise TypeError(f"cannot append tz-aware data to tz-naive col [{name}]")
+    if existing_tz is not None and tz is None:
+        raise TypeError(f"cannot append tz-naive data to tz-aware col [{name}]")
+
+
 def _set_tz(
     values: npt.NDArray[np.int64], tz: str | tzinfo | None, datetime64_dtype: str
 ) -> DatetimeArray:
@@ -5944,11 +6055,24 @@ def _set_tz(
     return dta
 
 
-def _make_index_nan_rep(
-    values: np.ndarray, mask: np.ndarray, existing: set | None = None
+def _read_index_nan_rep(attrs, name: str = "nan_rep") -> str | None:
+    """
+    Read back the NaN sentinel persisted for a string Index column (GH#9604).
+
+    The writer records the attribute for every string Index, empty when the
+    index had no missing value, so its absence means the file predates the
+    sentinel. Such a file stored a NaN as the bare string "nan", which is how
+    pandas read it back before the sentinel existed.
+    """
+    nan_rep = getattr(attrs, name, "nan")
+    return nan_rep or None
+
+
+def _make_nan_rep(
+    values: np.ndarray, mask: np.ndarray, existing: set[Any] | None = None
 ) -> str:
     """
-    Choose a string NaN sentinel for a string Index that does not collide with
+    Choose a string NaN sentinel for a string column that does not collide with
     any non-missing value, so genuine missing values round-trip without being
     confused with a literal string such as ``"nan"`` (GH#9604).
 
@@ -5956,63 +6080,87 @@ def _make_index_nan_rep(
     ``table``-format append; the sentinel must avoid those too, since a single
     sentinel is persisted for the whole column.
     """
-    seen = set(values[~mask])
-    if existing is not None:
-        seen |= existing
+    non_missing = values[~mask]
+    if lib.infer_dtype(non_missing, skipna=True) != "string":
+        # Only a str can equal the sentinel, and an elementwise == against a
+        # list or ndarray element is not a bool. Dropping the rest also keeps an
+        # unhashable element from raising here, ahead of the "Cannot serialize
+        # the column" message it deserves.
+        non_missing = np.array(
+            [val for val in non_missing if isinstance(val, str)], dtype=object
+        )
     nan_rep = "nan"
-    while nan_rep in seen:
+    while (non_missing == nan_rep).any() or (
+        existing is not None and nan_rep in existing
+    ):
         nan_rep = f"_{nan_rep}_"
     return nan_rep
 
 
-def _read_stored_index_values(table, cname: str, encoding: str, errors: str) -> set:
+def _read_stored_column_values(
+    table, cname: str, encoding: str, errors: str
+) -> set[Any]:
     """
-    Read the values already stored for a string Index column (GH#9604), so a
-    NaN sentinel chosen for a later append cannot collide with them.
+    Read the values already stored for a string column (GH#9604), so a NaN
+    sentinel chosen for a later append cannot collide with them.
     """
     raw = getattr(table.cols, cname)[:]
     decoded = _unconvert_string_array(
         raw, nan_rep=None, encoding=encoding, errors=errors
     )
-    return set(decoded)
+    # a multi-column data block stores a 2-D array; one sentinel covers it all
+    return set(decoded.ravel())
 
 
-def _make_level_nan_rep(
+def _make_data_col_nan_rep(
     blk_values,
-    name: str,
+    columns: list[Hashable],
     existing_col,
     table,
     encoding: str,
     errors: str,
 ) -> str | None:
     """
-    Choose the NaN sentinel for a string MultiIndex level stored as a data
-    column, mirroring the string-Index handling (GH#9604): reuse the sentinel
-    already persisted for the column, otherwise mint a collision-free one only
-    when the level actually has a missing value. Returns None when no sentinel
-    is needed (a literal "nan" then round-trips because the level read path
-    skips substitution when the sentinel is absent).
+    Choose the NaN sentinel for a string data column, mirroring the string-Index
+    handling (GH#9604): reuse the sentinel already persisted for the column,
+    otherwise mint a collision-free one, and only when the column actually has a
+    missing value. Returns None when no sentinel is needed (a literal "nan" then
+    round-trips because the read path skips substitution when the sentinel is
+    absent).
     """
     if isinstance(blk_values.dtype, StringDtype):
         blk_values = blk_values.to_numpy()
     if blk_values.dtype != object:
         return None
 
-    flat = np.asarray(blk_values).reshape(-1)
+    values = np.asarray(blk_values)
+    flat = values.reshape(-1)
     mask = isna(flat)
     nan_rep = existing_col.nan_rep if existing_col is not None else None
     if mask.any() and nan_rep is None:
         existing_values = None
         if existing_col is not None and existing_col.kind == "string":
-            existing_values = _read_stored_index_values(
+            existing_values = _read_stored_column_values(
                 table, existing_col.cname, encoding, errors
             )
-        nan_rep = _make_index_nan_rep(flat, mask, existing_values)
-    if nan_rep is not None and (flat[~mask] == nan_rep).any():
+        nan_rep = _make_nan_rep(flat, mask, existing_values)
+    if (
+        nan_rep is not None
+        # an elementwise == against a list/ndarray element is not a bool, and a
+        # non-string column has _maybe_convert_for_string_atom's much better
+        # "Cannot serialize the column" error waiting for it anyway
+        and lib.infer_dtype(flat, skipna=True) == "string"
+        and (flat[~mask] == nan_rep).any()
+    ):
+        # A real value equal to the sentinel is indistinguishable from a
+        # missing value on read; refuse rather than silently corrupt it.
+        collides = (values == nan_rep) & ~isna(values)
+        # a block is (n_columns, n_rows), so the first axis picks the label
+        pos = int(np.argmax(collides.any(axis=1))) if collides.ndim == 2 else 0
+        label = columns[pos]
         raise ValueError(
-            f"Cannot store the string {str(nan_rep)!r} in MultiIndex level "
-            f"[{name}]: it collides with the sentinel used to encode missing "
-            "values in this column"
+            f"Cannot store the string {str(nan_rep)!r} in column [{label}]: it "
+            "collides with the sentinel used to encode missing values on disk"
         )
     return nan_rep
 
@@ -6023,7 +6171,7 @@ def _convert_index(
     encoding: str,
     errors: str,
     existing_nan_rep: str | None = None,
-    existing_values: set | None = None,
+    existing_values: set[Any] | None = None,
 ) -> IndexCol:
     assert isinstance(name, str)
 
@@ -6118,7 +6266,7 @@ def _convert_index(
         # as well as the ones in this chunk.
         nan_rep = existing_nan_rep
         if mask.any() and nan_rep is None:
-            nan_rep = _make_index_nan_rep(values, mask, existing_values)
+            nan_rep = _make_nan_rep(values, mask, existing_values)
         if nan_rep is not None:
             if (values[~mask] == nan_rep).any():
                 # A real value equal to the sentinel is indistinguishable from a
@@ -6225,7 +6373,13 @@ def _maybe_convert_for_string_atom(
     data[mask] = nan_rep
 
     if existing_col and mask.any() and len(nan_rep) > existing_col.itemsize:
-        raise ValueError("NaN representation is too large for existing column size")
+        raise ValueError(
+            "NaN representation is too large for existing column size: "
+            f"{str(nan_rep)!r} has length {len(nan_rep)} but this column has a "
+            f"limit of {existing_col.itemsize}!\n"
+            "It can be longer than the values themselves. Recreate the table "
+            "passing min_itemsize to reserve room for it."
+        )
 
     # see if we have a valid string type
     inferred_type = lib.infer_dtype(data, skipna=False)
@@ -6556,12 +6710,12 @@ class Selection:
         )
 
     @overload
-    def generate(self, where: dict | list | tuple | str) -> PyTablesExpr: ...
+    def generate(self, where: _WhereArg) -> PyTablesExpr: ...
 
     @overload
     def generate(self, where: None) -> None: ...
 
-    def generate(self, where: dict | list | tuple | str | None) -> PyTablesExpr | None:
+    def generate(self, where: _WhereArg | None) -> PyTablesExpr | None:
         """where can be a : dict,list,tuple,string"""
         if where is None:
             return None

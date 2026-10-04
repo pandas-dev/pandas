@@ -4,6 +4,7 @@ from datetime import (
     date,
     datetime,
 )
+from decimal import Decimal
 import itertools
 import re
 import string
@@ -754,6 +755,18 @@ class TestDataFramePlots:
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
+    def test_bar_timedelta_with_nat_mixed_dtype(self):
+        # GH#39320 filling is per-column, so a non-timedelta column
+        #  alongside a timedelta one keeps its own fill value
+        df = pd.DataFrame(
+            {"A": pd.to_timedelta([1, None, 3], unit="s"), "B": [1.0, np.nan, 2.0]}
+        )
+        ax = df.plot.bar()
+        result = [p.get_height() for p in ax.patches]
+        td_heights = df["A"].fillna(pd.Timedelta(0)).astype(np.int64).tolist()
+        expected = [*td_heights, 1.0, 0.0, 2.0]
+        assert result == expected
+
     def test_bar_stacked_label_position_with_zero_height(self):
         # GH 59429
         df = pd.DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})
@@ -868,12 +881,26 @@ class TestDataFramePlots:
     )
     @pytest.mark.parametrize("x, y", [("a", "b"), (0, 1)])
     @pytest.mark.parametrize("b_col", [[2, 3, 4], ["a", "b", "c"]])
+    @pytest.mark.filterwarnings(
+        "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+    )
     def test_scatterplot_object_data(self, b_col, x, y, infer_string):
         # GH 18755
         with pd.option_context("future.infer_string", infer_string):
             df = pd.DataFrame({"a": ["A", "B", "C"], "b": b_col})
 
             _check_plot_works(df.plot.scatter, x=x, y=y)
+
+    def test_scatterplot_arrow_binary(self):
+        # GH#64535
+        pa = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": pd.Series([b"x", b"y", b"z"], dtype=pd.ArrowDtype(pa.binary())),
+            }
+        )
+        _check_plot_works(df.plot.scatter, x="a", y="b")
 
     @pytest.mark.parametrize("ordered", [True, False])
     @pytest.mark.parametrize(
@@ -1149,6 +1176,31 @@ class TestDataFramePlots:
         )
         result = df.plot.box(return_type=return_type)
         _check_box_return_type(result, return_type)
+
+    @pytest.mark.parametrize(
+        "kind, kwargs",
+        [("area", {}), ("box", {}), ("box", {"by": "g"}), ("kde", {})],
+    )
+    def test_plot_arrow_decimal(self, kind, kwargs):
+        # GH#64535
+        pa = pytest.importorskip("pyarrow")
+        if kind == "kde":
+            pytest.importorskip("scipy")
+        dec = pd.Series(
+            [Decimal("1.5"), None, Decimal("3.25")],
+            dtype=pd.ArrowDtype(pa.decimal128(5, 2)),
+        )
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": dec, "g": ["x", "y", "x"]})
+        ret = _check_plot_works(df.plot, default_axes=bool(kwargs), kind=kind, **kwargs)
+        # the decimal column "b" must be plotted, not dropped
+        if kwargs:
+            _check_text_labels([ax.title for ax in ret], ["a", "b"])
+            for ax in ret:
+                _check_text_labels(ax.get_xticklabels(), ["x", "y"])
+        elif kind == "box":
+            _check_text_labels(ret.get_xticklabels(), ["a", "b"])
+        else:
+            _check_legend_labels(ret, labels=["a", "b"])
 
     def test_kde_df(self):
         pytest.importorskip("scipy")
@@ -1886,8 +1938,8 @@ class TestDataFramePlots:
             np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
         )
         ix = pd.date_range("1/1/2000", periods=10, freq="ME")
-        df.set_index(ix, inplace=True)
-        df_err.set_index(ix, inplace=True)
+        df = df.set_index(ix)
+        df_err = df_err.set_index(ix)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
