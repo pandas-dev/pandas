@@ -276,6 +276,7 @@ class TestApi(Base):
         "NaTType",
         "NAType",
         "NoDefault",
+        "ParquetFileReader",
         "PeriodIndexResamplerGroupBy",
         "Resampler",
         "Rolling",
