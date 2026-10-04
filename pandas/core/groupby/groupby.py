@@ -160,7 +160,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby: GroupBy) -> None:
+    def __init__(self, groupby: GroupBy[Any]) -> None:
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -1085,7 +1085,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _wrap_applied_output(
         self,
         data,
-        values: list,
+        values: list[Any],
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
@@ -1123,7 +1123,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     def _numba_agg_general(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
         **aggregator_kwargs,
@@ -1422,7 +1422,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _python_apply_general(
         self,
-        f: Callable,
+        f: Callable[..., Any],
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
@@ -1461,7 +1461,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+    def _python_apply_plot(self, f: Callable[..., Any]) -> NDFrameT:
         """
         Apply a plotting function f group-wise.
 
@@ -1480,27 +1480,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  indexed like the group, so this is always not_indexed_same
         return self._wrap_applied_output(data, values, not_indexed_same=True)
 
-    @final
-    def _agg_general(
-        self,
-        numeric_only: bool = False,
-        min_count: int = -1,
-        *,
-        alias: str,
-        npfunc: Callable | None = None,
-        **kwargs,
-    ):
-        result = self._cython_agg_general(
-            how=alias,
-            alt=npfunc,
-            numeric_only=numeric_only,
-            min_count=min_count,
-            **kwargs,
-        )
-        return result.__finalize__(self.obj, method="groupby")
-
     def _agg_py_fallback(
-        self, how: str, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable[..., Any]
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1526,7 +1507,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
         try:
-            res_values = self._grouper.agg_series(ser, alt, preserve_dtype=True)
+            res_values = self._grouper.agg_series(ser, alt)
         except Exception as err:
             msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
             # preserve the kind of exception that raised
@@ -1550,7 +1531,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable | None = None,
+        alt: Callable[..., Any] | None = None,
         numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
@@ -1576,20 +1557,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 _how = how
             try:
                 result = self._grouper._cython_operation(
-                    "aggregate",
                     values,
                     _how,
                     axis=data.ndim - 1,
                     min_count=min_count,
                     **kwargs,
                 )
-            except NotImplementedError:
+            except NotImplementedError as err:
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
                 if alt is None or how in ["any", "all", "std", "sem"]:
-                    raise  # TODO: re-raise as TypeError?  should not be reached
+                    raise TypeError(
+                        f"{how} is not supported for {values.dtype} dtype"
+                    ) from err
             else:
                 if use_bool_fastpath and result.dtype.kind == "f":
                     fill = 0.0 if how == "any" else 1.0
@@ -1608,7 +1590,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # mypy expects how to be Literal["idxmin", "idxmax"].
             res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
         out = self._wrap_aggregated_output(res)
-        return out
+        return out.__finalize__(self.obj, method="groupby")
 
     def _cython_transform(self, how: str, numeric_only: bool = False, **kwargs):
         raise AbstractMethodError(self)
@@ -1756,7 +1738,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Callable:
+    def _obj_1d_constructor(self) -> Callable[..., Any]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -2093,7 +2075,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 skipna=skipna,
             )
         else:
-            result = self._cython_agg_general(
+            return self._cython_agg_general(
                 "mean",
                 alt=lambda x: Series(x, copy=False).mean(
                     numeric_only=numeric_only, skipna=skipna
@@ -2101,7 +2083,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 numeric_only=numeric_only,
                 skipna=skipna,
             )
-            return result.__finalize__(self.obj, method="groupby")
 
     @final
     def median(self, numeric_only: bool = False, skipna: bool = True) -> NDFrameT:
@@ -2193,7 +2174,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2023-02-01    4.0
         Freq: MS, dtype: float64
         """
-        result = self._cython_agg_general(
+        return self._cython_agg_general(
             "median",
             alt=lambda x: Series(x, copy=False).median(
                 numeric_only=numeric_only, skipna=skipna
@@ -2201,7 +2182,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             numeric_only=numeric_only,
             skipna=skipna,
         )
-        return result.__finalize__(self.obj, method="groupby")
 
     @final
     def std(
@@ -2875,19 +2855,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat below
                 return obj.sum(skipna=skipna)
 
-            # If we are grouping on categoricals we want unobserved categories to
-            # return zero, rather than the default of NaN which the reindexing in
-            # _agg_general() returns. GH #31422
-            with com.temp_setattr(self, "observed", True):
-                result = self._agg_general(
-                    numeric_only=numeric_only,
-                    min_count=min_count,
-                    alias="sum",
-                    npfunc=sum_compat,
-                    skipna=skipna,
-                )
-
-            return result
+            return self._cython_agg_general(
+                "sum",
+                alt=sum_compat,
+                numeric_only=numeric_only,
+                min_count=min_count,
+                skipna=skipna,
+            )
 
     @final
     def prod(
@@ -2969,12 +2943,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # GH#18588: see min_compat below
             return obj.prod(skipna=skipna)
 
-        return self._agg_general(
+        return self._cython_agg_general(
+            "prod",
+            alt=prod_compat,
             numeric_only=numeric_only,
             min_count=min_count,
             skipna=skipna,
-            alias="prod",
-            npfunc=prod_compat,
         )
 
     @final
@@ -3093,12 +3067,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # skipna itself; np.min would always skip.
                 return obj.min(skipna=skipna)
 
-            return self._agg_general(
+            return self._cython_agg_general(
+                "min",
+                alt=min_compat,
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
-                alias="min",
-                npfunc=min_compat,
             )
 
     @final
@@ -3215,12 +3189,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#18588: see min_compat above
                 return obj.max(skipna=skipna)
 
-            return self._agg_general(
+            return self._cython_agg_general(
+                "max",
+                alt=max_compat,
                 numeric_only=numeric_only,
                 min_count=min_count,
                 skipna=skipna,
-                alias="max",
-                npfunc=max_compat,
             )
 
     @final
@@ -3302,11 +3276,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:  # pragma: no cover
                 raise TypeError(type(obj))
 
-        return self._agg_general(
+        return self._cython_agg_general(
+            "first",
+            alt=first_compat,
             numeric_only=numeric_only,
             min_count=min_count,
-            alias="first",
-            npfunc=first_compat,
             skipna=skipna,
         )
 
@@ -3372,11 +3346,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:  # pragma: no cover
                 raise TypeError(type(obj))
 
-        return self._agg_general(
+        return self._cython_agg_general(
+            "last",
+            alt=last_compat,
             numeric_only=numeric_only,
             min_count=min_count,
-            alias="last",
-            npfunc=last_compat,
             skipna=skipna,
         )
 
@@ -3482,7 +3456,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise DataError("No numeric types to aggregate")
 
             res_values = self._grouper._cython_operation(
-                "aggregate", obj._values, "ohlc", axis=0, min_count=-1
+                obj._values, "ohlc", axis=0, min_count=-1
             )
 
             agg_names = ["open", "high", "low", "close"]
@@ -3758,8 +3732,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             For a DataFrame, a column label or Index level on which
             to calculate the rolling window, rather than the DataFrame's index.
 
-            Provided integer column is ignored and excluded from result since
-            an integer index is not used to calculate the rolling window.
+            For integer ``window`` values, the window bounds are based on the number
+            of observations and are not calculated using the values of the
+            ``on`` column. The ``on`` column is excluded from the aggregation,
+            but is included in the result when its values differ from the
+            object's index.
 
         closed : str, default None
             Determines the inclusivity of points in the window
@@ -4367,7 +4344,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     def _nth(
         self,
-        n: PositionalIndexer | tuple,
+        n: PositionalIndexer | tuple[int | slice, ...],
         dropna: Literal["any", "all"] | None = None,
     ) -> NDFrameT:
         if not dropna:
@@ -5247,7 +5224,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    5.0  8.0
         """
         if is_list_like(periods):
-            periods = cast("Sequence", periods)
+            periods = cast("Sequence[int]", periods)
             if len(periods) == 0:
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
@@ -5785,10 +5762,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
             raise ValueError(f"{how} with skipna=False encountered an NA value.")
 
-        result = self._agg_general(
+        result = self._cython_agg_general(
+            how,
             numeric_only=numeric_only,
             min_count=1,
-            alias=how,
             skipna=skipna,
         )
         return result
@@ -5832,7 +5809,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool = True,
-) -> GroupBy:
+) -> GroupBy[Any]:
     """
     Class for grouping and aggregating relational data.
 

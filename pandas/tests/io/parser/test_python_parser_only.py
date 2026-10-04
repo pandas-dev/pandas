@@ -180,6 +180,22 @@ a 0002_sum.mrc 685.0 1268.0 -51.5
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data, skipfooter",
+    [
+        ("a,b,c\n1,2,3\n\nend\n", 2),
+        ("a,b,c\n1,2,3\nend\n\n", 2),
+        ("a,b,c\n1,2,3\n\n\n\nend1\n\nend2", 3),
+    ],
+)
+def test_skipfooter_counts_blank_lines(python_parser_only, data, skipfooter):
+    # GH#10164 blank lines count towards skipfooter wherever they fall
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), skipfooter=skipfooter)
+    expected = pd.DataFrame({"a": [1], "b": [2], "c": [3]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_skipfooter_counts_skiprows_lines(python_parser_only):
     # GH#36827 a skiprows line inside the footer still counts towards skipfooter
     data = "A,B\n1,2\n3,4\n5,6\n7,8\nfooter"

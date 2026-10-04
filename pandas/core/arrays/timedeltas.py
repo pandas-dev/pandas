@@ -51,6 +51,7 @@ from pandas.errors import (
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
+from pandas.core.dtypes.astype import float_outside_int64
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
     is_float_dtype,
@@ -427,9 +428,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         )
 
         result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
-        if axis is None or self.ndim == 1:
-            return self._box_func(result)
-        return self._from_backing_data(result)
+        return self._wrap_reduction_result(axis, result)
 
     # ----------------------------------------------------------------
     # Accumulations
@@ -1261,8 +1260,8 @@ def sequence_to_td64ns(
     int_mask = None
     if isinstance(data, IntegerArray):
         # GH#66988 use the underlying int/uint ndarray + mask directly instead
-        #  of going through to_numpy() to convert to int64 (could overflow)
-        #  or float64 (could loose precision large large int64/uint64 data)
+        #  of going through to_numpy() to convert to int64, which could overflow
+        #  for large uint64 data
         int_mask = data._mask if data._hasna else None
         data = data._data
         if int_mask is not None:
@@ -1317,11 +1316,9 @@ def sequence_to_td64ns(
             # On ARM, float-to-int64 overflow saturates to INT64_MAX
             # instead of wrapping, which makes the data == int_data
             # check pass incorrectly for OOB values like float(2**63).
-            # Exclude values outside the int64 domain from the check.
-            i64 = np.iinfo(np.int64)
-            in_int64_range = (data >= np.float64(i64.min)) & (
-                data < np.float64(i64.max)
-            )
+            # Exclude values outside the int64 domain from the check; NaN is
+            # not outside it by that predicate, but mask already covers NaN.
+            in_int64_range = ~float_outside_int64(data)
             all_round = (mask | (in_int64_range & (data == int_data))).all()
             if all_round:
                 result = sequence_to_td64ns(

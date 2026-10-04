@@ -80,10 +80,10 @@ from pandas.plotting import boxplot_frame_groupby
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Mapping,
         Sequence,
     )
 
-    from pandas._libs import Interval
     from pandas._typing import (
         ArrayLike,
         BlockManager,
@@ -94,7 +94,10 @@ if TYPE_CHECKING:
         TakeIndexer,
     )
 
-    from pandas import Categorical
+    from pandas import (
+        Categorical,
+        IntervalIndex,
+    )
 
 # TODO(typing) the return value on this callable should be any *scalar*.
 AggScalar: TypeAlias = str | Callable[..., Any]
@@ -545,7 +548,9 @@ class SeriesGroupBy(GroupBy[Series]):
             return res_df
 
         indexed_output = {key.position: val for key, val in results.items()}
-        output = self.obj._constructor_expanddim(indexed_output, index=None)
+        # GH#39609 with no funcs, index by the groups
+        index = None if results else self._grouper.result_index
+        output = self.obj._constructor_expanddim(indexed_output, index=index)
         output.columns = Index(key.label for key in results)
 
         return output
@@ -770,9 +775,7 @@ class SeriesGroupBy(GroupBy[Series]):
         obj = self._obj_with_exclusions
 
         try:
-            result = self._grouper._cython_operation(
-                "transform", obj._values, how, 0, **kwargs
-            )
+            result = self._grouper._cython_operation(obj._values, how, 0, **kwargs)
         except NotImplementedError as err:
             # e.g. test_groupby_raises_string
             raise TypeError(f"{how} is not supported for {obj.dtype} dtype") from err
@@ -780,7 +783,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
     def _transform_general(
-        self, func: Callable, engine, engine_kwargs, *args, **kwargs
+        self, func: Callable[..., Any], engine, engine_kwargs, *args, **kwargs
     ) -> Series:
         """
         Transform with a callable `func`.
@@ -1120,9 +1123,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = [*self._grouper.names, self.obj.name]
 
-        if isinstance(val.dtype, CategoricalDtype) or (
-            bins is not None and not np.iterable(bins)
-        ):
+        if isinstance(val.dtype, CategoricalDtype) or not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             # GH38672 relates to categorical dtype
@@ -1141,25 +1142,20 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
-        lab: Index | np.ndarray
-        if bins is None:
-            lab, lev = algorithms.factorize(val, sort=True)
-            llab = lambda lab, inc: lab[inc]
-        else:
-            # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
-            cat_obj = cast("Categorical", cat_ser._values)
-            lev = cat_obj.categories
-            lab = lev.take(
-                cat_obj.codes,
-                allow_fill=True,
-                fill_value=lev._na_value,
-            )
-            llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
+        # lab is a Categorical with categories an IntervalIndex
+        cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
+        cat_obj = cast("Categorical", cat_ser._values)
+        lev = cat_obj.categories
+        lab = lev.take(
+            cat_obj.codes,
+            allow_fill=True,
+            fill_value=lev._na_value,
+        )
+        llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
         if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
-            lab_interval = cast("Interval", lab)
+            lab_interval = cast("IntervalIndex", lab)
 
             sorter = np.lexsort((lab_interval.left, lab_interval.right, ids))
         else:
@@ -1216,46 +1212,38 @@ class SeriesGroupBy(GroupBy[Series]):
                 acc = rep(d)
             out /= acc
 
-        if sort and bins is None:
-            cat = ids[inc][mask] if dropna else ids[inc]
-            sorter = np.lexsort((out if ascending else -out, cat))
-            out, codes[-1] = out[sorter], codes[-1][sorter]
+        # for compat. with libgroupby.value_counts need to ensure every
+        # bin is present at every index level, null filled with zeros
+        diff = np.zeros(len(out), dtype="bool")
+        for level_codes in codes[:-1]:
+            diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
-        if bins is not None:
-            # for compat. with libgroupby.value_counts need to ensure every
-            # bin is present at every index level, null filled with zeros
-            diff = np.zeros(len(out), dtype="bool")
-            for level_codes in codes[:-1]:
-                diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
+        ncat, nbin = diff.sum(), len(levels[-1])
+        left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+        right = [diff.cumsum() - 1, codes[-1]]
 
-            ncat, nbin = diff.sum(), len(levels[-1])
+        # error: Argument 1 to "get_join_indexers" has incompatible type
+        # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
+        # ndarray[Any, Any]], Index, Series]]
+        _, idx = get_join_indexers(
+            left,  # type: ignore[arg-type]
+            right,
+            sort=False,
+            how="left",
+        )
+        if idx is not None:
+            out = np.where(idx != -1, out[idx], 0)
 
-            left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
+        if sort:
+            sorter = np.lexsort((out if ascending else -out, left[0]))
+            out, left[-1] = out[sorter], left[-1][sorter]
 
-            right = [diff.cumsum() - 1, codes[-1]]
+        # build the multi-index w/ full levels
+        def build_codes(lev_codes: np.ndarray) -> np.ndarray:
+            return np.repeat(lev_codes[diff], nbin)
 
-            # error: Argument 1 to "get_join_indexers" has incompatible type
-            # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]
-            _, idx = get_join_indexers(
-                left,  # type: ignore[arg-type]
-                right,
-                sort=False,
-                how="left",
-            )
-            if idx is not None:
-                out = np.where(idx != -1, out[idx], 0)
-
-            if sort:
-                sorter = np.lexsort((out if ascending else -out, left[0]))
-                out, left[-1] = out[sorter], left[-1][sorter]
-
-            # build the multi-index w/ full levels
-            def build_codes(lev_codes: np.ndarray) -> np.ndarray:
-                return np.repeat(lev_codes[diff], nbin)
-
-            codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
-            codes.append(left[-1])
+        codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
+        codes.append(left[-1])
 
         mi = MultiIndex(
             levels=levels, codes=codes, names=index_names, verify_integrity=False
@@ -2264,7 +2252,18 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         1   1.0
         2   3.0
         """
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+        # This method can consume the un-normalized {column: aggfunc} form, but only
+        #  when the columns are unique: dict aggregation fans a single key out to
+        #  every matching column, while named aggregation must produce exactly one
+        #  output per keyword.
+        #  `func is None` is a precondition for relabeling at all, and short-circuits
+        #  materializing _obj_with_exclusions on the far more common plain-agg path.
+        allow_skip_normalization = (
+            func is None and self._obj_with_exclusions.columns.is_unique
+        )
+        relabeling, func, columns, order = reconstruct_func(
+            func, allow_skip_normalization, **kwargs
+        )
         func = maybe_mangle_lambdas(func)
 
         if maybe_use_numba(engine):
@@ -2337,7 +2336,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _wrap_applied_output(
         self,
         data: DataFrame,
-        values: list,
+        values: list[Any],
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
@@ -2467,9 +2466,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
-            return self._grouper._cython_operation(
-                "transform", bvalues, how, 1, **kwargs
-            )
+            return self._grouper._cython_operation(bvalues, how, 1, **kwargs)
 
         res_mgr = mgr.apply(arr_func)
 
@@ -2753,10 +2750,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def _transform_multiple_funcs(
         self,
-        func: list | dict,
+        func: Sequence[Any] | Mapping[Any, Any],
         *args,
         engine: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2764,7 +2761,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Parameters
         ----------
-        func : list or dict
+        func : list-like or dict-like
             - list of str/callable: applied to every non-key column, producing
               a MultiIndex-column DataFrame (column, func_name).
             - dict mapping output_name -> str/callable or NamedAgg.
@@ -2773,7 +2770,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if is_dict_like(func):
             # Also includes NamedAgg / NamedFunc
-            func = cast("dict", func)
+            func = cast("Mapping[Hashable, Any]", func)
             results: list[Series] = []
             for name, agg in func.items():
                 if isinstance(agg, NamedAgg):
@@ -2803,7 +2800,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # Apply every func to every non-key column.
         assert is_list_like(func)
         results_list: list[Series] = []
-        col_order: list[tuple] = []
+        col_order: list[tuple[Hashable, Any]] = []
         for column in self._obj_with_exclusions.columns:
             for agg_func in func:
                 col_result = self._transform_single_column(
@@ -2827,10 +2824,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _transform_single_column(
         self,
         column_name: Hashable,
-        agg_func: Callable | str,
+        agg_func: Callable[..., Any] | str,
         *args,
         engine: str | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ) -> Series:
         """
@@ -2874,7 +2871,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             )
         return fast_path, slow_path
 
-    def _choose_path(self, fast_path: Callable, slow_path: Callable, group: DataFrame):
+    def _choose_path(
+        self,
+        fast_path: Callable[..., Any],
+        slow_path: Callable[..., Any],
+        group: DataFrame,
+    ):
         path = slow_path
         res = slow_path(group)
 

@@ -299,11 +299,12 @@ class TestCanParallelizeCsv:
         path.write_text("a,b\n1,2\n", encoding="utf-8")
         assert not _can_parallelize_csv(path, self._kwds(header=[0, 1]))
 
-    def test_rejects_index_col(self, tmp_path):
+    @pytest.mark.parametrize("index_col", [0, "a", [0, 1]])
+    def test_accepts_index_col(self, tmp_path, monkeypatch, index_col):
         path = tmp_path / "data.csv"
         path.write_text("a,b\n1,2\n", encoding="utf-8")
-        assert not _can_parallelize_csv(path, self._kwds(index_col=0))
-        assert not _can_parallelize_csv(path, self._kwds(index_col="a"))
+        monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+        assert _can_parallelize_csv(path, self._kwds(index_col=index_col))
 
     def test_accepts_index_col_false(self, tmp_path):
         # index_col=False is allowed (suppresses implicit index)
@@ -475,7 +476,6 @@ class TestReadCsvParallel:
             "parse_dates": None,
             "date_format": None,
             "dayfirst": False,
-            "cache_dates": True,
             "iterator": False,
             "chunksize": None,
             "compression": "infer",
@@ -508,6 +508,7 @@ class TestReadCsvParallel:
             names=kwds.pop("names"),
             defaults={"delimiter": ","},
             dtype_backend=kwds.pop("dtype_backend"),
+            lineterminator=kwds["lineterminator"],
         )
         kwds.update(kwds_defaults)
         return kwds
@@ -828,14 +829,14 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
 
 
 def test_parallel_default_thread_cap(tmp_path, monkeypatch):
-    """The default worker count is capped at 4, regardless of core count."""
+    """The default worker count is capped at 6, regardless of core count."""
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
     monkeypatch.setattr(_readers.sys, "platform", "linux")
-    # More cores than the cap: the default should clamp down to 4.
+    # More cores than the cap: the default should clamp down to 6.
     monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
-    # Otherwise a CI runner with fewer than 4 usable CPUs clamps below the cap
+    # Otherwise a CI runner with fewer than 6 usable CPUs clamps below the cap
     # and this test measures the runner, not the cap.
     monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
 
@@ -848,7 +849,7 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
 
     pd.read_csv(path)
-    assert workers == [4]
+    assert workers == [6]
 
     # An explicit mode.max_threads still overrides the cap.
     workers.clear()
@@ -870,10 +871,10 @@ class TestDefaultNWorkers:
         "cpu_count, available, expected",
         [
             (2, None, 2),  # unconstrained, below the cap -> logical CPU count
-            (16, None, 4),  # cap binds
+            (16, None, 6),  # cap binds
             (16, 1, 1),  # single-CPU container
             (16, 2, 2),  # cgroup/affinity tighter than the cap
-            (16, 8, 4),  # allocation looser than the cap -> cap still binds
+            (16, 8, 6),  # allocation looser than the cap -> cap still binds
             (2, 8, 2),  # allocation looser than the machine
         ],
     )
@@ -882,7 +883,7 @@ class TestDefaultNWorkers:
     ):
         # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS),
         # on every threaded platform.
-        assert _readers._MAX_DEFAULT_WORKERS == 4
+        assert _readers._MAX_DEFAULT_WORKERS == 6
         monkeypatch.setattr(_readers.sys, "platform", platform_name)
         monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
         monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
@@ -1334,6 +1335,75 @@ def test_parallel_implicit_index_matches_serial(tmp_path, monkeypatch):
     assert list(result.index[:2]) == ["idx0", "idx1"]
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize("index_col", [0, "b", -1, [0, 2], ["c", 0]])
+def test_parallel_index_col_matches_serial(tmp_path, monkeypatch, index_col):
+    raw = b"a,b,c\n" + b"".join(
+        f"k{i},{i * 0.5},{i % 7}\n".encode() for i in range(2000)
+    )
+    path = tmp_path / "index_col.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, index_col=index_col)
+    expected = pd.read_csv(io.BytesIO(raw), index_col=index_col)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"dtype": {"a": "float64"}},
+        {"converters": {"a": lambda val: f"<{val}>"}},
+        {"na_values": {"a": ["3"]}},
+        {"dtype_backend": "numpy_nullable"},
+        {"header": None, "names": ["a", "b"]},
+    ],
+)
+def test_parallel_index_col_options_match_serial(tmp_path, monkeypatch, kwargs):
+    # options keyed by the index column's name must reach the index
+    raw = b"".join(f"{i},{i * 2}\n".encode() for i in range(2000))
+    if "names" not in kwargs:
+        raw = b"a,b\n" + raw
+    path = tmp_path / "index_col.csv"
+    path.write_bytes(raw)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, index_col="a", **kwargs)
+    expected = pd.read_csv(io.BytesIO(raw), index_col="a", **kwargs)
+    tm.assert_frame_equal(result, expected)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_parallel_index_col_to_csv_round_trip(tmp_path, monkeypatch):
+    # to_csv's unnamed index header reads back as an unnamed index
+    df = pd.DataFrame({"x": range(2000), "y": [f"s{i}" for i in range(2000)]})
+    path = tmp_path / "round_trip.csv"
+    df.to_csv(path)
+    outcomes = _track_parallel(monkeypatch)
+
+    result = _read_forced_parallel(path, monkeypatch, index_col=0)
+    tm.assert_frame_equal(result, df)
+    assert outcomes == ["used"]
+
+
+@pytest.mark.parametrize("index_col", [5, "nope"])
+def test_parallel_invalid_index_col_raises_like_serial(
+    tmp_path, monkeypatch, index_col
+):
+    raw = b"a,b\n" + b"".join(f"{i},{i}\n".encode() for i in range(2000))
+    path = tmp_path / "index_col.csv"
+    path.write_bytes(raw)
+
+    with pytest.raises((ValueError, IndexError)) as expected:
+        pd.read_csv(io.BytesIO(raw), index_col=index_col)
+    with pytest.raises(expected.type, match=str(expected.value)):
+        _read_forced_parallel(path, monkeypatch, index_col=index_col)
+
+
 def test_parallel_dialect_escapechar_matches_serial(tmp_path, monkeypatch):
     # dialect is merged into the kwds only inside TextFileReader, after the
     # eligibility check runs; a dialect-specified escapechar must still force
@@ -1406,9 +1476,9 @@ def _write_with_line_at_chunk_start(path, replacement: bytes, monkeypatch) -> in
     return boundary
 
 
-def _spy_on_chunk_offsets(monkeypatch) -> list:
+def _spy_on_chunk_offsets(monkeypatch) -> list[list[int]]:
     """Record the byte offsets each planned split actually uses."""
-    seen: list = []
+    seen: list[list[int]] = []
     real = _find_chunk_byte_offsets
 
     def spy(filepath, n_chunks, data_start, *args):
@@ -1420,7 +1490,7 @@ def _spy_on_chunk_offsets(monkeypatch) -> list:
     return seen
 
 
-def _assert_chunk_starts_at(seen: list, boundary: int) -> None:
+def _assert_chunk_starts_at(seen: list[list[int]], boundary: int) -> None:
     # Without this the tests below still pass on a coarser split - a ragged line
     # raises (and a skipped one is skipped) wherever it sits - while no longer
     # placing it at the chunk start that is the point of the fixture.

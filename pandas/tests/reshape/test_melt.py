@@ -1168,6 +1168,28 @@ class TestWideToLong:
         with pytest.raises(ValueError, match=msg):
             pd.wide_to_long(df, ["A", "B"], i="A", j="colname")
 
+    @pytest.mark.parametrize("stubnames", ["year", ["year"], ["A", "year"]])
+    def test_j_identical_to_stubname(self, stubnames):
+        # GH#46939
+        df = pd.DataFrame(
+            {
+                "year1": [4.5, 1.7],
+                "year2": [2.5, 1.2],
+                "A1": [1.0, 2.0],
+                "id": [0, 1],
+            }
+        )
+        msg = r"j \(year\) can't be identical to a stubname"
+        with pytest.raises(ValueError, match=msg):
+            pd.wide_to_long(df, stubnames, i="id", j="year")
+
+    def test_j_identical_to_stubname_with_sep(self):
+        # GH#46939
+        df = pd.DataFrame({"year_1": [4.5, 1.7], "year_2": [2.5, 1.2], "id": [0, 1]})
+        msg = r"j \(year\) can't be identical to a stubname"
+        with pytest.raises(ValueError, match=msg):
+            pd.wide_to_long(df, "year_", i="id", j="year", sep="_")
+
     def test_nonnumeric_suffix(self):
         df = pd.DataFrame(
             {
@@ -1321,3 +1343,18 @@ def test_wide_to_long_string_columns(string_storage):
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_wide_to_long_no_values_deprecation():
+    # GH#69025 the list-`i` uniqueness check goes through DataFrame.duplicated,
+    # which must not self-trigger the .values deprecation
+    df = pd.DataFrame(
+        {
+            "id1": pd.date_range("2020", periods=3, tz="UTC"),
+            "id2": range(3),
+            "A1": [1.0, 2.0, 3.0],
+            "A2": [4.0, 5.0, 6.0],
+        }
+    )
+    with tm.assert_produces_warning(None):
+        pd.wide_to_long(df, ["A"], i=["id1", "id2"], j="n")

@@ -94,14 +94,14 @@ class PythonParser(ParserBase):
     _first_row_len: int
     _header_row_len: int
 
-    def __init__(self, f: ReadCsvBuffer[str] | list, **kwds) -> None:
+    def __init__(self, f: ReadCsvBuffer[str] | list[list[Scalar]], **kwds) -> None:
         """
         Workhorse function for processing nested list into DataFrame
         """
         super().__init__(kwds)
 
         self.data: Iterator[list[str]] | list[list[Scalar]] = []
-        self.buf: list = []
+        self.buf: list[list[Any]] = []
         # Line number of each line pushed onto self.buf. Every site that shrinks
         # self.buf drops entries from the front, so it stays a suffix of this list.
         self.buf_pos: list[int] = []
@@ -187,7 +187,7 @@ class PythonParser(ParserBase):
             raise ValueError("Only length-1 decimal markers supported")
 
     @cache_readonly
-    def num(self) -> re.Pattern:
+    def num(self) -> re.Pattern[str]:
         decimal = re.escape(self.decimal)
         if self.thousands is None:
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
@@ -407,7 +407,7 @@ class PythonParser(ParserBase):
     @final
     def _convert_to_ndarrays(
         self,
-        dct: Mapping,
+        dct: Mapping[Hashable, Any],
         na_values,
         na_fvalues,
         converters=None,
@@ -562,7 +562,12 @@ class PythonParser(ParserBase):
                 ) from err
 
         elif isinstance(values, ExtensionArray):
-            values = values.astype(cast_type, copy=False)
+            casted: ArrayLike = values.astype(cast_type, copy=False)
+            # with dtype_backend="pyarrow", _infer_types has already boxed the
+            #  column, so an explicit numpy integer dtype reaches this branch,
+            #  not the one below
+            _validate_integer_cast(values, casted, cast_type, column)
+            values = casted
         elif issubclass(cast_type.type, str):
             # TODO: why skipna=True here and False above? some tests depend
             #  on it here, but nothing fails if we change it above
@@ -572,11 +577,13 @@ class PythonParser(ParserBase):
             )
         else:
             try:
-                values = astype_array(values, cast_type, copy=True)
+                casted = astype_array(values, cast_type, copy=True)
             except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
                 ) from err
+            _validate_integer_cast(values, casted, cast_type, column)
+            values = casted
         return values
 
     @cache_readonly
@@ -1420,7 +1427,7 @@ class PythonParser(ParserBase):
         return no_thousands_columns
 
 
-class FixedWidthReader(abc.Iterator):
+class FixedWidthReader(abc.Iterator[list[str]]):
     """
     A reader of fixed-width lines.
     """
@@ -1435,7 +1442,7 @@ class FixedWidthReader(abc.Iterator):
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
-        self.buffer: Iterator | None = None
+        self.buffer: Iterator[str] | None = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
         if colspecs == "infer":
@@ -1600,3 +1607,26 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
         raise ValueError("skipfooter cannot be negative")
 
     return skipfooter  # pyright: ignore[reportReturnType]
+
+
+def _validate_integer_cast(
+    original: ArrayLike, casted: ArrayLike, cast_type: np.dtype, column
+) -> None:
+    """
+    Raise if casting to an integer dtype wrapped around (GH#55232).
+    """
+    if cast_type.kind not in "iu" or original.dtype.kind not in "iuf":
+        return
+    values = np.asarray(original)
+    if np.can_cast(values.dtype, cast_type):
+        return
+    if values.dtype.kind == "f":
+        # discarding a float's fractional part is not wraparound and stays
+        #  allowed (see test_read_fwf.py::test_dtype)
+        values = np.trunc(values)
+    if (np.asarray(casted) != values).any():
+        raise ValueError(
+            f"cannot safely convert passed user dtype of "
+            f"{cast_type} for {values.dtype.name} dtyped data in "
+            f"column {column}"
+        )

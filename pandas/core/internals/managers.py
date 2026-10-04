@@ -671,11 +671,13 @@ class BaseBlockManager(PandasObject):
 
         return False
 
-    def _get_data_subset(self, predicate: Callable) -> Self:
+    def _get_data_subset(self, predicate: Callable[[ArrayLike], bool]) -> Self:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         return self._combine(blocks)
 
-    def _get_data_subset_indices(self, predicate: Callable) -> np.ndarray:
+    def _get_data_subset_indices(
+        self, predicate: Callable[[ArrayLike], bool]
+    ) -> np.ndarray:
         blocks = [blk for blk in self.blocks if predicate(blk.values)]
         indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
         return indexer
@@ -1667,7 +1669,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
     # ----------------------------------------------------------------
     # Block-wise Operation
 
-    def grouped_reduce(self, func: Callable) -> Self:
+    def grouped_reduce(self, func: Callable[..., Any]) -> Self:
         """
         Apply grouped reduction function blockwise, returning a new BlockManager.
 
@@ -1701,7 +1703,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # TODO shallow copy columns?
         return type(self).from_blocks(result_blocks, [self.axes[0].view(), index])
 
-    def reduce(self, func: Callable) -> Self:
+    def reduce(self, func: Callable[..., Any]) -> Self:
         """
         Apply reduction function blockwise, returning a single-row BlockManager.
 
@@ -2364,7 +2366,7 @@ def create_block_manager_from_column_arrays(
     arrays: list[ArrayLike],
     axes: list[Index],
     consolidate: bool,
-    refs: list,
+    refs: list[BlockValuesRefs | None],
 ) -> BlockManager:
     # Assertions disabled for performance (caller is responsible for verifying)
     # assert isinstance(axes, list)
@@ -2416,7 +2418,9 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
+def _form_blocks(
+    arrays: list[ArrayLike], consolidate: bool, refs: list[BlockValuesRefs | None]
+) -> list[Block]:
     tuples = enumerate(arrays)
 
     if not consolidate:

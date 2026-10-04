@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._libs.sparse import IntIndex
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -835,7 +833,7 @@ def test_any_all_skipna_false_na_fill_value(name, subtype):
     # GH#68559 an NA fill value on a numeric subtype; the gaps densify to that
     #  subtype's own NA, NaN or NaT, both truthy
     sp_values = np.array([1], dtype=subtype)
-    arr = SparseArray(sp_values, sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
+    arr = SparseArray.from_indices(sp_values, indices=[0], length=3, fill_value=pd.NA)
     assert arr.sp_index.ngaps
 
     assert getattr(arr, name)(skipna=False)
@@ -845,7 +843,9 @@ def test_any_all_skipna_false_na_fill_value(name, subtype):
 def test_any_all_skipna_false_bool_subtype_na_fill_value(name):
     # GH#68559 a bool subtype densifies to object holding pd.NA rather than to a
     #  numpy NA, so unlike the numeric subtypes it goes on raising like dense
-    arr = SparseArray(np.array([True]), sparse_index=IntIndex(3, [0]), fill_value=pd.NA)
+    arr = SparseArray.from_indices(
+        np.array([True]), indices=[0], length=3, fill_value=pd.NA
+    )
     assert arr.sp_index.ngaps
 
     with pytest.raises(TypeError, match="boolean value of NA is ambiguous"):

@@ -1423,13 +1423,13 @@ class TestLocBaseIndependent:
 
         # regression test for GH#34526
         itr_idx = range(2, rows)
-        result = np.nan_to_num(df.loc[itr_idx].values)
+        result = df.loc[itr_idx].values
         expected = spmatrix.toarray()[itr_idx]
         tm.assert_numpy_array_equal(result, expected)
 
         # regression test for GH#34540
         result = df.loc[itr_idx].dtypes.values
-        expected = np.full(cols, pd.SparseDtype(dtype))
+        expected = np.full(cols, pd.SparseDtype(dtype, np.array(0, dtype=dtype).item()))
         tm.assert_numpy_array_equal(result, expected)
 
     def test_loc_getitem_listlike_all_retains_sparse(self):
@@ -1441,16 +1441,18 @@ class TestLocBaseIndependent:
         # GH34687
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = pd.DataFrame.sparse.from_spmatrix(sp_sparse.eye(5, dtype=np.int64))
+        df = pd.DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
         result = df.loc[range(2)]
         expected = pd.DataFrame(
-            [[1, 0, 0, 0, 0], [0, 1, 0, 0, 0]],
-            dtype=pd.SparseDtype(np.int64),
+            [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
+            dtype=pd.SparseDtype("float64", 0.0),
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.loc[range(2)].loc[range(1)]
-        expected = pd.DataFrame([[1, 0, 0, 0, 0]], dtype=pd.SparseDtype(np.int64))
+        expected = pd.DataFrame(
+            [[1.0, 0.0, 0.0, 0.0, 0.0]], dtype=pd.SparseDtype("float64", 0.0)
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_loc_getitem_sparse_series(self):
@@ -2150,9 +2152,11 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
-        with monkeypatch.context():
-            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
-            result = pd.DataFrame({"x": range(size_cutoff)}, dtype="int64")
+        with monkeypatch.context() as m:
+            m.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            # RangeIndex lookups bypass the engine
+            index = pd.Index(np.arange(size_cutoff))
+            result = pd.DataFrame({"x": range(size_cutoff)}, index=index, dtype="int64")
             result.loc[size_cutoff] = size_cutoff
         expected = pd.DataFrame({"x": range(size_cutoff + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
@@ -2602,6 +2606,8 @@ class TestLocSetitemWithExpansion:
             #  then coerced back into the int64 column
             ("int64[pyarrow]", pd.Period("2021-01-01", freq="D")),
             ("int64[pyarrow]", pd.Interval(5, 6)),
+            # used to raise in _post_expansion_casting, GH#70233
+            ("int64[pyarrow]", 2**70),
         ],
     )
     def test_loc_setitem_with_expansion_lossy_pre_cast(self, dtype, item):
@@ -2617,6 +2623,41 @@ class TestLocSetitemWithExpansion:
 
         expected = pd.DataFrame({"a": pd.Series([*original, item], dtype=object)})
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, item",
+        [
+            (pd.StringDtype(na_value=np.nan), 2**70),
+            ("Int64", pd.NaT),
+            ("boolean", pd.NaT),
+            ("int64[pyarrow]", 2**70),
+        ],
+    )
+    def test_loc_setitem_with_expansion_series_cannot_hold(self, dtype, item):
+        # GH#70233 a value the dtype cannot hold used to raise instead of
+        #  widening to object
+        if "pyarrow" in str(dtype):
+            pytest.importorskip("pyarrow")
+        ser = pd.Series([1, 0], dtype=dtype)
+        original = list(ser)
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = item
+
+        expected = pd.Series([*original, item], dtype=object)
+        tm.assert_series_equal(ser, expected)
+
+    def test_loc_setitem_with_expansion_all_na_str_large_int(self):
+        # GH#70233 the value must not be rounded through float64
+        pytest.importorskip("pyarrow")
+        dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+        ser = pd.Series([np.nan, np.nan], dtype=dtype)
+
+        with tm.assert_produces_warning(Pandas4Warning, match="incompatible dtype"):
+            ser.loc[2] = 2**64 - 1
+
+        expected = pd.Series([np.nan, np.nan, 2**64 - 1], dtype=object)
+        tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_with_expansion_sparse_na(self):
         # GH#65431 pre-casting NaN gives Sparse[float64, nan], not the column's

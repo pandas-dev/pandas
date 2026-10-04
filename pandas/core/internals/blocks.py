@@ -153,7 +153,7 @@ class Block(PandasObject, libinternals.Block):
     values: np.ndarray | ExtensionArray
     ndim: int
     refs: BlockValuesRefs
-    __init__: Callable
+    __init__: Callable[..., None]
 
     __slots__ = ()
     is_numeric = False
@@ -1405,7 +1405,8 @@ class Block(PandasObject, libinternals.Block):
         fillna on the block with the value. If we fail, then convert to
         block to hold objects instead and try again
         """
-        # Caller is responsible for validating limit; if int it is strictly positive
+        # Caller is responsible for validating limit; if int it is strictly positive.
+        # Caller is also responsible for unboxing Series/Index values, GH#22954
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if not self._can_hold_na:
@@ -1783,19 +1784,13 @@ class EABackedBlock(Block):
             #  misinterpret it as a cast failure. Also covers 3rd-party EAs,
             #  whose __setitem__ does not check the flag.
             raise ValueError("Cannot modify read-only array")
+        target = values
         if values.ndim == 2:
-            # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
-            #  instead of transposing values, since EA.T may not be a view.
-            if not isinstance(indexer, tuple):
-                indexer = (indexer, slice(None))
-            if len(indexer) == 2:
-                indexer = indexer[::-1]
-            if isinstance(value, np.ndarray) and value.ndim == 2:
-                value = value.T
+            target, indexer, value = self._setitem_target(indexer, value)
         check_setitem_lengths(indexer, value, values)
 
         try:
-            values[indexer] = value
+            target[indexer] = value
         except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
@@ -1803,6 +1798,13 @@ class EABackedBlock(Block):
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
+                if values.ndim == 2 and _unbroadcastable_shape(target, indexer, value):
+                    # GH#68521 not for a 1D block: that would change the
+                    #  exception type of Series setitem; see
+                    #  test_iloc_setitem_1d_ea_block_shape_mismatch_keeps_its_message
+                    # target is values.T, already in frame order, so the
+                    #  error's own message reports the shape mismatch correctly
+                    raise
                 nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
@@ -1811,6 +1813,20 @@ class EABackedBlock(Block):
 
         else:
             return self
+
+    def _setitem_target(self, indexer, value):
+        """
+        Get the array, indexer and value for setitem on a 2-D block.
+        """
+        # GH#45419 Adapt indexer/value to storage layout (nblocks, nrows)
+        #  instead of transposing values, since EA.T may not be a view.
+        if not isinstance(indexer, tuple):
+            indexer = (indexer, slice(None))
+        if len(indexer) == 2:
+            indexer = indexer[::-1]
+        if isinstance(value, np.ndarray) and value.ndim == 2:
+            value = value.T
+        return self.values, indexer, value
 
     @final
     def where(self, other, cond) -> list[Block]:
@@ -2032,6 +2048,7 @@ class ExtensionBlock(EABackedBlock):
         limit: int | None = None,
         inplace: bool = False,
     ) -> list[Block]:
+        # Caller is responsible for unboxing Series/Index values, GH#22954
         if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
             if isinstance(self.dtype, IntervalDtype) and limit is not None:
@@ -2316,6 +2333,14 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
+    def _setitem_target(self, indexer, value):
+        # GH#68521 .T is a view here, so write through it with the key
+        #  in frame order and let numpy do the broadcasting
+        if not isinstance(indexer, tuple):
+            # a 0-d ndarray key breaks EA.__setitem__; a tuple avoids it
+            indexer = (indexer,)
+        return self.values.T, indexer, value
+
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     """Block for datetime64[ns], timedelta64[ns]."""
@@ -2323,6 +2348,29 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     __slots__ = ()
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
+
+
+def _unbroadcastable_shape(values: ArrayLike, indexer, value) -> bool:
+    """
+    Whether ``value`` cannot be broadcast into ``values[indexer]``.
+
+    Returns False both when the value does fit and when that cannot be
+    determined, so a caller can only use a True result to conclude a failed
+    setitem is a shape problem rather than a dtype one.
+    """
+    try:
+        target_shape = np.shape(values[indexer])
+        value_shape = np.shape(value)
+    except (IndexError, TypeError, ValueError):
+        return False
+    # assignment also drops leading length-1 axes of the value, which
+    #  broadcasting on its own does not, e.g. ``arr[0] = np.array([x])``
+    while len(value_shape) > len(target_shape) and value_shape[0] == 1:
+        value_shape = value_shape[1:]
+    try:
+        return np.broadcast_shapes(target_shape, value_shape) != target_shape
+    except ValueError:
+        return True
 
 
 # -----------------------------------------------------------------
@@ -2526,30 +2574,11 @@ def external_values(values: ArrayLike) -> ArrayLike:
     proper extension array).
     """
     if isinstance(values, (PeriodArray, IntervalArray)):
-        warnings.warn(
-            f"Series.values returning an object-dtype ndarray for "
-            f"{type(values.dtype).__name__} dtype is deprecated. "
-            f"In a future version, this will return the underlying "
-            f"ExtensionArray instead. Use 'Series.to_numpy()' to get a "
-            f"NumPy array, or 'Series.array' to get the ExtensionArray.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
         return values.astype(object)
     elif isinstance(values, (DatetimeArray, TimedeltaArray)):
         # NB: for datetime64tz this is different from np.asarray(values), since
         #  that returns an object-dtype ndarray of Timestamps.
         # Avoid raising in .astype in casting from dt64tz to dt64
-        if isinstance(values.dtype, DatetimeTZDtype):
-            warnings.warn(
-                "Series.values returning an ndarray that drops timezone "
-                "information for DatetimeTZDtype is deprecated. "
-                "In a future version, this will return the underlying "
-                "DatetimeArray instead. Use 'Series.to_numpy()' to get a "
-                "NumPy array, or 'Series.array' to get the ExtensionArray.",
-                Pandas4Warning,
-                stacklevel=find_stack_level(),
-            )
         values = values._ndarray
 
     if isinstance(values, np.ndarray):

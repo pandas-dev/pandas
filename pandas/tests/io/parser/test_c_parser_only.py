@@ -12,6 +12,7 @@ from io import (
     TextIOWrapper,
 )
 import mmap
+import re
 import tarfile
 import tracemalloc
 
@@ -266,6 +267,23 @@ def test_custom_lineterminator(c_parser_only):
 
     result = parser.read_csv(StringIO(data), lineterminator="~")
     expected = parser.read_csv(StringIO(data.replace("~", "\n")))
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+@pytest.mark.parametrize(
+    "sep, term", [("\n", "~"), ("\r", "~"), ("\n", "\r"), ("\r", "\n")]
+)
+def test_line_break_as_separator_with_custom_lineterminator(
+    key, sep, term, c_parser_only
+):
+    # GH#51801 a custom lineterminator frees up "\n"/"\r" as a separator
+    parser = c_parser_only
+    data = f"a{sep}b{sep}c{term}1{sep}2{sep}3{term}4{sep}5{sep}6"
+
+    result = parser.read_csv(StringIO(data), lineterminator=term, **{key: sep})
+    expected = parser.read_csv(StringIO(data.replace(sep, ",").replace(term, "\n")))
 
     tm.assert_frame_equal(result, expected)
 
@@ -1826,3 +1844,58 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
 
     assert result.columns.tolist() == ["a", "b", "c"]
     assert result.index.name is None
+
+
+@pytest.mark.parametrize(
+    "converter,values",
+    [
+        (lambda x: [x], [["1"], ["CAT"], ["3"]]),
+        # hashable type whose __hash__ raises
+        (lambda x: (x, [x]), [("1", ["1"]), ("CAT", ["CAT"]), ("3", ["3"])]),
+    ],
+)
+def test_converter_unhashable_output_with_na_values(c_parser_only, converter, values):
+    # GH#13302 matching na_values against the converter's output must not
+    # reject output that cannot be hashed. The python engine raises here.
+    parser = c_parser_only
+    data = "A\n1\nCAT\n3"
+
+    result = parser.read_csv(
+        StringIO(data), converters={"A": converter}, na_values="CAT"
+    )
+    expected = pd.DataFrame({"A": values})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, dtype, offender",
+    [
+        (
+            "a;b\na;1,20\nb;22,3\nc;1.234,56\n",
+            {"decimal": ","},
+            "float64",
+            "1.234,56",
+        ),
+        (
+            "a;b\na;1,000\nb;x\n",
+            {"thousands": ","},
+            "int64",
+            "x",
+        ),
+        (
+            # overflowing-but-valid token before the offender
+            "a;b\na;18446744073709551615\nb;x\n",
+            {},
+            "int64",
+            "x",
+        ),
+    ],
+)
+def test_unparseable_dtype_names_offending_value(
+    c_parser_only, data, kwargs, dtype, offender
+):
+    # GH#59299 name the value the parser rejected, not an earlier valid one
+    parser = c_parser_only
+
+    with pytest.raises(ValueError, match=re.escape(repr(offender))):
+        parser.read_csv(StringIO(data), sep=";", dtype={"b": dtype}, **kwargs)

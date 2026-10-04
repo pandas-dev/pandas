@@ -753,7 +753,7 @@ class TestNamedAggregationSeries:
 
         # but we do allow this
         result = gr.agg([])
-        expected = pd.DataFrame(columns=[])
+        expected = pd.DataFrame(index=np.array([0, 1]), columns=[])
         tm.assert_frame_equal(result, expected)
 
     def test_series_named_agg_duplicates_no_raises(self):
@@ -1068,7 +1068,34 @@ def test_groupby_aggregate_empty_key_empty_return():
     # GH: 32580 Check if everything works, when return is empty
     df = pd.DataFrame({"a": [1, 1, 2], "b": [1, 2, 3], "c": [1, 2, 4]})
     result = df.groupby("a").agg({"b": []})
-    expected = pd.DataFrame(columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]))
+    expected = pd.DataFrame(
+        index=pd.Index([1, 2], name="a"),
+        columns=pd.MultiIndex(levels=[["b"], []], codes=[[], []]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_groupby_aggregate_empty_func(func):
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    result = df.groupby("a").agg(func)
+    if func == []:
+        columns = pd.MultiIndex(levels=[["b"], []], codes=[[], []])
+    else:
+        columns = df.columns[:0]
+    expected = pd.DataFrame(index=pd.Index([1, 2], name="a"), columns=columns)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_groupby_aggregate_empty_func_as_index_false(func):
+    # GH#39609
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    result = df.groupby("a", as_index=False).agg(func)
+    expected = pd.DataFrame({"a": [1, 2]})
+    if func == []:
+        expected.columns = pd.MultiIndex.from_tuples([("a", "")])
     tm.assert_frame_equal(result, expected)
 
 
@@ -2013,6 +2040,30 @@ def test_agg_lambda_complex128_dtype_conversion():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype, value, expected_dtype",
+    [
+        (pd.StringDtype(na_value=np.nan), 2**70, object),
+        pytest.param("string[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", 2**70, object, marks=td.skip_if_no("pyarrow")),
+        ("Int64", pd.NaT, "M8[s]"),
+        ("Float64", pd.NaT, "M8[s]"),
+        ("boolean", pd.NaT, "M8[s]"),
+    ],
+)
+def test_agg_lambda_result_dtype_cannot_hold(dtype, value, expected_dtype):
+    # GH#70233 used to raise instead of inferring the result dtype
+    df = pd.DataFrame({"key": [1, 1, 2], "val": pd.Series([1, 0, 1], dtype=dtype)})
+    result = df.groupby("key")["val"].agg(lambda x: value)
+    expected = pd.Series(
+        [value, value],
+        index=pd.Index([1, 2], name="key"),
+        name="val",
+        dtype=expected_dtype,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @td.skip_if_no("pyarrow")
 def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
     # GH#59601
@@ -2100,6 +2151,56 @@ def test_agg_relabel_with_name_match_and_namedagg():
     result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
 
     expected = pd.DataFrame({"B": [3, 7]}, index=pd.Index([0, 1], name="A"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_listlike_aggfunc():
+    # GH#63743 a list-like aggfunc takes the same path whether or not the output
+    #  name matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    with pytest.raises(TypeError, match="unhashable"):
+        df.groupby("A").agg(B=("B", ["sum", "max"]))
+
+    with pytest.raises(TypeError, match="unhashable"):
+        df.groupby("A").agg(x=("B", ["sum", "max"]))
+
+    # a tuple aggfunc is read as a single (name, func) pair, not two aggfuncs
+    result = df.groupby("A").agg(B=("B", ("sum", "max")))
+    expected = df.groupby("A").agg(x=("B", ("sum", "max")))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("aggfunc", ["describe", "ohlc"])
+def test_agg_relabel_with_name_match_non_reduction(aggfunc):
+    # GH#63743 a string aggfunc that is not a reduction gives a frame per group,
+    #  so it must still produce one output column per keyword when the output
+    #  name matches the column name
+    df = pd.DataFrame({"A": [0, 0, 1, 1], "B": [1, 2, 3, 4]})
+
+    result = df.groupby("A").agg(B=("B", aggfunc))
+    expected = df.groupby("A").agg(z=("B", aggfunc))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", aggfunc))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_relabel_with_name_match_duplicate_columns():
+    # GH#63743 named aggregation gives one output column per keyword even when
+    #  the source label is duplicated and the output name matches it
+    df = pd.DataFrame(
+        [[0, 1, 2], [0, 3, 4], [1, 5, 6], [1, 7, 8]], columns=["A", "B", "B"]
+    )
+
+    result = df.groupby("A").agg(B=("B", "sum"))
+    expected = df.groupby("A").agg(x=("B", "sum"))
+    expected.columns = ["B"]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.groupby("A").agg(B=pd.NamedAgg("B", "sum"))
     tm.assert_frame_equal(result, expected)
 
 
