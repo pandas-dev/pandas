@@ -40,7 +40,7 @@ def test_bytes_io_input(all_parsers):
     "encoding_errors, expected", [("replace", "x?"), ("ignore", "x")]
 )
 def test_text_buffer_encoding_errors(all_parsers, encoding_errors, expected):
-    # GH#70356 the C and pyarrow engines encode a text buffer to bytes and
+    # GH#70405 the C and pyarrow engines encode a text buffer to bytes and
     # must apply encoding_errors when doing so
     parser = all_parsers
     if parser.engine == "python":
