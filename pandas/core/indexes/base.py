@@ -7213,10 +7213,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_numeric_dtype(self.dtype):
             return self._maybe_cast_indexer(label)
 
-        # reject them, if index does not contain label
-        if (is_float(label) or is_integer(label)) and label not in self:
-            self._raise_invalid_indexer("slice", label)
-
         return label
 
     def _searchsorted_monotonic(
@@ -7302,6 +7298,9 @@ class Index(IndexOpsMixin, PandasObject):
                     f"with a missing label {original_label!r}. "
                     "Either sort the index or specify an existing label."
                 ) from None
+            except TypeError as err:
+                # label is not comparable with the index values
+                self._raise_invalid_indexer("slice", original_label, err)
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
