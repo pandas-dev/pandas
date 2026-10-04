@@ -1,0 +1,54 @@
+# Configuration for .github/workflows/linkcheck.yml
+scheme = ["http", "https"]
+include_fragments = "anchor-only"
+exclude_all_private = true
+max_retries = 3
+timeout = 30
+host_concurrency = 4
+# 403 is what bot-blocking hosts (e.g. stackoverflow.com) return; a removed
+# page still returns 404
+accept = ["200..=299", "403", "429"]
+
+# Files to scan when the input is a directory; .gitignore'd files are skipped
+extensions = [
+    "c", "cff", "h", "hpp", "html", "in", "ipynb", "json", "md", "pxd", "pxi",
+    "py", "pyx", "rst", "template", "toml", "yaml", "yml",
+]
+hidden = true
+
+exclude_path = [
+    "(^|/)\\.git/",
+    "(^|/)doc/source/whatsnew/",
+    "(^|/)pandas/tests/",
+    # regexes that parse as URLs; Sphinx's list of known-broken links
+    "(^|/)\\.github/lychee\\.toml$",
+    "(^|/)doc/source/conf\\.py$",
+]
+
+# These anchors are created by JavaScript, so drop them and check only the page
+remap = [
+    '^(https://github\.com/[^#]*)#.*$ $1',
+    '^(https?://support\.sas\.com/[^#]*)#.*$ $1',
+]
+
+exclude = [
+    '^https?://(www\.)?example\.(com|org)',
+    # placeholders and XML namespaces
+    '^https://github\.com/your-user-name/',
+    '^http://exslt\.org/regular-expressions$',
+    # URLs split across lines, which lychee reads only up to the line break
+    '^https://raw\.githubusercontent\.com/pandas-dev/?$',
+    '^https://en\.wikipedia\.org/w/index\.php\?title=Estimation_of_covariance_$',
+    # a URL directly followed by "\n" in a Python string or notebook source
+    '/n$',
+    '\\n$',
+    # templates filled in by code ("{user}", "{{ release.tag }}", "%s")
+    '%7B',
+    '/%s$',
+    # API endpoints, not pages
+    '^https://api\.github\.com/',
+    '^https://pandas\.pydata\.org/preview$',
+    # reject requests from bots with status 999 or a 303 to a login page
+    '^https://(www\.)?linkedin\.com/',
+    '\.streamlit\.app/',
+]
