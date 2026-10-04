@@ -216,6 +216,7 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` raising ``TypeError`` for ``"boolean"`` dtype (:issue:`70487`)
+- Bug in :meth:`DataFrame.any` and :meth:`DataFrame.all` with ``skipna=False`` raising ``TypeError`` instead of returning ``pd.NA`` for :class:`ArrowDtype` columns containing missing values; the result now keeps the ``bool[pyarrow]`` dtype (:issue:`70685`)
 
 Styler
 ^^^^^^
