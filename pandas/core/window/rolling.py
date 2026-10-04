@@ -2967,7 +2967,7 @@ class Rolling(RollingAndExpandingMixin):
         1         NaN
         2    1.293343
         3   -0.585583
-        4    0.670295
+        4    0.670284
         5    1.652317
         dtype: float64
         """
