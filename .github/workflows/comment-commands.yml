@@ -2,6 +2,8 @@ name: Comment Commands
 on:
   issue_comment:
     types: [created, edited]
+  issues:
+    types: [opened]
 
 permissions: {}
 
@@ -20,7 +22,7 @@ env:
     set to work on it.
   TAKE_LIMIT_REACHED: >-
     Thanks for your interest, @{user}! You're already assigned to {count} open
-    issues ({issues}), and contributors can hold at most {limit} at a time — so
+    issues, and contributors can hold at most {limit} at a time — so
     this one isn't available to claim right now. Once you've finished one of
     those, or released it with `/untake`, you're welcome to `/take` this
     issue. See the [contributing guide]({docs}) for more.
@@ -56,6 +58,39 @@ jobs:
           previewer-server: "https://pandas.pydata.org/preview"
           artifact-job: "Doc Build and Upload"
 
+  needs_triage:
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    if: >-
+      github.repository_owner == 'pandas-dev' &&
+      github.event_name == 'issues'
+    steps:
+      # Apply `Needs Triage` to an issue opened by someone other than an owner,
+      # member, collaborator, or bot, unless the label has been applied or
+      # removed before.
+      - &needs_triage_step
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const LABEL = 'Needs Triage';
+            const EXEMPT_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+            // Only apply going forward; not retroactively.
+            const ROLLOUT_CUTOFF = new Date('2026-09-28T00:00:00Z');
+            const issue = context.payload.issue;
+            const labels = issue.labels.map(label => typeof label === 'string' ? label : label.name);
+            if (labels.includes(LABEL)) return;
+            if (new Date(issue.created_at) < ROLLOUT_CUTOFF) return;
+            if (issue.user.type === 'Bot' || EXEMPT_ASSOCIATIONS.includes(issue.author_association)) return;
+            const repo = { owner: context.repo.owner, repo: context.repo.repo };
+            const events = await github.paginate(github.rest.issues.listEvents, {
+              ...repo, issue_number: issue.number, per_page: 100,
+            });
+            const seen = events.some(event =>
+              ['labeled', 'unlabeled'].includes(event.event) && event.label?.name === LABEL);
+            if (seen) return;
+            await github.rest.issues.addLabels({ ...repo, issue_number: issue.number, labels: [LABEL] });
+
   take:
     runs-on: ubuntu-24.04
     permissions:
@@ -67,6 +102,8 @@ jobs:
     concurrency:
       group: assign-${{ github.event.issue.number }}
     steps:
+      # Covers a `/take` that runs before the `needs_triage` job labels the issue
+      - *needs_triage_step
       - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -105,8 +142,7 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, assignee: user, state: 'open', per_page: 100,
               })).filter(item => !item.pull_request);
               if (held.length >= limit) {
-                const issues = held.map(item => `#${item.number}`).join(', ');
-                await comment(msg('TAKE_LIMIT_REACHED', { user, count: held.length, issues, limit }));
+                await comment(msg('TAKE_LIMIT_REACHED', { user, count: held.length, limit }));
                 return;
               }
             }

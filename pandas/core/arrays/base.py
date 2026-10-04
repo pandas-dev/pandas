@@ -206,18 +206,18 @@ class ExtensionArray:
     * __repr__ : A default repr for the ExtensionArray.
     * _formatter : Print scalars inside a Series or DataFrame.
 
-    Some methods require casting the ExtensionArray to an ndarray of Python
-    objects with ``self.astype(object)``, which may be expensive. When
+    Some methods convert the ExtensionArray to an ndarray of Python objects,
+    with ``self.astype(object)`` or with ``np.asarray(self)`` when
+    ``__array__`` is not implemented, which may be expensive. When
     performance is a concern, we highly recommend overriding the following
     methods:
 
-    * fillna
-    * _pad_or_backfill
-    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort, argmax, argmin / _values_for_argsort
     * searchsorted
+    * isin
+    * value_counts
     * map
 
     The remaining methods implemented on this class should be performant,
@@ -2618,7 +2618,7 @@ class ExtensionArray:
         counts = np.ones(shape=(len(self),), dtype=np.uint64)
         return values, counts
 
-    def tolist(self) -> list:
+    def tolist(self) -> list[Any]:
         """
         Return a list of the values.
 
