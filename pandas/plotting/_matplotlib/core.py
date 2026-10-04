@@ -10,6 +10,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from decimal import Decimal
 from functools import partial
 from typing import (
     TYPE_CHECKING,
@@ -668,11 +669,15 @@ class MPLPlot(ABC):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (
-            is_integer_dtype(data.dtype)
-            or is_float_dtype(data.dtype)
-            or is_bool_dtype(data.dtype)
-        ) and isinstance(data.dtype, ExtensionDtype):
+        # Same for Decimal EAs (e.g. pyarrow decimal), as box/kde/area can't
+        # mix Decimal with float
+        dtype = data.dtype
+        if isinstance(dtype, ExtensionDtype) and (
+            is_integer_dtype(dtype)
+            or is_float_dtype(dtype)
+            or is_bool_dtype(dtype)
+            or issubclass(dtype.type, Decimal)
+        ):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
@@ -725,7 +730,7 @@ class MPLPlot(ABC):
 
         # GH 18755, include numpy object and category type for scatter plot
         if self._kind == "scatter":
-            include_type.extend([np.object_, CategoricalDtypeType, str])
+            include_type.extend([np.object_, CategoricalDtypeType, str, bytes])
 
         # GH 64535 Utilize mgr subset instead of DataFrame select_dtypes
         def dtype_predicate(dtype, types) -> bool:
