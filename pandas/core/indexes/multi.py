@@ -380,8 +380,8 @@ class MultiIndex(Index):
 
     def _verify_integrity(
         self,
-        codes: list | None = None,
-        levels: list | None = None,
+        codes: list[Any] | None = None,
+        levels: list[Any] | None = None,
         levels_to_verify: list[int] | range | None = None,
     ) -> FrozenList:
         """
@@ -1656,8 +1656,8 @@ class MultiIndex(Index):
         *,
         include_names: bool,
         sparsify: bool | lib.NoDefault | None,
-        formatter: Callable | None = None,
-    ) -> list:
+        formatter: Callable[..., Any] | None = None,
+    ) -> list[Any]:
         if len(self) == 0:
             return []
 
@@ -2033,7 +2033,7 @@ class MultiIndex(Index):
         MultiIndex([(2.0, 4.0)],
                    )
         >>> mi.dropna(how="all")
-        MultiIndex([(nan, 3.0),
+        MultiIndex([(NaN, 3.0),
                     (2.0, 4.0)],
                    )
         """
@@ -2137,7 +2137,7 @@ class MultiIndex(Index):
         level_1    int64
         dtype: object
         >>> pd.MultiIndex.from_arrays([[1, None, 2], [3, 4, 5]]).get_level_values(0)
-        Index([1.0, nan, 2.0], dtype='float64')
+        Index([1.0, NaN, 2.0], dtype='float64')
         """
         level = self._get_level_number(level)
         values = self._get_level_values(level)
@@ -3546,7 +3546,9 @@ class MultiIndex(Index):
         # happens in get_slice_bound method), but it adds meaningful doc.
         return super().slice_locs(start, end, step)
 
-    def _partial_tup_index(self, tup: tuple, side: Literal["left", "right"] = "left"):
+    def _partial_tup_index(
+        self, tup: tuple[Any, ...], side: Literal["left", "right"] = "left"
+    ):
         if len(tup) > self.nlevels:
             # GH#45762 no amount of sorting brings a key this deep into range,
             #  so the lexsort complaint below would be blaming the wrong thing
@@ -4461,7 +4463,7 @@ class MultiIndex(Index):
 
     def _reorder_indexer(
         self,
-        seq: tuple[Scalar | Iterable | AnyArrayLike, ...],
+        seq: tuple[Scalar | Iterable[Any] | AnyArrayLike, ...],
         indexer: npt.NDArray[np.intp],
     ) -> npt.NDArray[np.intp]:
         """

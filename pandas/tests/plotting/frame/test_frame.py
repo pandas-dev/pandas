@@ -754,6 +754,18 @@ class TestDataFramePlots:
         expected = [0.0, 0.0, 0.0, 10.0, 0.0, 20.0, 15.0, 10.0, 40.0]
         assert result == expected
 
+    def test_bar_timedelta_with_nat_mixed_dtype(self):
+        # GH#39320 filling is per-column, so a non-timedelta column
+        #  alongside a timedelta one keeps its own fill value
+        df = pd.DataFrame(
+            {"A": pd.to_timedelta([1, None, 3], unit="s"), "B": [1.0, np.nan, 2.0]}
+        )
+        ax = df.plot.bar()
+        result = [p.get_height() for p in ax.patches]
+        td_heights = df["A"].fillna(pd.Timedelta(0)).astype(np.int64).tolist()
+        expected = [*td_heights, 1.0, 0.0, 2.0]
+        assert result == expected
+
     def test_bar_stacked_label_position_with_zero_height(self):
         # GH 59429
         df = pd.DataFrame({"A": [3, 0, 1], "B": [0, 2, 4], "C": [5, 0, 2]})

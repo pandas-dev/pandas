@@ -419,6 +419,16 @@ This function is often used along with discretization functions like :func:`~pan
 
    pd.get_dummies(pd.cut(values, bins))
 
+A categorical input gets one column per category, including categories absent
+from the data. To get a consistent set of columns, e.g. between training and
+test data, set the categories first:
+
+.. ipython:: python
+
+    s = pd.Series(list("aca")).astype(pd.CategoricalDtype(["a", "b", "c"]))
+
+    pd.get_dummies(s)
+
 
 :func:`get_dummies` also accepts a :class:`DataFrame`. By default, ``object``, ``string``,
 or ``categorical`` type columns are encoded as dummy variables with other columns unaltered.

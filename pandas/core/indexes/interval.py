@@ -505,7 +505,7 @@ class IntervalIndex(ExtensionIndex):
         result = self._data.to_tuples(na_tuple=na_tuple)
         return Index(result, name=self.name, dtype=result.dtype, copy=False)
 
-    def overlaps(self, other: Interval) -> npt.NDArray[np.bool_]:
+    def overlaps(self, other: Interval[Any]) -> npt.NDArray[np.bool_]:
         """
         Check elementwise if an Interval overlaps the values in the IntervalIndex.
 
