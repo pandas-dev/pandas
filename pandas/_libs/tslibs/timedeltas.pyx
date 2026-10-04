@@ -78,13 +78,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     convert_reso,
     get_datetime64_unit,
     get_datetime64_unit_count,
+    get_unit_count_from_dtype,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
-    raise_if_unit_multiplier,
 )
 
 import_pandas_datetime()
@@ -1022,17 +1022,18 @@ cdef _addsub_timedelta64_array(
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic timedelta64 in the other operand's unit
         other_reso = reso
-    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
+    elif (
+        other_reso < NPY_FR_W
+        or other_reso > NPY_FR_ns
+        or get_unit_count_from_dtype(other.dtype) != 1
+    ):
         # year/month, which numpy itself refuses to add to a time unit, and
-        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+        #  sub-nanosecond or multiplier units such as m8[10s], which we have no
+        #  reso for; leave all to numpy (GH#25611)
         m8 = td.to_timedelta64()
         if not subtract:
             return m8 + other
         return (other - m8) if reverse else (m8 - other)
-
-    # the unit read above is the base one, so a multiplier such as m8[10s]
-    #  would be silently dropped (GH#25611)
-    raise_if_unit_multiplier(other.dtype)
 
     if reso < other_reso:
         td = td._as_creso(other_reso, round_ok=True)
@@ -1090,14 +1091,11 @@ cdef _addsub_datetime64_array(
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic datetime64 in the other operand's unit
         other_reso = reso
-    elif other_reso > NPY_FR_ns:
-        # sub-nanosecond units, which we have no reso for; leave both to numpy
+    elif other_reso > NPY_FR_ns or get_unit_count_from_dtype(other.dtype) != 1:
+        # sub-nanosecond or multiplier units such as M8[10s], which we have no
+        #  reso for; leave both to numpy (GH#25611)
         m8 = td.to_timedelta64()
         return (other - m8) if subtract else (m8 + other)
-
-    # the unit read above is the base one, so a multiplier such as m8[10s]
-    #  would be silently dropped (GH#25611)
-    raise_if_unit_multiplier(other.dtype)
 
     if reso < other_reso:
         td = td._as_creso(other_reso, round_ok=True)

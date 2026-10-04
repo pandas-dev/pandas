@@ -439,17 +439,10 @@ def test_dt_subclass_add_timedelta(lh, rh):
     assert result == expected
 
 
-def test_addsub_m8ndarray_unit_multiplier_raises():
-    # GH#25611 a dtype such as m8[10s] was read as m8[s], silently dropping
-    #  the multiplier; the Index, Series and constructor paths already reject it
+def test_addsub_m8ndarray_unit_multiplier():
+    # GH#25611 a dtype such as m8[10s] was read as m8[s], dropping the multiplier
     ts = Timestamp("2000-01-01").as_unit("s")
     other = np.array([1, 2], dtype="m8[10s]")
-    msg = (
-        r"units containing a multiplier are not supported, "
-        r"got dtype timedelta64\[10s\]"
-    )
 
-    with pytest.raises(ValueError, match=msg):
-        ts + other
-    with pytest.raises(ValueError, match=msg):
-        ts - other
+    tm.assert_numpy_array_equal(ts + other, ts.asm8 + other)
+    tm.assert_numpy_array_equal(ts - other, ts.asm8 - other)

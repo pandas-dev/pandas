@@ -1768,20 +1768,14 @@ def test_td_integral_float_op_is_exact(op):
 
 
 @pytest.mark.parametrize("kind", ["m", "M"])
-def test_td_add_sub_ndarray_unit_multiplier_raises(kind):
-    # GH#25611 a dtype such as m8[10s] was read as m8[s], silently dropping
-    #  the multiplier; the Index, Series and constructor paths already reject it
+def test_td_add_sub_ndarray_unit_multiplier(kind):
+    # GH#25611 a dtype such as m8[10s] was read as m8[s], dropping the multiplier
     td = pd.Timedelta(1, "s").as_unit("s")
+    m8 = td.to_timedelta64()
     other = np.array([1, 2], dtype=f"{kind}8[10s]")
-    name = "timedelta64" if kind == "m" else "datetime64"
-    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
 
-    with pytest.raises(ValueError, match=msg):
-        td + other
-    with pytest.raises(ValueError, match=msg):
-        other + td
-    with pytest.raises(ValueError, match=msg):
-        other - td
+    tm.assert_numpy_array_equal(td + other, m8 + other)
+    tm.assert_numpy_array_equal(other + td, other + m8)
+    tm.assert_numpy_array_equal(other - td, other - m8)
     if kind == "m":
-        with pytest.raises(ValueError, match=msg):
-            td - other
+        tm.assert_numpy_array_equal(td - other, m8 - other)

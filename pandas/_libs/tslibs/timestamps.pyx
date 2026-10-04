@@ -97,13 +97,13 @@ from pandas._libs.tslibs.np_datetime cimport (
     convert_reso,
     dts_to_iso_string,
     get_datetime64_unit,
+    get_unit_count_from_dtype,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dtstruct,
-    raise_if_unit_multiplier,
 )
 
 import_pandas_datetime()
@@ -247,14 +247,15 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic timedelta64 in the other operand's unit
         other_reso = reso
-    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
+    elif (
+        other_reso < NPY_FR_W
+        or other_reso > NPY_FR_ns
+        or get_unit_count_from_dtype(other.dtype) != 1
+    ):
         # year/month, which numpy itself refuses to add to a time unit, and
-        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+        #  sub-nanosecond or multiplier units such as m8[10s], which we have no
+        #  reso for; leave all to numpy (GH#25611)
         return (ts.asm8 - other) if subtract else (ts.asm8 + other)
-
-    # the unit read above is the base one, so a multiplier such as m8[10s]
-    #  would be silently dropped (GH#25611)
-    raise_if_unit_multiplier(other.dtype)
 
     if reso < other_reso:
         ts = ts._as_creso(other_reso, round_ok=True)
