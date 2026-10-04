@@ -43,6 +43,16 @@ _OFFSET_PARAMETERS = {
         inspect.Parameter.POSITIONAL_OR_KEYWORD,
         default=timedelta(0),
     ),
+    "start": inspect.Parameter(
+        "start",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default="09:00",
+    ),
+    "end": inspect.Parameter(
+        "end",
+        inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        default="17:00",
+    ),
 }
 
 _OFFSET_SIGNATURES = {
@@ -57,6 +67,23 @@ _OFFSET_SIGNATURES = {
         "weekmask",
         "holidays",
         "calendar",
+        "offset",
+    ),
+    pd.tseries.offsets.BusinessHour: (
+        "n",
+        "normalize",
+        "start",
+        "end",
+        "offset",
+    ),
+    pd.tseries.offsets.CustomBusinessHour: (
+        "n",
+        "normalize",
+        "weekmask",
+        "holidays",
+        "calendar",
+        "start",
+        "end",
         "offset",
     ),
 }
