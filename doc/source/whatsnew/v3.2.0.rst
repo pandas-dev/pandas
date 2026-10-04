@@ -191,8 +191,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
--
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -2071,7 +2071,15 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        data = self.data.fillna(0)
+        # GH#39320 plot timedeltas as integers, as matplotlib draws them;
+        # it would otherwise add int bottoms to them, deprecated in numpy 2.5
+        data = self.data.apply(
+            lambda col: (
+                col.fillna(np.timedelta64(0, "ns")).astype(np.int64)
+                if lib.is_np_dtype(col.dtype, "m")
+                else col.fillna(0)
+            )
+        )
 
         _stacked_subplots_ind: dict[int, int] = {}
         _stacked_subplots_offsets: dict[int, tuple[np.ndarray, np.ndarray]] = {}
