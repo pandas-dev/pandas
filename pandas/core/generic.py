@@ -9400,7 +9400,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             end of `rule`.
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
-            Column must be datetime-like.
+            Column must be datetime-like. The ``on`` column is excluded from
+            the result; to keep it, resample ``df.set_index(on, drop=False)``
+            instead.
         level : str or int, optional
             For a MultiIndex, level (name or number) to use for
             resampling. `level` must be datetime-like.
