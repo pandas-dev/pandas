@@ -1829,13 +1829,7 @@ class _MergeOperation:
                 # raise if the non-numeric key holds only str or bytes values,
                 # ignoring missing values
                 obj_key = lk if lk_is_object_or_string else rk
-                if not isinstance(obj_key.dtype, np.dtype):
-                    # a string extension dtype
-                    raise ValueError(msg)
-                if (
-                    lib.is_string_array(obj_key, skipna=True)
-                    or lib.is_bytes_array(obj_key, skipna=True)
-                ) and not isna(obj_key).all():
+                if lib.infer_dtype(obj_key, skipna=True) in ["string", "bytes"]:
                     raise ValueError(msg)
 
             # datetimelikes must match exactly
