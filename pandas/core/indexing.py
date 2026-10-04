@@ -118,13 +118,20 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
     from pandas.core.base import IndexOpsMixin
 
-    _IndexSliceTuple: TypeAlias = tuple[IndexOpsMixin | Scalar | Sequence | slice, ...]
+    _IndexSliceTuple: TypeAlias = tuple[
+        IndexOpsMixin | Scalar | Sequence[Any] | slice, ...
+    ]
 
     _IndexSliceUnion: TypeAlias = (
-        Scalar | Sequence | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
+        Scalar | Sequence[Any] | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
     )
 
     _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
+
+    _NDFrameIndexerBase: TypeAlias = NDFrameIndexerBase[Any]
+else:
+    # the cdef class is not subscriptable at runtime
+    _NDFrameIndexerBase = NDFrameIndexerBase
 
 
 # "null slice"
@@ -813,7 +820,7 @@ class IndexingMixin:
         return _iAtIndexer("iat", self)
 
 
-class _LocationIndexer(NDFrameIndexerBase):
+class _LocationIndexer(_NDFrameIndexerBase):
     _valid_types: str
     axis: AxisInt | None = None
 
@@ -1092,7 +1099,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         raise AbstractMethodError(self)
 
     @final
-    def _expand_ellipsis(self, tup: tuple) -> tuple:
+    def _expand_ellipsis(self, tup: tuple[Any, ...]) -> tuple[Any, ...]:
         """
         If a tuple key includes an Ellipsis, replace it with an appropriate
         number of null slices.
@@ -1113,7 +1120,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return tup
 
     @final
-    def _validate_tuple_indexer(self, key: tuple) -> tuple:
+    def _validate_tuple_indexer(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
         """
         Check the key for valid keys across my indexer.
         """
@@ -1129,7 +1136,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return key
 
     @final
-    def _is_nested_tuple_indexer(self, tup: tuple) -> bool:
+    def _is_nested_tuple_indexer(self, tup: tuple[Any, ...]) -> bool:
         """
         Returns
         -------
@@ -1140,14 +1147,14 @@ class _LocationIndexer(NDFrameIndexerBase):
         return False
 
     @final
-    def _convert_tuple(self, key: tuple) -> tuple:
+    def _convert_tuple(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
         # Note: we assume _tupleize_axis_indexer has been called, if necessary.
         self._validate_key_length(key)
         keyidx = [self._convert_to_indexer(k, axis=i) for i, k in enumerate(key)]
         return tuple(keyidx)
 
     @final
-    def _validate_key_length(self, key: tuple) -> tuple:
+    def _validate_key_length(self, key: tuple[Any, ...]) -> tuple[Any, ...]:
         if len(key) > self.ndim:
             if key[0] is Ellipsis:
                 # e.g. Series.iloc[..., 3] reduces to just Series.iloc[3]
@@ -1159,7 +1166,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return key
 
     @final
-    def _getitem_tuple_same_dim(self, tup: tuple):
+    def _getitem_tuple_same_dim(self, tup: tuple[Any, ...]):
         """
         Index with indexers that should return an object of the same dimension
         as self.obj.
@@ -1187,7 +1194,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         return retval
 
     @final
-    def _getitem_lowerdim(self, tup: tuple):
+    def _getitem_lowerdim(self, tup: tuple[Any, ...]):
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
@@ -1254,7 +1261,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         raise IndexingError("not applicable")
 
     @final
-    def _getitem_nested_tuple(self, tup: tuple):
+    def _getitem_nested_tuple(self, tup: tuple[Any, ...]):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
@@ -1341,10 +1348,10 @@ class _LocationIndexer(NDFrameIndexerBase):
             maybe_callable = self._raise_callable_usage(key, maybe_callable)
             return self._getitem_axis(maybe_callable, axis=axis)
 
-    def _is_scalar_access(self, key: tuple):
+    def _is_scalar_access(self, key: tuple[Any, ...]):
         raise NotImplementedError
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: tuple[Any, ...]):
         raise AbstractMethodError(self)
 
     def _getitem_axis(self, key, axis: AxisInt):
@@ -1751,7 +1758,7 @@ class _LocIndexer(_LocationIndexer):
     def _has_valid_setitem_indexer(self, indexer) -> bool:
         return True
 
-    def _is_scalar_access(self, key: tuple) -> bool:
+    def _is_scalar_access(self, key: tuple[Any, ...]) -> bool:
         """
         Returns
         -------
@@ -1785,7 +1792,7 @@ class _LocIndexer(_LocationIndexer):
     # -------------------------------------------------------------------
     # MultiIndex Handling
 
-    def _multi_take_opportunity(self, tup: tuple) -> bool:
+    def _multi_take_opportunity(self, tup: tuple[Any, ...]) -> bool:
         """
         Check whether there is the possibility to use ``_multi_take``.
 
@@ -1809,7 +1816,7 @@ class _LocIndexer(_LocationIndexer):
         # just too complicated
         return not any(com.is_bool_indexer(x) for x in tup)
 
-    def _multi_take(self, tup: tuple):
+    def _multi_take(self, tup: tuple[Any, ...]):
         """
         Create the indexers for the passed tuple of keys, and
         executes the take operation. This allows the take operation to be
@@ -1865,7 +1872,7 @@ class _LocIndexer(_LocationIndexer):
             {axis: [keyarr, indexer]}, allow_dups=True
         )
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: tuple[Any, ...]):
         with suppress(IndexingError):
             tup = self._expand_ellipsis(tup)
             return self._getitem_lowerdim(tup)
@@ -1883,7 +1890,7 @@ class _LocIndexer(_LocationIndexer):
         # GH#5567 this will fail if the label is not present in the axis.
         return self.obj.xs(label, axis=axis)
 
-    def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
+    def _handle_lowerdim_multi_index_axis0(self, tup: tuple[Any, ...]):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
@@ -2329,7 +2336,7 @@ class _iLocIndexer(_LocationIndexer):
 
         return True
 
-    def _is_scalar_access(self, key: tuple) -> bool:
+    def _is_scalar_access(self, key: tuple[Any, ...]) -> bool:
         """
         Returns
         -------
@@ -2366,7 +2373,7 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _getitem_tuple(self, tup: tuple):
+    def _getitem_tuple(self, tup: tuple[Any, ...]):
         tup = self._validate_tuple_indexer(tup)
         with suppress(IndexingError):
             return self._getitem_lowerdim(tup)
@@ -3336,7 +3343,7 @@ class _iLocIndexer(_LocationIndexer):
         raise ValueError("Incompatible indexer with DataFrame")
 
 
-class _ScalarAccessIndexer(NDFrameIndexerBase):
+class _ScalarAccessIndexer(_NDFrameIndexerBase):
     """
     Access scalars quickly.
     """
@@ -3676,7 +3683,7 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     return tuple(_tup)
 
 
-def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple:
+def _tupleize_axis_indexer(ndim: int, axis: AxisInt, key) -> tuple[Any, ...]:
     """
     If we have an axis, adapt the given key to be axis-independent.
     """
@@ -3753,7 +3760,9 @@ def convert_missing_indexer(indexer):
     return indexer, False
 
 
-def convert_from_missing_indexer_tuple(indexer: tuple, axes: list[Index]) -> tuple:
+def convert_from_missing_indexer_tuple(
+    indexer: tuple[Any, ...], axes: list[Index]
+) -> tuple[Any, ...]:
     """
     Create a filtered indexer that doesn't have any missing indexers.
     """
