@@ -26,13 +26,14 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 
-ok_for_period = PeriodArray._datetimelike_ops
+# GH#46768 - deprecated aliases that should be skipped in property access tests
+_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
+
+ok_for_period = PeriodArray._datetimelike_ops + list(_deprecated_dt_attrs)
 ok_for_period_methods = ["strftime", "to_timestamp", "asfreq"]
 # ``freq`` is exposed on the dt accessor (DatetimeProperties) but lives there
 # directly rather than on the underlying array, so add it explicitly.
-ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq"]
-# GH#46768 - deprecated aliases that should be skipped in property access tests
-_deprecated_dt_attrs = {"dayofweek", "dayofyear", "daysinmonth", "weekday"}
+ok_for_dt = [*DatetimeArray._datetimelike_ops, "freq", *list(_deprecated_dt_attrs)]
 ok_for_dt_methods = [
     "to_period",
     "to_pydatetime",
@@ -648,6 +649,19 @@ class TestSeriesDatetimeValues:
         expected = pd.Series(["0005/06/15", "0099/01/01", "0999/12/31", "2024/03/02"])
         tm.assert_series_equal(result, expected)
 
+    def test_strftime_dt64_default_formats_year_lt_1000(self):
+        # GH#58179 the default-format fast paths zero-pad the year
+        ser = pd.Series(np.array(["-0020-01-01", "0020-01-01", "2024-03-02"], "M8[s]"))
+        result = ser.dt.strftime(None)
+        expected = pd.Series(["-020-01-01", "0020-01-01", "2024-03-02"])
+        tm.assert_series_equal(result, expected)
+
+        result = ser.dt.strftime("%Y-%m-%d %H:%M:%S")
+        expected = pd.Series(
+            ["-020-01-01 00:00:00", "0020-01-01 00:00:00", "2024-03-02 00:00:00"]
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_strftime_dt64_microsecond_resolution(self):
         ser = pd.Series(
             [datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14, 32, 1)]
@@ -1023,3 +1037,30 @@ def test_dt_freq_no_warning_when_unable_to_infer():
     ser = pd.Series(pd.to_datetime(["2020-01-01", "2020-03-07", "2020-08-15"]))
     with tm.assert_produces_warning(None):
         assert ser.dt.freq is None
+
+
+@pytest.mark.parametrize(
+    "ser",
+    [
+        pd.Series(pd.date_range("2020-01-01", periods=3)),
+        pd.Series(pd.period_range("2020-01-01", periods=3, freq="D")),
+    ],
+    ids=["datetime64", "period"],
+)
+def test_deprecated_aliases(ser):
+    msg = "Series.dt.{} is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("weekday")):
+        result = ser.dt.weekday
+    tm.assert_series_equal(result, ser.dt.day_of_week)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("dayofweek")):
+        result = ser.dt.dayofweek
+    tm.assert_series_equal(result, ser.dt.day_of_week)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("dayofyear")):
+        result = ser.dt.dayofyear
+    tm.assert_series_equal(result, ser.dt.day_of_year)
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg.format("daysinmonth")):
+        result = ser.dt.daysinmonth
+    tm.assert_series_equal(result, ser.dt.days_in_month)

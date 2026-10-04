@@ -1028,7 +1028,7 @@ class StataParser:
 
 
 @set_module("pandas.api.typing")
-class StataReader(StataParser, abc.Iterator):
+class StataReader(StataParser, abc.Iterator[DataFrame]):
     """
     Class for reading Stata dta files.
 
@@ -2004,7 +2004,8 @@ pandas categoricals.
 
 Either read the file with `convert_categoricals` set to False or use the
 low level interface in `StataReader` to separately read the values and the
-value_labels.
+value_labels. This column's labels are stored under the key '{label}' in
+`StataReader.value_labels()`.
 
 The repeated labels are:
 {repeats}
@@ -2103,7 +2104,7 @@ The repeated labels are:
 
     def value_labels(self) -> dict[str, dict[int, str]]:
         """
-        Return a nested dict associating each variable name to its value and label.
+        Return a nested dict mapping each value label name to its values and labels.
 
         This method retrieves the value labels from a Stata file. Value labels are
         mappings between the coded values and their corresponding descriptive labels
@@ -2112,7 +2113,8 @@ The repeated labels are:
         Returns
         -------
         dict
-            A python dictionary.
+            A python dictionary keyed by value label name, which need not match a
+            variable name. Several variables can share one value label set.
 
         See Also
         --------
@@ -2346,8 +2348,10 @@ def _convert_datetime_to_stata_type(fmt: str) -> np.dtype:
         raise NotImplementedError(f"Format {fmt} not implemented")
 
 
-def _maybe_convert_to_int_keys(convert_dates: dict, varlist: list[Hashable]) -> dict:
-    new_dict = {}
+def _maybe_convert_to_int_keys(
+    convert_dates: dict[Hashable, str], varlist: list[Hashable]
+) -> dict[Hashable, str]:
+    new_dict: dict[Hashable, str] = {}
     for key, value in convert_dates.items():
         if not value.startswith("%"):  # make sure proper fmts
             convert_dates[key] = "%" + value

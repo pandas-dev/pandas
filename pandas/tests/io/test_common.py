@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 
 import codecs
+import contextlib
 import errno
 from functools import partial
 from io import (
@@ -31,6 +32,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+from pandas.io import sql
 import pandas.io.common as icom
 
 
@@ -791,3 +793,22 @@ def test_write_object_index_no_reset_index_warning(writer, module, multi, tmp_pa
             df.to_stata(path)
         else:
             df.to_xml(parser="etree")
+
+
+# not in test_sql.py, whose single_cpu mark keeps it out of the CI jobs
+# that lack sqlalchemy
+@td.skip_if_installed("sqlalchemy")
+def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
+    class MockSqliteConnection:
+        def __init__(self, *args, **kwargs) -> None:
+            self.conn = sqlite3.Connection(*args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self.conn, name)
+
+        def close(self):
+            self.conn.close()
+
+    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
+            sql.read_sql("SELECT 1", conn)

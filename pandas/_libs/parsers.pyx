@@ -137,9 +137,10 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.core.arrays.boolean import BooleanDtype
+
+from pandas.io.common import mangle_dupe_names
 
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
@@ -921,37 +922,9 @@ cdef class TextReader:
                     this_header.append(name)
 
                 if not self.has_mi_columns:
-                    # Ensure that regular columns are used before unnamed ones
-                    # to keep given names and mangle unnamed columns
-                    col_loop_order = [i for i in range(len(this_header))
-                                      if i not in unnamed_col_indices
-                                      ] + unnamed_col_indices
-                    counts = {}
-
-                    for i in col_loop_order:
-                        col = this_header[i]
-                        old_col = col
-                        cur_count = counts.get(col, 0)
-
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_header:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts.get(col, 0)
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-
-                        this_header[i] = col
-                        counts[col] = cur_count + 1
+                    this_header = mangle_dupe_names(
+                        this_header, unnamed_col_indices, self.dtype
+                    )
 
                 if self.has_mi_columns:
 
@@ -1491,7 +1464,10 @@ cdef class TextReader:
                     st.offset_limit = _STR_OFFSET_LIMIT
                     nstr += 1
                     continue
-                mask = np.zeros(lines, dtype=np.bool_)
+                # not np.zeros: its calloc releases the GIL, a contended
+                # re-acquire per column when many workers run.  Zeroed in
+                # the nogil sweep below.
+                mask = np.empty(lines, dtype=np.bool_)
                 st.na_mask = <uint8_t *>mask.data
                 if kind == BLOCK_KIND_INT64:
                     arr = np.empty(lines, dtype=np.int64)
@@ -1507,8 +1483,9 @@ cdef class TextReader:
             with nogil:
                 for k in range(n):
                     st = &states[k]
-                    if st.kind == BLOCK_KIND_STRING and _str_col_alloc(
-                            st, parser, start, lines):
+                    if st.kind != BLOCK_KIND_STRING:
+                        memset(st.na_mask, 0, lines)
+                    elif _str_col_alloc(st, parser, start, lines):
                         error = 1
                         break
                 blk = start
@@ -1683,6 +1660,19 @@ cdef class TextReader:
                         f"{col_dtype} for {np.bool_} dtyped data in "
                         f"column {i} due to NA values"
                     )
+
+            if col_res.dtype == object and col_dtype.kind in "iuf":
+                # GH#59299 name the token our converters rejected; the cast below
+                # uses float()/int(), which ignore `decimal` and `thousands`.
+                bad_token = _first_unparseable_token(
+                    self.parser, i, start, end, na_filter, na_hashset,
+                    col_dtype.kind == "f", self.encoding_errors)
+                if bad_token is not None:
+                    if col_dtype.kind == "f":
+                        raise ValueError(
+                            f"could not convert string to float: {bad_token!r}")
+                    raise ValueError(
+                        f"invalid literal for int() with base 10: {bad_token!r}")
 
             # only allow safe casts, eg. with a nan you cannot safely cast to int
             try:
@@ -3818,6 +3808,50 @@ cdef int _probe_bool_flex(parser_t *parser, int64_t col,
             return 0
         return to_boolean(word, <int64_t>word_len, &tmp)
     return 0
+
+
+# -> str | None
+cdef _first_unparseable_token(parser_t *parser, int64_t col,
+                              int64_t line_start, int64_t line_end,
+                              bint na_filter,
+                              const kh_str_starts_t *na_hashset,
+                              bint is_float, const char *encoding_errors):
+    """
+    The first token in the column that the numeric converters reject, decoded,
+    or None if every token is parseable.
+    """
+    cdef:
+        int error
+        coliter_t it
+        const char *word = NULL
+        c_int64_t token_idx = 0
+        int64_t word_len
+        char *p_end
+        float64_t value
+
+    coliter_setup(&it, parser, col, line_start)
+    for _ in range(line_end - line_start):
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
+            continue
+        error = 0
+        if is_float:
+            parser.double_converter(word, &p_end, parser.decimal,
+                                    parser.sci, parser.thousands,
+                                    1, &error, NULL, word + word_len)
+            if error == 0 and p_end != word and p_end == word + word_len:
+                continue
+            if parse_special_float(word, word_len, &value) == 0:
+                continue
+        else:
+            str_to_int64(word, word_len, &error, parser.thousands)
+            # A token that only overflows int64 is still a valid integer; keep scanning.
+            if error == 0 or error == ERROR_OVERFLOW:
+                continue
+        return PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+    return None
 
 
 # -> tuple[ndarray[float64_t], int, ndarray[bool]] | tuple[None, None, None]
