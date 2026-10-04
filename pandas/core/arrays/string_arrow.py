@@ -188,9 +188,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
         try:
             arr = pa.array(values, from_pandas=True)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, OverflowError):
+            # OverflowError for e.g. 2**70; safe=True so
+            #  [nan, 2**64 - 1] stays object instead of rounding, GH#70233
             values = construct_1d_object_array_from_listlike(values)
-            return lib.maybe_convert_objects(values, convert_non_numeric=True)
+            return lib.maybe_convert_objects(
+                values, convert_non_numeric=True, safe=True
+            )
         if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
             return self._from_pyarrow_array(arr)
         if self.dtype.na_value is np.nan:
