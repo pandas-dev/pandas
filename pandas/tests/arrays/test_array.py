@@ -331,18 +331,21 @@ def test_array_copy():
 )
 def test_array_string_nd(data):
     # GH 64138
-    result = pd.array(data, dtype="str")
-
     if using_string_dtype():
+        # multidimensional data is converted element-wise to a 1D StringArray
+        result = pd.array(data, dtype="str")
         expected = (
             pd.StringDtype(na_value=np.nan)
             .construct_array_type()
             ._from_sequence(data, dtype=pd.StringDtype(na_value=np.nan))
         )
+        tm.assert_equal(result, expected)
     else:
-        expected = NumpyExtensionArray(np.array(data, dtype=str))
-
-    tm.assert_equal(result, expected)
+        # GH#64280: with a NumPy str dtype the data would previously be wrapped
+        # in a multidimensional NumpyExtensionArray; pandas.array now raises
+        msg = "'pandas.array' does not support multidimensional data"
+        with pytest.raises(ValueError, match=msg):
+            pd.array(data, dtype="str")
 
 
 @pytest.mark.parametrize(
@@ -488,9 +491,16 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data", [np.array(0)])
-def test_nd_raises(data):
-    with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
+@pytest.mark.parametrize(
+    "data, msg",
+    [
+        (np.array(0), "NumpyExtensionArray must be 1-dimensional"),
+        # GH#64280 an explicit NumPy dtype used to silently return a 2-D result
+        ([[1, 2], [3, 4]], "'pandas.array' does not support multidimensional data"),
+    ],
+)
+def test_nd_raises(data, msg):
+    with pytest.raises(ValueError, match=msg):
         pd.array(data, dtype="int64")
 
 
