@@ -3500,7 +3500,7 @@ def test_double_precision(conn, request):
     )
     res = sql.read_sql_table("test_dtypes", conn)
 
-    tm.assert_series_equal(df["f64"], res["f64"])
+    tm.assert_series_equal(df["f64"], res["f64"], check_exact=True)
 
     # check sql types
     meta = MetaData()
@@ -3511,6 +3511,25 @@ def test_double_precision(conn, request):
     assert isinstance(col_dict["f64"].type, Float)
     assert isinstance(col_dict["i32"].type, Integer)
     assert isinstance(col_dict["i64"].type, BigInteger)
+
+
+def test_read_sql_table_float_asdecimal(sqlite_engine):
+    # GH#70231 e.g. MySQL DOUBLE reflects with asdecimal=True
+    from sqlalchemy import (
+        Float,
+        event,
+    )
+
+    df = pd.DataFrame({"v": [1.2345678910111213, 1.5e-11]})
+    df.to_sql(name="test_float_asdecimal", con=sqlite_engine, index=False)
+
+    def as_decimal_float(inspector, table, column_info):
+        column_info["type"] = Float(asdecimal=True)
+
+    with sql.SQLDatabase(sqlite_engine) as pandas_sql:
+        event.listen(pandas_sql.meta, "column_reflect", as_decimal_float)
+        res = pandas_sql.read_table("test_float_asdecimal")
+    tm.assert_frame_equal(res, df, check_exact=True)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
