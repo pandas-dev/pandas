@@ -405,10 +405,7 @@ exclude = [
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "urllib.request.urlopen".msg = "Use pandas.io.common.urlopen instead of urllib.request.urlopen"
-# NPY002 already bans every legacy numpy.random module-level function (seed, rand,
-# randn, randint, ...) in favour of np.random.default_rng(). What it does not see
-# is instantiating the legacy class itself, so ban that here. See
-# https://numpy.org/doc/stable/reference/random/legacy.html
+# NPY002 covers the legacy functions but not RandomState itself
 "numpy.random.RandomState".msg = "Use numpy.random.Generator instead of numpy.random.RandomState"
 "pytest.warns".msg = "Use tm.assert_produces_warning instead of pytest.warns"
 "pytest.xfail".msg = "Use pytest.mark.xfail instead of pytest.xfail"
@@ -436,11 +433,11 @@ exclude = [
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/tests/*" = ["B028", "FLY"]
-# Keep this one enabled. pandas/_typing.py additionally names
-# np.random.RandomState on purpose: it is the alias pandas re-exports for it.
+# Keep this one enabled. pandas/_typing.py names np.random.RandomState inside
+# the seed-accepting union type it exports for callers to annotate with.
 "pandas/_typing.py" = ["TC", "TID251"]
-# These name np.random.RandomState as the accepted input type of
-# get_random_state / sample.
+# common.py and sample.py name np.random.RandomState as the accepted input type
+# of random_state; test_common.py compares random_state against that legacy class.
 "pandas/core/common.py" = ["TID251"]
 "pandas/core/sample.py" = ["TID251"]
 "pandas/tests/test_common.py" = ["TID251"]
