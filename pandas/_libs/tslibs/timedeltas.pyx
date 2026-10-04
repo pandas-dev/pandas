@@ -1029,6 +1029,16 @@ cdef _addsub_timedelta64_array(
             return m8 + other
         return (other - m8) if reverse else (m8 - other)
 
+    if not cnp.PyArray_CheckExact(other):
+        # an ndarray subclass: the i8 view below would drop its semantics
+        #  (e.g. a MaskedArray's mask), so take the overflow raise from a
+        #  plain view and let numpy build the result (GH#66552)
+        _addsub_timedelta64_array(td, np.asarray(other), subtract, reverse)
+        m8 = td.to_timedelta64()
+        if not subtract:
+            return m8 + other
+        return (other - m8) if reverse else (m8 - other)
+
     if reso < other_reso:
         td = td._as_creso(other_reso, round_ok=True)
         reso = other_reso
@@ -1090,6 +1100,12 @@ cdef _addsub_datetime64_array(
         m8 = td.to_timedelta64()
         return (other - m8) if subtract else (m8 + other)
 
+    if not cnp.PyArray_CheckExact(other):
+        # an ndarray subclass: see _addsub_timedelta64_array (GH#66552)
+        _addsub_datetime64_array(td, np.asarray(other), subtract, reverse)
+        m8 = td.to_timedelta64()
+        return (other - m8) if subtract else (m8 + other)
+
     if reso < other_reso:
         td = td._as_creso(other_reso, round_ok=True)
         reso = other_reso
@@ -1141,12 +1157,16 @@ cdef _mul_numeric_array(_Timedelta td, ndarray other):
         has_nan = nan_mask.any()
         if has_nan:
             # a NaN-to-int64 cast is platform-dependent; substitute 0 and
-            #  re-mask below, so NaN and inf multipliers stay distinguishable
-            f_result = np.where(nan_mask, 0.0, f_result)
+            #  re-mask below, so NaN and inf multipliers stay distinguishable.
+            #  copy + assign, not np.where, to keep the subclass (GH#66552)
+            f_result = f_result.copy()
+            f_result[nan_mask] = 0.0
         # Compare against 2**63, not int64.max: int64.max rounds up to 2**63
         #  in float64, so a product landing exactly there would slip past a
         #  ``> int64.max`` check and saturate on the cast. Also catches +/-inf.
-        if np.max(np.abs(f_result), initial=0.0) >= 2.0**63:
+        # asarray: initial= would send the reduction to an ndarray subclass'
+        #  own max(), which need not accept it (GH#66552)
+        if np.max(np.abs(np.asarray(f_result)), initial=0.0) >= 2.0**63:
             raise OutOfBoundsTimedelta("Overflow in timedelta multiplication")
         i8result = f_result.astype("i8")
         if has_nan:
@@ -1182,6 +1202,11 @@ cdef _check_div_float_array(_Timedelta td, ndarray other):
     """
     if other.size == 0:
         return
+
+    # asarray: initial=/where= would send the reduction below to an ndarray
+    #  subclass' own max(), which need not accept them. Nothing is returned,
+    #  so the caller still divides the operand it was given (GH#66552).
+    other = np.asarray(other)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         # in float64 regardless of the divisor's own precision: a float32

@@ -251,6 +251,12 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
         #  sub-nanosecond units, which we have no reso for; leave both to numpy
         return (ts.asm8 - other) if subtract else (ts.asm8 + other)
 
+    if not cnp.PyArray_CheckExact(other):
+        # an ndarray subclass, whose semantics the i8 view below would drop:
+        #  check overflow on a plain view, let numpy build the result (GH#66552)
+        _addsub_timedelta64_array(ts, np.asarray(other), subtract)
+        return (ts.asm8 - other) if subtract else (ts.asm8 + other)
+
     if reso < other_reso:
         ts = ts._as_creso(other_reso, round_ok=True)
         reso = other_reso
@@ -265,8 +271,10 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
 
     i8other = other.view("i8")
     if subtract:
-        # NPY_NAT negates to itself, so NaT still propagates
-        i8other = np.negative(i8other)
+        # asarray: np.negative hands back a scalar for a 0-dim operand, which
+        #  add_overflowsafe rejects. NPY_NAT negates to itself, so NaT still
+        #  propagates.
+        i8other = np.asarray(np.negative(i8other))
 
     try:
         i8result = add_overflowsafe(i8other, np.array(ts._value, dtype="i8"))

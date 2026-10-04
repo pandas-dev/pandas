@@ -20,6 +20,7 @@ from pandas._libs.tslibs import (
 )
 
 import pandas._testing as tm
+from pandas.tests.arithmetic.common import NoInitialMaxArray
 
 
 class TestTimestampArithmetic:
@@ -437,3 +438,40 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
+
+
+def test_addsub_m8ndarray_subclass():
+    # GH#66552 the overflow guard views the operand as i8 and rebuilds a plain
+    #  ndarray, so an ndarray subclass came back stripped of its type
+    ts = Timestamp("2000-01-01").as_unit("s")
+    values = np.array([86400, 1], dtype="m8[s]")
+    other = values.view(NoInitialMaxArray)
+
+    for result, expected in [
+        (ts + other, ts.asm8 + values),
+        (ts - other, ts.asm8 - values),
+    ]:
+        assert isinstance(result, NoInitialMaxArray)
+        tm.assert_numpy_array_equal(np.asarray(result), expected)
+
+
+def test_addsub_zero_dim_m8ndarray_subclass():
+    # GH#66552 the subclass path checks overflow on a plain 0-dim view, which
+    #  must survive the negation for subtraction
+    ts = Timestamp("2000-01-01")
+    other = np.array(5, dtype="m8[ns]")
+    sub = other.view(NoInitialMaxArray)
+
+    assert ts + sub == ts.asm8 + other
+    assert ts - sub == ts.asm8 - other
+
+
+def test_addsub_m8ndarray_subclass_still_overflow_checked():
+    # GH#66552 handing the operand to numpy to keep its subclass must not
+    #  cost the overflow guard this helper exists for
+    other = np.array([5, 5], dtype="m8[ns]").view(NoInitialMaxArray)
+
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+        Timestamp(2**63 - 2).as_unit("ns") + other
+    with pytest.raises(OutOfBoundsDatetime, match="Out of bounds nanosecond"):
+        Timestamp(-(2**63) + 2).as_unit("ns") - other
