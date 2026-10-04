@@ -476,10 +476,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _mul_float_overflowsafe(
         self, other: float | np.floating | npt.NDArray[np.floating]
     ) -> Self:
-        # asarray: an ndarray subclass would send the reduction below to its
-        #  own max(), which need not accept initial=, and would leave the
-        #  result holding a subclass this EA cannot box; the integer path
-        #  reads through to the raw values the same way
+        # asarray: a subclass' own max() need not accept initial=, and the
+        #  result should not hold a subclass; see test_td64arr_mul_ndarray_subclass
         other = np.asarray(other)
         # GH#43178: detect float products that would silently saturate to
         #  int64.max on the int64 cast below
