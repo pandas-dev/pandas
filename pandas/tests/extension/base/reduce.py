@@ -1,3 +1,4 @@
+import re
 from typing import (
     Any,
     final,
@@ -186,7 +187,7 @@ class BaseReduceTests:
             getattr(type(data), op_name) is getattr(ExtensionArray, op_name)
         ) and op_name != "count":
             # GH 68959 Reduction function not overwritten in subclass should raise
-            msg = (
+            msg = re.escape(
                 f"'{type(data).__name__}' with dtype {data.dtype} does not support"
                 f"operation '{op_name}'"
             )
