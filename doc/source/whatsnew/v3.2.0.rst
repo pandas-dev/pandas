@@ -165,6 +165,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
 -
 
