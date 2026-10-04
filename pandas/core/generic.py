@@ -2128,7 +2128,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         autofilter: bool = False,
     ) -> None:
         """
-        Write object to an Excel sheet.
+        Write object to an Excel sheet or OpenDocument spreadsheet.
 
         To write a single object to an Excel .xlsx file it is only necessary to
         specify a target file name. To write to multiple sheets it is necessary to
@@ -2167,9 +2167,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         startcol : int, default 0
             Upper left cell column to dump data frame.
         engine : str, optional
-            Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
-            via the options ``io.excel.xlsx.writer`` or
-            ``io.excel.xlsm.writer``.
+            Write engine to use, 'openpyxl', 'xlsxwriter' or 'odf' (for
+            OpenDocument .ods files). You can also set this
+            via the options ``io.excel.xlsx.writer``,
+            ``io.excel.xlsm.writer`` or ``io.excel.ods.writer``.
         merge_cells : bool or 'columns', default True
             If True, write MultiIndex index and columns as merged cells.
             If 'columns', merge MultiIndex column cells only.

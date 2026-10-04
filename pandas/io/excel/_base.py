@@ -201,7 +201,7 @@ def read_excel(
     engine_kwargs: dict[str, Any] | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     """
-    Read an Excel file into a ``DataFrame``.
+    Read Excel and Open Document formats into a ``DataFrame``.
 
     Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
     read from a local filesystem or URL. Supports an option to read
