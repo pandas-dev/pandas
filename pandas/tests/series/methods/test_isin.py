@@ -352,3 +352,11 @@ def test_isin_arrow_nan_matches_only_null(values):
     ser = pd.Series(pa.array([1.0, np.nan, None]), dtype=pd.ArrowDtype(pa.float64()))
     result = ser.isin(values)
     tm.assert_series_equal(result, pd.Series([False, False, True]))
+
+
+def test_isin_arrow_array_list_values_pyarrow_cannot_box():
+    # GH#70300
+    pytest.importorskip("pyarrow")
+    arr = pd.array([2**53, 1, None], dtype="int64[pyarrow]")
+    result = arr.isin([1, "a"])
+    tm.assert_numpy_array_equal(result, np.array([False, True, False]))

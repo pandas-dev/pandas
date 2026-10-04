@@ -1977,6 +1977,7 @@ class ArrowExtensionArray(
         except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
             # pyarrow cannot box e.g. [1, 2**63], ["a", 1] or [2**53 + 1, 1.5];
             # compare the non-null entries as a numpy array instead
+            values = np.asarray(values, dtype=object)
             mask = self.isna()
             values_mask = isna(values)
             res = np.empty(len(self), dtype=bool)
