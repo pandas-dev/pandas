@@ -3511,7 +3511,7 @@ def test_loc_slice_disallows_positional():
 
 @pytest.mark.parametrize("values", [[Decimal(1), Decimal(3), Decimal(5)], [1, 2.5, 5]])
 def test_loc_slice_object_numeric_index_missing_bound(values, frame_or_series):
-    # GH#70284 bounds missing from a monotonic index slice by sort order
+    # GH#70295 bounds missing from a monotonic index slice by sort order
     index = pd.Index(values, dtype=object)
     obj = frame_or_series(range(3), index=index)
 

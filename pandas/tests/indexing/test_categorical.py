@@ -486,7 +486,7 @@ class TestCategoricalIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_loc_slice_missing_bound_not_in_categories(self):
-        # GH#70284
+        # GH#70295
         ser = pd.Series(range(4), index=pd.CategoricalIndex(list("abcd")))
         msg = (
             "cannot do slice indexing on CategoricalIndex with these "
