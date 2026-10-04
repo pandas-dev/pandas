@@ -334,7 +334,7 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     [
         ([1, 2**53 + 1, 2**63, None], [False, True, True]),
         ([1, "a"], [False, True, False]),
-        ([1, 1.5], [False, True, False]),
+        (pd.Index([2**53 + 1, 1.5], dtype=object), [False, False, False]),
     ],
 )
 def test_isin_arrow_values_pyarrow_cannot_box(dtype, values, expected):
@@ -343,3 +343,12 @@ def test_isin_arrow_values_pyarrow_cannot_box(dtype, values, expected):
     ser = pd.Series([2**53, 1, None], dtype=dtype)
     result = ser.isin(values)
     tm.assert_series_equal(result, pd.Series(expected))
+
+
+@pytest.mark.parametrize("values", [[np.nan], [np.nan, "a"]])
+def test_isin_arrow_nan_matches_only_null(values):
+    # GH#70300: NaN in values matches nulls, not a non-null NaN
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(pa.array([1.0, np.nan, None]), dtype=pd.ArrowDtype(pa.float64()))
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series([False, False, True]))
