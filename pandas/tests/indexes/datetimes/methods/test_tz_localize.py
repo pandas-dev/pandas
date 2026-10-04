@@ -657,9 +657,8 @@ def test_dti_tz_localize_nonexistent_shift_stays_inside_the_gap(nonexistent, exp
 
 
 def test_dti_tz_localize_nonexistent_shift_onto_ambiguous_takes_first():
-    # GH#66820 the shifted wall time exists twice, so either UTC instant
-    #  reproduces it.  ``ambiguous`` does not reach this loop; transition
-    #  order decides, and the earlier transition wins.
+    # GH#66820 the shifted wall time exists twice; ``ambiguous`` does not
+    #  apply to it, and the earlier instant is taken.
     tz = "America/Recife"
     dti = pd.DatetimeIndex(["2000-10-08 00:30"] * 2)
 
@@ -725,14 +724,12 @@ def test_dti_tz_localize_nonexistent_shift_at_last_transition():
 
 @pytest.mark.parametrize("tz", ["America/Sao_Paulo", "dateutil/America/Sao_Paulo"])
 def test_dti_tz_localize_nonexistent_shift_into_last_interval(tz):
-    # GH#66820 the offset after the final transition is open-ended: a shifted
-    #  wall time landing there has no next transition to be checked against.
-    #  Brazil abolished DST in 2019, so neither backend has a rule that would
-    #  divert the lookup to the tzinfo API.
+    # GH#66820 shift to within a day after the final transition.  Brazil
+    #  abolished DST in 2019, so neither backend has a rule that would divert
+    #  the lookup to the tzinfo API.
     ts = pd.Timestamp("2018-11-04 00:30")
     dti = pd.DatetimeIndex([ts, ts])
-    # the final transition is 2019-02-17 02:00 UTC; land 13 hours past it,
-    #  inside the one-day bracket the lookup searches
+    # the final transition is 2019-02-17 02:00 UTC; land 13 hours past it
     shift = pd.Timedelta(days=105, hours=11, minutes=30)
 
     result = dti.tz_localize(tz, nonexistent=shift)
