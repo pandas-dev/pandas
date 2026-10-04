@@ -326,3 +326,20 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     result = ser.isin(values)
     expected = ser.isin(list(values))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([1, 2**53 + 1, 2**63, None], [False, True, True]),
+        ([1, "a"], [False, True, False]),
+        ([1, 1.5], [False, True, False]),
+    ],
+)
+def test_isin_arrow_values_pyarrow_cannot_box(dtype, values, expected):
+    # GH#70300: nulls still match a missing value in values
+    pytest.importorskip("pyarrow")
+    ser = pd.Series([2**53, 1, None], dtype=dtype)
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series(expected))

@@ -1971,8 +1971,18 @@ class ArrowExtensionArray(
         if not len(values):
             return np.zeros(len(self), dtype=bool)
 
-        value_set = self._box_pa(values)
-        result = pc.is_in(self._pa_array, value_set=value_set)
+        try:
+            value_set = self._box_pa(values)
+            result = pc.is_in(self._pa_array, value_set=value_set)
+        except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+            # pyarrow cannot box e.g. [1, 2**63] or ["a", 1], or cast e.g. 1.5 to
+            # int64; compare the non-null entries as a numpy array instead
+            mask = self.isna()
+            res = np.empty(len(self), dtype=bool)
+            res[~mask] = algos.isin(self[~mask].to_numpy(), values)
+            # match pc.is_in: nulls match any missing value in values
+            res[mask] = isna(values).any()
+            return res
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
