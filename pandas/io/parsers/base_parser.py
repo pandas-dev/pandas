@@ -561,7 +561,20 @@ class ParserBase:
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
-                result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+                try:
+                    result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+                except pa.ArrowInvalid:
+                    # GH#63830 columns with mixed types (e.g. ints and strings
+                    #  in a single column from read_excel) cannot be converted
+                    #  by pyarrow; fall back to object dtype. This matches the
+                    #  default behaviour without dtype_backend="pyarrow" and
+                    #  convert_dtypes(dtype_backend="pyarrow"), which both
+                    #  leave such columns as object dtype.
+                    #  (Casting everything to strings is not used: read_csv
+                    #  only yields string[pyarrow] here because all CSV values
+                    #  arrive as strings; there is no deliberate string
+                    #  fallback on that path.)
+                    pass
             elif isinstance(result, BaseMaskedArray):
                 if result._mask.all():
                     # We want an arrow null array here
