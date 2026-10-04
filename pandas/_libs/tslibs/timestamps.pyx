@@ -103,6 +103,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dtstruct,
+    raise_if_unit_multiplier,
 )
 
 import_pandas_datetime()
@@ -250,6 +251,10 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
         # year/month, which numpy itself refuses to add to a time unit, and
         #  sub-nanosecond units, which we have no reso for; leave both to numpy
         return (ts.asm8 - other) if subtract else (ts.asm8 + other)
+
+    # the unit read above is the base one, so a multiplier such as m8[10s]
+    #  would be silently dropped (GH#25611)
+    raise_if_unit_multiplier(other.dtype)
 
     if reso < other_reso:
         ts = ts._as_creso(other_reso, round_ok=True)
