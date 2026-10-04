@@ -271,8 +271,9 @@ cdef _addsub_timedelta64_array(_Timestamp ts, ndarray other, bint subtract):
 
     i8other = other.view("i8")
     if subtract:
-        # NPY_NAT negates to itself, so NaT still propagates
-        i8other = np.negative(i8other)
+        # asarray: np.negative returns a scalar for a 0-dim operand.
+        #  NPY_NAT negates to itself, so NaT still propagates
+        i8other = np.asarray(np.negative(i8other))
 
     try:
         i8result = add_overflowsafe(i8other, np.array(ts._value, dtype="i8"))
