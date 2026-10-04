@@ -268,9 +268,8 @@ def _asarray_is_lossy(arr: np.ndarray, values) -> bool:
         return True
     if kind in "fc":
         # ints cast to float64 are inexact above 2**53
-        return bool(
-            (np.abs(arr[np.isfinite(arr)]) >= _FLOAT64_INT_EXACT_MAX).any()
-        ) and any(lib.is_integer(val) for val in values)
+        inexact = np.flatnonzero(np.abs(arr) >= _FLOAT64_INT_EXACT_MAX)
+        return any(lib.is_integer(values[i]) for i in inexact)
     if kind in "mM":
         # e.g. ints cast to timedelta64, timedelta64 cast to datetime64
         scalar_type = np.datetime64 if kind == "M" else np.timedelta64

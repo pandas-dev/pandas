@@ -796,8 +796,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 else:
                     # TODO: Deprecate this case
                     # https://github.com/pandas-dev/pandas/pull/58645/files#r1604055791
+                    kind = self.dtype.kind
                     values = construct_1d_object_array_from_listlike(
-                        [_box_numpy_datetimelike(val) for val in values]
+                        [_box_numpy_datetimelike(val, kind) for val in values]
                     )
                     return isin(self.astype(object), values)
             return np.zeros(self.shape, dtype=bool)
@@ -2561,20 +2562,22 @@ def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype | ArrowDtype) -> str:
     return np.datetime_data(dtype)[0]
 
 
-def _box_numpy_datetimelike(val):
+def _box_numpy_datetimelike(val, kind: str):
     """
-    Box np.datetime64/np.timedelta64 as Timestamp/Timedelta where exact.
+    Box np.datetime64/np.timedelta64 of dtype kind ``kind`` as
+    Timestamp/Timedelta where exact.
 
-    Before numpy 2.2 their hashes differ from Timestamp/Timedelta, so
-    hash-based matching misses them.
+    Hash-based matching otherwise misses them: before numpy 2.2 their hashes
+    differ from Timestamp/Timedelta, and NaT does not match ``pd.NaT``. The other
+    kind is left alone, as it could only match via NaT.
     """
-    if isinstance(val, (np.datetime64, np.timedelta64)):
+    if isinstance(val, (np.datetime64, np.timedelta64)) and val.dtype.kind == kind:
         unit = np.datetime_data(val.dtype)[0]
         if unit in ("generic", "ps", "fs", "as"):
             # ambiguous, or truncated by Timestamp
             return val
         try:
-            return Timestamp(val) if isinstance(val, np.datetime64) else Timedelta(val)
+            return Timestamp(val) if kind == "M" else Timedelta(val)
         except ValueError:
             # Timedelta rejects "Y" and "M" units
             return val

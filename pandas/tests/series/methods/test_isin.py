@@ -379,3 +379,17 @@ def test_isin_list_not_coerced_by_numpy(ser, values, expected):
     # 1 day to 1970-01-02
     result = ser.isin(values)
     tm.assert_series_equal(result, pd.Series(expected))
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([np.datetime64("NaT", "ns"), "a"], [False, True]),
+        ([np.timedelta64("NaT", "ns"), "a"], [False, False]),
+    ],
+)
+def test_isin_mixed_list_numpy_nat(values, expected):
+    # matches isin without "a"; a timedelta64 NaT is not a datetime NaT
+    ser = pd.Series(pd.to_datetime(["2020-01-01", None]))
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series(expected))
