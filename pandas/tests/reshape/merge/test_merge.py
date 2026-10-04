@@ -1689,12 +1689,14 @@ class TestMergeDtypes:
             ([True, None], [1, 2], [True]),
             ([None, None], [1.5, 2.5], []),
             ([], np.array([], dtype="float64"), []),
+            ([1.5, "a"], [1.5, 2.5], [1.5]),
+            ([1.5, Decimal("2.5")], [1.5, 3.5], [1.5]),
         ],
     )
-    def test_merge_object_with_missing_on_numeric(
+    def test_merge_object_not_all_strings_on_numeric(
         self, obj_vals, num_vals, expected_key
     ):
-        # GH#70218 missing values in an object key used to make this raise
+        # GH#70218 only an object key holding just strings should raise
         df1 = pd.DataFrame(
             {"key": pd.Series(obj_vals, dtype=object), "a": range(len(obj_vals))}
         )
