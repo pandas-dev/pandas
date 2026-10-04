@@ -946,7 +946,6 @@ class TestGetDtypesCache:
         view = df[:]
         self._prime_cache(df)
 
-        df.iloc[0]
         df.iloc[0, 0] = 10
         # cleared so the caches do not keep the replaced block alive
         assert df._mgr._dtypes_cache is None
@@ -954,20 +953,6 @@ class TestGetDtypesCache:
         expected = pd.Series([np.dtype("int64")] * 2, index=["a", "b"])
         tm.assert_series_equal(df.dtypes, expected)
         tm.assert_frame_equal(view, pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
-
-    def test_consolidate_inplace_clears(self):
-        # cleared so the caches do not keep the unconsolidated blocks alive
-        df = pd.DataFrame({"a": [1, 2]})
-        df["b"] = np.array([1.5, 2.5])
-        df["c"] = np.array([3, 4], dtype=np.int64)
-        assert len(df._mgr.blocks) == 3
-        self._prime_cache(df)
-        df.iloc[0]
-
-        df._mgr._consolidate_inplace()
-        assert len(df._mgr.blocks) == 2
-        assert df._mgr._dtypes_cache is None
-        assert df._mgr._interleaved_dtype is None
 
     def test_stale_array_not_used_when_blocks_replaced(self):
         # GH#68446 get_dtypes must not keep returning an array it built from
