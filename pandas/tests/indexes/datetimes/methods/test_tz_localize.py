@@ -656,16 +656,36 @@ def test_dti_tz_localize_nonexistent_shift_stays_inside_the_gap(nonexistent, exp
     tm.assert_index_equal(result, pd.DatetimeIndex([pd.Timestamp(expected, tz=tz)] * 2))
 
 
-def test_dti_tz_localize_nonexistent_shift_onto_ambiguous_takes_first():
+@pytest.mark.parametrize(
+    "tz, start_ts, target_ts, expected",
+    [
+        (
+            "America/Recife",
+            "2000-10-08 00:30",
+            "2000-10-14 23:30",
+            "2000-10-14 23:30:00-02:00",
+        ),
+        # past the last stored transition, so the zone's DST rule applies
+        (
+            "America/New_York",
+            "2100-03-14 02:30",
+            "2099-11-01 01:30",
+            "2099-11-01 01:30:00-04:00",
+        ),
+    ],
+)
+def test_dti_tz_localize_nonexistent_shift_onto_ambiguous_takes_first(
+    tz, start_ts, target_ts, expected
+):
     # GH#66820 the shifted wall time exists twice; ``ambiguous`` does not
     #  apply to it, and the earlier instant is taken.
-    tz = "America/Recife"
-    dti = pd.DatetimeIndex(["2000-10-08 00:30"] * 2)
+    dti = pd.DatetimeIndex([start_ts] * 2)
+    shift = pd.Timestamp(target_ts) - pd.Timestamp(start_ts)
 
-    result = dti.tz_localize(tz, nonexistent=pd.Timedelta(hours=167))
+    result = dti.tz_localize(tz, nonexistent=shift)
 
-    assert result[0] == pd.Timestamp("2000-10-15 01:30", tz="UTC")
-    assert str(result[0].tz_convert(tz)) == "2000-10-14 23:30:00-02:00"
+    assert str(result[0]) == expected
+    assert (result == result[0]).all()
 
 
 def test_dti_tz_localize_nonexistent_timedelta_shift_onto_nat_sentinel():
