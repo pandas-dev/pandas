@@ -202,7 +202,7 @@ def test_read_chunksize_jagged_names(all_parsers):
 
 @skip_pyarrow  # chunksize not supported
 def test_read_chunksize_skipped_lines_many_reads(all_parsers):
-    # GH#70300 alternating counts of buffered skipped lines used to grow the
+    # GH#70406 alternating counts of buffered skipped lines used to grow the
     # C parser's word buffer at every read until it ran out of memory
     parser = all_parsers
     data = "a,b\n" + "1,2\n1,2,3\n1,2\n1,2,3\n1,2,3\n1,2,3\n" * 40
