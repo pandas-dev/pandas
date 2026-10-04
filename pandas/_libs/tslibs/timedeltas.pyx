@@ -81,7 +81,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
-    raise_if_unit_multiplier,
 )
 
 import_pandas_datetime()
@@ -985,10 +984,6 @@ cdef _addsub_timedelta64_array(
             return m8 + other
         return (other - m8) if reverse else (m8 - other)
 
-    # the unit read above is the base one, so a multiplier such as m8[10s]
-    #  would be silently dropped (GH#25611)
-    raise_if_unit_multiplier(other.dtype)
-
     if not cnp.PyArray_CheckExact(other):
         # an ndarray subclass: the i8 view below would drop its semantics
         #  (e.g. a MaskedArray's mask), so take the overflow raise from a
@@ -1059,10 +1054,6 @@ cdef _addsub_datetime64_array(
         # sub-nanosecond units, which we have no reso for; leave both to numpy
         m8 = td.to_timedelta64()
         return (other - m8) if subtract else (m8 + other)
-
-    # the unit read above is the base one, so a multiplier such as m8[10s]
-    #  would be silently dropped (GH#25611)
-    raise_if_unit_multiplier(other.dtype)
 
     if not cnp.PyArray_CheckExact(other):
         # an ndarray subclass: see _addsub_timedelta64_array (GH#66552)

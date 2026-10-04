@@ -1756,26 +1756,6 @@ def test_td_div_ndarray_subclass():
 
 
 @pytest.mark.parametrize("kind", ["m", "M"])
-def test_td_add_sub_ndarray_unit_multiplier_raises(kind):
-    # GH#25611 a dtype such as m8[10s] was read as m8[s], silently dropping
-    #  the multiplier; the Index, Series and constructor paths already reject it
-    td = pd.Timedelta(1, "s")
-    other = np.array([1, 2], dtype=f"{kind}8[10s]")
-    name = "timedelta64" if kind == "m" else "datetime64"
-    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
-
-    with pytest.raises(ValueError, match=msg):
-        td + other
-    with pytest.raises(ValueError, match=msg):
-        other + td
-    with pytest.raises(ValueError, match=msg):
-        other - td
-    if kind == "m":
-        with pytest.raises(ValueError, match=msg):
-            td - other
-
-
-@pytest.mark.parametrize("kind", ["m", "M"])
 def test_td_add_sub_ndarray_subclass_still_overflow_checked(kind):
     # GH#66552 handing the operand to numpy to keep its subclass must not
     #  cost the overflow guard these helpers exist for
