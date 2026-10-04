@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -1142,4 +1144,30 @@ def test_where_mask_inplace_2d_ea_other(method, dtype):
     result = df.copy()
     getattr(result, method)(cond, other, inplace=True)
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "cond_dtype",
+    ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
+)
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_nullable_bool_cond_na_frame(method, inplace, cond_dtype):
+    # GH#35429 mixing nullable and numpy bool columns in cond
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    cond = pd.DataFrame(
+        {
+            "a": pd.array([True, False, pd.NA], dtype=cond_dtype),
+            "b": [True, False, False],
+        }
+    )
+    if method == "where":
+        expected = pd.DataFrame({"a": [1, -9, -9], "b": [4, -9, -9]})
+    else:
+        expected = pd.DataFrame({"a": [-9, 2, 3], "b": [-9, 5, 6]})
+
+    result = getattr(df, method)(cond, -9, inplace=inplace)
+    if inplace:
+        result = df
     tm.assert_frame_equal(result, expected)

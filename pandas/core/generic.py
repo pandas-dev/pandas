@@ -234,6 +234,29 @@ def _is_np_bool_backed(obj: NDFrame) -> bool:
     return all(lib.is_np_dtype(dtype, "b") for dtype in dtypes)
 
 
+def _fill_bool_ea_na(cond):
+    """
+    Treat NA in a nullable boolean `where`/`mask` condition as False.
+
+    This matches boolean indexing (GH#35429). It must happen before `mask`
+    inverts the condition, so it cannot be left to `_where`.
+    """
+
+    def is_bool_ea(dtype) -> bool:
+        return isinstance(dtype, ExtensionDtype) and dtype.kind == "b"
+
+    if isinstance(cond, ABCDataFrame):
+        positions = [loc for loc, dtype in enumerate(cond.dtypes) if is_bool_ea(dtype)]
+        if positions:
+            cond = cond.copy(deep=False)
+            for loc in positions:
+                cond.isetitem(loc, cond.iloc[:, loc].fillna(False))
+        return cond
+    if is_bool_ea(getattr(cond, "dtype", None)):
+        return cond.fillna(False)
+    return cond
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -10555,6 +10578,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is True, keep the original value. Where
             False, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10701,6 +10726,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
 
@@ -10726,6 +10752,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond : bool Series/DataFrame, array-like, or callable
             Where `cond` is False, keep the original value. Where
             True, replace with corresponding value from `other`.
+            Missing values in a nullable boolean `cond` are treated as False,
+            so ``where(cond)`` and ``mask(~cond)`` differ at those positions.
             If `cond` is callable, it is computed on the Series/DataFrame and
             should return boolean Series/DataFrame or array. The callable must
             not change input Series/DataFrame (though pandas doesn't check it).
@@ -10872,7 +10900,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=2,
                     )
 
-        cond = common.apply_if_callable(cond, self)
+        cond = _fill_bool_ea_na(common.apply_if_callable(cond, self))
         other = common.apply_if_callable(other, self)
 
         # see gh-21891
