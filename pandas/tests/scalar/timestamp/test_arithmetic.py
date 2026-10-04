@@ -437,3 +437,13 @@ def test_dt_subclass_add_timedelta(lh, rh):
     result = lh + rh
     expected = SubDatetime(2000, 1, 1, 1)
     assert result == expected
+
+
+def test_addsub_zero_dim_m8ndarray():
+    # GH#66552 np.negative hands back a scalar for a 0-dim operand, which the
+    #  overflow-safe addition rejected
+    ts = Timestamp("2000-01-01")
+    other = np.array(5, dtype="m8[ns]")
+
+    assert ts + other == ts.asm8 + other
+    assert ts - other == ts.asm8 - other
