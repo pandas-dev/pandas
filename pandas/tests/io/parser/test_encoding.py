@@ -5,6 +5,7 @@ for all of the parsers defined in parsers.py
 
 from io import (
     BytesIO,
+    StringIO,
     TextIOWrapper,
 )
 import sys
@@ -33,6 +34,20 @@ def test_bytes_io_input(all_parsers):
 
     expected = pd.DataFrame([[562, 123]], columns=["שלום", "1234"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "encoding_errors, expected", [("replace", "x?"), ("ignore", "x")]
+)
+def test_text_buffer_encoding_errors(all_parsers, encoding_errors, expected):
+    # GH#70356 the C and pyarrow engines encode a text buffer to bytes and
+    # must apply encoding_errors when doing so
+    parser = all_parsers
+    if parser.engine == "python":
+        pytest.skip("python engine reads text buffers without encoding them")
+    data = StringIO("a\nx\udcef\n")
+    result = parser.read_csv(data, encoding_errors=encoding_errors)
+    tm.assert_frame_equal(result, pd.DataFrame({"a": [expected]}))
 
 
 @skip_pyarrow  # CSV parse error: Empty CSV file or block
