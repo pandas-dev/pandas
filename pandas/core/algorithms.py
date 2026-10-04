@@ -243,23 +243,39 @@ def _ensure_arraylike(values, func_name: str) -> ArrayLike:
                 f"got {type(values).__name__}."
             )
 
-        inferred = lib.infer_dtype(values, skipna=False)
-        if inferred in ["mixed", "string", "mixed-integer", "bytes"]:
-            # np.asarray would stringify mixed values (e.g. ["ss", 42] GH#22160)
-            # and strip trailing NULs from str/bytes
+        arr: np.ndarray | None = None
+        if not (len(values) and isinstance(values[0], (str, bytes, tuple))):
+            # np.asarray would give a str/bytes, 2D or object array here
+            try:
+                arr = np.asarray(values)
+            except ValueError:
+                # ragged nested sequences
+                pass
+        if arr is None or arr.ndim != 1 or _asarray_is_lossy(arr, values):
             values = construct_1d_object_array_from_listlike(values)
         else:
-            arr = np.asarray(values)
-            if (
-                arr.dtype.kind == "f"
-                and inferred != "floating"
-                and (np.abs(arr[np.isfinite(arr)]) >= _FLOAT64_INT_EXACT_MAX).any()
-            ):
-                # ints were cast to float64, which is inexact above 2**53
-                values = construct_1d_object_array_from_listlike(values)
-            else:
-                values = arr
+            values = arr
     return values
+
+
+def _asarray_is_lossy(arr: np.ndarray, values) -> bool:
+    """
+    Whether ``arr = np.asarray(values)`` may have changed some element.
+    """
+    kind = arr.dtype.kind
+    if kind in "US":
+        # stringified non-strings (GH#22160) or stripped trailing NULs
+        return True
+    if kind in "fc":
+        # ints cast to float64 are inexact above 2**53
+        return bool(
+            (np.abs(arr[np.isfinite(arr)]) >= _FLOAT64_INT_EXACT_MAX).any()
+        ) and any(lib.is_integer(val) for val in values)
+    if kind in "mM":
+        # e.g. ints cast to timedelta64, timedelta64 cast to datetime64
+        scalar_type = np.datetime64 if kind == "M" else np.timedelta64
+        return not all(isinstance(val, scalar_type) for val in values)
+    return False
 
 
 _hashtables = {

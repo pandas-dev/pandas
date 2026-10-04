@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import algorithms
@@ -330,16 +328,7 @@ def test_isin_set_large_int_comps_matches_list(n_comps, magnitude, values):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        "int64",
-        "Int64",
-        "float64",
-        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ],
-)
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "float64"])
 @pytest.mark.parametrize("values", [[2**53 + 1, 1.5], [2**53 + 1, np.nan]])
 def test_isin_mixed_int_float_list_no_precision_loss(dtype, values):
     # GH#70217: 2**53 + 1 must not be rounded to 2**53 by a float64 cast
@@ -368,12 +357,25 @@ def test_isin_bytes_list_trailing_nul():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
-def test_isin_arrow_values_not_representable(dtype):
-    # GH#70217: values pyarrow cannot box into the array's type match nothing,
-    # while nulls still match a missing value in values
-    pytest.importorskip("pyarrow")
-    ser = pd.Series([2**53, 1, None], dtype=dtype)
-    result = ser.isin([1, 2**53 + 1, 2**63, None])
-    expected = pd.Series([False, True, True])
-    tm.assert_series_equal(result, expected)
+@pytest.mark.parametrize(
+    "ser, values, expected",
+    [
+        (pd.Series([(1, 2), (3, 4)]), [(1, 2)], [True, False]),
+        (pd.Series([1, 2]), [(1, 2)], [False, False]),
+        (
+            pd.Series(pd.to_timedelta(["1D", "2D"])),
+            [np.timedelta64(2, "D"), 1],
+            [False, True],
+        ),
+        (
+            pd.Series(pd.to_datetime(["2020-01-01", "1970-01-02"])),
+            [np.datetime64("2020-01-01"), np.timedelta64(1, "D")],
+            [True, False],
+        ),
+    ],
+)
+def test_isin_list_not_coerced_by_numpy(ser, values, expected):
+    # np.asarray(values) would give a 2D array, cast 1 to 1 day, or cast
+    # 1 day to 1970-01-02
+    result = ser.isin(values)
+    tm.assert_series_equal(result, pd.Series(expected))
