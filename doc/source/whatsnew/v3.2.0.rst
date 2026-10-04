@@ -30,6 +30,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - Display formatting for complex numbers in ``object`` dtype and for ``interval`` dtype values with float endpoints now respects the ``display.precision`` and ``display.float_format`` options (:issue:`25920`).
 - The :class:`ExtensionArray` base tests in ``pandas.tests.extension.base`` now issue a :class:`errors.PerformanceWarning` when the array uses the default, possibly slow, implementation of ``unique``, ``factorize``, ``argsort``, ``argmin``, ``argmax``, or ``searchsorted`` (:issue:`24433`)
+- :meth:`Categorical.map` and :meth:`Series.map` on categorical data now raise an informative error message when the mapping produces unhashable values (e.g. lists), explaining that the mapped values would become the new categories and suggesting ``astype('object')`` first, instead of a bare ``TypeError: unhashable type`` (:issue:`54359`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.notable_bug_fixes:

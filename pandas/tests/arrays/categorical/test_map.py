@@ -175,3 +175,12 @@ def test_map_to_multi_element_tuples(na_action):
     result = cat.map(mapper, na_action=na_action)
     expected = pd.Index([("x", 1), ("y", 2)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
+
+
+def test_map_to_unhashable_raises_informative_error():
+    # GH#54359 mapping categorical categories to unhashable values (e.g. lists)
+    #  should raise an informative error, not a bare "unhashable type"
+    cat = pd.Categorical(["foo", "bar"])
+    msg = "Cannot map categorical categories to unhashable values"
+    with pytest.raises(TypeError, match=msg):
+        cat.map({"foo": [1, 2], "bar": [3, 4]})

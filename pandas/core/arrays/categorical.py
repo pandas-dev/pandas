@@ -1804,14 +1804,28 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # A MultiIndex (i.e. mapper returned tuples) can't back a
         # CategoricalDtype, so it must take the slow path below regardless
         # of uniqueness/na checks.
-        if (
-            not isinstance(new_categories, ABCMultiIndex)
-            and new_categories.is_unique
-            and not new_categories.hasnans
-            and na_val is np.nan
-        ):
-            new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
-            return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
+        if not isinstance(new_categories, ABCMultiIndex):
+            try:
+                unique_new_categories = new_categories.is_unique
+            except TypeError as err:
+                # GH#54359 the mapped values would become the new categories,
+                #  which must be hashable (e.g. mapping to lists is invalid)
+                raise TypeError(
+                    "Cannot map categorical categories to unhashable values: "
+                    f"{err}. The mapped values would become the new categories, "
+                    "which must be hashable. To map to unhashable values such "
+                    "as lists, convert to object dtype first, e.g. "
+                    "`ser.astype('object').map(mapper)`."
+                ) from err
+            if (
+                unique_new_categories
+                and not new_categories.hasnans
+                and na_val is np.nan
+            ):
+                new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
+                return self.from_codes(
+                    self._codes.copy(), dtype=new_dtype, validate=False
+                )
 
         if isinstance(new_categories, ABCMultiIndex):
             # mapper returned tuples; a CategoricalDtype/Categorical cannot be
