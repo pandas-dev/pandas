@@ -796,6 +796,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 else:
                     # TODO: Deprecate this case
                     # https://github.com/pandas-dev/pandas/pull/58645/files#r1604055791
+                    values = construct_1d_object_array_from_listlike(
+                        [_box_numpy_datetimelike(val) for val in values]
+                    )
                     return isin(self.astype(object), values)
             return np.zeros(self.shape, dtype=bool)
 
@@ -2556,3 +2559,23 @@ def dtype_to_unit(dtype: DatetimeTZDtype | np.dtype | ArrowDtype) -> str:
             raise ValueError(f"{dtype=} does not have a resolution.")
         return dtype.pyarrow_dtype.unit
     return np.datetime_data(dtype)[0]
+
+
+def _box_numpy_datetimelike(val):
+    """
+    Box np.datetime64/np.timedelta64 as Timestamp/Timedelta where exact.
+
+    Before numpy 2.2 their hashes differ from Timestamp/Timedelta, so
+    hash-based matching misses them.
+    """
+    if isinstance(val, (np.datetime64, np.timedelta64)):
+        unit = np.datetime_data(val.dtype)[0]
+        if unit in ("generic", "ps", "fs", "as"):
+            # ambiguous, or truncated by Timestamp
+            return val
+        try:
+            return Timestamp(val) if isinstance(val, np.datetime64) else Timedelta(val)
+        except ValueError:
+            # Timedelta rejects "Y" and "M" units
+            return val
+    return val
