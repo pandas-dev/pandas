@@ -426,8 +426,8 @@ def _read(
                 # inside a quoted field (GH#66259).  The serial path below
                 # handles anything the parallel path cannot -- and raises in
                 # turn if it too fails.
-                # Other exceptions propagate: they signal a parallel-path bug,
-                # not ineligible input.
+                # Other exceptions from outside the chunk reads propagate: they
+                # signal a parallel-path bug, not ineligible input.
                 result = None
             if result is not None:
                 return result

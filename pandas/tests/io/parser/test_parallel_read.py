@@ -447,7 +447,7 @@ class TestReadCsvParallel:
         """Call the internal helper directly so file-size guards don't apply."""
         result = _read_csv_parallel(str(path), kwds, n_workers)
         if result is None:
-            pytest.skip("parallel read not applicable to this file")
+            pytest.fail("parallel read fell back to serial")
         return result
 
     def _base_kwds(self, path, **overrides):
@@ -762,6 +762,7 @@ def test_read_csv_parallel_non_bool_memory_map(tmp_path, monkeypatch):
             pd.read_csv(path, memory_map="False")
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     """
     For a file that exceeds the threshold, the parallel result equals the
@@ -773,10 +774,12 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
 
     serial = pd.read_csv(path, engine="python")
+    outcomes = _track_parallel(monkeypatch)
     # Force the parallel path so this runs even on a single-CPU allocation.
     with pd.option_context("mode.max_threads", 4):
         parallel = pd.read_csv(path, engine="c")
     tm.assert_frame_equal(parallel, serial)
+    assert outcomes == ["used"]
 
 
 @pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])
@@ -1519,6 +1522,7 @@ def test_parallel_ragged_line_at_chunk_start_skip_matches_serial(tmp_path, monke
     path = tmp_path / "ragged.csv"
     boundary = _write_with_line_at_chunk_start(path, b"11,22,33,4444", monkeypatch)
     seen = _spy_on_chunk_offsets(monkeypatch)
+    outcomes = _track_parallel(monkeypatch)
 
     with pd.option_context("mode.max_threads", 1):
         expected = pd.read_csv(path, on_bad_lines="skip")
@@ -1526,6 +1530,7 @@ def test_parallel_ragged_line_at_chunk_start_skip_matches_serial(tmp_path, monke
     tm.assert_frame_equal(result, expected)
     assert len(result) == 3999
     _assert_chunk_starts_at(seen, boundary)
+    assert outcomes == ["used"]
 
 
 @pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
@@ -1537,8 +1542,7 @@ def test_parallel_quoted_newline_at_chunk_boundary_converts_like_serial(
 ):
     # A boundary inside a quoted newline: the chunk before it fails to tokenize
     # and the chunk after fails to convert its misaligned first line, an error
-    # that must not escape.  With two workers, a quote at the third chunk's
-    # start usually put that error on the worker the gather checked first.
+    # that must not escape.
     path = tmp_path / "quoted.csv"
     rows = [f"{i:06d},{i * 2:06d}" for i in range(40_000)]
     path.write_bytes(("a,b\n" + "\n".join(rows) + "\n").encode("utf-8"))
@@ -1560,6 +1564,7 @@ def test_parallel_quoted_newline_at_chunk_boundary_converts_like_serial(
     _assert_chunk_starts_at(seen, boundary)
 
 
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
 def test_parallel_bom_bytes_mid_file_match_serial(tmp_path, monkeypatch):
     # Data lines beginning with the UTF-8 BOM byte sequence: each chunk
     # worker's fresh parser used to strip it from the chunk's first line,
@@ -1570,9 +1575,11 @@ def test_parallel_bom_bytes_mid_file_match_serial(tmp_path, monkeypatch):
 
     with pd.option_context("mode.max_threads", 1):
         expected = pd.read_csv(path)
+    outcomes = _track_parallel(monkeypatch)
     result = _read_forced_parallel(path, monkeypatch)
     tm.assert_frame_equal(result, expected)
     assert (result["a"].str[0] == "\ufeff").all()
+    assert outcomes == ["used"]
 
 
 def test_parallel_bom_at_file_start_header_none(tmp_path, monkeypatch):
