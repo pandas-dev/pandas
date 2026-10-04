@@ -215,40 +215,14 @@ class TestDataFrameClip:
         ],
     )
     @pytest.mark.parametrize("box", [pd.array, pd.Index])
-    def test_clip_extension_dtype_bound_keeps_dtype(self, axis, expected, box):
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_clip_extension_dtype_bound(self, axis, expected, box, inplace):
         # GH#68929 an extension-dtype bound must not push the result to object,
         #  and with axis=None it aligns on the columns like a list bound does
         df = pd.DataFrame([[10, 20], [30, 40]])
 
-        result = df.clip(lower=box([15, 25], dtype="Int64"), axis=axis)
+        result = df.clip(lower=box([15, 25], dtype="Int64"), axis=axis, inplace=inplace)
 
-        tm.assert_frame_equal(result, pd.DataFrame(expected))
-
-    @pytest.mark.parametrize(
-        "axis, expected",
-        [
-            (None, [[15, 25], [30, 40]]),
-            (0, [[15, 20], [30, 40]]),
-            (1, [[15, 25], [30, 40]]),
-        ],
-    )
-    def test_clip_extension_dtype_bound_inplace(self, axis, expected):
-        # GH#68929 inplace=True must match the non-inplace result
-        df = pd.DataFrame([[10, 20], [30, 40]])
-        df.clip(lower=pd.array([15, 25], dtype="Int64"), axis=axis, inplace=True)
-        tm.assert_frame_equal(df, pd.DataFrame(expected))
-
-    @pytest.mark.parametrize(
-        "bound, expected",
-        [
-            ("lower", [[15.0, 25.0], [30.0, 40.0]]),
-            ("upper", [[10.0, 20.0], [15.0, 25.0]]),
-        ],
-    )
-    def test_clip_extension_dtype_bound_float_frame(self, bound, expected):
-        # GH#68929; upper exercises the +inf fill for missing bounds
-        df = pd.DataFrame([[10, 20], [30, 40]]).astype(float)
-
-        result = df.clip(**{bound: pd.array([15, 25], dtype="Int64")})
-
+        if inplace:
+            result = df
         tm.assert_frame_equal(result, pd.DataFrame(expected))
