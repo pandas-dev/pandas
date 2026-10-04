@@ -2118,6 +2118,7 @@ class SQLDatabase(PandasSQL):
 
     def get_table(self, table_name: str, schema: str | None = None) -> Table:
         from sqlalchemy import (
+            Float,
             Numeric,
             Table,
         )
@@ -2125,7 +2126,8 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         tbl = Table(table_name, self.meta, autoload_with=self.con, schema=schema)
         for column in tbl.columns:
-            if isinstance(column.type, Numeric):
+            # Float is not a Numeric subclass in SQLAlchemy>=2.1
+            if isinstance(column.type, (Numeric, Float)):
                 column.type.asdecimal = False
         return tbl
 
