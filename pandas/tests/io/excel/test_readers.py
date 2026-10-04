@@ -754,6 +754,28 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, df)
 
+    def test_dtype_backend_pyarrow_mixed_types(self, read_ext, tmp_excel):
+        # GH#63830
+        if read_ext in (".xlsb", ".xls"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+        pytest.importorskip("pyarrow")
+
+        df = pd.DataFrame({"a": [1, 2], "b": [741528, "IPECL3"]})
+        df.to_excel(tmp_excel, sheet_name="test", index=False)
+        result = pd.read_excel(
+            tmp_excel, sheet_name="test", dtype_backend="pyarrow"
+        )
+        # Column "b" has mixed types, which pyarrow cannot convert, so it
+        #  falls back to object dtype, matching the default behaviour
+        #  without dtype_backend="pyarrow"
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="int64[pyarrow]"),
+                "b": pd.Series([741528, "IPECL3"], dtype=object),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_dtype_backend_string(self, read_ext, string_storage, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
