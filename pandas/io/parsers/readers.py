@@ -893,6 +893,10 @@ def _read_csv_chunks(
     with open(filepath, "rb") as fd:
         preamble = fd.read(data_start)
         first_line = fd.readline()
+    # The tokenizer also ends a line at a bare \r, which readline does not, so
+    # data_start could be misplaced without the row count check below noticing.
+    if b"\r" in (preamble + first_line).replace(b"\r\n", b""):
+        return None
 
     # Only the column names and the row count are kept, so the sample is parsed
     # as strings: a value that converts on its own line but not for the whole
