@@ -149,8 +149,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
--
+- Bug in :func:`pd.array` and :meth:`Series.astype` with ``dtype="boolean"`` raising ``TypeError`` for data mixing booleans with numbers, such as ``[True, 0]`` (:issue:`70220`)
 
 Strings
 ^^^^^^^
