@@ -439,6 +439,15 @@ def test_dt_subclass_add_timedelta(lh, rh):
     assert result == expected
 
 
+def test_addsub_zero_dim_m8ndarray():
+    # GH#66552 0-dim operand; np.negative returns a scalar
+    ts = Timestamp("2000-01-01")
+    other = np.array(5, dtype="m8[ns]")
+
+    assert ts + other == ts.asm8 + other
+    assert ts - other == ts.asm8 - other
+
+
 def test_addsub_m8ndarray_unit_multiplier():
     # GH#25611 a dtype such as m8[10s] was read as m8[s], dropping the multiplier
     ts = Timestamp("2000-01-01").as_unit("s")
