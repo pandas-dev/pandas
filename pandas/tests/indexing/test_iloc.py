@@ -649,6 +649,7 @@ class TestiLocBaseIndependent:
             ((pd.array([2, 1], dtype="Int64"), [0, 2]), None),
             ((np.array([2, 1]), range(0, 3, 2)), None),
             ((np.array([2, 1]), pd.array([0, 2], dtype="Int64")), None),
+            ((np.array([0, 2]), None), None),
             (([2, 1, 0], Ellipsis), (3, 3)),
             ((Ellipsis, [2, 0, 1]), (4, 3)),
             ((np.array([True, False, True, False]), slice(None, None, -1)), (2, 3)),
