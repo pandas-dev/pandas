@@ -827,3 +827,90 @@ def test_replace_compiled_regex_non_string_arrow_dtype():
     ser = pd.Series([1, 2], dtype=pd.ArrowDtype(pa.int64()))
 
     tm.assert_series_equal(ser.replace(re.compile("^1$"), 0), ser)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"to_replace": "^a", "value": 1, "regex": True},
+        {"regex": {"^a": 1}},
+    ],
+)
+def test_replace_regex_arrow_dtype_non_string_value(pa_type, kwargs):
+    # GH#70458 a replacement the arrow column cannot hold upcasts to object, as it
+    #  does for the other string dtypes, instead of raising or storing "1"
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["ab", "b", None], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+    expected = pd.Series([1, "b", pd.NA], dtype=object)
+
+    tm.assert_series_equal(ser.replace(**kwargs), expected)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_regex_arrow_dtype_na_value(pa_type):
+    # GH#70458 an NA replacement is holdable, so the arrow dtype survives
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    ser = pd.Series(["ab", "b"], dtype=dtype)
+
+    tm.assert_series_equal(
+        ser.replace("^a", None, regex=True), pd.Series([None, "b"], dtype=dtype)
+    )
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_regex_arrow_dtype_regex_value_raises(pa_type):
+    # GH#70458 a regex replacement raises on write instead of upcasting, as with
+    #  StringDtype, though with pyarrow's own error
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["ab", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+
+    with tm.external_error_raised(pa.ArrowInvalid):
+        ser.replace("^a", re.compile("z"), regex=True)
+    with pytest.raises(TypeError, match="Invalid value"):
+        pd.Series(["ab", "b"], dtype=pd.StringDtype("python")).replace(
+            re.compile("^a"), re.compile("z")
+        )
+
+
+@td.skip_if_no("pyarrow")
+def test_replace_compiled_regex_string_dtype_non_string_value():
+    # GH#70458 the behavior ArrowDtype is matched against
+    ser = pd.Series(["ab", "b"], dtype=pd.StringDtype("pyarrow"))
+    expected = pd.Series([1, "b"], dtype=object)
+
+    tm.assert_series_equal(ser.replace(re.compile("^a"), 1), expected)
+    tm.assert_series_equal(ser.replace(regex={re.compile("^a"): 1}), expected)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_regex_arrow_dtype_bytes_value(pa_type):
+    # GH#70458 pyarrow silently decodes bytes, so b"z" used to land as the string
+    #  "z" rather than forcing the object upcast the other string dtypes take
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["ab", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+    expected = pd.Series([b"z", "b"], dtype=object)
+
+    tm.assert_series_equal(ser.replace("^a", b"z", regex=True), expected)
+    tm.assert_series_equal(
+        pd.Series(["ab", "b"], dtype=pd.StringDtype("python")).replace(
+            re.compile("^a"), b"z"
+        ),
+        expected,
+    )
+
+
+def test_replace_regex_non_string_arrow_dtype():
+    # GH#70458 a regex cannot match a non-string arrow column, so this stays a
+    #  dtype-preserving no-op instead of upcasting to object
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series([1, 2], dtype=pd.ArrowDtype(pa.int64()))
+
+    tm.assert_series_equal(ser.replace(r"^1$", 0, regex=True), ser)
+
+    # only the string column of a frame-wide sweep upcasts
+    strings = pd.Series(["x", ""], dtype=pd.ArrowDtype(pa.string()))
+    result = pd.DataFrame({"a": ser, "b": strings}).replace(r"^\s*$", 0, regex=True)
+    expected = pd.DataFrame({"a": ser, "b": pd.Series(["x", 0], dtype=object)})
+    tm.assert_frame_equal(result, expected)
