@@ -1374,7 +1374,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 
         return formatter
 
-    def _fixed_width_format(self, kind: Literal["f", "e"]) -> Callable:
+    def _fixed_width_format(self, kind: Literal["f", "e"]) -> Callable[..., str]:
         # np.longdouble.__format__ casts to float64, which turns values outside
         # its range into 0 or inf, so format those with numpy (GH#17809)
         if (
