@@ -295,13 +295,6 @@ Select rows where ``df.A`` is greater than ``0``.
 
    df[df["A"] > 0]
 
-The :meth:`DataFrame.query` method can also be used for conditional
-selection:
-
-.. ipython:: python
-
-   df.query("A > 0")
-
 Selecting values from a :class:`DataFrame` where a boolean condition is met:
 
 .. ipython:: python
