@@ -228,7 +228,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         int64_t *word_ends
         uint64_t words_len
         uint64_t words_cap
-        uint64_t max_words_cap   # maximum word cap encountered
+        uint64_t max_words_needed  # most word slots any reservation needed
 
         int64_t word_start       # position start of current field
 
