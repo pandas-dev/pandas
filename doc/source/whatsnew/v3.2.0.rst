@@ -189,6 +189,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`Period` parsing some weekly strings such as ``"2000-01-03/2000-01-09"`` inconsistently with other weekly strings, e.g. as a minute-frequency period when no ``freq`` is given (:issue:`70463`)
+- Bug in :class:`Period`, :class:`PeriodIndex`, :func:`period_range` and casting to :class:`PeriodDtype` silently dropping the timezone of timezone-aware input; these now emit a ``UserWarning`` like :meth:`Timestamp.to_period` (:issue:`47005`)
 - Bug in :meth:`Period.strftime` and :meth:`PeriodIndex.strftime` where ``%Y`` was not zero-padded for years before 1000 on Linux (:issue:`48746`)
 
 Plotting
