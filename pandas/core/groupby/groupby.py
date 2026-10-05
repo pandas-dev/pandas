@@ -4694,6 +4694,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: RankNaOption = "keep",
         pct: bool = False,
+        numeric_only: bool = False,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -4717,6 +4718,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * bottom: smallest rank if descending.
         pct : bool, default False
             Compute percentage rank of data within each group.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -4766,6 +4771,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
+        if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
+            # GH#44438 match Series.rank
+            raise TypeError(
+                f"Cannot use numeric_only=True with {type(self).__name__}.rank "
+                "and non-numeric dtypes."
+            )
 
         kwargs = {
             "ties_method": method,
@@ -4776,7 +4787,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         return self._cython_transform(
             "rank",
-            numeric_only=False,
+            numeric_only=numeric_only,
             **kwargs,
         )
 
