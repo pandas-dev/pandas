@@ -202,7 +202,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Fixed bug in :func:`merge` where a ``NaN`` join-key label (e.g. ``left_on=np.nan``) produced a duplicate join-key column, and other join-key labels (e.g. ``pd.NA`` or a NumPy scalar paired with a tuple label) raised ``TypeError`` or ``ValueError`` (:issue:`65899`)
 -
 
 Sparse
