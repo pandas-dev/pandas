@@ -5079,7 +5079,7 @@ def sparsify_labels(label_list, codes, start: int = 0, sentinel: object = ""):
     for prev, cur, labels in zip(
         keys[:-1], keys[1:], pivoted[start + 1 :], strict=True
     ):
-        sparse_cur: list = []
+        sparse_cur: list[object] = []
 
         for i in range(k):
             if i == k - 1 or prev[i] != cur[i]:
