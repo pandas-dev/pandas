@@ -171,7 +171,9 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        return name not in ["nansum", "nanprod", "nanmean"]
+        # GH#41277 bottleneck has no float16 kernels; its numpy fallback
+        #  squares in float16 and overflows in nanvar/nanstd
+        return name not in ["nansum", "nanprod", "nanmean"] and dtype != np.float16
     return False
 
 
@@ -995,9 +997,9 @@ def nanmean(
     elif dtype.kind in "iu":
         dtype_sum = np.dtype(np.float64)
     elif dtype.kind == "f":
-        # GH#43929 float16 sum overflows easily; upcast like numpy does
+        # GH#43929 upcast float16 sum and count, which lose precision or overflow
         dtype_sum = np.dtype(np.float64) if dtype == np.float16 else dtype
-        dtype_count = dtype
+        dtype_count = dtype_sum
 
     count = _get_counts(values.shape, mask, axis, dtype=dtype_count)
     the_sum = values.sum(axis, dtype=dtype_sum)
@@ -1222,8 +1224,8 @@ def nanstd(
     Returns
     -------
     result : float
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1275,8 +1277,8 @@ def nanvar(
     Returns
     -------
     result : float
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1301,8 +1303,10 @@ def nanvar(
             values.real, axis=axis, skipna=skipna, ddof=ddof, mask=mask
         ) + nanvar(values.imag, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
 
-    if values.dtype.kind == "f":
-        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
+    # GH#41277 float16 counts overflow, and float16 variances easily do too
+    keep_dtype = dtype.kind == "f" and dtype != np.float16
+    if keep_dtype:
+        count, d = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype)
     else:
         count, d = _get_counts_nanvar(values.shape, mask, axis, ddof)
 
@@ -1330,10 +1334,8 @@ def nanvar(
         "np.ndarray | np.float64", sqr.sum(axis=axis, dtype=np.float64) / d
     )
 
-    # Return variance as np.float64 (the datatype used in the accumulator),
-    # unless we were dealing with a float array, in which case use the same
-    # precision as the original values array.
-    if dtype.kind == "f":
+    # Return float64 (the accumulator dtype) unless input is a non-float16 float
+    if keep_dtype:
         result = result.astype(dtype, copy=False)
     return result
 
@@ -1365,8 +1367,8 @@ def nansem(
     Returns
     -------
     result : float64
-        Unless input is a float array, in which case use the same
-        precision as the input array.
+        Unless input is a float array other than float16, in which case use
+        the same precision as the input array.
 
     Examples
     --------
@@ -1385,7 +1387,8 @@ def nansem(
         values = values.astype("f8")
 
     dtype_count = np.dtype(np.float64)
-    if values.dtype.kind == "f":
+    if values.dtype.kind == "f" and values.dtype != np.float16:
+        # GH#41277 float16 counts overflow and nanvar returns float64 for them
         dtype_count = values.dtype
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, dtype_count)
     var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)

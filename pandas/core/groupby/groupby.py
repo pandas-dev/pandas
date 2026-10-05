@@ -160,7 +160,7 @@ class GroupByPlot(PandasObject):
     Class implementing the .plot attribute for groupby objects.
     """
 
-    def __init__(self, groupby: GroupBy) -> None:
+    def __init__(self, groupby: GroupBy[Any]) -> None:
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
@@ -1085,7 +1085,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _wrap_applied_output(
         self,
         data,
-        values: list,
+        values: list[Any],
         not_indexed_same: bool = False,
         is_transform: bool = False,
     ):
@@ -1123,7 +1123,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     def _numba_agg_general(
         self,
-        func: Callable,
+        func: Callable[..., Any],
         dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
         **aggregator_kwargs,
@@ -1422,7 +1422,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _python_apply_general(
         self,
-        f: Callable,
+        f: Callable[..., Any],
         data: DataFrame | Series,
         not_indexed_same: bool | None = None,
         is_transform: bool = False,
@@ -1461,7 +1461,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_apply_plot(self, f: Callable) -> NDFrameT:
+    def _python_apply_plot(self, f: Callable[..., Any]) -> NDFrameT:
         """
         Apply a plotting function f group-wise.
 
@@ -1481,7 +1481,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self._wrap_applied_output(data, values, not_indexed_same=True)
 
     def _agg_py_fallback(
-        self, how: str, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable[..., Any]
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1531,7 +1531,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable | None = None,
+        alt: Callable[..., Any] | None = None,
         numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
@@ -1563,13 +1563,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     min_count=min_count,
                     **kwargs,
                 )
-            except NotImplementedError:
+            except NotImplementedError as err:
                 # generally if we have numeric_only=False
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
                 if alt is None or how in ["any", "all", "std", "sem"]:
-                    raise  # TODO: re-raise as TypeError?  should not be reached
+                    raise TypeError(
+                        f"{how} is not supported for {values.dtype} dtype"
+                    ) from err
             else:
                 if use_bool_fastpath and result.dtype.kind == "f":
                     fill = 0.0 if how == "any" else 1.0
@@ -1736,7 +1738,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @property
-    def _obj_1d_constructor(self) -> Callable:
+    def _obj_1d_constructor(self) -> Callable[..., Any]:
         # GH28330 preserve subclassed Series/DataFrames
         if isinstance(self.obj, DataFrame):
             return self.obj._constructor_sliced
@@ -4342,7 +4344,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     def _nth(
         self,
-        n: PositionalIndexer | tuple,
+        n: PositionalIndexer | tuple[int | slice, ...],
         dropna: Literal["any", "all"] | None = None,
     ) -> NDFrameT:
         if not dropna:
@@ -5222,7 +5224,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    5.0  8.0
         """
         if is_list_like(periods):
-            periods = cast("Sequence", periods)
+            periods = cast("Sequence[int]", periods)
             if len(periods) == 0:
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
@@ -5807,7 +5809,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool = True,
-) -> GroupBy:
+) -> GroupBy[Any]:
     """
     Class for grouping and aggregating relational data.
 

@@ -33,7 +33,12 @@ class TestEWM:
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "obj",
-        [pd.DataFrame({"a": range(5), "b": range(5)}), pd.Series(range(5), name="foo")],
+        [
+            pd.DataFrame({"a": range(5), "b": range(5)}),
+            # GH#66522 online mean ignored the decay for single-column frames
+            pd.DataFrame({"a": range(5)}),
+            pd.Series(range(5), name="foo"),
+        ],
     )
     def test_online_vs_non_online_mean(self, obj, nogil, parallel, adjust, ignore_na):
         expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()

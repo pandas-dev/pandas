@@ -212,7 +212,7 @@ def validate_header_arg(header: object) -> None:
             )
         return
     if is_list_like(header, allow_sets=False):
-        header = cast("Sequence", header)
+        header = cast("Sequence[int]", header)
         if not all(map(is_integer, header)):
             raise ValueError("header must be integer or list of integers")
         if any(i < 0 for i in header):
@@ -955,6 +955,7 @@ def get_handle(
             handle = _BytesIOWrapper(
                 handle,
                 encoding=ioargs.encoding,
+                errors=errors,
             )
         elif is_text and (
             compression or memory_map or _is_binary_mode(handle, ioargs.mode)
@@ -1171,9 +1172,15 @@ class _IOWrapper:
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
-    def __init__(self, buffer: StringIO | TextIOBase, encoding: str = "utf-8") -> None:
+    def __init__(
+        self,
+        buffer: StringIO | TextIOBase,
+        encoding: str = "utf-8",
+        errors: str = "strict",
+    ) -> None:
         self.buffer = buffer
         self.encoding = encoding
+        self.errors = errors
         # Because a character can be represented by more than 1 byte,
         # it is possible that reading will produce more bytes than n
         # We store the extra bytes in this overflow variable, and append the
@@ -1185,7 +1192,7 @@ class _BytesIOWrapper:
 
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
-        bytestring = self.buffer.read(n).encode(self.encoding)
+        bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
         # When n=-1/n greater than remaining bytes: Read entire file/rest of file
         combined_bytestring = self.overflow + bytestring
         if n is None or n < 0 or n >= len(combined_bytestring):
@@ -1207,7 +1214,7 @@ def _maybe_memory_map(
         return handle, memory_map, handles
 
     # mmap used by only read_csv
-    handle = cast("ReadCsvBuffer", handle)
+    handle = cast("ReadCsvBuffer[bytes]", handle)
 
     # need to open the file first
     if isinstance(handle, str):
