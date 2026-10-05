@@ -517,6 +517,13 @@ class TestPeriodConstruction:
             # not 6 days apart
             pd.Period("2016-01-23/2017-01-29")
 
+    @pytest.mark.parametrize("freq", [None, "W", "D"])
+    def test_parse_week_str_day_not_read_as_offset(self, freq):
+        # GH#70463 the "-09" suffix was read as a UTC offset
+        result = pd.Period("2000-01-03/2000-01-09", freq=freq)
+        expected = pd.Period("2000-01-09", freq=freq or "W-SUN")
+        assert result == expected
+
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")
         res = pd.Period._from_ordinal(p.ordinal, dtype=p._dtype)
