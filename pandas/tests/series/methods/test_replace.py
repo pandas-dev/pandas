@@ -790,6 +790,37 @@ def test_replace_datetime_out_of_bounds_for_ns():
 
 
 @pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_compiled_regex_arrow_dtype(pa_type):
+    # GH#69026 a compiled pattern was discarded on ArrowDtype strings
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(getattr(pa, pa_type)())
+    ser = pd.Series(["ab", "b", None], dtype=dtype)
+    expected = pd.Series(["zb", "b", None], dtype=dtype)
+
+    original = ser.copy()
+
+    tm.assert_series_equal(ser.replace(re.compile("^a"), "z"), expected)
+    # the same guard is reached through replace_list
+    tm.assert_series_equal(ser.replace(regex={re.compile("^a"): "z"}), expected)
+    tm.assert_series_equal(ser.replace([re.compile("^a")], ["z"], regex=True), expected)
+    # the three asserts above would pass even if ser were mutated: "^a" no
+    #  longer matches a substituted value
+    tm.assert_series_equal(ser, original)
+
+    # inplace now reaches ArrowExtensionArray.__setitem__
+    view = ser[:]
+    ser.replace(re.compile("^a"), "z", inplace=True)
+    tm.assert_series_equal(ser, expected)
+    tm.assert_series_equal(view, original)
+
+
+def test_replace_compiled_regex_bytes_dtype():
+    # GH#69026 a regex never matches bytes, so this must stay a dtype-preserving no-op
+    ser = pd.Series(np.array([b"ab", b"b"], dtype="S2"))
+    tm.assert_series_equal(ser.replace(re.compile("^a"), "z"), ser)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
 @pytest.mark.parametrize(
     "kwargs",
     [
@@ -861,16 +892,20 @@ def test_replace_regex_arrow_dtype_bytes_value(pa_type):
     )
 
 
-def test_replace_regex_non_string_arrow_dtype():
-    # GH#70458 a regex cannot match a non-string arrow column, so this stays a
-    #  dtype-preserving no-op instead of upcasting to object
+@pytest.mark.parametrize("compile_pattern", [False, True])
+def test_replace_regex_non_string_arrow_dtype(compile_pattern):
+    # GH#70458, GH#69026 a regex cannot match a non-string arrow column, so this
+    #  stays a dtype-preserving no-op instead of upcasting to object
     pa = pytest.importorskip("pyarrow")
     ser = pd.Series([1, 2], dtype=pd.ArrowDtype(pa.int64()))
+    maybe_compile = re.compile if compile_pattern else str
 
-    tm.assert_series_equal(ser.replace(r"^1$", 0, regex=True), ser)
+    tm.assert_series_equal(ser.replace(maybe_compile(r"^1$"), 0, regex=True), ser)
 
     # only the string column of a frame-wide sweep upcasts
     strings = pd.Series(["x", ""], dtype=pd.ArrowDtype(pa.string()))
-    result = pd.DataFrame({"a": ser, "b": strings}).replace(r"^\s*$", 0, regex=True)
+    result = pd.DataFrame({"a": ser, "b": strings}).replace(
+        maybe_compile(r"^\s*$"), 0, regex=True
+    )
     expected = pd.DataFrame({"a": ser, "b": pd.Series(["x", 0], dtype=object)})
     tm.assert_frame_equal(result, expected)
