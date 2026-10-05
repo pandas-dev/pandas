@@ -1822,8 +1822,8 @@ class EABackedBlock(Block):
         raise ``TypeError`` (GH#63842).  A length-1 argument is broadcast.
         """
         if (
-            # TODO: 2D (datetimelike) blocks are not aligned
-            self.values.ndim == 2
+            # TODO: multi-column datetimelike blocks are not aligned
+            (self.ndim == 2 and self.shape[0] != 1)
             or isinstance(arg, (np.ndarray, ExtensionArray, tuple))
             or not is_list_like(arg)
             or not isinstance(arg, Sequence)
@@ -1849,7 +1849,8 @@ class EABackedBlock(Block):
         arg = com.asarray_tuplesafe(arg)
         if len(arg) == 1:
             arg = arg.repeat(nrows)
-        return arg
+        # TODO(EA2D): reshape not needed with 2D EAs
+        return arg.reshape(self.values.shape[::-1])
 
     @final
     def where(self, other, cond) -> list[Block]:

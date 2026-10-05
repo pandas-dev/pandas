@@ -127,15 +127,6 @@ class TestPeriodArray(base.ExtensionTests):
         # PeriodArray currently cannot be serialized to JSON
         super().test_json_roundtrip(data)
 
-    def test_where_series_listlike_other(self, request, data, as_frame):
-        if as_frame:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="a list 'other' is not aligned for a 2D datetimelike block"
-                )
-            )
-        super().test_where_series_listlike_other(data, as_frame)
-
     def test_plot_on_y_axis(self, plot_data):
         # GH 64535
         # PeriodArray can be plotted on the x-axis, but on the y-axis `freq` is not set
