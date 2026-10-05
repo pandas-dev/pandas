@@ -820,15 +820,6 @@ def test_replace_compiled_regex_bytes_dtype():
     tm.assert_series_equal(ser.replace(re.compile("^a"), "z"), ser)
 
 
-def test_replace_compiled_regex_non_string_arrow_dtype():
-    # GH#69026 a regex cannot match a non-string arrow column, so this stays a
-    #  dtype-preserving no-op
-    pa = pytest.importorskip("pyarrow")
-    ser = pd.Series([1, 2], dtype=pd.ArrowDtype(pa.int64()))
-
-    tm.assert_series_equal(ser.replace(re.compile("^1$"), 0), ser)
-
-
 @pytest.mark.parametrize("pa_type", ["string", "large_string"])
 @pytest.mark.parametrize(
     "kwargs",
@@ -901,16 +892,20 @@ def test_replace_regex_arrow_dtype_bytes_value(pa_type):
     )
 
 
-def test_replace_regex_non_string_arrow_dtype():
-    # GH#70458 a regex cannot match a non-string arrow column, so this stays a
-    #  dtype-preserving no-op instead of upcasting to object
+@pytest.mark.parametrize("compile_pattern", [False, True])
+def test_replace_regex_non_string_arrow_dtype(compile_pattern):
+    # GH#70458, GH#69026 a regex cannot match a non-string arrow column, so this
+    #  stays a dtype-preserving no-op instead of upcasting to object
     pa = pytest.importorskip("pyarrow")
     ser = pd.Series([1, 2], dtype=pd.ArrowDtype(pa.int64()))
+    maybe_compile = re.compile if compile_pattern else str
 
-    tm.assert_series_equal(ser.replace(r"^1$", 0, regex=True), ser)
+    tm.assert_series_equal(ser.replace(maybe_compile(r"^1$"), 0, regex=True), ser)
 
     # only the string column of a frame-wide sweep upcasts
     strings = pd.Series(["x", ""], dtype=pd.ArrowDtype(pa.string()))
-    result = pd.DataFrame({"a": ser, "b": strings}).replace(r"^\s*$", 0, regex=True)
+    result = pd.DataFrame({"a": ser, "b": strings}).replace(
+        maybe_compile(r"^\s*$"), 0, regex=True
+    )
     expected = pd.DataFrame({"a": ser, "b": pd.Series(["x", 0], dtype=object)})
     tm.assert_frame_equal(result, expected)
