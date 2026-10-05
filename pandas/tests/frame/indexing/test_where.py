@@ -946,7 +946,7 @@ def test_index_where_listlike_other_keeps_ea_dtype(any_numeric_ea_and_arrow_dtyp
     "dtype", ["datetime64[ns]", "datetime64[ns, UTC]", "period[D]"]
 )
 def test_where_listlike_other_single_datetimelike_column(dtype):
-    # GH#70511 used to silently fill every masked position with other[0]
+    # GH#70533 used to silently fill every masked position with other[0]
     values = pd.array(pd.date_range("2016-01-01", periods=4), dtype=dtype)
     other = list(values[[1, 0, 1, 0]])
     df = pd.DataFrame({"a": values})
