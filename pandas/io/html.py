@@ -35,6 +35,7 @@ from pandas.core.series import Series
 
 from pandas.io.common import (
     get_handle,
+    is_traversable,
     is_url,
     stringify_path,
     validate_header_arg,
@@ -794,6 +795,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
         if is_url(self.io):
             with get_handle(self.io, "r", storage_options=self.storage_options) as f:
                 r = parse(f.handle, parser=parser)
+        elif is_traversable(self.io):
+            # GH#49906 pass bytes so lxml honors the document's declared charset
+            with self.io.open("rb") as handle:
+                r = parse(handle, parser=parser)
         else:
             # try to parse the input in the simplest way
             try:

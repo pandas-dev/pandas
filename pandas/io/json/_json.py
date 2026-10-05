@@ -66,6 +66,7 @@ from pandas.io.common import (
     dedup_names,
     get_handle,
     is_potential_multi_index,
+    is_traversable,
     stringify_path,
 )
 from pandas.io.json._normalize import convert_to_line_delimits
@@ -1291,7 +1292,15 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
                 explicit_schema=schema, unexpected_field_behavior="infer"
             )
 
-        pa_table = pyarrow_json.read_json(self.data, parse_options=options)
+        if is_traversable(self.data):
+            # GH#49906 pyarrow can neither open a zipfile.Path nor infer its
+            # compression; get_handle's annotations omit Traversable, which it accepts
+            with get_handle(  # type: ignore[call-overload]
+                self.data, "rb", compression="infer", is_text=False
+            ) as handles:
+                pa_table = pyarrow_json.read_json(handles.handle, parse_options=options)
+        else:
+            pa_table = pyarrow_json.read_json(self.data, parse_options=options)
         df = arrow_table_to_pandas(pa_table, dtype_backend=self.dtype_backend)
 
         return df

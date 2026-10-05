@@ -92,6 +92,7 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 
 from pandas.io.common import (
     check_parent_directory,
+    is_traversable,
     stringify_path,
 )
 from pandas.io.formats import printing
@@ -1075,7 +1076,7 @@ def _get_buffer(
 
     if encoding is None:
         encoding = "utf-8"
-    elif not isinstance(buf, str):
+    elif not (isinstance(buf, str) or is_traversable(buf)):
         raise ValueError("buf is not a file name and encoding is specified.")
 
     if hasattr(buf, "write"):
@@ -1089,6 +1090,10 @@ def _get_buffer(
             #  if we have an invalid encoding argument.
             # newline="" is needed to roundtrip correctly on
             #  windows test_to_latex_filename
+            yield f
+    elif is_traversable(buf):
+        # GH#49906 e.g. zipfile.Path
+        with buf.open("w", encoding=encoding, newline="") as f:
             yield f
     else:
         raise TypeError("buf is not a file name and it has no write method")

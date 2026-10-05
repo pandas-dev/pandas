@@ -156,6 +156,7 @@ from pandas.io._util import (
     arrow_table_to_pandas,
     suppress_pyarrow_values_warning,
 )
+from pandas.io.common import is_traversable
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
     SeriesInfo,
@@ -1743,6 +1744,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
         elif hasattr(buf, "write"):
             buf.write(result)
+        elif is_traversable(buf):
+            # GH#49906; Traversable declares only read modes, but zipfile.Path can write
+            with buf.open("w", encoding="utf-8") as f:  # type: ignore[call-overload]
+                f.write(result)
         else:
             with open(buf, "w", encoding="utf-8") as f:
                 f.write(result)

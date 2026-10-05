@@ -39,6 +39,7 @@ from pandas.io.common import (
     check_parent_directory,
     get_handle,
     is_fsspec_url,
+    is_traversable,
     is_url,
     stringify_path,
 )
@@ -153,7 +154,17 @@ def _get_path_or_handle(
         raise ValueError("storage_options passed with buffer, or non-supported URL")
 
     handles = None
-    if (
+    if not fs and not is_dir and is_traversable(path_or_handle):
+        # GH#49906 e.g. zipfile.Path, which pyarrow cannot open itself.
+        # Traversable declares only read modes, but zipfile.Path can write.
+        stream = path_or_handle.open(mode)  # type: ignore[call-overload]
+        handles = IOHandles(
+            handle=stream,
+            compression={"method": None},
+            created_handles=[stream],
+        )
+        path_or_handle = stream
+    elif (
         not fs
         and not is_dir
         and isinstance(path_or_handle, str)

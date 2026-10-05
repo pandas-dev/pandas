@@ -38,6 +38,7 @@ from typing import (
     AnyStr,
     Generic,
     Literal,
+    TypeGuard,
     TypeVar,
     cast,
     overload,
@@ -75,6 +76,7 @@ BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
 
 if TYPE_CHECKING:
+    from importlib.resources.abc import Traversable
     from types import TracebackType
 
     from pandas._typing import (
@@ -272,6 +274,18 @@ def stringify_path(
     if isinstance(filepath_or_buffer, os.PathLike):
         filepath_or_buffer = filepath_or_buffer.__fspath__()
     return _expand_user(filepath_or_buffer)
+
+
+def is_traversable(obj: object) -> TypeGuard[Traversable]:
+    """
+    Check for path-like objects without __fspath__, e.g. zipfile.Path.
+    """
+    if isinstance(obj, (str, bytes, os.PathLike)) or is_file_like(obj):
+        return False
+    # lazy import: importlib.resources is otherwise not needed at import time
+    from importlib.resources.abc import Traversable
+
+    return isinstance(obj, Traversable)
 
 
 def urlopen(*args: Any, **kwargs: Any) -> Any:
@@ -480,6 +494,18 @@ def _get_filepath_or_buffer(
             "storage_options passed with file object or non-fsspec file path"
         )
 
+    if is_traversable(filepath_or_buffer):
+        # GH#49906 open in binary so get_handle applies encoding and newline handling
+        binary_mode = mode.replace("t", "").replace("b", "") + "b"
+        return IOArgs(
+            # Traversable declares only read modes, but zipfile.Path can write
+            filepath_or_buffer=filepath_or_buffer.open(binary_mode),  # type: ignore[call-overload]
+            encoding=encoding,
+            compression=compression,
+            should_close=True,
+            mode=binary_mode,
+        )
+
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return IOArgs(
             filepath_or_buffer=_expand_user(filepath_or_buffer),
@@ -620,6 +646,8 @@ def infer_compression(
             # chained URLs contain ::
             filepath_or_buffer = filepath_or_buffer.split("::")[0]
         filepath_or_buffer = stringify_path(filepath_or_buffer, convert_file_like=True)
+        if is_traversable(filepath_or_buffer):
+            filepath_or_buffer = filepath_or_buffer.name
         if not isinstance(filepath_or_buffer, str):
             # Cannot infer compression of a buffer, assume no compression
             return None

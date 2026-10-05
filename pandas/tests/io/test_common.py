@@ -6,6 +6,7 @@ import codecs
 import contextlib
 import errno
 from functools import partial
+import gzip
 from io import (
     BytesIO,
     IOBase,
@@ -18,6 +19,7 @@ import pickle
 import re
 import sqlite3
 import tempfile
+import zipfile
 
 import numpy as np
 import pytest
@@ -774,3 +776,183 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
     with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
         with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
             sql.read_sql("SELECT 1", conn)
+
+
+@pytest.mark.parametrize(
+    "reader, module, path",
+    [
+        (pd.read_csv, "os", ("io", "data", "csv", "iris.csv")),
+        (pd.read_fwf, "os", ("io", "data", "fixed_width", "fixed_width_format.txt")),
+        (pd.read_excel, "openpyxl", ("io", "data", "excel", "test1.xlsx")),
+        (
+            pd.read_feather,
+            "pyarrow",
+            ("io", "data", "feather", "simple_dataset.feather"),
+        ),
+        (pd.read_parquet, "pyarrow", ("io", "data", "parquet", "simple.parquet")),
+        (pd.read_stata, "os", ("io", "data", "stata", "stata10_115.dta")),
+        (pd.read_sas, "os", ("io", "sas", "data", "test1.sas7bdat")),
+        (pd.read_json, "os", ("io", "json", "data", "tsframe_v012.json")),
+        (pd.read_pickle, "os", ("io", "data", "pickle", "categorical.0.25.0.pickle")),
+        (pd.read_xml, "lxml", ("io", "data", "xml", "books.xml")),
+        pytest.param(
+            lambda path: pd.read_html(path, flavor="lxml")[0],
+            "lxml",
+            ("io", "data", "html", "spam.html"),
+            id="read_html",
+        ),
+    ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:The default value of 'encoding':pandas.errors.Pandas4Warning"
+)
+def test_read_zipfile_path(reader, module, path, datapath, tmp_path):
+    # GH#49906 zipfile.Path has no __fspath__
+    pytest.importorskip(module)
+    path = datapath(*path)
+    archive = tmp_path / "archive.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.write(path, os.path.basename(path))
+
+    result = reader(zipfile.Path(archive, os.path.basename(path)))
+    expected = reader(path)
+    tm.assert_equal(result, expected)
+
+
+def test_read_zipfile_path_infers_compression(tmp_path):
+    # GH#49906
+    archive = tmp_path / "archive.zip"
+    df = pd.DataFrame({"a": [1, 2]})
+    with zipfile.ZipFile(archive, "w") as zf:
+        with zf.open("data.csv.gz", "w") as fh:
+            df.to_csv(fh, index=False, compression="gzip")
+
+    result = pd.read_csv(zipfile.Path(archive, "data.csv.gz"))
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize(
+    "writer_name, writer_kwargs, module",
+    [
+        ("to_csv", {}, "os"),
+        ("to_excel", {"engine": "openpyxl"}, "openpyxl"),
+        ("to_feather", {}, "pyarrow"),
+        ("to_html", {}, "os"),
+        ("to_json", {}, "os"),
+        ("to_latex", {}, "jinja2"),
+        ("to_parquet", {}, "pyarrow"),
+        ("to_pickle", {}, "os"),
+        ("to_stata", {"time_stamp": pd.to_datetime("2019-01-01 00:00")}, "os"),
+        ("to_string", {}, "os"),
+        ("to_xml", {}, "lxml"),
+    ],
+)
+def test_write_zipfile_path(writer_name, writer_kwargs, module, tmp_path):
+    # GH#49906
+    pytest.importorskip(module)
+    archive = tmp_path / "archive.zip"
+    df = pd.DataFrame({"a": [1, 2]})
+    writer = getattr(df, writer_name)
+    with zipfile.ZipFile(archive, "w") as zf:
+        writer(zipfile.Path(zf, "out"), **writer_kwargs)
+    writer(tmp_path / "out", **writer_kwargs)
+
+    with zipfile.ZipFile(archive) as zf:
+        if writer_name == "to_excel":
+            # the workbook embeds its creation time
+            with zf.open("out") as fh:
+                result = pd.read_excel(fh, engine="openpyxl")
+            expected = pd.read_excel(tmp_path / "out", engine="openpyxl")
+            tm.assert_frame_equal(result, expected)
+        else:
+            assert zf.read("out") == (tmp_path / "out").read_bytes()
+
+
+def test_write_zipfile_path_text_mode_encoding(tmp_path):
+    # GH#49906 an explicit "t" in mode must not bypass the requested encoding
+    archive = tmp_path / "archive.zip"
+    df = pd.DataFrame({"a": ["é"]})
+    with zipfile.ZipFile(archive, "w") as zf:
+        df.to_csv(zipfile.Path(zf, "out.csv"), mode="wt", encoding="latin-1")
+    df.to_csv(tmp_path / "out.csv", mode="wt", encoding="latin-1")
+
+    with zipfile.ZipFile(archive) as zf:
+        assert zf.read("out.csv") == (tmp_path / "out.csv").read_bytes()
+
+
+def test_to_excel_zipfile_path_infers_engine(tmp_path):
+    # GH#49906 the engine is inferred from the member's extension
+    pytest.importorskip("odf")
+    archive = tmp_path / "archive.zip"
+    df = pd.DataFrame({"a": [1, 2]})
+    with zipfile.ZipFile(archive, "w") as zf:
+        df.to_excel(zipfile.Path(zf, "out.ods"), index=False)
+
+    with zipfile.ZipFile(archive) as zf, zf.open("out.ods") as fh:
+        result = pd.read_excel(fh, engine="odf")
+    tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.parametrize("name", ["data.jsonl", "data.jsonl.gz"])
+def test_read_json_pyarrow_zipfile_path(name, tmp_path):
+    # GH#49906
+    pytest.importorskip("pyarrow")
+    archive = tmp_path / "archive.zip"
+    data = b'{"a": 1}\n{"a": 2}\n'
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr(name, gzip.compress(data) if name.endswith(".gz") else data)
+
+    result = pd.read_json(zipfile.Path(archive, name), lines=True, engine="pyarrow")
+    expected = pd.DataFrame({"a": [1, 2]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_series_to_string_zipfile_path(tmp_path):
+    # GH#49906
+    archive = tmp_path / "archive.zip"
+    ser = pd.Series([1, 2])
+    with zipfile.ZipFile(archive, "w") as zf:
+        ser.to_string(zipfile.Path(zf, "out.txt"))
+
+    with zipfile.ZipFile(archive) as zf:
+        assert zf.read("out.txt").decode() == ser.to_string()
+
+
+def test_read_html_zipfile_path_declared_charset(tmp_path):
+    # GH#49906 lxml must see the raw bytes to honor <meta charset>
+    pytest.importorskip("lxml")
+    html = (
+        '<html><head><meta charset="iso-8859-1"></head><body><table>'
+        "<tr><th>a</th></tr><tr><td>café</td></tr></table></body></html>"
+    )
+    archive = tmp_path / "archive.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        zf.writestr("t.html", html.encode("latin-1"))
+
+    result = pd.read_html(zipfile.Path(archive, "t.html"), flavor="lxml")[0]
+    expected = pd.DataFrame({"a": ["café"]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_to_html_zipfile_path_encoding(tmp_path):
+    # GH#49906
+    archive = tmp_path / "archive.zip"
+    df = pd.DataFrame({"a": ["é"]})
+    with zipfile.ZipFile(archive, "w") as zf:
+        df.to_html(zipfile.Path(zf, "out.html"), encoding="latin-1")
+    df.to_html(tmp_path / "out.html", encoding="latin-1")
+
+    with zipfile.ZipFile(archive) as zf:
+        assert zf.read("out.html") == (tmp_path / "out.html").read_bytes()
+
+
+def test_to_excel_zipfile_path_invalid_extension(tmp_path):
+    # GH#49906
+    pytest.importorskip("openpyxl")
+    df = pd.DataFrame({"a": [1]})
+    with zipfile.ZipFile(tmp_path / "archive.zip", "w") as zf:
+        with pytest.raises(ValueError, match="Invalid extension"):
+            df.to_excel(zipfile.Path(zf, "out.ods"), engine="openpyxl")
