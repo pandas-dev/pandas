@@ -155,7 +155,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.replace` and :meth:`Series.replace` with ``regex=True`` on :class:`ArrowDtype` ``string`` and ``large_string`` dtypes raising or silently coercing a replacement the column cannot hold instead of casting to ``object`` (:issue:`70458`)
 -
 
 Interval

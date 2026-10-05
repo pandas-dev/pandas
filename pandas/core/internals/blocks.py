@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -798,9 +799,21 @@ class Block(PandasObject, libinternals.Block):
             # will only match strings
             return [self.copy(deep=False)]
 
-        if not (
-            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
-        ):
+        if isinstance(self.dtype, ArrowDtype) and is_string_dtype(self.dtype):
+            # can_hold_element returns True for every ArrowDtype (GH#70458).
+            #  Refuse bytes, which pyarrow would decode, so they upcast as with
+            #  StringDtype; a regex value raises on write (pyarrow's own error)
+            can_hold_value = (
+                isinstance(value, str)
+                or is_re(value)
+                or (is_scalar(value) and isna(value))
+            )
+        else:
+            can_hold_value = self._can_hold_element(value) or (
+                self.dtype == "string" and is_re(value)
+            )
+
+        if not can_hold_value:
             # GH#57733 - astype to object may return a block sharing memory
             # with self (e.g. StringArray backed by object ndarray). Since
             # replace_regex mutates values in-place, we must ensure the
