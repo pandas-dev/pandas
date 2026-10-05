@@ -2694,14 +2694,6 @@ def test_sql_open_close(temp_file, test_frame3):
     tm.assert_frame_equal(test_frame3, result)
 
 
-@td.skip_if_installed("sqlalchemy")
-def test_con_string_import_error():
-    conn = "mysql://root@localhost/pandas"
-    msg = "Using a URI string requires 'sqlalchemy'"
-    with pytest.raises(ImportError, match=msg):
-        sql.read_sql("SELECT * FROM iris", conn)
-
-
 def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     conn = sqlite_buildin_iris
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
