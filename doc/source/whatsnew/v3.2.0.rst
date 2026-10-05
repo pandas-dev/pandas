@@ -218,7 +218,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Bug in :meth:`.Styler.background_gradient` and :meth:`.Styler.text_gradient` coloring missing values with the lowest colormap color instead of the missing-value color when all valid values in a column, row, or table were equal (:issue:`47695`)
 -
 
 Other
