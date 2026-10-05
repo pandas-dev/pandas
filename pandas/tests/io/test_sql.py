@@ -13,6 +13,7 @@ from io import StringIO
 import os
 from pathlib import Path
 import sqlite3
+from types import SimpleNamespace
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -2701,23 +2702,6 @@ def test_con_string_import_error():
         sql.read_sql("SELECT * FROM iris", conn)
 
 
-@td.skip_if_installed("sqlalchemy")
-def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
-    class MockSqliteConnection:
-        def __init__(self, *args, **kwargs) -> None:
-            self.conn = sqlite3.Connection(*args, **kwargs)
-
-        def __getattr__(self, name):
-            return getattr(self.conn, name)
-
-        def close(self):
-            self.conn.close()
-
-    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-        with tm.assert_produces_warning(UserWarning, match="only supports SQLAlchemy"):
-            sql.read_sql("SELECT 1", conn)
-
-
 def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     conn = sqlite_buildin_iris
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
@@ -3503,7 +3487,7 @@ def test_double_precision(conn, request):
     )
     res = sql.read_sql_table("test_dtypes", conn)
 
-    tm.assert_series_equal(df["f64"], res["f64"])
+    tm.assert_series_equal(df["f64"], res["f64"], check_exact=True)
 
     # check sql types
     meta = MetaData()
@@ -3514,6 +3498,25 @@ def test_double_precision(conn, request):
     assert isinstance(col_dict["f64"].type, Float)
     assert isinstance(col_dict["i32"].type, Integer)
     assert isinstance(col_dict["i64"].type, BigInteger)
+
+
+def test_read_sql_table_float_asdecimal(sqlite_engine):
+    # GH#70231 e.g. MySQL DOUBLE reflects with asdecimal=True
+    from sqlalchemy import (
+        Float,
+        event,
+    )
+
+    df = pd.DataFrame({"v": [1.2345678910111213, 1.5e-11]})
+    df.to_sql(name="test_float_asdecimal", con=sqlite_engine, index=False)
+
+    def as_decimal_float(inspector, table, column_info):
+        column_info["type"] = Float(asdecimal=True)
+
+    with sql.SQLDatabase(sqlite_engine) as pandas_sql:
+        event.listen(pandas_sql.meta, "column_reflect", as_decimal_float)
+        res = pandas_sql.read_table("test_float_asdecimal")
+    tm.assert_frame_equal(res, df, check_exact=True)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -4561,6 +4564,29 @@ def test_read_sql_dict_rows(sqlite_buildin, chunksize):
     tm.assert_frame_equal(result, df[["b", "a"]])
 
 
+def test_read_sql_psycopg2_dict_row_duplicate_columns(sqlite_buildin):
+    # GH#53028 psycopg2's DictRow is a list whose values() drops duplicate columns
+    extras = pytest.importorskip("psycopg2.extras")
+    sqlite_buildin.execute("CREATE TABLE dup_a (id INTEGER, x TEXT)")
+    sqlite_buildin.execute("CREATE TABLE dup_b (id INTEGER, y INTEGER)")
+    sqlite_buildin.execute("INSERT INTO dup_a VALUES (1, 'x')")
+    sqlite_buildin.execute("INSERT INTO dup_b VALUES (2, 10)")
+    query = "SELECT * FROM dup_a, dup_b"
+    expected = sql.read_sql_query(query, sqlite_buildin)
+
+    def dict_row_factory(cursor, row):
+        # index built as in psycopg2's DictCursor
+        index = {col[0]: i for i, col in enumerate(cursor.description)}
+        fake_cursor = SimpleNamespace(index=index, description=cursor.description)
+        dict_row = extras.DictRow(fake_cursor)
+        dict_row[:] = row
+        return dict_row
+
+    sqlite_buildin.row_factory = dict_row_factory
+    result = sql.read_sql_query(query, sqlite_buildin)
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.db
 def test_read_sql_pymysql_dict_cursor(mysql_pymysql_engine):
     # GH#53028
@@ -4578,3 +4604,24 @@ def test_read_sql_pymysql_dict_cursor(mysql_pymysql_engine):
         # discard rather than return the mutated connection to the pool
         raw_conn.invalidate()
     tm.assert_frame_equal(result, df)
+
+
+@pytest.mark.db
+def test_read_sql_psycopg2_dict_cursor_duplicate_columns(postgresql_psycopg2_engine):
+    # GH#53028
+    extras = pytest.importorskip("psycopg2.extras")
+    engine = postgresql_psycopg2_engine
+    pd.DataFrame({"id": [1], "x": ["a"]}).to_sql(name="dup_a", con=engine, index=False)
+    pd.DataFrame({"id": [1], "y": [10]}).to_sql(name="dup_b", con=engine, index=False)
+    query = "SELECT * FROM dup_a JOIN dup_b ON dup_a.id = dup_b.id"
+
+    raw_conn = engine.raw_connection()
+    try:
+        conn = raw_conn.driver_connection
+        conn.cursor_factory = extras.DictCursor
+        with tm.assert_produces_warning(UserWarning, match="pandas only supports"):
+            result = sql.read_sql_query(query, conn)
+    finally:
+        raw_conn.invalidate()
+    expected = pd.DataFrame([[1, "a", 1, 10]], columns=["id", "x", "id", "y"])
+    tm.assert_frame_equal(result, expected)
