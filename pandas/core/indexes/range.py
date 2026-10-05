@@ -6,6 +6,7 @@ from collections.abc import (
     Iterator,
     Sequence,
 )
+from copy import deepcopy
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -44,6 +45,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_signed_integer_dtype,
+    validate_all_hashable,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
@@ -701,7 +703,10 @@ class RangeIndex(Index):
         >>> idx is new_idx
         False
         """
-        name = self._validate_names(name=name, deep=deep)[0]
+        if name is None:
+            name = deepcopy(self.name) if deep else self.name
+        else:
+            validate_all_hashable(name, error_name=f"{type(self).__name__}.name")
         new_index = self._rename(name=name)
         return new_index
 
