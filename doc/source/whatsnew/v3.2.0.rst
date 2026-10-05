@@ -221,6 +221,7 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug in :meth:`.Styler.bar` raising ``TypeError`` for data containing ``pd.NA`` when ``align`` is ``"mean"`` or a callable, or when ``cmap`` is given (:issue:`56425`)
+- Bug in :meth:`.Styler.to_excel` applying styles to the wrong columns when ``columns`` selects or reorders columns (:issue:`42276`)
 -
 
 Other
