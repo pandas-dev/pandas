@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.compat import pa_version_under18p0
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -162,6 +163,55 @@ def test_from_sequence_of_strings_none_float():
     result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
     expected = ArrowExtensionArray(pa.array([1.5, None, 2.0], type=pa.float64()))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [list, np.array, pd.Series, pa.array])
+def test_from_sequence_of_strings_decimal(box):
+    # GH#69838 float64 cannot hold every decimal, so parse without it
+    strings = box(
+        np.array(["1.23456789012345678901", None, " -2.5", "3 "], dtype=object)
+    )
+    dtype = ArrowDtype(pa.decimal128(30, 20))
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = pd.array(
+        [Decimal("1.23456789012345678901"), None, Decimal("-2.5"), Decimal("3")],
+        dtype=dtype,
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type",
+    [
+        pa.string(),
+        pa.large_string(),
+        pytest.param(
+            pa.string_view(),
+            marks=pytest.mark.xfail(
+                pa_version_under18p0,
+                reason="string_view cast to string added in pyarrow 18",
+                raises=pa.ArrowNotImplementedError,
+                strict=True,
+            ),
+        ),
+        pa.binary(),
+    ],
+)
+def test_from_sequence_of_strings_decimal_pa_string_types(pa_type):
+    # GH#69838
+    strings = pa.array([" 1.5", None], type=pa_type)
+    dtype = ArrowDtype(pa.decimal128(10, 2))
+    result = ArrowExtensionArray._from_sequence_of_strings(strings, dtype=dtype)
+    expected = pd.array([Decimal("1.5"), None], dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("value", ["", "0x1F", "1.005"])
+def test_from_sequence_of_strings_decimal_invalid(value):
+    # GH#69838 the last one needs more digits than the scale allows
+    dtype = ArrowDtype(pa.decimal128(10, 2))
+    with pytest.raises(pa.ArrowInvalid, match="[Dd]ecimal"):
+        ArrowExtensionArray._from_sequence_of_strings(["1.5", value], dtype=dtype)
 
 
 @pytest.mark.parametrize("pa_type", [pa.string(), pa.large_string()])
