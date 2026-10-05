@@ -1889,6 +1889,25 @@ def test_agg_with_as_index_false_with_list():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("spelling", ["dict", "named", "list"])
+def test_agg_many_columns_no_fragmentation_warning(spelling):
+    # GH#61628 per-column agg results made inserting the keys warn
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    df.insert(0, "key", [0, 0, 1, 1])
+    if spelling == "dict":
+        kwargs = {"func": dict.fromkeys(cols, "sum")}
+    elif spelling == "named":
+        kwargs = {col: pd.NamedAgg(col, "sum") for col in cols}
+    else:
+        kwargs = {"func": ["sum"]}
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("key", as_index=False).agg(**kwargs)
+        expected = df.groupby("key").agg(**kwargs).reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
     # GH#41720
     expected = pd.DataFrame(
