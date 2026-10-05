@@ -63,6 +63,10 @@ import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib import tools
+from pandas.plotting._matplotlib.colorbar import (
+    is_singular_continuous_norm,
+    make_constant_colorbar,
+)
 from pandas.plotting._matplotlib.converter import (
     PeriodConverter,
     plottable_types,
@@ -1441,7 +1445,10 @@ class ScatterPlot(PlanePlot):
 
         if cb:
             cbar_label = c if c_is_column else ""
-            cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
+            if is_singular_continuous_norm(scatter.norm):
+                cbar = make_constant_colorbar(scatter, ax, label=cbar_label)
+            else:
+                cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
             if color_by_categorical:
                 n_cats = len(self.data[c].cat.categories)
                 cbar.set_ticks(np.linspace(0.5, n_cats - 0.5, n_cats))
