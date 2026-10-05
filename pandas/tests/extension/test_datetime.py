@@ -163,6 +163,15 @@ class TestDatetimeArray(base.ExtensionTests):
         # Pandas4Warning.
         super().test_json_roundtrip(data)
 
+    def test_where_series_listlike_other(self, request, data, as_frame):
+        if as_frame:
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="a list 'other' is not aligned for a 2D datetimelike block"
+                )
+            )
+        super().test_where_series_listlike_other(data, as_frame)
+
     @pytest.mark.xfail(raises=AssertionError, reason="numpy array are different")
     def test_plot_on_x_axis(self, plot_data):
         # GH 64535, GH 65915
