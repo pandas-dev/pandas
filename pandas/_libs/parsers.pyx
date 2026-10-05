@@ -1661,6 +1661,19 @@ cdef class TextReader:
                         f"column {i} due to NA values"
                     )
 
+            if col_res.dtype == object and col_dtype.kind in "iuf":
+                # GH#59299 name the token our converters rejected; the cast below
+                # uses float()/int(), which ignore `decimal` and `thousands`.
+                bad_token = _first_unparseable_token(
+                    self.parser, i, start, end, na_filter, na_hashset,
+                    col_dtype.kind == "f", self.encoding_errors)
+                if bad_token is not None:
+                    if col_dtype.kind == "f":
+                        raise ValueError(
+                            f"could not convert string to float: {bad_token!r}")
+                    raise ValueError(
+                        f"invalid literal for int() with base 10: {bad_token!r}")
+
             # only allow safe casts, eg. with a nan you cannot safely cast to int
             try:
                 col_res = col_res.astype(col_dtype, casting="safe")
@@ -2979,9 +2992,9 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                         fallback = True
                         break
 
-                if fixed_ok:
-                    out_local = 0
-                else:
+                # parse_iso_8601_datetime only sets out_local on some paths
+                out_local = 0
+                if not fixed_ok:
                     ret = parse_iso_8601_datetime(
                         word, <int>word_len, 0,
                         &dts, &out_bestunit, &out_local, &out_tzoffset,
@@ -3795,6 +3808,50 @@ cdef int _probe_bool_flex(parser_t *parser, int64_t col,
             return 0
         return to_boolean(word, <int64_t>word_len, &tmp)
     return 0
+
+
+# -> str | None
+cdef _first_unparseable_token(parser_t *parser, int64_t col,
+                              int64_t line_start, int64_t line_end,
+                              bint na_filter,
+                              const kh_str_starts_t *na_hashset,
+                              bint is_float, const char *encoding_errors):
+    """
+    The first token in the column that the numeric converters reject, decoded,
+    or None if every token is parseable.
+    """
+    cdef:
+        int error
+        coliter_t it
+        const char *word = NULL
+        c_int64_t token_idx = 0
+        int64_t word_len
+        char *p_end
+        float64_t value
+
+    coliter_setup(&it, parser, col, line_start)
+    for _ in range(line_end - line_start):
+        word = coliter_next_with_idx(&it, &token_idx)
+        word_len = _token_len(parser, token_idx)
+        if na_filter and kh_get_str_starts_item(na_hashset, word,
+                                                <size_t>word_len):
+            continue
+        error = 0
+        if is_float:
+            parser.double_converter(word, &p_end, parser.decimal,
+                                    parser.sci, parser.thousands,
+                                    1, &error, NULL, word + word_len)
+            if error == 0 and p_end != word and p_end == word + word_len:
+                continue
+            if parse_special_float(word, word_len, &value) == 0:
+                continue
+        else:
+            str_to_int64(word, word_len, &error, parser.thousands)
+            # A token that only overflows int64 is still a valid integer; keep scanning.
+            if error == 0 or error == ERROR_OVERFLOW:
+                continue
+        return PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
+    return None
 
 
 # -> tuple[ndarray[float64_t], int, ndarray[bool]] | tuple[None, None, None]

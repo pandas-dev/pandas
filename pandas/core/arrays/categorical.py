@@ -134,8 +134,9 @@ def _cat_compare_op(op):
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
         hashable = is_hashable(other)
-        if is_list_like(other) and len(other) != len(self) and not hashable:
-            # in hashable case we may have a tuple that is itself a category
+        if not hashable and is_list_like(other) and len(other) != len(self):
+            # in hashable case we may have a tuple that is itself a category;
+            #  an iterator is hashable too, so it is scalar-like (GH#31646)
             raise ValueError("Lengths must match.")
 
         if not self.ordered:
@@ -1325,14 +1326,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
         ... )
         >>> ci
-        CategoricalIndex(['a', 'b', 'c', nan], categories=['a', 'b', 'c'],
+        CategoricalIndex(['a', 'b', 'c', NaN], categories=['a', 'b', 'c'],
                          ordered=True, dtype='category')
 
         >>> ci.set_categories(["A", "b", "c"])
-        CategoricalIndex([nan, 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex([NaN, 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         >>> ci.set_categories(["A", "b", "c"], rename=True)
-        CategoricalIndex(['A', 'b', 'c', nan], categories=['A', 'b', 'c'],
+        CategoricalIndex(['A', 'b', 'c', NaN], categories=['A', 'b', 'c'],
                          ordered=True, dtype='category')
         """
 
@@ -1767,7 +1768,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         the result is an :class:`~pandas.Index`:
 
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
-        Index(['first', 'second', nan], dtype='str')
+        Index(['first', 'second', NaN], dtype='str')
 
         The mapping function is applied to categories, not to each value. It is
         therefore only called once per unique category, and the result reused for

@@ -2861,7 +2861,6 @@ class TimeGrouper(Grouper):
                 start,
                 end,
                 self.freq,
-                closed=self.closed,
                 origin=self.origin,
                 offset=self.offset,
             )
@@ -3017,7 +3016,6 @@ def _get_period_range_edges(
     first: Period,
     last: Period,
     freq: BaseOffset,
-    closed: Literal["right", "left"] = "left",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
 ) -> tuple[Period, Period]:
@@ -3033,8 +3031,6 @@ def _get_period_range_edges(
         The ending Period of the range to be adjusted.
     freq : pd.DateOffset
         The freq to which the Periods will be adjusted.
-    closed : {'right', 'left'}, default "left"
-        Which side of bin interval is closed.
     origin : {'epoch', 'start', 'start_day'}, Timestamp, default 'start_day'
         The timestamp on which to adjust the grouping. The timezone of origin must
         match the timezone of the index.
@@ -3060,8 +3056,9 @@ def _get_period_range_edges(
     adjust_first = not freq.is_on_offset(first_ts)
     adjust_last = freq.is_on_offset(last_ts)
 
+    # bins hold whole periods, so the resample's closed does not apply, see GH#44363
     first_ts, last_ts = _get_timestamp_range_edges(
-        first_ts, last_ts, freq, unit="ns", closed=closed, origin=origin, offset=offset
+        first_ts, last_ts, freq, unit="ns", closed="left", origin=origin, offset=offset
     )
 
     first = (first_ts + int(adjust_first) * freq).to_period(freq)
