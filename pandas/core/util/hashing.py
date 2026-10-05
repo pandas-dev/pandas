@@ -124,6 +124,14 @@ def hash_pandas_object(
     util.hash_array : Return a hash of the given array.
     util.hash_tuples : Hash a MultiIndex or listlike-of-tuples efficiently.
 
+    Notes
+    -----
+    The result hashes each row's values, not the object as a whole. Column
+    labels, index and column names, ``attrs``, and some dtype differences
+    (e.g. ``int32`` vs ``int64``) do not affect it. To fingerprint a whole
+    DataFrame, also hash the metadata your use case needs; see the fingerprint
+    example below.
+
     Examples
     --------
     >>> pd.util.hash_pandas_object(pd.Series([1, 2, 3]))
@@ -161,6 +169,24 @@ def hash_pandas_object(
     1     5694802365760992243
     2    18202460376300699891
     dtype: uint64
+
+    Renaming a column leaves the result unchanged. A whole-frame fingerprint
+    can combine the row hashes with hashes of the labels and dtypes:
+
+    >>> import hashlib
+    >>> def fingerprint(df):
+    ...     parts = [
+    ...         pd.util.hash_pandas_object(df),
+    ...         pd.util.hash_pandas_object(df.columns),
+    ...         pd.util.hash_pandas_object(df.dtypes.astype(str), index=False),
+    ...     ]
+    ...     data = b"".join(part.to_numpy().tobytes() for part in parts)
+    ...     return hashlib.sha256(data).hexdigest()
+    >>> df3 = df1.rename(columns={"a": "b"})
+    >>> pd.util.hash_pandas_object(df1).equals(pd.util.hash_pandas_object(df3))
+    True
+    >>> fingerprint(df1) == fingerprint(df3)
+    False
     """
     from pandas import Series
 
