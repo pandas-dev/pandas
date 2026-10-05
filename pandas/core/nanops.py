@@ -158,6 +158,14 @@ class bottleneck_switch:
 def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
     # Bottleneck chokes on datetime64, PeriodDtype (or an EA)
     if dtype != object and not needs_i8_conversion(dtype):
+        # GH#41277 bottleneck has no float16 kernels; its numpy fallback
+        #  squares in float16 and overflows in nanvar/nanstd
+        if dtype == np.float16:
+            return False
+        # GH#22385 bottleneck's float32 nanvar/nanstd accumulate in float32
+        if dtype == np.float32 and name in ["nanvar", "nanstd"]:
+            return False
+
         # GH 42878
         # Bottleneck uses naive summation leading to O(n) loss of precision
         # unlike numpy which implements pairwise summation, which has O(log(n)) loss
@@ -171,9 +179,7 @@ def _bn_ok_dtype(dtype: DtypeObj, name: str) -> bool:
         # further we also want to preserve NaN when all elements
         # are NaN, unlike bottleneck/numpy which consider this
         # to be 0
-        # GH#41277 bottleneck has no float16 kernels; its numpy fallback
-        #  squares in float16 and overflows in nanvar/nanstd
-        return name not in ["nansum", "nanprod", "nanmean"] and dtype != np.float16
+        return name not in ["nansum", "nanprod", "nanmean"]
     return False
 
 

@@ -145,7 +145,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :meth:`DataFrame.std`, :meth:`DataFrame.var`, :meth:`Series.std`, and :meth:`Series.var` returning badly inaccurate results for ``float32`` data when ``bottleneck`` is installed (:issue:`22385`)
 -
 
 Conversion

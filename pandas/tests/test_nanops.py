@@ -1588,6 +1588,14 @@ def test_check_bottleneck_disallow(any_real_numpy_dtype, func):
     assert not nanops._bn_ok_dtype(np.dtype(any_real_numpy_dtype).type, func)
 
 
+@pytest.mark.parametrize("method", ["var", "std"])
+def test_float32_var_std_precision(method):
+    # GH#22385 bottleneck's float32 var/std lose precision; runs with it enabled
+    ser = pd.Series(np.full(60_000, 1e6, dtype=np.float32))
+    result = getattr(ser, method)()
+    assert result == 0.0
+
+
 def test_nanmean_float16_overflow(disable_bottleneck):
     # GH#43929 float16 sum overflows easily; upcast to float64 like numpy does
     ser = pd.Series([60000.0, 60000.0], dtype=np.float16)
