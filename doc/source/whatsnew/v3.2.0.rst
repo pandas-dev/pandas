@@ -217,7 +217,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
--
+- Bug in :meth:`.Styler.map`, :meth:`.Styler.apply` and :meth:`.Styler.set_table_styles` truncating CSS values that contain a ``;`` inside quotes or parentheses, such as ``url("data:image/png;base64,...")`` (:issue:`59623`)
 -
 
 Other
