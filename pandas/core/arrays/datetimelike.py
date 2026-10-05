@@ -2577,7 +2577,9 @@ def _box_numpy_datetimelike(val, kind: str):
             # ambiguous, or truncated by Timestamp
             return val
         try:
-            return Timestamp(val) if kind == "M" else Timedelta(val)
+            if isinstance(val, np.datetime64):
+                return Timestamp(val)
+            return Timedelta(val)
         except ValueError:
             # Timedelta rejects "Y" and "M" units
             return val
