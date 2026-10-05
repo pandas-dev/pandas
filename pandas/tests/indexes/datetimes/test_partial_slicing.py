@@ -590,3 +590,20 @@ def test_partial_slice_quarter_generic_dateoffset_freq(offset, reverse):
     ):
         result = ser["2022Q1"]
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+def test_partial_slice_non_nano_outside_nano_bounds(unit):
+    # GH#56940 bounds outside the nanosecond range must not be cast to ns
+    last = pd.Timestamp("1601-01-01").as_unit(unit) - np.timedelta64(1, unit)
+    dti = pd.DatetimeIndex(
+        ["1500-06-01", "1600-01-01", last, "1601-01-01", "3000-01-01"]
+    ).as_unit(unit)
+    ser = pd.Series(np.arange(5), index=dti)
+
+    tm.assert_series_equal(ser.loc["1600"], ser.iloc[1:3])
+    tm.assert_series_equal(ser.loc["3000"], ser.iloc[4:])
+    tm.assert_series_equal(ser.loc["1400":"1600"], ser.iloc[:3])
+    # right bound finer than the index unit
+    result = ser.loc[:"1600-01-01 00:00:00.000001"]
+    tm.assert_series_equal(result, ser.iloc[:2])

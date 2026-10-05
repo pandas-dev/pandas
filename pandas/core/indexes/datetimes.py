@@ -2141,9 +2141,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         per = Period(parsed, freq=freq)
         start = per.start_time
-        # Can't use end_time here bc that will subtract a microsecond
-        #  instead of a nanosecond
-        end = (per + 1).start_time - np.timedelta64(1, "ns")
+        # Not end_time, which is only microsecond-precise; and not 1ns, which
+        #  overflows on a non-nano index outside the ns bounds, GH#56940
+        next_start = (per + 1).start_time
+        tick = min(np.timedelta64(1, self.unit), np.timedelta64(1, next_start.unit))
+        end = next_start - tick
         start = start.as_unit(self.unit)
         end = end.as_unit(self.unit)
 
