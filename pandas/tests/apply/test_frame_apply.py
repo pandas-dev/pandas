@@ -2249,6 +2249,18 @@ def test_agg_dict_string_funcs_with_duplicate_columns():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("spelling", ["dict", "list"])
+def test_agg_many_columns_result_not_fragmented(spelling):
+    # GH#61628 per-column agg results made a later insert warn about fragmentation
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    # np.sum rather than "sum": a list of strings takes a path that never fragmented
+    func = {col: ["sum"] for col in cols} if spelling == "dict" else [np.sum]
+    result = df.agg(func)
+    with tm.assert_produces_warning(None):
+        result.insert(0, "x", 0)
+
+
 def test_apply_expand_single_row_preserves_dict_order():
     # GH#45783 apply(result_type="expand") on a single-row frame must preserve
     # the dict key order returned by the callable instead of sorting columns
