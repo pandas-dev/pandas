@@ -6750,41 +6750,46 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             dtype_ser = dtype_ser.reindex(self.columns, fill_value=None)
 
-            # GH#63433: cast only the listed columns and build the result from
-            #  their blocks plus the untouched blocks. Casting every column on its
-            #  own and concatenating left one block per column.
+            # GH#63433: cast only the listed columns, grouped by target dtype, and
+            #  assemble the result from those plus the untouched columns.
             locs_by_dtype: dict[Any, list[int]] = {}
-            for loc in np.flatnonzero(dtype_ser.notna()):
-                locs_by_dtype.setdefault(dtype_ser.iat[loc], []).append(int(loc))
+            mask = dtype_ser.notna()
+            for loc, column_dtype in zip(
+                np.flatnonzero(mask), dtype_ser[mask], strict=True
+            ):
+                locs_by_dtype.setdefault(column_dtype, []).append(int(loc))
             if not locs_by_dtype:
                 return self.copy(deep=False)
 
             pieces = []
-            for cdt, locs in locs_by_dtype.items():
+            for column_dtype, locs in locs_by_dtype.items():
                 casted = None
                 if errors == "raise" and len(locs) > 1:
                     # Cast the columns going to one dtype together, which is
                     #  far cheaper than one at a time when there are many.
                     try:
-                        casted = self.iloc[:, locs].astype(cdt)
+                        casted = self.iloc[:, locs].astype(column_dtype)
                     except (ValueError, TypeError):
                         pass  # redo per column to report the failing column
                 if casted is None:
                     cols = []
                     for i in locs:
                         try:
-                            cols.append(self._ixs(i, axis=1).astype(cdt, errors=errors))
+                            cols.append(
+                                self._ixs(i, axis=1).astype(column_dtype, errors=errors)
+                            )
                         except ValueError as ex:
                             ex.args = (
                                 f"{ex}: Error while type casting for column "
                                 f"'{self.columns[i]}'",
                             )
                             raise
+                    assert errors != "raise" or len(locs) <= 1
                     casted = concat(cols, axis=1)
                 pieces.append((np.asarray(locs, dtype=np.intp), casted._mgr))
 
             mgr = self._mgr
-            assert isinstance(mgr, BlockManager)  # dict dtypes on a Series returned
+            assert isinstance(mgr, BlockManager)  # Series case is handled above
             new_mgr = mgr.replace_columns(pieces)
             new = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
             return new.__finalize__(self, method="astype")
