@@ -462,6 +462,18 @@ def main(
     before copying them. ``.md`` files are transformed to HTML.
     """
 
+    # The target directory is removed before rendering, so it must not
+    # overlap the source directory in any way (be equal to it, or be
+    # nested inside it, or contain it).
+    src = source_path.resolve()
+    tgt = target_path.resolve()
+    if src == tgt or src in tgt.parents or tgt in src.parents:
+        raise ValueError(
+            "Target path must not overlap with the source path "
+            "(they must not be equal, or one nested inside the other), "
+            "as the source files would be removed before rendering."
+        )
+
     # Sanity check: validate that versions.json is valid JSON
     versions_path = source_path / "versions.json"
     with versions_path.open(encoding="utf-8") as f:
