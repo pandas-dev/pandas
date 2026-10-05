@@ -3745,7 +3745,7 @@ class Index(IndexOpsMixin, PandasObject):
             dtype = self._find_common_type_compat(other)
             this = self.astype(dtype, copy=False)
             that = other.astype(dtype, copy=False)
-            return this.symmetric_difference(that, sort=sort).rename(result_name)
+            return this.symmetric_difference(that, result_name, sort=sort)
 
         this = self.unique()
         other = other.unique()
@@ -3772,7 +3772,9 @@ class Index(IndexOpsMixin, PandasObject):
             if len(result) == 0:
                 # result might be an Index, if other was an Index
                 return left_diff.remove_unused_levels().set_names(result_name)
-            result = cast("Index", result)
+            if not isinstance(result, ABCMultiIndex):
+                # other held non-tuple labels, so the result is flat, as in union
+                return Index(result, name=None)
             return result.set_names(result_name)
 
     @final
