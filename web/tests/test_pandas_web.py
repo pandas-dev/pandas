@@ -6,7 +6,10 @@ from unittest.mock import (  # noqa: TID251
 import pytest
 import requests
 
-from web.pandas_web import Preprocessors, main
+from web.pandas_web import (
+    Preprocessors,
+    main,
+)
 
 
 class MockResponse:
