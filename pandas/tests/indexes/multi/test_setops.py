@@ -25,41 +25,75 @@ def test_set_ops_error_cases(idx, case, sort, method):
 
 
 @pytest.mark.parametrize(
-    "method", ["intersection", "union", "difference", "symmetric_difference"]
-)
-@pytest.mark.parametrize(
     "other",
     [
         ["ac"],
         [b"ac"],
-        [bytearray(b"ac")],
         [memoryview(b"ac")],
-        [("a", "c"), "bd"],
         pd.Series(["ac"]),
         {"ac"},
+        [1, 2],
+        np.array([1, 2]),
     ],
 )
-def test_set_ops_str_entry_not_split(method, other):
-    # GH#39699 a str/bytes-like entry was split into its elements and treated as
-    #  a tuple of levels
+def test_intersection_difference_non_tuple_entries(other):
+    # GH#39699 non-tuple entries are labels matching no row, as with an Index
+    #  operand; a str entry was split into its elements instead
     idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
-        getattr(idx, method)(other)
+    result = idx.intersection(other)
+    tm.assert_index_equal(result, idx[:0].rename([None, None]))
+
+    result = idx.difference(other)
+    tm.assert_index_equal(result, idx.rename([None, None]))
 
 
-@pytest.mark.parametrize(
-    "method", ["intersection", "union", "difference", "symmetric_difference"]
-)
-def test_set_ops_str_entry_not_split_one_level(method):
-    # GH#39699 on a one-level MultiIndex a single-character label used to match,
-    #  while any longer label already raised
+def test_set_ops_tuple_and_non_tuple_entries():
+    # GH#39699
+    idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
+    other = [("a", "c"), "bd"]
+
+    result = idx.intersection(other)
+    tm.assert_index_equal(result, pd.MultiIndex.from_tuples([("a", "c")]))
+
+    result = idx.difference(other)
+    tm.assert_index_equal(result, pd.MultiIndex.from_tuples([("b", "d")]))
+
+    result = idx.union(other, sort=False)
+    expected = pd.Index([("a", "c"), ("b", "d"), "bd"], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+    result = idx.symmetric_difference(other, sort=False)
+    expected = pd.Index([("b", "d"), "bd"], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("other", [["ac"], pd.Index(["ac"])])
+def test_symmetric_difference_str_entry(other):
+    # GH#39699 used to raise ValueError setting two names on a flat result
+    idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
+
+    result = idx.symmetric_difference(other, sort=False)
+    expected = pd.Index([("a", "c"), ("b", "d"), "ac"], tupleize_cols=False)
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_one_level_str_entry():
+    # GH#39699 a single-character label used to match a one-level row
     idx = pd.MultiIndex.from_arrays([["a", "bb"]], names=["l1"])
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
-        getattr(idx, method)(["a"])
+    result = idx.intersection(["a"])
+    tm.assert_index_equal(result, idx[:0].rename([None]))
+
+
+@pytest.mark.parametrize("method", ["union", "symmetric_difference"])
+def test_union_symmetric_difference_non_object_labels(method):
+    # GH#39699 matches an Index operand
+    idx = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]], names=["l1", "l2"])
+
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
+        getattr(idx, method)([1, 2])
 
 
 @pytest.mark.parametrize("entry", [np.nan, None])
@@ -101,9 +135,9 @@ def test_intersection_base(idx, sort, klass):
         expected = first
     tm.assert_index_equal(intersect, expected)
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
-        first.intersection([1, 2, 3], sort=sort)
+    # GH#39699 non-tuple entries match no row
+    result = first.intersection([1, 2, 3], sort=sort)
+    assert len(result) == 0
 
 
 @pytest.mark.arm_slow
@@ -122,8 +156,8 @@ def test_union_base(idx, sort, klass):
         expected = first
     tm.assert_index_equal(union, expected)
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
         first.union([1, 2, 3], sort=sort)
 
 
@@ -144,9 +178,9 @@ def test_difference_base(idx, sort):
         result = idx.difference(case, sort=sort)
         tm.assert_index_equal(result, answer)
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
-        idx.difference([1, 2, 3], sort=sort)
+    # GH#39699 non-tuple entries match no row
+    result = idx.difference([1, 2, 3], sort=sort)
+    assert result.equals(idx)
 
 
 def test_symmetric_difference(idx, sort):
@@ -166,8 +200,8 @@ def test_symmetric_difference(idx, sort):
         result = first.symmetric_difference(case, sort=sort)
         tm.assert_index_equal(result, answer)
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
         first.symmetric_difference([1, 2, 3], sort=sort)
 
 
@@ -248,9 +282,9 @@ def test_difference(idx, sort):
     expected.names = first.names
     assert first.names == result.names
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
-        first.difference([1, 2, 3, 4, 5], sort=sort)
+    # GH#39699 non-tuple entries match no row
+    result = first.difference([1, 2, 3, 4, 5], sort=sort)
+    assert result.equals(first)
 
 
 def test_difference_sort_special():
@@ -419,10 +453,10 @@ def test_intersection_non_object(idx, sort):
     )
     tm.assert_index_equal(result, expected, exact=True)
 
-    msg = "other must be a MultiIndex or a list of tuples"
-    with pytest.raises(TypeError, match=msg):
-        # With non-zero length non-index, we try and fail to convert to tuples
-        idx.intersection(np.asarray(other), sort=sort)
+    # GH#39699 a non-zero length non-index matches an Index operand
+    result = idx.intersection(np.asarray(other), sort=sort)
+    expected = pd.MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=None)
+    tm.assert_index_equal(result, expected, exact=True)
 
 
 def test_intersect_equal_sort():
