@@ -10,6 +10,7 @@ import codecs
 from collections import (
     abc,
     defaultdict,
+    deque,
 )
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
@@ -3096,11 +3097,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
             raise ValueError(msg)
 
         try:
-            if (
-                engine == "c"
-                and self.options.get("delimiter", ",") is None
-                and not isinstance(f, list)
-            ):
+            if engine == "c" and self.options.get("delimiter", ",") is None:
                 return mapping[engine](self._sniff_delimiter(f), **self.options)
             return mapping[engine](f, **self.options)
         except Exception:
@@ -3144,8 +3141,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
                 "specify engine='python'."
             )
         self.options["delimiter"] = delimiter
-        prefix = chunks[0][:0].join(chunks) if chunks else b""
-        return _ReplayHandle(prefix, f)
+        return _ReplayHandle(chunks, f)
 
     def _failover_to_python(self) -> None:
         raise AbstractMethodError(self)
@@ -3730,25 +3726,15 @@ def _iter_physical_lines(
 
 class _ReplayHandle:
     """
-    Serve ``prefix`` and then the rest of ``handle`` through ``read``, the only
-    method the c engine calls on its source.
+    Serve ``chunks`` and then the rest of ``handle`` through ``read``, the only
+    method the c engine calls on its source; it accepts reads of any length.
     """
 
-    def __init__(self, prefix: bytes | str, handle: IO) -> None:
-        self._prefix = prefix
-        self._pos = 0
+    def __init__(self, chunks: list, handle: IO) -> None:
+        self._chunks = deque(chunks)
         self._handle = handle
 
-    def read(self, size: int = -1) -> bytes | str:
-        if self._pos >= len(self._prefix):
-            return self._handle.read(size)
-        if size is None or size < 0:
-            data = self._prefix[self._pos :] + self._handle.read()
-        else:
-            data = self._prefix[self._pos : self._pos + size]
-        self._pos += len(data)
-        if self._pos >= len(self._prefix):
-            # release the prefix memory
-            self._prefix = self._prefix[:0]
-            self._pos = 0
-        return data
+    def read(self, size: int) -> bytes | str:
+        if self._chunks:
+            return self._chunks.popleft()
+        return self._handle.read(size)
