@@ -2975,9 +2975,9 @@ cdef _datetime_box_utf8(parser_t *parser, int64_t col,
                         fallback = True
                         break
 
-                if fixed_ok:
-                    out_local = 0
-                else:
+                # parse_iso_8601_datetime only sets out_local on some paths
+                out_local = 0
+                if not fixed_ok:
                     ret = parse_iso_8601_datetime(
                         word, <int>word_len, 0,
                         &dts, &out_bestunit, &out_local, &out_tzoffset,

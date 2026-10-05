@@ -952,6 +952,10 @@ def test_parse_dates_c_fastpath_matches_python_engine(data, low_memory, dtype_ba
         "a\n2020-01-01\n2020-01-02 10:00\n",
         # second value bumps the inferred resolution mid-column
         "a\n2020-01-02\n2020-01-01 00:00:00.123456789\n",
+        # an aware value followed by a naive one stays unparsed
+        "a\n2024-04-22 17:15+05:30\n2024-02-19 12:19\n",
+        "a\n2024-04-22T17Z\n2024-02-19T12\n",
+        "a\n2024-04-22 05:46:33+05:30\n2024-02-19 21:32:05.000000\n",
     ],
 )
 @pytest.mark.parametrize("low_memory", [False, True])
