@@ -171,12 +171,16 @@ class TestCommon:
 
         assert index.copy(name="mario").name == "mario"
 
-        with pytest.raises(ValueError, match="Length of new names must be 1, got 2"):
-            index.copy(name=["mario", "luigi"])
+        # GH#19171 tuples are valid names, not a list of names
+        assert index.copy(name=("mario", "luigi")).name == ("mario", "luigi")
+        assert index.copy(name=("mario",)).name == ("mario",)
+        assert index.copy(name=("mario",), deep=True).name == ("mario",)
 
         msg = f"{type(index).__name__}.name must be a hashable type"
         with pytest.raises(TypeError, match=msg):
-            index.copy(name=[["mario"]])
+            index.copy(name=["mario"])
+        with pytest.raises(TypeError, match=msg):
+            index.copy(name=["mario", "luigi"])
 
     def test_unique_level(self, index_flat):
         # don't test a MultiIndex here (as its tested separated)
