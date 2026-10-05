@@ -263,6 +263,7 @@ Styler
 - Bug in :meth:`.Styler.bar` raising ``TypeError`` for data containing ``pd.NA`` when ``align`` is ``"mean"`` or a callable, or when ``cmap`` is given (:issue:`56425`)
 - Bug in :meth:`.Styler.to_excel` applying styles to the wrong columns when ``columns`` selects or reorders columns (:issue:`42276`)
 - Bug in :meth:`.Styler.to_html` where Chrome and other Chromium-based browsers did not apply a style shared by more than 8192 cells to the cells beyond the first 8192 (:issue:`40913`)
+- Bug in :meth:`.Styler.map`, :meth:`.Styler.apply` and :meth:`.Styler.set_table_styles` truncating CSS values that contain a ``;`` inside quotes or parentheses, such as ``url("data:image/png;base64,...")`` (:issue:`59623`)
 
 Other
 ^^^^^
