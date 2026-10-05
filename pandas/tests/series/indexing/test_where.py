@@ -487,12 +487,13 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     "cond_dtype",
     ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))],
 )
+@pytest.mark.parametrize("box", [pd.array, pd.Series])
 @pytest.mark.parametrize("inplace", [True, False])
 @pytest.mark.parametrize("method", ["where", "mask"])
-def test_where_mask_nullable_bool_cond_na_series(method, inplace, cond_dtype):
-    # GH#35429 NA in cond is treated as False, as in boolean indexing
+def test_where_mask_nullable_bool_cond_na_series(method, inplace, box, cond_dtype):
+    # GH#35429, GH#56844 NA in cond is treated as False, as in boolean indexing
     ser = pd.Series([1, 2, 3])
-    cond = pd.array([True, False, pd.NA], dtype=cond_dtype)
+    cond = box([True, False, pd.NA], dtype=cond_dtype)
     if method == "where":
         expected = pd.Series([1, -9, -9])
     else:
@@ -501,4 +502,15 @@ def test_where_mask_nullable_bool_cond_na_series(method, inplace, cond_dtype):
     result = getattr(ser, method)(cond, -9, inplace=inplace)
     if inplace:
         result = ser
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow"))]
+)
+def test_mask_nullable_na_cond_from_self(dtype):
+    # GH#52955, GH#60729 NA in the values gives NA in cond; keep it unreplaced
+    ser = pd.Series([1, 2, None, 4], dtype=dtype)
+    result = ser.mask(ser <= 2, -99)
+    expected = pd.Series([-99, -99, None, 4], dtype=dtype)
     tm.assert_series_equal(result, expected)
