@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -226,6 +227,31 @@ def test_validate_stat_keepdims():
     )
     with pytest.raises(ValueError, match=msg):
         np.sum(ser, keepdims=True)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Float64",
+        pytest.param(
+            "float64[pyarrow]",
+            marks=pytest.mark.skipif(not HAS_PYARROW, reason="requires pyarrow"),
+        ),
+    ],
+)
+def test_negative_min_count_deprecated(frame_or_series, how, dtype):
+    # GH#50022; pyarrow used to raise OverflowError
+    obj = frame_or_series([2.0, np.nan, 3.0], dtype=dtype)
+    expected = getattr(obj, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(obj, how)(min_count=-1)
+    if frame_or_series is pd.Series:
+        assert result == expected
+    else:
+        tm.assert_series_equal(result, expected)
 
 
 def test_mean_with_convertible_string_raises(using_infer_string):

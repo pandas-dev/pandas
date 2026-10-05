@@ -66,7 +66,7 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("min_count, value", [(2, np.nan), (-1, 1.0)])
+@pytest.mark.parametrize("min_count, value", [(2, np.nan), (0, 1.0)])
 @pytest.mark.parametrize("func", ["first", "last", "max", "min"])
 def test_min_count(func, min_count, value):
     # GH#37821

@@ -15,11 +15,14 @@ from typing import (
     TypeVar,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -324,6 +327,31 @@ def validate_na_arg(value: object, name: str) -> None:
     ):
         return
     raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
+
+
+def validate_min_count(min_count: int) -> int:
+    """
+    Warn on a negative ``min_count``, which is deprecated (GH#50022).
+
+    Parameters
+    ----------
+    min_count : int
+        The ``min_count`` passed to a reduction.
+
+    Returns
+    -------
+    int
+        ``min_count``, with negative values replaced by 0.
+    """
+    if is_integer(min_count) and min_count < 0:
+        warnings.warn(
+            "Passing a negative value for 'min_count' is deprecated and will "
+            "raise in a future version of pandas. Pass min_count=0 instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return 0
+    return min_count
 
 
 def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
