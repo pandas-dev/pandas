@@ -175,3 +175,69 @@ def test_map_to_multi_element_tuples(na_action):
     result = cat.map(mapper, na_action=na_action)
     expected = pd.Index([("x", 1), ("y", 2)], tupleize_cols=False)
     tm.assert_index_equal(result, expected)
+
+
+def test_map_to_lists(na_action):
+    # GH#54359 lists are unhashable, so they cannot back a CategoricalDtype
+    cat = pd.Categorical(["a", "a", "b"])
+    result = cat.map({"a": [1, 2], "b": [3, 4]}, na_action=na_action)
+    expected = pd.Index([[1, 2], [1, 2], [3, 4]], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_lists_partial(na_action):
+    # GH#54359 unmapped categories become NaN
+    cat = pd.Categorical(["a", "b"])
+    result = cat.map({"a": [1, 2]}, na_action=na_action)
+    expected = pd.Index([[1, 2], np.nan], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+
+def test_map_to_lists_with_na(na_action):
+    # GH#54359
+    cat = pd.Categorical(["a", None, "b"])
+    result = cat.map({"a": [1, 2], "b": [3, 4]}, na_action=na_action)
+    expected = pd.Index([[1, 2], np.nan, [3, 4]], dtype=object)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "mapper",
+    [
+        {"a": {"x": 1}, "b": {"x": 2}},
+        lambda val: {"x": val},
+        {"a": {1}, "b": {2}},
+        {"a": np.array([1, 2]), "b": np.array([3, 4])},
+        {"a": 1, "b": np.array(5)},
+    ],
+)
+@pytest.mark.parametrize("box", [pd.Categorical, pd.CategoricalIndex])
+def test_map_to_unhashable(mapper, box, na_action):
+    # GH#40892
+    cat = box(["a", "b", "a"])
+    result = cat.map(mapper, na_action=na_action)
+    expected = pd.Index(pd.Series(["a", "b", "a"], dtype=object).map(mapper))
+    tm.assert_index_equal(result, expected)
+
+
+def test_series_map_to_dicts():
+    # GH#40892
+    ser = pd.Series(["key_1", "key_2"], dtype="category")
+    result = ser.map({"key_1": {"a": 1}, "key_2": {"a": 2}})
+    expected = pd.Series([{"a": 1}, {"a": 2}], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "na_value", [[0], np.array([0, 0]), {"x": 0}], ids=["list", "ndarray", "dict"]
+)
+def test_map_unhashable_na_value(na_value):
+    # GH#40892 the value mapped from NaN must not be unpacked
+    cat = pd.Categorical(["a", None])
+    result = cat.map(lambda val: na_value if pd.isna(val) else [1, 2])
+    expected = pd.Index(
+        pd.Series(["a", None], dtype=object).map(
+            lambda val: na_value if pd.isna(val) else [1, 2]
+        )
+    )
+    tm.assert_index_equal(result, expected)
