@@ -166,6 +166,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
+- Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with an integer slice raising ``TypeError`` where the same ``.loc`` getitem succeeds, e.g. on an index of :class:`decimal.Decimal` values (:issue:`70219`)
 - Bug in :meth:`Index.difference` dropping elements that are not in ``other`` when ``other`` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex` or :class:`PeriodIndex` and the elements were strings that parse to its values, or when ``other`` was an :class:`IntervalIndex` and the elements were scalars contained in its intervals (:issue:`58971`)
 -
 
@@ -220,6 +221,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with ``check_dtype=False`` and ``check_exact=True`` comparing missing values against an object column differently from ``check_exact=False``; ``pd.NA`` and ``NaT`` no longer match ``np.nan`` or ``None`` (:issue:`61473`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` where ``==`` and ``!=`` against a string gave different results than the same comparison outside of ``query``, e.g. returning no rows for a ``datetime64``, ``timedelta64``, or :class:`PeriodDtype` column, or raising ``NotImplementedError`` with ``parser="python"`` (:issue:`54199`)
 
 .. ***DO NOT USE THIS SECTION***
