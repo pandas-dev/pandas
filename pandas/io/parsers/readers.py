@@ -3098,6 +3098,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
 
         try:
             if engine == "c" and self.options.get("delimiter", ",") is None:
+                assert not isinstance(f, list)  # rejected above for the c engine
                 return mapping[engine](self._sniff_delimiter(f), **self.options)
             return mapping[engine](f, **self.options)
         except Exception:
@@ -3105,7 +3106,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
                 self.handles.close()
             raise
 
-    def _sniff_delimiter(self, f: IO) -> _ReplayHandle:
+    def _sniff_delimiter(self, f: IO[Any]) -> _ReplayHandle:
         """
         Set the delimiter for ``sep=None`` by sniffing the first row that is not
         in ``skiprows``, blank or a full-line comment.
@@ -3115,7 +3116,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
         skiprows = self.options["skiprows"]
         skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
         comment = self.options["comment"]
-        chunks: list = []
+        chunks: list[bytes | str] = []
         delimiter = None
         for pos, raw in enumerate(
             _iter_physical_lines(f, chunks, self.options["lineterminator"])
@@ -3691,14 +3692,14 @@ def _validate_skipfooter(kwds: dict[str, Any]) -> None:
 
 
 def _iter_physical_lines(
-    handle: IO, chunks: list, lineterminator: str | None
+    handle: IO[Any], chunks: list[bytes | str], lineterminator: str | None
 ) -> Iterator[bytes | str]:
     """
     Yield each line of ``handle`` without its terminator, appending every chunk
     read to ``chunks``.
     """
-    eol: re.Pattern | None = None
-    partial: list = []
+    eol: re.Pattern[Any] | None = None
+    partial: list[Any] = []
     skip_lf = False
     while True:
         chunk = handle.read(_SNIFF_CHUNK_SIZE)
@@ -3730,7 +3731,7 @@ class _ReplayHandle:
     method the c engine calls on its source; it accepts reads of any length.
     """
 
-    def __init__(self, chunks: list, handle: IO) -> None:
+    def __init__(self, chunks: list[bytes | str], handle: IO[Any]) -> None:
         self._chunks = deque(chunks)
         self._handle = handle
 
