@@ -517,6 +517,13 @@ class TestPeriodConstruction:
             # not 6 days apart
             pd.Period("2016-01-23/2017-01-29")
 
+    @pytest.mark.parametrize("freq", ["W-SUN", "W-WED"])
+    def test_parse_week_str_second_year_like_time(self, freq):
+        # GH#48000 "2012" in the second date was read as the time 20:12
+        per = pd.Period("2012-01-01", freq=freq)
+        assert pd.Period(str(per)) == per
+        assert pd.Period(str(per), freq="D") == per.asfreq("D", how="end")
+
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")
         res = pd.Period._from_ordinal(p.ordinal, dtype=p._dtype)
