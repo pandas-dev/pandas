@@ -149,6 +149,8 @@ class Styler(StylerRenderer):
     template_html_table : Jinja2 Template
     template_html_style : Jinja2 Template
     template_latex : Jinja2 Template
+    template_typst : Jinja2 Template
+    template_string : Jinja2 Template
     loader : Jinja2 Loader
 
     See Also
