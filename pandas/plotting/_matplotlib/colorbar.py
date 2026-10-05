@@ -5,28 +5,33 @@ from typing import (
     Any,
 )
 
-import matplotlib as mpl
 from matplotlib.colorbar import (
     Colorbar,
     make_axes,
     make_axes_gridspec,
 )
+from matplotlib.colors import (
+    BoundaryNorm,
+    NoNorm,
+)
+from matplotlib.ticker import AutoLocator
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
-    from matplotlib.collections import PathCollection
+    from matplotlib.cm import ScalarMappable
+    from matplotlib.colors import Norm
 
 
-def is_singular_continuous_norm(norm: mpl.colors.Normalize) -> bool:
+def is_singular_continuous_norm(norm: Norm) -> bool:
     """Return True when a continuous norm has equal, concrete limits."""
     return (
         norm.vmin is not None
         and norm.vmin == norm.vmax
-        and not isinstance(norm, (mpl.colors.BoundaryNorm, mpl.colors.NoNorm))
+        and not isinstance(norm, (BoundaryNorm, NoNorm))
     )
 
 
-def _autoscale_unscaled_norm(mappable: PathCollection) -> None:
+def _autoscale_unscaled_norm(mappable: ScalarMappable) -> None:
     # An unscaled replacement norm has not seen the data yet. Scale it the
     # same way a draw without a colorbar would, but do not re-enter
     # update_normal through the norm's "changed" callback.
@@ -39,7 +44,7 @@ def _autoscale_unscaled_norm(mappable: PathCollection) -> None:
 
 
 class _ConstantColorbar(Colorbar):
-    def __init__(self, ax: Axes, mappable: PathCollection, **kwargs: Any) -> None:
+    def __init__(self, ax: Axes, mappable: ScalarMappable, **kwargs: Any) -> None:
         extend = kwargs.get("extend")
         if extend is None:
             extend = mappable.cmap.colorbar_extend
@@ -50,14 +55,16 @@ class _ConstantColorbar(Colorbar):
         )
 
     @staticmethod
-    def _get_swatch_kwds(mappable: PathCollection, extend: str) -> dict[str, Any]:
+    def _get_swatch_kwds(
+        mappable: ScalarMappable, extend: str | bool | None
+    ) -> dict[str, Any]:
         _autoscale_unscaled_norm(mappable)
         if not is_singular_continuous_norm(mappable.norm):
             return {}
         vmin, vmax = mappable.get_clim()
         # GH 64980: pad only the display boundaries of a single-color swatch.
         # Supplying values keeps Colorbar from expanding the shared norm.
-        lower, upper = mpl.ticker.AutoLocator().nonsingular(vmin, vmax)
+        lower, upper = AutoLocator().nonsingular(vmin, vmax)
         boundaries = [lower, upper]
         if extend in ("min", "both"):
             boundaries.insert(0, lower - (upper - lower))
@@ -69,7 +76,7 @@ class _ConstantColorbar(Colorbar):
             "ticks": [vmin],
         }
 
-    def update_normal(self, mappable: PathCollection | None = None) -> None:
+    def update_normal(self, mappable: ScalarMappable | None = None) -> None:
         if mappable is None:
             mappable = self.mappable
         kwds = self._get_swatch_kwds(mappable, self.extend)
@@ -81,19 +88,20 @@ class _ConstantColorbar(Colorbar):
             # Invalidate the cached norm when the representation changes so
             # the base class also resets the axis scale and tick formatter.
             # The mappable's norm and its limits are left untouched.
-            self.norm = None
+            self.norm = None  # type: ignore[assignment]
         super().update_normal(mappable)
         if kwds and (norm_changed or old_values != self.values):
             self.set_ticks(kwds["ticks"])
 
 
 def make_constant_colorbar(
-    mappable: PathCollection, ax: Axes, **kwargs: Any
+    mappable: ScalarMappable, ax: Axes, **kwargs: Any
 ) -> Colorbar:
     # Used only for scatter plots whose continuous norm is initially singular.
     # Figure.colorbar always constructs matplotlib.colorbar.Colorbar, so this
     # copies its placement. update_normal handles later norm changes.
     fig = ax.get_figure(root=False)
+    assert fig is not None
     current_ax = fig.gca()
     engine = fig.get_layout_engine()
     if ax.get_subplotspec() is not None and (

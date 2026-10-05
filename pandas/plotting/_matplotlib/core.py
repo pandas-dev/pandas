@@ -1451,7 +1451,7 @@ class ScatterPlot(PlanePlot):
                 cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
             if color_by_categorical:
                 n_cats = len(self.data[c].cat.categories)
-                cbar.set_ticks(np.linspace(0.5, n_cats - 0.5, n_cats))
+                cbar.set_ticks(np.linspace(0.5, n_cats - 0.5, n_cats).tolist())
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
         if label is not None:
