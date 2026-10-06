@@ -505,11 +505,17 @@ def _pa_buffer_addresses(pa_data: pa.ChunkedArray) -> set[int]:
 
     Zero-length buffers are excluded because distinct empty arrays can be
     handed out the same address, which would look like sharing.
+    ``buffers()`` omits a dictionary's values, so those are added separately.
     """
+    arrays = []
+    for chunk in pa_data.iterchunks():
+        arrays.append(chunk)
+        if pa.types.is_dictionary(chunk.type):
+            arrays.append(chunk.dictionary)
     return {
         buf.address
-        for chunk in pa_data.iterchunks()
-        for buf in chunk.buffers()
+        for arr in arrays
+        for buf in arr.buffers()
         if buf is not None and buf.size > 0
     }
 

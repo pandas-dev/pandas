@@ -11,6 +11,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under18p0
+
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
 )
@@ -96,6 +98,55 @@ def test_fillna_string_self_agrees_with_limit_path(limit):
     arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
     with pytest.raises(TypeError, match="Invalid value for dtype"):
         arr.fillna(np.array([1, 2]), limit=limit)
+
+
+view_xfail = pytest.mark.xfail(
+    pa_version_under18p0,
+    reason="view types cannot be cast to large_string/large_binary before pyarrow 18",
+    raises=AssertionError,
+    strict=True,
+)
+
+
+def test_copy_owns_buffers(data):
+    # GH#61930
+    result = data.copy()
+    tm.assert_extension_array_equal(result, data)
+    assert not tm.shares_memory(result, data)
+
+
+@pytest.mark.parametrize(
+    "values, pa_type",
+    [
+        pytest.param(["a" * 20, None, "b"], pa.string_view(), marks=view_xfail),
+        pytest.param([b"a" * 20, None, b"b"], pa.binary_view(), marks=view_xfail),
+        (["a", None, "b", "a"], pa.dictionary(pa.int32(), pa.string())),
+    ],
+)
+def test_copy_owns_buffers_special_layouts(values, pa_type):
+    # GH#61930 pa.concat_arrays reuses buffers for these types
+    chunk = pa.array(values, type=pa_type)
+    arr = ArrowExtensionArray(pa.chunked_array([chunk, chunk.slice(1)]))
+    result = arr.copy()
+    assert result._pa_array.equals(arr._pa_array)
+    assert result._pa_array.num_chunks == 2
+    assert not tm.shares_memory(result, arr)
+
+
+def test_copy_deep_slice_releases_original():
+    # GH#61930 a deep copy of an empty slice must not keep the original's
+    #  buffers alive
+    df = pd.DataFrame(
+        {
+            "a": pd.array(
+                ["x", "y", "z"], dtype=pd.StringDtype("pyarrow", na_value=np.nan)
+            ),
+            "b": pd.array([1, 2, 3], dtype="int64[pyarrow]"),
+        }
+    )
+    result = df.iloc[:0].copy(deep=True)
+    for col in df.columns:
+        assert not tm.shares_memory(result[col].array, df[col].array)
 
 
 def test_round():

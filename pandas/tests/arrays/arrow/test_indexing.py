@@ -91,7 +91,9 @@ def test_setitem_null_slice_no_alias_masked():
             [pa.array(np_values[:1]), pa.array(np_values[1:])]
         ),
         lambda np_values: ArrowExtensionArray(pa.array(np_values)),
-        lambda np_values: pd.Series(ArrowExtensionArray(pa.array(np_values))),
+        lambda np_values: pd.Series(
+            ArrowExtensionArray(pa.array(np_values)), copy=False
+        ),
     ],
     ids=["array", "chunked", "chunked_multi", "extension_array", "series"],
 )
