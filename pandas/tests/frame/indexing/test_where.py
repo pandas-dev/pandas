@@ -971,6 +971,45 @@ def test_where_listlike_other_datetimelike(dtype, ncols):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
+def test_where_listlike_other_datetimelike_one_per_column(dtype):
+    # GH#70533 a list with one value per column broadcasts like it does for int64
+    if dtype == "timedelta64[ns]":
+        values = pd.array(pd.timedelta_range("1 day", periods=3), dtype=dtype)
+    else:
+        values = pd.array(pd.date_range("2016-01-01", periods=3), dtype=dtype)
+    df = pd.DataFrame({"a": values, "b": values})
+    cond = pd.DataFrame({"a": [True, False, False], "b": [True, False, False]})
+
+    result = df.where(cond, [values[1], values[2]])
+    expected = pd.DataFrame({"a": values[[0, 1, 1]], "b": values[[0, 2, 2]]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, other",
+    [
+        (pd.date_range("2016-01-01", periods=3), ["2020-01-01", "2020-01-02"]),
+        (pd.period_range("2016-01-01", periods=3, freq="D"), ["2020-01-01"] * 2),
+        (pd.timedelta_range("1 day", periods=3), ["2D", "3D"]),
+    ],
+)
+@pytest.mark.parametrize("inplace", [True, False])
+def test_mask_listlike_other_datetimelike_strings(values, other, inplace):
+    # GH#70533 strings in a list other are parsed to the column's dtype
+    df = pd.DataFrame({"a": values})
+    cond = pd.DataFrame({"a": [False, True, True]})
+    expected = pd.DataFrame(
+        {"a": values[:1].append(pd.Index(other, dtype=values.dtype))}
+    )
+    other = ["NaT", *other]
+
+    result = df.mask(cond, other, inplace=inplace)
+    if inplace:
+        result = df
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "values",
     [

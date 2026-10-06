@@ -1832,9 +1832,9 @@ class EABackedBlock(Block):
 
         nrows = self.shape[-1]
         if len(arg) not in (1, nrows):
-            if len(arg) == n_selected:
-                # putmask with one value per selected position: pass it
-                #  through unchanged, as before this alignment was added
+            if len(arg) == n_selected or (self.ndim == 2 and len(arg) == self.shape[0]):
+                # one value per selected position (putmask) or per column:
+                #  pass it through unchanged, as before this alignment was added
                 return arg
             raise ValueError(
                 f"Length of values ({len(arg)}) does not match length of index "
