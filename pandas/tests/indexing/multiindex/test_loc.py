@@ -1064,7 +1064,7 @@ def test_loc_partial_key_datetime64_on_date_level():
     #  some miss is near-certain
     dates = pd.date_range("2023-11-01", periods=10).date
     mi = pd.MultiIndex.from_product([dates, ["A", "B"], ["X"]])
-    ser = pd.Series(np.arange(len(mi)), index=mi)
+    ser = pd.Series(np.arange(len(mi), dtype=np.int64), index=mi)
     for i, day in enumerate(dates):
         key = np.datetime64(day, "D")
         result = ser.loc[(key, "B")]
