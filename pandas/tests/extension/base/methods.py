@@ -815,12 +815,13 @@ class BaseMethodsTests:
             else:
                 data.repeat(repeats, **kwargs)
 
-    def test_delete(self, data):
-        result = data.delete(0)
+    def test_delete(self, data, use_numpy):
+        # GH#26380 np.delete keeps the dtype
+        result = np.delete(data, 0) if use_numpy else data.delete(0)
         expected = data[1:]
         tm.assert_extension_array_equal(result, expected)
 
-        result = data.delete([1, 3])
+        result = np.delete(data, [1, 3]) if use_numpy else data.delete([1, 3])
         expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
         tm.assert_extension_array_equal(result, expected)
 
