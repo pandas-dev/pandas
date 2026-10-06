@@ -1160,7 +1160,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def round(  # type: ignore[override]
         self,
         freq,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous: TimeAmbiguous | None = None,
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
@@ -1177,7 +1177,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool-ndarray, 'NaT', 'raise' or None, default None
+            - None resolves each ambiguous time to whichever of its two
+              occurrences is nearer the original time.
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
@@ -1239,6 +1241,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ``nonexistent`` to control how the timestamp should be re-localized.
 
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+        >>> rng_tz.round("2h")
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         >>> rng_tz.round("2h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                       dtype='datetime64[us, Europe/Amsterdam]', freq=None)
@@ -1252,7 +1257,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def floor(
         self,
         freq,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous: TimeAmbiguous | None = None,
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
@@ -1268,7 +1273,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool-ndarray, 'NaT', 'raise' or None, default None
+            - None resolves each ambiguous time to the later of its two
+              occurrences that is not after the original time.
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
@@ -1330,6 +1337,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ``nonexistent`` to control how the timestamp should be re-localized.
 
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+        >>> rng_tz.floor("2h")
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         >>> rng_tz.floor("2h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                       dtype='datetime64[us, Europe/Amsterdam]', freq=None)
@@ -1343,7 +1353,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def ceil(
         self,
         freq,
-        ambiguous: TimeAmbiguous = "raise",
+        ambiguous: TimeAmbiguous | None = None,
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
         """
@@ -1359,7 +1369,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             frequency like 's' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : 'infer', bool-ndarray, 'NaT', 'raise' or None, default None
+            - None resolves each ambiguous time to the earlier of its two
+              occurrences that is not before the original time.
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
             - bool-ndarray where True signifies a DST time, False designates
@@ -1421,6 +1433,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ``nonexistent`` to control how the timestamp should be re-localized.
 
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+        >>> rng_tz.ceil("h")
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         >>> rng_tz.ceil("h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                       dtype='datetime64[us, Europe/Amsterdam]', freq=None)

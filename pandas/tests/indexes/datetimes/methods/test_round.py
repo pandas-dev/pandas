@@ -135,6 +135,33 @@ class TestDatetimeIndexRound:
         dti = pd.DatetimeIndex(["2020-01-01 00:00:06"]).as_unit(unit)
         tm.assert_index_equal(getattr(dti, method)(freq), dti)
 
+    @pytest.mark.parametrize(
+        "method, expected_utc",
+        [
+            ["floor", ["05:00", None, "06:00", "07:00"]],
+            ["ceil", ["05:30", None, "06:30", "07:30"]],
+            ["round", ["05:00", None, "06:00", "07:00"]],
+        ],
+    )
+    def test_round_dst_border_ambiguous_default(self, method, expected_utc, unit):
+        # GH#37592 by default each ambiguous result is resolved from the original;
+        #  01:10-04:00, NaT, 01:10-05:00, 02:10-05:00
+        utc = pd.DatetimeIndex(
+            ["2020-11-01 05:10", None, "2020-11-01 06:10", "2020-11-01 07:10"],
+            tz="UTC",
+        ).as_unit(unit)
+        dti = utc.tz_convert("America/New_York")
+        result = getattr(dti, method)("30min")
+        expected = (
+            pd.DatetimeIndex(
+                [None if x is None else f"2020-11-01 {x}" for x in expected_utc],
+                tz="UTC",
+            )
+            .as_unit(unit)
+            .tz_convert("America/New_York")
+        )
+        tm.assert_index_equal(result, expected)
+
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture
