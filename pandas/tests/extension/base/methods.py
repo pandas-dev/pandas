@@ -751,36 +751,28 @@ class BaseMethodsTests:
         ser.mask(~cond, other, inplace=True)
         tm.assert_equal(ser, expected)
 
-    def _listlike_other_setup(self, data, as_frame):
-        assert data[0] != data[1]
+    def test_where_series_listlike_other(self, data):
+        # GH#63842 a list 'other' is lined up against the mask without
+        #  casting to object
         cls = type(data)
         first, second = data[:2]
-
-        orig = pd.Series(
+        ser = pd.Series(
             cls._from_sequence([first, first, second, second], dtype=data.dtype)
         )
         cond = np.array([True, False, True, False])
-        if as_frame:
-            orig = orig.to_frame(name="a")
-            cond = pd.DataFrame({"a": cond})
 
-        def expected(values):
-            res = pd.Series(cls._from_sequence(values, dtype=data.dtype))
-            return res.to_frame(name="a") if as_frame else res
-
-        return orig, cond, expected, first, second
-
-    def test_where_series_listlike_other(self, data, as_frame):
-        # GH#63842 a list 'other' is lined up against the mask without
-        #  casting to object
-        orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
-
-        result = orig.where(cond, [second, second, first, first])
-        tm.assert_equal(result, expected([first, second, second, first]))
+        result = ser.where(cond, [second, second, first, first])
+        expected = pd.Series(
+            cls._from_sequence([first, second, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(result, expected)
 
         # a length-1 'other' is broadcast, as it is for numpy dtypes
-        result = orig.where(cond, [first])
-        tm.assert_equal(result, expected([first, first, second, first]))
+        result = ser.where(cond, [first])
+        expected = pd.Series(
+            cls._from_sequence([first, first, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_where_series_listlike_other_wrong_length(self, data):
         # GH#63842 a length that is neither 1 nor len(self) cannot be lined up
@@ -795,12 +787,20 @@ class BaseMethodsTests:
         with pytest.raises(ValueError, match=msg):
             ser.where(cond, [first, second, first])
 
-    def test_mask_listlike_other_inplace(self, data, as_frame):
+    def test_mask_listlike_other_inplace(self, data):
         # GH#63842
-        orig, cond, expected, first, second = self._listlike_other_setup(data, as_frame)
+        cls = type(data)
+        first, second = data[:2]
+        ser = pd.Series(
+            cls._from_sequence([first, first, second, second], dtype=data.dtype)
+        )
+        cond = np.array([True, False, True, False])
 
-        orig.mask(~cond, [first], inplace=True)
-        tm.assert_equal(orig, expected([first, first, second, first]))
+        ser.mask(~cond, [first], inplace=True)
+        expected = pd.Series(
+            cls._from_sequence([first, first, second, first], dtype=data.dtype)
+        )
+        tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):

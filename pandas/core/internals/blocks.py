@@ -48,11 +48,9 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_dict_like,
     is_float_dtype,
     is_integer_dtype,
     is_list_like,
-    is_numeric_dtype,
     is_scalar,
     is_string_dtype,
 )
@@ -1815,48 +1813,6 @@ class EABackedBlock(Block):
             return self
 
     @final
-    def _align_listlike_arg(self, arg, n_selected: int | None = None):
-        """
-        Convert a list-like ``other``/``new`` to an array with one entry per row.
-
-        ``EA._where``/``EA._putmask`` index the value with the mask, which a
-        raw list does not support, so it would otherwise upcast to object or
-        raise ``TypeError`` (GH#63842).  A length-1 argument is broadcast.
-        """
-        if (
-            # TODO: 2D (datetimelike) blocks are not aligned
-            self.values.ndim == 2
-            or isinstance(arg, (np.ndarray, ExtensionArray))
-            or (isinstance(arg, tuple) and not is_numeric_dtype(self.dtype))
-            or not is_list_like(arg)
-            or is_dict_like(arg)
-            or isinstance(arg, (set, frozenset))
-        ):
-            # A dict or set has no element order to line up against the mask.
-            #  Outside numeric dtypes a tuple is one element, as for object
-            #  dtype: e.g. a tuple category (GH#37681).
-            return arg
-
-        nrows = self.shape[-1]
-        if len(arg) not in (1, nrows):
-            if len(arg) == n_selected:
-                # putmask with one value per selected position: pass it
-                #  through unchanged, as before this alignment was added
-                return arg
-            raise ValueError(
-                f"Length of values ({len(arg)}) does not match length of index "
-                f"({nrows})"
-            )
-
-        # NB: not _from_sequence(dtype=self.dtype), which would coerce where we
-        #  want to raise -- str turns 9 into "9", Categorical an unknown
-        #  category into NaN -- and the raise is what upcasts to object.
-        arg = com.asarray_tuplesafe(arg)
-        if len(arg) == 1:
-            arg = arg.repeat(nrows)
-        return arg
-
-    @final
     def where(self, other, cond) -> list[Block]:
         arr = self.values.T
 
@@ -1875,8 +1831,6 @@ class EABackedBlock(Block):
             # GH#44181, GH#45135
             # Avoid a) raising for Interval/PeriodDtype and b) unnecessary object upcast
             return [self.copy(deep=False)]
-
-        other = self._align_listlike_arg(other)
 
         try:
             res_values = arr._where(cond, other).T
@@ -1948,8 +1902,6 @@ class EABackedBlock(Block):
             #  the except clause below misinterpret the EA-level ValueError
             #  as a cast failure.
             raise ValueError("Cannot modify read-only array")
-
-        new = self._align_listlike_arg(new, n_selected=int(mask.sum()))
         if values.ndim == 2:
             # GH#64620 Reorient the read-only inputs to the block's storage
             #  layout and putmask into self.values in place. We must not

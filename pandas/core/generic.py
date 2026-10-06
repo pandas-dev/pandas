@@ -10291,16 +10291,35 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif not isinstance(other, (MultiIndex, NDFrame)):
             # mainly just catching Index here
             other = extract_array(other, extract_numpy=True, extract_range=True)
+            if (
+                self.ndim == 1
+                and is_list_like(other)
+                and not isinstance(other, (np.ndarray, ExtensionArray))
+                and not is_dict_like(other)
+                and not isinstance(other, (set, frozenset))
+                and not (isinstance(other, tuple) and not is_numeric_dtype(self.dtype))
+            ):
+                # GH#63842 line up a list against the mask like an ndarray. A
+                #  dict or set has no element order, and outside numeric dtypes
+                #  a tuple is one element, as for object dtype (GH#37681).
+                other = common.asarray_tuplesafe(other)
 
         if isinstance(other, (np.ndarray, ExtensionArray)):
+            if self.ndim == 1 and other.ndim == 1 and len(other) == 1:
+                # broadcast like a scalar (GH#2745, GH#4192)
+                other = other.repeat(len(self))
+
             if other.shape != self.shape:
                 if self.ndim != 1:
-                    # In the ndim == 1 case we may have
-                    #  other length 1, which we treat as scalar (GH#2745, GH#4192)
-                    #  or len(other) == icond.sum(), which we treat like
-                    #  __setitem__ (GH#3235)
                     raise ValueError(
                         "other must be the same shape as self when an ndarray"
+                    )
+                if other.ndim == 1 and not (inplace and len(other) == cond.sum()):
+                    # inplace with one value per selected position is treated
+                    #  like __setitem__ (GH#3235)
+                    raise ValueError(
+                        f"Length of values ({len(other)}) does not match length "
+                        f"of index ({len(self)})"
                     )
 
             # we are the same shape, so create an actual object for alignment

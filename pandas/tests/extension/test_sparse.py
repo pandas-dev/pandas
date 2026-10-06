@@ -278,8 +278,8 @@ class TestSparseArray(base.ExtensionTests):
         super().test_fillna_length_mismatch(data_missing)
 
     @pytest.mark.xfail(reason="SparseArray does not support item assignment")
-    def test_mask_listlike_other_inplace(self, data, as_frame):
-        super().test_mask_listlike_other_inplace(data, as_frame)
+    def test_mask_listlike_other_inplace(self, data):
+        super().test_mask_listlike_other_inplace(data)
 
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]

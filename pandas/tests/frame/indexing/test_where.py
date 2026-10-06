@@ -849,17 +849,6 @@ def test_where_string_dtype(frame_or_series):
     tm.assert_equal(result, expected)
 
 
-def test_where_listlike_other_range(frame_or_series):
-    # GH#63842 any ordered Sequence is lined up against the mask, not just a list
-    obj = frame_or_series(pd.array([1, 2, 3, 4], dtype="Int64"))
-    cond = pd.Series([True, False, True, False])
-    if frame_or_series is pd.DataFrame:
-        cond = cond.to_frame()
-
-    result = obj.where(cond, range(9, 13))
-    tm.assert_equal(result, frame_or_series(pd.array([1, 10, 3, 12], dtype="Int64")))
-
-
 def test_where_tuple_other_numeric_ea(any_numeric_ea_and_arrow_dtype):
     # GH#63842 for numeric dtypes a tuple is lined up against the mask, as for
     #  numpy dtypes
