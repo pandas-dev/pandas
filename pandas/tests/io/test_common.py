@@ -545,6 +545,23 @@ def test_to_csv_file_url_query(tmp_path):
     tm.assert_frame_equal(pd.read_csv(url, index_col=0), df)
 
 
+@pytest.mark.parametrize("url_prefix", ["file://127.0.0.1", "http://127.0.0.1:1"])
+def test_to_csv_unwritable_url_raises(tmp_path, monkeypatch, url_prefix):
+    # GH#55828 raise instead of reading the URL and discarding the write
+    def fail_urlopen(*args, **kwargs):
+        raise AssertionError("urlopen should not be called")
+
+    monkeypatch.setattr(icom, "urlopen", fail_urlopen)
+    path = tmp_path / "a.csv"
+    path.write_text("old", encoding="utf-8")
+    url = url_prefix + path.as_uri().removeprefix("file://")
+    df = pd.DataFrame({"a": [1, 2]})
+
+    with pytest.raises(ValueError, match="Cannot write to URL"):
+        df.to_csv(url)
+    assert path.read_text(encoding="utf-8") == "old"
+
+
 def test_excel_writer_append_file_url(tmp_path):
     # GH#55828 ExcelWriter's mode="a" opens the file with "r+b"
     pytest.importorskip("openpyxl")
