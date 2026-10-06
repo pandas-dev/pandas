@@ -1746,7 +1746,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             buf.write(result)
         elif is_traversable(buf):
             # GH#49906; Traversable declares only read modes, but zipfile.Path can write
-            with buf.open("w", encoding="utf-8") as f:  # type: ignore[call-overload]
+            with buf.open(  # type: ignore[call-overload]
+                "w", encoding="utf-8", newline=""
+            ) as f:
                 f.write(result)
         else:
             with open(buf, "w", encoding="utf-8") as f:
