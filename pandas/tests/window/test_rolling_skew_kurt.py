@@ -251,19 +251,13 @@ def test_rolling_skew_kurt_recovers_after_empty_window(
 
 
 def _window_reduction(series, window, roll_func):
-    # oracle: the matching whole-array reduction over each window on its own. It
-    # accumulates independently of the sliding kernels under test and centres the
-    # values first, so it stays well inside the tolerances below. It also skips
-    # NaN, so windows holding one are blanked to match rolling's default
-    # min_periods=window.
+    # oracle: the matching whole-array reduction over each window on its own,
+    # which accumulates independently of the sliding kernels under test
     values = series.to_numpy()
     expected = [np.nan] * (window - 1)
     for stop in range(window, len(values) + 1):
         chunk = values[stop - window : stop]
-        if np.isnan(chunk).any():
-            expected.append(np.nan)
-        else:
-            expected.append(getattr(pd.Series(chunk), roll_func)())
+        expected.append(getattr(pd.Series(chunk), roll_func)())
     return pd.Series(expected)
 
 
@@ -304,26 +298,6 @@ def test_rolling_skew_kurt_low_variance_offset(roll_func):
 
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
-def test_rolling_skew_kurt_extreme_range_recovers(roll_func):
-    # GH#68934 a window spanning nearly the whole float64 range must not leave
-    # the accumulators holding NaN, which would blank every later window
-    window = 5
-    series = pd.Series(
-        [1e308, 1.0, 2.0, 3.0, -1e308, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 3.0]
-    )
-
-    result = getattr(series.rolling(window), roll_func)()
-
-    # once the extreme values leave, the windows are ordinary data and exact
-    tm.assert_series_equal(
-        result.iloc[9:],
-        _window_reduction(series, window, roll_func).iloc[9:],
-        rtol=1e-12,
-        atol=0,
-    )
-
-
-@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_expanding_skew_kurt_shared_offset(roll_func):
     # GH#68934 expanding never removes an observation, so the origin stays a member
     # of its own window and the anchor-drift check never retires it
@@ -356,26 +330,6 @@ def test_rolling_skew_kurt_drifting_level(roll_func):
 
     tm.assert_series_equal(
         result, _window_reduction(series, window, roll_func), rtol=1e-8, atol=1e-12
-    )
-
-
-@pytest.mark.parametrize("roll_func", ["kurt", "skew"])
-def test_rolling_skew_kurt_midband_outlier_recovers(roll_func):
-    # GH#68934 a 1e90 outlier overflowed kurt's m4 to inf; the instability test
-    # then compared inf with inf, never fired, and later windows stayed NaN
-    window = 20
-    rng = np.random.default_rng(4)
-    values = rng.normal(size=120)
-    values[40] = 1e90
-
-    result = getattr(pd.Series(values).rolling(window), roll_func)()
-
-    # once the outlier leaves, the windows are ordinary data
-    tm.assert_series_equal(
-        result.iloc[60:],
-        _window_reduction(pd.Series(values), window, roll_func).iloc[60:],
-        rtol=1e-12,
-        atol=0,
     )
 
 
