@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import io
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -86,6 +87,55 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
         # directly as large_string avoids a cast in the conversion to pandas
         return pa.large_string()
     return None
+
+
+def _read_pyarrow_table(
+    src: ReadBuffer[bytes], encoding: str, read_options, **kwargs
+) -> pa.Table:
+    """
+    Read ``src`` with ``pyarrow.csv.read_csv``.
+
+    GH#62635 pyarrow infers the number of columns from the complete lines of
+    its first block, so it cannot parse a source that fits in one block and
+    whose only line (after skipped rows) lacks a terminator. A seekable
+    source like that is re-read with a newline appended.
+    """
+    pa = import_optional_dependency("pyarrow")
+    pyarrow_csv = import_optional_dependency("pyarrow.csv")
+
+    try:
+        start = src.tell() if src.seekable() else None
+    except (AttributeError, OSError, ValueError):
+        start = None
+    try:
+        return pyarrow_csv.read_csv(src, read_options=read_options, **kwargs)
+    except pa.ArrowInvalid as err:
+        if start is None or "cannot infer number of columns" not in str(err):
+            raise
+        src.seek(start)
+        block_size = read_options.block_size
+        data = b""
+        # read() may return fewer bytes than requested before EOF
+        while len(data) <= block_size and (
+            chunk := src.read(block_size + 1 - len(data))
+        ):
+            data += chunk
+        if len(data) > block_size:
+            # more than one block (e.g. a first row too long for pyarrow):
+            #  re-parsing a truncated prefix would drop rows
+            raise
+        # decode first: in e.g. UTF-16 a newline is not b"\n". surrogateescape
+        # keeps undecodable bytes as they are, as pyarrow reads them
+        try:
+            text = data.decode(encoding, "surrogateescape")
+            terminated = (text + "\n").encode(encoding, "surrogateescape")
+        except UnicodeError:
+            raise err from None
+        if text.endswith(("\n", "\r")):
+            raise
+    return pyarrow_csv.read_csv(
+        io.BytesIO(terminated), read_options=read_options, **kwargs
+    )
 
 
 class ArrowParserWrapper(ParserBase):
@@ -556,11 +606,13 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
         convert_options = self._get_convert_options()
+        read_options = pyarrow_csv.ReadOptions(**self.read_options)
 
         try:
-            table = pyarrow_csv.read_csv(
+            table = _read_pyarrow_table(
                 self.src,
-                read_options=pyarrow_csv.ReadOptions(**self.read_options),
+                self.encoding,
+                read_options=read_options,
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
                 convert_options=convert_options,
             )

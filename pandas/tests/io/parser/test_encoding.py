@@ -14,10 +14,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    EmptyDataError,
-    ParserWarning,
-)
+from pandas.errors import ParserWarning
 
 import pandas as pd
 import pandas._testing as tm
@@ -50,7 +47,6 @@ def test_text_buffer_encoding_errors(all_parsers, encoding_errors, expected):
     tm.assert_frame_equal(result, pd.DataFrame({"a": [expected]}))
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -82,6 +78,24 @@ A,B,C
     with TextIOWrapper(BytesIO(data.encode(utf8)), encoding=utf8) as bytes_buffer:
         result = parser.read_csv(temp_file, encoding=encoding, **kwargs)
         expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("encoding", ["utf-16", "utf-16-be", "utf-32"])
+def test_single_line_without_line_terminator(all_parsers, encoding):
+    # GH#62635 the missing terminator must be added in the source encoding
+    parser = all_parsers
+    data = BytesIO("1,2,3".encode(encoding))
+    result = parser.read_csv(data, encoding=encoding, names=["a", "b", "c"])
+    expected = pd.DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_single_line_without_line_terminator_undecodable(pyarrow_parser_only):
+    # GH#62635 undecodable bytes are read as with a trailing newline
+    parser = pyarrow_parser_only
+    result = parser.read_csv(BytesIO(b"\xff,2"), header=None)
+    expected = parser.read_csv(BytesIO(b"\xff,2\n"), header=None)
     tm.assert_frame_equal(result, expected)
 
 
@@ -132,14 +146,6 @@ def test_utf8_bom_removal(all_parsers, data, kwargs, expected, encoding):
     def _encode_data_with_bom(_data):
         bom_data = (bom + _data).encode("utf-8")
         return BytesIO(bom_data)
-
-    if (
-        parser.engine == "pyarrow"
-        and data == "\n1"
-        and kwargs.get("skip_blank_lines", True)
-    ):
-        # CSV parse error: Empty CSV file or block: cannot infer number of columns
-        pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
     result = parser.read_csv(
         _encode_data_with_bom(data),
@@ -353,7 +359,7 @@ def test_readcsv_memmap_utf8(all_parsers, temp_file):
 
 
 @pytest.mark.parametrize("mode", ["w+b", "w+t"])
-def test_not_readable(all_parsers, mode):
+def test_not_readable(all_parsers, mode, request):
     # GH43439
     parser = all_parsers
     content = b"abcd"
@@ -363,16 +369,13 @@ def test_not_readable(all_parsers, mode):
         handle.write(content)
         handle.seek(0)
         if parser.engine == "pyarrow":
-            # pyarrow's CSV reader cannot read from a SpooledTemporaryFile
             if "t" in mode:
                 msg = "The 'pyarrow' engine can only read from a binary file object"
                 with pytest.raises(TypeError, match=msg):
                     parser.read_csv(handle)
-            else:
-                msg = "No columns to parse from file"
-                with pytest.raises(EmptyDataError, match=msg):
-                    parser.read_csv(handle)
-            return
+                return
+            reason = "empty columns get float64 dtype instead of object"
+            request.applymarker(pytest.mark.xfail(reason=reason))
         df = parser.read_csv(handle)
     expected = pd.DataFrame([], columns=["abcd"])
     tm.assert_frame_equal(df, expected)
