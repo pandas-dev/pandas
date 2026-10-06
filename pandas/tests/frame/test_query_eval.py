@@ -1557,6 +1557,42 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df["A"] + df["def"]
         tm.assert_series_equal(res, expect)
 
+    @pytest.mark.parametrize(
+        "quoted, label",
+        [
+            ("`new-col`", "new-col"),
+            ("`new col`", "new col"),
+            ("`new``col`", "new`col"),
+            ("`new☺`", "new☺"),
+            ("`class`", "class"),
+        ],
+    )
+    def test_assign_to_new_backtick_column(self, df, quoted, label):
+        # GH#47699
+        res = df.eval(f"{quoted} = A + `B B`")
+        expect = df.assign(**{label: df["A"] + df["B B"]})
+        tm.assert_frame_equal(res, expect)
+
+    @pytest.mark.parametrize("label", ["B B", "F-F", "E.E", "def"])
+    def test_assign_to_existing_backtick_column(self, df, label):
+        # GH#47699
+        res = df.eval(f"`{label}` = A * 2")
+        expect = df.assign(**{label: df["A"] * 2})
+        tm.assert_frame_equal(res, expect)
+
+    def test_assign_to_backtick_column_used_by_later_line(self, df):
+        # GH#47699
+        res = df.eval("`new-col` = A + `B B`\nC = `new-col` * 2")
+        expect = df.assign(**{"new-col": df["A"] + df["B B"]})
+        expect["C"] = expect["new-col"] * 2
+        tm.assert_frame_equal(res, expect)
+
+    def test_assign_to_backtick_column_with_target(self, df):
+        # GH#47699
+        res = pd.eval("`new-col` = df.A + df['B B']", target=df)
+        expect = df.assign(**{"new-col": df["A"] + df["B B"]})
+        tm.assert_frame_equal(res, expect)
+
     def test_unneeded_quoting(self, df):
         res = df.query("`A` > 2")
         expect = df[df["A"] > 2]
