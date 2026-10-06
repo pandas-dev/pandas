@@ -87,7 +87,7 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- :meth:`Series.argsort` arguments ``order`` and ``stable`` now match the behaviour of ``numpy.argsort`` instead of doing nothing (:issue:`64255`)
+- :meth:`Series.argsort` arguments ``order`` and ``stable`` now match the behaviour of ``numpy.argsort`` instead of being discarded without doing anything (:issue:`64255`)
 - APIs that accept an ``engine="numba"`` parameter with ``engine_kwargs`` will no longer pass through a ``nopython`` argument to ``numba.jit``. This argument has had no effect since numba 0.59.0 (:issue:`64483`).
 -
 

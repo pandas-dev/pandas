@@ -3,6 +3,7 @@ from importlib.metadata import version
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 
 from pandas import (
@@ -112,7 +113,7 @@ class TestSeriesArgsort:
         tm.assert_numpy_array_equal(true_indexer.values, true_expected)
 
     @pytest.mark.skipif(
-        version("numpy") < "2",
+        not np_version_gt2,
         reason="np.argsort kwarg 'stable' was added in NumPy version 2.0.0",
     )
     def test_argsort_numpy_stable(self, argsort_stability_series):
