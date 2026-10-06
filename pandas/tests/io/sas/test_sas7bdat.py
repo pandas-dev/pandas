@@ -870,7 +870,7 @@ def test_mix_page_row_count_larger_than_page_raises(datapath, row_count):
 def test_row_count_larger_than_file_raises(
     datapath, tmp_path, fname, field_offset, fmt, from_path
 ):
-    # GH#70702 read() allocates its output for row_count rows before reading
+    # GH#70721 read() allocates its output for row_count rows before reading
     #  any, so a corrupt count could exhaust memory instead of raising.
     with open(datapath("io", "sas", "data", fname), "rb") as fd:
         data = bytearray(fd.read())
@@ -892,7 +892,7 @@ def _productsales_claiming_100000_rows(datapath):
 
 
 def test_row_count_larger_than_file_counts_rows_already_read(datapath):
-    # GH#70702 productsales can hold at most 1546 rows, so the first chunk is
+    # GH#70721 productsales can hold at most 1546 rows, so the first chunk is
     #  within that and the second is not
     data = _productsales_claiming_100000_rows(datapath)
     with pd.read_sas(
@@ -904,7 +904,7 @@ def test_row_count_larger_than_file_counts_rows_already_read(datapath):
 
 
 def test_truncated_file_reads_the_chunks_it_holds(datapath):
-    # GH#70702 the row-count bound is checked per read, so a truncated file
+    # GH#70721 the row-count bound is checked per read, so a truncated file
     #  still yields its leading chunks; see test_0x00_control_byte
     fname = datapath("io", "sas", "data", "0x00controlbyte.sas7bdat.bz2")
     with bz2.open(fname) as fd:
