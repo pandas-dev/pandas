@@ -176,9 +176,11 @@ class TestCommon:
         assert index.copy(name=("mario",)).name == ("mario",)
         assert index.copy(name=("mario",), deep=True).name == ("mario",)
 
+        msg = "Passing a list-like 'name'"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert index.copy(name=["mario"]).name == "mario"
+
         msg = f"{type(index).__name__}.name must be a hashable type"
-        with pytest.raises(TypeError, match=msg):
-            index.copy(name=["mario"])
         with pytest.raises(TypeError, match=msg):
             index.copy(name=["mario", "luigi"])
 
