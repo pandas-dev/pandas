@@ -2296,9 +2296,8 @@ def test_apply_categorical_not_retained():
     tm.assert_series_equal(result, pd.Series([3, 2], index=["A", "B"]))
 
 
-def test_apply_ea_dtype_falls_back_when_cast_raises():
-    # GH#61812 retaining the dtype must not make a working apply raise; the
-    #  cast is allowed to reject values the dtype cannot hold
+def test_apply_ea_dtype_falls_back_for_unholdable_value():
+    # GH#61812 results the dtype cannot hold are inferred as before
     df = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, dtype="Int64")
     result = df.apply(lambda x: pd.NaT)
     expected = pd.Series([pd.NaT, pd.NaT], index=["A", "B"], dtype="datetime64[s]")
@@ -2309,6 +2308,18 @@ def test_apply_ea_dtype_falls_back_when_cast_raises():
     result = df.apply(lambda x: 2**70)
     expected = pd.Series([2**70, 2**70], index=["A", "B"], dtype=object)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_ea_dtype_falls_back_when_cast_raises():
+    # GH#61812 retaining the dtype must not make a working apply raise
+    class RaisingCastArray(pd.arrays.IntegerArray):
+        def _cast_pointwise_result(self, values):
+            raise RuntimeError
+
+    arr = pd.array([1, 2], dtype="Int64")
+    df = pd.DataFrame({"A": RaisingCastArray(arr._data, arr._mask)})
+    result = df.apply(lambda x: 5)
+    tm.assert_series_equal(result, pd.Series([5], index=["A"]))
 
 
 def test_apply_ea_dtype_falls_back_for_non_ea_result():
