@@ -762,9 +762,7 @@ class TestReaders:
 
         df = pd.DataFrame({"a": [1, 2], "b": [741528, "IPECL3"]})
         df.to_excel(tmp_excel, sheet_name="test", index=False)
-        result = pd.read_excel(
-            tmp_excel, sheet_name="test", dtype_backend="pyarrow"
-        )
+        result = pd.read_excel(tmp_excel, sheet_name="test", dtype_backend="pyarrow")
         # Column "b" has mixed types, which pyarrow cannot convert, so it
         #  falls back to object dtype, matching the default behaviour
         #  without dtype_backend="pyarrow"
