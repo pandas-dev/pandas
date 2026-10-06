@@ -4492,7 +4492,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If ``True``, perform a stable sort. Equivalent to ``kind=stable``, and
             cannot be used together with ``kind``.
 
-            .. versionchanged:: 3.1.0
+            .. versionchanged:: 3.2.0
 
                 This could previously be used as a positional argument, although it did
                 not do anything. For compatibility with Numpy's API, its use as a
