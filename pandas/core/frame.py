@@ -13727,6 +13727,8 @@ class DataFrame(NDFrame, OpsMixin):
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
         sort : bool, default True
             Sort group keys. Get better performance by turning this off.
+            Raises if the group keys cannot be sorted; use ``sort=False`` for
+            such keys.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
             the groups will appear in the same order as they did in the original
